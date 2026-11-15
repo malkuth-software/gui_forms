@@ -356,6 +356,34 @@ void test_modal_blocking() {
     require(harness.primary.clicks == 1, "afterwards the primary window takes clicks again");
 }
 
+// A-gf-host-02-F2: a modal loop that begins while a button is held on the
+// window it blocks. The press kept the pointer for that window; once the
+// modal loop blocks it, the modal window takes the release and later
+// presses (before, every record went to the blocked owner and the loop
+// below never ended).
+void test_modal_begun_during_a_press() {
+    Harness harness;
+    harness.use_boxes();
+    TestWindow dialog;
+    const HostWindowId window = harness.open(dialog, "dialog");
+    harness.post_pointer(SurfacePointerAction::move, Point{50.0, 30.0}, 0.0);
+    harness.post_pointer(SurfacePointerAction::down, Point{50.0, 30.0}, 0.0);
+    harness.settle();
+    require((*harness.runtime).pressed_window.valid(), "the press on the primary window holds the pointer");
+    // Queued for the modal loop: the release over the primary window, then
+    // a click on the dialog's close box.
+    harness.post_pointer(SurfacePointerAction::up, Point{50.0, 30.0}, 10.0);
+    harness.post_pointer(SurfacePointerAction::move, Point{530.0, 186.0}, 20.0);
+    harness.post_pointer(SurfacePointerAction::down, Point{530.0, 186.0}, 20.0);
+    harness.post_pointer(SurfacePointerAction::up, Point{530.0, 186.0}, 30.0);
+    const HostServiceStatus status = (*(*harness.runtime).windowing).run_modal(window);
+    require(status.accepted(), "the modal loop begun during a press ran");
+    require(dialog.closed, "the dialog's close box took the click although a press was held on its owner");
+    require(harness.primary.clicks == 0, "the blocked primary window took no click");
+    harness.click(Point{50.0, 30.0}, 1000.0);
+    require(harness.primary.clicks == 1, "afterwards the primary window takes clicks again");
+}
+
 // With the capsule, the owned window's capsule lies at x 468 to 544, y
 // 176.5 to 196.5: its left half to 496, the question mark to 516, then its
 // right half.
@@ -536,6 +564,7 @@ int main() {
         test_close_box();
         test_focus_order();
         test_modal_blocking();
+        test_modal_begun_during_a_press();
         test_capsule_three_click_close();
         test_capsule_left_half();
         test_capsule_right_half_moves();

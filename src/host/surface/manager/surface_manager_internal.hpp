@@ -367,6 +367,11 @@ public:
     // A layer was moved, shown, hidden, restacked or changed state: the
     // next turn composes the difference.
     void scene_changed() noexcept { scene_dirty_ = true; }
+    // Begins a nested modal loop for `modal`: the desk blocks every window
+    // it does not own, and a press held on a window now blocked no longer
+    // keeps the pointer, so the modal window takes the release and later
+    // presses (A-gf-host-02-F2).
+    void begin_modal_scope(HostWindowId modal);
     // The cursor the window under the pointer asks for: the host's, or the
     // drawn one.
     void show_cursor(CursorKind cursor);

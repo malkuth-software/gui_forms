@@ -1364,9 +1364,16 @@ void Runtime::place_input() {
     host.place_text_input(box, editing);
 }
 
+void Runtime::begin_modal_scope(HostWindowId modal) {
+    desk.begin_modal(modal);
+    if (pressed_window.valid() && desk.blocked(pressed_window)) pressed_window = {};
+    if (pressed_part.window.valid() && desk.blocked(pressed_part.window)) pressed_part = {};
+}
+
 SurfaceDeskHit Runtime::pointer_target(Point point) const noexcept {
     SurfaceDeskHit hit = desk.hit(point);
-    if (!pressed_window.valid()) return hit;
+    // A pressed window a modal loop blocked keeps nothing (A-gf-host-02-F2).
+    if (!pressed_window.valid() || desk.blocked(pressed_window)) return hit;
     const std::optional<Rect> content = desk.content(pressed_window);
     if (!content.has_value()) return hit;
     hit.window = pressed_window;

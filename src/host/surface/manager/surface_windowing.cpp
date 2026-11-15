@@ -190,7 +190,7 @@ HostServiceStatus SurfaceWindowing::hide_impl(HostWindowId window) {
 HostServiceStatus SurfaceWindowing::run_modal_impl(HostWindowId window) {
     if (runtime_.window(window) == nullptr) return {HostServiceError::after_shutdown};
     const std::optional<HostWindowId> owner_id = owner(window);
-    runtime_.desk.begin_modal(window);
+    runtime_.begin_modal_scope(window);
     runtime_.activate(window, true);
     const HostWindowId main_window = primary();
     while (runtime_.window(window) != nullptr && !runtime_.quitting &&

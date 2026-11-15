@@ -221,7 +221,7 @@ HostDialogResult message_dialog(NativeWindow& owner, const HostDialogRequest& re
         failed.status.error = HostServiceError::backend_failure;
         return failed;
     }
-    runtime.desk.begin_modal(id);
+    runtime.begin_modal_scope(id);
     runtime.activate(id, true);
     while (!state.done && !owner.closed && !runtime.quitting) runtime.step();
     help_key.disconnect();
