@@ -606,10 +606,15 @@ std::vector<std::string> ObjectView::range_selection(
     const std::size_t anchor_index = resolved_anchor.value_or(target_index);
     const std::size_t first = std::min(anchor_index, target_index);
     const std::size_t last = std::max(anchor_index, target_index);
+    // Item identities are unique (set_items refuses a duplicate), so an item
+    // of the range can repeat only an identity already selected, which
+    // selected_lookup_ answers in constant time. Searching `result` per item
+    // made a long range quadratic (A-gf-controls-09-F3); the result and its
+    // order are unchanged.
+    result.reserve(result.size() + (last - first + 1U));
     for (std::size_t index = first; index <= last; ++index) {
-        if (!items_[index].enabled ||
-            std::find(result.begin(), result.end(), items_[index].stable_id) !=
-                result.end()) continue;
+        if (!items_[index].enabled) continue;
+        if (preserve_existing && selected_lookup_.contains(items_[index].stable_id)) continue;
         result.push_back(items_[index].stable_id);
     }
     return result;

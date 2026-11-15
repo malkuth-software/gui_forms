@@ -790,6 +790,17 @@ void test_object_multiselection_pointer_keyboard_and_semantics() {
                 (*objects).focused_id() == "multi.6",
             "range selection must preserve anchor and move independent focus");
 
+    // A-gf-controls-09-F3: Shift+Command extends from the anchor and keeps
+    // the existing selection; an item already selected is not repeated.
+    pointer_click(window, semantic_center(*objects, "multi.1"),
+                  PointerButton::primary, Modifier::meta | Modifier::shift);
+    require_selection(*objects, {"multi.1", "multi.2", "multi.3", "multi.4", "multi.5", "multi.6"},
+                      "Shift+Command range keeps the selection and adds the new items, in model order");
+    pointer_click(window, semantic_center(*objects, "multi.6"),
+                  PointerButton::primary, Modifier::shift);
+    require_selection(*objects, {"multi.3", "multi.4", "multi.5", "multi.6"},
+                      "a plain Shift range replaces the selection again");
+
     std::string context_id{};
     SubscriptionToken context = (*objects).context_requested().subscribe(
         RecordObjectContextId(context_id));
