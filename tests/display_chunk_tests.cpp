@@ -740,6 +740,27 @@ void test_a_nested_occluder_reopens_its_saves() {
             "bands must close the save open at the surface, which is then reopened without drawing");
 }
 
+void test_painters_sharing_a_provider_share_its_measurement_identity() {
+    // Each frame records with a fresh RecordingPainter over the window's provider, so a
+    // measurement cache keyed on measurement_identity() must survive across frames, while a
+    // painter over another provider, or measuring by estimate, must not match it.
+    using detail::RecordingPainter;
+    RecordingPainter provider;
+    RecordingPainter other_provider;
+    RecordingPainter first_frame(&provider);
+    RecordingPainter second_frame(&provider);
+    RecordingPainter elsewhere(&other_provider);
+    RecordingPainter estimating;
+    require(first_frame.measurement_identity() == second_frame.measurement_identity(),
+            "painters over one provider must share its measurement identity");
+    require(first_frame.measurement_identity() == provider.measurement_identity(),
+            "a painter must report its provider's measurement identity");
+    require(elsewhere.measurement_identity() != first_frame.measurement_identity(),
+            "painters over different providers must differ");
+    require(estimating.measurement_identity() != first_frame.measurement_identity(),
+            "an estimating painter must not match a provider");
+}
+
 } // namespace
 
 int main() {
@@ -762,6 +783,7 @@ int main() {
         test_occluded_replay_paints_beneath_only_where_it_shows();
         test_a_moved_shadow_keeps_its_cache();
         test_a_nested_occluder_reopens_its_saves();
+        test_painters_sharing_a_provider_share_its_measurement_identity();
         std::cout << "gui_forms_display_chunk_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

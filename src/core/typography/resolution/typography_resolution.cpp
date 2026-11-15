@@ -2,7 +2,9 @@
 #include "gui_forms/text.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
+#include <cstdint>
 
 namespace gui_forms {
 
@@ -89,6 +91,29 @@ TextExtent text_extent_of(const ResolvedTextLayout& layout) noexcept {
     extent.line_gap = layout.line_gap;
     extent.status = layout.status;
     return extent;
+}
+
+namespace {
+
+// The next TextMetricsProvider::metrics_identity. 64 bits counted from 1 do
+// not wrap in a process's life; 0 is never handed out.
+std::atomic<std::uint64_t> next_metrics_identity{1U};
+
+std::uint64_t take_metrics_identity() noexcept {
+    const std::uint64_t taken = next_metrics_identity.fetch_add(1U, std::memory_order_relaxed);
+    return taken;
+}
+
+} // namespace
+
+TextMetricsProvider::TextMetricsProvider() noexcept : metrics_identity_(take_metrics_identity()) {}
+
+TextMetricsProvider::TextMetricsProvider(const TextMetricsProvider&) noexcept
+    : metrics_identity_(take_metrics_identity()) {}
+
+TextMetricsProvider& TextMetricsProvider::operator=(const TextMetricsProvider&) noexcept {
+    metrics_identity_ = take_metrics_identity();
+    return *this;
 }
 
 TextExtent TextMetricsProvider::measure_text_extent_utf8(

@@ -2693,7 +2693,27 @@ Related types
    Portable non-owning service seam. Implementations may use a private text engine, but this contract contains no HarfBuzz, FreeType, Skia, AppKit, or Win32 type. A Window invalidates measurement when the installed provider changes.
 
 
+   .. rubric:: Construction
+
+   .. cpp:function:: TextMetricsProvider() noexcept
+
+   .. cpp:function:: TextMetricsProvider(const TextMetricsProvider& other) noexcept
+
+      A copy, or a provider assigned from another, is a new provider for metrics_identity(): it takes a fresh number.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::uint64_t metrics_identity() const noexcept
+
+      A number naming this provider object, unique in the process and never reused (an address is: a later provider can be made where an earlier one was). Never 0.
+
+
    .. rubric:: Extension points
+
+   .. cpp:function:: virtual std::uint64_t measurement_identity() const noexcept
+
+      The identity of what this provider's measurements come from: by default itself; a provider that measures only through another one (the recording painter) names that one's. Two calls that answer the same identity measure the same text and font alike, so a control may keep measurements across paints keyed on it.
 
    .. cpp:function:: virtual ResolvedTextLayout resolve_text_layout_utf8(std::string_view utf8, FontSpec effective_font) = 0
 

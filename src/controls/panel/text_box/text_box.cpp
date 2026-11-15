@@ -898,22 +898,23 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
                                                      : password_character.read())
         : std::string{};
     // The positions measure every grapheme prefix of the presentation, n
-    // measurements of up to n bytes. They depend only on the text revision,
-    // the presentation, the font, the metrics provider and the device scale
-    // (the painter measures through the window's provider), so a paint that
-    // changes none of them (a caret blink, a selection or scroll change)
-    // reuses them instead of measuring again (A-gf-controls-09-F4).
+    // measurements of up to n bytes, with this painter. They depend only on
+    // what the painter measures with (measurement_identity: the window's
+    // provider for the frames' recording painters, the painter itself
+    // otherwise), the text revision, the presentation, the font and the
+    // scales, so a paint that changes none of them (a caret blink, a
+    // selection or scroll change) reuses them instead of measuring again
+    // (A-gf-controls-09-F4).
     const Window* const painted_window = window();
-    const TextMetricsProvider* const provider =
-        painted_window == nullptr ? nullptr : (*painted_window).text_metrics_provider();
+    const std::uint64_t measured_with = painter.measurement_identity();
     const double device_scale = painted_window == nullptr ? 1.0 : (*painted_window).scale();
     const double text_scale = effective_text_scale();
     const std::size_t count = (*editing_).store().grapheme_count().value();
     const std::uint64_t revision = (*editing_).store().revision();
     const bool positions_current = !layout_positions_.empty() && layout_positions_.size() == count + 1U &&
-        layout_revision_ == revision &&
+        layout_measurement_ == measured_with && layout_revision_ == revision &&
         layout_offsets_.size() == count + 1U && layout_text_scale_ == text_scale && layout_font_ == content_font &&
-        layout_provider_ == provider && layout_device_scale_ == device_scale && layout_presented_ == presented;
+        layout_device_scale_ == device_scale && layout_presented_ == presented;
     Size presented_size = layout_presented_size_;
     if (!positions_current) {
         layout_positions_.clear();
@@ -935,10 +936,10 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
             layout_positions_.push_back(prefix_size.width);
             presented_size = prefix_size;
         }
+        layout_measurement_ = measured_with;
         layout_revision_ = revision;
         layout_presented_ = presented;
         layout_font_ = content_font;
-        layout_provider_ = provider;
         layout_device_scale_ = device_scale;
         layout_presented_size_ = presented_size;
     }

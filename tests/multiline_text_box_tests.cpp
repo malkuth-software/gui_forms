@@ -888,8 +888,10 @@ public:
 };
 
 // A-gf-controls-09-F4: a single-line box measures its grapheme prefixes
-// once per text, font, provider and scale; a repaint for a caret blink or a
-// selection change reuses them, and a text change measures again.
+// once per measuring source, text, font and scale; a repaint with the same
+// painter for a caret blink or a selection change reuses them, a text
+// change measures again, and another painter (whose metrics may differ)
+// measures again.
 void single_line_positions_survive_repaints() {
     std::shared_ptr<TextBox> line = make_control<TextBox>(StableId("positions"));
     (*line).set_requested_bounds({0, 0, 200, 28});
@@ -897,21 +899,25 @@ void single_line_positions_survive_repaints() {
     Window window(line, {200.0, 28.0});
     window.perform_layout();
     require(window.request_focus(line), "the single-line box takes focus");
-    MeasureCountingPainter first{};
-    (*line).on_paint(first, {0, 0, 200, 28});
-    require(first.measurements >= 12U, "the first paint measures every grapheme prefix");
-    MeasureCountingPainter repaint{};
-    (*line).on_paint(repaint, {0, 0, 200, 28});
-    require(repaint.measurements < 12U, "a repaint of the same text reuses the prefix positions");
+    MeasureCountingPainter painter{};
+    (*line).on_paint(painter, {0, 0, 200, 28});
+    require(painter.measurements >= 12U, "the first paint measures every grapheme prefix");
+    painter.measurements = 0U;
+    (*line).on_paint(painter, {0, 0, 200, 28});
+    require(painter.measurements < 12U, "a repaint of the same text reuses the prefix positions");
     (*line).select(Utf8Offset(2U), Utf8Offset(7U));
-    MeasureCountingPainter selected{};
-    (*line).on_paint(selected, {0, 0, 200, 28});
-    require(selected.measurements < 12U, "a selection change reuses the prefix positions");
+    painter.measurements = 0U;
+    (*line).on_paint(painter, {0, 0, 200, 28});
+    require(painter.measurements < 12U, "a selection change reuses the prefix positions");
+    MeasureCountingPainter other{};
+    (*line).on_paint(other, {0, 0, 200, 28});
+    require(other.measurements >= 12U && other.measurement_identity() != painter.measurement_identity(),
+            "another painter measures the prefixes again");
     (*line).text = "hello there, world";
     window.perform_layout();
-    MeasureCountingPainter changed{};
-    (*line).on_paint(changed, {0, 0, 200, 28});
-    require(changed.measurements >= 19U, "a text change measures the new prefixes");
+    other.measurements = 0U;
+    (*line).on_paint(other, {0, 0, 200, 28});
+    require(other.measurements >= 19U, "a text change measures the new prefixes");
 }
 
 // Types `text` as one text input event, as an input method or a key would.

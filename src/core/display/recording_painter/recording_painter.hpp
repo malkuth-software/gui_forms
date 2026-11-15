@@ -83,6 +83,14 @@ public:
         const LayoutAuthority expected, const Point baseline, const Color color) override;
     [[nodiscard]] Size measure_text_utf8(std::string_view text,
                                          FontSpec font) override;
+    // Every measurement goes to text_metrics_ when there is one, so the
+    // recording measures as that provider does; without one it estimates
+    // and names itself.
+    [[nodiscard]] std::uint64_t measurement_identity() const noexcept override {
+        const std::uint64_t identity =
+            text_metrics_ != nullptr ? (*text_metrics_).measurement_identity() : metrics_identity();
+        return identity;
+    }
     [[nodiscard]] TextExtent measure_text_extent_utf8(
         std::string_view text, FontSpec font) override;
     [[nodiscard]] TextResolutionStatus fill_line_break_opportunities_utf8(

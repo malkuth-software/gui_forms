@@ -136,7 +136,22 @@ struct GUI_FORMS_API TextExtent final {
 // changes.
 class GUI_FORMS_API TextMetricsProvider {
 public:
+    TextMetricsProvider() noexcept;
+    // A copy, or a provider assigned from another, is a new provider for
+    // metrics_identity(): it takes a fresh number.
+    TextMetricsProvider(const TextMetricsProvider& other) noexcept;
+    TextMetricsProvider& operator=(const TextMetricsProvider& other) noexcept;
     virtual ~TextMetricsProvider() = default;
+    // A number naming this provider object, unique in the process and never
+    // reused (an address is: a later provider can be made where an earlier
+    // one was). Never 0.
+    [[nodiscard]] std::uint64_t metrics_identity() const noexcept { return metrics_identity_; }
+    // The identity of what this provider's measurements come from: by
+    // default itself; a provider that measures only through another one
+    // (the recording painter) names that one's. Two calls that answer the
+    // same identity measure the same text and font alike, so a control may
+    // keep measurements across paints keyed on it.
+    [[nodiscard]] virtual std::uint64_t measurement_identity() const noexcept { return metrics_identity_; }
     [[nodiscard]] virtual ResolvedTextLayout resolve_text_layout_utf8(
         std::string_view utf8, FontSpec effective_font) = 0;
     // The extent resolve_text_layout_utf8 reports (TextExtent). The default
@@ -186,6 +201,9 @@ public:
     // one too small, or (the default) a provider without workspaces.
     [[nodiscard]] virtual TextExtent shape_in_workspace_utf8(
         ShapingWorkspace& workspace, std::string_view utf8, FontSpec effective_font);
+
+private:
+    std::uint64_t metrics_identity_{};
 };
 
 // Deterministic renderer-free line breaking: a line may end after a run of
