@@ -8,6 +8,7 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/host/session/host_session.hpp"
 #include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
 #include "gui_forms/host/types/host_capability/host_capability.hpp"
 #include "gui_forms/host/types/host_lifecycle_phase/host_lifecycle_phase.hpp"
@@ -1068,6 +1069,37 @@ void test_sequence_geometry_and_shutdown_guards() {
             "events after shutdown must be rejected deterministically");
 }
 
+// A window destroyed before its session (house style 4: the session
+// observes the window and does not own it). The session sees the window
+// gone, refuses later events with after_shutdown and ends without touching
+// it; its shutdown and destructor run without the window's dispatcher,
+// which went with the window (before, ~HostSession locked the freed
+// window's mutex). The sanitizer tree reports any read of the window.
+void test_session_outlives_its_window() {
+    std::shared_ptr<InputProbe> probe = make_control<InputProbe>(StableId("host.gone.probe"));
+    std::unique_ptr<Window> window = std::make_unique<Window>(probe, Size{100.0, 80.0});
+    std::unique_ptr<HostSession> session = std::make_unique<HostSession>(*window, host::headless_capabilities());
+    HostEvent attach{1, 1, HostAttachEvent{{100.0, 80.0}, 1.0}};
+    require((*session).dispatch(std::move(attach)).accepted(), "the session attaches to its window");
+    window.reset();
+    probe.reset();
+    HostEvent resize{2, 2, HostResizeEvent{{120.0, 90.0}}};
+    require((*session).dispatch(std::move(resize)).error == HostDispatchError::after_shutdown,
+            "an event after the window was destroyed is refused as after shutdown");
+    const HostSessionSnapshot ended = (*session).snapshot();
+    require(ended.shutdown && !ended.attached && ended.phase == HostLifecyclePhase::shutdown,
+            "the session ends with its window");
+    (*session).shutdown();
+    session.reset();
+
+    // Never dispatched to: the destructor alone meets the destroyed window.
+    std::shared_ptr<InputProbe> second_probe = make_control<InputProbe>(StableId("host.gone.second"));
+    std::unique_ptr<Window> second = std::make_unique<Window>(second_probe, Size{100.0, 80.0});
+    std::unique_ptr<HostSession> quiet = std::make_unique<HostSession>(*second, host::headless_capabilities());
+    second.reset();
+    quiet.reset();
+}
+
 // Counts the presentation_changed notifications a window raises.
 struct PresentationChangeCounter final {
     unsigned* count{};
@@ -1450,6 +1482,7 @@ int main() {
         test_display_capture_and_occlusion_synchronization();
         test_environment_services_are_bounded_and_deterministic();
         test_sequence_geometry_and_shutdown_guards();
+        test_session_outlives_its_window();
         test_input_settings_report_and_validation();
         test_lifecycle_transition_guards();
         test_close_cancellation_and_closed_cleanup();

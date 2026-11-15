@@ -210,7 +210,7 @@ HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool 
 HostSession::HostSession(Window& window,
                          HostCapabilities capabilities,
                          HostServices* services)
-    : window_(&window), services_(services), ui_thread_(std::this_thread::get_id()) {
+    : window_(window.window_ref()), services_(services), ui_thread_(std::this_thread::get_id()) {
     snapshot_.capabilities = std::move(capabilities);
     // The window's non-opaque declaration is fixed from here (stage T5).
     detail::SurfaceHostAccess::mark_session_bound(window);
@@ -260,10 +260,11 @@ void HostSession::observe_modal_transition(
     if (snapshot_.shutdown) return;
     snapshot_.modal_depth = transition.depth;
     ++snapshot_.modal_transitions;
-    if (transition.entering && window_ != nullptr) {
-        (*window_).release_pointer();
+    Window* const window = window_.get();
+    if (transition.entering && window != nullptr) {
+        (*window).release_pointer();
         // A modal window or dialog gives the pointer back (relative_pointer.hpp).
-        static_cast<void>((*window_).end_relative_pointer(RelativePointerEnd::modal));
+        static_cast<void>((*window).end_relative_pointer(RelativePointerEnd::modal));
     }
 }
 
@@ -273,22 +274,22 @@ void HostSession::DispatchVisitor::operator()(
     using Payload =
         std::remove_cv_t<std::remove_reference_t<PayloadValue>>;
     if constexpr (std::is_same_v<Payload, HostAttachEvent>) {
-        UpdateScope update = (*(*session).window_).begin_update();
-        (*(*session).window_).resize(payload.client_size);
-        (*(*session).window_).set_scale(payload.scale);
+        UpdateScope update = (*window).begin_update();
+        (*window).resize(payload.client_size);
+        (*window).set_scale(payload.scale);
         update.close();
         (*session).snapshot_.attached = true;
         (*session).snapshot_.phase = HostLifecyclePhase::attached;
     } else if constexpr (std::is_same_v<Payload, HostResizeEvent>) {
-        (*(*session).window_).resize(payload.client_size);
+        (*window).resize(payload.client_size);
     } else if constexpr (std::is_same_v<Payload, HostScaleEvent>) {
-        (*(*session).window_).set_scale(payload.scale);
+        (*window).set_scale(payload.scale);
     } else if constexpr (std::is_same_v<Payload, HostActivationEvent>) {
         (*session).snapshot_.active = payload.active;
-        (*(*session).window_).set_active(payload.active);
+        (*window).set_active(payload.active);
     } else if constexpr (std::is_same_v<Payload, HostOcclusionEvent>) {
         (*session).snapshot_.occluded = payload.occluded;
-        (*(*session).window_).set_occluded(
+        (*window).set_occluded(
             payload.occluded,
             FrameTime{std::chrono::nanoseconds(
                 (*event).timestamp_nanoseconds)});
@@ -300,7 +301,7 @@ void HostSession::DispatchVisitor::operator()(
         (*session).snapshot_.drag_drops +=
             payload.action == DragAction::drop ? 1U : 0U;
         const DragDispatchResult drag =
-            (*(*session).window_).dispatch_drag(std::move(payload));
+            (*window).dispatch_drag(std::move(payload));
         (*result).handled = drag.handled;
         (*result).drag_effect = drag.accepted_effect;
         (*result).input_deferred = drag.deferred;
@@ -310,31 +311,31 @@ void HostSession::DispatchVisitor::operator()(
         // time (PointerEvent::timestamp_nanoseconds).
         if (payload.timestamp_nanoseconds == 0U) payload.timestamp_nanoseconds = (*event).timestamp_nanoseconds;
         const DeferredInputSnapshot before =
-            (*(*session).window_).deferred_input_snapshot();
+            (*window).deferred_input_snapshot();
         (*result).handled =
-            (*(*session).window_).dispatch_pointer(std::move(payload));
+            (*window).dispatch_pointer(std::move(payload));
         const DeferredInputSnapshot after =
-            (*(*session).window_).deferred_input_snapshot();
+            (*window).deferred_input_snapshot();
         (*result).input_deferred = after.deferred > before.deferred;
         (*result).input_capacity_rejected =
             after.rejected_capacity > before.rejected_capacity;
     } else if constexpr (std::is_same_v<Payload, KeyEvent>) {
         const DeferredInputSnapshot before =
-            (*(*session).window_).deferred_input_snapshot();
+            (*window).deferred_input_snapshot();
         (*result).handled =
-            (*(*session).window_).dispatch_key(std::move(payload));
+            (*window).dispatch_key(std::move(payload));
         const DeferredInputSnapshot after =
-            (*(*session).window_).deferred_input_snapshot();
+            (*window).deferred_input_snapshot();
         (*result).input_deferred = after.deferred > before.deferred;
         (*result).input_capacity_rejected =
             after.rejected_capacity > before.rejected_capacity;
     } else if constexpr (std::is_same_v<Payload, TextInputEvent>) {
         const DeferredInputSnapshot before =
-            (*(*session).window_).deferred_input_snapshot();
+            (*window).deferred_input_snapshot();
         (*result).handled =
-            (*(*session).window_).dispatch_text(std::move(payload));
+            (*window).dispatch_text(std::move(payload));
         const DeferredInputSnapshot after =
-            (*(*session).window_).deferred_input_snapshot();
+            (*window).deferred_input_snapshot();
         (*result).input_deferred = after.deferred > before.deferred;
         (*result).input_capacity_rejected =
             after.rejected_capacity > before.rejected_capacity;
@@ -353,7 +354,7 @@ void HostSession::DispatchVisitor::operator()(
         }
     } else if constexpr (std::is_same_v<Payload, HostClosedEvent>) {
         (*session).snapshot_.phase = HostLifecyclePhase::closed;
-        (*(*session).window_).host_close_reason_ = payload.reason;
+        (*window).host_close_reason_ = payload.reason;
         (*session).snapshot_.attached = false;
         (*session).snapshot_.closed = true;
         (*session).snapshot_.active = false;
@@ -361,38 +362,38 @@ void HostSession::DispatchVisitor::operator()(
         // Controls hear of the released capture, and may post work about
         // it, while the dispatcher still accepts; the shutdown then cancels
         // that work. Shutting down first would make the post throw.
-        (*(*session).window_).release_pointer();
-        (*(*session).window_).cancel_drag();
-        (*(*session).window_).cancel_frame_requests();
-        (*(*session).window_).shutdown_dispatcher();
+        (*window).release_pointer();
+        (*window).cancel_drag();
+        (*window).cancel_frame_requests();
+        (*window).shutdown_dispatcher();
     } else if constexpr (std::is_same_v<Payload, HostShutdownEvent>) {
         (*session).shutdown();
     } else if constexpr (std::is_same_v<Payload, HostCompositorEvent>) {
         const bool host_preferences =
             (*session).snapshot_.capabilities.supports(HostCapability::presentation_preferences);
-        (*(*session).window_).set_compositor_state(payload.state, host_preferences);
+        (*window).set_compositor_state(payload.state, host_preferences);
     } else if constexpr (std::is_same_v<Payload, HostInputSettingsEvent>) {
         // Only the reported fields change; the application's own settings
         // stay as they are.
-        PresentationSettings settings = (*(*session).window_).presentation_base();
+        PresentationSettings settings = (*window).presentation_base();
         settings.double_click_milliseconds = payload.double_click_milliseconds;
         settings.double_click_origin = payload.double_click_origin;
         settings.pointer = payload.pointer;
         settings.caret = payload.caret;
-        detail::SurfaceHostAccess::set_host_presentation(*(*session).window_, settings);
+        detail::SurfaceHostAccess::set_host_presentation(*window, settings);
     } else if constexpr (std::is_same_v<Payload, HostContextRequestEvent>) {
-        (*result).handled = (*(*session).window_).dispatch_context_request(payload.origin, payload.position);
+        (*result).handled = (*window).dispatch_context_request(payload.origin, payload.position);
     } else if constexpr (std::is_same_v<Payload, HostHoverEvent>) {
-        (*(*session).window_).dispatch_host_hover(payload.position);
+        (*window).dispatch_host_hover(payload.position);
     } else if constexpr (std::is_same_v<Payload, HostRelativeMotionEvent>) {
         if (payload.timestamp_nanoseconds == 0U) payload.timestamp_nanoseconds = (*event).timestamp_nanoseconds;
         ++(*session).snapshot_.relative_motion_events;
-        (*result).handled = (*(*session).window_).dispatch_relative_motion(payload);
+        (*result).handled = (*window).dispatch_relative_motion(payload);
     } else if constexpr (std::is_same_v<Payload, HostWindowStateEvent>) {
         // Full screen first: a band that hides there gives up its
         // reservation before the corners' strips are damaged.
-        (*(*session).window_).report_full_screen(payload.full_screen);
-        (*(*session).window_).apply_corner_preference();
+        (*window).report_full_screen(payload.full_screen);
+        (*window).apply_corner_preference();
     }
 }
 
@@ -405,6 +406,10 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         result.error = HostDispatchError::sequence_zero;
     } else if (event.sequence <= snapshot_.last_sequence) {
         result.error = HostDispatchError::non_monotonic_sequence;
+    } else if (!snapshot_.shutdown && window_.get() == nullptr) {
+        // The window was destroyed first: the session ends with it.
+        end_without_window();
+        result.error = HostDispatchError::after_shutdown;
     } else if (snapshot_.shutdown) {
         result.error = HostDispatchError::after_shutdown;
     }
@@ -455,7 +460,7 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
     if (const HostCompositorEvent* compositor = std::get_if<HostCompositorEvent>(&event.payload);
         compositor != nullptr &&
         (!compositor_state_valid((*compositor).state) ||
-         !((*window_).compositor_state().generation < (*compositor).state.generation))) {
+         !((*window_.get()).compositor_state().generation < (*compositor).state.generation))) {
         result.error = HostDispatchError::invalid_payload;
         ++snapshot_.events_rejected;
         observed_.emit(event, result);
@@ -509,15 +514,26 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
 // Delivers an accepted event to the window, then to the session's
 // observers. Runs inside the fail-fast boundary (dispatch).
 void HostSession::deliver(HostEvent& event, HostDispatchResult& result) {
-    std::visit(DispatchVisitor{this, &result, &event}, event.payload);
+    // dispatch saw the window alive, and nothing has run since.
+    Window* const window = window_.get();
+    if (window == nullptr) {
+        end_without_window();
+        result.error = HostDispatchError::after_shutdown;
+        observed_.emit(event, result);
+        return;
+    }
+    std::visit(DispatchVisitor{this, window, &result, &event}, event.payload);
     // The native window exists from the attach on (a host binds the
     // session before it creates the window, when a chrome request finds
     // nothing to change): every chrome property the program wrote
     // before then reaches it now, start position included, before the
     // window is first shown. A later write of the same value sends
     // nothing, so this is the only time they are sent.
-    if (services_ != nullptr && std::holds_alternative<HostAttachEvent>(event.payload)) {
-        (*window_).apply_window_chrome(WindowChromeFields{WindowChromeFields::all_bits});
+    // A handler during the attach may have destroyed the window: read it
+    // again.
+    Window* const attached = window_.get();
+    if (services_ != nullptr && attached != nullptr && std::holds_alternative<HostAttachEvent>(event.payload)) {
+        (*attached).apply_window_chrome(WindowChromeFields{WindowChromeFields::all_bits});
     }
     observed_.emit(event, result);
 }
@@ -529,15 +545,31 @@ void HostSession::shutdown() noexcept {
     snapshot_.active = false;
     snapshot_.attached = false;
     snapshot_.occluded = false;
-    if (window_ != nullptr) {
-        (*window_).invalidate_cursor_interaction(CursorError::closing);
+    // A window destroyed first has done its own teardown; its dispatcher
+    // and mutex are gone with it.
+    Window* const window = window_.get();
+    if (window != nullptr) {
+        (*window).invalidate_cursor_interaction(CursorError::closing);
         // As for the closed event: release, then shut the dispatcher down.
-        (*window_).release_pointer();
-        (*window_).cancel_drag();
-        (*window_).cancel_frame_requests();
-        (*window_).shutdown_dispatcher();
-        detail::SurfaceHostAccess::release_host_services(*window_, services_);
+        (*window).release_pointer();
+        (*window).cancel_drag();
+        (*window).cancel_frame_requests();
+        (*window).shutdown_dispatcher();
+        detail::SurfaceHostAccess::release_host_services(*window, services_);
+    } else {
+        capture_observation_.disconnect();
+        modal_observation_.disconnect();
     }
+    snapshot_.shutdown = true;
+    snapshot_.phase = HostLifecyclePhase::shutdown;
+}
+
+void HostSession::end_without_window() noexcept {
+    snapshot_.active = false;
+    snapshot_.attached = false;
+    snapshot_.occluded = false;
+    capture_observation_.disconnect();
+    modal_observation_.disconnect();
     snapshot_.shutdown = true;
     snapshot_.phase = HostLifecyclePhase::shutdown;
 }
