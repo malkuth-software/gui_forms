@@ -49,6 +49,9 @@ struct PlotEngineSeries final {
     const plots::EnvelopePyramid* pyramid{};
     // Changes whenever the data does (the unordered picker's grid).
     std::uint64_t revision{};
+    // The item's runtime identity, never reused: a replaced item at the same
+    // address with the same revision count is still a different series.
+    std::uint64_t item_identity{};
     // A custom kind drawing, fitting and picking in place of the columns
     // (PlotSeriesItem::custom), borrowed for the call; never set on a live
     // frame's series.

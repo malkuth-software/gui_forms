@@ -148,6 +148,7 @@ void PlotView::collect_series(std::vector<detail::PlotEngineSeries>& series,
             one.order = (*item).x_order();
             one.pyramid = (*item).pyramid();
             one.revision = (*item).revision();
+            one.item_identity = (*item).runtime_id().value;
             // A custom kind draws instead of the points: the engine reads
             // no columns for it.
             one.custom = (*item).custom().get();
@@ -185,7 +186,9 @@ void PlotView::take_axes(bool force) {
     for (std::size_t index = 0U; index < all.size(); ++index) {
         const PlotAxisItem* const item = dynamic_cast<const PlotAxisItem*>(all[index].get());
         if (item == nullptr) continue;
-        signature = mix(signature, reinterpret_cast<std::uintptr_t>(item));
+        // The runtime identity, not the address: a replacement allocated at
+        // the same address starts at the same revision (A-gf-controls-10-F7).
+        signature = mix(signature, (*item).runtime_id().value);
         signature = mix(signature, (*item).revision());
         const bool horizontal = (*item).direction.read() == PlotAxisDirection::horizontal;
         std::size_t& count = horizontal ? x_count : y_count;
@@ -219,6 +222,7 @@ void PlotView::take_axes(bool force) {
 void PlotView::fit_and_follow() {
     std::uint64_t signature = mix(0U, gathered_.size());
     for (std::size_t index = 0U; index < gathered_.size(); ++index) {
+        signature = mix(signature, gathered_[index].item_identity);
         signature = mix(signature, gathered_[index].revision);
         signature = mix(signature, gathered_[index].hidden ? 1U : 0U);
     }

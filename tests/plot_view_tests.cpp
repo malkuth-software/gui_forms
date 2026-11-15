@@ -390,6 +390,18 @@ void test_layout_and_auto_fit() {
     require((*fixed.plot).x_range(0U) == (plots::PlotRange{0.0, 10.0}) &&
                 (*fixed.plot).y_range(0U) == (plots::PlotRange{-1.0, 1.0}),
             "the view is the axis items' ranges");
+    // A-gf-controls-10-F7: an axis item replaced by a new one with as many writes is still a
+    // change, though the new item may be allocated where the old one was.
+    const RuntimeId old_x = (*fixed.x_axis).runtime_id();
+    static_cast<void>((*fixed.plot).remove_child(old_x));
+    fixed.x_axis.reset();
+    std::shared_ptr<PlotAxisItem> replacement = make_control<PlotAxisItem>(StableId("plot.fixed.x2"));
+    (*replacement).minimum = 0.0;
+    (*replacement).maximum = 20.0;
+    (*replacement).auto_fit = false;
+    (*fixed.plot).insert_child(replacement, 2U);
+    window.perform_layout();
+    require((*fixed.plot).x_range(0U) == (plots::PlotRange{0.0, 20.0}), "a replaced axis item's range is taken");
 
     Fixture fitted = make_plot("plot.fitted", true);
     Window fitted_window(fitted.plot, {400.0, 300.0});
