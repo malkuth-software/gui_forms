@@ -292,7 +292,7 @@ static void failure_snapshots(gf_kit* kit) {
     gf_kit_status(kit, (*kit).diagnostics.clear_failure_snapshot(), GF_STATUS_OK, "clear the failure snapshot again");
 }
 
-/* The failure detail (since 1.4, survey S4): the snapshot's exception type
+/* The failure detail (since 1.5, survey S4): the snapshot's exception type
  * and trace, which a development build of the library keeps and a release
  * build leaves empty; status and sequence are the snapshot's. */
 static int text_contains(const uint8_t* text, uint32_t size, const char* part) {

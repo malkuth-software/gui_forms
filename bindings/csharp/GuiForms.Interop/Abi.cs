@@ -215,7 +215,7 @@ public class GuiFormsException : Exception
 {
     public gf_status status { get; }
     /// <summary>
-    /// The native detail of the refused call (C ABI 1.4): the C++ exception's
+    /// The native detail of the refused call (C ABI 1.5): the C++ exception's
     /// type and the trace at the throw, from a development build of the
     /// library; null when the failure was no exception or the library kept
     /// none.

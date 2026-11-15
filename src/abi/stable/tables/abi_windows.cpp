@@ -52,15 +52,15 @@ constexpr SlotIdentity content_rect_slot{GF_TABLE_WINDOWS, 16U};
 constexpr SlotIdentity shaping_slot{GF_TABLE_WINDOWS, 17U};
 constexpr SlotIdentity pointer_location_slot{GF_TABLE_WINDOWS, 18U};
 
-// The 1.3 sizes of the band and shaping records.
-constexpr std::uint32_t band_options_size_1_3 = 56U;
-constexpr std::uint32_t band_appearance_size_1_3 = 80U;
-constexpr std::uint32_t band_report_size_1_3 = 72U;
-constexpr std::uint32_t shaping_size_1_3 = 32U;
-static_assert(sizeof(gf_window_band_options) == band_options_size_1_3);
-static_assert(sizeof(gf_window_band_appearance) == band_appearance_size_1_3);
-static_assert(sizeof(gf_window_band_report) == band_report_size_1_3);
-static_assert(sizeof(gf_window_shaping) == shaping_size_1_3);
+// The 1.5 sizes of the band and shaping records.
+constexpr std::uint32_t band_options_size_1_5 = 56U;
+constexpr std::uint32_t band_appearance_size_1_5 = 80U;
+constexpr std::uint32_t band_report_size_1_5 = 72U;
+constexpr std::uint32_t shaping_size_1_5 = 32U;
+static_assert(sizeof(gf_window_band_options) == band_options_size_1_5);
+static_assert(sizeof(gf_window_band_appearance) == band_appearance_size_1_5);
+static_assert(sizeof(gf_window_band_report) == band_report_size_1_5);
+static_assert(sizeof(gf_window_shaping) == shaping_size_1_5);
 
 // The 1.0 size of gf_run_options: a caller passes at least this much.
 constexpr std::uint32_t run_options_size_1_0 = 64U;
@@ -1056,7 +1056,7 @@ gf_status GF_CALL windows_key_state(gf_object window, std::uint32_t physical_key
     return call_slot(key_state_slot, windows_key_state_body, window, physical_key, down);
 }
 
-// --- The window outer band and shaping (since 1.3) ----------------------------
+// --- The window outer band and shaping (since 1.5) ----------------------------
 
 // The window `window_or_root` names: a window from create, or the window a
 // control is in. Fails with the slot's status otherwise.
@@ -1195,8 +1195,8 @@ std::optional<WindowBandAppearance> band_appearance_from(const gf_window_band_ap
 }
 
 gf_status declare_window_band(gf_object window, const gf_window_band_options* options) {
-    if (options == nullptr || (*options).struct_size < band_options_size_1_3) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, declare_band_slot, "declare_band needs a 1.3 options record");
+    if (options == nullptr || (*options).struct_size < band_options_size_1_5) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, declare_band_slot, "declare_band needs a 1.5 options record");
     }
     const std::optional<WindowBandOptions> declared = band_options_from(*options);
     if (!declared) {
@@ -1243,9 +1243,9 @@ gf_status GF_CALL windows_undeclare_band(gf_object window) noexcept {
 }
 
 gf_status set_window_band_appearance(gf_object window, const gf_window_band_appearance* record) {
-    if (record == nullptr || (*record).struct_size < band_appearance_size_1_3) {
+    if (record == nullptr || (*record).struct_size < band_appearance_size_1_5) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_band_appearance_slot,
-                    "set_band_appearance needs a 1.3 appearance record");
+                    "set_band_appearance needs a 1.5 appearance record");
     }
     const std::optional<WindowBandAppearance> appearance = band_appearance_from(*record);
     if (!appearance) {
@@ -1272,8 +1272,8 @@ gf_status GF_CALL windows_set_band_appearance(gf_object window, const gf_window_
 }
 
 gf_status report_window_band(gf_object window, gf_window_band_report* report) {
-    if (report == nullptr || (*report).struct_size < band_report_size_1_3) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, band_report_slot, "band_report needs a 1.3 report record");
+    if (report == nullptr || (*report).struct_size < band_report_size_1_5) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, band_report_slot, "band_report needs a 1.5 report record");
     }
     Window* found = nullptr;
     const gf_status located = find_band_window(window, band_report_slot, found);
@@ -1386,8 +1386,8 @@ gf_window_corner_preference abi_corner_preference(WindowCornerPreference prefere
 }
 
 gf_status report_window_shaping(gf_object window, gf_window_shaping* report) {
-    if (report == nullptr || (*report).struct_size < shaping_size_1_3) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, shaping_slot, "shaping needs a 1.3 report record");
+    if (report == nullptr || (*report).struct_size < shaping_size_1_5) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, shaping_slot, "shaping needs a 1.5 report record");
     }
     Window* found = nullptr;
     const gf_status located = find_band_window(window, shaping_slot, found);

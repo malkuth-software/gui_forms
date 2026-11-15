@@ -47,13 +47,13 @@ constexpr SlotIdentity sort_items_slot{GF_TABLE_LIST_VIEW, 21U};
 
 constexpr const char* not_list_view = "the control is not a list view";
 
-// The 1.4 sizes of the records this table reads and writes.
-constexpr std::uint32_t column_size_1_4 = 48U;
-constexpr std::uint32_t item_size_1_4 = 88U;
-constexpr std::uint32_t group_size_1_4 = 40U;
-static_assert(sizeof(gf_list_view_column) == column_size_1_4);
-static_assert(sizeof(gf_list_view_item) == item_size_1_4);
-static_assert(sizeof(gf_list_view_group) == group_size_1_4);
+// The 1.5 sizes of the records this table reads and writes.
+constexpr std::uint32_t column_size_1_5 = 48U;
+constexpr std::uint32_t item_size_1_5 = 88U;
+constexpr std::uint32_t group_size_1_5 = 40U;
+static_assert(sizeof(gf_list_view_column) == column_size_1_5);
+static_assert(sizeof(gf_list_view_item) == item_size_1_5);
+static_assert(sizeof(gf_list_view_group) == group_size_1_5);
 
 // The C limits are the C++ view's.
 static_assert(GF_LIST_VIEW_MAXIMUM_COLUMNS == ListView::maximum_columns);
@@ -185,7 +185,7 @@ gf_status read_array(const Record* records, std::uint64_t count, std::uint64_t m
 }
 
 // Whether a caller's output record and text buffer are usable: the record
-// of at least its 1.4 size, a size output, and a buffer unless the capacity
+// of at least its 1.5 size, a size output, and a buffer unless the capacity
 // is zero.
 template <typename Record>
 gf_status check_output(const Record* record, std::uint32_t minimum, const char* text_buffer,
@@ -193,7 +193,7 @@ gf_status check_output(const Record* record, std::uint32_t minimum, const char* 
     if (record == nullptr || (*record).struct_size < minimum || text_required == nullptr ||
         (text_buffer == nullptr && text_capacity != 0U)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot,
-                    "an output record of at least the 1.4 size, a text size output, and a buffer unless its "
+                    "an output record of at least the 1.5 size, a text size output, and a buffer unless its "
                     "capacity is zero are needed");
     }
     return GF_STATUS_OK;
@@ -282,7 +282,7 @@ gf_status GF_CALL list_view_column_at(gf_object view, std::uint64_t index, gf_li
     try {
         const ShadowFrameScope shadow_frame(column_at_slot.table_id, column_at_slot.slot_index);
         const gf_status usable =
-            check_output(column, column_size_1_4, text_buffer, text_capacity, text_required, column_at_slot);
+            check_output(column, column_size_1_5, text_buffer, text_capacity, text_required, column_at_slot);
         if (usable != GF_STATUS_OK) {
             return usable;
         }
@@ -304,7 +304,7 @@ gf_status GF_CALL list_view_column_at(gf_object view, std::uint64_t index, gf_li
             return copied;
         }
         gf_list_view_column complete{};
-        complete.struct_size = column_size_1_4;
+        complete.struct_size = column_size_1_5;
         complete.alignment = static_cast<gf_list_view_alignment>(held.alignment);
         complete.width = held.width;
         complete.stable_id = views[0];
@@ -321,7 +321,7 @@ gf_status GF_CALL list_view_set_columns(gf_object view, const gf_list_view_colum
     try {
         const ShadowFrameScope shadow_frame(set_columns_slot.table_id, set_columns_slot.slot_index);
         std::vector<ListViewColumn> read;
-        const gf_status converted = read_array(columns, count, GF_LIST_VIEW_MAXIMUM_COLUMNS, column_size_1_4,
+        const gf_status converted = read_array(columns, count, GF_LIST_VIEW_MAXIMUM_COLUMNS, column_size_1_5,
                                                set_columns_slot, &read_column, read);
         if (converted != GF_STATUS_OK) {
             return converted;
@@ -385,7 +385,7 @@ gf_status GF_CALL list_view_item_at(gf_object view, std::uint64_t index, gf_list
     try {
         const ShadowFrameScope shadow_frame(item_at_slot.table_id, item_at_slot.slot_index);
         const gf_status usable =
-            check_output(item, item_size_1_4, text_buffer, text_capacity, text_required, item_at_slot);
+            check_output(item, item_size_1_5, text_buffer, text_capacity, text_required, item_at_slot);
         if (usable != GF_STATUS_OK) {
             return usable;
         }
@@ -411,7 +411,7 @@ gf_status GF_CALL list_view_item_at(gf_object view, std::uint64_t index, gf_list
             return copied;
         }
         gf_list_view_item complete{};
-        complete.struct_size = item_size_1_4;
+        complete.struct_size = item_size_1_5;
         complete.checked = held.checked ? 1U : 0U;
         complete.stable_id = views[0];
         complete.text = views[1];
@@ -457,7 +457,7 @@ gf_status GF_CALL list_view_set_items(gf_object view, const gf_list_view_item* i
         const ShadowFrameScope shadow_frame(set_items_slot.table_id, set_items_slot.slot_index);
         std::vector<ListViewItem> read;
         const gf_status converted =
-            read_array(items, count, GF_LIST_VIEW_MAXIMUM_ITEMS, item_size_1_4, set_items_slot, &read_item, read);
+            read_array(items, count, GF_LIST_VIEW_MAXIMUM_ITEMS, item_size_1_5, set_items_slot, &read_item, read);
         if (converted != GF_STATUS_OK) {
             return converted;
         }
@@ -553,7 +553,7 @@ gf_status GF_CALL list_view_group_at(gf_object view, std::uint64_t index, gf_lis
     try {
         const ShadowFrameScope shadow_frame(group_at_slot.table_id, group_at_slot.slot_index);
         const gf_status usable =
-            check_output(group, group_size_1_4, text_buffer, text_capacity, text_required, group_at_slot);
+            check_output(group, group_size_1_5, text_buffer, text_capacity, text_required, group_at_slot);
         if (usable != GF_STATUS_OK) {
             return usable;
         }
@@ -574,7 +574,7 @@ gf_status GF_CALL list_view_group_at(gf_object view, std::uint64_t index, gf_lis
             return copied;
         }
         gf_list_view_group complete{};
-        complete.struct_size = group_size_1_4;
+        complete.struct_size = group_size_1_5;
         complete.header_alignment = static_cast<gf_list_view_alignment>(held.header_alignment);
         complete.stable_id = views[0];
         complete.header = views[1];
@@ -590,7 +590,7 @@ gf_status GF_CALL list_view_set_groups(gf_object view, const gf_list_view_group*
     try {
         const ShadowFrameScope shadow_frame(set_groups_slot.table_id, set_groups_slot.slot_index);
         std::vector<ListViewGroup> read;
-        const gf_status converted = read_array(groups, count, GF_LIST_VIEW_MAXIMUM_GROUPS, group_size_1_4,
+        const gf_status converted = read_array(groups, count, GF_LIST_VIEW_MAXIMUM_GROUPS, group_size_1_5,
                                                set_groups_slot, &read_group, read);
         if (converted != GF_STATUS_OK) {
             return converted;

@@ -71,9 +71,12 @@ extern "C" {
  * marked since 1.2, additions only; 1.3 adds the class tables
  * (gf_abi_classes.h, GF_TABLE_CLASSES), additions only; 1.4 adds the
  * content boundary (GF_TABLE_CONTENT, GF_HOST_CAPABILITY_HOSTED_CONTENT),
- * additions only. */
+ * additions only; 1.5 adds the window outer band and shaping, the
+ * window's pointer location, the list view table (GF_TABLE_LIST_VIEW), the
+ * failure detail (gf_failure_detail, diagnostics.failure_detail) and the
+ * gate frame kind, additions only. */
 #define GF_ABI_MAJOR 1u
-#define GF_ABI_MINOR 4u
+#define GF_ABI_MINOR 5u
 
 /* gf_status: the result of every call. Zero is success; failures are
  * positive and the list only grows. */
@@ -900,7 +903,7 @@ typedef uint32_t gf_window_property_flags;
 #define GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR 1024u
 #define GF_WINDOW_PROPERTY_MINIMUM_SIZE 2048u
 
-/* The window outer band (since 1.3; the owner's approval of 2026-11-13):
+/* The window outer band (since 1.5; the owner's approval of 2026-11-13):
  * a thin strip a window reserves along the edges of its client area,
  * drawn above everything the window draws and hitting nothing. Declaring
  * it reserves its widths at once and lays the window out again; nothing
@@ -927,7 +930,7 @@ typedef uint32_t gf_window_band_flags;
 #define GF_WINDOW_BAND_PER_EDGE 1u
 
 /* A band declaration (windows.declare_band). An input record: struct_size
- * at least its 1.3 size, 56; reserved is zero. */
+ * at least its 1.5 size, 56; reserved is zero. */
 typedef struct gf_window_band_options {
     uint32_t struct_size;
     gf_window_band_flags flags;
@@ -999,7 +1002,7 @@ typedef uint32_t gf_window_band_texture;
 #define GF_FINISH_CLOTH_WEAVE 7u
 
 /* The band's appearance (windows.set_band_appearance). An input record:
- * struct_size at least its 1.3 size, 80; reserved is zero. Colours are
+ * struct_size at least its 1.5 size, 80; reserved is zero. Colours are
  * 0xRRGGBBAA. frequency is in cycles a second (finite, not negative; 0
  * holds the band lit), lowered to the limiter's 1. */
 typedef struct gf_window_band_appearance {
@@ -1033,7 +1036,7 @@ typedef uint32_t gf_window_band_status;
 #define GF_WINDOW_BAND_TEXTURED 16u
 
 /* The band's report (windows.band_report). An output record: struct_size
- * at least its 1.3 size, 72. edges are the reserved widths after snapping;
+ * at least its 1.5 size, 72. edges are the reserved widths after snapping;
  * drawn_colour is the colour the strips draw now; frequency is the running
  * motion's after the limiter (0 when none runs); flash_changes and
  * cycle_frames count the strip repaints of each motion since the window was
@@ -1049,7 +1052,7 @@ typedef struct gf_window_band_report {
     uint64_t cycle_frames;
 } gf_window_band_report;
 
-/* gf_window_corner_preference (since 1.3): the corners a window asks its
+/* gf_window_corner_preference (since 1.5): the corners a window asks its
  * host for. SYSTEM keeps the platform's; SQUARE and ROUND ask, and the
  * host reports what it did (gf_window_shaping). */
 typedef uint32_t gf_window_corner_preference;
@@ -1057,7 +1060,7 @@ typedef uint32_t gf_window_corner_preference;
 #define GF_WINDOW_CORNER_PREFERENCE_SQUARE 1u
 #define GF_WINDOW_CORNER_PREFERENCE_ROUND 2u
 
-/* gf_window_shaping_flags (since 1.3): what a window's host lets it rely
+/* gf_window_shaping_flags (since 1.5): what a window's host lets it rely
  * on. HOST_ATTACHED: a host shows the window (the other host bits are zero
  * without it). CORNERS_REPORTED: GF_HOST_CAPABILITY_WINDOW_CORNERS.
  * STATE_REPORTED: GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS. NATIVE_BORDER:
@@ -1073,7 +1076,7 @@ typedef uint32_t gf_window_shaping_flags;
 #define GF_WINDOW_SHAPING_COMPLIED 32u
 
 /* A window's shaping report (windows.shaping). An output record:
- * struct_size at least its 1.3 size, 32. corner_shapes is the set of
+ * struct_size at least its 1.5 size, 32. corner_shapes is the set of
  * gf_window_corner_shape bits the host may report; corner_shape is the
  * one bit of the window's corners now, 0 when unknown (the band then draws
  * square); corner_radius is in logical units, for ROUNDED only. */
@@ -1234,7 +1237,7 @@ typedef struct gf_windows_table {
      * GF_STATUS_DISPOSED for a window that has been disposed or whose run
      * has ended. */
     gf_status (GF_CALL* focused_control)(gf_object window_or_root, gf_object* control);
-    /* The window outer band and shaping (since 1.3). Each takes window, a
+    /* The window outer band and shaping (since 1.5). Each takes window, a
      * window from create (before or during its run), or a control in a
      * window, which names that window. UI thread. GF_STATUS_WRONG_HANDLE_KIND
      * for another object; GF_STATUS_INVALID_STATE for a control not in a
@@ -1270,7 +1273,7 @@ typedef struct gf_windows_table {
     /* What the window's host lets its shaping rely on, and its corners now.
      * GF_STATUS_INVALID_ARGUMENT for a null or short record. */
     gf_status (GF_CALL* shaping)(gf_object window, gf_window_shaping* report);
-    /* Where the pointer is, as a window last saw it (since 1.3): the
+    /* Where the pointer is, as a window last saw it (since 1.5): the
      * position of the last pointer event the window dispatched, which
      * during a callback is the event being dispatched. mouse_enter and
      * mouse_leave carry no fields (Windows Forms' EventArgs), so their
@@ -1810,7 +1813,7 @@ typedef uint64_t gf_host_capability;
  * gf_host_capabilities.window_corner_shapes. Without it a window's corners
  * are square to the band. Windows 11 (DWM) shapes and reports them; macOS
  * only reports them, square in full screen and for a borderless window and
- * unknown otherwise (since 1.3; its window_corner_shapes is SQUARE). */
+ * unknown otherwise (since 1.5; its window_corner_shapes is SQUARE). */
 #define GF_HOST_CAPABILITY_WINDOW_CORNERS 17179869184ull
 /* Since 1.1: the host reports the native window's state: full screen, and
  * the maximize, snap and restore changes that can reshape its corners. A
@@ -2063,7 +2066,7 @@ typedef uint32_t gf_shadow_frame_kind;
 /* A callback posted with dispatch.begin_invoke: subject is the target's
  * stable id when the target is a control (else empty). */
 #define GF_SHADOW_FRAME_KIND_POSTED_CALLBACK 6u
-/* Since 1.4. A boundary gate of the library's runtime that is none of the
+/* Since 1.5. A boundary gate of the library's runtime that is none of the
  * above: name is its operation, such as a native callback entry's site
  * ("windows.window_procedure"). A reader of an older minor shows an unknown
  * kind by its number. */
@@ -2169,7 +2172,7 @@ typedef struct gf_failure_snapshot {
 } gf_failure_snapshot;
 
 /*
- * Failure detail (since 1.4): what a development build of the library knows
+ * Failure detail (since 1.5): what a development build of the library knows
  * of the failure in the thread's snapshot beyond its frames, for a binding
  * to attach to its language's exception (GuiFormsException's native detail
  * in the C# binding). type holds type_size bytes of UTF-8 naming the
@@ -2266,12 +2269,12 @@ typedef struct gf_diagnostics_table {
      */
     gf_status (GF_CALL* raise_native_exception)(gf_utf8_view message);
     /*
-     * Since 1.4. Copies the calling thread's last failure detail (the
+     * Since 1.5. Copies the calling thread's last failure detail (the
      * snapshot's exception type and native trace) into detail. A thread
      * with no snapshot reads status GF_STATUS_OK, sequence zero and nothing
      * else. The detail stays and is forgotten with the snapshot
      * (clear_failure_snapshot). GF_STATUS_INVALID_ARGUMENT for a null
-     * detail or one smaller than its 1.4 size.
+     * detail or one smaller than its 1.5 size.
      */
     gf_status (GF_CALL* failure_detail)(gf_failure_detail* detail);
 } gf_diagnostics_table;
@@ -4603,7 +4606,7 @@ typedef struct gf_content_table {
     gf_status (GF_CALL* editor_set_multiline)(gf_object editor, uint32_t multiline);
     gf_status (GF_CALL* editor_set_read_only)(gf_object editor, uint32_t read_only);
 } gf_content_table;
- * GF_TABLE_LIST_VIEW (since 1.4): a list_view's columns, items, groups,
+ * GF_TABLE_LIST_VIEW (since 1.5): a list_view's columns, items, groups,
  * selection, focus and sort glyph (C++ ListView, Windows Forms' ListView).
  * Its events (selection_changed, item_activated, column_click,
  * item_checking, item_checked, column_width_changed, before_label_edit,
@@ -4624,7 +4627,7 @@ typedef struct gf_content_table {
  *
  * Arrays of records the caller passes have the stride of their first
  * element's struct_size, the caller's sizeof, which every element repeats;
- * each element is at least its 1.4 size. A record and what it references
+ * each element is at least its 1.5 size. A record and what it references
  * are read during the call; texts are copied.
  */
 
@@ -4702,7 +4705,7 @@ typedef struct gf_list_view_table {
     /* The number of columns. */
     gf_status (GF_CALL* column_count)(gf_object view, uint64_t* count);
     /* Column index (below the count) into column, an output record of at
-     * least the 1.4 size; its stable id and text are copied into
+     * least the 1.5 size; its stable id and text are copied into
      * text_buffer, one after the other, and the views point there.
      * text_required receives their total size, also with
      * GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.
@@ -4722,7 +4725,7 @@ typedef struct gf_list_view_table {
     /* The number of items (the source's in virtual mode). */
     gf_status (GF_CALL* item_count)(gf_object view, uint64_t* count);
     /* Item index (below the count) into item, an output record of at least
-     * the 1.4 size; its stable id, text, image key and group are copied
+     * the 1.5 size; its stable id, text, image key and group are copied
      * into text_buffer one after another, as column_at copies. */
     gf_status (GF_CALL* item_at)(gf_object view, uint64_t index, gf_list_view_item* item, char* text_buffer,
                                  uint64_t text_capacity, uint64_t* text_required);
@@ -4748,7 +4751,7 @@ typedef struct gf_list_view_table {
     /* The number of groups. */
     gf_status (GF_CALL* group_count)(gf_object view, uint64_t* count);
     /* Group index (below the count) into group, an output record of at
-     * least the 1.4 size; its stable id and header are copied into
+     * least the 1.5 size; its stable id and header are copied into
      * text_buffer, as column_at copies. */
     gf_status (GF_CALL* group_at)(gf_object view, uint64_t index, gf_list_view_group* group, char* text_buffer,
                                   uint64_t text_capacity, uint64_t* text_required);

@@ -1,5 +1,5 @@
 /* Kit part: a list view's columns, items, groups, selection, focus and sort
- * glyph (GF_TABLE_LIST_VIEW, since 1.4), on a created window's root: the
+ * glyph (GF_TABLE_LIST_VIEW, since 1.5), on a created window's root: the
  * calls a C or C# program fills and reads a view with, their refusals, the
  * settings it reaches as properties (view, activation, header_style) and
  * the events it subscribes to (selection_changed, item_activated,

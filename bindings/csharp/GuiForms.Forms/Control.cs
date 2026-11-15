@@ -1,5 +1,5 @@
 // Control's members that are not class-table hooks: where the pointer is
-// (windows.pointer_location, since ABI 1.3), which OnMouseEnter and
+// (windows.pointer_location, since ABI 1.5), which OnMouseEnter and
 // OnMouseLeave read for the crossing, since they carry Windows Forms'
 // plain EventArgs. The values are the C++ PointerLocation's
 // (include/gui_forms/events/mouse_events/mouse_events.hpp).
@@ -44,7 +44,7 @@ public partial class Control
     /// (windows.pointer_location). During OnMouseLeave and OnMouseEnter it is
     /// where the crossing happened. Throws GuiFormsException with
     /// GF_STATUS_INVALID_STATE for a control not in a window, and with
-    /// GF_STATUS_UNSUPPORTED_VERSION for a library older than ABI 1.3.
+    /// GF_STATUS_UNSUPPORTED_VERSION for a library older than ABI 1.5.
     /// </summary>
     public unsafe PointerLocation pointer_location
     {

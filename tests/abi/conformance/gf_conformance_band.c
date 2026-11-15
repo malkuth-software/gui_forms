@@ -1,4 +1,4 @@
-/* Kit part: the window outer band and shaping (since 1.3): windows.
+/* Kit part: the window outer band and shaping (since 1.5): windows.
  * declare_band, undeclare_band, set_band_appearance, band_report,
  * set_corner_preference, content_rect and shaping on a window from
  * windows.create, before any run (no host shows it, so the shaping report

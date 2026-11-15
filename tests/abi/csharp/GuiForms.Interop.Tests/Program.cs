@@ -326,7 +326,7 @@ internal static unsafe class Program
         expect(trace.Contains("NativeFrames.posted_callback") && trace.Contains("NativeFrames.library_call"),
                "the stack trace reads the library's frames as named thunks");
         expect(native.Data["shadow_frames"] is string, "the exception's data carries the frames as text");
-        // S4 (C ABI 1.4): a development build of the library keeps the C++
+        // S4 (C ABI 1.5): a development build of the library keeps the C++
         // type and the trace at the throw; a release build keeps neither.
         FailureDetail? detail = native.native_detail;
         if (detail != null)
@@ -837,7 +837,7 @@ internal static unsafe class Program
         expect(Encoding.UTF8.GetString(read, 0, checked((int)required)) == "caf\u00e9", "the editor's text reads back");
         expect(table.open_content(editor.value, 0u, &sink) == Constants.GF_STATUS_WRONG_HANDLE_KIND,
                "an editor is not a content surface");
-    // GF_TABLE_LIST_VIEW (since 1.4) from C#: one column and two items
+    // GF_TABLE_LIST_VIEW (since 1.5) from C#: one column and two items
     // through the table, read back, and the header style as a property.
     private static void list_view_items()
     {

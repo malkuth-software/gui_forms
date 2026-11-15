@@ -70,7 +70,7 @@ A rounded band is one stroke along the window's outline. It is drawn only when e
 
 ## The C ABI
 
-The windows table (since 1.3) has these slots:
+The windows table (since 1.5) has these slots:
 
 - `declare_band` (`gf_window_band_options`)
 - `undeclare_band`

@@ -1,10 +1,10 @@
-// The native detail of a refused call (C ABI 1.4, survey S4 = 1): the C++
+// The native detail of a refused call (C ABI 1.5, survey S4 = 1): the C++
 // exception's type and the native trace where it was thrown, which a
 // development build of the library keeps for the thread's failure snapshot.
 // Abi.check attaches it to the GuiFormsException (or NativeException) it
 // throws, so the parent developer reads the whole record where the failure
 // surfaces. A release build of the library keeps neither, and an older
-// library (before 1.4) has no detail to read: native_detail is then null.
+// library (before 1.5) has no detail to read: native_detail is then null.
 using System;
 using System.Text;
 
@@ -31,8 +31,8 @@ public sealed class FailureDetail
         this.trace = trace;
     }
 
-    // The diagnostics table's size once it has failure_detail (1.4).
-    private const uint diagnostics_size_1_4 = 80u;
+    // The diagnostics table's size once it has failure_detail (1.5).
+    private const uint diagnostics_size_1_5 = 80u;
 
     /// <summary>
     /// The calling thread's failure detail when it is the detail of a failure
@@ -41,7 +41,7 @@ public sealed class FailureDetail
     internal static unsafe FailureDetail? read(gf_status status)
     {
         gf_diagnostics_table diagnostics = Abi.diagnostics;
-        if (diagnostics.struct_size < diagnostics_size_1_4)
+        if (diagnostics.struct_size < diagnostics_size_1_5)
         {
             return null;
         }
