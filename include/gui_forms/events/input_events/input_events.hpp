@@ -43,7 +43,7 @@ enum class WheelDeltaUnit : std::uint8_t {
 };
 
 // Where a wheel event stands in a precise device's scroll gesture, for a
-// host that reports it (macOS: NSEvent phase and momentumPhase); none for a
+// host that reports it (macOS: the scroll event's phase and momentum phase); none for a
 // detented wheel or a host that reports no gestures. A gesture is the
 // fingers' contact (began, changed..., then ended, or cancelled) followed,
 // when the fingers leave moving, by the system's momentum (momentum...,

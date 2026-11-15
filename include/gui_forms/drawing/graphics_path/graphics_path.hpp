@@ -120,7 +120,7 @@ public:
     //
     // Figures follow the raster's reading of the elements: a line, curve or
     // arc that does not start where the figure stands starts a new figure
-    // (an arc joins it with a straight edge instead, as GDI+ AddArc does);
+    // (an arc joins it with a straight edge instead, as Windows Forms' AddArc does);
     // start_figure ends the figure open, close_figure ends it closed; a
     // rectangle (clockwise from its top-left corner) and an ellipse
     // (clockwise from its right-middle point) are closed figures of their
