@@ -1411,6 +1411,8 @@ Types
 
    .. cpp:member:: gd_result (*graphics_path_flatten)(gd_handle path, double tolerance, gd_point* points, uint64_t point_capacity, uint64_t* figure_ends, uint32_t* figure_closed, uint64_t figure_capacity, uint64_t* point_count, uint64_t* figure_count)
 
+   .. cpp:member:: gd_result (*raster_initialize)(void)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary

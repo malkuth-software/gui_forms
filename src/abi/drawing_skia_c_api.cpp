@@ -12,7 +12,8 @@
 #include <limits>
 #include <vector>
 
-// The drawing ABI's raster service: the C callbacks gdr_initialize installs
+// The drawing ABI's raster service: the C callbacks the gd_ table's
+// raster_initialize installs
 // (recorder execution, PNG coding, measured text, font resolution) over the
 // raster state the C++ entry shares (drawing_raster_state.hpp).
 
