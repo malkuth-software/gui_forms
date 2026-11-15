@@ -13,10 +13,23 @@ foreach(required IN ITEMS WORK_DIRECTORY SOURCE_DIRECTORY GENERATOR)
         message(FATAL_ERROR "form shared source test: ${required} is not set")
     endif()
 endforeach()
-set(project "${WORK_DIRECTORY}/project")
-set(build "${WORK_DIRECTORY}/build")
-file(REMOVE_RECURSE "${WORK_DIRECTORY}")
+# Each run works in a directory of its own under WORK_DIRECTORY. The
+# directory was fixed (WORK_DIRECTORY itself): two runs at once in one build
+# tree (a gate's ctest and a rerun, or a repeated test) shared it, and the
+# second run's REMOVE_RECURSE and fresh copy put the first's document back
+# to 7 between its rewrite and its second build, which then printed 7. A
+# run's directory is removed when the run passes and kept when it fails.
 file(MAKE_DIRECTORY "${WORK_DIRECTORY}")
+string(TIMESTAMP run_time "%Y%m%d%H%M%S%f" UTC)
+string(RANDOM LENGTH 8 ALPHABET "0123456789abcdef" run_salt)
+set(run "${WORK_DIRECTORY}/run-${run_time}-${run_salt}")
+while(EXISTS "${run}")
+    string(RANDOM LENGTH 8 ALPHABET "0123456789abcdef" run_salt)
+    set(run "${WORK_DIRECTORY}/run-${run_time}-${run_salt}")
+endwhile()
+file(MAKE_DIRECTORY "${run}")
+set(project "${run}/project")
+set(build "${run}/build")
 # A copy, so the test can change the document without touching the source tree.
 file(COPY "${SOURCE_DIRECTORY}/tests/cmake/form_shared_source/" DESTINATION "${project}")
 
@@ -70,28 +83,6 @@ function(build_and_read expected stage)
 endfunction()
 
 build_and_read("7" "first build")
-# The changed document must be strictly newer than the header the first
-# build generated, or the build tool may take it as unchanged: on a
-# filesystem with coarse timestamps (one second on HFS+, two on FAT) a fast
-# first build (cached objects) leaves the rewrite in the header's tick. So
-# the rewrite waits until the clock is two whole seconds past the header's
-# timestamp, the coarsest granularity a build tree may sit on, and checks
-# the document's timestamp before building.
-set(header "${build}/gui_forms_forms/sample_form.hpp")
-if(NOT EXISTS "${header}")
-    message(FATAL_ERROR "form shared source test: the first build generated no ${header}")
-endif()
-file(TIMESTAMP "${header}" header_seconds "%s" UTC)
-math(EXPR rewrite_after "${header_seconds} + 2")
-string(TIMESTAMP now_seconds "%s" UTC)
-while(now_seconds LESS_EQUAL rewrite_after)
-    execute_process(COMMAND "${CMAKE_COMMAND}" -E sleep 0.25)
-    string(TIMESTAMP now_seconds "%s" UTC)
-endwhile()
 file(WRITE "${project}/sample.form" "9\n")
-file(TIMESTAMP "${project}/sample.form" document_seconds "%s" UTC)
-if(NOT document_seconds GREATER header_seconds)
-    message(FATAL_ERROR "form shared source test: the rewritten document (${document_seconds}) is not newer "
-                        "than the generated header (${header_seconds}); the filesystem's clock is behind")
-endif()
 build_and_read("9" "after the document changed")
+file(REMOVE_RECURSE "${run}")
