@@ -142,17 +142,18 @@ void test_shell_keyboard_order() {
     require(press_key(window, PhysicalKey::f6, Modifier::shift) && holds(command_strip, window.focused_control()),
             "Shift+F6 again reaches the command strip");
 
-    // The navigation publishes as one named node whose rows are the pages
-    // (in their category groups), the open page's selected; the page body's
-    // controls sit under the window too.
+    // The navigation publishes as one named list whose items are the pages
+    // (a one-column headerless view is a list: item n of its category
+    // group), the open page's selected; the page body's controls sit under
+    // the window too.
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* navigation = find_node(snapshot, "gallery.sidebar.pages");
     require(navigation != nullptr && (*navigation).name == "Pages", "the navigation list is published by name");
-    const SemanticNode* first_row = find_node(snapshot, (*list).items()[0].stable_id);
-    require(first_row != nullptr && (*first_row).role == SemanticRole::row &&
-                has_semantic_state((*first_row).states, SemanticState::selected) &&
-                (*first_row).row_index == std::optional<std::size_t>(1U),
-            "the open page's row is row 1, selected");
+    const SemanticNode* first_item = find_node(snapshot, (*list).items()[0].stable_id);
+    require(first_item != nullptr && (*first_item).role == SemanticRole::list_item &&
+                has_semantic_state((*first_item).states, SemanticState::selected) &&
+                (*first_item).position_in_set == std::optional<std::size_t>(1U),
+            "the open page's item is item 1 of its group, selected");
     const SemanticNode* body_node = find_node(snapshot, std::string((*body_first).stable_id().value()));
     require(body_node != nullptr, "the page body's controls are published under the window");
 }
