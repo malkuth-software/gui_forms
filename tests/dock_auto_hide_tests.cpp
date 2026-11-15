@@ -708,8 +708,8 @@ void semantics() {
     require(tab != nullptr && (*tab).role == SemanticRole::tab && (*tab).name == "Properties", "with one tab per panel");
 
     require(window.perform_semantic_action((*site.side_strip(DockSide::right)).tab_identity(PageId{"properties"}),
-                                           SemanticAction::press) || site.flyout_open(),
-            "the tab's press opens the flyout");
+                                           SemanticAction::press),
+            "the tab's press is handled");
     require(site.flyout_open(), "the flyout is open");
     window.perform_layout();
     snapshot = window.semantic_snapshot();
