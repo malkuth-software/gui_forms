@@ -151,6 +151,16 @@ bool CorrespondenceView::expanded(std::string_view stable_id) const {
     return expanded_index(*index);
 }
 
+// An expansion delta for `stable_id` read now, raised only while the item
+// is still in the model: an earlier publication's handler may have replaced
+// the items, and expanded() refuses an ID the model no longer holds
+// (B-gf-tests-misc-02-F2).
+void CorrespondenceView::emit_present_expansion_delta(
+    std::string_view stable_id, bool before, CorrespondenceExpansionReason reason) {
+    if (stable_id.empty() || !is_alive() || !item_index(stable_id)) return;
+    emit_expansion_delta(stable_id, before, expanded(stable_id), reason);
+}
+
 void CorrespondenceView::emit_expansion_delta(
     std::string_view stable_id, bool before, bool after,
     CorrespondenceExpansionReason reason) {
@@ -193,12 +203,10 @@ void CorrespondenceView::write_view(const decltype(pinned_id)&, std::string inco
     publish_change(pin_changed_,
                    CorrespondencePinChange{previous, pinned_id_});
     if (!previous.empty()) {
-        emit_expansion_delta(previous, previous_before, expanded(previous),
-                             CorrespondenceExpansionReason::pin);
+        emit_present_expansion_delta(previous, previous_before, CorrespondenceExpansionReason::pin);
     }
     if (!next.empty() && next != previous) {
-        emit_expansion_delta(next, next_before, expanded(next),
-                             CorrespondenceExpansionReason::pin);
+        emit_present_expansion_delta(next, next_before, CorrespondenceExpansionReason::pin);
     }
 }
 
@@ -452,10 +460,10 @@ void CorrespondenceView::focus_index(
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
     if (!previous.empty()) {
-        emit_expansion_delta(previous, previous_before, expanded(previous), reason);
+        emit_present_expansion_delta(previous, previous_before, reason);
     }
     if (focused_id_ != previous) {
-        emit_expansion_delta(focused_id_, next_before, expanded(focused_id_), reason);
+        emit_present_expansion_delta(focused_id_, next_before, reason);
     }
 }
 
@@ -486,12 +494,9 @@ void CorrespondenceView::apply_hover_expansion(std::string stable_id) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
     if (!previous.empty()) {
-        emit_expansion_delta(previous, previous_before, expanded(previous),
-                             CorrespondenceExpansionReason::hover_intent);
+        emit_present_expansion_delta(previous, previous_before, CorrespondenceExpansionReason::hover_intent);
     }
-    emit_expansion_delta(hover_expanded_id_, next_before,
-                         expanded(hover_expanded_id_),
-                         CorrespondenceExpansionReason::hover_intent);
+    emit_present_expansion_delta(hover_expanded_id_, next_before, CorrespondenceExpansionReason::hover_intent);
 }
 
 void CorrespondenceView::clear_hover_intent(bool clear_expansion) {
@@ -505,8 +510,7 @@ void CorrespondenceView::clear_hover_intent(bool clear_expansion) {
     const ScrollAnchor anchor = capture_anchor(anchor_index);
     hover_expanded_id_.clear();
     restore_anchor(anchor);
-    emit_expansion_delta(previous, before, expanded(previous),
-                         CorrespondenceExpansionReason::hover_intent);
+    emit_present_expansion_delta(previous, before, CorrespondenceExpansionReason::hover_intent);
 }
 
 void CorrespondenceView::set_hovered_index(
@@ -1083,8 +1087,7 @@ void CorrespondenceView::on_focus_changed(bool focused) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
     if (!active.empty()) {
-        emit_expansion_delta(active, before, expanded(active),
-                             CorrespondenceExpansionReason::keyboard_focus);
+        emit_present_expansion_delta(active, before, CorrespondenceExpansionReason::keyboard_focus);
     }
 }
 

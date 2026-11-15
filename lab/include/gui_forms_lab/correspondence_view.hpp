@@ -225,6 +225,8 @@ private:
     void emit_expansion_delta(std::string_view stable_id, bool before,
                               bool after,
                               CorrespondenceExpansionReason reason);
+    void emit_present_expansion_delta(std::string_view stable_id, bool before,
+                                      CorrespondenceExpansionReason reason);
     void paint_glyph(Painter& painter, Rect bounds, ObjectGlyph glyph,
                      bool enabled) const;
 
