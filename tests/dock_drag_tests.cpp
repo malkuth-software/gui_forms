@@ -562,10 +562,12 @@ std::size_t run_frames(Window& window, ManualTime& time) {
 // shrink's on the same request; afterwards nothing is scheduled. Under
 // reduced motion and in an occluded window there are none at all.
 void stamp_frames() {
+    // Declared before the fixture: the window's clock reads it until the
+    // window is gone (B-gf-tests-04-F2).
+    ManualTime time{};
     std::unique_ptr<Fixture> fixture = make_fixture();
     DockSite& site = *(*fixture).site;
     Window& window = *(*fixture).window;
-    ManualTime time{};
     window.motion_clock().set_time_source(&time);
     // The press arms a request of its own (not the clock's); count from
     // after it.
@@ -917,10 +919,12 @@ void stamp_picture() {
 // is enlisted on the motion clock; a frame after the target goes drops it;
 // under reduced motion it is painted still and never enlisted.
 void drop_pulse() {
+    // Declared before the fixture: the window's clock reads it until the
+    // window is gone (B-gf-tests-04-F2).
+    ManualTime time{};
     std::unique_ptr<Fixture> fixture = make_fixture();
     DockSite& site = *(*fixture).site;
     Window& window = *(*fixture).window;
-    ManualTime time{};
     window.motion_clock().set_time_source(&time);
     require(!site.drop_pulse_running(), "no drag, no pulse");
     const Rect pane = stack_bounds(site, stack_of(*(*fixture).workspace, "properties"));
