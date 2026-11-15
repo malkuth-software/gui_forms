@@ -41,9 +41,17 @@ if __name__ == '__main__':
     finding: check_member_views.Finding
     for finding in findings:
         print(f'{finding.path}:{finding.line}: {finding.rule}: {finding.detail}')
+    # The termination rule reads destructor triviality from the first-party
+    # types of every selected file, so all are indexed before any is checked.
+    import destructor_index
+    masked: dict[Path, str] = {}
+    types: destructor_index.TypeIndex = destructor_index.TypeIndex()
+    for path in selected:
+        masked[path] = harness_rules.masked_source(path)
+        types.add(path, masked[path])
     exit_findings: list[check_exit_statics.Finding] = []
     for path in selected:
-        exit_findings.extend(check_exit_statics.check_exit_statics(path, harness_rules.masked_source(path)))
+        exit_findings.extend(check_exit_statics.check_exit_statics(path, masked[path], types))
     exit_finding: check_exit_statics.Finding
     for exit_finding in exit_findings:
         print(f'{exit_finding.path}:{exit_finding.line}: {exit_finding.rule}: {exit_finding.detail}')
