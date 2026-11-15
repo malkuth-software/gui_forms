@@ -13,9 +13,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cerrno>
 #include <charconv>
+#include <cstdint>
 #include <cstdlib>
+#include <limits>
 #include <string_view>
 #include <utility>
 
@@ -179,7 +182,10 @@ bool HostedClient::pump(std::chrono::milliseconds timeout) {
         pollfd watched{};
         watched.fd = channel_;
         watched.events = POLLIN;
-        const int milliseconds = static_cast<int>(wait.count() < 0 ? 0 : wait.count());
+        // poll takes an int; a caller's longer wait is cut to the largest
+        // (A-gf-host-02-F13), never truncated to a negative "no limit".
+        const std::int64_t wanted = wait.count() < 0 ? 0 : static_cast<std::int64_t>(wait.count());
+        const int milliseconds = static_cast<int>(std::min<std::int64_t>(wanted, std::numeric_limits<int>::max()));
         const int ready = ::poll(&watched, 1U, milliseconds);
         if (ready < 0 && errno == EINTR) continue;
         if (ready <= 0) break;
@@ -208,7 +214,9 @@ bool HostedClient::pump(std::chrono::milliseconds timeout) {
 }
 
 std::optional<std::uint32_t> HostedClient::acquire_slot(std::chrono::milliseconds timeout) {
-    const std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::now() + timeout;
+    // At most a day, so now() + timeout cannot overflow (A-gf-host-02-F13).
+    const std::chrono::milliseconds bounded = std::min(timeout, std::chrono::milliseconds(std::chrono::hours(24)));
+    const std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::now() + bounded;
     for (;;) {
         for (std::uint32_t slot = 0U; slot < slot_count_; ++slot) {
             if (slot_free_[slot]) return slot;

@@ -31,12 +31,14 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cerrno>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <mutex>
 #include <span>
 #include <stdexcept>
@@ -70,6 +72,9 @@ namespace {
 
 // Input waiting longer than this is dropped rather than queued.
 constexpr std::size_t hosted_input_backlog_limit = 1024U * 1024U;
+// The longest start timeout and stop grace: a day. Longer ones are taken
+// as this, so now() + timeout cannot overflow (A-gf-host-02-F13).
+constexpr std::chrono::milliseconds hosted_maximum_timeout = std::chrono::hours(24);
 // How often the worker looks at the surface's request while idle.
 constexpr int hosted_poll_milliseconds = 50;
 // How long a killed process may take to be reaped before a detached thread
@@ -643,7 +648,9 @@ void PosixHostedProgram::stop_process(int channel) {
         pollfd watched{};
         watched.fd = channel;
         watched.events = POLLIN;
-        const int ready = ::poll(&watched, 1U, static_cast<int>(milliseconds));
+        // poll takes an int; a longer wait is taken in turns (A-gf-host-02-F13).
+        const std::int64_t turn = std::min<std::int64_t>(milliseconds, std::numeric_limits<int>::max());
+        const int ready = ::poll(&watched, 1U, static_cast<int>(turn));
         if (ready < 0 && errno == EINTR) continue;
         if (ready <= 0) break;
         const ssize_t received = recv(channel, discard.data(), discard.size(), 0);
@@ -867,6 +874,11 @@ HostedContent make_hosted_content(HostedContentOptions options) {
     if (options.start_timeout < std::chrono::milliseconds(0) || options.stop_grace < std::chrono::milliseconds(0)) {
         throw std::invalid_argument("hosted content timeouts may not be negative");
     }
+    // A caller's largest duration (meaning no limit) would overflow the
+    // deadline arithmetic; both are taken as at most a day
+    // (A-gf-host-02-F13).
+    options.start_timeout = std::min(options.start_timeout, hosted_maximum_timeout);
+    options.stop_grace = std::min(options.stop_grace, hosted_maximum_timeout);
     std::shared_ptr<detail::HostedInputState> state = std::make_shared<detail::HostedInputState>();
     HostedContent made{};
     made.program = std::make_unique<PosixHostedProgram>(std::move(options), state);
