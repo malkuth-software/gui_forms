@@ -161,18 +161,29 @@ void test_content_parts() {
 
     // A transparent value shows the checkerboard's two squares. The
     // pattern is generated on an idle frame (E10) and the part shows its
-    // ground until then, so the window's frames run between captures.
+    // ground until then, so the window's frames run between captures. An
+    // idle frame runs only while no paint is owed (SurfaceRoot::
+    // paint_pending), and a capture leaves the area it rebuilt owed to the
+    // screen as damage, which a host takes when it presents: with no host
+    // here, the test takes it, as a host's frame would.
+    // The samples sit in the checker's lower row of squares (rows 5 to 9 of
+    // its 10-unit tile, the dark square left of the light) and 12 units in:
+    // clear of the editor well's inner top shade (`box-shadow: inset 0 1px
+    // 2px #294b7730`, the default theme's), which tints the swatch's top
+    // and left edges blue-grey (229, 230, 230 over the 232 ground).
     (*picker).value = Color::rgba(0, 0, 255, 0);
     bool checkered = false;
     bool grey = false;
     for (int attempt = 0; attempt < 8 && !checkered; ++attempt) {
         std::optional<WindowCapture> clear = capture(attached);
         if (!clear) break;
-        const Pixel light = pixel_at(*clear, swatch.x + 2.0, swatch.y + 2.0);
-        const Pixel dark = pixel_at(*clear, swatch.x + 7.0, swatch.y + 2.0);
-        grey = light.red == light.blue && dark.red == dark.blue;
-        checkered = grey && light.red != dark.red;
+        const Pixel dark = pixel_at(*clear, swatch.x + 12.0, swatch.y + 7.0);
+        const Pixel light = pixel_at(*clear, swatch.x + 17.0, swatch.y + 7.0);
+        grey = light.red == light.green && light.green == light.blue && dark.red == dark.green &&
+               dark.green == dark.blue;
+        checkered = grey && light.red >= dark.red + 20U;
         for (int frame = 0; frame < 4 && window.next_wake(); ++frame) {
+            static_cast<void>(window.take_damage());
             static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
         }
     }
