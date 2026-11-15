@@ -3292,8 +3292,12 @@ void virtual_new_row() {
                 (*grid).row_id(row_at(3U)) == id("added-1"),
             "the application adds the row and names it; a new row follows");
     require((*grid).cell_text(row_at(3U), 0U) == "Yankee", "the committed value reaches the added row");
-    require((*grid).current_row_id() == id("added-1") || (*grid).current_row_id() != id("v0"),
-            "the current cell follows the added row's ID");
+    // The commit moves the current cell with the placeholder's ID to the
+    // added row's (position 3), and Enter then steps down to the new row
+    // that follows (position 4). A current cell left on the retired
+    // placeholder ID would be lost and Enter would not move it.
+    require((*grid).current_cell() == cell_at(4U, 0U) && (*grid).new_row_index() == row_at(4U),
+            "the current cell follows the added row's ID, and Enter moves it to the new row");
 }
 
 void error_glyph_tool_tips() {
