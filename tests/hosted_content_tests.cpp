@@ -286,7 +286,7 @@ void frames_and_input_cross_the_process_boundary() {
 // A-gf-host-02-F17: text over the payload limit is dropped and counted,
 // never thrown, as every other send that cannot go.
 void oversized_text_is_dropped_and_counted() {
-    Fixture fixture = start_child("hosted.text_limit", "frames");
+    Fixture fixture = start_child("hosted.text-limit", "frames");
     require(settle(fixture, StatusIs{ContentSurfaceStatus::live}), "the program is live");
     const std::uint64_t before = fixture.input.dropped();
     const std::string oversized(hosted_maximum_payload_bytes, 'x');
