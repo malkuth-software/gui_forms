@@ -2627,6 +2627,11 @@ private:
     void sync_invalidation_overlay();
     void note_damage_cause(Rect damage, bool presented_whole);
     void attribute_painted_damage(std::span<const Rect> painted);
+    // Writes the counters card's lines (the diagnostic overlay's figures,
+    // from metrics_) into the overlay; called with attribute_painted_damage
+    // while the overlay is on, so the card shows the figures as of the last
+    // paint. The line storage is the overlay's and is reused.
+    void fill_overlay_counters();
     std::unique_ptr<InvalidationOverlay> invalidation_overlay_{};
     std::optional<bool> invalidation_overlay_setting_{};
     std::uint64_t invalidation_overlay_generation_{};

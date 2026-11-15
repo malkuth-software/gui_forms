@@ -137,13 +137,12 @@ private:
 [[nodiscard]] WindowCapsuleSection capsule_section(SurfaceDeskPart part) noexcept;
 
 // The call point of the capsule's help (WINDOW_MANAGER_SPEC: the business
-// card and the diagnostic overlay, unified across GUI.Forms programs, come
-// from a separate task and attach here; so does the overlay's own toggle,
-// holding D and right-clicking again). `open` is called on the manager's
-// thread with `context` and the window whose capsule asked; `context` must
-// outlive the run or be cleared first. Without one the manager shows the
-// capsule's own help (window_capsule_help_text) in a message box over the
-// window.
+// card and the diagnostic overlay, unified across GUI.Forms programs).
+// `open` is called on the manager's thread with `context` and the window
+// whose capsule asked; `context` must outlive the run or be cleared first.
+// Without one the manager shows the business card in the hand over the
+// window (show_business_card), or, for a window without a model, the
+// capsule's own help (window_capsule_help_text) in a message box.
 struct SurfaceCapsuleHelpTarget final {
     void* context{};
     void (*open)(void* context, HostWindowId window){};
@@ -358,8 +357,9 @@ public:
     // Pushes the capsule's look to the strip of its window, and the resting
     // look to the strip that showed it before.
     void show_capsule_look();
-    // The capsule's help (capsule_help, or the capsule's own help in a
-    // message box over the window).
+    // The capsule's help (capsule_help; else the business card in the hand
+    // over the window, or the capsule's own help in a message box for a
+    // window without a model).
     void open_capsule_help(HostWindowId window);
     // `window` closed, was minimised or lost the keyboard: its capsule
     // forgets every gesture.

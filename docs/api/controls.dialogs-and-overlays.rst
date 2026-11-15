@@ -35,6 +35,8 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
      - A provider of enhanced tooltips: a title, a description, a shortcut, an image, why a command is unavailable, and an F1 help topic.
    * - :cpp:class:`SaveFileDialog <gui_forms::SaveFileDialog>`
      - The host's dialog for choosing where to save a file.
+   * - :cpp:class:`BusinessCard <gui_forms::BusinessCard>`
+     - The program's business card, one for every GUI.Forms program: the identity's vendor, product, version and website on a flat themed card, lying on a page or held in the hand over the window; D held with a secondary press on the vendor name toggles the diagnostic overlay.
 
 .. toctree::
    :hidden:
@@ -51,6 +53,7 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
    generated/gui_forms.ToolTip
    generated/gui_forms.RibbonToolTip
    generated/gui_forms.SaveFileDialog
+   generated/gui_forms.BusinessCard
 
 Related types
 -------------
@@ -75,6 +78,12 @@ Related types
      - AnchoredOverlayPlacementResult is the exact output of placement resolution: client-relative bounds plus whether the overlay moved above its anchor or had either dimension clamped.
    * - :cpp:class:`BundledFontFace <gui_forms::BundledFontFace>`
      - One face GUI.Forms bundles for a FontRole, as every host registers it: its family name, what the role is for, and whether it has italic faces.
+   * - :cpp:class:`BusinessCard::Parts <gui_forms::BusinessCard::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`BusinessCardRemarkSource <gui_forms::BusinessCardRemarkSource>`
+     - The optional remark source (decision 2a): a program that speaks through its card (PlaySuite's remarks) names a function that writes one remark for the card in the hand into ``remark`` (cleared before the call; UTF-8; the card shows at most maximum_business_card_remark bytes, cut at a character boundary).
+   * - :cpp:class:`BusinessCardRequest <gui_forms::BusinessCardRequest>`
+     - The argument of BusinessCard::open_requested and website_requested: a handler that answers the request itself sets handled.
    * - :cpp:class:`Callout::Parts <gui_forms::Callout::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`CalloutActionTextCapability <gui_forms::CalloutActionTextCapability>`
@@ -137,6 +146,8 @@ Related types
      - Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
    * - :cpp:class:`ModalLayerClosingEvent <gui_forms::ModalLayerClosingEvent>`
      - The argument of ModalLayer::closing: the result the layer would close with, and whether a handler refuses the closing.
+   * - :cpp:class:`ProgramIdentity <gui_forms::ProgramIdentity>`
+     - The program's identity, as the business card shows it.
    * - :cpp:class:`RibbonToolTipAutoPopDelayCapability <gui_forms::RibbonToolTipAutoPopDelayCapability>`
      - How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves.
    * - :cpp:class:`RibbonToolTipCapabilities <gui_forms::RibbonToolTipCapabilities>`
@@ -369,6 +380,60 @@ Related types
    .. cpp:member:: std::string_view use
 
    .. cpp:member:: bool italic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BusinessCard::Parts final
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry shadow
+
+   .. cpp:member:: PartGeometry stock
+
+   .. cpp:member:: PartGeometry vendor_name
+
+   .. cpp:member:: PartGeometry rule
+
+   .. cpp:member:: PartGeometry product
+
+   .. cpp:member:: PartGeometry website
+
+   .. cpp:member:: PartGeometry remark
+
+   .. cpp:member:: PartGeometry close_mark
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BusinessCardRemarkSource final
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   The optional remark source (decision 2a): a program that speaks through its card (PlaySuite's remarks) names a function that writes one remark for the card in the hand into ``remark`` (cleared before the call; UTF-8; the card shows at most maximum_business_card_remark bytes, cut at a character boundary). It is called on the UI thread each time a card is shown in the hand; ``context`` is passed back and must stay valid until the source is replaced or cleared. An empty source gives no remark.
+
+   .. cpp:member:: void* context
+
+      Default: ``{nullptr}``.
+
+   .. cpp:member:: void (*write_remark)(void* context, std::string& remark){nullptr}
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BusinessCardRequest final
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   The argument of BusinessCard::open_requested and website_requested: a handler that answers the request itself sets handled.
+
+   .. cpp:member:: bool handled
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -919,6 +984,26 @@ Related types
    .. cpp:member:: bool cancel
 
       Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ProgramIdentity final
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   The program's identity, as the business card shows it. ``vendor`` is the display name printed large on the card (package names carry no vendor; this is display text only) and ``website`` the address the card's link names (https only; empty for no link). Every field is UTF-8 text; empty fields are left off the card.
+
+   .. cpp:member:: std::string product
+
+   .. cpp:member:: std::string version
+
+   .. cpp:member:: std::string vendor
+
+   .. cpp:member:: std::string website
+
+   .. cpp:member:: std::string copyright
+
+   .. cpp:member:: std::string credits
 
 .. cpp:namespace:: gui_forms
 
@@ -1716,6 +1801,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BusinessCardPresentation
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   .. cpp:enumerator:: page
+
+   .. cpp:enumerator:: hand
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: CalloutCloseReason
 
    ``#include <gui_forms/controls/callout.hpp>``
@@ -1856,6 +1951,50 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/components/business_card/business_card.hpp>``
+
+.. cpp:function:: void set_program_identity(const ProgramIdentity& identity)
+
+   Sets the process's identity, read by every card when it lays out and paints. Validated whole before it replaces the previous identity: text that is not valid UTF-8, or a website that is neither empty nor an https:// address, throws std::invalid_argument and leaves the identity as it was. A program sets it before it shows a card; a card already shown shows the new identity when it next paints. UI thread.
+
+.. cpp:function:: const ProgramIdentity& program_identity() noexcept
+
+   The identity last set; every field empty before the first set. The reference stays valid until the next set_program_identity. UI thread.
+
+.. cpp:function:: void set_business_card_remark_source(BusinessCardRemarkSource source) noexcept
+
+   UI thread.
+
+.. cpp:function:: BusinessCardRemarkSource business_card_remark_source() noexcept
+
+.. cpp:function:: void set_diagnostic_overlay(bool enabled) noexcept
+
+   The diagnostic overlay: the invalidation outlines (invalidation_overlay.hpp) and, at the top left, the counters card in each window's overlay plane (renderer, controls and stable ids, measure and arrange passes, paints and damage rectangles, input and focus, wakes and timer ticks, presents and the worst present: the figures the Gallery's Diagnostics panel shows). The counters card shows whenever the overlay is on (decision 3a). It is the process switch: set_diagnostic_overlay(true) sets set_invalidation_overlay_default(true), so every window without a setting of its own shows both; false clears it. It draws nothing into the program's controls and takes no input; a window shows the change at its next present. Any thread.
+
+.. cpp:function:: bool diagnostic_overlay() noexcept
+
+.. cpp:function:: bool toggle_diagnostic_overlay() noexcept
+
+   Turns the overlay to the other state and returns the new one (the gesture's action). Two threads toggling at once may both read the same state; the switch then ends in the state both wrote.
+
+.. cpp:function:: bool show_business_card(Window& window)
+
+   show_business_card(window) shows the card in the hand over ``window``, in a modal layer of the window's own (so it works the same on every host): the window behind is dimmed and takes no input until the card is put away. It returns false, changing nothing, when the window already shows it. The window capsule's help entry (the surface manager's default capsule help target) and a page card's open_requested call it. hide_business_card(window) puts the card away (the card emits put_away, whose handlers may throw); it does nothing when the window shows none. Both UI thread.
+
+.. cpp:function:: void hide_business_card(Window& window)
+
+.. cpp:function:: bool business_card_shown(const Window& window) noexcept
+
+.. cpp:function:: std::shared_ptr<BusinessCard> shown_business_card(const Window& window) noexcept
+
+   The card the window shows in the hand, else null (for tests and inspection). UI thread.
+
+.. cpp:var:: constexpr std::size_t maximum_business_card_remark
+
+   Value: ``160U``.
 
 .. cpp:namespace:: gui_forms
 

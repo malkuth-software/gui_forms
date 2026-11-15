@@ -12,6 +12,7 @@
 // (src/host/surface/manager/surface_manager_internal.hpp).
 
 #include "../src/host/surface/manager/surface_manager_internal.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #if defined(_WIN32)
 #include "../src/host/windows/fonts/sealed_pages_windows.hpp"
 #else
@@ -499,6 +500,32 @@ void test_capsule_help_and_keyboard() {
     (*harness.runtime).capsule_help = SurfaceCapsuleHelpTarget{};
 }
 
+// Without a help target of the program's, the capsule's question mark
+// shows the business card in the hand over the window (the one card every
+// program shows); a press beside the card, or Escape, puts it away, and
+// the window takes clicks again.
+void test_capsule_help_shows_business_card() {
+    Harness harness;
+    harness.use_capsule();
+    TestWindow owned;
+    const HostWindowId window = harness.open(owned, "owned");
+    NativeWindow* const native = (*harness.runtime).window(window);
+    require(native != nullptr && (*native).entry.model != nullptr, "the owned window has its model");
+    Window& model = *(*native).entry.model;
+    require(!business_card_shown(model), "no card before the question mark");
+    harness.click(capsule_help, 0.0);
+    require(business_card_shown(model), "the question mark shows the business card");
+    const std::shared_ptr<BusinessCard> card = shown_business_card(model);
+    require(card != nullptr && (*card).presentation() == BusinessCardPresentation::hand, "held in the hand");
+    harness.click(Point{256.0, 206.0}, 1000.0);
+    require(!business_card_shown(model), "a press beside the card puts it away");
+    require(owned.clicks == 0, "and reaches nothing beneath");
+    harness.click(capsule_help, 2000.0);
+    require(business_card_shown(model), "the card comes out again");
+    harness.post_key(PhysicalKey::escape, Modifier::none);
+    require(!business_card_shown(model), "Escape puts it away");
+}
+
 } // namespace
 
 int main() {
@@ -513,6 +540,7 @@ int main() {
         test_capsule_left_half();
         test_capsule_right_half_moves();
         test_capsule_help_and_keyboard();
+        test_capsule_help_shows_business_card();
     } catch (const std::exception& error) {
         std::cerr << "surface window manager tests failed: " << error.what() << '\n';
         return EXIT_FAILURE;

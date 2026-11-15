@@ -126,3 +126,4 @@
     {"text_box_base", "Text editing", Size{224.0, 30.0}, "Text box base", &make_text_box_base, nullptr, "the text controls' base paints only its panel face"},
     {"list_control", "Selection from a list", Size{240.0, 144.0}, "List control", &make_list_control, nullptr, "the list controls' base paints only its panel face"},
     {"up_down_base", "Value setting", Size{224.0, 32.0}, "Up down base", &make_up_down_base, nullptr, "the up-down controls' base paints only its panel face"},
+    {"business_card", "Dialogs and overlays", Size{340.0, 210.0}, "Business card", &make_plain<BusinessCard>, nullptr, ""},

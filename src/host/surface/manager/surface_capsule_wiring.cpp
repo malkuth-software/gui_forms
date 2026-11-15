@@ -4,6 +4,7 @@
 // point. The gesture rules are WindowCapsuleGesture's
 // (src/controls/window_capsule/window_capsule_gesture.cpp).
 #include "surface_manager_internal.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -120,6 +121,14 @@ void Runtime::open_capsule_help(HostWindowId target) {
     }
     NativeWindow* found = window(target);
     if (found == nullptr) return;
+    // The default: the program's business card in the hand over the
+    // window, the one card every GUI.Forms program shows
+    // (business_card.hpp). A window without a model shows the capsule's own
+    // help instead.
+    if ((*found).entry.model) {
+        static_cast<void>(show_business_card(*(*found).entry.model));
+        return;
+    }
     HostMessageDialogRequest message;
     message.title = "Window capsule";
     message.message = std::string(window_capsule_help_text());

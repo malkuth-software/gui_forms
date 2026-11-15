@@ -687,8 +687,11 @@ using gui_forms::host::macos::MacPresentedFrame;
     // 8), once per pass, before the presentations are released.
     if (livePresented) [self reportLivePresentations];
     // Outlines recorded by this draw may reach outside its dirty rectangles
-    // (labels, the legend): the fade timer's first tick presents them.
-    if ((overlay != nullptr && !(*overlay).empty()) || !_overlayDrawn.empty()) {
+    // (labels, the legend, the counters card): the fade timer's first tick
+    // presents them. An overlay just turned off leaves its last areas to
+    // present from the raster. The counters card alone arms nothing, so a
+    // tick's own copy-only draw does not arm the next.
+    if ((overlay != nullptr && !(*overlay).empty()) || (overlay == nullptr && !_overlayDrawn.empty())) {
         [self armInvalidationOverlayTimer];
     }
     if (presented) {
@@ -962,7 +965,10 @@ using gui_forms::host::macos::MacPresentedFrame;
                                                (region.bottom - region.top) / scale)];
     }
     _overlayDrawn.swap(_overlayRegions);
-    if (_overlayDrawn.empty()) [self stopInvalidationOverlayTimer];
+    // With no outline left nothing fades: the areas drawn at the last tick
+    // were asked for above, and the counters card (the diagnostic overlay)
+    // is presented again with the next paint, so the ticks stop.
+    if (_overlayDrawn.empty() || (overlay != nullptr && (*overlay).empty())) [self stopInvalidationOverlayTimer];
 }
 
 @end

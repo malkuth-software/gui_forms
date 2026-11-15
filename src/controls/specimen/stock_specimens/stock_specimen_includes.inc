@@ -126,3 +126,4 @@
 #include "gui_forms/controls/text_box_base.hpp"
 #include "gui_forms/controls/list_control.hpp"
 #include "gui_forms/controls/up_down_base.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"

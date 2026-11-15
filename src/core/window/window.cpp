@@ -24,6 +24,7 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstdio>
 #include <exception>
 #include <functional>
 #include <new>
@@ -3878,6 +3879,53 @@ void SurfaceRoot::attribute_painted_damage(std::span<const Rect> painted) {
         if (!asked) overlay.record(rectangle, InvalidationCause::host_expose, std::string_view{}, now);
     }
     invalidation_causes_.clear();
+    fill_overlay_counters();
+}
+
+namespace {
+
+// One counters card line: snprintf into `line`, cut to the card's width.
+// The card's font shows letters, digits and `. - : / ( ) # , ?` only.
+using CounterLine = std::array<char, maximum_overlay_counter_characters + 1U>;
+
+std::string_view counter_text(const CounterLine& line, int written) noexcept {
+    if (written <= 0) return std::string_view{};
+    const std::size_t length = std::min(static_cast<std::size_t>(written), maximum_overlay_counter_characters);
+    return std::string_view(line.data(), length);
+}
+
+unsigned long long counter_value(std::uint64_t value) noexcept {
+    return static_cast<unsigned long long>(value);
+}
+
+} // namespace
+
+void SurfaceRoot::fill_overlay_counters() {
+    const MetricsSnapshot figures = metrics_.snapshot();
+    constexpr std::size_t line_count = 7U;
+    std::array<CounterLine, line_count> lines{};
+    std::array<std::string_view, line_count> views{};
+    views[0] = counter_text(lines[0], std::snprintf(lines[0].data(), lines[0].size(), "renderer %s",
+                                                    figures.renderer_name.c_str()));
+    views[1] = counter_text(lines[1], std::snprintf(lines[1].data(), lines[1].size(), "controls %llu ids %llu",
+                                                    counter_value(figures.control_count),
+                                                    counter_value(figures.stable_id_count)));
+    views[2] = counter_text(lines[2], std::snprintf(lines[2].data(), lines[2].size(), "measure %llu arrange %llu",
+                                                    counter_value(figures.measure_passes),
+                                                    counter_value(figures.arrange_passes)));
+    views[3] = counter_text(lines[3], std::snprintf(lines[3].data(), lines[3].size(), "paint %llu damage %llu",
+                                                    counter_value(figures.paint_passes),
+                                                    counter_value(figures.damage_rectangles_painted)));
+    views[4] = counter_text(lines[4], std::snprintf(lines[4].data(), lines[4].size(), "input %llu focus %llu",
+                                                    counter_value(figures.input_events),
+                                                    counter_value(figures.focus_transitions)));
+    views[5] = counter_text(lines[5], std::snprintf(lines[5].data(), lines[5].size(), "wake %llu ticks %llu",
+                                                    counter_value(figures.scheduler_wakes),
+                                                    counter_value(figures.ui_timer_ticks)));
+    const double worst = static_cast<double>(figures.worst_present_duration_nanoseconds) / 1'000'000.0;
+    views[6] = counter_text(lines[6], std::snprintf(lines[6].data(), lines[6].size(), "present %llu worst %.2f ms",
+                                                    counter_value(figures.frames_presented), worst));
+    (*invalidation_overlay_).set_counters(std::span<const std::string_view>(views.data(), views.size()));
 }
 
 void SurfaceRoot::add_damage_all_planes(Rect damage) {

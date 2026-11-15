@@ -70,6 +70,13 @@ inline constexpr std::size_t maximum_invalidation_outlines = 512U;
 // The characters of an outline's source label it shows.
 inline constexpr std::size_t maximum_invalidation_label = 32U;
 
+// The counters card (the diagnostic overlay, business_card.hpp): at most
+// this many lines, each cut to this many characters. The label font has
+// letters (shown upper case), digits and the punctuation `. - _ : / ( ) #
+// [ ] , ?`; any other character shows as `?`.
+inline constexpr std::size_t maximum_overlay_counter_lines = 12U;
+inline constexpr std::size_t maximum_overlay_counter_characters = 30U;
+
 // The time outlines are stamped and aged with.
 using InvalidationClock = std::chrono::steady_clock;
 
@@ -141,8 +148,21 @@ public:
     void record(Rect bounds, InvalidationCause cause, std::string_view source, InvalidationClock::time_point at);
     // Drops the outlines older than invalidation_outline_lifetime at `now`.
     void expire(InvalidationClock::time_point now);
+    // Drops every outline; the counters stay.
     void clear() noexcept;
+    // No outline shows (the counters card may still): nothing fades, so a
+    // host stops its fade ticks.
     [[nodiscard]] bool empty() const noexcept { return outlines_.empty(); }
+    // Replaces the counters card's lines (the window fills them from its
+    // metrics after each paint): the first maximum_overlay_counter_lines,
+    // each cut to maximum_overlay_counter_characters bytes. The lines'
+    // storage is reused, so a steady card allocates nothing. No lines, no
+    // card.
+    void set_counters(std::span<const std::string_view> lines);
+    [[nodiscard]] std::span<const std::string> counters() const& noexcept {
+        return std::span<const std::string>(counters_.data(), counter_count_);
+    }
+    std::span<const std::string> counters() const&& = delete;
     // Oldest first.
     [[nodiscard]] std::span<const InvalidationOutline> outlines() const& noexcept {
         return std::span<const InvalidationOutline>(outlines_.data(), outlines_.size());
@@ -154,21 +174,26 @@ public:
     }
     // The device rectangles the overlay draws on at `scale` in a client of
     // `width` by `height` device pixels, into `regions` (replacing its
-    // contents): each outline's four stroke bands and its label, and the
-    // legend while any outline shows. A host presents these again from its
+    // contents): each outline's four stroke bands and its label, the
+    // legend while any outline shows, and the counters card at the top left
+    // while it has lines. A host presents these again from its
     // raster when the overlay changes, so that a faded outline leaves
     // nothing behind.
     void fill_regions(double scale, std::uint32_t width, std::uint32_t height,
                       std::vector<DevicePixelRect>& regions) const;
-    // Composites the outlines, their labels and the legend at `now` onto
-    // `target` at `scale`, inside `clip` only; each outline's opacity falls
-    // with its age. The target is a copy of what the window presents.
+    // Composites the outlines, their labels, the legend and the counters
+    // card at `now` onto `target` at `scale`, inside `clip` only; each
+    // outline's opacity falls with its age (the card is opaque). The target
+    // is a copy of what the window presents.
     void compose(const InvalidationOverlayTarget& target, double scale, InvalidationClock::time_point now,
                  DevicePixelRect clip) const;
 
 private:
     std::vector<InvalidationOutline> outlines_{};
     std::array<std::uint64_t, invalidation_cause_count> recorded_{};
+    // The counters card: counter_count_ live lines of the fixed array.
+    std::array<std::string, maximum_overlay_counter_lines> counters_{};
+    std::size_t counter_count_{};
 };
 
 } // namespace gui_forms

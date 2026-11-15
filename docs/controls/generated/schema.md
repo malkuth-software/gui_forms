@@ -3479,6 +3479,7 @@ Properties beyond every control's: `close_on_escape` (boolean).
 |---|---|
 | `closing` | `ModalLayerClosingEvent`, by reference |
 | `closed` | `DialogResult` |
+| `outside_pressed` | none |
 
 ## `lookup_combo_box` (LookupComboBox, control)
 
@@ -3928,6 +3929,31 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
+
+## `business_card` (BusinessCard, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `shadow` | shadow |  |  |
+| `stock` | face |  |  |
+| `vendor_name` | label |  |  |
+| `rule` | divider |  |  |
+| `product` | label |  |  |
+| `website` | label |  |  |
+| `remark` | label |  |  |
+| `close_mark` | glyph |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `pressed`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: none.
+
+| Interaction | Payload |
+|---|---|
+| `open_requested` | `BusinessCardRequest`, by reference |
+| `put_away` | none |
+| `website_requested` | `BusinessCardRequest`, by reference |
 
 ## `window` (Window, component)
 

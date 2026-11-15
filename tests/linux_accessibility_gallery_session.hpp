@@ -31,6 +31,7 @@
 #include "demo/gallery.hpp"
 #include "demo/gallery_page_specs.hpp"
 #include "gui_forms/controls/callout.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
@@ -228,9 +229,15 @@ struct ClickCounter final {
 // subclasses (ButtonBase, RangeControl, ScrollBar), one of each, as the
 // anatomy coverage test adds them; and the visual registry controls no
 // Gallery page attaches (the instruments and the plot, and the wizard page,
-// callout, modal layer and help viewer), each placed bare, as the Windows
-// accessibility tests' off-tree fixture places them.
+// callout, modal layer, help viewer and business card), each placed bare,
+// as the Windows accessibility tests' off-tree fixture places them. The
+// business card's press asks to open the card in the hand; the supplement
+// answers it, so no modal layer covers the window for later targets.
 inline constexpr Size supplement_size{800.0, 600.0};
+
+struct AnswerCardOpening final {
+    void operator()(BusinessCardRequest& request) const { request.handled = true; }
+};
 
 inline std::unique_ptr<Window> make_supplement() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("supplement"));
@@ -265,6 +272,10 @@ inline std::unique_ptr<Window> make_supplement() {
     (*root).add_child(callout);
     (*root).add_child(modal_layer);
     (*root).add_child(help_book_viewer);
+    std::shared_ptr<BusinessCard> business_card = make_control<BusinessCard>(StableId("supplement.business-card"));
+    (*business_card).set_requested_bounds({520, 340, 272, 164});
+    (*root).own_subscription((*business_card).open_requested().subscribe(AnswerCardOpening{}));
+    (*root).add_child(business_card);
     std::unique_ptr<Window> window = std::make_unique<Window>(root, supplement_size);
     (*window).perform_layout();
     return window;

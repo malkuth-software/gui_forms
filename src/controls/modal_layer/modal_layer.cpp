@@ -105,8 +105,14 @@ bool ModalLayer::hit_test_local(Point) const {
 // The layer takes the press, release and wheel, so nothing beneath it sees
 // them.
 void ModalLayer::on_mouse_down(MouseEventArgs& arguments) {
+    const Rect origin = absolute_bounds();
+    const Point local{arguments.window_position.x - origin.x, arguments.window_position.y - origin.y};
+    const bool button = arguments.button == PointerButton::primary || arguments.button == PointerButton::secondary;
+    const bool beside = shown_ && button && !content_bounds_.contains(local);
     arguments.handled = true;
     Control::on_mouse_down(arguments);
+    // Last: a handler may close the layer.
+    if (beside) outside_pressed_.emit();
 }
 
 void ModalLayer::on_mouse_up(MouseEventArgs& arguments) {
@@ -334,9 +340,10 @@ void ModalLayer::written(const decltype(close_on_escape)&) {
 namespace {
 
 // The events ModalLayer adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 2> modal_layer_interactions{{
+constexpr std::array<InteractionDeclaration, 3> modal_layer_interactions{{
     {.name = "closing", .payload = "ModalLayerClosingEvent", .mutable_payload = true},
     {.name = "closed", .payload = "DialogResult", .mutable_payload = false},
+    {.name = "outside_pressed", .payload = "", .mutable_payload = false},
 }};
 
 } // namespace

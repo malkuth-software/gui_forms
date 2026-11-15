@@ -357,6 +357,18 @@ std::optional<NativePresentKernel> convert_present_rectangle(XImage& image, cons
 
 namespace {
 
+// Whether the invalidation overlay still needs fade presents: an area drawn
+// at the last present and either an outline still showing (it fades, or
+// expires at the next present, which presents its area again) or the
+// overlay turned off (its areas are presented from the raster once). The
+// counters card alone (the diagnostic overlay) needs none: it is presented
+// again with each paint. UI thread.
+bool invalidation_overlay_fading(NativeWindow& window) {
+  if (window.overlay_drawn.empty()) return false;
+  InvalidationOverlay* const overlay = (*window.entry.model).invalidation_overlay();
+  return overlay == nullptr || !(*overlay).empty();
+}
+
 // The invalidation overlay at present time: copies the bounding box of the
 // requested rectangles and of the areas the outlines cover now and covered
 // at the last present from the raster's `source` pixels into the window's
@@ -1642,7 +1654,7 @@ void NativeWindow::update() {
     if (!live_regions[index].empty()) screen.add(live_regions[index]);
   }
   for (const ScrollCopy &copy : pending_copies) screen.add(copy.clip);
-  if (visible && screen.empty() && !overlay_drawn.empty()) {
+  if (visible && screen.empty() && invalidation_overlay_fading(*this)) {
     // The invalidation overlay's fade: nothing owed, so the outlines alone
     // are presented again from the raster (a faded one leaves the raster's
     // pixels), with no paint and no report.
@@ -2024,9 +2036,9 @@ void Runtime::step(int maximum_wait) {
     // least every 16 ms, as the Windows host's waitable timer does.
     if ((*window.entry.model).has_live_surface_presentations() && !window.live_idle)
       wait = wait < 0 ? 16 : std::min(wait, 16);
-    // The invalidation overlay's fade, while an outline shows: 33 ms, as
-    // the Windows host's timer.
-    if (!window.overlay_drawn.empty())
+    // The invalidation overlay's fade, while an outline shows or the
+    // overlay was just turned off: 33 ms, as the Windows host's timer.
+    if (invalidation_overlay_fading(window))
       wait = wait < 0 ? 33 : std::min(wait, 33);
     const std::optional<FrameTime> deadline = (*window.entry.model).next_wake();
     if (deadline) {

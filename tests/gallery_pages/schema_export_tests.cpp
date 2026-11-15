@@ -27,6 +27,7 @@
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_context/binding_context.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp"
 #include "gui_forms/commands/color_command/color_command.hpp"
 #include "gui_forms/commands/font_command/font_command.hpp"
@@ -1081,6 +1082,9 @@ void test_schema_export() {
     record_control(*modal_layer, records);
     record_control_as("help_book_viewer", *help_viewer, records);
     record_control(*help_book, records);
+    const std::shared_ptr<BusinessCard> business_card =
+        make_control<BusinessCard>(StableId("schema.business-card"));
+    record_control(*business_card, records);
 
     // Components, constructed directly.
     const std::shared_ptr<Command> command = std::make_shared<Command>();

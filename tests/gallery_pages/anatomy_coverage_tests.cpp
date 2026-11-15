@@ -1,6 +1,7 @@
 #include "support.hpp"
 
 #include "gui_forms/controls/callout.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
@@ -357,6 +358,12 @@ void test_anatomy_coverage() {
     inspect_control(*modal_layer, seen_ids);
     inspect_control(*help_viewer, seen_ids);
     inspected += 4U;
+    // The business card, which no Gallery page places (programs place it on
+    // their help pages or show it in the hand).
+    const std::shared_ptr<BusinessCard> business_card =
+        make_control<BusinessCard>(StableId("anatomy.coverage.business-card"));
+    inspect_control(*business_card, seen_ids);
+    inspected += 1U;
 
     std::string unexpected_gaps;
     std::string stale_pending;

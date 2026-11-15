@@ -999,6 +999,14 @@ Related types
 
    .. cpp:function:: bool empty() const noexcept
 
+      No outline shows (the counters card may still): nothing fades, so a host stops its fade ticks.
+
+   .. cpp:function:: std::span<const std::string> counters() const& noexcept
+
+   .. cpp:function:: void set_counters(std::span<const std::string_view> lines)
+
+      Replaces the counters card's lines (the window fills them from its metrics after each paint): the first maximum_overlay_counter_lines, each cut to maximum_overlay_counter_characters bytes. The lines' storage is reused, so a steady card allocates nothing. No lines, no card.
+
    .. cpp:function:: std::span<const InvalidationOutline> outlines() const& noexcept
 
       Oldest first.
@@ -1020,13 +1028,15 @@ Related types
 
    .. cpp:function:: void clear() noexcept
 
+      Drops every outline; the counters stay.
+
    .. cpp:function:: void fill_regions(double scale, std::uint32_t width, std::uint32_t height, std::vector<DevicePixelRect>& regions) const
 
-      The device rectangles the overlay draws on at ``scale`` in a client of ``width`` by ``height`` device pixels, into ``regions`` (replacing its contents): each outline's four stroke bands and its label, and the legend while any outline shows. A host presents these again from its raster when the overlay changes, so that a faded outline leaves nothing behind.
+      The device rectangles the overlay draws on at ``scale`` in a client of ``width`` by ``height`` device pixels, into ``regions`` (replacing its contents): each outline's four stroke bands and its label, the legend while any outline shows, and the counters card at the top left while it has lines. A host presents these again from its raster when the overlay changes, so that a faded outline leaves nothing behind.
 
    .. cpp:function:: void compose(const InvalidationOverlayTarget& target, double scale, InvalidationClock::time_point now, DevicePixelRect clip) const
 
-      Composites the outlines, their labels and the legend at ``now`` onto ``target`` at ``scale``, inside ``clip`` only; each outline's opacity falls with its age. The target is a copy of what the window presents.
+      Composites the outlines, their labels, the legend and the counters card at ``now`` onto ``target`` at ``scale``, inside ``clip`` only; each outline's opacity falls with its age (the card is opaque). The target is a copy of what the window presents.
 
 .. cpp:namespace:: gui_forms
 
@@ -3141,6 +3151,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_invalidation_label
 
    The characters of an outline's source label it shows. Value: ``32U``.
+
+.. cpp:var:: constexpr std::size_t maximum_overlay_counter_lines
+
+   The counters card (the diagnostic overlay, business_card.hpp): at most this many lines, each cut to this many characters. The label font has letters (shown upper case), digits and the punctuation ``. - _ : / ( ) # [ ] , ?``; any other character shows as ``?``. Value: ``12U``.
+
+.. cpp:var:: constexpr std::size_t maximum_overlay_counter_characters
+
+   Value: ``30U``.
 
 .. cpp:type:: InvalidationClock = std::chrono::steady_clock
 

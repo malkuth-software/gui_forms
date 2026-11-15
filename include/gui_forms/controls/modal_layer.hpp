@@ -77,6 +77,9 @@ public:
     [[nodiscard]] Event<ModalLayerClosingEvent&>& closing() noexcept { return closing_; }
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] Event<DialogResult>& closed() noexcept { return closed_; }
+    // A primary or secondary press while shown that fell beside the content
+    // (the layer takes it either way): a light-dismiss owner closes on it.
+    [[nodiscard]] Event<>& outside_pressed() noexcept { return outside_pressed_; }
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
@@ -129,6 +132,7 @@ private:
     AnimationTimer scrim_fade_frames_{};
     Event<ModalLayerClosingEvent&> closing_;
     Event<DialogResult> closed_;
+    Event<> outside_pressed_;
     // property_codemod begin ModalLayer (tools/property_families/modal_layer.json; generated, do not edit)
 public:
     // ModalLayer's property table: Control's entries, then its own.
