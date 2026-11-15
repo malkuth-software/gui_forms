@@ -84,10 +84,12 @@ void write_socket_class(std::string& text, std::uint16_t socket_type) {
 void NodeCanvas::ensure_look() {
     const Theme& theme = effective_theme();
     const CompiledThemeRules* const inline_rules = inline_style_rules();
+    const CompiledThemeRules* const composite_look = look_rules();
     const ControlVisualContext context = visual_context();
     const std::span<const std::string> current_classes = classes.read();
     const std::optional<Color> authored = back_color.read();
     const bool unchanged = look_resolved_ && look_theme_ == &theme && look_inline_rules_ == inline_rules &&
+                           look_composite_rules_ == composite_look &&
                            look_dark_ == context.dark && look_high_contrast_ == context.high_contrast &&
                            look_back_color_ == authored && same_classes(current_classes, look_classes_);
     if (unchanged) return;
@@ -103,6 +105,7 @@ void NodeCanvas::ensure_look() {
     if (grid_spacing_set_.has_value()) look_.grid.spacing = *grid_spacing_set_;
     look_theme_ = &theme;
     look_inline_rules_ = inline_rules;
+    look_composite_rules_ = composite_look;
     look_dark_ = context.dark;
     look_high_contrast_ = context.high_contrast;
     look_back_color_ = authored;

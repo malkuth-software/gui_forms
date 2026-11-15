@@ -1773,6 +1773,16 @@ public:
     // are its own.
     [[nodiscard]] static CompiledThemeRules compile_user(const ThemeRuleSheet& sheet,
                                                          const PrimitiveRegistry& registry);
+    // Compiles a composite control's look (its definition's <look> sheet):
+    // rules at the sheet levels, a set of their own that the composite and
+    // the controls its definition made consult beside their theme's
+    // (PartFacts::look_rules), so the look layers over whatever theme is
+    // in effect and stands over the theme's rules only where it says
+    // something. It publishes no values, so its expressions read the
+    // engine inputs alone, and its custom properties are its own: it reads
+    // nothing of one theme, and one compilation serves every theme.
+    [[nodiscard]] static CompiledThemeRules compile_look(const ThemeRuleSheet& sheet,
+                                                         const PrimitiveRegistry& registry);
     // The serial of the theme an inline style was compiled against, 0 for
     // none (P12b).
     [[nodiscard]] std::uint64_t theme_serial() const noexcept { return theme_serial_; }
@@ -1782,6 +1792,8 @@ public:
     [[nodiscard]] bool inline_style() const noexcept { return inline_style_; }
     // Whether the rules are a user theme (compile_user).
     [[nodiscard]] bool user_theme() const noexcept { return user_theme_; }
+    // Whether the rules are a composite control's look (compile_look).
+    [[nodiscard]] bool look() const noexcept { return look_; }
     // How many of the rules are the engine's built-in rules.
     [[nodiscard]] std::size_t built_in_rule_count() const noexcept { return built_in_rules_; }
 
@@ -1832,6 +1844,11 @@ public:
         // The program's user theme (compile_user), or null: its rules join
         // the cascade at the user levels. Borrowed for the call.
         const CompiledThemeRules* user_rules{};
+        // The look of the part's control's composite (compile_look,
+        // Control::look_rules), or null: its rules join the cascade at
+        // their sheet levels, ordered by level alone, after the theme's
+        // rules of the same level. Borrowed for the call.
+        const CompiledThemeRules* look_rules{};
         // Forced high contrast's pass (E1): the part's drawing (its
         // primitive and parameters, its material and recipe fields) comes
         // from the important_inline_style rules alone, every lower level
@@ -1950,6 +1967,9 @@ public:
         // The serial of the part's user theme (PartFacts::user_rules), or
         // 0, likewise.
         std::uint64_t user_serial{};
+        // The serial of the part's look (PartFacts::look_rules), or 0,
+        // likewise.
+        std::uint64_t look_serial{};
     };
 
     // The winning declaration of each recipe field (RecipeField) of the
@@ -2075,6 +2095,8 @@ private:
         std::array<std::uint64_t, maximum_read_custom_properties / 64U> inline_won{};
         // The user theme's names among its own definitions.
         std::array<std::uint32_t, maximum_scoped_custom_properties> user_definitions{};
+        // The look's names among its own definitions.
+        std::array<std::uint32_t, maximum_scoped_custom_properties> look_definitions{};
     };
 
     struct CompiledRule final {
@@ -2201,8 +2223,8 @@ private:
     [[nodiscard]] static bool exclusion_matches(const RuleExclusion& exclusion, const PartFacts& facts) noexcept;
     // Whether the selector's ancestor compounds match the part's ancestors.
     [[nodiscard]] static bool ancestors_match(const CompiledRule& rule, const PartFacts& facts) noexcept;
-    // These rules, a part's user theme's and its inline style's, merged in
-    // ascending precedence.
+    // These rules, a part's user theme's, its look's and its inline
+    // style's, merged in ascending precedence.
     class RuleWalk;
     // Raises a user theme's opacity to user_theme_minimum_opacity.
     static void raise_user_opacity(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
@@ -2221,6 +2243,8 @@ private:
     bool inline_style_{};
     // Whether the rules are a user theme.
     bool user_theme_{};
+    // Whether the rules are a composite control's look.
+    bool look_{};
     bool uses_ancestors_{};
     // The scoped custom property names the rules' conditions read (P12),
     // at most maximum_scoped_custom_properties.

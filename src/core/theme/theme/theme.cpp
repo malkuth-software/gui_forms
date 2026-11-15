@@ -1724,7 +1724,8 @@ void attach_ancestor_facts(const Control& control, const CompiledThemeRules& rul
                            std::vector<AncestorFacts>& chain, CompiledThemeRules::PartFacts& facts) {
     const bool user = facts.user_rules != nullptr && (*facts.user_rules).uses_ancestors();
     const bool owned = facts.inline_rules != nullptr && (*facts.inline_rules).uses_ancestors();
-    if (!rules.uses_ancestors() && !user && !owned) return;
+    const bool look = facts.look_rules != nullptr && (*facts.look_rules).uses_ancestors();
+    if (!rules.uses_ancestors() && !user && !owned && !look) return;
     fill_ancestor_facts(control, chain, facts.ancestor_bloom);
     facts.ancestors = chain;
 }
@@ -1826,6 +1827,7 @@ Color inherited_text(const Control& control, Color fallback) {
         facts.stable_id = above.stable_id().value();
         facts.classes = above.classes.read();
         facts.inline_rules = above.inline_style_rules();
+        facts.look_rules = above.look_rules();
         facts.states = above.anatomy_states();
         const SurfaceRoot* const window = above.attached_surface_root();
         if (window != nullptr) facts.media = window_media_facts(*window);
@@ -2044,6 +2046,7 @@ void Theme::provenance(const Control& control, ControlVisualRole role, ControlVi
     facts.stable_id = control.stable_id().value();
     facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
+    facts.look_rules = control.look_rules();
     facts.states = visual_context_states(context);
     facts.forced_high_contrast = forced;
     facts.family = control_visual_role_name(role);
@@ -2090,6 +2093,7 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own, std::stri
     facts.stable_id = control.stable_id().value();
     facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
+    facts.look_rules = control.look_rules();
     facts.part = part;
     facts.states = states;
     const Window* const window = control.attached_window();
@@ -2180,6 +2184,7 @@ bool Theme::declares_clarity(const Control& control) const noexcept {
     facts.stable_id = control.stable_id().value();
     facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
+    facts.look_rules = control.look_rules();
     facts.states = visual_context_states(ControlVisualContext{});
     const Window* const window = control.attached_window();
     if (window != nullptr) facts.media = window_media_facts(*window);
@@ -2276,6 +2281,7 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
     facts.stable_id = control.stable_id().value();
     facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
+    facts.look_rules = control.look_rules();
     facts.part = part;
     facts.states = states;
     facts.forced_high_contrast = forced;

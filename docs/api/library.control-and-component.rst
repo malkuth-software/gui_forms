@@ -1316,7 +1316,7 @@ Related types
 
    ``#include <gui_forms/composites/composite_control/composite_control.hpp>``
 
-   Counters (AGENTS.md: structured instrumentation). rule_firings: rules whose condition held and whose actions ran; refused_firings: firings past maximum_composite_rule_depth; commands_run / commands_refused: perform and activations, refused when the command is not enabled; refused_writes: property writes refused before any change; geometry_passes: part geometry evaluations; drags_committed / drags_restored: drag ends; look_compiles / look_refusals: compilations of the <look> as the instance's theme sheet, and those refused.
+   Counters (AGENTS.md: structured instrumentation). rule_firings: rules whose condition held and whose actions ran; refused_firings: firings past maximum_composite_rule_depth; commands_run / commands_refused: perform and activations, refused when the command is not enabled; refused_writes: property writes refused before any change; geometry_passes: part geometry evaluations; drags_committed / drags_restored: drag ends; look_compiles: compilations of the definition's <look>, which the definition counts: 1 with a look, 0 without, the same in every instance however many there are and whatever themes they see.
 
    .. cpp:member:: std::uint64_t rule_firings
 
@@ -1335,8 +1335,6 @@ Related types
    .. cpp:member:: std::uint64_t drags_restored
 
    .. cpp:member:: std::uint64_t look_compiles
-
-   .. cpp:member:: std::uint64_t look_refusals
 
 .. cpp:namespace:: gui_forms
 

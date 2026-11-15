@@ -7,7 +7,10 @@
 #include "composite_definition.hpp"
 
 #include "../../form_language/form_xml/form_xml.hpp"
+#include "../../theme_language/compiler/theme_compiler.hpp"
 
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/xml/xml_writer/xml_writer.hpp"
 
@@ -217,6 +220,7 @@ private:
     void compile_rules();
     void compile_focus_and_semantics();
     void build_anatomy();
+    void compile_look();
 
     void parse(const std::string& text, CompositeExpression& expression, const ControlSource& where,
                const std::string& rule);
@@ -251,7 +255,8 @@ bool DefinitionCompiler::run() {
     compile_focus_and_semantics();
     if (refused_) return false;
     build_anatomy();
-    return true;
+    compile_look();
+    return !refused_;
 }
 
 void DefinitionCompiler::compile_identity() {
@@ -740,14 +745,38 @@ void DefinitionCompiler::build_anatomy() {
     definition_.anatomy.parts = definition_.part_declarations;
     definition_.anatomy.states = definition_.anatomy_states;
     definition_.anatomy.custom_states = definition_.custom_states;
-    // The look's anatomies: a copy of `anatomy`, viewing the same storage,
-    // which the definition keeps and never moves.
-    if (!definition_.look.empty()) {
-        const std::span<const ControlAnatomy> stock = stock_control_anatomies();
-        definition_.look_controls.reserve(stock.size() + 1U);
-        definition_.look_controls.insert(definition_.look_controls.end(), stock.begin(), stock.end());
-        definition_.look_controls.push_back(definition_.anatomy);
+}
+
+// The <look>, compiled once for the definition (CompiledThemeRules::
+// compile_look) against the stock anatomies and the composite's own, so
+// its rules name the composite's type, parts and states and the stock
+// types of its children. Its findings name `<file> <look>`, at positions
+// in the look's text; an error refuses the definition.
+void DefinitionCompiler::compile_look() {
+    if (definition_.look.empty()) return;
+    std::vector<ControlAnatomy> controls{};
+    const std::span<const ControlAnatomy> stock = stock_control_anatomies();
+    controls.reserve(stock.size() + 1U);
+    controls.insert(controls.end(), stock.begin(), stock.end());
+    controls.push_back(definition_.anatomy);
+    const std::string file = std::string(source_.file) + " <look>";
+    const theme_language::ThemeSource look_source{.file = file, .text = definition_.look};
+    const PrimitiveRegistry& registry = builtin_primitive_registry();
+    const theme_language::ThemeCompileInput input{.source = look_source,
+                                                  .registry = registry,
+                                                  .vocabulary = theme_language::SelectorVocabulary{controls}};
+    ThemeRuleSheet sheet{};
+    theme_language::ThemeCompiler compiler{};
+    const theme_language::CompileOutcome outcome = compiler.compile(input, sheet, diagnostics_);
+    if (outcome != theme_language::CompileOutcome::compiled) {
+        refused_ = true;
+        return;
     }
+    std::shared_ptr<CompiledThemeRules> rules =
+        std::make_shared<CompiledThemeRules>(CompiledThemeRules::compile_look(sheet, registry));
+    definition_.look_rule_diagnostics = (*rules).diagnostics().size();
+    definition_.look_rules = std::move(rules);
+    definition_.look_compiles = definition_.look_compiles + 1U;
 }
 
 void DefinitionCompiler::parse(const std::string& text, CompositeExpression& expression, const ControlSource& where,

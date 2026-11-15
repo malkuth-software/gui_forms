@@ -785,13 +785,6 @@ public:
     // sheet compiled and applied now; false when it was refused now or
     // waits for an attachment (theme_sheet_pending).
     bool set_theme_sheet(std::string_view text, std::string_view name = "sheet");
-    // The same, compiled against `controls` instead of the stock control
-    // anatomies alone, so that its selectors may name the types they hold
-    // (a composite control's <look> names its own type and parts, cp34).
-    // `controls` is borrowed: it stays valid until the sheet is set again or
-    // removed, or the control is destroyed (a composite's definition, which
-    // the composite holds, owns it). Empty, the stock anatomies.
-    bool set_theme_sheet(std::string_view text, std::string_view name, std::span<const ControlAnatomy> controls);
     // The sheet's text; empty without one. Valid until the sheet is set.
     [[nodiscard]] std::string_view theme_sheet() const noexcept;
     // Whether the sheet waits for an attachment to compile.
@@ -810,6 +803,19 @@ public:
     // Its compiled rules (CompiledThemeRules::compile_inline), or null
     // without one; the cascade reads them for this control alone.
     [[nodiscard]] const CompiledThemeRules* inline_style_rules() const noexcept;
+    // The composite look this control is styled by (CompiledThemeRules::
+    // compile_look), or null: a composite control sets its definition's
+    // compiled look on itself and on each control its definition made
+    // (CompositeControl), not on slot content or controls added later. The
+    // cascade consults it beside the theme in effect, so the theme, a
+    // theme switch, a user theme and forced high contrast reach the
+    // control as they reach any other, and the look's rules stand over
+    // the theme's sheet rules only where they say something.
+    [[nodiscard]] const CompiledThemeRules* look_rules() const noexcept { return look_rules_.get(); }
+    // Sets or (null) clears that look and invalidates the control's paint
+    // and text font. The rules are shared: a control taken out of its
+    // composite keeps them valid and keeps its look.
+    void set_look_rules(std::shared_ptr<const CompiledThemeRules> rules);
     // Whether this control or one of its ancestors is marked ceremonial
     // (the ceremonial capability: T2 GIVEN B3-1; design language §10, an
     // installer's or a first run's world).
@@ -2120,6 +2126,8 @@ private:
     [[no_unique_address]] detail::BorrowLender inline_style_lender_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
+    // The composite look (look_rules); null for most controls.
+    std::shared_ptr<const CompiledThemeRules> look_rules_;
     // The theme sheet, its compiled theme and its event; null until a sheet
     // or a subscription needs them (one pointer on every control).
     std::unique_ptr<detail::ControlThemeSheet> theme_sheet_;
@@ -2128,7 +2136,8 @@ private:
     bool fore_color_warned_{};
     // The primary text font last resolved (text_font), and what it was
     // resolved against: valid while the theme, the window's media facts,
-    // the user theme's and the inline style's rules and `own` are the same.
+    // the user theme's, the look's and the inline style's rules and `own`
+    // are the same.
     // The classes are not compared: a classes write drops it (refresh_text_font).
     struct TextFontCache final {
         bool valid{};
@@ -2136,6 +2145,7 @@ private:
         const Theme* theme{};
         MediaFacts media{};
         const CompiledThemeRules* user_rules{};
+        const CompiledThemeRules* look_rules{};
         const CompiledThemeRules* inline_rules{};
         ResolvedFont resolved{};
     };
@@ -2147,6 +2157,7 @@ private:
         const Theme* theme{};
         MediaFacts media{};
         const CompiledThemeRules* user_rules{};
+        const CompiledThemeRules* look_rules{};
         const CompiledThemeRules* inline_rules{};
         bool clear{};
     };

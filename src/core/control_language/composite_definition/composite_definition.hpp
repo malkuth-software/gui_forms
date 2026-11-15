@@ -31,7 +31,8 @@
 // semantics and focus. <open> and <close> actions and a rule on a child's
 // typed interaction other than a property change are refused with E999
 // until overlays and typed child events reach composites. The <look> sheet
-// is kept as text; the theme compiles it into the floor rules in phase 3.
+// is compiled once with the definition into a rule set of its own (phase
+// 3), which layers over the theme in effect.
 
 #include "../control_expression/control_expression.hpp"
 #include "../control_model/control_model.hpp"
@@ -57,6 +58,8 @@
 #include <vector>
 
 namespace gui_forms {
+
+class CompiledThemeRules;
 
 namespace control_language {
 
@@ -313,11 +316,17 @@ public:
     ControlAnatomy anatomy{};
     // The schema's interactions: the declared events, by name.
     std::vector<std::string> interaction_names{};
-    // What the <look> compiles against as the instance's theme sheet
-    // (Control::set_theme_sheet): the stock anatomies, then this
-    // definition's own (`anatomy`, whose views are into this definition).
-    // Empty without a look.
-    std::vector<ControlAnatomy> look_controls{};
+    // The <look>, compiled once for the definition (compile_look in
+    // composite_definition.cpp, CompiledThemeRules::compile_look); null
+    // without a look. Every instance shares it: the composite and the
+    // controls its definition made consult it beside the theme in effect
+    // (Control::set_look_rules), so it reads nothing of one theme and is
+    // not compiled again for another. `look_compiles` counts its
+    // compilations (one with a look, none without); `look_rule_diagnostics`
+    // the rules the compiled set dropped (CompiledThemeRules::diagnostics).
+    std::shared_ptr<const CompiledThemeRules> look_rules{};
+    std::uint32_t look_compiles{};
+    std::size_t look_rule_diagnostics{};
 };
 
 namespace control_language {

@@ -12,7 +12,6 @@
 #include "gui_forms/engine/part_shape/part_shape.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
-#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -151,6 +150,8 @@ CompositeControl::CompositeControl(StableId stable_id, std::shared_ptr<const Com
         changed_events_.push_back(std::move(changed));
     }
     commands_.assign(count, nullptr);
+    // The definition compiled its look once, for every instance.
+    statistics_.look_compiles = (*definition_).look_compiles;
     register_properties();
     if ((*definition_).focus.target == control_language::ControlFocusTarget::self) focusable = true;
     if (!(*definition_).drags.empty()) {
@@ -171,19 +172,23 @@ void CompositeControl::initialize_control_tree() {
     apply_look();
 }
 
-// The <look> as the instance's theme sheet: pending until the instance is
-// attached to a window with resources (Control::set_theme_sheet).
+// The definition's compiled look on the composite and on the controls its
+// definition made, walked over an explicit stack (the depth rule). A
+// nested composite that set its own look keeps it, with its subtree; slot
+// content is added later and takes none.
 void CompositeControl::apply_look() {
-    const CompositeDefinition& definition = *definition_;
-    if (definition.look.empty()) return;
-    on(theme_sheet_compiled(), *this, &CompositeControl::look_compiled);
-    const std::string name = definition.name + ".control <look>";
-    static_cast<void>(set_theme_sheet(definition.look, name, definition.look_controls));
-}
-
-void CompositeControl::look_compiled(const ThemeCompileResult& result) {
-    ++statistics_.look_compiles;
-    if (!result.succeeded()) ++statistics_.look_refusals;
+    const std::shared_ptr<const CompiledThemeRules>& look = (*definition_).look_rules;
+    if (look == nullptr) return;
+    set_look_rules(look);
+    std::vector<Control*> pending{};
+    for (const Control::Ptr& child : children()) pending.push_back(child.get());
+    while (!pending.empty()) {
+        Control* const current = pending.back();
+        pending.pop_back();
+        if (current == nullptr || (*current).look_rules() != nullptr) continue;
+        (*current).set_look_rules(look);
+        for (const Control::Ptr& child : (*current).children()) pending.push_back(child.get());
+    }
 }
 
 std::string_view CompositeControl::type_name() const noexcept {

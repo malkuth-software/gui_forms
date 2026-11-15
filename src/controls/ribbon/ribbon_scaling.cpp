@@ -214,6 +214,7 @@ Ribbon::ScalingKey Ribbon::current_scaling_key() const {
         key.media = window_media_facts(*host);
         key.user_rules = (*host).user_theme_rules();
     }
+    key.look_rules = look_rules();
     key.inline_rules = inline_style_rules();
     return key;
 }

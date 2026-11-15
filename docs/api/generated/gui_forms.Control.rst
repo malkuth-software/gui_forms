@@ -352,6 +352,9 @@ gui_forms::Control
       **inline_style_rules** : ``CompiledThemeRules*``, read-only
          Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
 
+      **look_rules** : ``CompiledThemeRules*``
+         The composite look this control is styled by (CompiledThemeRules:: compile_look), or null: a composite control sets its definition's compiled look on itself and on each control its definition made (CompositeControl), not on slot content or controls added later. The cascade consults it beside the theme in effect, so the theme, a theme switch, a user theme and forced high contrast reach the control as they reach any other, and the look's rules stand over the theme's sheet rules only where they say something.
+
       **on_ceremonial_surface** : ``bool``, read-only
          Whether this control or one of its ancestors is marked :cpp:member:`ceremonial <gui_forms::Control::ceremonial>`.
 
@@ -1200,10 +1203,6 @@ gui_forms::Control
 
       The control's theme sheet (the ImGui-class demonstrator's I7): a whole program theme's text, as theme_sheet_package(text, name) holds it, compiled with the stock control anatomies into the window's ApplicationResources and set as this control's theme override for its subtree. Set while the control is attached to a window with resources, it compiles at once; set while it is not, it compiles when it is next attached, after the attachment is committed. It compiles again on an attachment to another window's resources (the theme's images belong to the resources it was compiled into). Every compilation raises theme_sheet_compiled with its result, the diagnostics included, whether it applied or was refused; a refused sheet leaves the theme override as it was, and so does a sheet an inline style of the subtree cannot compile against (reported as a refusal with the code E000 ``inline_style_refused``). Empty text removes the sheet and the override it set. Returns true when the sheet compiled and applied now; false when it was refused now or waits for an attachment (theme_sheet_pending).
 
-   .. cpp:function:: bool set_theme_sheet(std::string_view text, std::string_view name, std::span<const ControlAnatomy> controls)
-
-      The same, compiled against ``controls`` instead of the stock control anatomies alone, so that its selectors may name the types they hold (a composite control's <look> names its own type and parts, cp34). ``controls`` is borrowed: it stays valid until the sheet is set again or removed, or the control is destroyed (a composite's definition, which the composite holds, owns it). Empty, the stock anatomies.
-
    .. cpp:function:: bool theme_sheet_pending() const noexcept
 
       Whether the sheet waits for an attachment to compile.
@@ -1219,6 +1218,14 @@ gui_forms::Control
    .. cpp:function:: const CompiledThemeRules* inline_style_rules() const noexcept
 
       Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
+
+   .. cpp:function:: const CompiledThemeRules* look_rules() const noexcept
+
+      The composite look this control is styled by (CompiledThemeRules:: compile_look), or null: a composite control sets its definition's compiled look on itself and on each control its definition made (CompositeControl), not on slot content or controls added later. The cascade consults it beside the theme in effect, so the theme, a theme switch, a user theme and forced high contrast reach the control as they reach any other, and the look's rules stand over the theme's sheet rules only where they say something.
+
+   .. cpp:function:: void set_look_rules(std::shared_ptr<const CompiledThemeRules> rules)
+
+      Sets or (null) clears that look and invalidates the control's paint and text font. The rules are shared: a control taken out of its composite keeps them valid and keeps its look.
 
    .. cpp:function:: bool on_ceremonial_surface() const noexcept
 
@@ -2418,7 +2425,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 239 supported, 0 deferred, 12 excluded, 314 unclassified; 208 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 240 supported, 0 deferred, 12 excluded, 314 unclassified; 209 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4064,6 +4071,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 239 supp
    * - property
      - GUI.Forms-only
      - ``layout_transaction_state``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``look_rules``
      - supported
    * - property
      - GUI.Forms-only

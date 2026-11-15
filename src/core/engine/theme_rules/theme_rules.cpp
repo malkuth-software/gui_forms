@@ -26,6 +26,8 @@ constexpr std::size_t maximum_style_class_length = 64U;
 constexpr std::size_t inline_machine_base = std::size_t{1} << 30U;
 // Where a user theme's machines are numbered from, likewise.
 constexpr std::size_t user_machine_base = std::size_t{1} << 29U;
+// Where a composite's look's machines are numbered from, likewise.
+constexpr std::size_t look_machine_base = std::size_t{1} << 28U;
 
 // A scoped custom property's name (P12): `--` and at least one character,
 // at most 256 bytes in all.
@@ -59,6 +61,14 @@ bool authored(CascadeLevel level) noexcept {
 bool user_level(CascadeLevel level) noexcept {
     const bool user = level == CascadeLevel::user_theme || level == CascadeLevel::important_user_theme;
     return user;
+}
+
+// Whether `level` is one a composite's look authors: the sheet levels,
+// neither a base's nor an inline style's.
+bool look_level(CascadeLevel level) noexcept {
+    const bool look = level == CascadeLevel::theme_sheet || level == CascadeLevel::class_rule ||
+                      level == CascadeLevel::stable_id_rule || level == CascadeLevel::important_theme_sheet;
+    return look;
 }
 
 bool paints_role(const PrimitiveDescriptor& descriptor, PartRole role) noexcept {
@@ -1545,6 +1555,8 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         if (result.inline_style_) level_allowed = inline_level || (rule.source_position != 0U && authored(rule.level));
         // A user theme authors only the user levels.
         if (result.user_theme_) level_allowed = user_level(rule.level);
+        // A look authors the sheet levels: it layers over a theme's base.
+        if (result.look_) level_allowed = look_level(rule.level);
         if (!level_allowed) {
             result.diagnostics_.push_back(diagnostic(RuleDiagnosticKind::level_not_authored, index, rule, {}));
             continue;
@@ -2394,6 +2406,7 @@ CompiledThemeRules::CompiledThemeRules(const CompiledThemeRules& other)
       recipe_fields_set_(other.recipe_fields_set_),
       inline_style_(other.inline_style_),
       user_theme_(other.user_theme_),
+      look_(other.look_),
       uses_ancestors_(other.uses_ancestors_),
       scoped_names_(other.scoped_names_),
       read_names_(other.read_names_),
@@ -2411,6 +2424,7 @@ CompiledThemeRules& CompiledThemeRules::operator=(const CompiledThemeRules& othe
     recipe_fields_set_ = other.recipe_fields_set_;
     inline_style_ = other.inline_style_;
     user_theme_ = other.user_theme_;
+    look_ = other.look_;
     uses_ancestors_ = other.uses_ancestors_;
     scoped_names_ = other.scoped_names_;
     read_names_ = other.read_names_;
@@ -2516,6 +2530,22 @@ CompiledThemeRules CompiledThemeRules::compile_user(const ThemeRuleSheet& sheet,
     return result;
 }
 
+CompiledThemeRules CompiledThemeRules::compile_look(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry) {
+    CompiledThemeRules result{};
+    result.look_ = true;
+    for (const std::string& name : sheet.published_values) {
+        RuleDiagnostic invalid{};
+        invalid.kind = RuleDiagnosticKind::published_value_invalid;
+        invalid.rule = sheet_diagnostic;
+        invalid.property = name;
+        result.diagnostics_.push_back(std::move(invalid));
+    }
+    add_rules(result, sheet, registry, false);
+    std::sort(result.rules_.begin(), result.rules_.end(), LowerPrecedence{});
+    result.number_machines();
+    return result;
+}
+
 void CompiledThemeRules::raise_user_opacity(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
                                             const ThemeRule& rule, CompiledRule& compiled) {
     for (CompiledTransition& transition : compiled.transitions) {
@@ -2546,6 +2576,7 @@ void CompiledThemeRules::number_machines() noexcept {
     std::size_t next = 0U;
     if (inline_style_) next = inline_machine_base;
     if (user_theme_) next = user_machine_base;
+    if (look_) next = look_machine_base;
     for (CompiledRule& rule : rules_) {
         for (CompiledTransition& transition : rule.transitions) {
             transition.machine = next;
@@ -2682,9 +2713,13 @@ bool CompiledThemeRules::exclusion_matches(const RuleExclusion& exclusion, const
     return true;
 }
 
-// The rules of a compilation, of a part's user theme and of its inline style, merged in
-// ascending precedence: by level, then specificity; at equal level and
-// specificity the compilation's come first, each set in its own order.
+// The rules of a compilation, of a part's user theme, of its look and of
+// its inline style, merged in ascending precedence: by level, then
+// specificity; at equal level and specificity the compilation's come
+// first, each set in its own order. A user theme's and a look's rules are
+// ordered against the others by level alone, after the others' of their
+// level: a look stands over the theme's sheet rules wherever it says
+// something, and nowhere else.
 // A walk for the part's drawing under forced high contrast
 // (PartFacts::forced_high_contrast) passes over every rule below
 // important_inline_style; one given the part's scoped winners (P12) passes
@@ -2692,13 +2727,15 @@ bool CompiledThemeRules::exclusion_matches(const RuleExclusion& exclusion, const
 class CompiledThemeRules::RuleWalk final {
 public:
     // Which set a rule of the walk is from.
-    enum class Set : std::uint8_t { theme, user, inline_style };
+    enum class Set : std::uint8_t { theme, user, look, inline_style };
 
     RuleWalk(const CompiledThemeRules& rules, const PartFacts& facts, bool drawing,
              const ScopedWinners* winners) noexcept
         : theme_(rules.rules_),
           user_(facts.user_rules == nullptr ? std::span<const CompiledRule>{}
                                             : std::span<const CompiledRule>((*facts.user_rules).rules_)),
+          look_(facts.look_rules == nullptr ? std::span<const CompiledRule>{}
+                                            : std::span<const CompiledRule>((*facts.look_rules).rules_)),
           inline_(facts.inline_rules == nullptr ? std::span<const CompiledRule>{}
                                                 : std::span<const CompiledRule>((*facts.inline_rules).rules_)),
           winners_(winners),
@@ -2716,6 +2753,7 @@ public:
     void restrict_to(Set set) noexcept {
         if (set != Set::theme) theme_next_ = theme_.size();
         if (set != Set::user) user_next_ = user_.size();
+        if (set != Set::look) look_next_ = look_.size();
         if (set != Set::inline_style) inline_next_ = inline_.size();
     }
 
@@ -2727,6 +2765,7 @@ private:
         const bool theme_left = theme_next_ < theme_.size();
         const bool inline_left = inline_next_ < inline_.size();
         const bool user_left = user_next_ < user_.size();
+        const bool look_left = look_next_ < look_.size();
         const CompiledRule* best = nullptr;
         Set best_set = Set::theme;
         if (theme_left && (!inline_left || !precedes(inline_[inline_next_], theme_[theme_next_]))) {
@@ -2739,9 +2778,14 @@ private:
             best = &user_[user_next_];
             best_set = Set::user;
         }
+        if (look_left && (best == nullptr || look_[look_next_].level < (*best).level)) {
+            best = &look_[look_next_];
+            best_set = Set::look;
+        }
         if (best == nullptr) return nullptr;
         if (best_set == Set::theme) theme_next_ = theme_next_ + 1U;
         if (best_set == Set::user) user_next_ = user_next_ + 1U;
+        if (best_set == Set::look) look_next_ = look_next_ + 1U;
         if (best_set == Set::inline_style) inline_next_ = inline_next_ + 1U;
         taken_ = best_set;
         return best;
@@ -2763,6 +2807,7 @@ private:
         const std::array<std::uint32_t, maximum_scoped_custom_properties>* winning = &(*winners_).definitions;
         if (taken_ == Set::inline_style) winning = &(*winners_).inline_definitions;
         if (taken_ == Set::user) winning = &(*winners_).user_definitions;
+        if (taken_ == Set::look) winning = &(*winners_).look_definitions;
         for (const CompiledScoped& condition : rule.scoped_conditions) {
             if ((*winning)[condition.name] != condition.definition) return false;
         }
@@ -2778,9 +2823,11 @@ private:
 
     std::span<const CompiledRule> theme_;
     std::span<const CompiledRule> user_;
+    std::span<const CompiledRule> look_;
     std::span<const CompiledRule> inline_;
     std::size_t theme_next_{};
     std::size_t user_next_{};
+    std::size_t look_next_{};
     std::size_t inline_next_{};
     const ScopedWinners* winners_{};
     bool forced_{};
@@ -2793,7 +2840,9 @@ CompiledThemeRules::Resolution CompiledThemeRules::resolve(const PartFacts& fact
     if (inline_rules) result.inline_serial = (*facts.inline_rules).serial_;
     const bool user_rules = facts.user_rules != nullptr && !(*facts.user_rules).rules_.empty();
     if (user_rules) result.user_serial = (*facts.user_rules).serial_;
-    if (rules_.empty() && !inline_rules && !user_rules) return result;
+    const bool look_rules = facts.look_rules != nullptr && !(*facts.look_rules).rules_.empty();
+    if (look_rules) result.look_serial = (*facts.look_rules).serial_;
+    if (rules_.empty() && !inline_rules && !user_rules && !look_rules) return result;
     // The winner is the last matching rule that selects, rules being in
     // ascending precedence. A built-in rule's primitive (the ribbon's rise,
     // flat at rest) is the stock default only: a theme rule that authors
@@ -2826,6 +2875,7 @@ void CompiledThemeRules::resolve_scoped(const PartFacts& facts, ScopedWinners& w
     winners.inline_definitions.fill(custom_property_undefined);
     winners.inline_won.fill(0U);
     winners.user_definitions.fill(custom_property_undefined);
+    winners.look_definitions.fill(custom_property_undefined);
     // The last matching definition of each name wins, rules being in
     // ascending precedence. Definitions hold no conditions.
     if (!scoped_names_.empty()) {
@@ -2853,6 +2903,19 @@ void CompiledThemeRules::resolve_scoped(const PartFacts& facts, ScopedWinners& w
             if (rule.scoped_definitions.empty() || !matches(rule, facts)) continue;
             for (const CompiledScoped& definition : rule.scoped_definitions) {
                 winners.user_definitions[definition.name] = definition.definition;
+            }
+        }
+    }
+    // The look's names among its own definitions, likewise.
+    const CompiledThemeRules* const look = facts.look_rules;
+    if (look != nullptr && !(*look).scoped_names_.empty()) {
+        RuleWalk walk(*this, facts, false, nullptr);
+        walk.restrict_to(RuleWalk::Set::look);
+        for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
+            const CompiledRule& rule = *next;
+            if (rule.scoped_definitions.empty() || !matches(rule, facts)) continue;
+            for (const CompiledScoped& definition : rule.scoped_definitions) {
+                winners.look_definitions[definition.name] = definition.definition;
             }
         }
     }
@@ -2903,7 +2966,8 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
     RecipeResolution result{};
     const bool inline_fields = facts.inline_rules != nullptr && (*facts.inline_rules).recipe_fields_set_;
     const bool user_fields = facts.user_rules != nullptr && (*facts.user_rules).recipe_fields_set_;
-    if (!recipe_fields_set_ && !inline_fields && !user_fields) return result;
+    const bool look_fields = facts.look_rules != nullptr && (*facts.look_rules).recipe_fields_set_;
+    if (!recipe_fields_set_ && !inline_fields && !user_fields && !look_fields) return result;
     // As for the material fields: the last matching declaration of each
     // field wins, and a rule declares each field at most once.
     ScopedWinners winners{};

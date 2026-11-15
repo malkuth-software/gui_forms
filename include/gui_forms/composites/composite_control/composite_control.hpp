@@ -20,16 +20,20 @@
 // definition declares a drag), its children (made from the document with
 // stable IDs under the instance's own), its semantics and its look.
 //
-// The look (cp34, phase 3): the document's <look> is the instance's theme
-// sheet (Control::set_theme_sheet), compiled against the stock anatomies
-// and the composite's own, so its rules name the composite's type, parts
-// and states. It compiles when the instance is first attached to a window
-// with resources, and again on an attachment to other resources, as any
-// theme sheet does; each compilation is counted (statistics().
-// look_compiles, look_refusals). A refused look leaves the instance on the
-// window's theme. The sheet is the subtree's theme override: the window's
-// theme does not reach the composite's subtree while the look applies, and
-// a sheet set on the instance by its owner replaces the look.
+// The look (cp34, phase 3): the document's <look> is compiled once, with
+// the definition, against the stock anatomies and the composite's own, so
+// its rules name the composite's type, parts and states and its children's
+// stock types (CompiledThemeRules::compile_look); an error in it refuses
+// the definition. Every instance shares that one rule set and sets it on
+// itself and on the controls its definition made (Control::set_look_rules)
+// when its tree is made. The look layers over the theme in effect: the
+// cascade consults it beside the theme's rules, after them at each sheet
+// level, so the look stands over the theme only where it says something.
+// The window's theme, a theme switch, a theme override, a user theme and
+// forced high contrast reach the composite's parts and children as they
+// reach any control; the look reads nothing of one theme, so a theme
+// switch compiles nothing. Slot content, added later, takes no look; a
+// nested composite keeps its own.
 //
 // Event order:
 // - A property write (set_property_value, a binding, a rule, a drag)
@@ -163,8 +167,9 @@ inline constexpr std::size_t maximum_composite_rule_depth = 8U;
 //   refused_writes: property writes refused before any change;
 //   geometry_passes: part geometry evaluations;
 //   drags_committed / drags_restored: drag ends;
-//   look_compiles / look_refusals: compilations of the <look> as the
-//     instance's theme sheet, and those refused.
+//   look_compiles: compilations of the definition's <look>, which the
+//     definition counts: 1 with a look, 0 without, the same in every
+//     instance however many there are and whatever themes they see.
 struct GUI_FORMS_API CompositeStatistics final {
     std::uint64_t rule_firings{};
     std::uint64_t refused_firings{};
@@ -175,7 +180,6 @@ struct GUI_FORMS_API CompositeStatistics final {
     std::uint64_t drags_committed{};
     std::uint64_t drags_restored{};
     std::uint64_t look_compiles{};
-    std::uint64_t look_refusals{};
 };
 
 class CompositeEvaluator;
@@ -325,7 +329,6 @@ private:
 
     // The look (composite_control.cpp).
     void apply_look();
-    void look_compiled(const ThemeCompileResult& result);
 
     // Drags and press repetition.
     void plan_drag(DragPlan& plan);

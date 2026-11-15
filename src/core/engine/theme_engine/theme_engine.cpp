@@ -703,6 +703,7 @@ bool same_assembly(const AssembledPartMaterial& assembled, std::uint64_t rules_s
                    const CompiledThemeRules::Resolution& resolution) noexcept {
     if (assembled.rules_serial != rules_serial || assembled.inline_serial != resolution.inline_serial) return false;
     if (assembled.user_serial != resolution.user_serial) return false;
+    if (assembled.look_serial != resolution.look_serial) return false;
     if (assembled.fields != resolution.materials) return false;
     if (!(assembled.box == box) || assembled.em != context.em) return false;
     if (!(assembled.current_colour == context.current_colour)) return false;
@@ -745,6 +746,7 @@ const SurfaceMaterial& unkept_assembly(UnkeptAssemblies& window, std::uint64_t r
     held.rules_serial = rules_serial;
     held.inline_serial = resolution.inline_serial;
     held.user_serial = resolution.user_serial;
+    held.look_serial = resolution.look_serial;
     held.fields = resolution.materials;
     held.box = keyed;
     held.em = context.em;
@@ -783,6 +785,7 @@ const SurfaceMaterial& authored_material(UnkeptAssemblies& window, EnginePartRec
     (*held).rules_serial = rules_serial;
     (*held).inline_serial = resolution.inline_serial;
     (*held).user_serial = resolution.user_serial;
+    (*held).look_serial = resolution.look_serial;
     (*held).fields = resolution.materials;
     (*held).box = keyed;
     (*held).em = context.em;
@@ -838,6 +841,7 @@ TextRole resolved_text_role(const Control& control, FontDeclaration font) {
         facts.stable_id = above.stable_id().value();
         facts.classes = above.classes.read();
         facts.inline_rules = above.inline_style_rules();
+        facts.look_rules = above.look_rules();
         facts.states = above.anatomy_states();
         const SurfaceRoot* const window = above.attached_surface_root();
         if (window != nullptr) facts.media = window_media_facts(*window);
@@ -1009,6 +1013,7 @@ ThemeEngine::PartPlan ThemeEngine::plan_from_rules(const Control& control, const
     facts.stable_id = control.stable_id().value();
     facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
+    facts.look_rules = control.look_rules();
     if (part.key) facts.part = (*part.key).part;
     facts.role = part.role;
     facts.states = part.states;

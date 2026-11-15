@@ -788,17 +788,19 @@ private:
         FontSpec font{};
         // What the theme's rules are matched against beside the theme: the
         // window's media facts (its colour scheme among them), its user
-        // theme's rules and the ribbon's inline style; the tab row's
+        // theme's rules, the ribbon's look (Control::look_rules) and its
+        // inline style; the tab row's
         // metrics come from them (RowMetrics).
         MediaFacts media{};
         const CompiledThemeRules* user_rules{};
+        const CompiledThemeRules* look_rules{};
         const CompiledThemeRules* inline_rules{};
 
         friend bool operator==(const ScalingKey& left, const ScalingKey& right) noexcept {
             return left.content == right.content && left.text_scale == right.text_scale &&
                    left.theme == right.theme && left.provider == right.provider && left.font == right.font &&
                    left.media == right.media && left.user_rules == right.user_rules &&
-                   left.inline_rules == right.inline_rules;
+                   left.look_rules == right.look_rules && left.inline_rules == right.inline_rules;
         }
     };
     // One command's widths at each image size, measured once. A hosted

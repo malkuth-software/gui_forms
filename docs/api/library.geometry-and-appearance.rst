@@ -576,6 +576,10 @@ Types
 
       The serial of the part's user theme, or 0 (T3 user themes).
 
+   .. cpp:member:: std::uint64_t look_serial
+
+      The serial of the part's composite look, or 0 (Control::look_rules).
+
    .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> fields
 
    .. cpp:member:: Size box
@@ -1159,6 +1163,10 @@ Types
 
       Whether the rules are a user theme (compile_user).
 
+   .. cpp:function:: bool look() const noexcept
+
+      Whether the rules are a composite control's look (compile_look).
+
    .. cpp:function:: std::size_t built_in_rule_count() const noexcept
 
       How many of the rules are the engine's built-in rules.
@@ -1207,6 +1215,10 @@ Types
    .. cpp:function:: static CompiledThemeRules compile_user(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry)
 
       Compiles a user theme (USER_THEMES.md section 4): rules at :cpp:func:`user_theme <gui_forms::CompiledThemeRules::user_theme>` and ``important_user_theme`` only, a set of their own that every part of a program's windows consults beside its theme's (PartFacts::user_rules). Its opacity is at least user_theme_minimum_opacity. It publishes no values, so its expressions read the engine inputs alone, and its custom properties are its own.
+
+   .. cpp:function:: static CompiledThemeRules compile_look(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry)
+
+      Compiles a composite control's look (its definition's <look> sheet): rules at the sheet levels, a set of their own that the composite and the controls its definition made consult beside their theme's (PartFacts::look_rules), so the look layers over whatever theme is in effect and stands over the theme's rules only where it says something. It publishes no values, so its expressions read the engine inputs alone, and its custom properties are its own: it reads nothing of one theme, and one compilation serves every theme.
 
    .. cpp:function:: std::optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept
 
@@ -1337,6 +1349,10 @@ Types
    .. cpp:member:: const CompiledThemeRules* user_rules
 
       The program's user theme (compile_user), or null: its rules join the cascade at the user levels. Borrowed for the call.
+
+   .. cpp:member:: const CompiledThemeRules* look_rules
+
+      The look of the part's control's composite (compile_look, Control::look_rules), or null: its rules join the cascade at their sheet levels, ordered by level alone, after the theme's rules of the same level. Borrowed for the call.
 
    .. cpp:member:: bool forced_high_contrast
 
@@ -1477,6 +1493,10 @@ Types
    .. cpp:member:: std::uint64_t user_serial
 
       The serial of the part's user theme (PartFacts::user_rules), or 0, likewise.
+
+   .. cpp:member:: std::uint64_t look_serial
+
+      The serial of the part's look (PartFacts::look_rules), or 0, likewise.
 
 .. cpp:namespace:: gui_forms
 

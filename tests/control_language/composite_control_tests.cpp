@@ -12,19 +12,28 @@
 // - stepper-field: refused until converters are built (E999);
 // - an inline document: a live drag writes its property on every frame and
 //   Escape writes the pressed value back;
-// - the look (phase 3): the examples' <look> is the instance's theme sheet,
-//   pending until the instance is attached, then compiled once against the
-//   composite's own anatomy and applied as the subtree's theme override; a
-//   document without a look sets no sheet.
+// - the look (phase 3): the examples' <look> compiles once with the
+//   definition and every instance and its made children share it (slot
+//   content takes none); a hundred instances compile nothing more; the look
+//   layers over the window's theme: its rules stand over the theme's where
+//   they say something, a theme switch reaches the composite's part and
+//   child elsewhere, forced high contrast draws both, and the look reaches
+//   no control outside; a document without a look has none.
 
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 
+#include "../../src/core/control_language/composite_definition/composite_definition.hpp"
+#include "../../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window/window.hpp"
 
@@ -281,38 +290,37 @@ void live_drag() {
     static_cast<void>(dispatch_press(window, Point{start.x + 40.0, start.y}, PointerAction::up));
 }
 
-// Prints a refused look's diagnostics, so a failure says why.
-class LookReporter final : public Component {
-public:
-    void on_compiled(const ThemeCompileResult& result) {
-        if (result.succeeded()) return;
-        for (const ThemeCompileDiagnostic& diagnostic : result.diagnostics()) {
-            std::cerr << "  look: " << diagnostic.code << ' ' << diagnostic.name << ' ' << diagnostic.file << ':'
-                      << diagnostic.line << ':' << diagnostic.column << ' ' << diagnostic.rule << ' '
-                      << diagnostic.detail << '\n';
-        }
-    }
-};
-
-void look_applies(const std::string_view example, const Size size) {
+// The look of an example: compiled once with the definition, shared by the
+// instance and the children its definition made, not by slot content.
+void look_shared(const std::string_view example, const std::string_view child, const Size size) {
     const CompositeLoadResult loaded = load_example(example);
     require(static_cast<bool>(loaded), "the example loads for its look");
     if (!loaded) return;
-    require(!(*loaded.definition).look.empty(), "the example declares a look");
+    const CompositeDefinition& definition = *loaded.definition;
+    require(!definition.look.empty() && definition.look_rules != nullptr, "the example's look compiles");
+    if (definition.look_rules == nullptr) return;
+    require((*definition.look_rules).look() && !(*definition.look_rules).empty(), "the look is a look's rule set");
+    require(definition.look_compiles == 1U && definition.look_rule_diagnostics == 0U,
+            "the look compiles once, every rule kept");
     const std::shared_ptr<CompositeControl> composite =
         make_control<CompositeControl>(StableId(std::string("looked")), loaded.definition);
-    LookReporter reporter{};
-    on((*composite).theme_sheet_compiled(), reporter, &LookReporter::on_compiled);
-    require((*composite).theme_sheet() == (*loaded.definition).look, "the look is the instance's theme sheet");
-    require((*composite).theme_sheet_pending() && (*composite).statistics().look_compiles == 0U,
-            "the look waits for an attachment");
     (*composite).set_requested_bounds({0.0, 0.0, size.width, size.height});
     Window window(composite, size);
     window.perform_layout();
-    require(!(*composite).theme_sheet_pending(), "the look compiles on attachment");
-    require((*composite).statistics().look_compiles == 1U, "the look compiles once");
-    require((*composite).statistics().look_refusals == 0U, "the look compiles against the composite's anatomy");
-    require((*composite).theme_override() != nullptr, "the look is the subtree's theme override");
+    const CompiledThemeRules* const look = definition.look_rules.get();
+    require((*composite).look_rules() == look, "the instance takes the definition's look");
+    require((*composite).statistics().look_compiles == 1U, "the instance reports the definition's one compile");
+    require((*composite).theme_override() == nullptr && (*composite).theme_sheet().empty(),
+            "the look is no theme sheet and no override");
+    if (!child.empty()) {
+        const Control::Ptr made = (*composite).child(child);
+        require(made != nullptr && (*made).look_rules() == look, "a made child takes the look");
+    }
+    const Control::Ptr slot = (*composite).slot();
+    if (slot == nullptr) return;
+    const std::shared_ptr<Label> content = make_control<Label>(StableId(std::string("looked.filled")));
+    (*slot).add_child(content);
+    require((*content).look_rules() == nullptr, "slot content takes no look");
 }
 
 void no_look() {
@@ -320,13 +328,183 @@ void no_look() {
     const CompositeLoadResult loaded = load_composite_definition("live-slider.control", live_slider, none);
     require(static_cast<bool>(loaded), "the live slider loads");
     if (!loaded) return;
+    require((*loaded.definition).look_rules == nullptr && (*loaded.definition).look_compiles == 0U,
+            "nothing compiles without a look");
     const std::shared_ptr<CompositeControl> slider =
         make_control<CompositeControl>(StableId(std::string("plain")), loaded.definition);
     Window window(slider, {120.0, 20.0});
     window.perform_layout();
-    require((*slider).theme_sheet().empty() && (*slider).theme_override() == nullptr,
-            "a document without a look sets no sheet");
-    require((*slider).statistics().look_compiles == 0U, "nothing compiles without a look");
+    require((*slider).look_rules() == nullptr && (*slider).statistics().look_compiles == 0U,
+            "a document without a look has none");
+}
+
+// A composite whose look sets the text colour of its face and of its
+// button child, and nothing else.
+constexpr std::string_view looked_pair = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="looked-pair" version="1.0" base="user-control" family="panel">
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <children>
+    <button id="@action" text="Go"/>
+  </children>
+  <focus target="none"/>
+  <look>
+    looked-pair::part(face) { color: #102030; }
+    button { color: #405060; }
+  </look>
+</control>
+)xml";
+
+constexpr Color look_face_text = Color::rgba(0x10, 0x20, 0x30);
+constexpr Color look_button_text = Color::rgba(0x40, 0x50, 0x60);
+constexpr Color first_muted = Color::rgba(0xaa, 0x00, 0x00);
+constexpr Color second_muted = Color::rgba(0x00, 0xaa, 0x00);
+
+ThemePackage sheet_package(const std::string_view sheet) {
+    const std::string hash = theme_language::package_sha256_hex(theme_language::package_sha256(sheet));
+    ThemePackage made{};
+    made.manifest = "{\"format\": \"gui-forms-theme/1\", \"name\": \"app\", \"version\": \"1.0.0\", "
+                    "\"engine\": \">=0.3\", \"sheet\": {\"path\": \"app.theme.css\", \"sha256\": \"" +
+                    hash + "\"}}";
+    made.files.push_back(ThemePackageFile{"app.theme.css", std::string(sheet)});
+    return made;
+}
+
+// An application theme from `sheet`; a literal colour's warning (W201) is
+// the only finding admitted.
+std::shared_ptr<const Theme> app_theme(const std::string_view sheet) {
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    ThemeCompileOptions options{};
+    options.controls = stock_control_anatomies();
+    const ThemeCompileResult result = compile_theme_package(sheet_package(sheet), library, images, options);
+    bool clean = result.succeeded();
+    for (const ThemeCompileDiagnostic& diagnostic : result.diagnostics()) {
+        if (diagnostic.code == "W201") continue;
+        clean = false;
+        std::cerr << "  " << diagnostic.code << ' ' << diagnostic.name << '\n';
+    }
+    require(clean, "the application theme compiles");
+    std::shared_ptr<const Theme> theme = result.theme();
+    return theme;
+}
+
+// The theme in effect for `control`, resolved for its part `part` (empty:
+// the control itself) in `context`.
+ControlVisualRecipe recipe_of(const Control& control, const std::string_view part, const ControlVisualContext context) {
+    const Theme& theme = control.effective_theme();
+    const AnatomyStateSet states{};
+    const ResolvedControlRecipe resolved = theme.resolve(control, ControlVisualRole::panel, context, states, part);
+    ControlVisualRecipe recipe = resolved.recipe();
+    return recipe;
+}
+
+// The look layers over the window's theme: a theme switch reaches the
+// composite's face and its button child wherever the look says nothing,
+// the look's text colours stand over the theme's, and a button outside
+// the composite sees the theme alone.
+void look_layers_over_theme_switch() {
+    const CompositeLoadResult loaded = load_composite_definition("looked-pair.control", looked_pair, example_child_types);
+    for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
+    require(static_cast<bool>(loaded), "the looked pair loads");
+    if (!loaded) return;
+    const std::shared_ptr<CompositeControl> pair =
+        make_control<CompositeControl>(StableId(std::string("pair")), loaded.definition);
+    (*pair).set_requested_bounds({0.0, 0.0, 200.0, 80.0});
+    Window window(pair, {200.0, 80.0});
+    const std::shared_ptr<Button> outside = make_control<Button>(StableId(std::string("outside")));
+    (*outside).set_requested_bounds({0.0, 0.0, 80.0, 24.0});
+    Window other(outside, {80.0, 24.0});
+    const Control::Ptr action = (*pair).child("action");
+    require(action != nullptr, "the pair makes its button");
+    if (action == nullptr) return;
+
+    const std::string_view first_sheet = "#pair { color: #aa0000; muted-color: #aa0000; }\n"
+                                         "button { color: #aa0000; muted-color: #aa0000; }\n";
+    const std::string_view second_sheet = "#pair { color: #00aa00; muted-color: #00aa00; }\n"
+                                          "button { color: #00aa00; muted-color: #00aa00; }\n";
+    const std::shared_ptr<const Theme> first = app_theme(first_sheet);
+    const std::shared_ptr<const Theme> second = app_theme(second_sheet);
+    if (first == nullptr || second == nullptr) return;
+    const ControlVisualContext rest{};
+
+    window.set_theme(first);
+    other.set_theme(first);
+    window.perform_layout();
+    const ControlVisualRecipe face = recipe_of(*pair, "face", rest);
+    const ControlVisualRecipe child = recipe_of(*action, {}, rest);
+    require(face.text == look_face_text, "the look's face colour stands over the theme's");
+    require(face.muted_text == first_muted, "the theme reaches the face where the look says nothing");
+    require(child.text == look_button_text, "the look's button colour stands over the theme's");
+    require(child.muted_text == first_muted, "the theme reaches the child where the look says nothing");
+    const ControlVisualRecipe plain = recipe_of(*outside, {}, rest);
+    require(plain.text == first_muted && (*outside).look_rules() == nullptr, "the look reaches no other button");
+
+    window.set_theme(second);
+    window.perform_layout();
+    const ControlVisualRecipe switched_face = recipe_of(*pair, "face", rest);
+    const ControlVisualRecipe switched_child = recipe_of(*action, {}, rest);
+    require(switched_face.muted_text == second_muted, "a theme switch reaches the composite's face");
+    require(switched_child.muted_text == second_muted, "a theme switch reaches the composite's child");
+    require(switched_face.text == look_face_text && switched_child.text == look_button_text,
+            "the look holds over the new theme");
+    require((*pair).statistics().look_compiles == 1U, "a theme switch compiles no look");
+}
+
+// Forced high contrast draws the composite's face and child from the
+// engine's pass, the look lying under it as every sheet does.
+void look_under_forced_high_contrast() {
+    const CompositeLoadResult loaded = load_composite_definition("looked-pair.control", looked_pair, example_child_types);
+    require(static_cast<bool>(loaded), "the looked pair loads for high contrast");
+    if (!loaded) return;
+    const std::shared_ptr<CompositeControl> pair =
+        make_control<CompositeControl>(StableId(std::string("pair")), loaded.definition);
+    (*pair).set_requested_bounds({0.0, 0.0, 200.0, 80.0});
+    Window window(pair, {200.0, 80.0});
+    window.perform_layout();
+    const Control::Ptr action = (*pair).child("action");
+    require(action != nullptr, "the pair makes its button for high contrast");
+    if (action == nullptr) return;
+    ControlVisualContext forced{};
+    forced.high_contrast = true;
+    const Theme& theme = (*pair).effective_theme();
+    const ControlVisualRecipe& floor = theme.resolve(ControlVisualRole::panel, forced);
+    const ControlVisualRecipe face = recipe_of(*pair, "face", forced);
+    const ControlVisualRecipe child = recipe_of(*action, {}, forced);
+    require(face.text == floor.text && face.text != look_face_text, "forced high contrast draws the face");
+    require(child.text == floor.text && child.text != look_button_text, "forced high contrast draws the child");
+    // The cascade's own account: the text is the pass's, not the look's.
+    const std::size_t text = static_cast<std::size_t>(RecipeField::text);
+    CompiledThemeRules::PartProvenance looked{};
+    theme.provenance(*action, ControlVisualRole::panel, ControlVisualContext{}, looked);
+    require(looked.recipe_fields[text].authored && looked.recipe_fields[text].level == CascadeLevel::theme_sheet,
+            "at rest the child's text is the look's");
+    CompiledThemeRules::PartProvenance passed{};
+    theme.provenance(*action, ControlVisualRole::panel, forced, passed);
+    require(passed.recipe_fields[text].level == CascadeLevel::forced_high_contrast,
+            "under forced high contrast the child's text is the pass's");
+}
+
+// A hundred instances of one definition share its one compiled look.
+void hundred_instances_one_compile() {
+    const CompositeLoadResult loaded = load_composite_definition("looked-pair.control", looked_pair, example_child_types);
+    require(static_cast<bool>(loaded), "the looked pair loads for a hundred instances");
+    if (!loaded) return;
+    const CompositeDefinition& definition = *loaded.definition;
+    const std::shared_ptr<FlexPanel> host = make_control<FlexPanel>(StableId(std::string("host")));
+    std::size_t shared = 0U;
+    for (std::size_t index = 0U; index < 100U; ++index) {
+        const std::shared_ptr<CompositeControl> instance =
+            make_control<CompositeControl>(StableId("pair" + std::to_string(index)), loaded.definition);
+        (*host).add_child(instance);
+        const Control::Ptr action = (*instance).child("action");
+        const bool takes = (*instance).look_rules() == definition.look_rules.get() && action != nullptr &&
+                           (*action).look_rules() == definition.look_rules.get();
+        if (takes && (*instance).statistics().look_compiles == 1U) shared = shared + 1U;
+    }
+    Window window(host, {400.0, 400.0});
+    window.perform_layout();
+    require(shared == 100U, "every instance and its child share the definition's look");
+    require(definition.look_compiles == 1U, "a hundred instances cause one compile");
 }
 
 } // namespace
@@ -336,9 +514,12 @@ int main() {
     card_with_action();
     stepper_field_refused();
     live_drag();
-    look_applies("toggle-pill.control", Size{160.0, 30.0});
-    look_applies("card-with-action.control", Size{240.0, 160.0});
+    look_shared("toggle-pill.control", {}, Size{160.0, 30.0});
+    look_shared("card-with-action.control", "title", Size{240.0, 160.0});
     no_look();
+    look_layers_over_theme_switch();
+    look_under_forced_high_contrast();
+    hundred_instances_one_compile();
     if (failures != 0) {
         std::cerr << failures << " composite control check(s) failed\n";
         return 1;

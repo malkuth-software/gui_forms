@@ -31,7 +31,6 @@
 #include <limits>
 #include <new>
 #include <numbers>
-#include <span>
 #include <stdexcept>
 
 namespace gui_forms {
@@ -1524,15 +1523,18 @@ ResolvedFont Control::resolved_text_font(FontSpec own) const noexcept {
     if (window != nullptr) media = window_media_facts(*window);
     if (window != nullptr) user_rules = (*window).user_theme_rules();
     const CompiledThemeRules* const inline_rules = inline_style_rules();
+    const CompiledThemeRules* const look = look_rules();
     TextFontCache& cache = text_font_cache_;
     const bool current = cache.valid && cache.own == own && cache.theme == &theme && cache.media == media &&
-                         cache.user_rules == user_rules && cache.inline_rules == inline_rules;
+                         cache.user_rules == user_rules && cache.look_rules == look &&
+                         cache.inline_rules == inline_rules;
     if (current) return cache.resolved;
     cache.resolved = theme.resolve_font(*this, own);
     cache.own = own;
     cache.theme = &theme;
     cache.media = media;
     cache.user_rules = user_rules;
+    cache.look_rules = look;
     cache.inline_rules = inline_rules;
     cache.valid = true;
     return cache.resolved;
@@ -1557,14 +1559,17 @@ bool Control::declares_clarity() const noexcept {
     if (window != nullptr) media = window_media_facts(*window);
     if (window != nullptr) user_rules = (*window).user_theme_rules();
     const CompiledThemeRules* const inline_rules = inline_style_rules();
+    const CompiledThemeRules* const look = look_rules();
     ClarityCache& cache = clarity_cache_;
     const bool current = cache.valid && cache.theme == &theme && cache.media == media &&
-                         cache.user_rules == user_rules && cache.inline_rules == inline_rules;
+                         cache.user_rules == user_rules && cache.look_rules == look &&
+                         cache.inline_rules == inline_rules;
     if (current) return cache.clear;
     cache.clear = theme.declares_clarity(*this);
     cache.theme = &theme;
     cache.media = media;
     cache.user_rules = user_rules;
+    cache.look_rules = look;
     cache.inline_rules = inline_rules;
     cache.valid = true;
     return cache.clear;
@@ -1792,21 +1797,11 @@ struct ControlThemeSheet final {
     std::shared_ptr<const Theme> theme{};
     std::weak_ptr<ApplicationResources> compiled_for{};
     Event<const ThemeCompileResult&> compiled{};
-    // The anatomies the sheet compiles against, borrowed from the caller
-    // (set_theme_sheet); empty for the stock ones.
-    std::span<const ControlAnatomy> controls{};
 };
 
 } // namespace detail
 
 bool Control::set_theme_sheet(std::string_view text, std::string_view name) {
-    const std::span<const ControlAnatomy> stock{};
-    const bool applied = set_theme_sheet(text, name, stock);
-    return applied;
-}
-
-bool Control::set_theme_sheet(std::string_view text, std::string_view name,
-                              std::span<const ControlAnatomy> controls) {
     require_mutable();
     if (text.empty()) {
         if (theme_sheet_ == nullptr) return false;
@@ -1815,14 +1810,12 @@ bool Control::set_theme_sheet(std::string_view text, std::string_view name,
         (*theme_sheet_).pending = false;
         (*theme_sheet_).theme.reset();
         (*theme_sheet_).compiled_for.reset();
-        (*theme_sheet_).controls = {};
         if (sheet_override) clear_theme_override();
         return false;
     }
     if (theme_sheet_ == nullptr) theme_sheet_ = std::make_unique<detail::ControlThemeSheet>();
     (*theme_sheet_).text.assign(text);
     (*theme_sheet_).name.assign(name);
-    (*theme_sheet_).controls = controls;
     const bool applied = compile_theme_sheet();
     return applied;
 }
@@ -1871,7 +1864,7 @@ bool Control::compile_theme_sheet() {
     sheet.pending = false;
     const ThemePackage package = theme_sheet_package(sheet.text, sheet.name);
     ThemeCompileOptions options{};
-    options.controls = sheet.controls.empty() ? stock_control_anatomies() : sheet.controls;
+    options.controls = stock_control_anatomies();
     // A sheet names no installed package: an empty library.
     const ThemeLibrary library{};
     ThemeCompileResult result = (*resources).compile_theme_package(package, library, options);
@@ -3924,6 +3917,7 @@ void Control::written(const decltype(classes)&) {
 
 bool Control::reads_ancestors() const noexcept {
     if (effective_theme().engine().rules().uses_ancestors()) return true;
+    if (look_rules_ != nullptr && (*look_rules_).uses_ancestors()) return true;
     const CompiledThemeRules* const user = surface_root_ == nullptr ? nullptr : (*surface_root_).user_theme_rules();
     return user != nullptr && (*user).uses_ancestors();
 }
@@ -4018,6 +4012,13 @@ BorrowedText Control::inline_style() const noexcept {
 const CompiledThemeRules* Control::inline_style_rules() const noexcept {
     if (inline_style_ == nullptr) return nullptr;
     return &(*inline_style_).rules;
+}
+
+void Control::set_look_rules(std::shared_ptr<const CompiledThemeRules> rules) {
+    require_mutable();
+    if (look_rules_ == rules) return;
+    look_rules_ = std::move(rules);
+    invalidate(Dirty::paint | refresh_text_font());
 }
 
 void Control::set_custom_cursor(CursorImagesPtr images, CursorKind fallback) {

@@ -608,6 +608,8 @@ private:
     bool look_resolved_{};
     const Theme* look_theme_{};
     const CompiledThemeRules* look_inline_rules_{};
+    // The composite look (Control::look_rules) look_ was resolved with.
+    const CompiledThemeRules* look_composite_rules_{};
     bool look_dark_{};
     bool look_high_contrast_{};
     std::optional<Color> look_back_color_{};
