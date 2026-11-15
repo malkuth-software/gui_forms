@@ -21,6 +21,7 @@
 #include "../src/controls/business_card/card_turn.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/panel.hpp"
@@ -437,8 +438,14 @@ public:
 };
 
 void hand_remarks() {
-    // Declared before the window whose clock borrows it.
+    // Declared before the window whose clock borrows it. The motion clock
+    // and the frame schedule must share a time base: the remark timer
+    // (AnimationTimer) places its first tick on the steady clock
+    // (FrameClock), and the card dates its remarks on the motion clock, so
+    // the manual time starts at the steady clock's now (it once started at
+    // 1000 s, before the timer's first tick, which then never came).
     ManualTime time{};
+    time.time = FrameClock::now();
     PageFixture f;
     (*f.window).motion_clock().set_time_source(&time);
     int remarks = 0;
