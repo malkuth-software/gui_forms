@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cmath>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
@@ -89,6 +90,11 @@ struct ContextMenu::Impl final {
     };
 
     explicit Impl(ContextMenu& public_owner) : owner(public_owner) {}
+    Impl(const Impl&) = delete;
+    Impl& operator=(const Impl&) = delete;
+    // Marks the menu destroyed for a call still running inside it (see
+    // destroyed below).
+    ~Impl() { *destroyed = true; }
 
     [[nodiscard]] double text_scale() const noexcept {
         return window ? (*window).presentation_settings().text_scale : 1.0;
@@ -762,21 +768,47 @@ struct ContextMenu::Impl final {
         popup_mode = panels[0U].in_popup;
         Control::Ptr preferred = mode == MenuOpenMode::pointer ? panels[0U].panel : first_focusable(0U);
         if (!preferred) preferred = panels[0U].panel;
+        // Moving the focus runs focus handlers, which may close the menu
+        // or destroy it (A-gf-controls-06-F2): after each move the menu
+        // goes on only if neither happened, and a scope begun for a menu
+        // that closed meanwhile is ended here.
+        Window& shown_in = *window;
+        const std::shared_ptr<bool> gone = destroyed;
+        const std::uint64_t closes = close_count;
         if (popup_mode) {
             (*layer).focusable = true;
-            focus_scope = (*window).begin_focus_scope(layer, layer);
-            popup_closed = (*window).popup_window_closed().subscribe(
+            const FocusScopeId scope = shown_in.begin_focus_scope(layer, layer);
+            if (!keep_scope(shown_in, scope, gone, closes)) return;
+            popup_closed = shown_in.popup_window_closed().subscribe(
                 owner, Delegate<std::size_t>::bind<Impl, &Impl::on_popup_closed>(*this));
-            owner_active = (*window).active_changed().subscribe(
+            owner_active = shown_in.active_changed().subscribe(
                 owner, Delegate<bool>::bind<Impl, &Impl::on_owner_active>(*this));
-            owner_moved = (*window).frame_moved().subscribe(
+            owner_moved = shown_in.frame_moved().subscribe(
                 owner, Delegate<>::bind<Impl, &Impl::on_owner_moved>(*this));
             static_cast<void>(focus_row(0U, preferred));
+            if (*gone || close_count != closes) return;
         } else {
-            focus_scope = (*window).begin_focus_scope(layer, preferred);
+            const FocusScopeId scope = shown_in.begin_focus_scope(layer, preferred);
+            if (!keep_scope(shown_in, scope, gone, closes)) return;
         }
         open = true;
         owner.open_changed_.emit(true);
+    }
+
+    // Keeps the focus scope show began, unless the menu was destroyed or
+    // closed while the scope moved the focus: then the scope is ended (the
+    // window still holds it) and show stops. False when show stops.
+    bool keep_scope(Window& shown_in, FocusScopeId scope, const std::shared_ptr<bool>& gone,
+                    std::uint64_t closes) noexcept {
+        if (*gone || close_count != closes) {
+            try {
+                static_cast<void>(shown_in.end_focus_scope(scope));
+            } catch (...) {
+            }
+            return false;
+        }
+        focus_scope = scope;
+        return true;
     }
 
     void close() noexcept {
@@ -795,7 +827,8 @@ struct ContextMenu::Impl final {
         overlay_token.disconnect();
         overlay_revocation.disconnect();
         const bool changed = open;
-        reset_visual_state();
+        // Released when close returns, after the menu's last use here.
+        const Control::Ptr invoker = reset_visual_state();
         closing = false;
         if (changed && owner.is_alive()) owner.open_changed_.emit(false);
     }
@@ -814,7 +847,8 @@ struct ContextMenu::Impl final {
         ++close_count;
         hide_popups();
         const bool changed = open;
-        reset_visual_state();
+        // Released when this returns, after the menu's last use here.
+        const Control::Ptr invoker = reset_visual_state();
         if (changed && owner.is_alive()) owner.open_changed_.emit(false);
     }
 
@@ -922,17 +956,22 @@ struct ContextMenu::Impl final {
         return true;
     }
 
-    void reset_visual_state() noexcept {
+    // Resets what the open menu showed and gives back the invoker, which
+    // the caller releases after its last use of the menu: the invoker may
+    // hold the last reference to the menu's owner (A-gf-controls-06-F1).
+    [[nodiscard]] Control::Ptr reset_visual_state() noexcept {
+        Control::Ptr invoker = std::move(owner_control);
+        owner_control.reset();
         panels.clear();
         popup_mode = false;
         right_to_left = false;
         focus_depth = 0U;
         layer.reset();
-        owner_control.reset();
         invoker_theme.reset();
         window = nullptr;
         snapshot.clear();
         open = false;
+        return invoker;
     }
 
     // The region panels are placed in, in the owner's client coordinates:
@@ -1281,6 +1320,12 @@ struct ContextMenu::Impl final {
         // An item without a Command (GAPS E9) is chosen with an empty
         // command_id; there is nothing to execute.
         const std::shared_ptr<Command> command = item.command;
+        // The command and the item_invoked handlers may destroy the menu
+        // (a command that removes and drops the menu's owner): the invoker
+        // is held for the call, and after each the menu goes on only if it
+        // was not destroyed (A-gf-controls-06-F1).
+        const std::shared_ptr<bool> gone = destroyed;
+        const Control::Ptr invoker = owner_control;
         const std::string command_id = command ? (*command).stable_id() : std::string{};
         // Release containment and restore the invoker before application code
         // runs. A command may deliberately focus its resulting surface; doing
@@ -1296,11 +1341,13 @@ struct ContextMenu::Impl final {
         } else if (command) {
             executed = (*command).execute(source_id);
         }
+        if (*gone) return;
         if (executed && owner.is_alive()) {
             MenuItemInvocation invocation{owner.stable_id_, item_id,
                                           command_id, source_id};
             owner.item_invoked_.emit(invocation);
         }
+        if (*gone) return;
         close();
     }
 
@@ -1397,6 +1444,12 @@ struct ContextMenu::Impl final {
     // the rows refer to (owner, 2026-11-10: the use after free in
     // open_submenu, gdb2 to gdb4).
     std::uint64_t close_count{};
+    // Set when the menu is destroyed. A call that runs application code
+    // (a command, a focus or item_invoked handler) holds a copy and stops
+    // when it is set, since the code may have destroyed the menu with its
+    // owner (A-gf-controls-06-F1). Allocated with the menu: a menu that
+    // cannot allocate it is not made.
+    std::shared_ptr<bool> destroyed = std::make_shared<bool>(false);
     std::function<bool(int)> root_navigation_handler;
     std::function<bool(const PointerEvent&)> outside_pointer_handler;
 };

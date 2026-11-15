@@ -1003,11 +1003,73 @@ void test_menu_row_insets_follow_the_text_scale() {
     require(double_width > single_width * 1.8, "at text scale 2 the menu's gutters widen with its text");
 }
 
+// Destroys the menu from its item's command, as a command that removes and
+// drops the control owning the menu does.
+class DestroyMenu final {
+public:
+    explicit DestroyMenu(std::unique_ptr<ContextMenu>& menu) : menu_(menu) {}
+    void operator()(const CommandInvocation&) const { menu_.reset(); }
+
+private:
+    std::unique_ptr<ContextMenu>& menu_;
+};
+
+// Closes the menu when its owner loses the focus, as an owner that closes
+// its drop-down on leaving does.
+class CloseOnLeave final {
+public:
+    explicit CloseOnLeave(ContextMenu& menu) : menu_(menu) {}
+    void operator()(bool focused) const {
+        if (!focused) menu_.close();
+    }
+
+private:
+    ContextMenu& menu_;
+};
+
+// A-gf-controls-06-F1: a command that destroys the menu ends the
+// activation without touching the menu again. A-gf-controls-06-F2: a focus
+// handler that closes the menu while it opens leaves it closed, its focus
+// scope ended.
+void test_context_menu_survives_its_handlers() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("doomed.root"));
+    std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("doomed.owner"), "Menu");
+    std::shared_ptr<gui_forms::Button> other = make_control<Button>(StableId("doomed.other"), "Other");
+    (*owner).set_requested_bounds({4.0, 4.0, 80.0, 30.0});
+    (*other).set_requested_bounds({100.0, 4.0, 80.0, 30.0});
+    (*root).add_child(owner);
+    (*root).add_child(other);
+    Window window(root, {320.0, 190.0});
+    require(window.request_focus(owner), "the menu owner takes focus");
+    std::shared_ptr<Command> closing = std::make_shared<Command>("doomed.close", "Close");
+    std::unique_ptr<ContextMenu> menu = std::make_unique<ContextMenu>("doomed.menu");
+    (*menu).set_items({MenuItemSpec("close", MenuItemKind::command, closing)});
+    SubscriptionToken destroyer = (*closing).invoked().subscribe(DestroyMenu(menu));
+    (*menu).show(owner, {20.0, 20.0});
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::end}) &&
+                window.dispatch_key({KeyAction::down, PhysicalKey::enter}),
+            "Enter chooses the item");
+    require(!menu && window.find("doomed.menu.overlay.row.close") == nullptr,
+            "the command destroyed the menu and its rows are gone");
+    destroyer.disconnect();
+
+    require(window.request_focus(owner), "the owner takes focus again");
+    ContextMenu leaving("leaving.menu");
+    leaving.set_items({MenuItemSpec("item", MenuItemKind::command, {}, "Item")});
+    SubscriptionToken closer = (*owner).focus_observed().subscribe(CloseOnLeave(leaving));
+    leaving.show(owner, {20.0, 20.0});
+    closer.disconnect();
+    require(!leaving.is_open() && window.find("leaving.menu.overlay.row.item") == nullptr,
+            "a menu its opening focus handler closed stays closed");
+    require(window.request_focus(other), "no focus scope of the closed menu holds the focus");
+}
+
 int main() {
     try {
         test_context_menu_command_snapshot_keyboard_nesting_and_restore();
         test_context_menu_scroll_and_validation_bounds();
         test_context_menu_items_without_commands();
+        test_context_menu_survives_its_handlers();
         test_item_ids_follow_the_stable_id_segment_rule();
         test_menu_strip_retained_switching_commands_and_semantics();
         test_menu_mnemonics_strip_markers_and_overlay_activation();
