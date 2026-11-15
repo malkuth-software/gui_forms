@@ -9,9 +9,9 @@ written by the headless run:
     gui_forms_normative_trace_tests --write <reference-dir>
 
 which leaves normative-1.00.trace and normative-2.00.trace there. A host
-driver (gui_forms_macos_normative_trace, gui_forms_linux_normative_trace)
-writes its own trace; this tool compares it with the reference whose scale
-matches the trace's header:
+driver (gui_forms_macos_normative_trace, gui_forms_linux_normative_trace,
+gui_forms_windows_normative_trace) writes its own trace; this tool compares
+it with the reference whose scale matches the trace's header:
 
     normative_trace.py compare --reference-dir <dir> --trace <host.trace>
         [--strict-hover]
@@ -24,6 +24,9 @@ Rules, per step (the lines between one "step" line and the next):
   - every other line (pointer presses, releases and wheels, keys, text,
     focus, activation, the display summary and its lines) must match the
     reference exactly and in order.
+A trace is read as UTF-8 with or without a byte order mark, and with LF or
+CRLF line ends (a trace copied through a Windows tool may carry either), so
+every host's trace compares the same way.
 Exit status 0 when the traces agree; 1 with the first difference otherwise;
 2 for unusable input.
 """
@@ -57,7 +60,7 @@ def read_trace(path: pathlib.Path) -> tuple[str, list[Step]]:
     """The header's scale and the steps; the lines before the first step
     and after the last (the display trace, end) form a step titled
     "(header)" and "(finish)" respectively."""
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8-sig")
     lines = text.splitlines()
     if not lines or not lines[0].startswith("normative-trace version=1 "):
         raise ValueError(f"{path}: not a version 1 normative trace")

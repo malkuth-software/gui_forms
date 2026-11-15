@@ -170,6 +170,8 @@ jobs:
           python3 -B tools/control_registry.py members --check
           python3 -B -m unittest discover -s tools -p test_check_test_registration.py
           python3 -B tools/check_test_registration.py
+          # Release-1.0 condition 2: the normative trace comparison, every host's trace shape.
+          python3 -B -m unittest discover -s tools -p test_normative_trace.py
   # Documentation-only pull requests (owner, 2026-11-09): when every changed
   # path is documentation no test reads (tools/ci_docs_only.py), the four
   # native jobs report success without building (their build job is
