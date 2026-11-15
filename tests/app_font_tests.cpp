@@ -519,8 +519,12 @@ void unload_while_in_use_is_deferred() {
         require(app_font_statistics().unloads_deferred == before.unloads_deferred + 1U, "the deferral is counted");
         require(app_font_family_state(family) == AppFontState::unloading && !font_family_drawable(family),
                 "an unloading family draws no new text");
-        const std::optional<FontFaceSource> kept = (*engine).face_source(shaped.runs.front().face);
-        require(kept.has_value() && !(*kept).bytes.empty(), "text already shaped keeps its face's bytes");
+        {
+            // A FontFaceSource holds the bytes' owner too, so it is scoped: the release below
+            // waits only for the engine.
+            const std::optional<FontFaceSource> kept = (*engine).face_source(shaped.runs.front().face);
+            require(kept.has_value() && !(*kept).bytes.empty(), "text already shaped keeps its face's bytes");
+        }
         const ShapedText reshaped = (*engine).shape("In use", font);
         require(!reshaped.runs.empty() && !drawn_with(*engine, reshaped, family),
                 "new text draws with the role's faces");
