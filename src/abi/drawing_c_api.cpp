@@ -196,34 +196,40 @@ public:
                          std::move(object));
     }
 
+    // Lock order (A-gf-abi-01-F1): an operation holds its object's
+    // operation_mutex and may then take mutex_ (adopting a clone, a nested
+    // with). So nothing waits for an operation_mutex while it holds mutex_:
+    // retain and release find the record under mutex_, let it go, take the
+    // operation lock, and check under mutex_ again that the handle still
+    // names that record.
     gd_result retain(gd_handle handle) {
-        std::scoped_lock lock(mutex_);
-        Slot* slot = find_locked(handle);
-        if (slot == nullptr) return stale("retain");
-        std::scoped_lock operation_lock((*(*slot).record).operation_mutex);
-        if ((*(*slot).record).owner_thread != std::this_thread::get_id()) {
-            (*(*(*slot).record).object).handoff_to_current_thread();
-            (*(*slot).record).owner_thread = std::this_thread::get_id();
+        std::shared_ptr<ObjectRecord> record;
+        if (!find_record(handle, record)) return stale("retain");
+        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        if (!still_names(handle, record)) return stale("retain");
+        if ((*record).owner_thread != std::this_thread::get_id()) {
+            (*(*record).object).handoff_to_current_thread();
+            (*record).owner_thread = std::this_thread::get_id();
         }
-        if ((*(*slot).record).owner_thread != std::this_thread::get_id()) {
+        if ((*record).owner_thread != std::this_thread::get_id()) {
             return wrong_thread("retain");
         }
-        if ((*(*slot).record).external_references ==
+        if ((*record).external_references ==
             std::numeric_limits<std::uint64_t>::max()) {
             return fail(GD_ERROR_LIMIT_EXCEEDED, "drawing reference count overflow");
         }
-        ++(*(*slot).record).external_references;
+        ++(*record).external_references;
         return GD_OK;
     }
 
     gd_result release(gd_handle handle) {
-        std::scoped_lock lock(mutex_);
-        Slot* slot = find_locked(handle);
-        if (slot == nullptr) return stale("release");
-        // Recycling removes the registry reference. Keep the record and its
-        // mutex alive until the operation lock has released it.
-        const std::shared_ptr<ObjectRecord> record = (*slot).record;
+        // Recycling removes the registry reference; the local one keeps the
+        // record and its mutex alive until the operation lock has released
+        // it.
+        std::shared_ptr<ObjectRecord> record;
+        if (!find_record(handle, record)) return stale("release");
         const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        if (!still_names(handle, record)) return stale("release");
         if ((*record).owner_thread != std::this_thread::get_id()) {
             (*(*record).object).handoff_to_current_thread();
             (*record).owner_thread = std::this_thread::get_id();
@@ -235,15 +241,30 @@ public:
             if (!(*(*record).object).is_disposed()) {
                 (*(*record).object).dispose();
             }
-            recycle_locked(*slot);
+            // Taken after the operation lock, the order every operation
+            // uses. The slot is recycled only while it still holds this
+            // record: every other path that recycles also holds the record's
+            // operation lock, so it cannot have changed meanwhile.
+            const std::scoped_lock<std::mutex> lock(mutex_);
+            Slot* const slot = find_locked(handle);
+            if (slot != nullptr && (*slot).record == record) {
+                recycle_locked(*slot);
+            }
         }
         return GD_OK;
     }
 
+    // dispose, object_state and object_kind hold the object for the whole
+    // call (drawing_c_api.h: "Calls on one object are serialized"), with the
+    // owner thread checked under the lock (A-gf-abi-01-F2).
     gd_result dispose(gd_handle handle) {
         std::shared_ptr<ObjectRecord> record;
         if (const gd_result result = get(handle, 0U, record, true); result != GD_OK) {
             return result;
+        }
+        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        if ((*record).owner_thread != std::this_thread::get_id()) {
+            return wrong_thread("dispose");
         }
         return translate(&gui_drawing::DrawingObject::dispose,
                          (*record).object.get());
@@ -257,8 +278,13 @@ public:
         if (const gd_result result = get(handle, 0U, record, true); result != GD_OK) {
             return result;
         }
-        *state = static_cast<std::uint32_t>((*(*record).object).state());
-        return GD_OK;
+        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        if ((*record).owner_thread != std::this_thread::get_id()) {
+            return wrong_thread("object_state");
+        }
+        // state() verifies its thread and may throw: through translate, so
+        // no exception leaves the C entry.
+        return translate(&Registry::read_object_state, (*record).object.get(), state);
     }
 
     gd_result object_kind(gd_handle handle, std::uint32_t* kind) {
@@ -269,6 +295,7 @@ public:
         if (const gd_result result = get(handle, 0U, record, true); result != GD_OK) {
             return result;
         }
+        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
         *kind = (*record).kind;
         return GD_OK;
     }
@@ -516,6 +543,28 @@ private:
         slots_.push_back({});
         slots_.back().record = std::move(record);
         return {static_cast<std::uint32_t>(slots_.size()), slots_.back().generation};
+    }
+
+    // The record handle names, copied under mutex_ (released on return).
+    bool find_record(gd_handle handle, std::shared_ptr<ObjectRecord>& record) {
+        const std::scoped_lock<std::mutex> lock(mutex_);
+        Slot* const slot = find_locked(handle);
+        if (slot == nullptr) return false;
+        record = (*slot).record;
+        return true;
+    }
+
+    // Whether handle still names record (called under the record's
+    // operation lock, so mutex_ is taken in the operation order).
+    bool still_names(gd_handle handle, const std::shared_ptr<ObjectRecord>& record) {
+        const std::scoped_lock<std::mutex> lock(mutex_);
+        Slot* const slot = find_locked(handle);
+        const bool same = slot != nullptr && (*slot).record == record;
+        return same;
+    }
+
+    static void read_object_state(gui_drawing::DrawingObject* object, std::uint32_t* state) {
+        *state = static_cast<std::uint32_t>((*object).state());
     }
 
     Slot* find_locked(gd_handle handle) noexcept {
