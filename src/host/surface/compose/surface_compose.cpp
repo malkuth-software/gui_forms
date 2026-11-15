@@ -212,8 +212,11 @@ void surface_compose(const SurfaceTarget& target, SurfaceDeviceRect clip, Surfac
     for (std::size_t index = 0U; index < layers.size(); ++index) {
         const SurfaceComposeLayer& layer = layers[index];
         SurfaceDeviceRect bounds = layer.bounds;
-        if (layer.kind != SurfaceLayerKind::solid) {
-            // An image reaches no further than its own pixels.
+        const bool image_layer =
+            layer.kind == SurfaceLayerKind::opaque_image || layer.kind == SurfaceLayerKind::blended_image;
+        if (image_layer) {
+            // An image reaches no further than its own pixels. A solid or a
+            // tint layer has none and covers its bounds.
             if (layer.pixels == nullptr || layer.row_bytes < static_cast<std::size_t>(layer.width) * 4U) continue;
             const SurfaceDeviceRect image{layer.bounds.left, layer.bounds.top,
                                           layer.bounds.left + static_cast<std::int32_t>(layer.width),
