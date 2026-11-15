@@ -2579,7 +2579,7 @@ private:
     };
     std::vector<FocusRegion> focus_regions_;
     void remember_region_focus(const Control::Ptr& control);
-    [[nodiscard]] bool focus_into_region(FocusRegion& region);
+    [[nodiscard]] bool focus_into_region(const FocusRegion& region);
     bool focus_cue_visible_{};
     Control::WeakPtr accept_button_;
     Control::WeakPtr cancel_button_;

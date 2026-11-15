@@ -1736,7 +1736,7 @@ void SurfaceRoot::remember_region_focus(const Control::Ptr& control) {
 
 // Focuses the region's remembered control while it is still inside the
 // region and can take focus, or else the region's first Tab stop.
-bool SurfaceRoot::focus_into_region(FocusRegion& entry) {
+bool SurfaceRoot::focus_into_region(const FocusRegion& entry) {
     const Control::Ptr region = entry.region.lock();
     if (!region || !(*region).is_alive() || (*region).surface_root() != this || !eligible(region)) {
         return false;
@@ -1755,12 +1755,17 @@ bool SurfaceRoot::focus_into_region(FocusRegion& entry) {
 bool SurfaceRoot::move_focus_region(bool forward) {
     require_root_thread("focus region traversal");
     if (!focus_scopes_.empty() || focus_regions_.empty()) return false;
-    const std::size_t count = focus_regions_.size();
+    // The regions as declared when the traversal starts: each attempt's
+    // request_focus runs application handlers, which may declare other
+    // regions (set_focus_regions swaps the list), so the walk keeps its own
+    // copy and never indexes the live list past a handler (A-gf-core-17-F2).
+    const std::vector<FocusRegion> regions = focus_regions_;
+    const std::size_t count = regions.size();
     // The region holding the focused control, if any.
     const Control::Ptr focused = focused_.lock();
     std::optional<std::size_t> current{};
     for (std::size_t index = 0; index < count && focused; ++index) {
-        const Control::Ptr region = focus_regions_[index].region.lock();
+        const Control::Ptr region = regions[index].region.lock();
         if (region && region_holds(*region, *focused)) {
             current = index;
             break;
@@ -1779,7 +1784,7 @@ bool SurfaceRoot::move_focus_region(bool forward) {
     }
     for (std::size_t step = 0; step < attempts; ++step) {
         const std::size_t index = forward ? (origin + 1U + step) % count : (origin + count - 1U - step) % count;
-        if (focus_into_region(focus_regions_[index])) return true;
+        if (focus_into_region(regions[index])) return true;
     }
     return false;
 }
