@@ -152,11 +152,11 @@ SemanticDescriptor PictureBox::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<PictureBox::Parts>, 3> picture_box_extra_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PictureBox::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &PictureBox::Parts::edge},
-    {.declaration = {.name = "image", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "image", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &PictureBox::Parts::image},
 }};
 

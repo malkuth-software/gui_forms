@@ -390,9 +390,9 @@ bool Splitter::on_semantic_action(SemanticAction action, std::string_view value)
 namespace {
 
 constexpr std::array<PartField<Splitter::Parts>, 2> splitter_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Splitter::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Splitter::Parts::face},
 }};
 

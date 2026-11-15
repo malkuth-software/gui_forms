@@ -80,17 +80,17 @@ void RadioButton::written(const decltype(group_name)&) {
 namespace {
 
 constexpr std::array<PartField<RadioButton::Parts>, 6> radio_button_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::well},
-    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::indicator},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::label},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::focus},
 }};
 

@@ -47,15 +47,15 @@ constexpr std::array<InteractionDeclaration, 1> content_surface_interactions{{
 }};
 
 constexpr std::array<PartField<ContentSurface::Parts>, 5> content_surface_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ContentSurface::Parts::region},
-    {.declaration = {.name = "content", .role = PartRole::image, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::image, .composed_from = {}, .states = {}},
      .member = &ContentSurface::Parts::content},
-    {.declaration = {.name = "veil", .role = PartRole::scrim, .composed_from = {}},
+    {.declaration = {.name = "veil", .role = PartRole::scrim, .composed_from = {}, .states = {}},
      .member = &ContentSurface::Parts::veil},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &ContentSurface::Parts::caption},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ContentSurface::Parts::focus},
 }};
 

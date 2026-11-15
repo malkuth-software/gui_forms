@@ -720,15 +720,15 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
 namespace {
 
 constexpr std::array<PartField<ButtonBase::Parts>, 5> button_base_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ButtonBase::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ButtonBase::Parts::face},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &ButtonBase::Parts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ButtonBase::Parts::label},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ButtonBase::Parts::focus},
 }};
 

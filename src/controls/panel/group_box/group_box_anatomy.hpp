@@ -10,11 +10,11 @@ namespace gui_forms::group_box_detail {
 // GroupBox and ScaledGroupBox: the scrollable parts, the face, the frame
 // stroked below the caption, and the caption block.
 inline constexpr std::array<PartField<GroupBox::Parts>, 3> extra_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &GroupBox::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &GroupBox::Parts::edge},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &GroupBox::Parts::caption},
 }};
 

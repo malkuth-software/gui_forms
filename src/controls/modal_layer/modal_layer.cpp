@@ -21,11 +21,11 @@ namespace {
 constexpr double window_margin = 16.0;
 
 constexpr std::array<PartField<ModalLayer::Parts>, 3> modal_layer_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ModalLayer::Parts::region},
-    {.declaration = {.name = "scrim", .role = PartRole::scrim, .composed_from = {}},
+    {.declaration = {.name = "scrim", .role = PartRole::scrim, .composed_from = {}, .states = {}},
      .member = &ModalLayer::Parts::scrim},
-    {.declaration = {.name = "shadow", .role = PartRole::shadow, .composed_from = {}},
+    {.declaration = {.name = "shadow", .role = PartRole::shadow, .composed_from = {}, .states = {}},
      .member = &ModalLayer::Parts::shadow},
 }};
 

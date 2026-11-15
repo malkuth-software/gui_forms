@@ -485,11 +485,11 @@ constexpr std::array<AnatomyState, 3> more_states{{AnatomyState::hot, AnatomySta
 constexpr std::array<AnatomyState, 1> more_glyph_states{{AnatomyState::open}};
 
 constexpr std::array<PartField<RibbonGallery::Parts>, 10> gallery_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::Parts::well},
-    {.declaration = {.name = "item_viewport", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "item_viewport", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::Parts::item_viewport},
     {.declaration = {.name = "scroll_up", .role = PartRole::actuator, .composed_from = "button",
                      .states = scroll_states},
@@ -509,20 +509,20 @@ constexpr std::array<PartField<RibbonGallery::Parts>, 10> gallery_part_fields{{
     {.declaration = {.name = "more_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = more_glyph_states},
      .member = &RibbonGallery::Parts::more_glyph},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::Parts::focus},
 }};
 
 constexpr std::array<PartField<RibbonGallery::ItemParts>, 5> item_part_fields{{
-    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::ItemParts::item_face},
-    {.declaration = {.name = "item_selection", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "item_selection", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::ItemParts::item_selection},
-    {.declaration = {.name = "item_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "item_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::ItemParts::item_icon},
-    {.declaration = {.name = "item_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "item_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::ItemParts::item_label},
-    {.declaration = {.name = "item_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "item_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::ItemParts::item_focus},
 }};
 
@@ -536,9 +536,9 @@ constexpr std::array<StateField<RibbonGallery::ItemStates>, 6> item_state_fields
 }};
 
 constexpr std::array<PartField<RibbonGallery::CategoryParts>, 2> category_part_fields{{
-    {.declaration = {.name = "category_caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "category_caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::CategoryParts::category_caption},
-    {.declaration = {.name = "category_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "category_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::CategoryParts::category_divider},
 }};
 

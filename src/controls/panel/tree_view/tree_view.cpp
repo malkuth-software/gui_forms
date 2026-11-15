@@ -764,24 +764,24 @@ bool TreeView::on_semantic_child_action(std::string_view id,
 namespace {
 
 constexpr std::array<PartField<TreeView::Parts>, 3> tree_view_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TreeView::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &TreeView::Parts::edge},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &TreeView::Parts::content},
 }};
 
 constexpr std::array<PartField<TreeView::ItemParts>, 5> tree_view_item_part_fields{{
-    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TreeView::ItemParts::row},
-    {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &TreeView::ItemParts::expander},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &TreeView::ItemParts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &TreeView::ItemParts::label},
-    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TreeView::ItemParts::row_focus},
 }};
 

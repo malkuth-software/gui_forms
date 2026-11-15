@@ -1290,28 +1290,28 @@ void PropertyList::on_dispose() noexcept {
 namespace {
 
 constexpr std::array<PartField<PropertyList::Parts>, 1> property_list_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PropertyList::Parts::face},
 }};
 
 constexpr std::array<PartField<PropertyList::ItemParts>, 9> property_list_item_part_fields{{
-    {.declaration = {.name = "group_header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "group_header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::group_header},
-    {.declaration = {.name = "group_expander", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "group_expander", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::group_expander},
-    {.declaration = {.name = "group_title", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "group_title", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::group_title},
-    {.declaration = {.name = "property_row", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "property_row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::property_row},
-    {.declaration = {.name = "property_name", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "property_name", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::property_name},
-    {.declaration = {.name = "property_value", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "property_value", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::property_value},
-    {.declaration = {.name = "row_expander", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "row_expander", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::row_expander},
-    {.declaration = {.name = "validation", .role = PartRole::validation, .composed_from = {}},
+    {.declaration = {.name = "validation", .role = PartRole::validation, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::validation},
-    {.declaration = {.name = "row_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "row_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::row_divider},
 }};
 

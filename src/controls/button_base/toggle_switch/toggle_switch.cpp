@@ -26,17 +26,17 @@ constexpr double thumb_inset = 3.0;
 constexpr double gap = 8.0;
 
 constexpr std::array<PartField<ToggleSwitch::Parts>, 6> toggle_switch_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::region},
-    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::track},
-    {.declaration = {.name = "thumb", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "thumb", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::thumb},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::label},
-    {.declaration = {.name = "state", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "state", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::state},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::focus},
 }};
 

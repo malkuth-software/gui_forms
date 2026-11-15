@@ -32,11 +32,11 @@ constexpr double chip_block_padding = 1.0;
 constexpr double dot_side = 8.0;
 
 constexpr std::array<PartField<Badge::Parts>, 3> badge_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Badge::Parts::region},
-    {.declaration = {.name = "chip", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "chip", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &Badge::Parts::chip},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Badge::Parts::label},
 }};
 

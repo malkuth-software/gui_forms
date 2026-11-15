@@ -972,7 +972,7 @@ SemanticDescriptor TableLayoutPanelCompat::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<TableLayoutPanelCompat::Parts>, 1> table_layout_panel_compat_extra_fields{{
-    {.declaration = {.name = "cell_grid", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "cell_grid", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &TableLayoutPanelCompat::Parts::cell_grid},
 }};
 

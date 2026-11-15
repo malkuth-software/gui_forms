@@ -376,13 +376,13 @@ AnimationTickResult EasingPreview::on_frame_tick(FrameTime now) {
 namespace {
 
 constexpr std::array<PartField<EasingPreview::Parts>, 4> easing_preview_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &EasingPreview::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &EasingPreview::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &EasingPreview::Parts::edge},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &EasingPreview::Parts::focus},
 }};
 

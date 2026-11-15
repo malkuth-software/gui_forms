@@ -1476,17 +1476,17 @@ void TextBox::on_detached_from_window() noexcept {
 namespace {
 
 constexpr std::array<PartField<TextBox::Parts>, 6> text_box_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::edge},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::well},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::content},
-    {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}},
+    {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::caret},
-    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::selection},
 }};
 

@@ -2362,9 +2362,9 @@ constexpr std::array<AnatomyState, 3> pin_button_states{
 constexpr std::array<AnatomyState, 1> insertion_mark_states{{AnatomyState::drop_accepted}};
 
 constexpr std::array<PartField<PageStrip::Parts>, 11> page_strip_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &PageStrip::Parts::region},
-    {.declaration = {.name = "rail", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "rail", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PageStrip::Parts::rail},
     {.declaration = {.name = "scroll_back", .role = PartRole::actuator, .composed_from = "button",
                      .states = scroll_button_states},
@@ -2390,20 +2390,20 @@ constexpr std::array<PartField<PageStrip::Parts>, 11> page_strip_part_fields{{
     {.declaration = {.name = "insertion_mark", .role = PartRole::drop, .composed_from = {},
                      .states = insertion_mark_states},
      .member = &PageStrip::Parts::insertion_mark},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &PageStrip::Parts::focus},
 }};
 
 constexpr std::array<PartField<PageStrip::ItemParts>, 10> page_strip_item_part_fields{{
-    {.declaration = {.name = "tab", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "tab", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PageStrip::ItemParts::tab},
-    {.declaration = {.name = "tab_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "tab_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &PageStrip::ItemParts::tab_icon},
-    {.declaration = {.name = "tab_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "tab_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &PageStrip::ItemParts::tab_label},
     // The modified dot: a glyph drawn with the radio_dot mark, the nearest
     // admitted mark (DK-35 admitted the state `modified`, no mark).
-    {.declaration = {.name = "tab_modified", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "tab_modified", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &PageStrip::ItemParts::tab_modified},
     {.declaration = {.name = "tab_close", .role = PartRole::actuator, .composed_from = "button",
                      .states = close_button_states},
@@ -2417,9 +2417,9 @@ constexpr std::array<PartField<PageStrip::ItemParts>, 10> page_strip_item_part_f
     {.declaration = {.name = "tab_pin_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = pin_button_states},
      .member = &PageStrip::ItemParts::tab_pin_glyph},
-    {.declaration = {.name = "tab_seam", .role = PartRole::seam, .composed_from = {}},
+    {.declaration = {.name = "tab_seam", .role = PartRole::seam, .composed_from = {}, .states = {}},
      .member = &PageStrip::ItemParts::tab_seam},
-    {.declaration = {.name = "tab_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "tab_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &PageStrip::ItemParts::tab_focus},
 }};
 

@@ -22,13 +22,13 @@ namespace {
 constexpr double natural_side = 32.0;
 
 constexpr std::array<PartField<ProgressRing::Parts>, 4> progress_ring_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ProgressRing::Parts::region},
-    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &ProgressRing::Parts::track},
-    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}},
+    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}, .states = {}},
      .member = &ProgressRing::Parts::fill},
-    {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}},
+    {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}, .states = {}},
      .member = &ProgressRing::Parts::activity},
 }};
 

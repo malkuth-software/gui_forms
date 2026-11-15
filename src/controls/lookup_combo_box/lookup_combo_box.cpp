@@ -30,17 +30,17 @@ constexpr double cell_padding = 6.0;
 constexpr double disclosure_side = 8.0;
 
 constexpr std::array<PartField<LookupComboBox::Parts>, 6> lookup_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::well},
-    {.declaration = {.name = "label", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::label},
-    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = {}},
+    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::actuator},
-    {.declaration = {.name = "glyph", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "glyph", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::glyph},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::focus},
 }};
 

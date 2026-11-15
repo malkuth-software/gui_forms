@@ -27,15 +27,15 @@ constexpr double natural_step_width = 120.0;
 constexpr double check_side = 12.0;
 
 constexpr std::array<PartField<StepIndicator::Parts>, 5> step_indicator_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &StepIndicator::Parts::region},
-    {.declaration = {.name = "chip", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "chip", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &StepIndicator::Parts::chip},
-    {.declaration = {.name = "glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &StepIndicator::Parts::glyph},
-    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &StepIndicator::Parts::divider},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &StepIndicator::Parts::caption},
 }};
 

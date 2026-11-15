@@ -54,22 +54,22 @@ PartMark severity_mark(NoticeSeverity severity) noexcept {
 constexpr std::array<AnatomyState, 2> actuator_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<InfoBanner::Parts>, 8> info_banner_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::face},
-    {.declaration = {.name = "keyline", .role = PartRole::keyline, .composed_from = {}},
+    {.declaration = {.name = "keyline", .role = PartRole::keyline, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::keyline},
-    {.declaration = {.name = "icon", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::icon},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::caption},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::label},
     {.declaration = {.name = "actuator", .role = PartRole::glyph, .composed_from = {},
                      .states = actuator_part_states},
      .member = &InfoBanner::Parts::actuator},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::content},
 }};
 

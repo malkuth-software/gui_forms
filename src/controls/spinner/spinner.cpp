@@ -21,9 +21,9 @@ namespace {
 constexpr double natural_side = 24.0;
 
 constexpr std::array<PartField<Spinner::Parts>, 2> spinner_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Spinner::Parts::region},
-    {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}},
+    {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}, .states = {}},
      .member = &Spinner::Parts::activity},
 }};
 

@@ -3161,9 +3161,9 @@ constexpr std::array<AnatomyState, 4> group_button_part_states{
     {AnatomyState::hot, AnatomyState::pressed, AnatomyState::open, AnatomyState::focus_visible}};
 
 constexpr std::array<PartField<Ribbon::Parts>, 12> ribbon_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Ribbon::Parts::region},
-    {.declaration = {.name = "tab_rail", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "tab_rail", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Ribbon::Parts::tab_rail},
     {.declaration = {.name = "application_button", .role = PartRole::face, .composed_from = "button",
                      .states = application_states},
@@ -3171,7 +3171,7 @@ constexpr std::array<PartField<Ribbon::Parts>, 12> ribbon_part_fields{{
     {.declaration = {.name = "application_label", .role = PartRole::label, .composed_from = {},
                      .states = application_states},
      .member = &Ribbon::Parts::application_label},
-    {.declaration = {.name = "command_plane", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "command_plane", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Ribbon::Parts::command_plane},
     {.declaration = {.name = "scroll_left", .role = PartRole::actuator, .composed_from = "button",
                      .states = arrow_states},
@@ -3193,18 +3193,18 @@ constexpr std::array<PartField<Ribbon::Parts>, 12> ribbon_part_fields{{
     {.declaration = {.name = "help_label", .role = PartRole::label, .composed_from = {},
                      .states = launcher_states},
      .member = &Ribbon::Parts::help_label},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &Ribbon::Parts::focus},
 }};
 
 constexpr std::array<PartField<Ribbon::TabParts>, 4> ribbon_tab_part_fields{{
-    {.declaration = {.name = "tab", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "tab", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Ribbon::TabParts::tab},
-    {.declaration = {.name = "tab_hover", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "tab_hover", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Ribbon::TabParts::tab_hover},
-    {.declaration = {.name = "tab_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "tab_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Ribbon::TabParts::tab_label},
-    {.declaration = {.name = "tab_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "tab_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &Ribbon::TabParts::tab_focus},
 }};
 
@@ -3216,11 +3216,11 @@ constexpr std::array<StateField<Ribbon::TabStates>, 4> ribbon_tab_state_fields{{
 }};
 
 constexpr std::array<PartField<Ribbon::GroupParts>, 11> ribbon_group_part_fields{{
-    {.declaration = {.name = "group_region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "group_region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Ribbon::GroupParts::group_region},
-    {.declaration = {.name = "group_caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "group_caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &Ribbon::GroupParts::group_caption},
-    {.declaration = {.name = "group_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "group_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &Ribbon::GroupParts::group_divider},
     {.declaration = {.name = "group_launcher", .role = PartRole::actuator, .composed_from = "button",
                      .states = launcher_states},
@@ -3249,34 +3249,34 @@ constexpr std::array<PartField<Ribbon::GroupParts>, 11> ribbon_group_part_fields
 }};
 
 constexpr std::array<PartField<Ribbon::CommandParts>, 13> ribbon_command_part_fields{{
-    {.declaration = {.name = "command_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "command_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Ribbon::CommandParts::command_face},
-    {.declaration = {.name = "command_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "command_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &Ribbon::CommandParts::command_icon},
-    {.declaration = {.name = "command_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "command_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Ribbon::CommandParts::command_label},
     {.declaration = {.name = "command_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = arrow_states},
      .member = &Ribbon::CommandParts::command_arrow},
-    {.declaration = {.name = "command_arrow_glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "command_arrow_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &Ribbon::CommandParts::command_arrow_glyph},
-    {.declaration = {.name = "command_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "command_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &Ribbon::CommandParts::command_focus},
-    {.declaration = {.name = "command_combo_box", .role = PartRole::well, .composed_from = "combo_box"},
+    {.declaration = {.name = "command_combo_box", .role = PartRole::well, .composed_from = "combo_box", .states = {}},
      .member = &Ribbon::CommandParts::command_combo_box},
     {.declaration = {.name = "command_numeric_up_down", .role = PartRole::well,
-                     .composed_from = "numeric_up_down"},
+                     .composed_from = "numeric_up_down", .states = {}},
      .member = &Ribbon::CommandParts::command_numeric_up_down},
-    {.declaration = {.name = "command_check_box", .role = PartRole::indicator, .composed_from = "check_box"},
+    {.declaration = {.name = "command_check_box", .role = PartRole::indicator, .composed_from = "check_box", .states = {}},
      .member = &Ribbon::CommandParts::command_check_box},
-    {.declaration = {.name = "command_text_box", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "command_text_box", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &Ribbon::CommandParts::command_text_box},
-    {.declaration = {.name = "command_gallery", .role = PartRole::well, .composed_from = "ribbon_gallery"},
+    {.declaration = {.name = "command_gallery", .role = PartRole::well, .composed_from = "ribbon_gallery", .states = {}},
      .member = &Ribbon::CommandParts::command_gallery},
-    {.declaration = {.name = "command_font_control", .role = PartRole::well, .composed_from = "ribbon_font_control"},
+    {.declaration = {.name = "command_font_control", .role = PartRole::well, .composed_from = "ribbon_font_control", .states = {}},
      .member = &Ribbon::CommandParts::command_font_control},
     {.declaration = {.name = "command_color_picker", .role = PartRole::actuator,
-                     .composed_from = "ribbon_color_picker"},
+                     .composed_from = "ribbon_color_picker", .states = {}},
      .member = &Ribbon::CommandParts::command_color_picker},
 }};
 

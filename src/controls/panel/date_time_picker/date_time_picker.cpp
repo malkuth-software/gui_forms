@@ -576,15 +576,15 @@ namespace {
 constexpr std::array<AnatomyState, 1> date_time_picker_pressable_states{{AnatomyState::pressed}};
 
 constexpr std::array<PartField<DateTimePicker::Parts>, 9> date_time_picker_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DateTimePicker::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &DateTimePicker::Parts::edge},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &DateTimePicker::Parts::content},
-    {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = "button", .states = {}},
      .member = &DateTimePicker::Parts::drop_down},
-    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &DateTimePicker::Parts::disclosure},
     {.declaration = {.name = "increment_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = date_time_picker_pressable_states},
@@ -595,7 +595,7 @@ constexpr std::array<PartField<DateTimePicker::Parts>, 9> date_time_picker_extra
     {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {},
                      .states = date_time_picker_pressable_states},
      .member = &DateTimePicker::Parts::well},
-    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &DateTimePicker::Parts::indicator},
 }};
 

@@ -289,14 +289,14 @@ void turned_text_is_retained_and_replayed() {
 }
 
 constexpr std::array<PartDeclaration, 1> tab_parts{{
-    {.name = "tab_face", .role = PartRole::face, .composed_from = {}},
+    {.name = "tab_face", .role = PartRole::face, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<AnatomyState, 2> tab_states{{AnatomyState::hot, AnatomyState::selected}};
 constexpr std::array<ItemSystemDeclaration, 1> tab_systems{{
     {.name = "page", .parts = tab_parts, .states = tab_states, .custom_states = admitted_custom_states},
 }};
 constexpr std::array<PartDeclaration, 1> strip_parts{{
-    {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
 }};
 constexpr ControlAnatomy strip_anatomy{
     .control_id = "page_strip_fixture",

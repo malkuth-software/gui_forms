@@ -411,15 +411,15 @@ bool DockNavigator::on_semantic_child_action(std::string_view stable_id, Semanti
 namespace {
 
 constexpr std::array<PartField<DockNavigator::Parts>, 5> navigator_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &DockNavigator::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DockNavigator::Parts::face},
-    {.declaration = {.name = "tool_heading", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "tool_heading", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &DockNavigator::Parts::tool_heading},
-    {.declaration = {.name = "document_heading", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "document_heading", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &DockNavigator::Parts::document_heading},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &DockNavigator::Parts::focus},
 }};
 
@@ -430,9 +430,9 @@ constexpr std::array<AnatomyState, 5> navigator_states{
 };
 
 constexpr std::array<PartField<DockNavigator::ItemParts>, 2> entry_part_fields{{
-    {.declaration = {.name = "entry_face", .role = PartRole::face, .composed_from = "menu_item"},
+    {.declaration = {.name = "entry_face", .role = PartRole::face, .composed_from = "menu_item", .states = {}},
      .member = &DockNavigator::ItemParts::entry_face},
-    {.declaration = {.name = "entry_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "entry_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &DockNavigator::ItemParts::entry_label},
 }};
 constexpr std::array<PartDeclaration, 2> entry_parts = part_declarations(entry_part_fields);

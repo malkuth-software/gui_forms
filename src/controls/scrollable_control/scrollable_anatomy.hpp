@@ -19,9 +19,9 @@ inline constexpr std::array<AnatomyState, 3> thumb_part_states{{
 // to children, and the two scroll axes it paints itself. The axes reuse the
 // scroll bar's roles, so a cue on the thumb role reaches these thumbs too.
 inline constexpr std::array<PartField<ScrollableControl::Parts>, 12> part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ScrollableControl::Parts::region},
-    {.declaration = {.name = "viewport", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "viewport", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ScrollableControl::Parts::viewport},
     {.declaration = {.name = "horizontal_decrement_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = pressable_part_states},
@@ -47,9 +47,9 @@ inline constexpr std::array<PartField<ScrollableControl::Parts>, 12> part_fields
     {.declaration = {.name = "vertical_increment_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = pressable_part_states},
      .member = &ScrollableControl::Parts::vertical_increment_arrow},
-    {.declaration = {.name = "scroll_corner", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "scroll_corner", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ScrollableControl::Parts::scroll_corner},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ScrollableControl::Parts::focus},
 }};
 
@@ -78,7 +78,7 @@ struct GroundParts final {
     PartGeometry face;
 };
 inline constexpr std::array<PartField<GroundParts>, 1> ground_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &GroundParts::face},
 }};
 inline constexpr std::array<PartDeclaration, part_count + 1> grounded_parts =

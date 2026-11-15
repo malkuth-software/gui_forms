@@ -1250,28 +1250,28 @@ void CorrespondenceView::on_detached_from_window() noexcept {
 namespace {
 
 constexpr std::array<PartField<CorrespondenceView::Parts>, 2> correspondence_view_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::Parts::edge},
 }};
 
 constexpr std::array<PartField<CorrespondenceView::ItemParts>, 8> correspondence_view_item_part_fields{{
-    {.declaration = {.name = "card", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "card", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::card},
-    {.declaration = {.name = "status_rail", .role = PartRole::keyline, .composed_from = {}},
+    {.declaration = {.name = "status_rail", .role = PartRole::keyline, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::status_rail},
-    {.declaration = {.name = "glyph", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "glyph", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::glyph},
-    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::title},
-    {.declaration = {.name = "secondary", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "secondary", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::secondary},
-    {.declaration = {.name = "metric", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "metric", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::metric},
-    {.declaration = {.name = "evidence", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "evidence", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::evidence},
-    {.declaration = {.name = "card_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "card_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::card_focus},
 }};
 

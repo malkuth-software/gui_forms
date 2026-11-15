@@ -30,19 +30,19 @@ constexpr double knob_share = 0.56;
 constexpr double needle_inset_share = 0.1;
 
 constexpr std::array<PartField<Dial::Parts>, 7> dial_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::region},
-    {.declaration = {.name = "track", .role = PartRole::arc, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::arc, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::track},
-    {.declaration = {.name = "value_arc", .role = PartRole::arc, .composed_from = {}},
+    {.declaration = {.name = "value_arc", .role = PartRole::arc, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::value_arc},
-    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}},
+    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::graticule},
-    {.declaration = {.name = "thumb", .role = PartRole::thumb, .composed_from = {}},
+    {.declaration = {.name = "thumb", .role = PartRole::thumb, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::thumb},
-    {.declaration = {.name = "needle", .role = PartRole::needle, .composed_from = {}},
+    {.declaration = {.name = "needle", .role = PartRole::needle, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::needle},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::focus},
 }};
 

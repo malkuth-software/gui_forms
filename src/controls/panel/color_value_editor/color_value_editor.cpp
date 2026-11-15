@@ -355,9 +355,9 @@ void ColorValueEditor::on_dispose() noexcept {
 namespace {
 
 constexpr std::array<PartField<ColorValueEditor::Parts>, 2> color_value_editor_extra_part_fields{{
-    {.declaration = {.name = "swatch", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "swatch", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &ColorValueEditor::Parts::swatch},
-    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &ColorValueEditor::Parts::field},
 }};
 

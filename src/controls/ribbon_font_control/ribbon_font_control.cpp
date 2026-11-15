@@ -281,11 +281,11 @@ SemanticDescriptor RibbonFontControl::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<RibbonFontControl::Parts>, 3> font_control_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RibbonFontControl::Parts::region},
-    {.declaration = {.name = "family_field", .role = PartRole::well, .composed_from = "combo_box"},
+    {.declaration = {.name = "family_field", .role = PartRole::well, .composed_from = "combo_box", .states = {}},
      .member = &RibbonFontControl::Parts::family_field},
-    {.declaration = {.name = "size_field", .role = PartRole::well, .composed_from = "combo_box"},
+    {.declaration = {.name = "size_field", .role = PartRole::well, .composed_from = "combo_box", .states = {}},
      .member = &RibbonFontControl::Parts::size_field},
 }};
 

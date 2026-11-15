@@ -30,13 +30,13 @@ constexpr std::uint32_t smallest_capacity = 2U;
 constexpr std::uint32_t largest_capacity = 100000U;
 
 constexpr std::array<PartField<Sparkline::Parts>, 4> sparkline_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Sparkline::Parts::region},
-    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}, .states = {}},
      .member = &Sparkline::Parts::plot},
-    {.declaration = {.name = "series", .role = PartRole::series, .composed_from = {}},
+    {.declaration = {.name = "series", .role = PartRole::series, .composed_from = {}, .states = {}},
      .member = &Sparkline::Parts::series},
-    {.declaration = {.name = "marker", .role = PartRole::marker, .composed_from = {}},
+    {.declaration = {.name = "marker", .role = PartRole::marker, .composed_from = {}, .states = {}},
      .member = &Sparkline::Parts::marker},
 }};
 

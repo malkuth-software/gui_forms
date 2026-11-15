@@ -264,15 +264,15 @@ bool CheckedListBox::on_semantic_child_action(std::string_view stable_id,
 namespace {
 
 constexpr std::array<PartField<CheckedListBox::ItemParts>, 5> checked_item_part_fields{{
-    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &CheckedListBox::ItemParts::row},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &CheckedListBox::ItemParts::label},
-    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &CheckedListBox::ItemParts::row_focus},
-    {.declaration = {.name = "check_well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "check_well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &CheckedListBox::ItemParts::check_well},
-    {.declaration = {.name = "check", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "check", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &CheckedListBox::ItemParts::check},
 }};
 

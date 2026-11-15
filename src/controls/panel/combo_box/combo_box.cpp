@@ -1040,19 +1040,19 @@ void ComboBox::on_detached_from_window() noexcept {
 namespace {
 
 constexpr std::array<PartField<ComboBox::Parts>, 7> combo_box_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ComboBox::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &ComboBox::Parts::edge},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &ComboBox::Parts::well},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &ComboBox::Parts::content},
-    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &ComboBox::Parts::divider},
-    {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = "button", .states = {}},
      .member = &ComboBox::Parts::drop_down},
-    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &ComboBox::Parts::disclosure},
 }};
 

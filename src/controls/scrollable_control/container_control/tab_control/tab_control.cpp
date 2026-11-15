@@ -857,22 +857,22 @@ bool TabControl::on_semantic_child_action(std::string_view child_stable_id,
 namespace {
 
 constexpr std::array<PartField<TabControl::Parts>, 2> tab_control_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TabControl::Parts::face},
-    {.declaration = {.name = "display", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "display", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TabControl::Parts::display},
 }};
 
 constexpr std::array<PartField<TabControl::ItemParts>, 5> tab_control_item_part_fields{{
-    {.declaration = {.name = "tab", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "tab", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TabControl::ItemParts::tab},
-    {.declaration = {.name = "tab_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "tab_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &TabControl::ItemParts::tab_label},
-    {.declaration = {.name = "tab_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "tab_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TabControl::ItemParts::tab_focus},
-    {.declaration = {.name = "tab_seam", .role = PartRole::seam, .composed_from = {}},
+    {.declaration = {.name = "tab_seam", .role = PartRole::seam, .composed_from = {}, .states = {}},
      .member = &TabControl::ItemParts::tab_seam},
-    {.declaration = {.name = "tab_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "tab_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &TabControl::ItemParts::tab_icon},
 }};
 

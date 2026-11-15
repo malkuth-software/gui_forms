@@ -57,26 +57,26 @@ constexpr std::array<AnatomyState, 2> color_picker_thumb_states{{
     AnatomyState::pressed, AnatomyState::captured}};
 
 constexpr std::array<PartField<ColorPicker::Parts>, 9> color_picker_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ColorPicker::Parts::region},
-    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &ColorPicker::Parts::field},
     {.declaration = {.name = "field_thumb", .role = PartRole::thumb, .composed_from = {},
                      .states = color_picker_thumb_states},
      .member = &ColorPicker::Parts::field_thumb},
-    {.declaration = {.name = "hue_track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "hue_track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &ColorPicker::Parts::hue_track},
     {.declaration = {.name = "hue_thumb", .role = PartRole::thumb, .composed_from = {},
                      .states = color_picker_thumb_states},
      .member = &ColorPicker::Parts::hue_thumb},
-    {.declaration = {.name = "alpha_track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "alpha_track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &ColorPicker::Parts::alpha_track},
     {.declaration = {.name = "alpha_thumb", .role = PartRole::thumb, .composed_from = {},
                      .states = color_picker_thumb_states},
      .member = &ColorPicker::Parts::alpha_thumb},
-    {.declaration = {.name = "swatch", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "swatch", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &ColorPicker::Parts::swatch},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ColorPicker::Parts::focus},
 }};
 

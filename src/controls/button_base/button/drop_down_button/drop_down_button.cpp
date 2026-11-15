@@ -94,22 +94,22 @@ namespace {
 constexpr std::array<AnatomyState, 1> drop_down_segment_states{{AnatomyState::pressed}};
 
 constexpr std::array<PartField<DropDownButton::Parts>, 8> drop_down_button_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::face},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::label},
     {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = {},
                      .states = drop_down_segment_states},
      .member = &DropDownButton::Parts::drop_down},
-    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::disclosure},
-    {.declaration = {.name = "preselect", .role = PartRole::preselect, .composed_from = {}},
+    {.declaration = {.name = "preselect", .role = PartRole::preselect, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::preselect},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::focus},
 }};
 

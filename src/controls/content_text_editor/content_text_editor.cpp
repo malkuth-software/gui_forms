@@ -92,11 +92,11 @@ constexpr std::array<InteractionDeclaration, 4> content_text_editor_interactions
 }};
 
 constexpr std::array<PartField<ContentTextEditor::Parts>, 3> content_text_editor_extra_part_fields{{
-    {.declaration = {.name = "content", .role = PartRole::image, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::image, .composed_from = {}, .states = {}},
      .member = &ContentTextEditor::Parts::content},
-    {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}},
+    {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}, .states = {}},
      .member = &ContentTextEditor::Parts::caret},
-    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &ContentTextEditor::Parts::selection},
 }};
 

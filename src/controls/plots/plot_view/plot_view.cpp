@@ -37,21 +37,21 @@ constexpr std::uint64_t signature_prime = 1099511628211ULL;
 }
 
 constexpr std::array<PartField<PlotView::Parts>, 8> plot_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::region},
-    {.declaration = {.name = "title", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "title", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::title},
-    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::plot},
-    {.declaration = {.name = "x_axis", .role = PartRole::axis, .composed_from = {}},
+    {.declaration = {.name = "x_axis", .role = PartRole::axis, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::x_axis},
-    {.declaration = {.name = "y_axis", .role = PartRole::axis, .composed_from = {}},
+    {.declaration = {.name = "y_axis", .role = PartRole::axis, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::y_axis},
-    {.declaration = {.name = "legend", .role = PartRole::legend, .composed_from = {}},
+    {.declaration = {.name = "legend", .role = PartRole::legend, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::legend},
-    {.declaration = {.name = "crosshair", .role = PartRole::crosshair, .composed_from = {}},
+    {.declaration = {.name = "crosshair", .role = PartRole::crosshair, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::crosshair},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::focus},
 }};
 

@@ -740,19 +740,19 @@ SemanticTextResult RichTextBox::on_set_semantic_text_selection(SemanticTextSelec
 namespace {
 
 constexpr std::array<PartField<RichTextBox::Parts>, 7> rich_text_box_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::edge},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::well},
-    {.declaration = {.name = "bar", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "bar", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::bar},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::content},
-    {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}},
+    {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::caret},
-    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::selection},
 }};
 
@@ -770,11 +770,11 @@ constexpr std::array<StateField<RichTextBox::States>, 10> rich_text_box_state_fi
 }};
 
 constexpr std::array<PartField<RichTextBox::ItemParts>, 3> rich_text_box_item_part_fields{{
-    {.declaration = {.name = "button", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "button", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &RichTextBox::ItemParts::button},
-    {.declaration = {.name = "button_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "button_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &RichTextBox::ItemParts::button_label},
-    {.declaration = {.name = "button_glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "button_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &RichTextBox::ItemParts::button_glyph},
 }};
 

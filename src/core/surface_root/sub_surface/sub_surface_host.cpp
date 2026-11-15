@@ -340,11 +340,11 @@ void SubSurfaceHost::on_paint(Painter& painter, Rect) {
 namespace {
 
 constexpr std::array<PartField<SubSurfaceHost::Parts>, 3> sub_surface_host_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &SubSurfaceHost::Parts::region},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &SubSurfaceHost::Parts::content},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &SubSurfaceHost::Parts::focus},
 }};
 

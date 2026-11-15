@@ -57,11 +57,11 @@ struct LayoutRun final {
 }
 
 constexpr std::array<PartField<HelpBook::Parts>, 5> help_book_extra_fields{{
-    {.declaration = {.name = "paper", .role = PartRole::face, .composed_from = {}}, .member = &HelpBook::Parts::paper},
-    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}}, .member = &HelpBook::Parts::title},
-    {.declaration = {.name = "rule", .role = PartRole::divider, .composed_from = {}}, .member = &HelpBook::Parts::rule},
-    {.declaration = {.name = "close", .role = PartRole::glyph, .composed_from = {}}, .member = &HelpBook::Parts::close},
-    {.declaration = {.name = "body", .role = PartRole::content, .composed_from = {}}, .member = &HelpBook::Parts::body},
+    {.declaration = {.name = "paper", .role = PartRole::face, .composed_from = {}, .states = {}}, .member = &HelpBook::Parts::paper},
+    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}, .states = {}}, .member = &HelpBook::Parts::title},
+    {.declaration = {.name = "rule", .role = PartRole::divider, .composed_from = {}, .states = {}}, .member = &HelpBook::Parts::rule},
+    {.declaration = {.name = "close", .role = PartRole::glyph, .composed_from = {}, .states = {}}, .member = &HelpBook::Parts::close},
+    {.declaration = {.name = "body", .role = PartRole::content, .composed_from = {}, .states = {}}, .member = &HelpBook::Parts::body},
 }};
 
 constexpr std::array<PartDeclaration, scrollable_detail::part_count + 5> help_book_parts =
@@ -73,13 +73,13 @@ constexpr std::array<AnatomyState, 3> link_states{{AnatomyState::hot, AnatomySta
                                                    AnatomyState::focus_visible}};
 
 constexpr std::array<PartField<HelpBook::TopicParts>, 2> topic_part_fields{{
-    {.declaration = {.name = "topic_bar", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "topic_bar", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &HelpBook::TopicParts::topic_bar},
-    {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &HelpBook::TopicParts::expander},
 }};
 constexpr std::array<PartField<HelpBook::LinkParts>, 1> link_part_fields{{
-    {.declaration = {.name = "link_text", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "link_text", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &HelpBook::LinkParts::link_text},
 }};
 constexpr std::array<PartDeclaration, 2> topic_parts = part_declarations(topic_part_fields);

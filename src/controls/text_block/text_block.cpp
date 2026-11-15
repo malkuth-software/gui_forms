@@ -357,9 +357,9 @@ SemanticDescriptor TextBlock::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<TextBlock::Parts>, 2> text_block_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TextBlock::Parts::region},
-    {.declaration = {.name = "text", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "text", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &TextBlock::Parts::text},
 }};
 

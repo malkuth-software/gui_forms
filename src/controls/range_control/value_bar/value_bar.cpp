@@ -402,15 +402,15 @@ namespace {
 constexpr std::array<AnatomyState, 2> value_bar_arrow_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<ValueBar::Parts>, 12> value_bar_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::region},
-    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::track},
-    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}},
+    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::fill},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::label},
-    {.declaration = {.name = "value", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "value", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::value},
     {.declaration = {.name = "decrement_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = value_bar_arrow_states},
@@ -424,11 +424,11 @@ constexpr std::array<PartField<ValueBar::Parts>, 12> value_bar_part_fields{{
     {.declaration = {.name = "increment_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = value_bar_arrow_states},
      .member = &ValueBar::Parts::increment_glyph},
-    {.declaration = {.name = "overrange", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "overrange", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::overrange},
-    {.declaration = {.name = "validation", .role = PartRole::validation, .composed_from = {}},
+    {.declaration = {.name = "validation", .role = PartRole::validation, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::validation},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::focus},
 }};
 

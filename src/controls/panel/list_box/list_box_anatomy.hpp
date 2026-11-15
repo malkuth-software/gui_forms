@@ -10,13 +10,13 @@ namespace gui_forms::list_box_detail {
 // ListBox and CheckedListBox: the scrollable parts, the face and edge the
 // Panel paints when styled, the editor well and the clipped content.
 inline constexpr std::array<PartField<ListBox::Parts>, 4> extra_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ListBox::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &ListBox::Parts::edge},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &ListBox::Parts::well},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &ListBox::Parts::content},
 }};
 

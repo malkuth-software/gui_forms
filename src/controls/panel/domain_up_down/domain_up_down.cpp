@@ -389,11 +389,11 @@ namespace {
 constexpr std::array<AnatomyState, 2> spin_arrow_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<DomainUpDown::Parts>, 7> domain_up_down_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DomainUpDown::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &DomainUpDown::Parts::edge},
-    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &DomainUpDown::Parts::field},
     {.declaration = {.name = "up_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = spin_arrow_states},

@@ -432,11 +432,11 @@ namespace {
 constexpr std::array<AnatomyState, 2> end_button_states{{AnatomyState::hot, AnatomyState::open}};
 
 constexpr std::array<PartField<QuickAccessToolbar::Parts>, 8> quick_access_toolbar_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &QuickAccessToolbar::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &QuickAccessToolbar::Parts::face},
-    {.declaration = {.name = "grip", .role = PartRole::grip, .composed_from = {}},
+    {.declaration = {.name = "grip", .role = PartRole::grip, .composed_from = {}, .states = {}},
      .member = &QuickAccessToolbar::Parts::grip},
     {.declaration = {.name = "overflow_button", .role = PartRole::actuator, .composed_from = "button",
                      .states = end_button_states},
@@ -450,7 +450,7 @@ constexpr std::array<PartField<QuickAccessToolbar::Parts>, 8> quick_access_toolb
     {.declaration = {.name = "customize_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = end_button_states},
      .member = &QuickAccessToolbar::Parts::customize_glyph},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &QuickAccessToolbar::Parts::focus},
 }};
 

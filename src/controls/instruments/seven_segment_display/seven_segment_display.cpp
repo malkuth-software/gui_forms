@@ -60,13 +60,13 @@ constexpr double padding_share = 0.125;
 constexpr double natural_height = 32.0;
 
 constexpr std::array<PartField<SevenSegmentDisplay::Parts>, 4> seven_segment_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &SevenSegmentDisplay::Parts::region},
-    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}, .states = {}},
      .member = &SevenSegmentDisplay::Parts::plot},
-    {.declaration = {.name = "trace", .role = PartRole::trace, .composed_from = {}},
+    {.declaration = {.name = "trace", .role = PartRole::trace, .composed_from = {}, .states = {}},
      .member = &SevenSegmentDisplay::Parts::trace},
-    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}},
+    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}, .states = {}},
      .member = &SevenSegmentDisplay::Parts::graticule},
 }};
 

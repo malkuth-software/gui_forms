@@ -645,25 +645,25 @@ namespace {
 constexpr std::array<AnatomyState, 2> close_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<TokenBox::Parts>, 4> token_box_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TokenBox::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &TokenBox::Parts::well},
-    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &TokenBox::Parts::field},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TokenBox::Parts::focus},
 }};
 
 constexpr std::array<PartField<TokenBox::ItemParts>, 4> token_item_part_fields{{
-    {.declaration = {.name = "token_face", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "token_face", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &TokenBox::ItemParts::token_face},
-    {.declaration = {.name = "token_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "token_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &TokenBox::ItemParts::token_label},
     {.declaration = {.name = "token_close", .role = PartRole::glyph, .composed_from = {},
                      .states = close_part_states},
      .member = &TokenBox::ItemParts::token_close},
-    {.declaration = {.name = "token_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "token_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TokenBox::ItemParts::token_focus},
 }};
 

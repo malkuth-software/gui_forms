@@ -657,11 +657,11 @@ bool ListBox::on_semantic_child_action(std::string_view child_stable_id,
 namespace {
 
 constexpr std::array<PartField<ListBox::ItemParts>, 3> list_item_part_fields{{
-    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ListBox::ItemParts::row},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ListBox::ItemParts::label},
-    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ListBox::ItemParts::row_focus},
 }};
 

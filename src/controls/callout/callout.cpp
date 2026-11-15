@@ -39,15 +39,15 @@ constexpr double title_size_increase = 1.0;
 constexpr std::array<AnatomyState, 2> close_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<Callout::Parts>, 5> callout_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Callout::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Callout::Parts::face},
-    {.declaration = {.name = "beak", .role = PartRole::beak, .composed_from = {}},
+    {.declaration = {.name = "beak", .role = PartRole::beak, .composed_from = {}, .states = {}},
      .member = &Callout::Parts::beak},
     {.declaration = {.name = "close", .role = PartRole::glyph, .composed_from = {}, .states = close_part_states},
      .member = &Callout::Parts::close},
-    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = "button", .states = {}},
      .member = &Callout::Parts::actuator},
 }};
 

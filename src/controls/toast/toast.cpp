@@ -40,15 +40,15 @@ PartMark severity_mark(NoticeSeverity severity) noexcept {
 constexpr std::array<AnatomyState, 2> close_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<Toast::Parts>, 6> toast_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Toast::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Toast::Parts::face},
-    {.declaration = {.name = "icon", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &Toast::Parts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Toast::Parts::label},
-    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = "button", .states = {}},
      .member = &Toast::Parts::actuator},
     {.declaration = {.name = "close", .role = PartRole::glyph, .composed_from = {}, .states = close_part_states},
      .member = &Toast::Parts::close},

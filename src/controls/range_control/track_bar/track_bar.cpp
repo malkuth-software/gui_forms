@@ -54,18 +54,18 @@ constexpr std::array<AnatomyState, 2> track_bar_thumb_states{{
     AnatomyState::pressed, AnatomyState::captured}};
 
 constexpr std::array<PartField<TrackBar::Parts>, 6> track_bar_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TrackBar::Parts::region},
-    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &TrackBar::Parts::track},
-    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}},
+    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}, .states = {}},
      .member = &TrackBar::Parts::fill},
-    {.declaration = {.name = "ticks", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "ticks", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &TrackBar::Parts::ticks},
     {.declaration = {.name = "thumb", .role = PartRole::thumb, .composed_from = {},
                      .states = track_bar_thumb_states},
      .member = &TrackBar::Parts::thumb},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TrackBar::Parts::focus},
 }};
 

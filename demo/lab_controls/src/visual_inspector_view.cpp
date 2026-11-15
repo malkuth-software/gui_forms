@@ -484,15 +484,15 @@ SemanticDescriptor VisualInspectorOverlay::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<VisualInspectorView::Parts>, 5> visual_inspector_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &VisualInspectorView::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &VisualInspectorView::Parts::face},
-    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &VisualInspectorView::Parts::header},
-    {.declaration = {.name = "accent_strip", .role = PartRole::keyline, .composed_from = {}},
+    {.declaration = {.name = "accent_strip", .role = PartRole::keyline, .composed_from = {}, .states = {}},
      .member = &VisualInspectorView::Parts::accent_strip},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &VisualInspectorView::Parts::focus},
 }};
 
@@ -553,11 +553,11 @@ VisualInspectorView::States VisualInspectorView::states() const {
 namespace {
 
 constexpr std::array<PartField<VisualInspectorOverlay::Parts>, 3> visual_inspector_overlay_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &VisualInspectorOverlay::Parts::region},
-    {.declaration = {.name = "highlight", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "highlight", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &VisualInspectorOverlay::Parts::highlight},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &VisualInspectorOverlay::Parts::focus},
 }};
 

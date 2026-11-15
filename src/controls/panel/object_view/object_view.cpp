@@ -2052,24 +2052,24 @@ void ObjectView::paint_details(Painter& painter) {
 namespace {
 
 constexpr std::array<PartField<ObjectView::Parts>, 3> object_view_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ObjectView::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &ObjectView::Parts::edge},
-    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ObjectView::Parts::header},
 }};
 
 constexpr std::array<PartField<ObjectView::ItemParts>, 5> object_view_item_part_fields{{
-    {.declaration = {.name = "cell", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "cell", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ObjectView::ItemParts::cell},
-    {.declaration = {.name = "glyph", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "glyph", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &ObjectView::ItemParts::glyph},
-    {.declaration = {.name = "name", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "name", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ObjectView::ItemParts::name},
-    {.declaration = {.name = "secondary", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "secondary", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &ObjectView::ItemParts::secondary},
-    {.declaration = {.name = "cell_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "cell_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ObjectView::ItemParts::cell_focus},
 }};
 
@@ -2086,17 +2086,17 @@ constexpr std::array<AnatomyState, 4> object_view_item_states =
     state_declarations(object_view_item_state_fields);
 
 constexpr std::array<PartField<ObjectView::ColumnParts>, 6> object_view_column_part_fields{{
-    {.declaration = {.name = "column_header", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "column_header", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ObjectView::ColumnParts::column_header},
-    {.declaration = {.name = "column_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "column_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ObjectView::ColumnParts::column_label},
-    {.declaration = {.name = "sort_glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "sort_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &ObjectView::ColumnParts::sort_glyph},
-    {.declaration = {.name = "column_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "column_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &ObjectView::ColumnParts::column_divider},
-    {.declaration = {.name = "column_grip", .role = PartRole::grip, .composed_from = {}},
+    {.declaration = {.name = "column_grip", .role = PartRole::grip, .composed_from = {}, .states = {}},
      .member = &ObjectView::ColumnParts::column_grip},
-    {.declaration = {.name = "column_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "column_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ObjectView::ColumnParts::column_focus},
 }};
 

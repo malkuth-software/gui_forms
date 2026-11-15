@@ -138,11 +138,11 @@ void test_names_are_registered_and_round_trip() {
 }
 
 constexpr std::array<PartDeclaration, 2> duplicate_parts{{
-    {.name = "thumb", .role = PartRole::thumb, .composed_from = {}},
-    {.name = "thumb", .role = PartRole::face, .composed_from = {}},
+    {.name = "thumb", .role = PartRole::thumb, .composed_from = {}, .states = {}},
+    {.name = "thumb", .role = PartRole::face, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<PartDeclaration, 1> single_region{{
-    {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<AnatomyState, 2> duplicate_states{
     AnatomyState::hot, AnatomyState::hot,
@@ -935,17 +935,17 @@ void test_list_rows_are_item_records() {
 }
 
 constexpr std::array<PartDeclaration, 1> clashing_item_parts{{
-    {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<ItemSystemDeclaration, 1> clashing_item_systems{{
     {.name = "item", .parts = clashing_item_parts, .states = {}, .custom_states = {}},
 }};
 
 constexpr std::array<PartDeclaration, 1> row_item_parts{{
-    {.name = "row", .role = PartRole::region, .composed_from = {}},
+    {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<PartDeclaration, 1> column_item_parts{{
-    {.name = "column_header", .role = PartRole::region, .composed_from = {}},
+    {.name = "column_header", .role = PartRole::region, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<ItemSystemDeclaration, 2> row_and_column_systems{{
     {.name = "item", .parts = row_item_parts, .states = {}, .custom_states = {}},

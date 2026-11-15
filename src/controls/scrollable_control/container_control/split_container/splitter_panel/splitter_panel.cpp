@@ -34,7 +34,7 @@ void SplitterPanel::on_paint(Painter& painter, Rect) {
 namespace {
 
 constexpr std::array<PartField<SplitterPanel::Parts>, 1> splitter_panel_extra_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &SplitterPanel::Parts::face},
 }};
 

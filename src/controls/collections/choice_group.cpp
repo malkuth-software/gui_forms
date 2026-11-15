@@ -419,9 +419,9 @@ namespace {
 // The segmented presentation's parts after Panel's. The items are child
 // controls, which publish their own anatomies.
 constexpr std::array<PartField<ChoiceGroup::Parts>, 2> segmented_fields{{
-    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &ChoiceGroup::Parts::track},
-    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &ChoiceGroup::Parts::selection},
 }};
 

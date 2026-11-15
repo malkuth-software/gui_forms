@@ -510,13 +510,13 @@ bool FontDialog::on_semantic_action(SemanticAction action, std::string_view valu
 namespace {
 
 constexpr std::array<PartField<FontDialog::Parts>, 4> font_dialog_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &FontDialog::Parts::face},
-    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &FontDialog::Parts::title},
-    {.declaration = {.name = "preview_well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "preview_well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &FontDialog::Parts::preview_well},
-    {.declaration = {.name = "preview_text", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "preview_text", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &FontDialog::Parts::preview_text},
 }};
 

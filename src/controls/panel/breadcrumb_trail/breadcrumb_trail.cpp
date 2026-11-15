@@ -709,20 +709,20 @@ bool BreadcrumbTrail::on_semantic_child_action(
 namespace {
 
 constexpr std::array<PartField<BreadcrumbTrail::Parts>, 2> breadcrumb_trail_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &BreadcrumbTrail::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &BreadcrumbTrail::Parts::edge},
 }};
 
 constexpr std::array<PartField<BreadcrumbTrail::ItemParts>, 4> breadcrumb_trail_item_part_fields{{
-    {.declaration = {.name = "segment", .role = PartRole::face, .composed_from = "button"},
+    {.declaration = {.name = "segment", .role = PartRole::face, .composed_from = "button", .states = {}},
      .member = &BreadcrumbTrail::ItemParts::segment},
-    {.declaration = {.name = "segment_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "segment_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &BreadcrumbTrail::ItemParts::segment_label},
-    {.declaration = {.name = "segment_cap", .role = PartRole::cap, .composed_from = {}},
+    {.declaration = {.name = "segment_cap", .role = PartRole::cap, .composed_from = {}, .states = {}},
      .member = &BreadcrumbTrail::ItemParts::segment_cap},
-    {.declaration = {.name = "segment_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "segment_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &BreadcrumbTrail::ItemParts::segment_focus},
 }};
 

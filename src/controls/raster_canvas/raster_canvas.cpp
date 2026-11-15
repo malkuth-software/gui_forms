@@ -413,13 +413,13 @@ void RasterCanvas::on_dispose() noexcept {
 namespace {
 
 constexpr std::array<PartField<RasterCanvas::Parts>, 4> raster_canvas_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RasterCanvas::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &RasterCanvas::Parts::face},
-    {.declaration = {.name = "image", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "image", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &RasterCanvas::Parts::image},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &RasterCanvas::Parts::focus},
 }};
 

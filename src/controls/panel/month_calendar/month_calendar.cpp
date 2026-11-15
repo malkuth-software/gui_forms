@@ -990,9 +990,9 @@ constexpr std::array<AnatomyState, 3> arrow_states{
 constexpr std::array<AnatomyState, 1> marker_states{{AnatomyState::current}};
 
 constexpr std::array<PartField<MonthCalendar::Parts>, 8> month_calendar_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::Parts::face},
     {.declaration = {.name = "previous_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = arrow_states},
@@ -1006,40 +1006,40 @@ constexpr std::array<PartField<MonthCalendar::Parts>, 8> month_calendar_part_fie
     {.declaration = {.name = "next_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = arrow_states},
      .member = &MonthCalendar::Parts::next_glyph},
-    {.declaration = {.name = "today_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "today_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::Parts::today_label},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::Parts::focus},
 }};
 
 constexpr std::array<PartField<MonthCalendar::MonthParts>, 2> month_part_fields{{
-    {.declaration = {.name = "month_title", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "month_title", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::MonthParts::month_title},
-    {.declaration = {.name = "weekday_rule", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "weekday_rule", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::MonthParts::weekday_rule},
 }};
 
 constexpr std::array<PartField<MonthCalendar::WeekdayParts>, 1> weekday_part_fields{{
-    {.declaration = {.name = "weekday_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "weekday_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::WeekdayParts::weekday_label},
 }};
 
 constexpr std::array<PartField<MonthCalendar::WeekParts>, 1> week_part_fields{{
-    {.declaration = {.name = "week_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "week_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::WeekParts::week_label},
 }};
 
 // The today marker is a ring around today's cell: the vocabulary has no
 // marker role, and perimeter ("second outer ring") is the nearest.
 constexpr std::array<PartField<MonthCalendar::DayParts>, 4> day_part_fields{{
-    {.declaration = {.name = "day_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "day_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::DayParts::day_face},
-    {.declaration = {.name = "day_text", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "day_text", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::DayParts::day_text},
     {.declaration = {.name = "day_marker", .role = PartRole::perimeter, .composed_from = {},
                      .states = marker_states},
      .member = &MonthCalendar::DayParts::day_marker},
-    {.declaration = {.name = "day_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "day_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &MonthCalendar::DayParts::day_focus},
 }};
 

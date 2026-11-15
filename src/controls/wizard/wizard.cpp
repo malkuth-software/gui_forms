@@ -32,13 +32,13 @@ constexpr double cancel_gap = 16.0;
 constexpr double divider_thickness = 1.0;
 
 constexpr std::array<PartField<Wizard::Parts>, 4> wizard_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Wizard::Parts::region},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &Wizard::Parts::caption},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Wizard::Parts::label},
-    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &Wizard::Parts::divider},
 }};
 

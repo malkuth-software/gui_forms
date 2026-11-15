@@ -22,13 +22,13 @@ LinkLabel::LinkLabel(StableId stable_id, std::string text)
 namespace {
 
 constexpr std::array<PartField<LinkLabel::Parts>, 4> link_label_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &LinkLabel::Parts::region},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &LinkLabel::Parts::label},
-    {.declaration = {.name = "underline", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "underline", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &LinkLabel::Parts::underline},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &LinkLabel::Parts::focus},
 }};
 

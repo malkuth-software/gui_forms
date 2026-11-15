@@ -26,6 +26,12 @@
 #include "../accessibility/macos_accessibility_element.hpp"
 #include "macos_view_diagnostics.hpp"
 
+// Nullability: every object pointer in the declarations below is non-null
+// unless marked nullable. The pointer ivars are nil until the view sets
+// them up and again once it releases them (the runtime zeroes ivars), so
+// each is marked _Nullable.
+NS_ASSUME_NONNULL_BEGIN
+
 @interface GUIFormsView : NSView <NSTextInputClient, NSDraggingDestination> {
     std::unique_ptr<Window> _model;
     std::unique_ptr<HostSession> _hostSession;
@@ -50,18 +56,18 @@
     std::vector<gui_forms::ScrollCopy> _pendingCopies;
     std::vector<gui_forms::ScrollCopy> _takenCopies;
     std::vector<GFRect> _appliedCopyClips;
-    NSMutableAttributedString* _markedText;
+    NSMutableAttributedString* _Nullable _markedText;
     NSRange _selectedRange;
-    NSTrackingArea* _trackingArea;
-    dispatch_source_t _wakeSource;
+    NSTrackingArea* _Nullable _trackingArea;
+    dispatch_source_t _Nullable _wakeSource;
     // The sRGB colour space every present tags the raster with: immutable,
     // made once per view instead of once per draw, released in dealloc.
-    CGColorSpaceRef _presentColorSpace;
+    CGColorSpaceRef _Nullable _presentColorSpace;
     std::unique_ptr<MacDisplayLinkTrace> _displayTrace;
     // The draw trace (live resize probe); null, recording nothing, unless a
     // probe enabled it.
     std::unique_ptr<MacDrawTrace> _drawTrace;
-    CADisplayLink* _displayLink;
+    CADisplayLink* _Nullable _displayLink;
     BOOL _hostOccluded;
     // The full-screen state the session last accepted (notifyWindowState).
     BOOL _windowStateReported;
@@ -125,22 +131,22 @@
     double _lastCGDestinationArea;
     double _lastCGClipBoundsArea;
     std::size_t _lastCGSourceBytes;
-    NSArray* _semanticAccessibilityChildren;
+    NSArray* _Nullable _semanticAccessibilityChildren;
     // The published elements by accessibility_element_key, and the first
     // element for each stable identity (the tab-to-panel relation).
-    NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>*
+    NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* _Nullable
         _semanticAccessibilityElements;
-    NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>*
+    NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* _Nullable
         _semanticAccessibilityElementsByStableId;
     // The element of the published tree whose node holds keyboard focus, as
     // of the last rebuild; nil when none does or before the first. A
     // FocusedUIElementChanged notification was posted for it when it became
     // focused (accessibilityFocusedUIElement answers it).
-    GUIFormsAccessibilityElement* _accessibilityFocusedElement;
+    GUIFormsAccessibilityElement* _Nullable _accessibilityFocusedElement;
     // Tests only (recordAccessibilityNotificationsInto:): every notification the
     // view and its elements post is appended as @[element, name]; nil,
     // recording nothing, otherwise.
-    NSMutableArray<NSArray*>* _accessibilityNotificationLog;
+    NSMutableArray<NSArray*>* _Nullable _accessibilityNotificationLog;
     BOOL _transparentFullSizeContent;
     std::vector<std::string> _windowDragRegionIds;
     // A Control-click is AppKit's context-menu request, not a press: its
@@ -159,7 +165,7 @@
     std::vector<std::byte> _overlayScratch;
     std::vector<gui_forms::DevicePixelRect> _overlayRegions;
     std::vector<gui_forms::DevicePixelRect> _overlayDrawn;
-    NSTimer* _overlayTimer;
+    NSTimer* _Nullable _overlayTimer;
 }
 - (instancetype)initWithModel:(std::unique_ptr<Window>)model
        transparentFullSizeContent:(BOOL)transparentFullSizeContent
@@ -209,7 +215,8 @@
 - (void)answerViewDidChangeEffectiveAppearance;
 - (void)answerScreenParametersChanged:(NSNotification*)notification;
 - (void)answerViewDidMoveToWindow;
-- (void)answerViewWillMoveToWindow:(NSWindow*)newWindow;
+// newWindow is nil when the view leaves its window.
+- (void)answerViewWillMoveToWindow:(nullable NSWindow*)newWindow;
 - (void)answerDealloc;
 - (void)answerSetFrameSize:(NSSize)newSize;
 - (void)answerUpdateTrackingAreas;
@@ -266,7 +273,7 @@
 - (BOOL)dispatchKeyboardContextRequest;
 - (NSDragOperation)answerDraggingEntered:(id<NSDraggingInfo>)sender;
 - (NSDragOperation)answerDraggingUpdated:(id<NSDraggingInfo>)sender;
-- (void)answerDraggingExited:(id<NSDraggingInfo>)sender;
+- (void)answerDraggingExited:(nullable id<NSDraggingInfo>)sender;
 - (BOOL)answerPrepareForDragOperation:(id<NSDraggingInfo>)sender;
 - (BOOL)answerPerformDragOperation:(id<NSDraggingInfo>)sender;
 - (void)answerCursorUpdate:(NSEvent*)event;
@@ -274,7 +281,7 @@
 - (void)answerMouseDown:(NSEvent*)event;
 - (void)answerMouseUp:(NSEvent*)event;
 - (void)answerRightMouseDown:(NSEvent*)event;
-- (NSMenu*)answerMenuForEvent:(NSEvent*)event;
+- (nullable NSMenu*)answerMenuForEvent:(NSEvent*)event;
 - (void)answerRightMouseUp:(NSEvent*)event;
 - (void)answerOtherMouseDown:(NSEvent*)event;
 - (void)answerOtherMouseUp:(NSEvent*)event;
@@ -325,7 +332,7 @@
 - (void)postAccessibilityNotification:(NSAccessibilityNotificationName)name element:(id)element;
 // Installs (or, with nil, removes) the notification log: a test's private
 // probe of what VoiceOver is told, read on the main thread.
-- (void)recordAccessibilityNotificationsInto:(NSMutableArray<NSArray*>*)log;
+- (void)recordAccessibilityNotificationsInto:(nullable NSMutableArray<NSArray*>*)log;
 - (NSRect)answerAccessibilityFrameForSemanticBounds:(GFRect)bounds;
 // Performs `action` on a published node named as the shared routing API
 // names it: the runtime identity of its control and, for a virtual child,
@@ -336,8 +343,8 @@
                       control:(std::uint64_t)control
                  virtualChild:(const std::string&)virtualChild
                      stableId:(const std::string&)stableId
-                        value:(NSString*)value;
-- (id)semanticAccessibilityElementForStableId:(NSString*)stableId;
+                        value:(nullable NSString*)value;
+- (nullable id)semanticAccessibilityElementForStableId:(nullable NSString*)stableId;
 // The text queries of owner decision A-T1 for the control `control`
 // (Window::semantic_text_layout and Window::set_semantic_text_selection).
 // Each returns NO when the window has gone or the control refuses.
@@ -360,6 +367,8 @@
 - (std::array<std::uint64_t, 13>)cpuAttributionSnapshot;
 - (MacCausalSnapshot)cpuCausalTraceSnapshot;
 @end
+
+NS_ASSUME_NONNULL_END
 
 // Link anchors. A static archive member is linked only when something
 // references one of its symbols, and an object file that holds only an

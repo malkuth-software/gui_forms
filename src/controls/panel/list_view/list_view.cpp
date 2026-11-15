@@ -3122,44 +3122,44 @@ namespace {
 constexpr std::array<AnatomyState, 1> insertion_mark_states{{AnatomyState::drop_accepted}};
 
 constexpr std::array<PartField<ListView::Parts>, 9> list_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ListView::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &ListView::Parts::well},
-    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ListView::Parts::header},
     // The child scroll bars, each a whole scroll bar system. A ranged path
     // is the nearest role to a composed scroll bar.
-    {.declaration = {.name = "vertical_scroll_bar", .role = PartRole::track, .composed_from = "v_scroll_bar"},
+    {.declaration = {.name = "vertical_scroll_bar", .role = PartRole::track, .composed_from = "v_scroll_bar", .states = {}},
      .member = &ListView::Parts::vertical_scroll_bar},
     {.declaration = {.name = "horizontal_scroll_bar", .role = PartRole::track,
-                     .composed_from = "h_scroll_bar"},
+                     .composed_from = "h_scroll_bar", .states = {}},
      .member = &ListView::Parts::horizontal_scroll_bar},
-    {.declaration = {.name = "scroll_corner", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "scroll_corner", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ListView::Parts::scroll_corner},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ListView::Parts::focus},
     {.declaration = {.name = "insertion_mark", .role = PartRole::drop, .composed_from = {},
                      .states = insertion_mark_states},
      .member = &ListView::Parts::insertion_mark},
-    {.declaration = {.name = "label_editor", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "label_editor", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &ListView::Parts::label_editor},
 }};
 
 constexpr std::array<PartField<ListView::ItemParts>, 7> list_view_item_part_fields{{
-    {.declaration = {.name = "cell", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "cell", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::cell},
-    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::item_face},
-    {.declaration = {.name = "check_well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "check_well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::check_well},
-    {.declaration = {.name = "check", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "check", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::check},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::icon},
-    {.declaration = {.name = "text", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "text", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::text},
-    {.declaration = {.name = "cell_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "cell_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::cell_focus},
 }};
 
@@ -3173,9 +3173,9 @@ constexpr std::array<StateField<ListView::ItemStates>, 6> list_view_item_state_f
 }};
 
 constexpr std::array<PartField<ListView::SubItemParts>, 2> list_view_sub_item_part_fields{{
-    {.declaration = {.name = "sub_item_cell", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "sub_item_cell", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ListView::SubItemParts::sub_item_cell},
-    {.declaration = {.name = "sub_item_text", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "sub_item_text", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &ListView::SubItemParts::sub_item_text},
 }};
 
@@ -3185,15 +3185,15 @@ constexpr std::array<StateField<ListView::SubItemStates>, 2> list_view_sub_item_
 }};
 
 constexpr std::array<PartField<ListView::ColumnParts>, 5> list_view_column_part_fields{{
-    {.declaration = {.name = "column_header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "column_header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ListView::ColumnParts::column_header},
-    {.declaration = {.name = "column_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "column_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ListView::ColumnParts::column_label},
-    {.declaration = {.name = "sort_glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "sort_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &ListView::ColumnParts::sort_glyph},
-    {.declaration = {.name = "column_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "column_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &ListView::ColumnParts::column_divider},
-    {.declaration = {.name = "column_grip", .role = PartRole::grip, .composed_from = {}},
+    {.declaration = {.name = "column_grip", .role = PartRole::grip, .composed_from = {}, .states = {}},
      .member = &ListView::ColumnParts::column_grip},
 }};
 
@@ -3209,11 +3209,11 @@ constexpr std::array<CustomStateDeclaration, 2> list_view_column_custom_states{{
 }};
 
 constexpr std::array<PartField<ListView::GroupParts>, 3> list_view_group_part_fields{{
-    {.declaration = {.name = "group_band", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "group_band", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ListView::GroupParts::group_band},
-    {.declaration = {.name = "group_caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "group_caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &ListView::GroupParts::group_caption},
-    {.declaration = {.name = "group_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "group_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &ListView::GroupParts::group_divider},
 }};
 

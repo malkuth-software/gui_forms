@@ -2166,37 +2166,37 @@ bool TreeListView::on_semantic_child_action(std::string_view id, SemanticAction 
 namespace {
 
 constexpr std::array<PartField<TreeListView::Parts>, 7> tree_list_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TreeListView::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &TreeListView::Parts::well},
-    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TreeListView::Parts::header},
     // The child scroll bars, each a whole scroll bar system. A ranged path
     // is the nearest role to a composed scroll bar.
-    {.declaration = {.name = "vertical_scroll_bar", .role = PartRole::track, .composed_from = "v_scroll_bar"},
+    {.declaration = {.name = "vertical_scroll_bar", .role = PartRole::track, .composed_from = "v_scroll_bar", .states = {}},
      .member = &TreeListView::Parts::vertical_scroll_bar},
     {.declaration = {.name = "horizontal_scroll_bar", .role = PartRole::track,
-                     .composed_from = "h_scroll_bar"},
+                     .composed_from = "h_scroll_bar", .states = {}},
      .member = &TreeListView::Parts::horizontal_scroll_bar},
-    {.declaration = {.name = "scroll_corner", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "scroll_corner", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TreeListView::Parts::scroll_corner},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TreeListView::Parts::focus},
 }};
 
 constexpr std::array<PartField<TreeListView::RowParts>, 6> tree_list_view_row_part_fields{{
-    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TreeListView::RowParts::row},
-    {.declaration = {.name = "row_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "row_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TreeListView::RowParts::row_face},
-    {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &TreeListView::RowParts::expander},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &TreeListView::RowParts::icon},
-    {.declaration = {.name = "text", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "text", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &TreeListView::RowParts::text},
-    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TreeListView::RowParts::row_focus},
 }};
 
@@ -2211,9 +2211,9 @@ constexpr std::array<StateField<TreeListView::RowStates>, 7> tree_list_view_row_
 }};
 
 constexpr std::array<PartField<TreeListView::CellParts>, 2> tree_list_view_cell_part_fields{{
-    {.declaration = {.name = "cell", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "cell", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TreeListView::CellParts::cell},
-    {.declaration = {.name = "cell_text", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "cell_text", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &TreeListView::CellParts::cell_text},
 }};
 
@@ -2223,15 +2223,15 @@ constexpr std::array<StateField<TreeListView::CellStates>, 2> tree_list_view_cel
 }};
 
 constexpr std::array<PartField<TreeListView::ColumnParts>, 5> tree_list_view_column_part_fields{{
-    {.declaration = {.name = "column_header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "column_header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TreeListView::ColumnParts::column_header},
-    {.declaration = {.name = "column_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "column_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &TreeListView::ColumnParts::column_label},
-    {.declaration = {.name = "sort_glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "sort_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &TreeListView::ColumnParts::sort_glyph},
-    {.declaration = {.name = "column_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "column_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &TreeListView::ColumnParts::column_divider},
-    {.declaration = {.name = "column_grip", .role = PartRole::grip, .composed_from = {}},
+    {.declaration = {.name = "column_grip", .role = PartRole::grip, .composed_from = {}, .states = {}},
      .member = &TreeListView::ColumnParts::column_grip},
 }};
 

@@ -475,24 +475,24 @@ bool BackstageView::on_semantic_child_action(std::string_view id, SemanticAction
 namespace {
 
 constexpr std::array<PartField<BackstageView::Parts>, 4> backstage_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &BackstageView::Parts::region},
-    {.declaration = {.name = "column", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "column", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &BackstageView::Parts::column},
-    {.declaration = {.name = "page", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "page", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &BackstageView::Parts::page},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &BackstageView::Parts::focus},
 }};
 
 constexpr std::array<PartField<BackstageView::ItemParts>, 4> backstage_item_part_fields{{
-    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &BackstageView::ItemParts::item_face},
-    {.declaration = {.name = "item_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "item_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &BackstageView::ItemParts::item_icon},
-    {.declaration = {.name = "item_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "item_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &BackstageView::ItemParts::item_label},
-    {.declaration = {.name = "item_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "item_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &BackstageView::ItemParts::item_focus},
 }};
 

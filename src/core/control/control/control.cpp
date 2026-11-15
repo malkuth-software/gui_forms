@@ -5116,9 +5116,9 @@ Control::KeyEvents& Control::key_events() {
 namespace {
 
 constexpr std::array<PartField<Control::Parts>, 2> control_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Control::Parts::region},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &Control::Parts::focus},
 }};
 

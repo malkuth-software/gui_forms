@@ -827,22 +827,22 @@ constexpr std::array<AnatomyState, 3> entry_part_states{
     {AnatomyState::hot, AnatomyState::selected, AnatomyState::focus_visible}};
 
 constexpr std::array<PartField<RibbonColorPicker::Parts>, 8> picker_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RibbonColorPicker::Parts::region},
     {.declaration = {.name = "face", .role = PartRole::face, .composed_from = "button", .states = face_part_states},
      .member = &RibbonColorPicker::Parts::face},
     {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = face_part_states},
      .member = &RibbonColorPicker::Parts::icon},
-    {.declaration = {.name = "color_bar", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "color_bar", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &RibbonColorPicker::Parts::color_bar},
-    {.declaration = {.name = "color_sample", .role = PartRole::fill, .composed_from = {}},
+    {.declaration = {.name = "color_sample", .role = PartRole::fill, .composed_from = {}, .states = {}},
      .member = &RibbonColorPicker::Parts::color_sample},
     {.declaration = {.name = "arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = face_part_states},
      .member = &RibbonColorPicker::Parts::arrow},
     {.declaration = {.name = "arrow_glyph", .role = PartRole::glyph, .composed_from = {}, .states = face_part_states},
      .member = &RibbonColorPicker::Parts::arrow_glyph},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &RibbonColorPicker::Parts::focus},
 }};
 

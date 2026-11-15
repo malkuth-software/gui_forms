@@ -31,21 +31,21 @@ constexpr double caption_maximum = 28.0;
 constexpr double caption_drop = 0.45;
 
 constexpr std::array<PartField<RadialGauge::Parts>, 8> radial_gauge_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RadialGauge::Parts::region},
-    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}, .states = {}},
      .member = &RadialGauge::Parts::plot},
-    {.declaration = {.name = "track", .role = PartRole::arc, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::arc, .composed_from = {}, .states = {}},
      .member = &RadialGauge::Parts::track},
-    {.declaration = {.name = "alarm_arc", .role = PartRole::arc, .composed_from = {}},
+    {.declaration = {.name = "alarm_arc", .role = PartRole::arc, .composed_from = {}, .states = {}},
      .member = &RadialGauge::Parts::alarm_arc},
-    {.declaration = {.name = "value_arc", .role = PartRole::arc, .composed_from = {}},
+    {.declaration = {.name = "value_arc", .role = PartRole::arc, .composed_from = {}, .states = {}},
      .member = &RadialGauge::Parts::value_arc},
-    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}},
+    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}, .states = {}},
      .member = &RadialGauge::Parts::graticule},
-    {.declaration = {.name = "needle", .role = PartRole::needle, .composed_from = {}},
+    {.declaration = {.name = "needle", .role = PartRole::needle, .composed_from = {}, .states = {}},
      .member = &RadialGauge::Parts::needle},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &RadialGauge::Parts::caption},
 }};
 

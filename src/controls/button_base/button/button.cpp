@@ -53,17 +53,17 @@ void Button::on_activate() {
 namespace {
 
 constexpr std::array<PartField<Button::Parts>, 6> button_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Button::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Button::Parts::face},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &Button::Parts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Button::Parts::label},
-    {.declaration = {.name = "preselect", .role = PartRole::preselect, .composed_from = {}},
+    {.declaration = {.name = "preselect", .role = PartRole::preselect, .composed_from = {}, .states = {}},
      .member = &Button::Parts::preselect},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &Button::Parts::focus},
 }};
 

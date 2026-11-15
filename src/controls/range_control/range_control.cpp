@@ -156,9 +156,9 @@ bool RangeControl::set_value_from_input(double requested, RangeAction action) {
 namespace {
 
 constexpr std::array<PartField<RangeControl::Parts>, 2> range_control_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RangeControl::Parts::region},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &RangeControl::Parts::focus},
 }};
 

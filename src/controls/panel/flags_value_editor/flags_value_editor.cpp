@@ -579,17 +579,17 @@ void FlagsValueEditor::on_detached_from_window() noexcept {
 namespace {
 
 constexpr std::array<PartField<FlagsValueEditor::Parts>, 6> flags_value_editor_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &FlagsValueEditor::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &FlagsValueEditor::Parts::edge},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &FlagsValueEditor::Parts::content},
-    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &FlagsValueEditor::Parts::divider},
-    {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = "button", .states = {}},
      .member = &FlagsValueEditor::Parts::drop_down},
-    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &FlagsValueEditor::Parts::disclosure},
 }};
 

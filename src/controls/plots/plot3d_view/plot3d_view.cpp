@@ -47,21 +47,21 @@ constexpr std::size_t series_accent_first = 5U;
 constexpr std::size_t series_accent_stride = 3U;
 
 constexpr std::array<PartField<Plot3DView::Parts>, 8> plot3d_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Plot3DView::Parts::region},
-    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}, .states = {}},
      .member = &Plot3DView::Parts::plot},
-    {.declaration = {.name = "picture", .role = PartRole::image, .composed_from = {}},
+    {.declaration = {.name = "picture", .role = PartRole::image, .composed_from = {}, .states = {}},
      .member = &Plot3DView::Parts::picture},
-    {.declaration = {.name = "x_axis", .role = PartRole::axis, .composed_from = {}},
+    {.declaration = {.name = "x_axis", .role = PartRole::axis, .composed_from = {}, .states = {}},
      .member = &Plot3DView::Parts::x_axis},
-    {.declaration = {.name = "y_axis", .role = PartRole::axis, .composed_from = {}},
+    {.declaration = {.name = "y_axis", .role = PartRole::axis, .composed_from = {}, .states = {}},
      .member = &Plot3DView::Parts::y_axis},
-    {.declaration = {.name = "z_axis", .role = PartRole::axis, .composed_from = {}},
+    {.declaration = {.name = "z_axis", .role = PartRole::axis, .composed_from = {}, .states = {}},
      .member = &Plot3DView::Parts::z_axis},
-    {.declaration = {.name = "readout", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "readout", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Plot3DView::Parts::readout},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &Plot3DView::Parts::focus},
 }};
 

@@ -606,11 +606,11 @@ SemanticTextResult MaskedTextBox::on_set_semantic_text_selection(SemanticTextSel
 namespace {
 
 constexpr std::array<PartField<MaskedTextBox::Parts>, 3> masked_text_box_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &MaskedTextBox::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &MaskedTextBox::Parts::edge},
-    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &MaskedTextBox::Parts::field},
 }};
 

@@ -418,9 +418,9 @@ void Label::paint_label_text(Painter& painter, const std::string_view shown) con
 namespace {
 
 constexpr std::array<PartField<Label::Parts>, 2> label_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Label::Parts::region},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Label::Parts::label},
 }};
 

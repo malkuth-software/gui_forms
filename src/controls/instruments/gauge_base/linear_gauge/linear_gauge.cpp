@@ -25,17 +25,17 @@ constexpr double caption_gap = 6.0;
 constexpr double caption_font_size = 11.0;
 
 constexpr std::array<PartField<LinearGauge::Parts>, 6> linear_gauge_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::region},
-    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::plot},
-    {.declaration = {.name = "alarm_zone", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "alarm_zone", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::alarm_zone},
-    {.declaration = {.name = "trace", .role = PartRole::trace, .composed_from = {}},
+    {.declaration = {.name = "trace", .role = PartRole::trace, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::trace},
-    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}},
+    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::graticule},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::caption},
 }};
 

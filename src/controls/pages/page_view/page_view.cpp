@@ -455,13 +455,13 @@ SemanticDescriptor PageView::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<PageView::Parts>, 4> page_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &PageView::Parts::region},
-    {.declaration = {.name = "strip", .role = PartRole::region, .composed_from = "page_strip"},
+    {.declaration = {.name = "strip", .role = PartRole::region, .composed_from = "page_strip", .states = {}},
      .member = &PageView::Parts::strip},
-    {.declaration = {.name = "content", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &PageView::Parts::content},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &PageView::Parts::focus},
 }};
 
