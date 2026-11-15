@@ -809,6 +809,12 @@ bool HostedInput::send_key(const KeyEvent& event) {
 }
 
 bool HostedInput::send_text(std::string_view text, bool composing) {
+    // Text over the payload limit is dropped and counted, as the header
+    // promises, rather than thrown (A-gf-host-02-F17).
+    if (text.size() > hosted_maximum_payload_bytes - 4U) {
+        if (state_) (*state_).dropped.fetch_add(1U, std::memory_order_relaxed);
+        return false;
+    }
     std::vector<std::byte> payload{};
     encode_hosted_text(payload, text, composing);
     const bool sent = send(HostedMessageKind::text, payload, true);
