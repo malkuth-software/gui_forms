@@ -821,11 +821,6 @@ set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
 if(GUI_FORMS_CHECKED_BORROWS)
     target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_CHECKED_BORROWS=1)
 endif()
-# dladdr names the code addresses in the fail-fast and borrow reports
-# (src/core/failure/fail_fast.cpp; glibc before 2.34 keeps it in libdl).
-if(UNIX)
-    target_link_libraries(gui_forms_core PRIVATE ${CMAKE_DL_LIBS})
-endif()
 # The shadow frames, failure snapshots and the fail-fast boundary are
 # STXlib's gates and frames (src/core/diagnostics/shadow_frames,
 # src/core/failure); their state is stxlib_state's, shared by every module
@@ -5466,6 +5461,15 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_fail_fast_shadow_frames
              COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_fail_fast_tests> -DMODE=shadow_frames
                      "-DEXPECTED=GUI.Forms: shadow frames \\(2 open, 2 recorded\\):[^#]*#0 kind 7  test.frames 0[^#]*#1 kind 3 fail-fast.frame click 0"
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
+    # The report's stack comes from STXlib's walk and names each frame's
+    # image through describe_address (A2 G2): at least one frame lies in the
+    # test executable itself (its main and test functions), on every host
+    # where STXlib's Capability::stack_trace and address_lookup hold (macOS,
+    # Linux and Windows).
+    add_test(NAME gui_forms_fail_fast_stack_images
+             COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_fail_fast_tests> -DMODE=direct
+                     "-DEXPECTED=GUI.Forms: stack:.*#[0-9]+ [^+]*gui_forms_fail_fast_tests[^+]*\\+0x[0-9a-f]+"
                      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
 
     # Borrowed views (borrow sanitizer): `plain` uses fresh views and passes

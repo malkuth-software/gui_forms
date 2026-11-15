@@ -7,8 +7,10 @@
 
 #include <stxlib/console.hpp>
 #include <stxlib/fail_fast.hpp>
+#include <stxlib/images.hpp>
 #include <stxlib/result.hpp>
 #include <stxlib/shadow.hpp>
+#include <stxlib/stack_trace.hpp>
 #include <stxlib/text_view.hpp>
 #include <stxlib/types.hpp>
 #include <stxlib/view.hpp>
@@ -21,31 +23,28 @@
 #include <exception>
 #include <string_view>
 
-#if defined(_WIN32)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#elif defined(__has_include)
-#if __has_include(<execinfo.h>)
-#include <execinfo.h>
-#define GUI_FORMS_FAIL_FAST_EXECINFO 1
-#endif
-#if __has_include(<dlfcn.h>)
-#include <dlfcn.h>
-#define GUI_FORMS_FAIL_FAST_DLADDR 1
-#endif
-#endif
-
 namespace gui_forms::detail {
 namespace {
 
 // At most this many frames of the current stack are printed; the report
-// must stay readable.
-constexpr int maximum_stack_frames = 48;
+// must stay readable. STXlib's walk takes at most 32 on Windows
+// (stxlib/stack_trace.hpp).
+constexpr std::size_t maximum_stack_frames = 48U;
+static_assert(maximum_stack_frames <= stxlib::maximum_stack_trace_addresses);
+
+// The rooms describe_address copies an image's and a symbol's names into.
+// A longer name is cut (and ReportLine cuts the line at its 1024 bytes).
+constexpr std::size_t image_name_capacity = 512U;
+constexpr std::size_t symbol_name_capacity = 256U;
+
+// What a code address in the report is: a return address from a stack walk,
+// which points just past its call (so the call's own function and image are
+// found at the byte before it), or an exact address, such as the borrow
+// report's creation site.
+enum class CodeAddressKind : unsigned char {
+    return_address,
+    exact,
+};
 
 // The calling thread's copy of the whole what() of the exception a
 // fail-fast gate classified (or of fail_fast's message), which the
@@ -163,66 +162,66 @@ private:
     std::size_t size_ = 0U;
 };
 
-// One code address as module+offset (and symbol), appended to line.
-void append_code_address(ReportLine& line, const void* address) noexcept {
+// One code address as image+offset (and symbol), appended to line, as
+// STXlib's describe_address finds them (dladdr on POSIX hosts, the module
+// and its exports on Windows; it allocates nothing, so the reporter may
+// call it). The offset printed is the address's own, so a symbolizer reads
+// it as before; a return address is looked up one byte back. An address no
+// image holds, or a host without address lookup, prints the bare address.
+void append_code_address(ReportLine& line, const void* const address, const CodeAddressKind kind) noexcept {
     if (address == nullptr) {
         line.append("unknown");
         return;
     }
-#if defined(_WIN32)
-    HMODULE module = nullptr;
-    char path[MAX_PATH]{};
-    const DWORD flags = GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
-    const bool found = GetModuleHandleExA(flags, static_cast<LPCSTR>(address), &module) != 0 &&
-        GetModuleFileNameA(module, path, MAX_PATH) != 0U;
-    if (found) {
-        const std::uintptr_t base = reinterpret_cast<std::uintptr_t>(module);
-        const std::uintptr_t offset = reinterpret_cast<std::uintptr_t>(address) - base;
-        line.append(std::string_view(path));
-        line.append("+");
-        line.append_hex(static_cast<unsigned long long>(offset));
+    const stxlib::uptr value = reinterpret_cast<stxlib::uptr>(address);
+    stxlib::uptr looked_up = value;
+    if (kind == CodeAddressKind::return_address) {
+        looked_up = value - 1U;
+    }
+    std::array<char, image_name_capacity> image_room{};
+    std::array<char, symbol_name_capacity> symbol_room{};
+    const stxlib::MutableView<char> image_view(image_room.data(), image_room.size());
+    const stxlib::MutableView<char> symbol_view(symbol_room.data(), symbol_room.size());
+    const stxlib::Result<stxlib::AddressDescription> described =
+        stxlib::describe_address(looked_up, image_view, symbol_view);
+    if (!described.succeeded()) {
+        line.append_hex(static_cast<unsigned long long>(value));
         return;
     }
-#elif defined(GUI_FORMS_FAIL_FAST_DLADDR)
-    Dl_info information{};
-    if (dladdr(address, &information) != 0 && information.dli_fname != nullptr) {
-        const std::uintptr_t base = reinterpret_cast<std::uintptr_t>(information.dli_fbase);
-        const std::uintptr_t offset = reinterpret_cast<std::uintptr_t>(address) - base;
-        const char* const symbol = information.dli_sname != nullptr ? information.dli_sname : "?";
-        line.append(std::string_view(information.dli_fname));
-        line.append("+");
-        line.append_hex(static_cast<unsigned long long>(offset));
+    const stxlib::AddressDescription& description = *described.value();
+    const std::string_view image(description.image_name.data(), description.image_name.count());
+    const stxlib::uptr offset = value - description.image_base;
+    line.append(image.empty() ? std::string_view("?") : image);
+    line.append("+");
+    line.append_hex(static_cast<unsigned long long>(offset));
+    if (description.symbol_name.count() != 0U) {
+        const std::string_view symbol(description.symbol_name.data(), description.symbol_name.count());
         line.append(" (");
-        line.append(std::string_view(symbol));
+        line.append(symbol);
         line.append(")");
-        return;
     }
-#endif
-    line.append_hex(static_cast<unsigned long long>(reinterpret_cast<std::uintptr_t>(address)));
 }
 
-// The current stack, one line per frame.
+// The current stack, one line per frame, through STXlib's walk (the one
+// the shadow records use); a host that cannot walk says so in one line.
 void write_stack() noexcept {
-#if defined(_WIN32) || defined(GUI_FORMS_FAIL_FAST_EXECINFO)
-    void* frames[maximum_stack_frames]{};
-#if defined(_WIN32)
-    const int count = static_cast<int>(RtlCaptureStackBackTrace(2U, maximum_stack_frames, frames, nullptr));
-#else
-    const int count = backtrace(frames, maximum_stack_frames);
-#endif
-    for (int index = 0; index < count; ++index) {
+    std::array<stxlib::uptr, maximum_stack_frames> frames{};
+    const stxlib::MutableView<stxlib::uptr> frame_room(frames.data(), frames.size());
+    const stxlib::usize count = stxlib::capture_stack_trace(frame_room);
+    if (count == 0U) {
+        ReportLine line;
+        line.append("  (no stack on this platform)");
+        line.write();
+        return;
+    }
+    for (stxlib::usize index = 0U; index < count; ++index) {
         ReportLine line;
         line.append("  #");
         line.append_number(static_cast<unsigned long long>(index));
         line.append(" ");
-        append_code_address(line, frames[index]);
+        append_code_address(line, reinterpret_cast<const void*>(frames[index]), CodeAddressKind::return_address);
         line.write();
     }
-#else
-    ReportLine line;
-    line.append("  (no stack on this platform)");
-    line.write();
-#endif
 }
 
 // The snapshot's shadow frames, outermost first, one line each: the kind's
@@ -316,7 +315,7 @@ void write_throw_trace(const stxlib::ErrorRecord& record) noexcept {
         line.append("  #");
         line.append_number(static_cast<unsigned long long>(index));
         line.append(" ");
-        append_code_address(line, reinterpret_cast<const void*>(trace[index]));
+        append_code_address(line, reinterpret_cast<const void*>(trace[index]), CodeAddressKind::return_address);
         line.write();
     }
 }
@@ -385,7 +384,7 @@ void write_fail_fast_stack() noexcept {
 
 void write_code_address(const void* address) noexcept {
     ReportLine line;
-    append_code_address(line, address);
+    append_code_address(line, address, CodeAddressKind::exact);
     line.write_partial();
 }
 
