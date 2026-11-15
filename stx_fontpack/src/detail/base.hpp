@@ -30,6 +30,11 @@ enum : std::uint32_t {
     kOffsetDirect = 8,      // codes 0..2 are the repeat offsets; code 3 + c is offset c + 1
     kMinMatch = 2,
     kSeqAlphabet = 80,
+    // Offset codes the decoder accepts. The encoder's offsets are below 2^31,
+    // whose largest code is 70 (3 + kOffsetDirect + 2 * 29 + 1); a larger code
+    // would decode with a shift of 32 or more, so a table that gives one a
+    // frequency is refused.
+    kOffsetCodes = 71,
     kLiteralStates = 8,     // interleaved rANS states for a chunk's literals
     kMaxTables = 255,
     // The decoder reads rANS units without a bounds test per unit, so a coded

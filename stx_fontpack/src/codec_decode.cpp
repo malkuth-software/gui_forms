@@ -290,6 +290,11 @@ bool stream_open(StreamDecoder& decoder, const Allocator& allocator, const std::
             return false;
         }
     }
+    // Table 2 codes offsets (A-gf-typography-01-F6).
+    if (!table_codes_below(decoder.sequence_tables[2], kOffsetCodes)) {
+        stream_close(decoder);
+        return false;
+    }
 
     const std::uint64_t chunk_count = get_varint(reader);
     // Each chunk record that follows is five varints of at least one byte, so
@@ -750,6 +755,11 @@ bool number_open(NumberDecoder& decoder, const Allocator& allocator, const std::
             number_close(decoder);
             return false;
         }
+    }
+    // The fifth sequence table codes offsets (A-gf-typography-01-F6).
+    if (!table_codes_below(decoder.tables[sequence_first + 4], kOffsetCodes)) {
+        number_close(decoder);
+        return false;
     }
     const std::uint64_t chunk_count = get_varint(reader);
     // Each chunk record that follows is 2 + kNumberPayloads varints of at

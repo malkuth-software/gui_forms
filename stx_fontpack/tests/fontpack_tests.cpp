@@ -948,6 +948,23 @@ void test_table_counts() {
     check(number_shape_opens(numbers), "control: two classes with two tables open");
 }
 
+// A-gf-typography-01-F6: offset codes above 70 would decode with a shift of
+// 32 or more; a table that gives one a frequency is refused at open.
+void test_offset_codes() {
+    ByteShape bytes = byte_shape_default();
+    bytes.offset_second = stx_fontpack::kOffsetCodes - 1;
+    check(byte_shape_opens(bytes), "a byte stream whose largest offset code is 70 opens");
+    bytes.offset_second = stx_fontpack::kOffsetCodes;
+    check(!byte_shape_opens(bytes), "a byte stream with offset code 71 is refused");
+    bytes.offset_second = stx_fontpack::kSeqAlphabet - 1;
+    check(!byte_shape_opens(bytes), "a byte stream with offset code 79 is refused");
+    NumberShape numbers = number_shape_default();
+    numbers.offset_second = stx_fontpack::kOffsetCodes - 1;
+    check(number_shape_opens(numbers), "a number stream whose largest offset code is 70 opens");
+    numbers.offset_second = 75;
+    check(!number_shape_opens(numbers), "a number stream with offset code 75 is refused");
+}
+
 // A-gf-typography-01-F1: a correction code indexes 64-entry tables, so a
 // correction table that gives a code of 64 or more a frequency is refused
 // when the stream opens, before any chunk decodes with it.
@@ -969,6 +986,7 @@ int main(int argc, char** argv) {
     test_manifest();
     test_number_correction_codes();
     test_table_counts();
+    test_offset_codes();
 
     std::vector<stx_fontpack::PackInput> fonts;
     fonts.push_back(blob_input("noise-a.bin", 70000, 1, false));
