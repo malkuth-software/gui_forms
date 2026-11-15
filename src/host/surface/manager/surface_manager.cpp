@@ -144,23 +144,54 @@ struct Closing final {
         if ((*window).entry.options.close_request) (*window).entry.options.close_request(request);
     }
 };
+// The dialog and clipboard functions the program keeps (host_ready): like
+// WindowTitle they observe their window weakly and answer after_shutdown
+// once it has closed or been reclaimed, and wrong_thread off the thread
+// that made them (A-gf-host-02-F12).
 struct Dialog final {
-    NativeWindow* window;
+    std::weak_ptr<NativeWindow> owner{};
+    const std::thread::id thread{std::this_thread::get_id()};
     HostDialogResult operator()(const HostDialogRequest& request) const {
+        HostDialogResult refused{};
+        refused.request_id = request.request_id;
+        if (thread != std::this_thread::get_id()) {
+            refused.status.error = HostServiceError::wrong_thread;
+            return refused;
+        }
+        const std::shared_ptr<NativeWindow> window = owner.lock();
+        if (!window || (*window).closed) {
+            refused.status.error = HostServiceError::after_shutdown;
+            return refused;
+        }
         const HostDialogResult result = (*(*window).services).show_dialog(request);
         return result;
     }
 };
 struct ReadText final {
-    NativeWindow* window;
+    std::weak_ptr<NativeWindow> owner{};
+    const std::thread::id thread{std::this_thread::get_id()};
     HostClipboardTextResult operator()() const {
+        HostClipboardTextResult refused{};
+        if (thread != std::this_thread::get_id()) {
+            refused.status.error = HostServiceError::wrong_thread;
+            return refused;
+        }
+        const std::shared_ptr<NativeWindow> window = owner.lock();
+        if (!window || (*window).closed) {
+            refused.status.error = HostServiceError::after_shutdown;
+            return refused;
+        }
         const HostClipboardTextResult result = (*(*window).services).read_clipboard_text();
         return result;
     }
 };
 struct WriteText final {
-    NativeWindow* window;
+    std::weak_ptr<NativeWindow> owner{};
+    const std::thread::id thread{std::this_thread::get_id()};
     HostServiceStatus operator()(std::string_view text) const {
+        if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+        const std::shared_ptr<NativeWindow> window = owner.lock();
+        if (!window || (*window).closed) return {HostServiceError::after_shutdown};
         const HostServiceStatus status = (*(*window).services).write_clipboard_text(text);
         return status;
     }
@@ -479,7 +510,8 @@ void NativeWindow::ready() {
     const WindowAction hide{weak_from_this(), runtime.actions, ActionKind::hide};
     const WindowAction close_window{weak_from_this(), runtime.actions, ActionKind::close};
     if (entry.options.host_ready)
-        entry.options.host_ready(Wake{&runtime.queue}, close_window, Dialog{this}, ReadText{this}, WriteText{this});
+        entry.options.host_ready(Wake{&runtime.queue}, close_window, Dialog{weak_from_this()},
+                                 ReadText{weak_from_this()}, WriteText{weak_from_this()});
     if (entry.options.full_screen_ready)
         entry.options.full_screen_ready(WindowAction{weak_from_this(), runtime.actions, ActionKind::fullscreen});
     if (entry.options.title_ready) entry.options.title_ready(WindowTitle{weak_from_this()});
