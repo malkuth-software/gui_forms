@@ -845,10 +845,12 @@ std::optional<std::size_t> ToolStrip::next_interactive(std::size_t start, int di
 }
 
 bool ToolStrip::flip_checked(std::size_t index) {
-    const ToolStripItemSpec& item = items_[index];
-    if (item.command) {
-        const bool checked = (*item.command).state().checked;
-        (*item.command).set_checked(!checked);
+    // The command is held: set_checked runs its state handlers, which may
+    // replace the items and with them the item's own reference.
+    const std::shared_ptr<Command> command = items_[index].command;
+    if (command) {
+        const bool checked = (*command).state().checked;
+        (*command).set_checked(!checked);
         return false;
     }
     item_states_[index].checked = !item_states_[index].checked;
@@ -1008,7 +1010,10 @@ bool ToolStrip::show_drop_down(std::string_view item_id, MenuOpenMode mode) {
     if (mode != MenuOpenMode::keyboard && mode != MenuOpenMode::pointer) {
         throw std::invalid_argument("ToolStrip opening mode is invalid");
     }
-    const std::optional<std::size_t> index = index_of(item_id);
+    // A copy: the ID may name an item's own text, and showing the menu runs
+    // handlers that may replace the items.
+    const std::string opened_id(item_id);
+    const std::optional<std::size_t> index = index_of(opened_id);
     if (!index || !has_menu(items_[*index].kind) || !item_interactive(*index) || !attached_window()) return false;
     // A merge may have left the menu empty, or holding only empty submenus.
     std::vector<MenuItemSpec> menu = menu_detail::prune_empty_submenus(items_[*index].drop_down);
@@ -1026,8 +1031,19 @@ bool ToolStrip::show_drop_down(std::string_view item_id, MenuOpenMode mode) {
     const double drop_x = right_to_left ? bounds.x + bounds.width : bounds.x;
     Point anchor{absolute.x + drop_x, absolute.y + bounds.y + bounds.height};
     if (vertical()) anchor = {absolute.x + bounds.x + bounds.width, absolute.y + bounds.y};
-    (*overlay_).show(shared_from_this(), anchor, mode);
-    open_index_ = index;
+    // show opens a focus scope, which runs the previous control's focus and
+    // validation handlers before it returns; one may close the menu or
+    // replace the items (A-gf-controls-14-F2). The open item is recorded
+    // only for a menu still open, at the index its ID has now.
+    const Control::Ptr lifetime = shared_from_this();
+    (*overlay_).show(lifetime, anchor, mode);
+    if (!is_alive() || !(*overlay_).is_open()) return false;
+    const std::optional<std::size_t> shown = index_of(opened_id);
+    if (!shown) {
+        close_drop_down();
+        return false;
+    }
+    open_index_ = shown;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
 }
@@ -1089,7 +1105,11 @@ bool ToolStrip::show_overflow(MenuOpenMode mode) {
         anchor = {right, absolute.y + placed.overflow_button.y + placed.overflow_button.height};
     }
     if (vertical()) anchor = {right, absolute.y + placed.overflow_button.y};
-    (*overlay_).show(shared_from_this(), anchor, mode);
+    // As in show_drop_down: the menu is marked open only if the focus
+    // handlers show runs left it open (A-gf-controls-14-F2).
+    const Control::Ptr lifetime = shared_from_this();
+    (*overlay_).show(lifetime, anchor, mode);
+    if (!is_alive() || !(*overlay_).is_open()) return false;
     overflow_open_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
@@ -1123,6 +1143,7 @@ void ToolStrip::on_overlay_open_changed(bool open) {
 void ToolStrip::on_overlay_item_invoked(const MenuItemInvocation& invocation) {
     const std::string strip_id(stable_id().value());
     if (open_index_) {
+        if (*open_index_ >= items_.size()) return;
         const ToolStripDropDownInvocation chosen{strip_id, items_[*open_index_].stable_id, invocation};
         drop_down_item_invoked_.emit(chosen);
         return;
@@ -1131,11 +1152,18 @@ void ToolStrip::on_overlay_item_invoked(const MenuItemInvocation& invocation) {
     // The menu has run the row's command; a button row is that button's click.
     const std::optional<std::size_t> index = index_of(invocation.item_id);
     if (index) {
-        const ToolStripItemSpec& item = items_[*index];
+        // Copied first: flip_checked runs the command's state handlers,
+        // which may replace the items (A-gf-controls-14-F2).
+        const std::string item_id = items_[*index].stable_id;
+        const bool check_on_click = items_[*index].check_on_click;
         // The item is in the overflow menu, not on the strip, so the strip
         // has nothing of it to repaint.
-        if (item.check_on_click) static_cast<void>(flip_checked(*index));
-        const ToolStripItemClick clicked{strip_id, item.stable_id};
+        if (check_on_click) {
+            const Control::Ptr lifetime = shared_from_this();
+            static_cast<void>(flip_checked(*index));
+            if (!is_alive()) return;
+        }
+        const ToolStripItemClick clicked{strip_id, item_id};
         item_clicked_.emit(clicked);
         return;
     }
