@@ -569,7 +569,10 @@ void SplitContainer::on_key_preview(KeyEvent& event) {
          static_cast<std::uint8_t>(Modifier::shift)) != 0U) {
         delta *= 10.0;
     }
-    set_distance(effective_distance_ + delta, SplitChangeReason::keyboard);
+    // A step past the near edge asks for zero, which the panel limits then
+    // clamp; set_distance refuses a negative request with an exception,
+    // which must not leave key handling (A-gf-controls-12-F1).
+    set_distance(std::max(0.0, effective_distance_ + delta), SplitChangeReason::keyboard);
     event.handled = true;
 }
 

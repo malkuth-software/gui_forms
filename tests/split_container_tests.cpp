@@ -235,6 +235,28 @@ void test_live_pointer_and_keyboard_resize() {
             "fixed splitters must reject keyboard mutation");
 }
 
+// A-gf-controls-12-F1: Shift+Left with the seam nearer the edge than the
+// step asks for a negative distance; the seam stops at its minimum instead
+// of the request throwing out of key handling.
+void test_keyboard_step_below_zero() {
+    std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.edge"));
+    (*split).splitter_distance = 30.0;
+    (*split).keyboard_increment = 4.0;
+    Window window(split, {400.0, 180.0});
+    window.perform_layout();
+    require(window.request_focus((*split).splitter_control()), "the seam takes focus");
+    KeyEvent left;
+    left.action = KeyAction::down;
+    left.physical_key = PhysicalKey::left;
+    left.modifiers = Modifier::shift;
+    require(window.dispatch_key(left), "Shift+Left near the edge is handled");
+    require(near((*split).splitter_distance.read(), (*split).first_minimum.read()),
+            "the seam stops at the first panel's minimum");
+    left.modifiers = Modifier::none;
+    require(window.dispatch_key(left) && near((*split).splitter_distance.read(), (*split).first_minimum.read()),
+            "another step at the minimum stays there");
+}
+
 void test_pane_surface_background() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.surface"));
     const Color first = Color::rgba(225, 235, 243);
@@ -972,6 +994,7 @@ int main() {
     try {
         test_stable_tree_and_constrained_geometry();
         test_live_pointer_and_keyboard_resize();
+    test_keyboard_step_below_zero();
         test_pane_surface_background();
         test_collapse_focus_restore_and_fixed_panel_resize();
         test_horizontal_orientation_and_thread_guard();
