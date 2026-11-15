@@ -189,6 +189,13 @@ struct OuterFirst final {
     }
 };
 
+// A span whose content the attribute sweep is inside: its content ends
+// before `close`, and `attributes` is the sum of it and every span around it.
+struct OpenSpan final {
+    std::size_t close{};
+    SpanAttributes attributes{};
+};
+
 // What the dialect gives one byte of a block's joined text: removed when
 // it is attribute markup, otherwise the attributes of the spans around it.
 struct ByteStyle final {
@@ -557,12 +564,31 @@ struct MarkdownParser final {
             index += 2U;
         }
         std::sort(pairs.begin(), pairs.end(), OuterFirst{});
+        // The pairs nest (they were matched through a stack) and each one's
+        // markup, its `[` and its `]{list}`, is its own bytes, so marking the
+        // markup is linear in the text.
         for (const SpanPair& pair : pairs) {
             styles[pair.open].removed = true;
             for (std::size_t index = pair.close; index <= pair.end; ++index) styles[index].removed = true;
-            for (std::size_t index = pair.open + 1U; index < pair.close; ++index) {
-                add_attributes(styles[index].attributes, pair.attributes);
+        }
+        // A content byte takes every enclosing span's attributes added outer
+        // first. One sweep keeps the open spans on a stack, each frame
+        // holding the sum so far, and writes each byte once. Walking every
+        // span's content made spans nested D deep over L bytes cost D x L
+        // (A-gf-core-12-F1); the attributes each byte gets are the same.
+        std::vector<OpenSpan> open_spans{};
+        open_spans.reserve(pairs.size());
+        std::size_t next_pair = 0U;
+        for (std::size_t index = 0U; index < styles.size(); ++index) {
+            while (!open_spans.empty() && open_spans.back().close == index) open_spans.pop_back();
+            if (next_pair < pairs.size() && pairs[next_pair].open + 1U == index) {
+                SpanAttributes sum = open_spans.empty() ? SpanAttributes{} : open_spans.back().attributes;
+                add_attributes(sum, pairs[next_pair].attributes);
+                const OpenSpan opened{pairs[next_pair].close, sum};
+                open_spans.push_back(opened);
+                next_pair = next_pair + 1U;
             }
+            if (!open_spans.empty()) styles[index].attributes = open_spans.back().attributes;
         }
         marks.clear();
         const bool kept = publish(joined, starts, styles);

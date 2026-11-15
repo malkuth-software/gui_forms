@@ -179,6 +179,26 @@ void dialect_attributes() {
     require(document.blocks[1].alignment == MarkdownAlignment::right, "a lone attribute line aligns the next");
     require(block_text(document, 2U) == "[not]{u} and [bad]{v}", "escaped or invalid spans stay text");
     check_source_ranges(source, document, "dialect");
+
+    // A-gf-core-12-F1: spans nested 200 deep are applied in one sweep; the
+    // innermost text still takes every enclosing span's attributes, outer
+    // first (the innermost colour wins).
+    std::string nested{};
+    for (int depth = 0; depth < 200; ++depth) nested += '[';
+    nested += 'x';
+    for (int depth = 199; depth >= 0; --depth) {
+        if (depth == 199) nested += "]{color=#00FF00}";
+        else if (depth == 0) nested += "]{color=#FF0000}";
+        else if (depth % 2 == 0) nested += "]{b}";
+        else nested += "]{i}";
+    }
+    nested += '\n';
+    const MarkdownDocument deep = parse(nested);
+    require(deep.blocks.size() == 1U && block_text(deep, 0U) == "x", "nested span markup is removed");
+    const MarkdownSpan& inner = span_of(deep, 0U, 0U);
+    const MarkdownRgb pure_green{0U, 255U, 0U};
+    require(inner.text == "x" && inner.style.bold && inner.style.italic && inner.style.colour == pure_green,
+            "the innermost text takes every enclosing span, the innermost colour last");
 }
 
 void links_breaks_and_text() {
