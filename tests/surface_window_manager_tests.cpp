@@ -127,7 +127,11 @@ struct MarkClosed final {
     void operator()() const { *closed = true; }
 };
 
-// A window whose client area is one button at (20, 20, 120, 30).
+// A window whose client area is one button at (20, 20, 120, 30). Its
+// closed callback writes into it, and the runtime force-closes every window
+// still open when the Harness goes: each test declares its TestWindow
+// objects before its Harness, so they outlive the runtime that borrows them
+// (B-gf-tests-10-F1).
 struct TestWindow final {
     std::shared_ptr<Button> button;
     SubscriptionToken token;
@@ -240,8 +244,8 @@ struct Harness final {
 // classic boxes (Harness::use_boxes), the close box is at x 510 to 550,
 // maximise 470 to 510 and minimise 430 to 470.
 void test_compose_and_damage() {
-    Harness harness;
     TestWindow owned;
+    Harness harness;
     const HostWindowId window = harness.open(owned, "owned");
     require(harness.host.presents > 0U && harness.host.acquired == 1U, "the surface was acquired once and presented");
     require(harness.host.rgb(249U, 300U) == (*harness.runtime).desk.theme().border_active,
@@ -262,8 +266,8 @@ void test_compose_and_damage() {
 }
 
 void test_resize_by_grip() {
-    Harness harness;
     TestWindow owned;
+    Harness harness;
     const HostWindowId window = harness.open(owned, "owned");
     harness.post_pointer(SurfacePointerAction::move, Point{552.0, 300.0}, 0.0);
     harness.post_pointer(SurfacePointerAction::down, Point{552.0, 300.0}, 0.0);
@@ -281,9 +285,9 @@ void test_resize_by_grip() {
 }
 
 void test_minimize_maximize_restore() {
+    TestWindow owned;
     Harness harness;
     harness.use_boxes();
-    TestWindow owned;
     const HostWindowId window = harness.open(owned, "owned");
     harness.click(Point{490.0, 186.0});
     require((*harness.runtime).desk.state(window) == SurfaceWindowState::maximized, "the maximise box maximises");
@@ -304,9 +308,9 @@ void test_minimize_maximize_restore() {
 }
 
 void test_close_box() {
+    TestWindow owned;
     Harness harness;
     harness.use_boxes();
-    TestWindow owned;
     const HostWindowId window = harness.open(owned, "owned");
     harness.post_pointer(SurfacePointerAction::down, Point{530.0, 186.0}, 0.0);
     harness.post_pointer(SurfacePointerAction::up, Point{100.0, 100.0}, 10.0);
@@ -318,9 +322,9 @@ void test_close_box() {
 }
 
 void test_focus_order() {
-    Harness harness;
     TestWindow first;
     TestWindow second;
+    Harness harness;
     const HostWindowId a = harness.open(first, "first");
     const HostWindowId b = harness.open(second, "second");
     require((*harness.runtime).desk.active() == b, "the window opened last has the keyboard");
@@ -335,9 +339,9 @@ void test_focus_order() {
 }
 
 void test_modal_blocking() {
+    TestWindow dialog;
     Harness harness;
     harness.use_boxes();
-    TestWindow dialog;
     const HostWindowId window = harness.open(dialog, "dialog");
     // Queued for the modal loop: a click on the primary window's button,
     // then the dialog's close box.
@@ -362,9 +366,9 @@ void test_modal_blocking() {
 // presses (before, every record went to the blocked owner and the loop
 // below never ended).
 void test_modal_begun_during_a_press() {
+    TestWindow dialog;
     Harness harness;
     harness.use_boxes();
-    TestWindow dialog;
     const HostWindowId window = harness.open(dialog, "dialog");
     harness.post_pointer(SurfacePointerAction::move, Point{50.0, 30.0}, 0.0);
     harness.post_pointer(SurfacePointerAction::down, Point{50.0, 30.0}, 0.0);
@@ -398,9 +402,9 @@ struct RunModalOnClick final {
 // queued in the same batch. The nested loop must handle it (before, it
 // waited in the outer turn's local batch and the modal loop never ended).
 void test_nested_loop_takes_the_rest_of_the_batch() {
+    TestWindow dialog;
     Harness harness;
     harness.use_boxes();
-    TestWindow dialog;
     const HostWindowId window = harness.open(dialog, "dialog");
     HostServiceStatus modal_status{HostServiceError::unsupported};
     const SubscriptionToken modal_on_click = (*harness.primary.button).clicked().subscribe(
@@ -425,9 +429,10 @@ const Point capsule_help{506.0, 186.0};
 const Point capsule_right{530.0, 186.0};
 
 void test_capsule_three_click_close() {
+    TestWindow owned;
+    TestWindow kept;
     Harness harness;
     harness.use_capsule();
-    TestWindow owned;
     const HostWindowId window = harness.open(owned, "owned");
     require((*harness.runtime).desk.capsule(window) == (Rect{468.0, 176.5, 76.0, 20.0}),
             "the capsule sits at the title bar's right end");
@@ -440,7 +445,6 @@ void test_capsule_three_click_close() {
     require(owned.closed && (*harness.runtime).window(window) == nullptr, "the third click closes the window");
     require(!(*harness.runtime).capsule.window().valid(), "and the capsule forgets it");
 
-    TestWindow kept;
     const HostWindowId second = harness.open(kept, "kept");
     harness.click(capsule_left, 1000.0);
     harness.post_pointer(SurfacePointerAction::move, Point{300.0, 300.0}, 1050.0);
@@ -453,9 +457,9 @@ void test_capsule_three_click_close() {
 }
 
 void test_capsule_left_half() {
+    TestWindow owned;
     Harness harness;
     harness.use_capsule();
-    TestWindow owned;
     const HostWindowId window = harness.open(owned, "owned");
     harness.click(capsule_left, 1000.0);
     harness.click(capsule_left, 1100.0);
@@ -485,9 +489,9 @@ void test_capsule_left_half() {
 }
 
 void test_capsule_right_half_moves() {
+    TestWindow owned;
     Harness harness;
     harness.use_capsule();
-    TestWindow owned;
     const HostWindowId window = harness.open(owned, "owned");
     const std::uint32_t before = harness.host.rgb(100U, 500U);
     harness.post_pointer(SurfacePointerAction::move, capsule_right, 0.0);
@@ -526,10 +530,10 @@ void count_help(void* context, HostWindowId window) {
 }
 
 void test_capsule_help_and_keyboard() {
+    TestWindow owned;
     Harness harness;
     harness.use_capsule();
     (*harness.runtime).capsule_help = SurfaceCapsuleHelpTarget{&help_calls, &count_help};
-    TestWindow owned;
     const HostWindowId window = harness.open(owned, "owned");
     harness.post_pointer(SurfacePointerAction::move, capsule_help, 0.0);
     harness.settle();
@@ -566,9 +570,9 @@ void test_capsule_help_and_keyboard() {
 // program shows); a press beside the card, or Escape, puts it away, and
 // the window takes clicks again.
 void test_capsule_help_shows_business_card() {
+    TestWindow owned;
     Harness harness;
     harness.use_capsule();
-    TestWindow owned;
     const HostWindowId window = harness.open(owned, "owned");
     NativeWindow* const native = (*harness.runtime).window(window);
     require(native != nullptr && (*native).entry.model != nullptr, "the owned window has its model");
