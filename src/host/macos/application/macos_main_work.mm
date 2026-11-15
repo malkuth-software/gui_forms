@@ -63,6 +63,12 @@ void post_main_work(void* context, void (*function)(void*)) {
     [work performSelectorOnMainThread:@selector(perform) withObject:nil waitUntilDone:NO modes:modes];
 }
 
+void post_default_mode_work(void* context, void (*function)(void*)) {
+    GUIFormsMainWork* const work = [[GUIFormsMainWork alloc] initWithFunction:function context:context];
+    NSArray<NSString*>* const modes = @[ NSDefaultRunLoopMode ];
+    [work performSelectorOnMainThread:@selector(perform) withObject:nil waitUntilDone:NO modes:modes];
+}
+
 } // namespace gui_forms::host::macos
 
 namespace {

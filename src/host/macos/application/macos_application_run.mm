@@ -529,6 +529,17 @@ void MacApplicationRun::reclaim() {
     // stack below it, so nothing is released: run_modal_impl schedules the
     // release again when its loop ends.
     if (modal_depth() > 0U) return;
+    // A native alert or file panel (a services runModal) is a nested loop
+    // modal_depth does not count, and posted work runs inside it: the view
+    // that opened it may be on the stack below. The release waits for the
+    // main loop, in the default mode, which no modal loop runs
+    // (A-gf-host-02-F5).
+    if ([NSApp modalWindow] != nil) {
+        reclaim_scheduled_ = true;
+        std::weak_ptr<MacRunAlive>* context = new std::weak_ptr<MacRunAlive>(alive_);
+        post_default_mode_work(context, &reclaim_mac_run);
+        return;
+    }
     for (std::size_t index = slots_.size(); index > 0U; --index) {
         MacRunSlot& candidate = *slots_[index - 1U];
         if (candidate.initial || !candidate.close_finished) continue;

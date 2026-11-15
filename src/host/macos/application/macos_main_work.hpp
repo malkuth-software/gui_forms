@@ -11,6 +11,10 @@ namespace gui_forms::host::macos {
 // common modes. The function adopts the context as dispatch_async_f's
 // would. Thread-safe.
 void post_main_work(void* context, void (*function)(void*));
+// As post_main_work, but in the default mode only: the work waits while any
+// modal loop runs its own mode (a native alert's or file panel's runModal,
+// a modal session), and runs once the main loop resumes. Thread-safe.
+void post_default_mode_work(void* context, void (*function)(void*));
 
 // A window the work keeps alive until it runs, as the replaced blocks did.
 struct WindowWork final {
@@ -23,5 +27,6 @@ void post_perform_close(NSWindow* window);
 } // namespace gui_forms::host::macos
 
 using gui_forms::host::macos::post_main_work;
+using gui_forms::host::macos::post_default_mode_work;
 using gui_forms::host::macos::post_perform_close;
 using gui_forms::host::macos::WindowWork;
