@@ -463,6 +463,17 @@ pid_t spawn_child(const HostedContentOptions& options, int channel, int frames) 
         posix_spawn_file_actions_adddup2(&setup.actions_, frames_high, hosted_frames_descriptor) != 0) {
         throw std::runtime_error("hosted content: spawn file actions failed");
     }
+#if !defined(POSIX_SPAWN_CLOEXEC_DEFAULT) && defined(__GLIBC__) && \
+    (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 34))
+    // Linux has no close-on-exec default: every descriptor above the
+    // channel and the frames is closed in the child, so it inherits none of
+    // this process's files, sockets or pipes that lack FD_CLOEXEC
+    // (A-gf-host-02-F15). glibc 2.34 provides the action; an older C
+    // library still relies on FD_CLOEXEC.
+    if (posix_spawn_file_actions_addclosefrom_np(&setup.actions_, hosted_frames_descriptor + 1) != 0) {
+        throw std::runtime_error("hosted content: spawn file actions failed");
+    }
+#endif
     // The child starts with every signal unblocked and SIGPIPE at its
     // default, whatever this thread has.
     sigset_t empty_mask;
