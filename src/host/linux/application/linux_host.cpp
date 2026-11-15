@@ -833,10 +833,15 @@ bool install_session_end_signal(int signal_number, struct sigaction &previous) {
   return sigaction(signal_number, &action, nullptr) == 0;
 }
 } // namespace
+WakePipe::~WakePipe() {
+  for (unsigned i = 0; i < 2; ++i)
+    if (descriptors[i] >= 0)
+      ::close(descriptors[i]);
+}
 void Wake::operator()() const noexcept {
   const char byte = 1;
-  if (descriptor >= 0)
-    static_cast<void>(::write(descriptor, &byte, 1));
+  if (pipe && (*pipe).descriptors[1] >= 0)
+    static_cast<void>(::write((*pipe).descriptors[1], &byte, 1));
 }
 void ActionQueue::post(Action action) {
   {
@@ -861,17 +866,26 @@ Runtime::Runtime() {
   display = XOpenDisplay(nullptr);
   if (display == nullptr)
     throw std::runtime_error("Cannot open the X11 display");
-  if (pipe(wake_pipe) != 0) {
+  try {
+    wake_channel = std::make_shared<WakePipe>();
+  } catch (...) {
+    XCloseDisplay(display);
+    display = nullptr;
+    throw;
+  }
+  if (pipe((*wake_channel).descriptors) != 0) {
     XCloseDisplay(display);
     display = nullptr;
     throw std::runtime_error("Cannot create host wake pipe");
   }
+  wake_pipe[0] = (*wake_channel).descriptors[0];
+  wake_pipe[1] = (*wake_channel).descriptors[1];
   for (unsigned i = 0; i < 2; ++i) {
     fcntl(wake_pipe[i], F_SETFL, fcntl(wake_pipe[i], F_GETFL) | O_NONBLOCK);
     fcntl(wake_pipe[i], F_SETFD, FD_CLOEXEC);
   }
   actions = std::make_shared<ActionQueue>();
-  (*actions).wake = {wake_pipe[1]};
+  (*actions).wake = Wake{wake_channel};
   XSetLocaleModifiers("");
   input_method = XOpenIM(display, nullptr, nullptr, nullptr);
   Bool supported = False;
@@ -960,9 +974,11 @@ Runtime::~Runtime() {
     XCloseIM(input_method);
   if (display != nullptr)
     XCloseDisplay(display);
-  for (unsigned i = 0; i < 2; ++i)
-    if (wake_pipe[i] >= 0)
-      ::close(wake_pipe[i]);
+  // The pipe closes with its last holder: a Wake a worker still keeps
+  // holds it open (A-gf-host-01-F8).
+  wake_pipe[0] = -1;
+  wake_pipe[1] = -1;
+  wake_channel.reset();
 }
 Atom Runtime::atom(const char *name) const {
   return XInternAtom(display, name, False);
@@ -1250,15 +1266,15 @@ void NativeWindow::report_window_state() {
   reported_full_screen = full_screen;
 }
 void NativeWindow::attach() {
-  (*entry.model).set_dispatch_wake_handler(Wake{runtime.wake_pipe[1]});
-  (*entry.model).set_paint_wake_handler(Wake{runtime.wake_pipe[1]});
+  (*entry.model).set_dispatch_wake_handler(Wake{runtime.wake_channel});
+  (*entry.model).set_paint_wake_handler(Wake{runtime.wake_channel});
   // A frame request made outside this window's poll (a Timer restarted from
   // another window's callback, idle frames armed while painting) writes the
   // wake pipe, so that the wait in Runtime::step ends and the next turn
   // reads next_wake again before it waits.
-  (*entry.model).set_schedule_wake_handler(Wake{runtime.wake_pipe[1]});
+  (*entry.model).set_schedule_wake_handler(Wake{runtime.wake_channel});
   // A live publication while the clock rests writes the wake pipe (E4).
-  (*entry.model).set_live_surface_idle_wake_handler(Wake{runtime.wake_pipe[1]});
+  (*entry.model).set_live_surface_idle_wake_handler(Wake{runtime.wake_channel});
 #if !defined(GUI_FORMS_PREPARED_TEXT)
   // The raster keeps its pixels between ticks, so a scroll's pixels can be
   // moved instead of repainted (update). The prepared raster publishes only
@@ -1284,7 +1300,7 @@ void NativeWindow::ready() {
   const WindowAction close_window{weak_from_this(), runtime.actions,
                                   ActionKind::close};
   if (entry.options.host_ready)
-    entry.options.host_ready(Wake{runtime.wake_pipe[1]}, close_window,
+    entry.options.host_ready(Wake{runtime.wake_channel}, close_window,
                              Dialog{this}, ReadText{this}, WriteText{this});
   if (entry.options.full_screen_ready)
     entry.options.full_screen_ready(WindowAction{

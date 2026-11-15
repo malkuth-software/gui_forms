@@ -216,8 +216,22 @@ private:
   // Created with the first icon.
   std::unique_ptr<X11TrayIcons> tray_;
 };
+// The run's wake pipe (A-gf-host-01-F8): both ends, closed when the last
+// holder goes. The Runtime and every Wake copy (the model's wake handlers,
+// the program's host_ready wake, the action queue) share it, so a copy a
+// worker calls after the run has ended writes into this pipe, which a full
+// buffer refuses (non-blocking), never into a descriptor the process has
+// since reused; the read end stays open with it, so the write raises no
+// SIGPIPE either.
+struct WakePipe final {
+  int descriptors[2]{-1, -1};
+  WakePipe() = default;
+  WakePipe(const WakePipe &) = delete;
+  WakePipe &operator=(const WakePipe &) = delete;
+  ~WakePipe();
+};
 struct Wake final {
-  int descriptor{-1};
+  std::shared_ptr<const WakePipe> pipe{};
   void operator()() const noexcept;
 };
 enum class ActionKind { close, show, hide, fullscreen };
@@ -514,7 +528,9 @@ public:
   Display *display{};
   std::array<std::uint32_t, 256> physical_keys{};
   XIM input_method{};
+  // The pipe's ends, as wake_channel holds them; valid while it does.
   int wake_pipe[2]{-1, -1};
+  std::shared_ptr<WakePipe> wake_channel{};
   // SIGTERM and SIGHUP end the session (a log-out or shut-down sends them;
   // HostCloseReason::session_end). Runtime() installs a handler for each
   // only where the disposition is still the default, so an application's
