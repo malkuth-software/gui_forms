@@ -39,6 +39,18 @@ cmake --build build
 `examples/reference/` in the repository is a complete consumer of this shape
 and is built against the installed SDK by CI on every platform.
 
+A control type written as a `.control` document (a composite control) is
+generated the same way. `gui_forms_add_control` runs the form compiler's
+control mode, which checks the document as the run-time loader does and
+writes a header whose class derives from `gui_forms::CompositeControl`:
+
+```cmake
+gui_forms_add_control(my_forms controls/toggle-pill.control CLASS TogglePill NAMESPACE greeter)
+```
+
+Include `toggle_pill_control.hpp` and make one with
+`gui_forms::make_control<greeter::TogglePill>(gui_forms::StableId("wifi"))`.
+
 ## Components
 
 | Component | Target | Kind | Use it for |

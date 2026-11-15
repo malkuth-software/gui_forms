@@ -4,6 +4,12 @@
 //
 //   gui_forms_form_compiler <document.form> --class <Name> --output <header>
 //                           [--namespace <a::b>] [--type <description>]... [--check]
+//   gui_forms_form_compiler <document.control> --control --class <Name> --output <header>
+//                           [--namespace <a::b>] [--type <description>]... [--check]
+//
+// With --control the document is a composite control (cp34): it is read,
+// checked and compiled as load_composite_definition does, and the header
+// holds a CompositeControl class embedding it (control_generator.hpp).
 //
 // Each --type adds an application type the document may name:
 // "<name>,<C++ class>,<registry base type>,<header>" (add_application_type
@@ -18,6 +24,9 @@
 
 #include "form_catalog.hpp"
 
+#include "../../src/core/control_language/composite_definition/composite_definition.hpp"
+#include "../../src/core/control_language/control_generator/control_generator.hpp"
+#include "../../src/core/control_language/control_model/control_model.hpp"
 #include "../../src/core/form_language/form_generator/form_generator.hpp"
 #include "../../src/core/form_language/form_model/form_model.hpp"
 #include "../../src/core/form_language/form_xml/form_xml.hpp"
@@ -29,11 +38,13 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <span>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -59,12 +70,17 @@ struct Arguments final {
     // The --type descriptions, in command-line order.
     std::vector<std::string> types{};
     bool check{};
+    // A composite control document instead of a form.
+    bool control{};
 };
 
 void print_usage() {
     std::cerr << "usage: gui_forms_form_compiler <document.form> --class <Name> --output <header>\n"
                  "                               [--namespace <a::b>] [--type <name>,<class>,<base>,<header>]...\n"
                  "                               [--derived] [--model <a::Type>] [--model-header <header>]\n"
+                 "                               [--check]\n"
+                 "       gui_forms_form_compiler <document.control> --control --class <Name> --output <header>\n"
+                 "                               [--namespace <a::b>] [--type <name>,<class>,<base>,<header>]...\n"
                  "                               [--check]\n";
 }
 
@@ -76,6 +92,8 @@ std::optional<Arguments> read_arguments(std::span<char* const> words) {
         const bool has_value = index + 1U < words.size();
         if (word == "--check") {
             arguments.check = true;
+        } else if (word == "--control") {
+            arguments.control = true;
         } else if (word == "--class" && has_value) {
             ++index;
             arguments.options.class_name = words[index];
@@ -104,6 +122,11 @@ std::optional<Arguments> read_arguments(std::span<char* const> words) {
         }
     }
     if (arguments.input.empty() || arguments.output.empty() || arguments.options.class_name.empty()) {
+        return std::nullopt;
+    }
+    // A composite control is always a CompositeControl subclass: no
+    // derived form or model.
+    if (arguments.control && (arguments.options.derived || !arguments.options.model_header.empty())) {
         return std::nullopt;
     }
     return arguments;
@@ -143,20 +166,12 @@ void print_diagnostics(const ThemeDiagnosticList& diagnostics) {
     }
 }
 
-// Reads, checks and generates; returns the exit status.
-int compile(const Arguments& arguments) {
-    const std::optional<std::string> text = read_file(arguments.input);
-    if (!text) {
-        std::cerr << arguments.input << ": cannot be read\n";
-        return exit_usage;
-    }
+// A form document's header in `generated`; false, with the diagnostics
+// printed, when the document or the generation is refused.
+bool generate_form(const Arguments& arguments, const ThemeSource& source, const FormSchema& schema,
+                   std::string& generated) {
     FormGeneratorOptions options = arguments.options;
     options.source_name = file_name(arguments.input);
-    ThemeSource source{};
-    source.file = arguments.input;
-    source.text = *text;
-    FormSchema schema = gui_forms::form_compiler::registry_form_schema();
-    for (const std::string& type : arguments.types) gui_forms::form_compiler::add_application_type(schema, type);
     FormSyntax syntax{};
     ThemeDiagnosticList diagnostics{};
     FormModel model{};
@@ -164,13 +179,63 @@ int compile(const Arguments& arguments) {
         gui_forms::form_language::read_form_model(source, syntax, schema, model, diagnostics);
     if (built != FormModelOutcome::model_built) {
         print_diagnostics(diagnostics);
-        return exit_refused;
+        return false;
     }
-    std::string generated{};
     const FormGenerateOutcome outcome = gui_forms::form_language::generate_form_cpp(source, schema, model, options,
                                                                                     generated, diagnostics);
     print_diagnostics(diagnostics);
-    if (outcome != FormGenerateOutcome::generated) return exit_refused;
+    const bool made = outcome == FormGenerateOutcome::generated;
+    return made;
+}
+
+// A composite control document's header in `generated` (--control): read,
+// checked and compiled as load_composite_definition does, so the build
+// refuses what the run time would.
+bool generate_control(const Arguments& arguments, const ThemeSource& source, FormSchema schema,
+                      std::string& generated) {
+    gui_forms::control_language::ControlSyntax syntax{};
+    gui_forms::control_language::ControlModel model{};
+    ThemeDiagnosticList diagnostics{};
+    const gui_forms::control_language::ControlModelOutcome read =
+        gui_forms::control_language::read_control_model(source, syntax, schema, model, diagnostics);
+    if (read != gui_forms::control_language::ControlModelOutcome::model_built) {
+        print_diagnostics(diagnostics);
+        return false;
+    }
+    const std::shared_ptr<const gui_forms::CompositeDefinition> definition =
+        gui_forms::control_language::compile_composite_definition(source, syntax, model, std::move(schema),
+                                                                  diagnostics);
+    if (definition == nullptr) {
+        print_diagnostics(diagnostics);
+        return false;
+    }
+    gui_forms::control_language::ControlGeneratorOptions options{};
+    options.class_name = arguments.options.class_name;
+    options.namespace_name = arguments.options.namespace_name;
+    options.source_name = file_name(arguments.input);
+    const gui_forms::control_language::ControlGenerateOutcome outcome =
+        gui_forms::control_language::generate_control_cpp(source, *definition, options, generated, diagnostics);
+    print_diagnostics(diagnostics);
+    const bool made = outcome == gui_forms::control_language::ControlGenerateOutcome::generated;
+    return made;
+}
+
+// Reads, checks and generates; returns the exit status.
+int compile(const Arguments& arguments) {
+    const std::optional<std::string> text = read_file(arguments.input);
+    if (!text) {
+        std::cerr << arguments.input << ": cannot be read\n";
+        return exit_usage;
+    }
+    ThemeSource source{};
+    source.file = arguments.input;
+    source.text = *text;
+    FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    for (const std::string& type : arguments.types) gui_forms::form_compiler::add_application_type(schema, type);
+    std::string generated{};
+    const bool made = arguments.control ? generate_control(arguments, source, std::move(schema), generated)
+                                        : generate_form(arguments, source, schema, generated);
+    if (!made) return exit_refused;
 
     const std::optional<std::string> existing = read_file(arguments.output);
     const bool current = existing && *existing == generated;

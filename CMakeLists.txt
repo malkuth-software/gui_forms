@@ -613,6 +613,7 @@ add_library(gui_forms_core STATIC
     src/core/control_language/control_model/control_model.cpp
     src/core/control_language/control_lock/control_lock.cpp
     src/core/control_language/composite_definition/composite_definition.cpp
+    src/core/control_language/control_generator/control_generator.cpp
     src/core/form_language/form_loader/form_loader.cpp
     src/core/form_language/form_loader/form_window_loader.cpp
     src/core/form_language/form_editor/form_editor.cpp
@@ -4148,7 +4149,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_control_expression_tests tests/control_language/control_expression_tests.cpp)
     target_link_libraries(gui_forms_control_expression_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_control_expression_tests COMMAND gui_forms_control_expression_tests)
-    foreach(control_test control_model_tests control_lock_tests composite_control_tests)
+    foreach(control_test control_model_tests control_lock_tests composite_control_tests control_generator_tests)
         add_executable(gui_forms_${control_test} tests/control_language/${control_test}.cpp)
         target_link_libraries(gui_forms_${control_test} PRIVATE gui_forms_controls)
         target_compile_definitions(gui_forms_${control_test} PRIVATE
@@ -4181,7 +4182,24 @@ if(GUI_FORMS_BUILD_TESTS)
                 --class RefusedForm --check --output refused_dialog_form.hpp)
         set_tests_properties(gui_forms_form_compiler_refusal_tests PROPERTIES
             PASS_REGULAR_EXPRESSION "E812 form_generation_refused: refused-ok")
+        # The control mode refuses what the run time would: the stepper
+        # waits for converters (E999).
+        add_test(NAME gui_forms_control_compiler_refusal_tests
+            COMMAND gui_forms_form_compiler
+                ${CMAKE_CURRENT_SOURCE_DIR}/demo/composites/stepper-field.control
+                --control --class StepperField --check --output stepper_field_control.hpp)
+        set_tests_properties(gui_forms_control_compiler_refusal_tests PROPERTIES
+            PASS_REGULAR_EXPRESSION "E999")
         if(GUI_FORMS_BUILD_GENERATED_FORM_TESTS)
+            # gui_forms_add_control end to end (cp34): composite controls
+            # generated at build time from the worked examples.
+            add_executable(gui_forms_composite_generated_tests tests/control_language/composite_generated_tests.cpp)
+            target_link_libraries(gui_forms_composite_generated_tests PRIVATE gui_forms_controls)
+            gui_forms_add_control(gui_forms_composite_generated_tests demo/composites/toggle-pill.control
+                CLASS TogglePill NAMESPACE composite_generated COMPILER gui_forms_form_compiler)
+            gui_forms_add_control(gui_forms_composite_generated_tests demo/composites/card-with-action.control
+                CLASS CardWithAction NAMESPACE composite_generated COMPILER gui_forms_form_compiler)
+            add_test(NAME gui_forms_composite_generated_tests COMMAND gui_forms_composite_generated_tests)
             # gui_forms_add_form end to end: a header generated at build time,
             # naming an application type.
             add_executable(gui_forms_form_application_type_tests

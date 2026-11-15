@@ -89,3 +89,65 @@ function(gui_forms_add_form target document)
     target_sources(${target} PRIVATE "${output}")
     target_include_directories(${target} PRIVATE "${output_directory}")
 endfunction()
+
+# Composite controls (cp34): the form compiler's control mode generates a
+# `.control` document's C++ header at build time, checking the document as
+# the run-time loader does. A consumer writes:
+#
+#   gui_forms_add_control(my_app controls/toggle-pill.control CLASS TogglePill NAMESPACE my_app)
+#
+# and includes "toggle_pill_control.hpp", whose class derives from
+# gui_forms::CompositeControl and is made with gui_forms::make_control.
+# Arguments are gui_forms_add_form's, without DERIVED, MODEL and
+# MODEL_HEADER: the target, the document, CLASS, NAMESPACE, OUTPUT (default
+# <binary dir>/gui_forms_controls/<stem>_control.hpp, a '-' in the stem
+# becoming '_'), TYPES (application types the children may name) and
+# COMPILER.
+
+if(COMMAND gui_forms_add_control)
+    return()
+endif()
+
+function(gui_forms_add_control target document)
+    cmake_parse_arguments(PARSE_ARGV 2 CONTROL "" "CLASS;NAMESPACE;OUTPUT;COMPILER" "TYPES")
+    if(CONTROL_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "gui_forms_add_control: unknown arguments ${CONTROL_UNPARSED_ARGUMENTS}")
+    endif()
+    if(NOT CONTROL_CLASS)
+        message(FATAL_ERROR "gui_forms_add_control: CLASS is required")
+    endif()
+    if(CONTROL_COMPILER)
+        set(compiler "${CONTROL_COMPILER}")
+    else()
+        set(compiler GUIForms::form_compiler)
+    endif()
+    if(NOT TARGET ${compiler})
+        message(FATAL_ERROR "gui_forms_add_control: ${compiler} is not available "
+                            "(build or install GUI.Forms with GUI_FORMS_BUILD_FORM_COMPILER)")
+    endif()
+    get_filename_component(source "${document}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    get_filename_component(stem "${document}" NAME_WE)
+    string(REPLACE "-" "_" stem "${stem}")
+    if(CONTROL_OUTPUT)
+        get_filename_component(output "${CONTROL_OUTPUT}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+    else()
+        set(output "${CMAKE_CURRENT_BINARY_DIR}/gui_forms_controls/${stem}_control.hpp")
+    endif()
+    get_filename_component(output_directory "${output}" DIRECTORY)
+    set(arguments "${source}" --control --class "${CONTROL_CLASS}" --output "${output}")
+    if(CONTROL_NAMESPACE)
+        list(APPEND arguments --namespace "${CONTROL_NAMESPACE}")
+    endif()
+    foreach(type IN LISTS CONTROL_TYPES)
+        list(APPEND arguments --type "${type}")
+    endforeach()
+    add_custom_command(
+        OUTPUT "${output}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${output_directory}"
+        COMMAND ${compiler} ${arguments}
+        DEPENDS "${source}" "$<TARGET_FILE:${compiler}>"
+        COMMENT "Generating ${stem}_control.hpp from ${document}"
+        VERBATIM)
+    target_sources(${target} PRIVATE "${output}")
+    target_include_directories(${target} PRIVATE "${output_directory}")
+endfunction()
