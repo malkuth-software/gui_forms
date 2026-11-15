@@ -631,10 +631,24 @@ gd_raster_service_v0 raster_service{};
     return true;
 }
 
-gd_result verify_bitmap_is_not_leased(gui_drawing::Bitmap& bitmap) {
-    return gui_drawing::abi::platform::has_hdc_lease(bitmap) ?
-        fail(GD_ERROR_INVALID_STATE,
-             "bitmap cannot be disposed during an HDC lease") : GD_OK;
+// A-gf-abi-01-F12: an HDC lease, a pixel lock and a bounded edit each lend
+// pointers into the bitmap's storage, so dispose waits for all three to be
+// returned. A release that reaches zero is not refused: the caller's
+// reference is gone either way, and refusing would leave it counted.
+gd_result verify_bitmap_is_not_lent(gui_drawing::Bitmap& bitmap) {
+    if (gui_drawing::abi::platform::has_hdc_lease(bitmap)) {
+        return fail(GD_ERROR_INVALID_STATE,
+                    "bitmap cannot be disposed during an HDC lease");
+    }
+    if (bitmap.locked()) {
+        return fail(GD_ERROR_INVALID_STATE,
+                    "bitmap cannot be disposed during a pixel lock");
+    }
+    if (bitmap.editing()) {
+        return fail(GD_ERROR_INVALID_STATE,
+                    "bitmap cannot be disposed during a bounded edit");
+    }
+    return GD_OK;
 }
 
 gd_result create_solid_brush(gd_color color, gd_handle* output) {
@@ -1575,9 +1589,9 @@ gd_result api_dispose(gd_handle handle) {
     if (const gd_result result = registry().object_kind(handle, &kind);
         result != GD_OK) return result;
     if (kind == GD_OBJECT_BITMAP) {
-        const gd_result lease_check = registry().with<gui_drawing::Bitmap>(
-            handle, GD_OBJECT_BITMAP, &verify_bitmap_is_not_leased);
-        if (lease_check != GD_OK) return lease_check;
+        const gd_result lend_check = registry().with<gui_drawing::Bitmap>(
+            handle, GD_OBJECT_BITMAP, &verify_bitmap_is_not_lent);
+        if (lend_check != GD_OK) return lend_check;
     }
     return registry().dispose(handle);
 }

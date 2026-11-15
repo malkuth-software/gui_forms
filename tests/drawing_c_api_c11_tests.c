@@ -1030,6 +1030,8 @@ int main(void) {
     CHECK(api.bitmap_unlock(bitmap, bitmap_lock.token) == GD_ERROR_INVALID_ARGUMENT);
     CHECK(api.bitmap_lock(bitmap, GD_BITMAP_LOCK_WRITE, &bitmap_lock) == GD_OK);
     CHECK(bitmap_lock.writable_data != NULL);
+    /* A-gf-abi-01-F12: dispose waits for the lock to be returned. */
+    CHECK(api.dispose(bitmap) == GD_ERROR_INVALID_STATE);
     ((uint8_t*)bitmap_lock.writable_data)[0] = 255;
     ((uint8_t*)bitmap_lock.writable_data)[1] = 0;
     ((uint8_t*)bitmap_lock.writable_data)[2] = 0;
@@ -1044,6 +1046,7 @@ int main(void) {
                                 &bitmap_edit) == GD_OK);
     CHECK(bitmap_edit.writable_data != NULL && bitmap_edit.row_bytes == 8 &&
           bitmap_edit.bounds.x == 1 && bitmap_edit.bounds.y == 1);
+    CHECK(api.dispose(bitmap) == GD_ERROR_INVALID_STATE);
     ((uint8_t*)bitmap_edit.writable_data)[0] = 0;
     ((uint8_t*)bitmap_edit.writable_data)[1] = 255;
     ((uint8_t*)bitmap_edit.writable_data)[2] = 0;

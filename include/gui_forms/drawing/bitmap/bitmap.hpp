@@ -84,6 +84,8 @@ public:
     [[nodiscard]] BitmapLockView lock(BitmapLockMode mode);
     void unlock(std::uint64_t token);
     [[nodiscard]] bool locked() const;
+    // True between begin_edit and its commit or cancel.
+    [[nodiscard]] bool editing() const;
     [[nodiscard]] BitmapEditView begin_edit(RectI bounds);
     [[nodiscard]] std::uint64_t commit_edit(std::uint64_t token);
     void cancel_edit(std::uint64_t token);

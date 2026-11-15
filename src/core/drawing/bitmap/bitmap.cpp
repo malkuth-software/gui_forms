@@ -300,6 +300,11 @@ bool Bitmap::locked() const {
     return active_lock_token_ != 0U;
 }
 
+bool Bitmap::editing() const {
+    require_alive();
+    return active_edit_;
+}
+
 BitmapEditView Bitmap::begin_edit(RectI bounds) {
     require_alive();
     require_unlocked();

@@ -263,6 +263,10 @@ Types
 
       Reports whether any lock or edit lease is active.
 
+   .. cpp:function:: bool editing() const
+
+      True between begin_edit and its commit or cancel.
+
    .. cpp:function:: ImageSnapshot snapshot() const
 
       Returns immutable shared pixel storage plus stable identity, dimensions, format, and generation.
