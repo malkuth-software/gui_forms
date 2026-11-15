@@ -210,6 +210,7 @@ void capabilities_json_names_the_locale() {
 // (reference counted); the previous global locale is restored before each check.
 void global_locale_reaches_no_number() {
     Fixture fixture;
+    // std-rules: allow(locale-change) the test sets a comma-decimal global locale to prove no number follows it, and restores the previous one before its checks
     const std::locale previous = std::locale::global(std::locale(std::locale::classic(), new CommaNumbers()));
     (*fixture.numeric).value = 4321.25;
     const std::string decimal = editor_text(*fixture.numeric);
@@ -220,7 +221,7 @@ void global_locale_reaches_no_number() {
     (*bar).set_range(0.0, 5000.0);
     (*bar).value = 1234.5;
     const std::string bar_value = (*bar).semantic_descriptor().value;
-    static_cast<void>(std::locale::global(previous));
+    static_cast<void>(std::locale::global(previous));  // std-rules: allow(locale-change) restores the locale the test replaced
     require(decimal == "4,321.25", "the numeric field's digits ignore the global C++ locale");
     require(hexadecimal == "FFFF", "hexadecimal text gains no group separators");
     require(bar_value == "1234.5", "a range control publishes its value in the C locale's form");
