@@ -54,7 +54,9 @@ private:
     void observe_dispatch(const HostEvent& event,
                           const HostDispatchResult& result);
 
-    Window* window_{};
+    // Observed, not owned (as HostSession's): null once the window is
+    // destroyed, and then the host does nothing to it.
+    WindowRef window_;
     std::atomic<bool> dispatcher_wake_pending_{};
     std::atomic<bool> paint_wake_pending_{};
     HeadlessHostServices services_;

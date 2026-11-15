@@ -1098,6 +1098,17 @@ void test_session_outlives_its_window() {
     std::unique_ptr<HostSession> quiet = std::make_unique<HostSession>(*second, host::headless_capabilities());
     second.reset();
     quiet.reset();
+
+    // The headless host, which holds a session with services, likewise.
+    std::shared_ptr<InputProbe> hosted_probe = make_control<InputProbe>(StableId("host.gone.hosted"));
+    std::unique_ptr<Window> hosted = std::make_unique<Window>(hosted_probe, Size{100.0, 80.0});
+    std::unique_ptr<host::HeadlessHost> headless = std::make_unique<host::HeadlessHost>(*hosted);
+    require((*headless).dispatch(HostAttachEvent{{100.0, 80.0}, 1.0}, 1U).accepted(), "the headless host attaches");
+    hosted.reset();
+    require((*headless).pump_dispatcher(8U).invoked == 0U, "a destroyed window has no posted work");
+    require((*headless).dispatch(HostActivationEvent{true}, 2U).error == HostDispatchError::after_shutdown,
+            "the headless host's session ends with its window");
+    headless.reset();
 }
 
 // Counts the presentation_changed notifications a window raises.
