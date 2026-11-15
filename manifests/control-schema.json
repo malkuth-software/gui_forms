@@ -14709,7 +14709,7 @@
         {"name": "checked", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "text", "kind": "text", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"}
       ],
-      "events": [{"name": "checked-changed", "payload": "boolean"}],
+      "events": [{"name": "checked-changed", "payload": "bool"}],
       "commands": ["toggle"]
     }
   ]

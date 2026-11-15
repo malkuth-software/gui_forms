@@ -124,6 +124,15 @@ enum class ControlPropertyKind : std::uint8_t {
 
 // The kebab-case word a document writes for a kind.
 [[nodiscard]] std::string_view control_property_kind_name(ControlPropertyKind kind) noexcept;
+// The C++ spelling of a kind's value as an event payload: the word the
+// control schema and the interaction declarations give a composite event's
+// payload, in the vocabulary of the C++ events (`bool`, `double`,
+// `std::int64_t`, `Point`; the BindingValue alternative the payload
+// holds), so the C ABI maps it through interaction_fields.json as it maps
+// theirs. Every word is listed in tools/abi_event_catalog.py's
+// COMPOSITE_PAYLOADS, which keeps it in that map. "unknown" for a value
+// outside the enumeration.
+[[nodiscard]] std::string_view control_payload_type_name(ControlPropertyKind kind) noexcept;
 
 enum class ControlBindable : std::uint8_t {
     no,

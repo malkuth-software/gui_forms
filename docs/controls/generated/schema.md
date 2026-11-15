@@ -4010,5 +4010,5 @@ Commands: none.
 
 Slot: none, children are refused.
 Declared properties: `checked` (boolean), `text` (text).
-Events: `checked-changed` (boolean).
+Events: `checked-changed` (bool).
 Commands: `toggle`.

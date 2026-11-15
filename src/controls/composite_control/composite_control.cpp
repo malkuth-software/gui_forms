@@ -1187,7 +1187,7 @@ void CompositeControl::append_interactions(std::vector<InteractionDeclaration>& 
         InteractionDeclaration declaration{};
         declaration.name = (*definition_).interaction_names[index];
         declaration.payload = (*definition_).events[index].payload
-            ? control_language::control_property_kind_name(*(*definition_).events[index].payload)
+            ? control_language::control_payload_type_name(*(*definition_).events[index].payload)
             : std::string_view{};
         interactions.push_back(declaration);
     }

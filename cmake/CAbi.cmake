@@ -561,6 +561,11 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_abi_audit_exports_tests
         COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
             -p test_abi_audit_exports.py)
+    # Composite event payloads in the schema speak the C++ events' payload
+    # words, each mapped by interaction_fields.json (cp33).
+    add_test(NAME gui_forms_abi_composite_payloads
+        COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
+            -p test_composite_payloads.py)
     set_tests_properties(gui_forms_abi_audit gui_forms_abi_audit_fixtures PROPERTIES TIMEOUT 300)
 
     # A Visual Studio consumer: MSVC compiles the layout probe and the

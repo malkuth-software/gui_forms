@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 193> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -85,6 +85,7 @@ inline constexpr std::array<InteractionFieldsEntry, 193> interaction_fields{{
     {"HelpSectionToggle", "section: unsigned_integer, open: boolean"},
     {"ImageId", "value: unsigned_integer"},
     {"ImageListChange", "kind: enumeration, index: unsigned_integer, key: text, revision: unsigned_integer"},
+    {"Insets", "value: insets"},
     {"ItemCheckEvent", "index: unsigned_integer, current_state: enumeration, new_state: enumeration, cancel: boolean"},
     {"ItemContentPaint", "index: unsigned_integer, column: unsigned_integer, stable_id: text, content: rectangle, font.role: enumeration, font.size: number, font.weight: unsigned_integer, font.italic: boolean, font.letter_spacing: number, font.family: unsigned_integer, font.stack: unsigned_integer, text: color, draw_default: boolean"},
     {"KeyEventArgs", "key_code: unsigned_integer, physical_key: unsigned_integer, scan_code: unsigned_integer, modifiers: enumeration, repeat: boolean, released_by_deactivation: boolean, handled: boolean, suppress_key_press: boolean"},
@@ -127,6 +128,7 @@ inline constexpr std::array<InteractionFieldsEntry, 193> interaction_fields{{
     {"PlotPointPick", "series: unsigned_integer, element: unsigned_integer, x: number, y: number"},
     {"PlotQuery", "present: boolean, x_minimum: number, x_maximum: number, y_minimum: number, y_maximum: number"},
     {"PlotViewRanges", "x_minimum: number, x_maximum: number, y_minimum: number, y_maximum: number"},
+    {"Point", "value: point"},
     {"PointerEvent", "action: enumeration, button: enumeration, position: point, wheel_delta: point, modifiers: enumeration, pointer_id: unsigned_integer, phase: enumeration, handled: boolean, click_count: unsigned_integer, wheel_unit: enumeration, wheel_phase: enumeration, timestamp_nanoseconds: unsigned_integer"},
     {"PresentationSettings", "text_scale: number, high_contrast: boolean, reduced_motion: boolean, sound_enabled: boolean, ambient_motion: boolean, reduced_transparency: boolean, double_click_milliseconds: unsigned_integer, double_click_origin: enumeration, pointer.drag_width: number, pointer.drag_height: number, pointer.drag_origin: enumeration, pointer.hover_milliseconds: unsigned_integer, pointer.hover_width: number, pointer.hover_height: number, pointer.hover_origin: enumeration, pointer.native_hover: boolean, caret.blink_milliseconds: unsigned_integer, caret.origin: enumeration, colour_scheme: enumeration"},
     {"PreviewKeyDownEventArgs", "key_code: unsigned_integer, physical_key: unsigned_integer, modifiers: enumeration, repeat: boolean, is_input_key: boolean"},
@@ -155,6 +157,7 @@ inline constexpr std::array<InteractionFieldsEntry, 193> interaction_fields{{
     {"SceneViewTransform", "origin.x: number, origin.y: number, zoom: number"},
     {"ScrollEvent", "type: enumeration, old_value: number, new_value: number, orientation: enumeration"},
     {"SemanticFeedbackRecord", "sequence: unsigned_integer, kind: enumeration, cue: enumeration, timestamp_nanoseconds: unsigned_integer, sound_enabled: boolean, host_accepted: boolean, sound_presented: boolean"},
+    {"Size", "value: size"},
     {"SplitChangeEvent", "old_distance: number, new_distance: number, reason: enumeration, collapse_origin: enumeration"},
     {"SplitterMoveEvent", "pointer: point, split_position: number"},
     {"SubSurfaceStopped", "state: enumeration, failure: text"},
@@ -196,6 +199,7 @@ inline constexpr std::array<InteractionFieldsEntry, 193> interaction_fields{{
     {"int, bool", "value_1: signed_integer, value_2: boolean"},
     {"plots::Plot3DCamera", "elevation: number, azimuth: number, roll: number, zoom: number, target: number[3], projection: enumeration, focal_length: number"},
     {"plots::Plot3DHit", "kind: enumeration, item: unsigned_integer, index: unsigned_integer, data_point: number[3], surface_parameter: number[2], depth: number"},
+    {"std::int64_t", "value: signed_integer"},
     {"std::optional<Color>", "value: color optional"},
     {"std::optional<DataGridViewCellAddress>", "row: unsigned_integer optional, column: unsigned_integer optional"},
     {"std::optional<TokenId>", "value: unsigned_integer optional"},

@@ -28,6 +28,15 @@ constexpr std::array<std::string_view, 14> property_kind_words = {
     "font",    "image",  "size",           "point",            "rectangle", "insets",      "command",
 };
 
+// The C++ payload spelling of each kind, in property_kind_words' order
+// (control_payload_type_name): the BindingValue alternative its value is.
+// An enumeration is a PropertyEnumValue; a command's payload is its
+// command's name. Kept in tools/abi_event_catalog.py's COMPOSITE_PAYLOADS.
+constexpr std::array<std::string_view, 14> payload_type_words = {
+    "bool",     "double",  "std::int64_t", "std::uint64_t", "std::string", "PropertyEnumValue", "Color",
+    "FontSpec", "ImageId", "Size",         "Point",         "Rect",        "Insets",            "std::string",
+};
+
 // The colour properties a composite may declare: the application's
 // authored colours the theme admits (design note 3.6). No font property is
 // admitted.
@@ -2378,6 +2387,12 @@ std::string_view control_property_kind_name(const ControlPropertyKind kind) noex
     const std::size_t index = static_cast<std::size_t>(kind);
     if (index >= property_kind_words.size()) return "unknown";
     return property_kind_words[index];
+}
+
+std::string_view control_payload_type_name(const ControlPropertyKind kind) noexcept {
+    const std::size_t index = static_cast<std::size_t>(kind);
+    if (index >= payload_type_words.size()) return "unknown";
+    return payload_type_words[index];
 }
 
 ControlSyntaxOutcome read_control_syntax(const theme_language::ThemeSource& source, ControlSyntax& syntax,

@@ -868,7 +868,9 @@ void append_composite(std::string& out, const CompositeDefinition& definition) {
         append_json_string(out, event.name);
         out += ", \"payload\": ";
         if (event.payload) {
-            append_json_string(out, control_language::control_property_kind_name(*event.payload));
+            // In the C++ events' payload words (bool, not boolean): one
+            // vocabulary, which the C ABI maps through interaction_fields.json.
+            append_json_string(out, control_language::control_payload_type_name(*event.payload));
         } else {
             out += "null";
         }

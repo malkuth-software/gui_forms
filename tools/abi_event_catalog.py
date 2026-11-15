@@ -60,6 +60,18 @@ HAND_WRITTEN_KINDS: dict[str, str] = {
     'MaskPosition': 'unsigned_integer', 'Control::Ptr': 'object',
 }
 
+# The payload words a composite control's events can carry: the C++
+# spelling of each control-language kind's value
+# (control_language::control_payload_type_name, payload_type_words in
+# src/core/control_language/control_model/control_model.cpp, which
+# tools/test_composite_payloads.py compares with this list). The map keeps
+# an entry for each, so the C ABI maps a composite event's payload through
+# interaction_fields.json with no second vocabulary.
+COMPOSITE_PAYLOADS: tuple[str, ...] = (
+    'bool', 'double', 'std::int64_t', 'std::uint64_t', 'std::string', 'PropertyEnumValue', 'Color',
+    'FontSpec', 'ImageId', 'Size', 'Point', 'Rect', 'Insets',
+)
+
 # Types the hand-written fields (abi_event_fields.hpp) carry, by spelling.
 HAND_WRITTEN: frozenset[str] = frozenset({
     'bool', 'int', 'double', 'float', 'std::string', 'std::string_view', 'std::size_t', 'std::ptrdiff_t',
@@ -604,6 +616,13 @@ def payload_map(catalog: Catalog) -> dict[str, str]:
     declaration: Declaration
     for declaration in catalog.declarations:
         mapped[declaration.payload] = payload_fields(catalog, declaration.payload)
+    # A composite control's events are declared at run time, by documents:
+    # every payload word they can carry is mapped whether or not a C++
+    # event uses it yet.
+    payload: str
+    for payload in COMPOSITE_PAYLOADS:
+        if payload not in mapped:
+            mapped[payload] = payload_fields(catalog, payload)
     return dict(sorted(mapped.items()))
 
 
