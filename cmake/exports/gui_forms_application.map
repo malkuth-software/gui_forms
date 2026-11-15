@@ -1557,6 +1557,7 @@
     _ZGVZN9gui_forms6detail15FailureSnapshot*;
     _ZGVZN9gui_forms6detail16BorrowOwnerState*;
     _ZGVZN9gui_forms6detail17ControlHelpFields*;
+    _ZGVZN9gui_forms6detail17FailureStatistics*;
     _ZGVZN9gui_forms6detail18WindowHelpFallback*;
     _ZGVZN9gui_forms6detail19NestedEmissionScope*;
     _ZGVZN9gui_forms6detail20RichTextSourceChange*;
@@ -3213,6 +3214,7 @@
     _ZGVZNK9gui_forms6detail15FailureSnapshot*;
     _ZGVZNK9gui_forms6detail16BorrowOwnerState*;
     _ZGVZNK9gui_forms6detail17ControlHelpFields*;
+    _ZGVZNK9gui_forms6detail17FailureStatistics*;
     _ZGVZNK9gui_forms6detail18WindowHelpFallback*;
     _ZGVZNK9gui_forms6detail19NestedEmissionScope*;
     _ZGVZNK9gui_forms6detail20RichTextSourceChange*;
@@ -6323,11 +6325,14 @@
     _ZN9gui_forms6detail16well_formed_textB*;
     _ZN9gui_forms6detail16well_formed_textE*;
     _ZN9gui_forms6detail17ControlHelpFields*;
+    _ZN9gui_forms6detail17FailureStatistics*;
     _ZN9gui_forms6detail17toggle_rule_valueB*;
     _ZN9gui_forms6detail17toggle_rule_valueE*;
     _ZN9gui_forms6detail18WindowHelpFallback*;
     _ZN9gui_forms6detail18copy_record_framesB*;
     _ZN9gui_forms6detail18copy_record_framesE*;
+    _ZN9gui_forms6detail18failure_statisticsB*;
+    _ZN9gui_forms6detail18failure_statisticsE*;
     _ZN9gui_forms6detail18set_layout_keepingB*;
     _ZN9gui_forms6detail18set_layout_keepingE*;
     _ZN9gui_forms6detail18write_code_addressB*;
@@ -6356,6 +6361,8 @@
     _ZN9gui_forms6detail22decode_clipboard_imageE*;
     _ZN9gui_forms6detail22encode_clipboard_imageB*;
     _ZN9gui_forms6detail22encode_clipboard_imageE*;
+    _ZN9gui_forms6detail23mark_parked_frames_lostB*;
+    _ZN9gui_forms6detail23mark_parked_frames_lostE*;
     _ZN9gui_forms6detail23record_failure_snapshotB*;
     _ZN9gui_forms6detail23record_failure_snapshotE*;
     _ZN9gui_forms6detail23thread_failure_snapshotB*;
@@ -6366,6 +6373,8 @@
     _ZN9gui_forms6detail25attach_application_windowE*;
     _ZN9gui_forms6detail25ensure_fail_fast_reporterB*;
     _ZN9gui_forms6detail25ensure_fail_fast_reporterE*;
+    _ZN9gui_forms6detail27count_parked_frames_droppedB*;
+    _ZN9gui_forms6detail27count_parked_frames_droppedE*;
     _ZN9gui_forms6detail28advance_property_write_epochB*;
     _ZN9gui_forms6detail28advance_property_write_epochE*;
     _ZN9gui_forms6detail35premultiplied_bgra_to_straight_bgraB*;
@@ -8141,6 +8150,7 @@
     _ZNK[RO]9gui_forms6detail15FailureSnapshot*;
     _ZNK[RO]9gui_forms6detail16BorrowOwnerState*;
     _ZNK[RO]9gui_forms6detail17ControlHelpFields*;
+    _ZNK[RO]9gui_forms6detail17FailureStatistics*;
     _ZNK[RO]9gui_forms6detail18WindowHelpFallback*;
     _ZNK[RO]9gui_forms6detail19NestedEmissionScope*;
     _ZNK[RO]9gui_forms6detail20RichTextSourceChange*;
@@ -9797,6 +9807,7 @@
     _ZN[KRO]9gui_forms6detail15FailureSnapshot*;
     _ZN[KRO]9gui_forms6detail16BorrowOwnerState*;
     _ZN[KRO]9gui_forms6detail17ControlHelpFields*;
+    _ZN[KRO]9gui_forms6detail17FailureStatistics*;
     _ZN[KRO]9gui_forms6detail18WindowHelpFallback*;
     _ZN[KRO]9gui_forms6detail19NestedEmissionScope*;
     _ZN[KRO]9gui_forms6detail20RichTextSourceChange*;
@@ -11453,6 +11464,7 @@
     _ZT[VIST]N9gui_forms6detail15FailureSnapshot*E;
     _ZT[VIST]N9gui_forms6detail16BorrowOwnerState*E;
     _ZT[VIST]N9gui_forms6detail17ControlHelpFields*E;
+    _ZT[VIST]N9gui_forms6detail17FailureStatistics*E;
     _ZT[VIST]N9gui_forms6detail18WindowHelpFallback*E;
     _ZT[VIST]N9gui_forms6detail19NestedEmissionScope*E;
     _ZT[VIST]N9gui_forms6detail20RichTextSourceChange*E;
@@ -13109,6 +13121,7 @@
     _ZT[hvc]*9gui_forms6detail15FailureSnapshot*;
     _ZT[hvc]*9gui_forms6detail16BorrowOwnerState*;
     _ZT[hvc]*9gui_forms6detail17ControlHelpFields*;
+    _ZT[hvc]*9gui_forms6detail17FailureStatistics*;
     _ZT[hvc]*9gui_forms6detail18WindowHelpFallback*;
     _ZT[hvc]*9gui_forms6detail19NestedEmissionScope*;
     _ZT[hvc]*9gui_forms6detail20RichTextSourceChange*;
@@ -14765,6 +14778,7 @@
     _ZZN9gui_forms6detail15FailureSnapshot*;
     _ZZN9gui_forms6detail16BorrowOwnerState*;
     _ZZN9gui_forms6detail17ControlHelpFields*;
+    _ZZN9gui_forms6detail17FailureStatistics*;
     _ZZN9gui_forms6detail18WindowHelpFallback*;
     _ZZN9gui_forms6detail19NestedEmissionScope*;
     _ZZN9gui_forms6detail20RichTextSourceChange*;
@@ -16421,6 +16435,7 @@
     _ZZNK9gui_forms6detail15FailureSnapshot*;
     _ZZNK9gui_forms6detail16BorrowOwnerState*;
     _ZZNK9gui_forms6detail17ControlHelpFields*;
+    _ZZNK9gui_forms6detail17FailureStatistics*;
     _ZZNK9gui_forms6detail18WindowHelpFallback*;
     _ZZNK9gui_forms6detail19NestedEmissionScope*;
     _ZZNK9gui_forms6detail20RichTextSourceChange*;
