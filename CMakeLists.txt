@@ -8,8 +8,14 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 project(GUIForms VERSION 0.6.0 LANGUAGES C CXX)
 
-if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
-   NOT CMAKE_CXX_COMPILER_VERSION MATCHES "^22\\.1\\.")
+# The browser target's compiler is the pinned emsdk's clang
+# (cmake/emscripten.cmake checks the release); every other target is LLVM 22.1.
+if(EMSCRIPTEN)
+    if(NOT DEFINED GUI_FORMS_EMSDK_VERSION)
+        message(FATAL_ERROR "GUI.Forms' browser target requires cmake/emscripten.cmake as the toolchain file")
+    endif()
+elseif(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
+       NOT CMAKE_CXX_COMPILER_VERSION MATCHES "^22\\.1\\.")
     message(FATAL_ERROR "GUI.Forms requires LLVM 22.1.x; use cmake/llvm22.cmake")
 endif()
 # Linux builds against libc++ 22 (cmake/llvm22.cmake), like macOS and
@@ -31,6 +37,16 @@ int main() { return 0; }
                             "cmake/llvm22.cmake and install libc++-22-dev and libc++abi-22-dev "
                             "(Alpine: libc++-dev, libc++-static, llvm-libunwind-dev, compiler-rt)")
     endif()
+endif()
+# The browser target builds the library and its web host. The gallery, the
+# tests and the form compiler run natively, and the Clang plugin passes load
+# into the host's LLVM 22.1, not the emsdk's clang: off unless asked for.
+if(EMSCRIPTEN)
+    set(GUI_FORMS_BUILD_GALLERY OFF CACHE BOOL "Build the native control gallery")
+    set(GUI_FORMS_BUILD_TESTS OFF CACHE BOOL "Build automated proving-slice tests")
+    set(GUI_FORMS_BUILD_FORM_COMPILER OFF CACHE BOOL "Build and install the form compiler")
+    set(GUI_FORMS_LOCALIZABLE_PLUGIN OFF CACHE BOOL "Build the localizable-literal Clang plugin")
+    set(GUI_FORMS_EFFECT_VERIFY OFF CACHE BOOL "Verify effect programs with the Clang plugin's effect pass")
 endif()
 if(APPLE)
     add_compile_options(-Werror=unguarded-availability -Werror=unguarded-availability-new)
@@ -122,6 +138,9 @@ option(GUI_FORMS_ENABLE_WINDOWS_HOST "Build the native Win32 host" ${WIN32})
 option(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB
        "Enable bounded transactional DIB frames in the Windows development host" OFF)
 option(GUI_FORMS_ENABLE_LINUX_HOST "Build the native X11 host with the private CPU renderer" OFF)
+# The browser host (owner decisions, 2026-11-15): Emscripten only, through
+# cmake/emscripten.cmake; WebGL2 is its present backend and nothing else.
+option(GUI_FORMS_ENABLE_WEB_HOST "Build the browser host (Emscripten) with the private CPU renderer" ${EMSCRIPTEN})
 # ADR-004: the Skia painter, the C drawing API and the Win32 host all draw
 # text with the shared HarfBuzz/FreeType engine.
 if(GUI_FORMS_ENABLE_SKIA OR GUI_FORMS_ENABLE_WINDOWS_HOST)
@@ -820,6 +839,8 @@ set(GUI_FORMS_WINDOWS_DEFINITIONS WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE 
 if(WIN32)
     add_library(gui_forms_sealed_pages_objects OBJECT src/host/windows/fonts/sealed_pages_windows.cpp)
     target_compile_definitions(gui_forms_sealed_pages_objects PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})
+elseif(EMSCRIPTEN)
+    add_library(gui_forms_sealed_pages_objects OBJECT src/host/web/fonts/sealed_pages_web.cpp)
 else()
     add_library(gui_forms_sealed_pages_objects OBJECT src/host/posix/fonts/sealed_pages_posix.cpp)
 endif()
@@ -1970,6 +1991,52 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     install(EXPORT GUIFormsApplicationTargets FILE GUIFormsApplicationTargets.cmake
         NAMESPACE GUIForms:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
     gui_forms_install_bundled_fonts()
+endif()
+
+if(GUI_FORMS_ENABLE_WEB_HOST)
+    if(NOT EMSCRIPTEN OR NOT GUI_FORMS_ENABLE_SKIA)
+        message(FATAL_ERROR "The browser host requires the Emscripten toolchain (cmake/emscripten.cmake) and the private CPU Skia adapter")
+    endif()
+    add_library(gui_forms_host_web STATIC
+        src/host/web/application/web_host.cpp
+        src/host/web/application/web_windowing.cpp
+        src/host/web/application/web_services.cpp
+        src/host/web/application/web_dialogs.cpp
+        src/host/web/desk/web_desk.cpp
+        src/host/web/input/web_input_rules.cpp
+        src/host/web/page/web_page_queue.cpp
+        src/host/web/page/web_present.cpp
+        src/host/web/page/web_page_exports.cpp
+        $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+    target_link_libraries(gui_forms_host_web PUBLIC gui_forms_core gui_forms_controls gui_forms_skia)
+    # The page half, linked into every program that links the host.
+    set(GUI_FORMS_WEB_HOST_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/src/host/web/page/web_host.js)
+    target_link_options(gui_forms_host_web INTERFACE "SHELL:--js-library ${GUI_FORMS_WEB_HOST_LIBRARY}")
+    set_property(TARGET gui_forms_host_web APPEND PROPERTY INTERFACE_LINK_DEPENDS ${GUI_FORMS_WEB_HOST_LIBRARY})
+    # The program runs on a worker (the page's main thread keeps the DOM and
+    # WebGL2), its loop blocking there as on a desktop. Programs add their
+    # memory, pool and file-system settings (src/host/web/README.md).
+    target_link_options(gui_forms_host_web INTERFACE
+        -pthread -sPROXY_TO_PTHREAD=1 -sENVIRONMENT=web,worker -sFORCE_FILESYSTEM=1 -sMAX_WEBGL_VERSION=2
+        -sINVOKE_RUN=0 -lidbfs.js
+        "SHELL:-sEXPORTED_FUNCTIONS=_main,_malloc,_free"
+        "SHELL:-sEXPORTED_RUNTIME_METHODS=FS,IDBFS,callMain,UTF8ToString,stringToNewUTF8,addRunDependency,removeRunDependency")
+    # One static library: Emscripten links no shared libraries here, so the
+    # Application library whole-archives the engine for the program's link.
+    add_library(gui_forms_application STATIC src/runtime/application_bundle.cpp src/runtime/application/application.cpp
+        src/runtime/offscreen/offscreen_raster_create.cpp)
+    add_library(GUIForms::Application ALIAS gui_forms_application)
+    set_target_properties(gui_forms_application PROPERTIES EXPORT_NAME Application OUTPUT_NAME gui_forms_application)
+    target_include_directories(gui_forms_application PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+    target_compile_definitions(gui_forms_application PRIVATE
+        GUI_FORMS_APPLICATION_WEB=1 GUI_FORMS_APPLICATION_SKIA=1)
+    target_link_libraries(gui_forms_application PUBLIC
+        "$<LINK_LIBRARY:WHOLE_ARCHIVE,gui_forms_core,gui_drawing_core,gui_forms_controls,gui_forms_host_web,gui_forms_skia>")
+    if(TARGET gui_forms_text_engine)
+        target_link_libraries(gui_forms_application PUBLIC gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
+    endif()
 endif()
 
 if(GUI_FORMS_ENABLE_WINDOWS_HOST)
@@ -4783,6 +4850,17 @@ if(GUI_FORMS_BUILD_TESTS)
         target_compile_definitions(gui_forms_host_locale_tests PRIVATE GUI_FORMS_TEST_POSIX_LOCALE=1)
     endif()
     add_test(NAME gui_forms_host_locale_tests COMMAND gui_forms_host_locale_tests)
+    # The browser host's desk, input rules, page queue and present record:
+    # plain C++, tested on every platform.
+    add_executable(gui_forms_web_desk_tests
+        tests/web_desk_tests.cpp
+        src/host/web/desk/web_desk.cpp
+        src/host/web/input/web_input_rules.cpp
+        src/host/web/page/web_page_queue.cpp
+        src/host/web/page/web_present.cpp)
+    target_include_directories(gui_forms_web_desk_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(gui_forms_web_desk_tests PRIVATE gui_forms_core Threads::Threads)
+    add_test(NAME gui_forms_web_desk_tests COMMAND gui_forms_web_desk_tests)
     # The X11 host's computed click counts and context keys take plain
     # values and no Xlib, so they are tested on every platform.
     add_executable(gui_forms_linux_input_rules_tests

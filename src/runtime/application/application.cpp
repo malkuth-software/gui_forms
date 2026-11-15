@@ -13,6 +13,8 @@
 #include "gui_forms/platform/windows_host.hpp"
 #elif defined(GUI_FORMS_APPLICATION_LINUX)
 #include "gui_forms/platform/linux_host.hpp"
+#elif defined(GUI_FORMS_APPLICATION_WEB)
+#include "gui_forms/platform/web_host.hpp"
 #endif
 
 #if defined(GUI_FORMS_APPLICATION_SKIA)
@@ -399,6 +401,8 @@ HostCapabilities Application::capabilities() {
     const HostCapabilities result = host::windows_capabilities();
 #elif defined(GUI_FORMS_APPLICATION_LINUX)
     const HostCapabilities result = host::linux_capabilities();
+#elif defined(GUI_FORMS_APPLICATION_WEB)
+    const HostCapabilities result = host::web_capabilities();
 #else
     const HostCapabilities result{HostCapabilities::current_protocol_version, "unsupported", HostCapability::none};
 #endif
@@ -459,6 +463,16 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
         WindowingReady<host::LinuxApplicationWindow>{&bridges, failure, run_state};
     application.windowing_ended = WindowingEnded{run_state};
     result.native_exit_code = host::run_linux_application(std::move(native), std::move(application));
+#elif defined(GUI_FORMS_APPLICATION_WEB)
+    // The browser's program thread (PROXY_TO_PTHREAD's main); the page's
+    // main thread is refused by the host (exit code 3).
+    std::vector<host::WebApplicationWindow> native{};
+    prepare(windows, bridges, failure, run_state, native);
+    host::WebApplicationOptions application{};
+    application.windowing_ready =
+        WindowingReady<host::WebApplicationWindow>{&bridges, failure, run_state};
+    application.windowing_ended = WindowingEnded{run_state};
+    result.native_exit_code = host::run_web_application(std::move(native), std::move(application));
 #else
     result.error = ApplicationError::unsupported;
 #endif
@@ -471,6 +485,9 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
     } else if (result.native_exit_code != 0) {
         result.error = ApplicationError::backend_failure;
     }
+#if defined(GUI_FORMS_APPLICATION_WEB)
+    if (!(*failure).exception && result.native_exit_code == 3) result.error = ApplicationError::wrong_thread;
+#endif
     return result;
 }
 

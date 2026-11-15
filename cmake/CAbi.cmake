@@ -20,6 +20,11 @@ if(NOT TARGET gui_forms_application)
     message(STATUS "GUI.Forms C ABI: not built (this build has no Application library)")
     return()
 endif()
+# gf_abi.h is a 64-bit contract; the browser target is wasm32.
+if(EMSCRIPTEN)
+    message(STATUS "GUI.Forms C ABI: not built (the browser target is 32-bit)")
+    return()
+endif()
 
 set(_gf_abi_header "${CMAKE_CURRENT_SOURCE_DIR}/include/gui_forms/c/gf_abi.h")
 set(_gf_abi_allowlist "${CMAKE_CURRENT_SOURCE_DIR}/manifests/abi/gf_abi_exports.txt")

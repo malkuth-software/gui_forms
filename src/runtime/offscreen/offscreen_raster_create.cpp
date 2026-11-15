@@ -13,12 +13,14 @@
 
 #if defined(_WIN32)
 #include "../../host/windows/fonts/sealed_pages_windows.hpp"
+#elif defined(__EMSCRIPTEN__)
+#include "../../host/web/fonts/sealed_pages_web.hpp"
 #else
 #include "../../host/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #if defined(GUI_FORMS_APPLICATION_MACOS) || defined(GUI_FORMS_APPLICATION_WINDOWS) || \
-    defined(GUI_FORMS_APPLICATION_LINUX)
+    defined(GUI_FORMS_APPLICATION_LINUX) || defined(GUI_FORMS_APPLICATION_WEB)
 #define GUI_FORMS_OFFSCREEN_HOST_FONTS 1
 #include "../../host/offscreen_font_lookup.hpp"
 #endif
@@ -34,6 +36,8 @@ namespace {
 detail::SealedPageFunctions platform_sealed_pages() noexcept {
 #if defined(_WIN32)
     const detail::SealedPageFunctions pages = host::windows_sealed_pages();
+#elif defined(__EMSCRIPTEN__)
+    const detail::SealedPageFunctions pages = host::web_sealed_pages();
 #else
     const detail::SealedPageFunctions pages = host::posix_sealed_pages();
 #endif
