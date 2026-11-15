@@ -18,8 +18,7 @@ visibility):
   Threading library, whose one header (threading.hpp) is annotated by hand.
 
 On Windows the macro is dllexport. On ELF and Mach-O the archives are
-compiled with default visibility (the shared test runtime holds the same
-archives and exports everything to the tests), and each library links with
+compiled with default visibility, and each library links with
 an export list generated here from the marks: cmake/exports/<library>.map
 (a version script) and cmake/exports/<library>.exports (an
 -exported_symbols_list). The macro stays the one source of what is exported.

@@ -12,17 +12,6 @@ from audit_macos_minimum import audit
 from macos_runtime_manifest import verify
 
 
-def relocate_library(source: Path, scratch: Path, original: Path, payload: str) -> Path:
-    """Copy one build-tree dylib beside the relocated executable and point its
-    runtime search path at the restored payload instead of the build host's."""
-    relocated: Path = scratch / source.name
-    shutil.copy2(source, relocated)
-    subprocess.run(['install_name_tool', '-rpath', str(original / 'lib'),
-                    '@loader_path/' + payload + '/lib', str(relocated)], check=True)
-    subprocess.run(['codesign', '--force', '--sign', '-', str(relocated)], check=True)
-    return relocated
-
-
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive', type=Path, required=True)
@@ -42,22 +31,24 @@ def main() -> None:
             if not library.is_symlink():
                 if not audit(library):
                     raise RuntimeError('Restored runtime is not a Mach-O image: ' + str(library))
-        # The Threading library is a static archive (one module, owner decision
-        # 2026-11-15). A test executable may still link the shared test runtime
-        # (cmake/TestRuntime.cmake), which the build tree supplies through the
-        # rpath this script replaces; it is never shipped.
-        test_runtime_source: Path = executable.parent / 'libgui_forms_test_runtime.dylib'
-        test_runtime: Path | None = None
-        if test_runtime_source.is_file():
-            test_runtime = relocate_library(test_runtime_source, scratch, original, payload)
+        # Every GUI.Forms library, the test runtime included, is a static
+        # archive (one module, owner decision 2026-11-15): the executable
+        # loads no library of ours.
         copied: Path = scratch / executable.name
         shutil.copy2(executable, copied)
+        # A program that links the runtime's static archives (cmake/llvm22.cmake,
+        # GUI_FORMS_STATIC_CXX_RUNTIME) loads none of the dylibs and has no
+        # runtime search path to change: then the proof is that it runs without
+        # them, and none may be loaded from elsewhere.
+        linked: str = subprocess.run(['otool', '-L', str(copied)], text=True, stdout=subprocess.PIPE,
+                                     check=True).stdout
+        dynamic_runtime: bool = 'libc++' in linked or 'libunwind' in linked
         # Match application packaging: change only this executable's runtime
         # search path. A global DYLD_LIBRARY_PATH would also replace the runtime
         # used by Apple's system frameworks and tests a different configuration.
-        subprocess.run(['install_name_tool', '-rpath', str(original / 'lib'),
-                        '@executable_path/' + payload + '/lib', str(copied)], check=True)
-        subprocess.run(['install_name_tool', '-rpath', str(executable.parent), '@executable_path', str(copied)], check=True)
+        if dynamic_runtime:
+            subprocess.run(['install_name_tool', '-rpath', str(original / 'lib'),
+                            '@executable_path/' + payload + '/lib', str(copied)], check=True)
         subprocess.run(['codesign', '--force', '--sign', '-', str(copied)], check=True)
         environment: dict[str, str] = os.environ.copy()
         environment.pop('DYLD_LIBRARY_PATH', None)
@@ -66,20 +57,12 @@ def main() -> None:
         result: subprocess.CompletedProcess[str] = subprocess.run(
             [str(copied)], env=environment, text=True, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, timeout=60, check=True)
-        # A program that links the runtime's static archives (cmake/llvm22.cmake,
-        # GUI_FORMS_STATIC_CXX_RUNTIME) loads none of the dylibs: then the proof
-        # is that it runs without them, and none may be loaded from elsewhere.
-        linked: str = subprocess.run(['otool', '-L', str(copied)], text=True, stdout=subprocess.PIPE,
-                                     check=True).stdout
-        dynamic_runtime: bool = 'libc++' in linked or 'libunwind' in linked
         for library in sorted((restored / 'lib').glob('*.dylib')):
             if not library.is_symlink():
                 if dynamic_runtime and str(library) not in result.stderr:
                     raise RuntimeError('Restored library was not loaded: ' + str(library))
                 if not dynamic_runtime and str(library) in result.stderr:
                     raise RuntimeError('A statically linked program loaded ' + str(library))
-        if test_runtime is not None and str(test_runtime) not in result.stderr:
-            raise RuntimeError('Relocated test runtime was not loaded')
         print(result.stdout, end='')
         print('Archived runtime restored; its dylibs loaded; native test passed')
 

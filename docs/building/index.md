@@ -58,7 +58,7 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
 | `GUI_FORMS_HARDENING` | ON | Stack protector, `_FORTIFY_SOURCE=2` (outside Debug and sanitized builds), CET or branch protection, Control Flow Guard on Windows, and full RELRO on Linux, for every first-party library and program |
 | `GUI_FORMS_WARNINGS` | ON | Compile first-party code with `-Wall -Wextra`; `tools/warning_baseline.py` holds the count of warning sites per directory and fails a build that raises one |
-| `GUI_FORMS_TEST_RUNTIME` | ON | Link the test programs that use only the toolkit's own libraries to one shared test runtime, so a library change relinks one library instead of every program (CMake 3.27 or later) |
+| `GUI_FORMS_TEST_RUNTIME` | ON | Link the test programs that use only the toolkit's own libraries through one static test runtime, which links those libraries into each program (CMake 3.27 or later) |
 | `GUI_FORMS_TEST_PRECOMPILED_HEADER` | ON | Share one precompiled header among the test programs; the daily CI build turns it off so that each test includes what it uses |
 | `GUI_FORMS_CHECKED_BORROWS` | OFF | Check borrowed views against their owners; the sanitizer tree (`ci_build.py --sanitize`) turns it on. It changes the borrowed types, so a program and its consumers are built one way |
 | `GUI_FORMS_BUILD_FORM_COMPILER` | ON (OFF when cross-compiling) | Build and install the form compiler that `gui_forms_add_form` runs |
@@ -326,7 +326,7 @@ and gdi32 names (`IsWindow`, `GetDC`, `BitBlt` and the rest of
 out), as the `gui_forms_abi_exports_only_entry_points` and
 `gui_forms_abi_system_imports_only` tests check. A process uses one or the other,
 never both. The localizable-literal plugin is a Clang plugin loaded by the
-compiler, and the shared test runtime (`cmake/TestRuntime.cmake`) is
+compiler, and the static test runtime (`cmake/TestRuntime.cmake`) is
 test-only; neither ships in a program.
 
 Release links prune what a program does not reach: sources are compiled

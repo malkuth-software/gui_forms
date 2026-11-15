@@ -307,7 +307,7 @@ if(WIN32)
 endif()
 
 
-# The archives the Application library (and the shared test runtime) holds
+# The archives the Application library holds
 # whole. They are linked into one module, a program or the C ABI library, so
 # GUI_FORMS_API (gui_forms/export/application_export.hpp) adds nothing on
 # Windows and default visibility elsewhere, which the C ABI library's export
@@ -315,9 +315,8 @@ endif()
 # copy, no first-party code compares the address of an inline function
 # across images, and a static local of an inline function keeps default
 # visibility (Clang's -fvisibility-inlines-hidden-static-local-var is not
-# used). Hiding them keeps the many inline definitions out of the test
-# runtime's dynamic symbol table and spares dyld their weak-definition
-# coalescing at load. Every archive is position independent: the C ABI
+# used). Hiding them keeps the many inline definitions out of the C ABI
+# library's dynamic symbol table. Every archive is position independent: the C ABI
 # library holds them.
 function(gui_forms_application_archive target)
     set_target_properties(${target} PROPERTIES VISIBILITY_INLINES_HIDDEN YES POSITION_INDEPENDENT_CODE ON)
@@ -2149,7 +2148,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     endif()
 endif()
 
-# Every archive the Application library or the shared test runtime holds
+# Every archive the Application library holds
 # whole (gui_forms_application_archive, beside the Threading library; the
 # Application library itself is made by gui_forms_application_library in
 # each host's block).
@@ -7062,7 +7061,7 @@ endif()
 # miniaudio is compiled inside src/audio/audio.cpp and so takes the flag with it. stx_skia sets -ffp-contract=off on its
 # library itself; its raster pipeline's explicit fused stages (the FMA entries in the FMA
 # log) are a separate matter.
-# One shared test runtime for the test programs that use only the toolkit's
+# One static test runtime for the test programs that use only the toolkit's
 # own libraries, before the options below read their links
 # (cmake/TestRuntime.cmake).
 if(GUI_FORMS_BUILD_TESTS)

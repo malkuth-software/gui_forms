@@ -6,15 +6,14 @@
 // the marked declarations now. tools/export_annotations.py still places the
 // mark and keeps the lists under cmake/exports/ in step with it: the marks
 // record the public surface, and the lists stay ready for a consumer that
-// builds its own shared library from the archives. The shared test runtime,
-// which holds the same archives and is never shipped, exports everything,
-// because the tests call private functions.
+// builds its own shared library from the archives. The test runtime is a
+// static archive too (cmake/TestRuntime.cmake).
 //
 // Which form the macro takes is set by the build, per target:
 // - GUI_FORMS_API_BUILD: the unit is compiled into a shared library that
-//   exports the marks (the test runtime's own source): dllexport on Windows;
-// - GUI_FORMS_API_IMPORT: the unit links such a library (the test runtime's
-//   usage requirement): dllimport on Windows;
+//   exports the marks (no first-party target now): dllexport on Windows;
+// - GUI_FORMS_API_IMPORT: the unit links such a library (no first-party
+//   target now): dllimport on Windows;
 // - neither: the unit is compiled into or links the static archives, which
 //   every shipped program does, and the macro is empty on Windows.
 // On ELF and Mach-O the macro is default visibility in every case, so a
