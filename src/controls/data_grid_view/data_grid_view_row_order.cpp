@@ -210,6 +210,11 @@ void DataGridViewRowOrder::clear() noexcept {
 // -- lookups ---------------------------------------------------------------------------
 
 std::string DataGridViewRowOrder::id_at(std::size_t position) const {
+    // Total (A-gf-controls-03-F1): a position at or past the count, a stale
+    // one a caller kept across handlers that removed rows, is no row's ID.
+    // locate would place it past the chunks, and the source is promised
+    // positions within row_count().
+    if (position >= count()) return std::string{};
     if (mode_ == DataGridViewRowOrderMode::edit) {
         std::size_t chunk = 0U;
         std::size_t offset = 0U;

@@ -189,8 +189,9 @@ public:
     void switch_to_window(std::shared_ptr<DataGridViewRowWindowSource> source);
     void clear() noexcept;
 
-    // The ID at a position below count(), by value. In window mode a
-    // position outside the window is asked of the source.
+    // The ID at a position, by value; empty (no row's ID) for a position at
+    // or past count(). In window mode a position outside the window is
+    // asked of the source.
     [[nodiscard]] std::string id_at(std::size_t position) const;
     // The position of an ID now, or none.
     [[nodiscard]] std::optional<std::size_t> position_of(std::string_view id) const;

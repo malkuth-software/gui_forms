@@ -308,8 +308,10 @@ std::size_t DataGridView::row_count() const noexcept {
     return result;
 }
 
-// The caller guarantees `row` is below row_count().
+// Total (A-gf-controls-03-F1): empty, no row's ID, for a row at or past
+// row_count(), a stale position kept across handlers that removed rows.
 std::string DataGridView::row_id_text(DataGridViewRowPosition row) const {
+    if (row.value >= row_count()) return std::string{};
     if (is_new_row(row)) return new_row_.stable_id.value;
     if (row_source_ == DataGridViewRowSource::virtual_rows) return virtual_order_.id_at(row.value);
     if (row_source_ == DataGridViewRowSource::binding_source) {
@@ -775,7 +777,7 @@ DataGridViewCellEvent DataGridView::cell_event(const CellKey& cell) const {
     return event;
 }
 
-// The caller guarantees `cell.row` is below row_count().
+// A row at or past row_count() keys as no row (row_id_text is total).
 DataGridView::CellKey DataGridView::key_of(DataGridViewCellAddress cell) const {
     const CellKey key{row_id_text(cell.row), cell.column};
     return key;

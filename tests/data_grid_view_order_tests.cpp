@@ -206,6 +206,8 @@ void chunked_index_matches_a_vector() {
     require(order.count() == 0U, "removing every row empties the order");
     order.insert(0U, ids(3U, 0U, "again"));
     require(order.count() == 3U && order.id_at(1U) == "again1", "an emptied order takes rows again");
+    require(order.id_at(3U).empty() && order.id_at(1000U).empty(),
+            "a position at or past the count is no row's ID (A-gf-controls-03-F1)");
 
     // Refused reports change nothing.
     const std::vector<DataGridViewRowId> repeated{id("again0")};
@@ -319,6 +321,14 @@ void window_mode_is_bounded() {
             "window mode never builds an index of the rows");
     require((*grid).row_position(id("r9999999")) == row_at(9999999U) && (*grid).row_id(row_at(42U)) == id("r42"),
             "IDs outside the window are asked of the source one at a time");
+    // A-gf-controls-03-F1: a position past the rows is no row's ID, and the
+    // source is never asked for it.
+    DataGridViewRowOrder windowed{};
+    windowed.switch_to_window(source);
+    const std::size_t requests = (*source).requests;
+    require(windowed.id_at(SyntheticSource::rows).empty() && windowed.id_at(SyntheticSource::rows + 5U).empty() &&
+                (*source).requests == requests,
+            "a window-mode position past the count asks the source nothing");
 }
 
 // -- switching by count and by rate, identity kept --------------------------------------------
