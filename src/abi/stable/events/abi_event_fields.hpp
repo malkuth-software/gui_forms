@@ -158,6 +158,10 @@ public:
     // Reading back: true, with value, when the field named name below the
     // current prefix was written by the callback.
     [[nodiscard]] bool written(std::string_view name, gf_value& value) const;
+    // True, with value, when the field named name below the current prefix
+    // is an any-kind field the callback wrote: the BindingValue write()
+    // converted and owns, never the caller's record again (A-gf-abi-02-F1).
+    [[nodiscard]] bool written_binding(std::string_view name, BindingValue& value) const;
     // True, with value and its text, when the fields are one field named
     // "value" (a collection's element).
     [[nodiscard]] bool single(gf_value& value, std::string_view& text) const;
@@ -178,6 +182,10 @@ private:
         std::size_t count = 0U;
         EventElementReader reader = nullptr;
         bool written = false;
+        // An any-kind field's written value, converted by write() into
+        // owned storage while the caller's record was still valid. Empty
+        // until written; release() drops it with the field.
+        std::optional<BindingValue> converted;
         // A fixed-size array (lend_elements): its element records are
         // element_runs_[run], count of element_kind.
         bool fixed_count = false;

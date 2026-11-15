@@ -450,6 +450,20 @@ bool EventFields::written(std::string_view name, gf_value& value) const {
     return false;
 }
 
+bool EventFields::written_binding(std::string_view name, BindingValue& value) const {
+    std::size_t index = 0U;
+    for (index = 0U; index < fields_.size(); ++index) {
+        if (fields_[index].written && name_matches(names_[index], name)) {
+            if (!fields_[index].converted.has_value()) {
+                return false;
+            }
+            value = *fields_[index].converted;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool EventFields::single(gf_value& value, std::string_view& text) const {
     if (fields_.size() != 1U || names_[0] != single_name) {
         return false;
@@ -489,12 +503,17 @@ gf_status EventFields::write(std::uint64_t field, const gf_value* value, SlotIde
     copy.struct_size = value_size_1_0;
     const bool any_kind = (target.flags & GF_EVENT_FIELD_ANY_KIND) != 0U;
     const bool absent = copy.kind == GF_VALUE_KIND_NULL && (target.flags & GF_EVENT_FIELD_OPTIONAL) != 0U;
+    // An any-kind write converted here, while the caller's record (and a
+    // collection's elements and their texts) is valid; kept as the field's
+    // value, since the caller's storage may end with the callback.
+    std::optional<BindingValue> converted;
     if (any_kind) {
-        BindingValue converted;
-        const gf_status read = read_value(&copy, slot, converted);
+        BindingValue read_back;
+        const gf_status read = read_value(&copy, slot, read_back);
         if (read != GF_STATUS_OK) {
             return read;
         }
+        converted = std::move(read_back);
     } else if (!absent) {
         if (copy.kind != target.kind) {
             return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the value's kind is not the field's");
@@ -531,8 +550,15 @@ gf_status EventFields::write(std::uint64_t field, const gf_value* value, SlotIde
             copy.elements = nullptr;
             copy.element_count = 0U;
         }
+    } else {
+        // Only a fixed-size array keeps written elements (in its own
+        // records); any other field never keeps the caller's pointer, which
+        // is not valid once the callback returns (A-gf-abi-02-F1).
+        copy.elements = nullptr;
+        copy.element_count = 0U;
     }
     values_[static_cast<std::size_t>(field)] = copy;
+    target.converted = std::move(converted);
     target.written = true;
     return GF_STATUS_OK;
 }
@@ -855,14 +881,11 @@ void read_field(EventFields& fields, std::string_view name, Color& value) {
 }
 
 void read_field(EventFields& fields, std::string_view name, BindingValue& value) {
-    gf_value written{};
-    if (!fields.written(name, written)) {
-        return;
-    }
-    // Validated when it was written.
+    // Converted and owned when it was written: the caller's record (a
+    // collection's elements, their texts) is not read again here, after the
+    // callback that lent it has returned (A-gf-abi-02-F1).
     BindingValue converted;
-    const gf_status read = read_value(&written, lend_slot, converted);
-    if (read == GF_STATUS_OK) {
+    if (fields.written_binding(name, converted)) {
         value = std::move(converted);
     }
 }

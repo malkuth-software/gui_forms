@@ -37,6 +37,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 // N12's measurement: every allocation of the process is counted, so the
@@ -736,6 +737,57 @@ void writable_arrays() {
     fields.release();
 }
 
+// A-gf-abi-02-F1: a COLLECTION written to an any-kind field (a Binding's
+// format or parse value, a grid cell's formatted value) is converted when it
+// is written. The caller's elements and their texts live only for the
+// callback, so they are scribbled before read_field runs: the value must
+// come back from the library's own copy, never the caller's records.
+void any_kind_collection_write() {
+    const abi1::SlotIdentity slot{GF_TABLE_EVENTS, 0U};
+    abi1::EventFields fields;
+    require(fields.claim(), "fresh fields are claimed");
+    fields.set_writable(true);
+    const BindingValue initial{std::string{"before"}};
+    abi1::append_field(fields, "value", initial);
+    gf_event event{};
+    fields.publish(event, true);
+    require(event.field_count == 1U && (event.fields[0].flags & GF_EVENT_FIELD_ANY_KIND) != 0U,
+            "a BindingValue argument is an any-kind field");
+
+    std::array<std::string, 2> texts{std::string{"alpha"}, std::string{"beta"}};
+    std::array<gf_value, 2> elements{blank_value(GF_VALUE_KIND_TEXT), blank_value(GF_VALUE_KIND_TEXT)};
+    for (std::size_t index = 0U; index < elements.size(); ++index) {
+        elements[index].text = text_view(texts[index]);
+    }
+    gf_value written = blank_value(GF_VALUE_KIND_COLLECTION);
+    written.elements = elements.data();
+    written.element_count = elements.size();
+    require(fields.write(0U, &written, slot) == GF_STATUS_OK, "a collection is written to an any-kind field");
+    const gf_value& kept = *event.fields[0].value;
+    require(kept.elements == nullptr && kept.element_count == 0U,
+            "the field keeps no pointer to the caller's elements");
+
+    // The callback returns: its elements and their texts are gone.
+    for (std::size_t index = 0U; index < elements.size(); ++index) {
+        std::memset(texts[index].data(), 'X', texts[index].size());
+        std::memset(static_cast<void*>(&elements[index]), 0xA5, sizeof(gf_value));
+    }
+    fields.end_publication();
+    BindingValue value{std::string{"before"}};
+    abi1::read_field(fields, "value", value);
+    const PropertyCollectionValue* collection = std::get_if<PropertyCollectionValue>(&value);
+    require(collection != nullptr && (*collection).data() != nullptr,
+            "the written collection reaches the C++ value");
+    if (collection != nullptr && (*collection).data() != nullptr) {
+        const std::vector<BindingValue>& items = (*(*collection).data()).items;
+        const std::string* first = items.size() == 2U ? std::get_if<std::string>(&items[0]) : nullptr;
+        const std::string* second = items.size() == 2U ? std::get_if<std::string>(&items[1]) : nullptr;
+        require(first != nullptr && second != nullptr && *first == "alpha" && *second == "beta",
+                "the collection's elements are those written, not the caller's storage after the callback");
+    }
+    fields.release();
+}
+
 // The key events (since 1.1): a control's key_down and key_press reach an
 // ABI callback with their fields, and handled written there ends the key's
 // route; the window's raw key_state_changed is not writable.
@@ -974,6 +1026,7 @@ int main(int argc, char** argv) {
         two_arguments(tables);
         plot_camera(tables);
         writable_arrays();
+        any_kind_collection_write();
         key_events(tables);
         emission_allocations(tables);
         failure_statuses();
