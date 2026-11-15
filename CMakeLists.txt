@@ -1671,6 +1671,23 @@ if(GUI_FORMS_ENABLE_SKIA)
         EXPORT_NAME DrawingRaster
     )
     add_library(GUIForms::DrawingRaster ALIAS gui_drawing_raster_c_api)
+    # The module exports gdr_initialize alone. Hidden visibility covers only
+    # its own source: the archives it links statically (the drawing
+    # executor, the Skia derivative and the pinned FreeType, HarfBuzz and
+    # SheenBidi) are compiled with default visibility, so without a list
+    # their symbols leave the module and could bind to a consumer's own text
+    # stack (cmake/CheckForeignTextSymbols.cmake).
+    if(APPLE)
+        target_link_options(gui_drawing_raster_c_api PRIVATE
+            "LINKER:-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_raster_c_api_exports_macos.txt")
+        set_property(TARGET gui_drawing_raster_c_api APPEND PROPERTY LINK_DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_raster_c_api_exports_macos.txt)
+    elseif(UNIX)
+        target_link_options(gui_drawing_raster_c_api PRIVATE
+            "LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_raster_c_api_exports_linux.map")
+        set_property(TARGET gui_drawing_raster_c_api APPEND PROPERTY LINK_DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_raster_c_api_exports_linux.map)
+    endif()
     if(WIN32)
         set_target_properties(gui_drawing_raster_c_api PROPERTIES PREFIX "")
         target_link_libraries(gui_drawing_raster_c_api PRIVATE advapi32)

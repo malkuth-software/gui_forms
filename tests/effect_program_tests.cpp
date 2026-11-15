@@ -1513,11 +1513,28 @@ void interaction_cues() {
     RecordingPainter held;
     pulse.paint(held, part, 1.0, true, drop);
     require(pulse.state_checksum() == resting && pulse.counters().ticks == 0U, "a still frame advances nothing");
+    // The breath starts at its low level, where the tint vanishes (its
+    // opacity is pulse_tint times the level): the first moving frame, three
+    // ticks in, draws the edge, and the tint shows as the breath rises.
     RecordingPainter moving;
     pulse.paint(moving, part, 1.0, false, drop);
-    require(moving.stroked == 1 && moving.rects == 1, "a moving pulse draws its tint and its edge");
+    require(moving.stroked == 1, "a moving pulse draws its edge");
     require(pulse.counters().ticks == 3U && pulse.state_checksum() != resting, "a moving frame runs the ticks due");
     require(pulse.last_meter().refused == 0U, "the pulse stays within budget");
+    // Nine more moving frames, 50 ms apart: 30 ticks, 0.5 s into a 1.2 s
+    // breath, near its top (level 0.93).
+    int risen_stroked = 0;
+    int risen_rects = 0;
+    for (std::int64_t frame = 2; frame <= 10; ++frame) {
+        static_cast<void>(pulse.advance(at_milliseconds(50 * frame)));
+        RecordingPainter risen;
+        pulse.paint(risen, part, 1.0, false, drop);
+        risen_stroked = risen.stroked;
+        risen_rects = risen.rects;
+    }
+    require(pulse.counters().ticks == 30U, "each moving frame runs its three ticks");
+    require(risen_stroked == 1 && risen_rects == 1,
+            "a moving pulse near the top of its breath draws its tint and its edge");
     RecordingPainter narrow;
     pulse.paint(narrow, Rect{0.0, 0.0, 1.0, 40.0}, 1.0, true, drop);
     require(narrow.stroked == 0, "a part narrower than the edge draws nothing");

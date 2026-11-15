@@ -955,7 +955,13 @@ void test_expandable_sections_state() {
     require(allocations == 0U, "section changes must allocate nothing after configuration");
     (*sections).set_items({{.id = 1, .label = "First", .content = second, .expanded = &first_open},
                           {.id = 2, .label = "Second", .content = first, .expanded = &second_open}});
-    require((*first).parent() == sections && (*second).parent() == sections,
+    // Each body sits in its section's clipping host, a child of the
+    // sections (`<id>.body.<section id>`): swapped bodies change hosts.
+    const gf::Control::Ptr first_host = (*first).parent();
+    const gf::Control::Ptr second_host = (*second).parent();
+    require(first_host && second_host && (*first_host).parent() == sections &&
+                (*second_host).parent() == sections && (*first_host).stable_id().value() == "sections.body.2" &&
+                (*second_host).stable_id().value() == "sections.body.1",
             "swapping section contents must preserve both tree attachments");
     gf::Control* const reused = (*sections).part("header", 0);
     (*sections).set_items({{.id = 1, .label = "Renamed", .content = first, .expanded = &first_open}});

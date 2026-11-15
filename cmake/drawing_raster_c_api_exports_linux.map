@@ -1,0 +1,7 @@
+/* GUI.Drawing raster module: the one exported entry point (Linux; see drawing_raster_c_api_exports_macos.txt).
+   Everything else, the statically linked drawing executor, Skia derivative and pinned text stack included,
+   stays local (cmake/CheckForeignTextSymbols.cmake). */
+{
+    global: gdr_initialize;
+    local: *;
+};

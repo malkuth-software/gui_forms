@@ -53,8 +53,13 @@ public:
     void draw_line(Point, Point, Color, double) override {}
     void draw_text_utf8(Point, std::string_view text, FontSpec, Color) override { texts.emplace_back(text); }
     void draw_image(ImageId, Rect, double) override {}
+    // A stock icon on an attached control is drawn as its baked raster.
+    void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin, double) override {
+        if (raster) raster_origins.push_back(origin);
+    }
 
     std::vector<std::string> texts;
+    std::vector<Point> raster_origins;
 };
 
 struct Recorder final {
@@ -230,7 +235,16 @@ void modal_presentation() {
         if (text == "Station scan") caption = true;
         if (text == "!") letter = true;
     }
-    require(caption && letter, "the caption and the icon letter are painted by role");
+    // The warning is the stock icon's raster inside the icon part, no
+    // longer a letter.
+    const Rect icon = parts.icon_image.bounds;
+    bool icon_raster = false;
+    for (const Point origin : painter.raster_origins) {
+        const bool inside = origin.x >= icon.x && origin.y >= icon.y && origin.x < icon.x + icon.width &&
+                            origin.y < icon.y + icon.height;
+        icon_raster = icon_raster || inside;
+    }
+    require(caption && !letter && icon_raster, "the caption and the icon are painted by role");
 
     click_at(window, centre(*owner));
     require(owner_clicks == 0 && (*dialog).shown(), "the window behind the dialog takes no clicks");
