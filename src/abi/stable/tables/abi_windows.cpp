@@ -1002,15 +1002,15 @@ gf_status report_pointer_location(gf_object window_or_control, gf_logical_point*
     return GF_STATUS_OK;
 }
 
+gf_status windows_pointer_location_body(gf_object window_or_control, gf_logical_point* location,
+                                        gf_logical_point* window_position, std::uint32_t* inside) {
+    const gf_status reported = report_pointer_location(window_or_control, location, window_position, inside);
+    return reported;
+}
+
 gf_status GF_CALL windows_pointer_location(gf_object window_or_control, gf_logical_point* location,
                                            gf_logical_point* window_position, std::uint32_t* inside) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(pointer_location_slot.table_id, pointer_location_slot.slot_index);
-        const gf_status reported = report_pointer_location(window_or_control, location, window_position, inside);
-        return reported;
-    } catch (...) {
-        return fail_with_current_exception(pointer_location_slot);
-    }
+    return call_slot(pointer_location_slot, windows_pointer_location_body, window_or_control, location, window_position, inside);
 }
 
 static_assert(static_cast<std::uint32_t>(WindowChromeField::text) == GF_WINDOW_PROPERTY_TEXT &&
@@ -1212,14 +1212,13 @@ gf_status declare_window_band(gf_object window, const gf_window_band_options* op
     return GF_STATUS_OK;
 }
 
+gf_status windows_declare_band_body(gf_object window, const gf_window_band_options* options) {
+    const gf_status declared = declare_window_band(window, options);
+    return declared;
+}
+
 gf_status GF_CALL windows_declare_band(gf_object window, const gf_window_band_options* options) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(declare_band_slot.table_id, declare_band_slot.slot_index);
-        const gf_status declared = declare_window_band(window, options);
-        return declared;
-    } catch (...) {
-        return fail_with_current_exception(declare_band_slot);
-    }
+    return call_slot(declare_band_slot, windows_declare_band_body, window, options);
 }
 
 gf_status undeclare_window_band(gf_object window) {
@@ -1232,14 +1231,13 @@ gf_status undeclare_window_band(gf_object window) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_undeclare_band_body(gf_object window) {
+    const gf_status undeclared = undeclare_window_band(window);
+    return undeclared;
+}
+
 gf_status GF_CALL windows_undeclare_band(gf_object window) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(undeclare_band_slot.table_id, undeclare_band_slot.slot_index);
-        const gf_status undeclared = undeclare_window_band(window);
-        return undeclared;
-    } catch (...) {
-        return fail_with_current_exception(undeclare_band_slot);
-    }
+    return call_slot(undeclare_band_slot, windows_undeclare_band_body, window);
 }
 
 gf_status set_window_band_appearance(gf_object window, const gf_window_band_appearance* record) {
@@ -1261,14 +1259,13 @@ gf_status set_window_band_appearance(gf_object window, const gf_window_band_appe
     return GF_STATUS_OK;
 }
 
+gf_status windows_set_band_appearance_body(gf_object window, const gf_window_band_appearance* appearance) {
+    const gf_status set = set_window_band_appearance(window, appearance);
+    return set;
+}
+
 gf_status GF_CALL windows_set_band_appearance(gf_object window, const gf_window_band_appearance* appearance) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_band_appearance_slot.table_id, set_band_appearance_slot.slot_index);
-        const gf_status set = set_window_band_appearance(window, appearance);
-        return set;
-    } catch (...) {
-        return fail_with_current_exception(set_band_appearance_slot);
-    }
+    return call_slot(set_band_appearance_slot, windows_set_band_appearance_body, window, appearance);
 }
 
 gf_status report_window_band(gf_object window, gf_window_band_report* report) {
@@ -1303,14 +1300,13 @@ gf_status report_window_band(gf_object window, gf_window_band_report* report) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_band_report_body(gf_object window, gf_window_band_report* report) {
+    const gf_status reported = report_window_band(window, report);
+    return reported;
+}
+
 gf_status GF_CALL windows_band_report(gf_object window, gf_window_band_report* report) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(band_report_slot.table_id, band_report_slot.slot_index);
-        const gf_status reported = report_window_band(window, report);
-        return reported;
-    } catch (...) {
-        return fail_with_current_exception(band_report_slot);
-    }
+    return call_slot(band_report_slot, windows_band_report_body, window, report);
 }
 
 gf_status set_window_corner_preference(gf_object window, gf_window_corner_preference preference) {
@@ -1332,15 +1328,13 @@ gf_status set_window_corner_preference(gf_object window, gf_window_corner_prefer
     return GF_STATUS_OK;
 }
 
+gf_status windows_set_corner_preference_body(gf_object window, gf_window_corner_preference preference) {
+    const gf_status set = set_window_corner_preference(window, preference);
+    return set;
+}
+
 gf_status GF_CALL windows_set_corner_preference(gf_object window, gf_window_corner_preference preference) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_corner_preference_slot.table_id,
-                                            set_corner_preference_slot.slot_index);
-        const gf_status set = set_window_corner_preference(window, preference);
-        return set;
-    } catch (...) {
-        return fail_with_current_exception(set_corner_preference_slot);
-    }
+    return call_slot(set_corner_preference_slot, windows_set_corner_preference_body, window, preference);
 }
 
 gf_status report_content_rect(gf_object window, gf_logical_rect* rect) {
@@ -1357,14 +1351,13 @@ gf_status report_content_rect(gf_object window, gf_logical_rect* rect) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_content_rect_body(gf_object window, gf_logical_rect* rect) {
+    const gf_status reported = report_content_rect(window, rect);
+    return reported;
+}
+
 gf_status GF_CALL windows_content_rect(gf_object window, gf_logical_rect* rect) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(content_rect_slot.table_id, content_rect_slot.slot_index);
-        const gf_status reported = report_content_rect(window, rect);
-        return reported;
-    } catch (...) {
-        return fail_with_current_exception(content_rect_slot);
-    }
+    return call_slot(content_rect_slot, windows_content_rect_body, window, rect);
 }
 
 std::uint32_t abi_corner_shape(WindowCornerShape shape) noexcept {
@@ -1416,14 +1409,13 @@ gf_status report_window_shaping(gf_object window, gf_window_shaping* report) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_shaping_body(gf_object window, gf_window_shaping* report) {
+    const gf_status reported = report_window_shaping(window, report);
+    return reported;
+}
+
 gf_status GF_CALL windows_shaping(gf_object window, gf_window_shaping* report) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(shaping_slot.table_id, shaping_slot.slot_index);
-        const gf_status reported = report_window_shaping(window, report);
-        return reported;
-    } catch (...) {
-        return fail_with_current_exception(shaping_slot);
-    }
+    return call_slot(shaping_slot, windows_shaping_body, window, report);
 }
 
 constexpr gf_windows_table table{

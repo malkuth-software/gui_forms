@@ -6,7 +6,6 @@
 #include "abi_tables.hpp"
 
 #include "gui_forms/controls/list_view.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -258,558 +257,546 @@ gf_status check_sort_order(gf_list_view_sort_order order, SlotIdentity slot) {
 
 // -- columns -----------------------------------------------------------------------
 
-gf_status GF_CALL list_view_column_count(gf_object view, std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(column_count_slot.table_id, column_count_slot.slot_index);
-        if (count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, column_count_slot, "column_count needs a count output");
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, column_count_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *count = (*typed).columns().size();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(column_count_slot);
+gf_status list_view_column_count_body(gf_object view, std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, column_count_slot, "column_count needs a count output");
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, column_count_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *count = (*typed).columns().size();
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL list_view_column_count(gf_object view, std::uint64_t* count) noexcept {
+    return call_slot(column_count_slot, list_view_column_count_body, view, count);
+}
+
+gf_status list_view_column_at_body(gf_object view, std::uint64_t index, gf_list_view_column* column,
+                                   char* text_buffer, std::uint64_t text_capacity,
+                                   std::uint64_t* text_required) {
+    const gf_status usable =
+        check_output(column, column_size_1_5, text_buffer, text_capacity, text_required, column_at_slot);
+    if (usable != GF_STATUS_OK) {
+        return usable;
+    }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, column_at_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const gf_status present = require_column(*typed, index, column_at_slot);
+    if (present != GF_STATUS_OK) {
+        return present;
+    }
+    const ListViewColumn& held = (*typed).columns()[static_cast<std::size_t>(index)];
+    const std::string_view texts[2] = {held.stable_id, held.text};
+    gf_utf8_view views[2] = {};
+    const gf_status copied = copy_texts(texts, views, 2U, text_buffer, text_capacity, text_required,
+                                        column_at_slot);
+    if (copied != GF_STATUS_OK) {
+        return copied;
+    }
+    gf_list_view_column complete{};
+    complete.struct_size = column_size_1_5;
+    complete.alignment = static_cast<gf_list_view_alignment>(held.alignment);
+    complete.width = held.width;
+    complete.stable_id = views[0];
+    complete.text = views[1];
+    write_record(complete, column);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_column_at(gf_object view, std::uint64_t index, gf_list_view_column* column,
                                       char* text_buffer, std::uint64_t text_capacity,
                                       std::uint64_t* text_required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(column_at_slot.table_id, column_at_slot.slot_index);
-        const gf_status usable =
-            check_output(column, column_size_1_5, text_buffer, text_capacity, text_required, column_at_slot);
-        if (usable != GF_STATUS_OK) {
-            return usable;
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, column_at_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_status present = require_column(*typed, index, column_at_slot);
-        if (present != GF_STATUS_OK) {
-            return present;
-        }
-        const ListViewColumn& held = (*typed).columns()[static_cast<std::size_t>(index)];
-        const std::string_view texts[2] = {held.stable_id, held.text};
-        gf_utf8_view views[2] = {};
-        const gf_status copied = copy_texts(texts, views, 2U, text_buffer, text_capacity, text_required,
-                                            column_at_slot);
-        if (copied != GF_STATUS_OK) {
-            return copied;
-        }
-        gf_list_view_column complete{};
-        complete.struct_size = column_size_1_5;
-        complete.alignment = static_cast<gf_list_view_alignment>(held.alignment);
-        complete.width = held.width;
-        complete.stable_id = views[0];
-        complete.text = views[1];
-        write_record(complete, column);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(column_at_slot);
+    return call_slot(column_at_slot, list_view_column_at_body, view, index, column, text_buffer, text_capacity, text_required);
+}
+
+gf_status list_view_set_columns_body(gf_object view, const gf_list_view_column* columns,
+                                     std::uint64_t count) {
+    std::vector<ListViewColumn> read;
+    const gf_status converted = read_array(columns, count, GF_LIST_VIEW_MAXIMUM_COLUMNS, column_size_1_5,
+                                           set_columns_slot, &read_column, read);
+    if (converted != GF_STATUS_OK) {
+        return converted;
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, set_columns_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    (*typed).set_columns(std::move(read));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_set_columns(gf_object view, const gf_list_view_column* columns,
                                         std::uint64_t count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_columns_slot.table_id, set_columns_slot.slot_index);
-        std::vector<ListViewColumn> read;
-        const gf_status converted = read_array(columns, count, GF_LIST_VIEW_MAXIMUM_COLUMNS, column_size_1_5,
-                                               set_columns_slot, &read_column, read);
-        if (converted != GF_STATUS_OK) {
-            return converted;
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, set_columns_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        (*typed).set_columns(std::move(read));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_columns_slot);
+    return call_slot(set_columns_slot, list_view_set_columns_body, view, columns, count);
+}
+
+gf_status list_view_set_column_width_body(gf_object view, std::uint64_t column, double width) {
+    if (!std::isfinite(width)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_column_width_slot, "a column's width is finite");
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, set_column_width_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const gf_status present = require_column(*typed, column, set_column_width_slot);
+    if (present != GF_STATUS_OK) {
+        return present;
+    }
+    (*typed).set_column_width(static_cast<std::size_t>(column), width);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_set_column_width(gf_object view, std::uint64_t column, double width) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_column_width_slot.table_id, set_column_width_slot.slot_index);
-        if (!std::isfinite(width)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_column_width_slot, "a column's width is finite");
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, set_column_width_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_status present = require_column(*typed, column, set_column_width_slot);
-        if (present != GF_STATUS_OK) {
-            return present;
-        }
-        (*typed).set_column_width(static_cast<std::size_t>(column), width);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_column_width_slot);
-    }
+    return call_slot(set_column_width_slot, list_view_set_column_width_body, view, column, width);
 }
 
 // -- items -------------------------------------------------------------------------
 
-gf_status GF_CALL list_view_item_count(gf_object view, std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(item_count_slot.table_id, item_count_slot.slot_index);
-        if (count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, item_count_slot, "item_count needs a count output");
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, item_count_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *count = (*typed).item_count();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(item_count_slot);
+gf_status list_view_item_count_body(gf_object view, std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, item_count_slot, "item_count needs a count output");
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, item_count_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *count = (*typed).item_count();
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL list_view_item_count(gf_object view, std::uint64_t* count) noexcept {
+    return call_slot(item_count_slot, list_view_item_count_body, view, count);
+}
+
+gf_status list_view_item_at_body(gf_object view, std::uint64_t index, gf_list_view_item* item, char* text_buffer,
+                                 std::uint64_t text_capacity, std::uint64_t* text_required) {
+    const gf_status usable =
+        check_output(item, item_size_1_5, text_buffer, text_capacity, text_required, item_at_slot);
+    if (usable != GF_STATUS_OK) {
+        return usable;
+    }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, item_at_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    gf_status checked = require_ordinary(*typed, item_at_slot);
+    if (checked == GF_STATUS_OK) checked = require_item(*typed, index, item_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    // items is declared after the view it borrows from, and used
+    // before this slot returns.
+    const BorrowedSpan<ListViewItem> items = (*typed).items();
+    const ListViewItem& held = items[static_cast<std::size_t>(index)];
+    const std::string_view texts[4] = {held.stable_id, held.text, held.image_key, held.group};
+    gf_utf8_view views[4] = {};
+    const gf_status copied = copy_texts(texts, views, 4U, text_buffer, text_capacity, text_required,
+                                        item_at_slot);
+    if (copied != GF_STATUS_OK) {
+        return copied;
+    }
+    gf_list_view_item complete{};
+    complete.struct_size = item_size_1_5;
+    complete.checked = held.checked ? 1U : 0U;
+    complete.stable_id = views[0];
+    complete.text = views[1];
+    complete.image_key = views[2];
+    complete.group = views[3];
+    complete.sub_items = nullptr;
+    complete.sub_item_count = held.sub_items.size();
+    write_record(complete, item);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_item_at(gf_object view, std::uint64_t index, gf_list_view_item* item, char* text_buffer,
                                     std::uint64_t text_capacity, std::uint64_t* text_required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(item_at_slot.table_id, item_at_slot.slot_index);
-        const gf_status usable =
-            check_output(item, item_size_1_5, text_buffer, text_capacity, text_required, item_at_slot);
-        if (usable != GF_STATUS_OK) {
-            return usable;
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, item_at_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        gf_status checked = require_ordinary(*typed, item_at_slot);
-        if (checked == GF_STATUS_OK) checked = require_item(*typed, index, item_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        // items is declared after the view it borrows from, and used
-        // before this slot returns.
-        const BorrowedSpan<ListViewItem> items = (*typed).items();
-        const ListViewItem& held = items[static_cast<std::size_t>(index)];
-        const std::string_view texts[4] = {held.stable_id, held.text, held.image_key, held.group};
-        gf_utf8_view views[4] = {};
-        const gf_status copied = copy_texts(texts, views, 4U, text_buffer, text_capacity, text_required,
-                                            item_at_slot);
-        if (copied != GF_STATUS_OK) {
-            return copied;
-        }
-        gf_list_view_item complete{};
-        complete.struct_size = item_size_1_5;
-        complete.checked = held.checked ? 1U : 0U;
-        complete.stable_id = views[0];
-        complete.text = views[1];
-        complete.image_key = views[2];
-        complete.group = views[3];
-        complete.sub_items = nullptr;
-        complete.sub_item_count = held.sub_items.size();
-        write_record(complete, item);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(item_at_slot);
+    return call_slot(item_at_slot, list_view_item_at_body, view, index, item, text_buffer, text_capacity, text_required);
+}
+
+gf_status list_view_item_sub_item_body(gf_object view, std::uint64_t index, std::uint64_t sub_item, char* buffer,
+                                       std::uint64_t capacity, std::uint64_t* required) {
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, item_sub_item_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    gf_status checked = require_ordinary(*typed, item_sub_item_slot);
+    if (checked == GF_STATUS_OK) checked = require_item(*typed, index, item_sub_item_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const BorrowedSpan<ListViewItem> items = (*typed).items();
+    const std::vector<std::string>& sub_items = items[static_cast<std::size_t>(index)].sub_items;
+    if (sub_item >= sub_items.size()) {
+        return fail(GF_STATUS_NOT_FOUND, item_sub_item_slot, "the sub-item is past the item's sub-items");
+    }
+    return write_text(sub_items[static_cast<std::size_t>(sub_item)], buffer, capacity, required,
+                      item_sub_item_slot);
 }
 
 gf_status GF_CALL list_view_item_sub_item(gf_object view, std::uint64_t index, std::uint64_t sub_item, char* buffer,
                                           std::uint64_t capacity, std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(item_sub_item_slot.table_id, item_sub_item_slot.slot_index);
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, item_sub_item_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        gf_status checked = require_ordinary(*typed, item_sub_item_slot);
-        if (checked == GF_STATUS_OK) checked = require_item(*typed, index, item_sub_item_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        const BorrowedSpan<ListViewItem> items = (*typed).items();
-        const std::vector<std::string>& sub_items = items[static_cast<std::size_t>(index)].sub_items;
-        if (sub_item >= sub_items.size()) {
-            return fail(GF_STATUS_NOT_FOUND, item_sub_item_slot, "the sub-item is past the item's sub-items");
-        }
-        return write_text(sub_items[static_cast<std::size_t>(sub_item)], buffer, capacity, required,
-                          item_sub_item_slot);
-    } catch (...) {
-        return fail_with_current_exception(item_sub_item_slot);
+    return call_slot(item_sub_item_slot, list_view_item_sub_item_body, view, index, sub_item, buffer, capacity, required);
+}
+
+gf_status list_view_set_items_body(gf_object view, const gf_list_view_item* items, std::uint64_t count) {
+    std::vector<ListViewItem> read;
+    const gf_status converted =
+        read_array(items, count, GF_LIST_VIEW_MAXIMUM_ITEMS, item_size_1_5, set_items_slot, &read_item, read);
+    if (converted != GF_STATUS_OK) {
+        return converted;
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, set_items_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const gf_status ordinary = require_ordinary(*typed, set_items_slot);
+    if (ordinary != GF_STATUS_OK) {
+        return ordinary;
+    }
+    (*typed).set_items(std::move(read));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_set_items(gf_object view, const gf_list_view_item* items, std::uint64_t count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_items_slot.table_id, set_items_slot.slot_index);
-        std::vector<ListViewItem> read;
-        const gf_status converted =
-            read_array(items, count, GF_LIST_VIEW_MAXIMUM_ITEMS, item_size_1_5, set_items_slot, &read_item, read);
-        if (converted != GF_STATUS_OK) {
-            return converted;
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, set_items_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_status ordinary = require_ordinary(*typed, set_items_slot);
-        if (ordinary != GF_STATUS_OK) {
-            return ordinary;
-        }
-        (*typed).set_items(std::move(read));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_items_slot);
+    return call_slot(set_items_slot, list_view_set_items_body, view, items, count);
+}
+
+gf_status list_view_index_of_body(gf_object view, gf_utf8_view item_id, std::uint64_t* index) {
+    if (index == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, index_of_slot, "index_of needs an index output");
     }
+    std::string_view text;
+    const gf_status read = read_text(item_id, index_of_slot, text);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, index_of_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const std::optional<std::size_t> found = (*typed).index_of(text);
+    if (!found) {
+        return fail(GF_STATUS_NOT_FOUND, index_of_slot, "no item of the view has that stable id");
+    }
+    *index = *found;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_index_of(gf_object view, gf_utf8_view item_id, std::uint64_t* index) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(index_of_slot.table_id, index_of_slot.slot_index);
-        if (index == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, index_of_slot, "index_of needs an index output");
-        }
-        std::string_view text;
-        const gf_status read = read_text(item_id, index_of_slot, text);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, index_of_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const std::optional<std::size_t> found = (*typed).index_of(text);
-        if (!found) {
-            return fail(GF_STATUS_NOT_FOUND, index_of_slot, "no item of the view has that stable id");
-        }
-        *index = *found;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(index_of_slot);
+    return call_slot(index_of_slot, list_view_index_of_body, view, item_id, index);
+}
+
+gf_status list_view_set_item_checked_body(gf_object view, std::uint64_t index, std::uint32_t checked) {
+    if (checked > 1U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_item_checked_slot, "checked is 0 or 1");
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, set_item_checked_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    gf_status usable = require_ordinary(*typed, set_item_checked_slot);
+    if (usable == GF_STATUS_OK) usable = require_item(*typed, index, set_item_checked_slot);
+    if (usable != GF_STATUS_OK) {
+        return usable;
+    }
+    (*typed).set_item_checked(static_cast<std::size_t>(index), checked == 1U);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_set_item_checked(gf_object view, std::uint64_t index, std::uint32_t checked) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_item_checked_slot.table_id, set_item_checked_slot.slot_index);
-        if (checked > 1U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_item_checked_slot, "checked is 0 or 1");
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, set_item_checked_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        gf_status usable = require_ordinary(*typed, set_item_checked_slot);
-        if (usable == GF_STATUS_OK) usable = require_item(*typed, index, set_item_checked_slot);
-        if (usable != GF_STATUS_OK) {
-            return usable;
-        }
-        (*typed).set_item_checked(static_cast<std::size_t>(index), checked == 1U);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_item_checked_slot);
-    }
+    return call_slot(set_item_checked_slot, list_view_set_item_checked_body, view, index, checked);
 }
 
 // -- groups ------------------------------------------------------------------------
 
-gf_status GF_CALL list_view_group_count(gf_object view, std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(group_count_slot.table_id, group_count_slot.slot_index);
-        if (count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, group_count_slot, "group_count needs a count output");
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, group_count_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *count = (*typed).groups().size();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(group_count_slot);
+gf_status list_view_group_count_body(gf_object view, std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, group_count_slot, "group_count needs a count output");
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, group_count_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *count = (*typed).groups().size();
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL list_view_group_count(gf_object view, std::uint64_t* count) noexcept {
+    return call_slot(group_count_slot, list_view_group_count_body, view, count);
+}
+
+gf_status list_view_group_at_body(gf_object view, std::uint64_t index, gf_list_view_group* group,
+                                  char* text_buffer, std::uint64_t text_capacity,
+                                  std::uint64_t* text_required) {
+    const gf_status usable =
+        check_output(group, group_size_1_5, text_buffer, text_capacity, text_required, group_at_slot);
+    if (usable != GF_STATUS_OK) {
+        return usable;
+    }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, group_at_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (index >= (*typed).groups().size()) {
+        return fail(GF_STATUS_NOT_FOUND, group_at_slot, "the group is past the view's groups");
+    }
+    const ListViewGroup& held = (*typed).groups()[static_cast<std::size_t>(index)];
+    const std::string_view texts[2] = {held.stable_id, held.header};
+    gf_utf8_view views[2] = {};
+    const gf_status copied = copy_texts(texts, views, 2U, text_buffer, text_capacity, text_required,
+                                        group_at_slot);
+    if (copied != GF_STATUS_OK) {
+        return copied;
+    }
+    gf_list_view_group complete{};
+    complete.struct_size = group_size_1_5;
+    complete.header_alignment = static_cast<gf_list_view_alignment>(held.header_alignment);
+    complete.stable_id = views[0];
+    complete.header = views[1];
+    write_record(complete, group);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_group_at(gf_object view, std::uint64_t index, gf_list_view_group* group,
                                      char* text_buffer, std::uint64_t text_capacity,
                                      std::uint64_t* text_required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(group_at_slot.table_id, group_at_slot.slot_index);
-        const gf_status usable =
-            check_output(group, group_size_1_5, text_buffer, text_capacity, text_required, group_at_slot);
-        if (usable != GF_STATUS_OK) {
-            return usable;
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, group_at_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (index >= (*typed).groups().size()) {
-            return fail(GF_STATUS_NOT_FOUND, group_at_slot, "the group is past the view's groups");
-        }
-        const ListViewGroup& held = (*typed).groups()[static_cast<std::size_t>(index)];
-        const std::string_view texts[2] = {held.stable_id, held.header};
-        gf_utf8_view views[2] = {};
-        const gf_status copied = copy_texts(texts, views, 2U, text_buffer, text_capacity, text_required,
-                                            group_at_slot);
-        if (copied != GF_STATUS_OK) {
-            return copied;
-        }
-        gf_list_view_group complete{};
-        complete.struct_size = group_size_1_5;
-        complete.header_alignment = static_cast<gf_list_view_alignment>(held.header_alignment);
-        complete.stable_id = views[0];
-        complete.header = views[1];
-        write_record(complete, group);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(group_at_slot);
+    return call_slot(group_at_slot, list_view_group_at_body, view, index, group, text_buffer, text_capacity, text_required);
+}
+
+gf_status list_view_set_groups_body(gf_object view, const gf_list_view_group* groups,
+                                    std::uint64_t count) {
+    std::vector<ListViewGroup> read;
+    const gf_status converted = read_array(groups, count, GF_LIST_VIEW_MAXIMUM_GROUPS, group_size_1_5,
+                                           set_groups_slot, &read_group, read);
+    if (converted != GF_STATUS_OK) {
+        return converted;
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, set_groups_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    (*typed).set_groups(std::move(read));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_set_groups(gf_object view, const gf_list_view_group* groups,
                                        std::uint64_t count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_groups_slot.table_id, set_groups_slot.slot_index);
-        std::vector<ListViewGroup> read;
-        const gf_status converted = read_array(groups, count, GF_LIST_VIEW_MAXIMUM_GROUPS, group_size_1_5,
-                                               set_groups_slot, &read_group, read);
-        if (converted != GF_STATUS_OK) {
-            return converted;
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, set_groups_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        (*typed).set_groups(std::move(read));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_groups_slot);
-    }
+    return call_slot(set_groups_slot, list_view_set_groups_body, view, groups, count);
 }
 
 // -- selection, focus and sorting -----------------------------------------------------
 
+gf_status list_view_selected_items_body(gf_object view, std::uint64_t* indices, std::uint64_t capacity,
+                                        std::uint64_t* count) {
+    if (count == nullptr || (indices == nullptr && capacity != 0U)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, selected_items_slot,
+                    "selected_items needs a count output, and an array unless its capacity is zero");
+    }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, selected_items_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    // The view lends no view of its selection: it is copied once here,
+    // at the boundary.
+    const std::vector<std::size_t> held = (*typed).selected_indices();
+    *count = held.size();
+    if (capacity < held.size()) {
+        return fail(GF_STATUS_BUFFER_TOO_SMALL, selected_items_slot,
+                    "the array is smaller than the number of selected items");
+    }
+    for (std::size_t position = 0U; position < held.size(); ++position) indices[position] = held[position];
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL list_view_selected_items(gf_object view, std::uint64_t* indices, std::uint64_t capacity,
                                            std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(selected_items_slot.table_id, selected_items_slot.slot_index);
-        if (count == nullptr || (indices == nullptr && capacity != 0U)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, selected_items_slot,
-                        "selected_items needs a count output, and an array unless its capacity is zero");
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, selected_items_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        // The view lends no view of its selection: it is copied once here,
-        // at the boundary.
-        const std::vector<std::size_t> held = (*typed).selected_indices();
-        *count = held.size();
-        if (capacity < held.size()) {
-            return fail(GF_STATUS_BUFFER_TOO_SMALL, selected_items_slot,
-                        "the array is smaller than the number of selected items");
-        }
-        for (std::size_t position = 0U; position < held.size(); ++position) indices[position] = held[position];
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(selected_items_slot);
+    return call_slot(selected_items_slot, list_view_selected_items_body, view, indices, capacity, count);
+}
+
+gf_status list_view_set_selected_body(gf_object view, std::uint64_t index, std::uint32_t selected) {
+    if (selected > 1U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_selected_slot, "selected is 0 or 1");
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, set_selected_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const gf_status present = require_item(*typed, index, set_selected_slot);
+    if (present != GF_STATUS_OK) {
+        return present;
+    }
+    (*typed).set_selected(static_cast<std::size_t>(index), selected == 1U);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_set_selected(gf_object view, std::uint64_t index, std::uint32_t selected) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_selected_slot.table_id, set_selected_slot.slot_index);
-        if (selected > 1U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_selected_slot, "selected is 0 or 1");
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, set_selected_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_status present = require_item(*typed, index, set_selected_slot);
-        if (present != GF_STATUS_OK) {
-            return present;
-        }
-        (*typed).set_selected(static_cast<std::size_t>(index), selected == 1U);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_selected_slot);
+    return call_slot(set_selected_slot, list_view_set_selected_body, view, index, selected);
+}
+
+gf_status list_view_select_all_body(gf_object view) {
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, select_all_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    (*typed).select_all();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_select_all(gf_object view) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(select_all_slot.table_id, select_all_slot.slot_index);
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, select_all_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        (*typed).select_all();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(select_all_slot);
+    return call_slot(select_all_slot, list_view_select_all_body, view);
+}
+
+gf_status list_view_clear_selection_body(gf_object view) {
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, clear_selection_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    (*typed).clear_selection();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_clear_selection(gf_object view) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(clear_selection_slot.table_id, clear_selection_slot.slot_index);
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, clear_selection_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        (*typed).clear_selection();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(clear_selection_slot);
+    return call_slot(clear_selection_slot, list_view_clear_selection_body, view);
+}
+
+gf_status list_view_focused_item_body(gf_object view, std::int64_t* index) {
+    if (index == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, focused_item_slot, "focused_item needs an index output");
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, focused_item_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    // An index is below ListView::maximum_items, so it fits a signed
+    // 64-bit value.
+    const std::optional<std::size_t> focused = (*typed).focused_index();
+    *index = focused ? static_cast<std::int64_t>(*focused) : std::int64_t{-1};
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_focused_item(gf_object view, std::int64_t* index) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(focused_item_slot.table_id, focused_item_slot.slot_index);
-        if (index == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, focused_item_slot, "focused_item needs an index output");
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, focused_item_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        // An index is below ListView::maximum_items, so it fits a signed
-        // 64-bit value.
-        const std::optional<std::size_t> focused = (*typed).focused_index();
-        *index = focused ? static_cast<std::int64_t>(*focused) : std::int64_t{-1};
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(focused_item_slot);
+    return call_slot(focused_item_slot, list_view_focused_item_body, view, index);
+}
+
+gf_status list_view_set_focused_item_body(gf_object view, std::int64_t index) {
+    if (index < -1) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_focused_item_slot, "the focused item is an index or -1");
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, set_focused_item_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (index == -1) {
+        (*typed).set_focused_index(std::nullopt);
+        return GF_STATUS_OK;
+    }
+    const std::uint64_t position = static_cast<std::uint64_t>(index);
+    const gf_status present = require_item(*typed, position, set_focused_item_slot);
+    if (present != GF_STATUS_OK) {
+        return present;
+    }
+    (*typed).set_focused_index(static_cast<std::size_t>(position));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_set_focused_item(gf_object view, std::int64_t index) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_focused_item_slot.table_id, set_focused_item_slot.slot_index);
-        if (index < -1) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_focused_item_slot, "the focused item is an index or -1");
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, set_focused_item_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (index == -1) {
-            (*typed).set_focused_index(std::nullopt);
-            return GF_STATUS_OK;
-        }
-        const std::uint64_t position = static_cast<std::uint64_t>(index);
-        const gf_status present = require_item(*typed, position, set_focused_item_slot);
-        if (present != GF_STATUS_OK) {
-            return present;
-        }
-        (*typed).set_focused_index(static_cast<std::size_t>(position));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_focused_item_slot);
+    return call_slot(set_focused_item_slot, list_view_set_focused_item_body, view, index);
+}
+
+gf_status list_view_ensure_visible_body(gf_object view, std::uint64_t index) {
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, ensure_visible_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    const gf_status present = require_item(*typed, index, ensure_visible_slot);
+    if (present != GF_STATUS_OK) {
+        return present;
+    }
+    (*typed).ensure_visible(static_cast<std::size_t>(index));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_ensure_visible(gf_object view, std::uint64_t index) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(ensure_visible_slot.table_id, ensure_visible_slot.slot_index);
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, ensure_visible_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_status present = require_item(*typed, index, ensure_visible_slot);
-        if (present != GF_STATUS_OK) {
-            return present;
-        }
-        (*typed).ensure_visible(static_cast<std::size_t>(index));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(ensure_visible_slot);
+    return call_slot(ensure_visible_slot, list_view_ensure_visible_body, view, index);
+}
+
+gf_status list_view_set_sort_indicator_body(gf_object view, std::int64_t column,
+                                            gf_list_view_sort_order order) {
+    if (column < -1) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_sort_indicator_slot, "the sorted column is an index or -1");
     }
+    const gf_status known = check_sort_order(order, set_sort_indicator_slot);
+    if (known != GF_STATUS_OK) {
+        return known;
+    }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, set_sort_indicator_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (column == -1) {
+        (*typed).set_sort_indicator(std::nullopt, ListViewSortOrder::none);
+        return GF_STATUS_OK;
+    }
+    const std::uint64_t position = static_cast<std::uint64_t>(column);
+    const gf_status present = require_column(*typed, position, set_sort_indicator_slot);
+    if (present != GF_STATUS_OK) {
+        return present;
+    }
+    (*typed).set_sort_indicator(static_cast<std::size_t>(position), static_cast<ListViewSortOrder>(order));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_set_sort_indicator(gf_object view, std::int64_t column,
                                                gf_list_view_sort_order order) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_sort_indicator_slot.table_id, set_sort_indicator_slot.slot_index);
-        if (column < -1) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_sort_indicator_slot, "the sorted column is an index or -1");
-        }
-        const gf_status known = check_sort_order(order, set_sort_indicator_slot);
-        if (known != GF_STATUS_OK) {
-            return known;
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, set_sort_indicator_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (column == -1) {
-            (*typed).set_sort_indicator(std::nullopt, ListViewSortOrder::none);
-            return GF_STATUS_OK;
-        }
-        const std::uint64_t position = static_cast<std::uint64_t>(column);
-        const gf_status present = require_column(*typed, position, set_sort_indicator_slot);
-        if (present != GF_STATUS_OK) {
-            return present;
-        }
-        (*typed).set_sort_indicator(static_cast<std::size_t>(position), static_cast<ListViewSortOrder>(order));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_sort_indicator_slot);
+    return call_slot(set_sort_indicator_slot, list_view_set_sort_indicator_body, view, column, order);
+}
+
+gf_status list_view_sort_items_body(gf_object view, std::uint64_t column, gf_list_view_sort_order order) {
+    const gf_status known = check_sort_order(order, sort_items_slot);
+    if (known != GF_STATUS_OK) {
+        return known;
     }
+    ListViewPtr typed;
+    const gf_status entered = enter_typed_control(view, sort_items_slot, not_list_view, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    gf_status usable = require_ordinary(*typed, sort_items_slot);
+    if (usable == GF_STATUS_OK) usable = require_column(*typed, column, sort_items_slot);
+    if (usable != GF_STATUS_OK) {
+        return usable;
+    }
+    (*typed).sort_items(static_cast<std::size_t>(column), static_cast<ListViewSortOrder>(order));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL list_view_sort_items(gf_object view, std::uint64_t column, gf_list_view_sort_order order) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(sort_items_slot.table_id, sort_items_slot.slot_index);
-        const gf_status known = check_sort_order(order, sort_items_slot);
-        if (known != GF_STATUS_OK) {
-            return known;
-        }
-        ListViewPtr typed;
-        const gf_status entered = enter_typed_control(view, sort_items_slot, not_list_view, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        gf_status usable = require_ordinary(*typed, sort_items_slot);
-        if (usable == GF_STATUS_OK) usable = require_column(*typed, column, sort_items_slot);
-        if (usable != GF_STATUS_OK) {
-            return usable;
-        }
-        (*typed).sort_items(static_cast<std::size_t>(column), static_cast<ListViewSortOrder>(order));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(sort_items_slot);
-    }
+    return call_slot(sort_items_slot, list_view_sort_items_body, view, column, order);
 }
 
 constexpr gf_list_view_table table{

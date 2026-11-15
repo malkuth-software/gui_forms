@@ -19,7 +19,6 @@
 #include "gui_forms/content/watchdog/content_watchdog.hpp"
 #include "gui_forms/controls/content_surface.hpp"
 #include "gui_forms/controls/content_text_editor.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -429,555 +428,530 @@ private:
 // ---------------------------------------------------------------------------
 // Surface slots.
 
+gf_status content_open_content_body(gf_object surface, std::uint32_t opaque, gf_content_sink* sink) {
+    if (sink == nullptr) return fail(GF_STATUS_INVALID_ARGUMENT, open_content_slot, "open_content needs an output");
+    bool opaque_value = false;
+    const gf_status flag = read_flag(opaque, open_content_slot, opaque_value);
+    if (flag != GF_STATUS_OK) return flag;
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, open_content_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    ContentFrameSink opened = (*found).open_content(opaque_value);
+    const gf_status handed = hand_out(std::move(opened), sink, open_content_slot);
+    return handed;
+}
+
 gf_status GF_CALL content_open_content(gf_object surface, std::uint32_t opaque, gf_content_sink* sink) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(open_content_slot.table_id, open_content_slot.slot_index);
-        if (sink == nullptr) return fail(GF_STATUS_INVALID_ARGUMENT, open_content_slot, "open_content needs an output");
-        bool opaque_value = false;
-        const gf_status flag = read_flag(opaque, open_content_slot, opaque_value);
-        if (flag != GF_STATUS_OK) return flag;
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, open_content_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        ContentFrameSink opened = (*found).open_content(opaque_value);
-        const gf_status handed = hand_out(std::move(opened), sink, open_content_slot);
-        return handed;
-    } catch (...) {
-        return fail_with_current_exception(open_content_slot);
-    }
+    return call_slot(open_content_slot, content_open_content_body, surface, opaque, sink);
+}
+
+gf_status content_close_content_body(gf_object surface) {
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, close_content_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    (*found).close_content();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_close_content(gf_object surface) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(close_content_slot.table_id, close_content_slot.slot_index);
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, close_content_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        (*found).close_content();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(close_content_slot);
+    return call_slot(close_content_slot, content_close_content_body, surface);
+}
+
+gf_status content_start_program_body(gf_object surface, const gf_content_program* program) {
+    if (program == nullptr || (*program).struct_size < program_size_1_4 || (*program).opaque > 1U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, start_program_slot,
+                    "a gf_content_program needs struct_size of at least 48 and opaque 0 or 1");
     }
+    gf_callback run{};
+    const gf_status read = read_callback(&(*program).run, start_program_slot, run);
+    if (read != GF_STATUS_OK) return read;
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, start_program_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    // A program that never runs (start_program throws) disarms itself:
+    // the caller keeps the callback (N20).
+    std::unique_ptr<ContentProgram> made = std::make_unique<AbiContentProgram>(run);
+    (*found).start_program(std::move(made), (*program).opaque == 1U);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_start_program(gf_object surface, const gf_content_program* program) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(start_program_slot.table_id, start_program_slot.slot_index);
-        if (program == nullptr || (*program).struct_size < program_size_1_4 || (*program).opaque > 1U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, start_program_slot,
-                        "a gf_content_program needs struct_size of at least 48 and opaque 0 or 1");
-        }
-        gf_callback run{};
-        const gf_status read = read_callback(&(*program).run, start_program_slot, run);
-        if (read != GF_STATUS_OK) return read;
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, start_program_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        // A program that never runs (start_program throws) disarms itself:
-        // the caller keeps the callback (N20).
-        std::unique_ptr<ContentProgram> made = std::make_unique<AbiContentProgram>(run);
-        (*found).start_program(std::move(made), (*program).opaque == 1U);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(start_program_slot);
+    return call_slot(start_program_slot, content_start_program_body, surface, program);
+}
+
+gf_status content_start_hosted_body(gf_object surface, const gf_hosted_options* options) {
+    if (options == nullptr || (*options).struct_size < hosted_options_size_1_4 || (*options).opaque > 1U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, start_hosted_slot,
+                    "a gf_hosted_options needs struct_size of at least 64 and opaque 0 or 1");
     }
+    if ((*options).arguments == nullptr && (*options).argument_count != 0U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, start_hosted_slot, "arguments with no data have count zero");
+    }
+    if ((*options).argument_count > GF_HOSTED_MAXIMUM_ARGUMENTS) {
+        return fail(GF_STATUS_LIMIT_EXCEEDED, start_hosted_slot,
+                    "a hosted program takes at most GF_HOSTED_MAXIMUM_ARGUMENTS arguments");
+    }
+    if ((*options).slot_bytes > GF_CONTENT_MAXIMUM_FRAME_BYTES) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, start_hosted_slot,
+                    "slot_bytes is at most GF_CONTENT_MAXIMUM_FRAME_BYTES");
+    }
+    // Everything is read and checked before the surface changes.
+    HostedContentOptions made{};
+    std::string_view executable{};
+    const gf_status path = read_text((*options).executable, start_hosted_slot, executable);
+    if (path != GF_STATUS_OK) return path;
+    std::u8string executable_utf8(executable.size(), u8'\0');
+    std::transform(executable.begin(), executable.end(), executable_utf8.begin(), CharToChar8{});
+    made.executable = std::filesystem::path(executable_utf8);
+    const std::span<const gf_utf8_view> arguments((*options).arguments,
+                                                  static_cast<std::size_t>((*options).argument_count));
+    made.arguments.reserve(arguments.size());
+    for (const gf_utf8_view& argument : arguments) {
+        std::string_view text{};
+        const gf_status read = read_text(argument, start_hosted_slot, text);
+        if (read != GF_STATUS_OK) return read;
+        made.arguments.emplace_back(text);
+    }
+    if ((*options).slot_bytes != 0U) made.slot_bytes = (*options).slot_bytes;
+    if ((*options).start_timeout_ms != 0U) {
+        const gf_status timeout = read_milliseconds((*options).start_timeout_ms, start_hosted_slot,
+                                                    made.start_timeout);
+        if (timeout != GF_STATUS_OK) return timeout;
+    }
+    if ((*options).stop_grace_ms != 0U) {
+        const gf_status grace = read_milliseconds((*options).stop_grace_ms, start_hosted_slot, made.stop_grace);
+        if (grace != GF_STATUS_OK) return grace;
+    }
+    if (hosted_content_support() != HostedContentSupport::available) {
+        return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, start_hosted_slot,
+                    "hosted content is not available on this platform (GF_HOST_CAPABILITY_HOSTED_CONTENT)");
+    }
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, start_hosted_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    static_cast<void>((*found).start_hosted_content(std::move(made), (*options).opaque == 1U));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_start_hosted(gf_object surface, const gf_hosted_options* options) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(start_hosted_slot.table_id, start_hosted_slot.slot_index);
-        if (options == nullptr || (*options).struct_size < hosted_options_size_1_4 || (*options).opaque > 1U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, start_hosted_slot,
-                        "a gf_hosted_options needs struct_size of at least 64 and opaque 0 or 1");
-        }
-        if ((*options).arguments == nullptr && (*options).argument_count != 0U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, start_hosted_slot, "arguments with no data have count zero");
-        }
-        if ((*options).argument_count > GF_HOSTED_MAXIMUM_ARGUMENTS) {
-            return fail(GF_STATUS_LIMIT_EXCEEDED, start_hosted_slot,
-                        "a hosted program takes at most GF_HOSTED_MAXIMUM_ARGUMENTS arguments");
-        }
-        if ((*options).slot_bytes > GF_CONTENT_MAXIMUM_FRAME_BYTES) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, start_hosted_slot,
-                        "slot_bytes is at most GF_CONTENT_MAXIMUM_FRAME_BYTES");
-        }
-        // Everything is read and checked before the surface changes.
-        HostedContentOptions made{};
-        std::string_view executable{};
-        const gf_status path = read_text((*options).executable, start_hosted_slot, executable);
-        if (path != GF_STATUS_OK) return path;
-        std::u8string executable_utf8(executable.size(), u8'\0');
-        std::transform(executable.begin(), executable.end(), executable_utf8.begin(), CharToChar8{});
-        made.executable = std::filesystem::path(executable_utf8);
-        const std::span<const gf_utf8_view> arguments((*options).arguments,
-                                                      static_cast<std::size_t>((*options).argument_count));
-        made.arguments.reserve(arguments.size());
-        for (const gf_utf8_view& argument : arguments) {
-            std::string_view text{};
-            const gf_status read = read_text(argument, start_hosted_slot, text);
-            if (read != GF_STATUS_OK) return read;
-            made.arguments.emplace_back(text);
-        }
-        if ((*options).slot_bytes != 0U) made.slot_bytes = (*options).slot_bytes;
-        if ((*options).start_timeout_ms != 0U) {
-            const gf_status timeout = read_milliseconds((*options).start_timeout_ms, start_hosted_slot,
-                                                        made.start_timeout);
-            if (timeout != GF_STATUS_OK) return timeout;
-        }
-        if ((*options).stop_grace_ms != 0U) {
-            const gf_status grace = read_milliseconds((*options).stop_grace_ms, start_hosted_slot, made.stop_grace);
-            if (grace != GF_STATUS_OK) return grace;
-        }
-        if (hosted_content_support() != HostedContentSupport::available) {
-            return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, start_hosted_slot,
-                        "hosted content is not available on this platform (GF_HOST_CAPABILITY_HOSTED_CONTENT)");
-        }
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, start_hosted_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        static_cast<void>((*found).start_hosted_content(std::move(made), (*options).opaque == 1U));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(start_hosted_slot);
-    }
+    return call_slot(start_hosted_slot, content_start_hosted_body, surface, options);
+}
+
+gf_status content_terminate_body(gf_object surface) {
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, terminate_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    (*found).terminate();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_terminate(gf_object surface) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(terminate_slot.table_id, terminate_slot.slot_index);
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, terminate_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        (*found).terminate();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(terminate_slot);
-    }
+    return call_slot(terminate_slot, content_terminate_body, surface);
+}
+
+gf_status content_set_termination_grace_body(gf_object surface, std::uint64_t milliseconds) {
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, set_termination_grace_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    // Longer graces are lowered (gf_abi.h), as the C++ setter lowers them.
+    const std::uint64_t capped = std::min<std::uint64_t>(milliseconds, GF_CONTENT_MAXIMUM_TERMINATION_GRACE_MS);
+    (*found).set_termination_grace(std::chrono::milliseconds(static_cast<std::int64_t>(capped)));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_set_termination_grace(gf_object surface, std::uint64_t milliseconds) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_termination_grace_slot.table_id,
-                                            set_termination_grace_slot.slot_index);
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, set_termination_grace_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        // Longer graces are lowered (gf_abi.h), as the C++ setter lowers them.
-        const std::uint64_t capped = std::min<std::uint64_t>(milliseconds, GF_CONTENT_MAXIMUM_TERMINATION_GRACE_MS);
-        (*found).set_termination_grace(std::chrono::milliseconds(static_cast<std::int64_t>(capped)));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_termination_grace_slot);
-    }
+    return call_slot(set_termination_grace_slot, content_set_termination_grace_body, surface, milliseconds);
+}
+
+gf_status content_set_stale_interval_body(gf_object surface, std::uint64_t milliseconds) {
+    std::chrono::milliseconds interval{};
+    const gf_status read = read_milliseconds(milliseconds, set_stale_interval_slot, interval);
+    if (read != GF_STATUS_OK) return read;
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, set_stale_interval_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    (*found).set_stale_interval(std::chrono::duration_cast<FrameInterval>(interval));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_set_stale_interval(gf_object surface, std::uint64_t milliseconds) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_stale_interval_slot.table_id, set_stale_interval_slot.slot_index);
-        std::chrono::milliseconds interval{};
-        const gf_status read = read_milliseconds(milliseconds, set_stale_interval_slot, interval);
-        if (read != GF_STATUS_OK) return read;
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, set_stale_interval_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        (*found).set_stale_interval(std::chrono::duration_cast<FrameInterval>(interval));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_stale_interval_slot);
-    }
+    return call_slot(set_stale_interval_slot, content_set_stale_interval_body, surface, milliseconds);
+}
+
+gf_status content_status_body(gf_object surface, gf_content_status* status) {
+    if (status == nullptr) return fail(GF_STATUS_INVALID_ARGUMENT, status_slot, "status needs an output");
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, status_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    *status = status_value((*found).status());
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_status(gf_object surface, gf_content_status* status) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(status_slot.table_id, status_slot.slot_index);
-        if (status == nullptr) return fail(GF_STATUS_INVALID_ARGUMENT, status_slot, "status needs an output");
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, status_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        *status = status_value((*found).status());
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(status_slot);
-    }
+    return call_slot(status_slot, content_status_body, surface, status);
+}
+
+gf_status content_failure_body(gf_object surface, char* buffer, std::uint64_t capacity,
+                               std::uint64_t* required) {
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, failure_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    std::string_view text{};
+    if ((*found).status() == ContentSurfaceStatus::failed) text = (*found).failure();
+    const gf_status written = write_text(text, buffer, capacity, required, failure_slot);
+    return written;
 }
 
 gf_status GF_CALL content_failure(gf_object surface, char* buffer, std::uint64_t capacity,
                                   std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(failure_slot.table_id, failure_slot.slot_index);
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, failure_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        std::string_view text{};
-        if ((*found).status() == ContentSurfaceStatus::failed) text = (*found).failure();
-        const gf_status written = write_text(text, buffer, capacity, required, failure_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(failure_slot);
+    return call_slot(failure_slot, content_failure_body, surface, buffer, capacity, required);
+}
+
+gf_status content_statistics_body(gf_object surface, gf_content_statistics* statistics) {
+    if (statistics == nullptr || (*statistics).struct_size < statistics_size_1_4) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, statistics_slot,
+                    "a gf_content_statistics needs struct_size of at least 80");
     }
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, statistics_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    write_statistics((*found).statistics(), *statistics);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_statistics(gf_object surface, gf_content_statistics* statistics) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(statistics_slot.table_id, statistics_slot.slot_index);
-        if (statistics == nullptr || (*statistics).struct_size < statistics_size_1_4) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, statistics_slot,
-                        "a gf_content_statistics needs struct_size of at least 80");
-        }
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, statistics_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        write_statistics((*found).statistics(), *statistics);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(statistics_slot);
+    return call_slot(statistics_slot, content_statistics_body, surface, statistics);
+}
+
+gf_status content_request_body(gf_object surface, gf_content_request* request) {
+    if (request == nullptr || (*request).struct_size < request_size_1_4) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, request_slot, "a gf_content_request needs struct_size of at least 32");
     }
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, request_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    write_request((*found).request(), *request);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_request(gf_object surface, gf_content_request* request) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(request_slot.table_id, request_slot.slot_index);
-        if (request == nullptr || (*request).struct_size < request_size_1_4) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, request_slot, "a gf_content_request needs struct_size of at least 32");
-        }
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, request_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        write_request((*found).request(), *request);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(request_slot);
-    }
+    return call_slot(request_slot, content_request_body, surface, request);
+}
+
+gf_status content_set_status_caption_body(gf_object surface, gf_content_status status,
+                                          gf_utf8_view caption) {
+    const std::optional<ContentSurfaceStatus> which = status_of(status);
+    if (!which) return fail(GF_STATUS_INVALID_ARGUMENT, set_status_caption_slot, "an unknown gf_content_status");
+    std::string_view text{};
+    const gf_status read = read_text(caption, set_status_caption_slot, text);
+    if (read != GF_STATUS_OK) return read;
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, set_status_caption_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    (*found).set_status_caption(*which, std::string(text));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_set_status_caption(gf_object surface, gf_content_status status,
                                              gf_utf8_view caption) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_status_caption_slot.table_id, set_status_caption_slot.slot_index);
-        const std::optional<ContentSurfaceStatus> which = status_of(status);
-        if (!which) return fail(GF_STATUS_INVALID_ARGUMENT, set_status_caption_slot, "an unknown gf_content_status");
-        std::string_view text{};
-        const gf_status read = read_text(caption, set_status_caption_slot, text);
-        if (read != GF_STATUS_OK) return read;
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, set_status_caption_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        (*found).set_status_caption(*which, std::string(text));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_status_caption_slot);
-    }
+    return call_slot(set_status_caption_slot, content_set_status_caption_body, surface, status, caption);
+}
+
+gf_status content_set_semantics_body(gf_object surface, const gf_content_semantics* semantics) {
+    ContentSemantics read{};
+    const gf_status record = read_semantics(semantics, set_semantics_slot, read);
+    if (record != GF_STATUS_OK) return record;
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, set_semantics_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    // std::invalid_argument for text the C++ check refuses.
+    (*found).set_content_semantics(std::move(read));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_set_semantics(gf_object surface, const gf_content_semantics* semantics) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_semantics_slot.table_id, set_semantics_slot.slot_index);
-        ContentSemantics read{};
-        const gf_status record = read_semantics(semantics, set_semantics_slot, read);
-        if (record != GF_STATUS_OK) return record;
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, set_semantics_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        // std::invalid_argument for text the C++ check refuses.
-        (*found).set_content_semantics(std::move(read));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_semantics_slot);
+    return call_slot(set_semantics_slot, content_set_semantics_body, surface, semantics);
+}
+
+gf_status content_program_running_body(gf_object surface, std::uint32_t* running) {
+    if (running == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, program_running_slot, "program_running needs an output");
     }
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, program_running_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    *running = (*found).program_running() ? 1U : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_program_running(gf_object surface, std::uint32_t* running) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(program_running_slot.table_id, program_running_slot.slot_index);
-        if (running == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, program_running_slot, "program_running needs an output");
-        }
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, program_running_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        *running = (*found).program_running() ? 1U : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(program_running_slot);
+    return call_slot(program_running_slot, content_program_running_body, surface, running);
+}
+
+gf_status content_hosted_input_body(gf_object surface, gf_hosted_input_report* report) {
+    if (report == nullptr || (*report).struct_size < hosted_input_report_size_1_4) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, hosted_input_slot,
+                    "a gf_hosted_input_report needs struct_size of at least 16");
     }
+    std::shared_ptr<ContentSurface> found;
+    const gf_status entered = enter_surface(surface, hosted_input_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const HostedInput& input = (*found).hosted_input();
+    (*report).connected = input.connected() ? 1U : 0U;
+    (*report).dropped = input.dropped();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_hosted_input(gf_object surface, gf_hosted_input_report* report) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(hosted_input_slot.table_id, hosted_input_slot.slot_index);
-        if (report == nullptr || (*report).struct_size < hosted_input_report_size_1_4) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, hosted_input_slot,
-                        "a gf_hosted_input_report needs struct_size of at least 16");
-        }
-        std::shared_ptr<ContentSurface> found;
-        const gf_status entered = enter_surface(surface, hosted_input_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        const HostedInput& input = (*found).hosted_input();
-        (*report).connected = input.connected() ? 1U : 0U;
-        (*report).dropped = input.dropped();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(hosted_input_slot);
+    return call_slot(hosted_input_slot, content_hosted_input_body, surface, report);
+}
+
+gf_status content_hosted_support_body(gf_hosted_support* support) {
+    if (support == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, hosted_support_slot, "hosted_support needs an output");
     }
+    const bool available = hosted_content_support() == HostedContentSupport::available;
+    *support = available ? GF_HOSTED_SUPPORT_AVAILABLE : GF_HOSTED_SUPPORT_NOT_REPORTED;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_hosted_support(gf_hosted_support* support) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(hosted_support_slot.table_id, hosted_support_slot.slot_index);
-        if (support == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, hosted_support_slot, "hosted_support needs an output");
-        }
-        const bool available = hosted_content_support() == HostedContentSupport::available;
-        *support = available ? GF_HOSTED_SUPPORT_AVAILABLE : GF_HOSTED_SUPPORT_NOT_REPORTED;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(hosted_support_slot);
-    }
+    return call_slot(hosted_support_slot, content_hosted_support_body, support);
 }
 
 // ---------------------------------------------------------------------------
 // Sink slots: any thread.
 
+gf_status content_sink_publish_body(gf_content_sink sink, const gf_content_frame* frame,
+                                    gf_content_publish_result* result) {
+    if (frame == nullptr || result == nullptr || (*frame).struct_size < frame_size_1_4 ||
+        (*frame).reserved != 0U || (*frame).opaque > 1U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, sink_publish_slot,
+                    "a gf_content_frame needs struct_size of at least 64, reserved zero, opaque 0 or 1 and a "
+                    "result");
+    }
+    if ((*frame).pixels.data == nullptr && (*frame).pixels.size != 0U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, sink_publish_slot, "pixels with no data have size zero");
+    }
+    ContentFrameSink found{};
+    const gf_status looked_up = find_sink(sink, sink_publish_slot, found);
+    if (looked_up != GF_STATUS_OK) return looked_up;
+    ContentFrame made{};
+    made.width = (*frame).width;
+    made.height = (*frame).height;
+    made.row_bytes = (*frame).row_bytes;
+    // A value past the C++ enumeration's range is held at its top, which
+    // names no format either: the C++ check refuses and counts it.
+    const std::uint32_t format = std::min<std::uint32_t>((*frame).pixel_format, 0xFFU);
+    made.pixel_format = static_cast<LiveSurfacePixelFormat>(format);
+    made.opaque = (*frame).opaque == 1U;
+    made.damage = ContentPixelRect{(*frame).damage.x, (*frame).damage.y, (*frame).damage.width,
+                                   (*frame).damage.height};
+    const std::byte* const first = reinterpret_cast<const std::byte*>((*frame).pixels.data);
+    made.pixels = std::span<const std::byte>(first, static_cast<std::size_t>((*frame).pixels.size));
+    const ContentPublishResult published = found.publish(made);
+    *result = publish_value(published);
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL content_sink_publish(gf_content_sink sink, const gf_content_frame* frame,
                                        gf_content_publish_result* result) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(sink_publish_slot.table_id, sink_publish_slot.slot_index);
-        if (frame == nullptr || result == nullptr || (*frame).struct_size < frame_size_1_4 ||
-            (*frame).reserved != 0U || (*frame).opaque > 1U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, sink_publish_slot,
-                        "a gf_content_frame needs struct_size of at least 64, reserved zero, opaque 0 or 1 and a "
-                        "result");
-        }
-        if ((*frame).pixels.data == nullptr && (*frame).pixels.size != 0U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, sink_publish_slot, "pixels with no data have size zero");
-        }
-        ContentFrameSink found{};
-        const gf_status looked_up = find_sink(sink, sink_publish_slot, found);
-        if (looked_up != GF_STATUS_OK) return looked_up;
-        ContentFrame made{};
-        made.width = (*frame).width;
-        made.height = (*frame).height;
-        made.row_bytes = (*frame).row_bytes;
-        // A value past the C++ enumeration's range is held at its top, which
-        // names no format either: the C++ check refuses and counts it.
-        const std::uint32_t format = std::min<std::uint32_t>((*frame).pixel_format, 0xFFU);
-        made.pixel_format = static_cast<LiveSurfacePixelFormat>(format);
-        made.opaque = (*frame).opaque == 1U;
-        made.damage = ContentPixelRect{(*frame).damage.x, (*frame).damage.y, (*frame).damage.width,
-                                       (*frame).damage.height};
-        const std::byte* const first = reinterpret_cast<const std::byte*>((*frame).pixels.data);
-        made.pixels = std::span<const std::byte>(first, static_cast<std::size_t>((*frame).pixels.size));
-        const ContentPublishResult published = found.publish(made);
-        *result = publish_value(published);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(sink_publish_slot);
-    }
+    return call_slot(sink_publish_slot, content_sink_publish_body, sink, frame, result);
+}
+
+gf_status content_sink_heartbeat_body(gf_content_sink sink) {
+    ContentFrameSink found{};
+    const gf_status looked_up = find_sink(sink, sink_heartbeat_slot, found);
+    if (looked_up != GF_STATUS_OK) return looked_up;
+    found.heartbeat();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_sink_heartbeat(gf_content_sink sink) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(sink_heartbeat_slot.table_id, sink_heartbeat_slot.slot_index);
-        ContentFrameSink found{};
-        const gf_status looked_up = find_sink(sink, sink_heartbeat_slot, found);
-        if (looked_up != GF_STATUS_OK) return looked_up;
-        found.heartbeat();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(sink_heartbeat_slot);
+    return call_slot(sink_heartbeat_slot, content_sink_heartbeat_body, sink);
+}
+
+gf_status content_sink_publish_semantics_body(gf_content_sink sink, const gf_content_semantics* semantics,
+                                              gf_content_semantics_result* result) {
+    if (result == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, sink_publish_semantics_slot, "publish_semantics needs a result");
     }
+    ContentSemantics read{};
+    const gf_status record = read_semantics(semantics, sink_publish_semantics_slot, read);
+    if (record != GF_STATUS_OK) return record;
+    ContentFrameSink found{};
+    const gf_status looked_up = find_sink(sink, sink_publish_semantics_slot, found);
+    if (looked_up != GF_STATUS_OK) return looked_up;
+    const ContentSemanticsResult published = found.publish_semantics(std::move(read));
+    *result = semantics_value(published);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_sink_publish_semantics(gf_content_sink sink, const gf_content_semantics* semantics,
                                                  gf_content_semantics_result* result) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(sink_publish_semantics_slot.table_id,
-                                            sink_publish_semantics_slot.slot_index);
-        if (result == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, sink_publish_semantics_slot, "publish_semantics needs a result");
-        }
-        ContentSemantics read{};
-        const gf_status record = read_semantics(semantics, sink_publish_semantics_slot, read);
-        if (record != GF_STATUS_OK) return record;
-        ContentFrameSink found{};
-        const gf_status looked_up = find_sink(sink, sink_publish_semantics_slot, found);
-        if (looked_up != GF_STATUS_OK) return looked_up;
-        const ContentSemanticsResult published = found.publish_semantics(std::move(read));
-        *result = semantics_value(published);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(sink_publish_semantics_slot);
+    return call_slot(sink_publish_semantics_slot, content_sink_publish_semantics_body, sink, semantics, result);
+}
+
+gf_status content_sink_request_body(gf_content_sink sink, gf_content_request* request) {
+    if (request == nullptr || (*request).struct_size < request_size_1_4) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, sink_request_slot,
+                    "a gf_content_request needs struct_size of at least 32");
     }
+    ContentFrameSink found{};
+    const gf_status looked_up = find_sink(sink, sink_request_slot, found);
+    if (looked_up != GF_STATUS_OK) return looked_up;
+    write_request(found.request(), *request);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_sink_request(gf_content_sink sink, gf_content_request* request) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(sink_request_slot.table_id, sink_request_slot.slot_index);
-        if (request == nullptr || (*request).struct_size < request_size_1_4) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, sink_request_slot,
-                        "a gf_content_request needs struct_size of at least 32");
-        }
-        ContentFrameSink found{};
-        const gf_status looked_up = find_sink(sink, sink_request_slot, found);
-        if (looked_up != GF_STATUS_OK) return looked_up;
-        write_request(found.request(), *request);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(sink_request_slot);
+    return call_slot(sink_request_slot, content_sink_request_body, sink, request);
+}
+
+gf_status content_sink_wait_for_request_body(gf_content_sink sink, std::uint64_t seen_generation,
+                                             std::uint64_t timeout_ms, gf_content_request* request) {
+    if (request == nullptr || (*request).struct_size < request_size_1_4) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, sink_wait_for_request_slot,
+                    "a gf_content_request needs struct_size of at least 32");
     }
+    std::chrono::milliseconds timeout{};
+    const gf_status read = read_milliseconds(timeout_ms, sink_wait_for_request_slot, timeout);
+    if (read != GF_STATUS_OK) return read;
+    ContentFrameSink found{};
+    const gf_status looked_up = find_sink(sink, sink_wait_for_request_slot, found);
+    if (looked_up != GF_STATUS_OK) return looked_up;
+    // The copy keeps the channel alive through the wait even when the
+    // handle is released meanwhile.
+    write_request(found.wait_for_request(seen_generation, timeout), *request);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_sink_wait_for_request(gf_content_sink sink, std::uint64_t seen_generation,
                                                 std::uint64_t timeout_ms, gf_content_request* request) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(sink_wait_for_request_slot.table_id,
-                                            sink_wait_for_request_slot.slot_index);
-        if (request == nullptr || (*request).struct_size < request_size_1_4) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, sink_wait_for_request_slot,
-                        "a gf_content_request needs struct_size of at least 32");
-        }
-        std::chrono::milliseconds timeout{};
-        const gf_status read = read_milliseconds(timeout_ms, sink_wait_for_request_slot, timeout);
-        if (read != GF_STATUS_OK) return read;
-        ContentFrameSink found{};
-        const gf_status looked_up = find_sink(sink, sink_wait_for_request_slot, found);
-        if (looked_up != GF_STATUS_OK) return looked_up;
-        // The copy keeps the channel alive through the wait even when the
-        // handle is released meanwhile.
-        write_request(found.wait_for_request(seen_generation, timeout), *request);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(sink_wait_for_request_slot);
+    return call_slot(sink_wait_for_request_slot, content_sink_wait_for_request_body, sink, seen_generation, timeout_ms, request);
+}
+
+gf_status content_sink_state_body(gf_content_sink sink, std::uint32_t* revoked,
+                                  std::uint32_t* stop_requested) {
+    if (revoked == nullptr || stop_requested == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, sink_state_slot, "sink_state needs both outputs");
     }
+    ContentFrameSink found{};
+    const gf_status looked_up = find_sink(sink, sink_state_slot, found);
+    if (looked_up != GF_STATUS_OK) return looked_up;
+    *revoked = found.revoked() ? 1U : 0U;
+    *stop_requested = found.stop_requested() ? 1U : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_sink_state(gf_content_sink sink, std::uint32_t* revoked,
                                      std::uint32_t* stop_requested) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(sink_state_slot.table_id, sink_state_slot.slot_index);
-        if (revoked == nullptr || stop_requested == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, sink_state_slot, "sink_state needs both outputs");
-        }
-        ContentFrameSink found{};
-        const gf_status looked_up = find_sink(sink, sink_state_slot, found);
-        if (looked_up != GF_STATUS_OK) return looked_up;
-        *revoked = found.revoked() ? 1U : 0U;
-        *stop_requested = found.stop_requested() ? 1U : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(sink_state_slot);
+    return call_slot(sink_state_slot, content_sink_state_body, sink, revoked, stop_requested);
+}
+
+gf_status content_sink_statistics_body(gf_content_sink sink, gf_content_statistics* statistics) {
+    if (statistics == nullptr || (*statistics).struct_size < statistics_size_1_4) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, sink_statistics_slot,
+                    "a gf_content_statistics needs struct_size of at least 80");
     }
+    ContentFrameSink found{};
+    const gf_status looked_up = find_sink(sink, sink_statistics_slot, found);
+    if (looked_up != GF_STATUS_OK) return looked_up;
+    write_statistics(found.statistics(), *statistics);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_sink_statistics(gf_content_sink sink, gf_content_statistics* statistics) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(sink_statistics_slot.table_id, sink_statistics_slot.slot_index);
-        if (statistics == nullptr || (*statistics).struct_size < statistics_size_1_4) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, sink_statistics_slot,
-                        "a gf_content_statistics needs struct_size of at least 80");
-        }
-        ContentFrameSink found{};
-        const gf_status looked_up = find_sink(sink, sink_statistics_slot, found);
-        if (looked_up != GF_STATUS_OK) return looked_up;
-        write_statistics(found.statistics(), *statistics);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(sink_statistics_slot);
+    return call_slot(sink_statistics_slot, content_sink_statistics_body, sink, statistics);
+}
+
+gf_status content_sink_release_body(gf_content_sink sink) {
+    if (!sinks().remove(sink)) {
+        return fail(GF_STATUS_STALE_HANDLE, sink_release_slot, "the sink was released or never given out");
     }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_sink_release(gf_content_sink sink) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(sink_release_slot.table_id, sink_release_slot.slot_index);
-        if (!sinks().remove(sink)) {
-            return fail(GF_STATUS_STALE_HANDLE, sink_release_slot, "the sink was released or never given out");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(sink_release_slot);
+    return call_slot(sink_release_slot, content_sink_release_body, sink);
+}
+
+gf_status content_program_sink_body(gf_content_sink* sink) {
+    if (sink == nullptr) return fail(GF_STATUS_INVALID_ARGUMENT, program_sink_slot, "program_sink needs an output");
+    if (running_context == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, program_sink_slot,
+                    "program_sink is called inside a content program's run callback only");
     }
+    const gf_status handed = hand_out((*running_context).sink(), sink, program_sink_slot);
+    return handed;
 }
 
 gf_status GF_CALL content_program_sink(gf_content_sink* sink) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(program_sink_slot.table_id, program_sink_slot.slot_index);
-        if (sink == nullptr) return fail(GF_STATUS_INVALID_ARGUMENT, program_sink_slot, "program_sink needs an output");
-        if (running_context == nullptr) {
-            return fail(GF_STATUS_INVALID_STATE, program_sink_slot,
-                        "program_sink is called inside a content program's run callback only");
-        }
-        const gf_status handed = hand_out((*running_context).sink(), sink, program_sink_slot);
-        return handed;
-    } catch (...) {
-        return fail_with_current_exception(program_sink_slot);
+    return call_slot(program_sink_slot, content_program_sink_body, sink);
+}
+
+gf_status content_program_fail_body(gf_utf8_view message) {
+    if (running_program == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, program_fail_slot,
+                    "program_fail is called inside a content program's run callback only");
     }
+    std::string_view text{};
+    const gf_status read = read_text(message, program_fail_slot, text);
+    if (read != GF_STATUS_OK) return read;
+    (*running_program).name_failure(std::string(text));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_program_fail(gf_utf8_view message) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(program_fail_slot.table_id, program_fail_slot.slot_index);
-        if (running_program == nullptr) {
-            return fail(GF_STATUS_INVALID_STATE, program_fail_slot,
-                        "program_fail is called inside a content program's run callback only");
-        }
-        std::string_view text{};
-        const gf_status read = read_text(message, program_fail_slot, text);
-        if (read != GF_STATUS_OK) return read;
-        (*running_program).name_failure(std::string(text));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(program_fail_slot);
-    }
+    return call_slot(program_fail_slot, content_program_fail_body, message);
 }
 
 // ---------------------------------------------------------------------------
 // Editor slots.
 
-gf_status GF_CALL content_editor_text_revision(gf_object editor, std::uint64_t* revision) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_text_revision_slot.table_id, editor_text_revision_slot.slot_index);
-        if (revision == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, editor_text_revision_slot, "editor_text_revision needs an output");
-        }
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_text_revision_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        *revision = (*found).text_revision();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(editor_text_revision_slot);
+gf_status content_editor_text_revision_body(gf_object editor, std::uint64_t* revision) {
+    if (revision == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_text_revision_slot, "editor_text_revision needs an output");
     }
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_text_revision_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    *revision = (*found).text_revision();
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL content_editor_text_revision(gf_object editor, std::uint64_t* revision) noexcept {
+    return call_slot(editor_text_revision_slot, content_editor_text_revision_body, editor, revision);
+}
+
+gf_status content_editor_text_body(gf_object editor, char* buffer, std::uint64_t capacity,
+                                   std::uint64_t* required) {
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_text_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const std::string text = (*found).text();
+    const gf_status written = write_text(text, buffer, capacity, required, editor_text_slot);
+    return written;
 }
 
 gf_status GF_CALL content_editor_text(gf_object editor, char* buffer, std::uint64_t capacity,
                                       std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_text_slot.table_id, editor_text_slot.slot_index);
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_text_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        const std::string text = (*found).text();
-        const gf_status written = write_text(text, buffer, capacity, required, editor_text_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(editor_text_slot);
-    }
+    return call_slot(editor_text_slot, content_editor_text_body, editor, buffer, capacity, required);
+}
+
+gf_status content_editor_set_text_body(gf_object editor, gf_utf8_view text) {
+    std::string_view read{};
+    const gf_status valid = read_text(text, editor_set_text_slot, read);
+    if (valid != GF_STATUS_OK) return valid;
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_set_text_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    (*found).set_text(read);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_editor_set_text(gf_object editor, gf_utf8_view text) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_set_text_slot.table_id, editor_set_text_slot.slot_index);
-        std::string_view read{};
-        const gf_status valid = read_text(text, editor_set_text_slot, read);
-        if (valid != GF_STATUS_OK) return valid;
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_set_text_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        (*found).set_text(read);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(editor_set_text_slot);
-    }
+    return call_slot(editor_set_text_slot, content_editor_set_text_body, editor, text);
 }
 
 // The C layout's arrays, checked for presence; GF_STATUS_INVALID_ARGUMENT
@@ -991,223 +965,214 @@ gf_status layout_array(const Element* data, std::uint64_t count, SlotIdentity sl
     return GF_STATUS_OK;
 }
 
+gf_status content_editor_submit_layout_body(gf_object editor, const gf_content_text_layout* layout,
+                                            gf_content_layout_result* result) {
+    if (layout == nullptr || result == nullptr || (*layout).struct_size < text_layout_size_1_4 ||
+        (*layout).reserved != 0U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_submit_layout_slot,
+                    "a gf_content_text_layout needs struct_size of at least 64, reserved zero and a result");
+    }
+    std::span<const gf_content_text_line> lines{};
+    std::span<const gf_content_text_cluster> clusters{};
+    std::span<const gf_content_caret_stop> carets{};
+    const gf_status line_array = layout_array((*layout).lines, (*layout).line_count, editor_submit_layout_slot,
+                                              lines);
+    if (line_array != GF_STATUS_OK) return line_array;
+    const gf_status cluster_array = layout_array((*layout).clusters, (*layout).cluster_count,
+                                                 editor_submit_layout_slot, clusters);
+    if (cluster_array != GF_STATUS_OK) return cluster_array;
+    const gf_status caret_array = layout_array((*layout).carets, (*layout).caret_count, editor_submit_layout_slot,
+                                               carets);
+    if (caret_array != GF_STATUS_OK) return caret_array;
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_submit_layout_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    // Counts first, so an oversized layout is refused before a copy.
+    if (lines.size() > maximum_content_layout_entries || clusters.size() > maximum_content_layout_entries ||
+        carets.size() > maximum_content_layout_entries) {
+        *result = GF_CONTENT_LAYOUT_REFUSED_TOO_LARGE;
+        return GF_STATUS_OK;
+    }
+    ContentTextLayout made{};
+    made.text_revision = (*layout).text_revision;
+    made.lines.reserve(lines.size());
+    made.clusters.reserve(clusters.size());
+    made.carets.reserve(carets.size());
+    for (const gf_content_text_line& line : lines) {
+        ContentTextLine copy{};
+        copy.range = Utf8Range{Utf8Offset(static_cast<std::size_t>(line.start)),
+                               Utf8Offset(static_cast<std::size_t>(line.end))};
+        copy.bounds = rect_of(line.bounds);
+        made.lines.push_back(copy);
+    }
+    for (const gf_content_text_cluster& cluster : clusters) {
+        if (cluster.right_to_left > 1U) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, editor_submit_layout_slot, "right_to_left is 0 or 1");
+        }
+        ContentTextCluster copy{};
+        copy.range = Utf8Range{Utf8Offset(static_cast<std::size_t>(cluster.start)),
+                               Utf8Offset(static_cast<std::size_t>(cluster.end))};
+        copy.line = cluster.line;
+        copy.bounds = rect_of(cluster.bounds);
+        copy.right_to_left = cluster.right_to_left == 1U;
+        made.clusters.push_back(copy);
+    }
+    for (const gf_content_caret_stop& caret : carets) {
+        ContentCaretStop copy{};
+        copy.offset = Utf8Offset(static_cast<std::size_t>(caret.offset));
+        copy.caret = rect_of(caret.caret);
+        made.carets.push_back(copy);
+    }
+    const ContentLayoutResult submitted = (*found).submit_layout(std::move(made));
+    *result = layout_value(submitted);
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL content_editor_submit_layout(gf_object editor, const gf_content_text_layout* layout,
                                                gf_content_layout_result* result) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_submit_layout_slot.table_id, editor_submit_layout_slot.slot_index);
-        if (layout == nullptr || result == nullptr || (*layout).struct_size < text_layout_size_1_4 ||
-            (*layout).reserved != 0U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, editor_submit_layout_slot,
-                        "a gf_content_text_layout needs struct_size of at least 64, reserved zero and a result");
-        }
-        std::span<const gf_content_text_line> lines{};
-        std::span<const gf_content_text_cluster> clusters{};
-        std::span<const gf_content_caret_stop> carets{};
-        const gf_status line_array = layout_array((*layout).lines, (*layout).line_count, editor_submit_layout_slot,
-                                                  lines);
-        if (line_array != GF_STATUS_OK) return line_array;
-        const gf_status cluster_array = layout_array((*layout).clusters, (*layout).cluster_count,
-                                                     editor_submit_layout_slot, clusters);
-        if (cluster_array != GF_STATUS_OK) return cluster_array;
-        const gf_status caret_array = layout_array((*layout).carets, (*layout).caret_count, editor_submit_layout_slot,
-                                                   carets);
-        if (caret_array != GF_STATUS_OK) return caret_array;
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_submit_layout_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        // Counts first, so an oversized layout is refused before a copy.
-        if (lines.size() > maximum_content_layout_entries || clusters.size() > maximum_content_layout_entries ||
-            carets.size() > maximum_content_layout_entries) {
-            *result = GF_CONTENT_LAYOUT_REFUSED_TOO_LARGE;
-            return GF_STATUS_OK;
-        }
-        ContentTextLayout made{};
-        made.text_revision = (*layout).text_revision;
-        made.lines.reserve(lines.size());
-        made.clusters.reserve(clusters.size());
-        made.carets.reserve(carets.size());
-        for (const gf_content_text_line& line : lines) {
-            ContentTextLine copy{};
-            copy.range = Utf8Range{Utf8Offset(static_cast<std::size_t>(line.start)),
-                                   Utf8Offset(static_cast<std::size_t>(line.end))};
-            copy.bounds = rect_of(line.bounds);
-            made.lines.push_back(copy);
-        }
-        for (const gf_content_text_cluster& cluster : clusters) {
-            if (cluster.right_to_left > 1U) {
-                return fail(GF_STATUS_INVALID_ARGUMENT, editor_submit_layout_slot, "right_to_left is 0 or 1");
-            }
-            ContentTextCluster copy{};
-            copy.range = Utf8Range{Utf8Offset(static_cast<std::size_t>(cluster.start)),
-                                   Utf8Offset(static_cast<std::size_t>(cluster.end))};
-            copy.line = cluster.line;
-            copy.bounds = rect_of(cluster.bounds);
-            copy.right_to_left = cluster.right_to_left == 1U;
-            made.clusters.push_back(copy);
-        }
-        for (const gf_content_caret_stop& caret : carets) {
-            ContentCaretStop copy{};
-            copy.offset = Utf8Offset(static_cast<std::size_t>(caret.offset));
-            copy.caret = rect_of(caret.caret);
-            made.carets.push_back(copy);
-        }
-        const ContentLayoutResult submitted = (*found).submit_layout(std::move(made));
-        *result = layout_value(submitted);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(editor_submit_layout_slot);
+    return call_slot(editor_submit_layout_slot, content_editor_submit_layout_body, editor, layout, result);
+}
+
+gf_status content_editor_layout_current_body(gf_object editor, std::uint32_t* current) {
+    if (current == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_layout_current_slot, "editor_layout_current needs an output");
     }
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_layout_current_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    *current = (*found).layout_current() ? 1U : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_editor_layout_current(gf_object editor, std::uint32_t* current) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_layout_current_slot.table_id,
-                                            editor_layout_current_slot.slot_index);
-        if (current == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, editor_layout_current_slot, "editor_layout_current needs an output");
-        }
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_layout_current_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        *current = (*found).layout_current() ? 1U : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(editor_layout_current_slot);
+    return call_slot(editor_layout_current_slot, content_editor_layout_current_body, editor, current);
+}
+
+gf_status content_editor_open_frames_body(gf_object editor, std::uint32_t opaque, gf_content_sink* sink) {
+    if (sink == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_open_frames_slot, "editor_open_frames needs an output");
     }
+    bool opaque_value = false;
+    const gf_status flag = read_flag(opaque, editor_open_frames_slot, opaque_value);
+    if (flag != GF_STATUS_OK) return flag;
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_open_frames_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    ContentFrameSink opened = (*found).open_frames(opaque_value);
+    const gf_status handed = hand_out(std::move(opened), sink, editor_open_frames_slot);
+    return handed;
 }
 
 gf_status GF_CALL content_editor_open_frames(gf_object editor, std::uint32_t opaque, gf_content_sink* sink) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_open_frames_slot.table_id, editor_open_frames_slot.slot_index);
-        if (sink == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, editor_open_frames_slot, "editor_open_frames needs an output");
-        }
-        bool opaque_value = false;
-        const gf_status flag = read_flag(opaque, editor_open_frames_slot, opaque_value);
-        if (flag != GF_STATUS_OK) return flag;
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_open_frames_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        ContentFrameSink opened = (*found).open_frames(opaque_value);
-        const gf_status handed = hand_out(std::move(opened), sink, editor_open_frames_slot);
-        return handed;
-    } catch (...) {
-        return fail_with_current_exception(editor_open_frames_slot);
+    return call_slot(editor_open_frames_slot, content_editor_open_frames_body, editor, opaque, sink);
+}
+
+gf_status content_editor_caret_rectangle_body(gf_object editor, std::uint32_t* present,
+                                              gf_logical_rect* rectangle) {
+    if (present == nullptr || rectangle == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_caret_rectangle_slot,
+                    "editor_caret_rectangle needs both outputs");
     }
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_caret_rectangle_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const std::optional<Rect> caret = (*found).caret_rectangle();
+    *present = caret ? 1U : 0U;
+    if (caret) *rectangle = rect_value(*caret);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_editor_caret_rectangle(gf_object editor, std::uint32_t* present,
                                                  gf_logical_rect* rectangle) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_caret_rectangle_slot.table_id,
-                                            editor_caret_rectangle_slot.slot_index);
-        if (present == nullptr || rectangle == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, editor_caret_rectangle_slot,
-                        "editor_caret_rectangle needs both outputs");
-        }
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_caret_rectangle_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        const std::optional<Rect> caret = (*found).caret_rectangle();
-        *present = caret ? 1U : 0U;
-        if (caret) *rectangle = rect_value(*caret);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(editor_caret_rectangle_slot);
+    return call_slot(editor_caret_rectangle_slot, content_editor_caret_rectangle_body, editor, present, rectangle);
+}
+
+gf_status content_editor_selection_rectangles_body(gf_object editor, gf_logical_rect* buffer,
+                                                   std::uint64_t capacity, std::uint64_t* required) {
+    if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_selection_rectangles_slot,
+                    "editor_selection_rectangles needs required, and a buffer for a nonzero capacity");
     }
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_selection_rectangles_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const std::vector<Rect> boxes = (*found).selection_rectangles();
+    *required = boxes.size();
+    if (capacity < boxes.size()) {
+        return fail(GF_STATUS_BUFFER_TOO_SMALL, editor_selection_rectangles_slot,
+                    "the buffer holds fewer boxes than the selection has");
+    }
+    const std::span<gf_logical_rect> out(buffer, boxes.size());
+    for (std::size_t index = 0U; index < boxes.size(); ++index) out[index] = rect_value(boxes[index]);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_editor_selection_rectangles(gf_object editor, gf_logical_rect* buffer,
                                                       std::uint64_t capacity, std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_selection_rectangles_slot.table_id,
-                                            editor_selection_rectangles_slot.slot_index);
-        if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, editor_selection_rectangles_slot,
-                        "editor_selection_rectangles needs required, and a buffer for a nonzero capacity");
-        }
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_selection_rectangles_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        const std::vector<Rect> boxes = (*found).selection_rectangles();
-        *required = boxes.size();
-        if (capacity < boxes.size()) {
-            return fail(GF_STATUS_BUFFER_TOO_SMALL, editor_selection_rectangles_slot,
-                        "the buffer holds fewer boxes than the selection has");
-        }
-        const std::span<gf_logical_rect> out(buffer, boxes.size());
-        for (std::size_t index = 0U; index < boxes.size(); ++index) out[index] = rect_value(boxes[index]);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(editor_selection_rectangles_slot);
+    return call_slot(editor_selection_rectangles_slot, content_editor_selection_rectangles_body, editor, buffer, capacity, required);
+}
+
+gf_status content_editor_position_at_body(gf_object editor, gf_logical_point point,
+                                          std::uint64_t* offset) {
+    if (offset == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_position_at_slot, "editor_position_at needs an output");
     }
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_position_at_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const Utf8Offset position = (*found).position_at(Point{point.x, point.y});
+    *offset = position.value();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_editor_position_at(gf_object editor, gf_logical_point point,
                                              std::uint64_t* offset) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_position_at_slot.table_id, editor_position_at_slot.slot_index);
-        if (offset == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, editor_position_at_slot, "editor_position_at needs an output");
-        }
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_position_at_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        const Utf8Offset position = (*found).position_at(Point{point.x, point.y});
-        *offset = position.value();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(editor_position_at_slot);
-    }
+    return call_slot(editor_position_at_slot, content_editor_position_at_body, editor, point, offset);
+}
+
+gf_status content_editor_set_draws_selection_body(gf_object editor, std::uint32_t draws) {
+    bool value = false;
+    const gf_status flag = read_flag(draws, editor_set_draws_selection_slot, value);
+    if (flag != GF_STATUS_OK) return flag;
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_set_draws_selection_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    (*found).set_draws_selection(value);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_editor_set_draws_selection(gf_object editor, std::uint32_t draws) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_set_draws_selection_slot.table_id,
-                                            editor_set_draws_selection_slot.slot_index);
-        bool value = false;
-        const gf_status flag = read_flag(draws, editor_set_draws_selection_slot, value);
-        if (flag != GF_STATUS_OK) return flag;
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_set_draws_selection_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        (*found).set_draws_selection(value);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(editor_set_draws_selection_slot);
-    }
+    return call_slot(editor_set_draws_selection_slot, content_editor_set_draws_selection_body, editor, draws);
+}
+
+gf_status content_editor_set_multiline_body(gf_object editor, std::uint32_t multiline) {
+    bool value = false;
+    const gf_status flag = read_flag(multiline, editor_set_multiline_slot, value);
+    if (flag != GF_STATUS_OK) return flag;
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_set_multiline_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    (*found).set_multiline(value);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_editor_set_multiline(gf_object editor, std::uint32_t multiline) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_set_multiline_slot.table_id, editor_set_multiline_slot.slot_index);
-        bool value = false;
-        const gf_status flag = read_flag(multiline, editor_set_multiline_slot, value);
-        if (flag != GF_STATUS_OK) return flag;
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_set_multiline_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        (*found).set_multiline(value);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(editor_set_multiline_slot);
-    }
+    return call_slot(editor_set_multiline_slot, content_editor_set_multiline_body, editor, multiline);
+}
+
+gf_status content_editor_set_read_only_body(gf_object editor, std::uint32_t read_only) {
+    bool value = false;
+    const gf_status flag = read_flag(read_only, editor_set_read_only_slot, value);
+    if (flag != GF_STATUS_OK) return flag;
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_set_read_only_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    (*found).set_read_only(value);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL content_editor_set_read_only(gf_object editor, std::uint32_t read_only) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(editor_set_read_only_slot.table_id, editor_set_read_only_slot.slot_index);
-        bool value = false;
-        const gf_status flag = read_flag(read_only, editor_set_read_only_slot, value);
-        if (flag != GF_STATUS_OK) return flag;
-        std::shared_ptr<ContentTextEditor> found;
-        const gf_status entered = enter_editor(editor, editor_set_read_only_slot, found);
-        if (entered != GF_STATUS_OK) return entered;
-        (*found).set_read_only(value);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(editor_set_read_only_slot);
-    }
+    return call_slot(editor_set_read_only_slot, content_editor_set_read_only_body, editor, read_only);
 }
 
 constexpr gf_content_table table{
