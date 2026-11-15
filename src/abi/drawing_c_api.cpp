@@ -3019,7 +3019,8 @@ gd_result api_measure_string_fitted(gd_string_view text, gd_handle font, gd_hand
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_INTERNAL, "GUI.Drawing raster service is not installed");
+        // As every other raster entry answers (A-gf-abi-01-F14).
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
     }
     if (format.slot == 0U && format.generation == 0U) {
         return registry().with<gui_drawing::Font>(font, GD_OBJECT_FONT, &measure_fitted_without_format, service,

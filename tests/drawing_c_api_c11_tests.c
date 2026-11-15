@@ -658,6 +658,10 @@ static int check_text_and_reuse(const gd_api_v0* api) {
           GD_ERROR_INVALID_ARGUMENT);
     CHECK((*api).measure_string_fitted(view_of("abc"), font, format, 10.0, NULL, &fitted_width) ==
           GD_ERROR_INVALID_ARGUMENT);
+    /* Without the raster it is not available, as measure_string is
+     * (A-gf-abi-01-F14). */
+    CHECK((*api).measure_string_fitted(view_of("abc"), font, format, 10.0, &fitted, &fitted_width) ==
+          GD_ERROR_NOT_AVAILABLE);
 
     CHECK((*api).release(format) == GD_OK);
     CHECK((*api).release(font) == GD_OK);
