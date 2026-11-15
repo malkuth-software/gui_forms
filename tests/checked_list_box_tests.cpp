@@ -226,9 +226,44 @@ void test_property_capabilities() {
             "ListBox's cells keep working through the derived list");
 }
 
+// Erases the item being checked, as a task list that drops a task when it
+// is ticked does.
+class EraseCheckedItem final {
+public:
+    explicit EraseCheckedItem(CheckedListBox& list) : list_(list) {}
+    void operator()(ItemCheckEvent& event) const { list_.items.erase(event.index, 1U); }
+
+private:
+    CheckedListBox& list_;
+};
+
+// A-gf-controls-08-F2: an ItemCheck handler that erases the last item
+// leaves the check unwritten (no write past check_states_) and raises no
+// committed change.
+void test_check_handler_erases_the_item() {
+    std::shared_ptr<gui_forms::CheckedListBox> list = make_control<CheckedListBox>(StableId("tasks"));
+    (*list).add_item("Write", CheckState::unchecked);
+    (*list).add_item("Test", CheckState::unchecked);
+    (*list).add_item("Ship", CheckState::unchecked);
+    (*list).set_requested_bounds({0.0, 0.0, 260.0, 150.0});
+    Window window(list, {260.0, 150.0});
+    std::string order;
+    SubscriptionToken erasing = (*list).item_checking().subscribe(EraseCheckedItem(*list));
+    SubscriptionToken changed = (*list).item_check_state_changed().subscribe(
+        ObserveCommittedCheckState(order, list));
+    (*list).set_item_checked(2U, true);
+    require((*list).items.read().size() == 2U && (*list).checked_indices().empty() && order.empty(),
+            "a check whose handler erased its item is dropped");
+    (*list).set_item_checked(0U, true);
+    require((*list).items.read().size() == 1U && (*list).items.read()[0U] == "Test" &&
+                (*list).checked_indices().empty() && order.empty(),
+            "an erased earlier item does not pass its check to the next");
+}
+
 int main() {
     try {
         test_check_model_events_and_mutation();
+        test_check_handler_erases_the_item();
         test_pointer_keyboard_and_disabled_policy();
         test_paint_and_semantic_actions();
         test_property_capabilities();

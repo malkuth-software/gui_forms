@@ -10,6 +10,7 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <utility>
 
@@ -93,8 +94,13 @@ void CheckedListBox::set_item_check_state(std::size_t index,
     }
     if (check_states_[index] == state) return;
     ItemCheckEvent change{index, check_states_[index], state, false};
+    // A handler may edit the items (erase the one being checked): the
+    // check applies only to the items it was raised for
+    // (A-gf-controls-08-F2).
+    const std::uint64_t revision = items.revision();
     item_checking_.emit(change);
     if (!is_alive() || change.cancel) return;
+    if (items.revision() != revision || index >= check_states_.size()) return;
     if (change.new_state != CheckState::unchecked &&
         change.new_state != CheckState::checked &&
         change.new_state != CheckState::indeterminate) {
@@ -253,11 +259,15 @@ bool CheckedListBox::on_semantic_child_action(std::string_view stable_id,
                                         index);
     if (parsed.ec != std::errc{} || parsed.ptr != suffix.data() + suffix.size() ||
         index >= items.read().size()) return false;
+    // The focus and selection handlers may edit the items: the item is
+    // toggled only if they did not (A-gf-controls-08-F2).
+    const std::uint64_t revision = items.revision();
     if (window() != nullptr) {
         static_cast<void>((*window()).request_focus(shared_from_this()));
     }
+    if (!is_alive() || items.revision() != revision) return true;
     select_index(index, false, false);
-    if (is_alive()) toggle_item(index);
+    if (is_alive() && items.revision() == revision && index < items.read().size()) toggle_item(index);
     return true;
 }
 
