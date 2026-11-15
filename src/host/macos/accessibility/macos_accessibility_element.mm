@@ -790,8 +790,19 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 
 - (void)answerSetAccessibilityValue:(id)value {
     if (_owner == nil || !semantic_has_action(_node, SemanticAction::set_value)) return;
-    NSString* text = [value isKindOfClass:[NSString class]]
-        ? (NSString*)value : [value stringValue];
+    // The value comes from another process's accessibility client: only a
+    // string, a number or an attributed string is taken. Anything else,
+    // nil included, sets nothing (A-gf-host-01-F12): sending stringValue to
+    // a class without it would raise inside the fail-fast gate.
+    NSString* text = nil;
+    if ([value isKindOfClass:[NSString class]]) {
+        text = (NSString*)value;
+    } else if ([value isKindOfClass:[NSNumber class]]) {
+        text = [(NSNumber*)value stringValue];
+    } else if ([value isKindOfClass:[NSAttributedString class]]) {
+        text = [(NSAttributedString*)value string];
+    }
+    if (text == nil) return;
     static_cast<void>([self performNodeAction:SemanticAction::set_value value:text]);
 }
 
