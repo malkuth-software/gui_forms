@@ -12,6 +12,7 @@
 #include "../../core/form_language/form_loader/form_loader.hpp"
 #include "../../core/form_language/form_model/form_model.hpp"
 #include "../../core/theme_language/diagnostics/theme_diagnostics.hpp"
+#include "gui_forms/controls/button_base.hpp"
 
 #include <stdexcept>
 #include <string>
@@ -154,14 +155,23 @@ void CompositeControl::make_children() {
         child_subscriptions_.push_back(
             (*target).subscribe_property_changed(rule.child_property, *this, CompositeChildRule{this, index}));
     }
-    // A child's activation (its click) fires the `activated(@child)`
-    // rules; one subscription per child that has any.
+    // A child's activation fires the `activated(@child)` rules; one
+    // subscription per child that has any. A button's activation is its
+    // clicked event, raised by a click, the keyboard, a mnemonic, a
+    // semantic press and perform_click alike (its click event follows the
+    // mouse only); another control's is its click.
     for (std::size_t index = 0U; index < children_.size(); ++index) {
         bool activates = false;
         for (const CompositeRuleDefinition& rule : definition.rules) {
             if (rule.trigger == CompositeTrigger::activated && rule.child == children_[index].local_id) activates = true;
         }
-        if (activates) on((*children_[index].control).click(), *this, &CompositeControl::child_activated, index);
+        if (!activates) continue;
+        ButtonBase* const button = dynamic_cast<ButtonBase*>(children_[index].control.get());
+        if (button != nullptr) {
+            on((*button).clicked(), *this, &CompositeControl::child_activated, index);
+        } else {
+            on((*children_[index].control).click(), *this, &CompositeControl::child_activated, index);
+        }
     }
 }
 

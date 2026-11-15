@@ -19,6 +19,10 @@
 
   <part name="track" role="track" shape="pill" states="hot pressed"
         box="inset(region, 0) width(40) height(22) align-inline(start) align-block(center)"/>
+  <!-- The track and the label toggle on a click, as a check box's label does.
+       Declared before the thumb: a later part is on top for the pointer,
+       so the thumb takes its own press (its drag). -->
+  <part name="hit-area" role="region" box="union(track, label)" hit="box" press="click" activates="toggle"/>
   <part name="thumb" role="thumb" shape="circle" states="hot pressed captured"
         box="inset(track, 3) square
              align-inline(choose(present(drag-position), at(drag-position), choose(checked, end, start)))"
@@ -29,8 +33,6 @@
   </part>
   <part name="label" role="label" present="not(equal(text, ''))"
         box="inset(region, 0) after-inline(track, 8) text-extent(text) align-block(center)"/>
-  <!-- The track and the label toggle on a click, as a check box's label does. -->
-  <part name="hit-area" role="region" box="union(track, label)" hit="box" press="click" activates="toggle"/>
 
   <focus target="self" tab-stop="yes" visible-cue="part(focus)" mnemonic="property(text)"/>
   <key gesture="space" phase="key-up"><run command="toggle"/></key>

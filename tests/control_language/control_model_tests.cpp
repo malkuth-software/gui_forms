@@ -173,17 +173,17 @@ void test_toggle_pill() {
             "toggle maps to press");
     require(model.states.size() == 1U && !model.states[0].custom && model.states[0].standard == AnatomyState::checked,
             "checked is published");
-    require(model.parts.size() == 4U && model.parts[1].role == PartRole::thumb, "four parts, the thumb second");
+    require(model.parts.size() == 4U && model.parts[2].role == PartRole::thumb, "four parts, the thumb third");
     const std::uint8_t click_drag =
         static_cast<std::uint8_t>(ControlPress::click) | static_cast<std::uint8_t>(ControlPress::drag);
-    require(model.parts[1].press == click_drag && model.parts[1].hit == ControlPartHit::shape &&
-                model.parts[1].drag == std::size_t{0U},
+    require(model.parts[2].press == click_drag && model.parts[2].hit == ControlPartHit::shape &&
+                model.parts[2].drag == std::size_t{0U},
             "the thumb presses click drag on its shape and holds the drag");
     require(model.drags.size() == 1U && model.drags[0].kind == ControlDragKind::value &&
                 model.drags[0].mode == ControlDragMode::commit && model.drags[0].settles &&
                 model.drags[0].keyboard.empty() && model.drags[0].maps_to == "checked",
             "a commit-mode value drag onto checked, with no keyboard gesture of its own");
-    require(model.parts[3].hit == ControlPartHit::box, "the hit area hits its box");
+    require(model.parts[1].hit == ControlPartHit::box, "the hit area, under the thumb, hits its box");
     require(model.focus && (*model.focus).target == ControlFocusTarget::self && (*model.focus).tab_stop &&
                 (*model.focus).visible_cue == "focus" && (*model.focus).mnemonic == "text",
             "focus is the composite's own, cued by the focus part");

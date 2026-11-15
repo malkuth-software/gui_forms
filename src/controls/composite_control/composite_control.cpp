@@ -757,6 +757,8 @@ void CompositeControl::on_mouse_down(MouseEventArgs& arguments) {
             pressed_part_ = part;
             pressed_inside_ = true;
             invalidate(Dirty::paint);
+            // A press on a part that presses is the composite's.
+            if (declared.press != 0U) arguments.handled = true;
             if (pressing(declared, ControlPress::drag) && drag_ != nullptr && declared.drag) {
                 const Rect own = absolute_bounds();
                 const Rect box = geometry_.published[*part];
