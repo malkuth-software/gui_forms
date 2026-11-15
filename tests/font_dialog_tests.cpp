@@ -7,6 +7,7 @@
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
@@ -43,6 +44,12 @@ struct RecordClosed final {
 struct RecordApply final {
     std::vector<FontSpec>* seen{};
     void operator()(const FontSpec& font) const { (*seen).push_back(font); }
+};
+
+// Counts the presses that reach a button.
+struct CountClicks final {
+    int* count{};
+    void operator()(ButtonBase&) const { ++(*count); }
 };
 
 struct Fixture final {
@@ -116,10 +123,15 @@ void overlay_ok_cancel_apply() {
             "show opens the dialog over the window and holds the focus in it");
     const Rect bounds = dialog.absolute_bounds();
     require(bounds.x == 170.0 && bounds.y == 134.0, "the dialog is centred in the window");
-    require(!window.dispatch_pointer({PointerAction::down, PointerButton::primary, {50.0, 25.0}}) ||
-                dialog.is_open(),
-            "a press outside the dialog does not reach the page or close it");
+    // The point is inside the owner button beneath the dialog: the press
+    // and release must not click it or close the dialog.
+    int owner_clicks = 0;
+    SubscriptionToken owner_clicked = (*fixture.owner).clicked().subscribe(CountClicks{&owner_clicks});
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, {50.0, 25.0}}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {50.0, 25.0}}));
+    require(owner_clicks == 0 && dialog.is_open(),
+            "a press outside the dialog does not reach the page or close it");
+    owner_clicked.disconnect();
 
     (*dialog.size_box()).value = 12.0;
     require((*dialog.apply_button()).perform_click() && applied.size() == 1U && applied[0].size == 12.0 &&
