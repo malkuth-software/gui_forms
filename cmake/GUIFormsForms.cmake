@@ -43,9 +43,11 @@
 # target builds after the header's generation (a per-target dependency), and
 # each of its own sources' objects depends on the header (OBJECT_DEPENDS,
 # so a depfile spelled another way, as ccache with CCACHE_BASEDIR writes it
-# under a symlinked build directory, cannot hide a change). A source another
-# target of the same directory also compiles is left without the property,
-# so it reaches no other target; likewise for gui_forms_add_control.
+# under a symlinked build directory, cannot hide a change). A source that a
+# target in the compiler's own chain (the compiler or what it links) also
+# compiles in the same directory is left without the property, which would
+# otherwise make that target wait for the header it generates; likewise for
+# gui_forms_add_control.
 
 if(COMMAND gui_forms_add_form)
     return()
@@ -73,6 +75,45 @@ function(gui_forms_composite_arguments composites_variable arguments_variable do
     set(${documents_variable} ${read} PARENT_SCOPE)
 endfunction()
 
+# The targets the generation of a header waits for: `generator` (the form
+# compiler) and everything it links or depends on, transitively, as target
+# names in the list named by `chain_variable`. Aliases are resolved, and a
+# link entry wrapped in $<LINK_ONLY:...> or $<BUILD_INTERFACE:...> is
+# unwrapped; other generator expressions and names that are not targets
+# are left out. The walk keeps a visited list, so it ends.
+function(gui_forms_generator_chain generator chain_variable)
+    set(pending "${generator}")
+    set(chain "")
+    list(LENGTH pending remaining)
+    while(remaining GREATER 0)
+        list(POP_FRONT pending candidate)
+        list(LENGTH pending remaining)
+        if(candidate MATCHES "^\\$<(LINK_ONLY|BUILD_INTERFACE):([^$<>]+)>$")
+            set(candidate "${CMAKE_MATCH_2}")
+        endif()
+        if(candidate MATCHES "\\$<" OR NOT TARGET "${candidate}")
+            continue()
+        endif()
+        get_target_property(aliased "${candidate}" ALIASED_TARGET)
+        if(aliased)
+            set(candidate "${aliased}")
+        endif()
+        list(FIND chain "${candidate}" seen)
+        if(NOT seen EQUAL -1)
+            continue()
+        endif()
+        list(APPEND chain "${candidate}")
+        foreach(property IN ITEMS LINK_LIBRARIES INTERFACE_LINK_LIBRARIES MANUALLY_ADDED_DEPENDENCIES)
+            get_target_property(next "${candidate}" ${property})
+            if(next)
+                list(APPEND pending ${next})
+            endif()
+            list(LENGTH pending remaining)
+        endforeach()
+    endwhile()
+    set(${chain_variable} "${chain}" PARENT_SCOPE)
+endfunction()
+
 # Makes the objects of `target`'s own sources depend on its generated
 # `header` (cpfix-c7). The compiler's dependency file alone is not enough:
 # under ccache with CCACHE_BASEDIR set, its paths are rewritten relative to
@@ -82,25 +123,36 @@ endfunction()
 # header dirtied nothing. OBJECT_DEPENDS names the header as the custom
 # command spells it, so the dependency holds whatever the depfile says.
 # OBJECT_DEPENDS is a source property of a directory and reaches every
-# target there that compiles the source; a source another target of the
-# same directory also compiles is therefore left out (it keeps the ordering
-# below): the cp33 cycle came from a source shared with the form compiler,
-# whose object then depended on the header it generates. Other directories
+# target there that compiles the source. That is harmless for a source
+# shared with a target downstream of the header (it rebuilds when the
+# header changes, as it would anyway once it includes it), but a target in
+# `generator`'s chain (the form compiler or anything it links) would then
+# wait for the header it produces: the cp33 cycle came from form_catalog.cpp,
+# shared with the form compiler. Only such a source is left out; it keeps
+# the per-target ordering below. If `target` itself is in the chain, the
+# generation already waits for it and nothing is added. Other directories
 # keep their own source properties. It runs deferred, at the end of the
-# target's directory, so it sees every target and every source added
-# after gui_forms_add_form or gui_forms_add_control; sources named by a
-# generator expression and sources that are not compiled are left alone.
-function(gui_forms_generated_header_dependents target header)
+# target's directory, so it sees every target and every source added after
+# gui_forms_add_form or gui_forms_add_control; sources named by a generator
+# expression and sources that are not compiled are left alone.
+function(gui_forms_generated_header_dependents target header generator)
     get_target_property(source_directory ${target} SOURCE_DIR)
     get_target_property(sources ${target} SOURCES)
     if(NOT sources)
         return()
     endif()
-    # Every source the directory's other targets compile, as absolute paths.
+    gui_forms_generator_chain("${generator}" chain)
+    list(FIND chain "${target}" target_in_chain)
+    if(NOT target_in_chain EQUAL -1)
+        return()
+    endif()
+    # Every source compiled by a target of the directory in the chain, as
+    # absolute paths.
     get_property(targets DIRECTORY "${source_directory}" PROPERTY BUILDSYSTEM_TARGETS)
-    set(shared "")
+    set(upstream "")
     foreach(other IN LISTS targets)
-        if(other STREQUAL target)
+        list(FIND chain "${other}" other_in_chain)
+        if(other STREQUAL target OR other_in_chain EQUAL -1)
             continue()
         endif()
         get_target_property(other_sources ${other} SOURCES)
@@ -113,7 +165,7 @@ function(gui_forms_generated_header_dependents target header)
                 continue()
             endif()
             get_filename_component(other_path "${other_source}" ABSOLUTE BASE_DIR "${other_directory}")
-            list(APPEND shared "${other_path}")
+            list(APPEND upstream "${other_path}")
         endforeach()
     endforeach()
     foreach(source IN LISTS sources)
@@ -124,8 +176,8 @@ function(gui_forms_generated_header_dependents target header)
             continue()
         endif()
         get_filename_component(path "${source}" ABSOLUTE BASE_DIR "${source_directory}")
-        list(FIND shared "${path}" shared_index)
-        if(NOT shared_index EQUAL -1)
+        list(FIND upstream "${path}" upstream_index)
+        if(NOT upstream_index EQUAL -1)
             continue()
         endif()
         set_property(SOURCE "${path}" TARGET_DIRECTORY ${target} APPEND PROPERTY OBJECT_DEPENDS "${header}")
@@ -136,27 +188,27 @@ endfunction()
 # directory. The deferred call's arguments would be read at the end of the
 # directory, where this function's variables no longer exist, so they are
 # written into the call as bracket arguments now.
-function(gui_forms_defer_generated_header_dependents target header)
+function(gui_forms_defer_generated_header_dependents target header generator)
     cmake_language(EVAL CODE
-        "cmake_language(DEFER CALL gui_forms_generated_header_dependents [==[${target}]==] [==[${header}]==])")
+        "cmake_language(DEFER CALL gui_forms_generated_header_dependents [==[${target}]==] [==[${header}]==] [==[${generator}]==])")
 endfunction()
 
-# Orders `target` after the generation of its `header` (cp33), and makes
-# its own objects depend on it (cpfix-c7, above). The header is a source
+# Orders `target` after the generation of its `header` by `generator`
+# (cp33), and makes its own objects depend on it (cpfix-c7, above). The header is a source
 # of the target, and a per-target generation target, added as a
 # dependency, has it generated before any of the target's objects compile:
 # an object that includes it only through another generated header, or
 # whose dependency file predates it, still builds against the current
 # bytes. The generation target's name joins the target to a digest of the
 # header's path, so two headers with one stem stay apart.
-function(gui_forms_order_generated_header target header)
+function(gui_forms_order_generated_header target header generator)
     string(MD5 digest "${header}")
     string(SUBSTRING "${digest}" 0 12 digest)
     string(MAKE_C_IDENTIFIER "gui_forms_generate_${target}_${digest}" generation)
     add_custom_target(${generation} DEPENDS "${header}")
     add_dependencies(${target} ${generation})
     target_sources(${target} PRIVATE "${header}")
-    gui_forms_defer_generated_header_dependents(${target} "${header}")
+    gui_forms_defer_generated_header_dependents(${target} "${header}" "${generator}")
 endfunction()
 
 function(gui_forms_add_form target document)
@@ -210,7 +262,7 @@ function(gui_forms_add_form target document)
         DEPENDS ${documents} "$<TARGET_FILE:${compiler}>"
         COMMENT "Generating ${stem}_form.hpp from ${document}"
         VERBATIM)
-    gui_forms_order_generated_header(${target} "${output}")
+    gui_forms_order_generated_header(${target} "${output}" "${compiler}")
     target_include_directories(${target} PRIVATE "${output_directory}")
 endfunction()
 
@@ -274,7 +326,7 @@ function(gui_forms_add_control target document)
         DEPENDS ${documents} "$<TARGET_FILE:${compiler}>"
         COMMENT "Generating ${stem}_control.hpp from ${document}"
         VERBATIM)
-    gui_forms_order_generated_header(${target} "${output}")
+    gui_forms_order_generated_header(${target} "${output}" "${compiler}")
     target_include_directories(${target} PRIVATE "${output_directory}")
 endfunction()
 
