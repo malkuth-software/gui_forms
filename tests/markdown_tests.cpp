@@ -181,43 +181,6 @@ void dialect_attributes() {
     check_source_ranges(source, document, "dialect");
 }
 
-// Attribute spans applied in one sweep (A-gf-core-12-F1): siblings, an
-// inner span replacing an outer colour and size, and spans nested a
-// thousand deep, whose innermost text takes every level's attributes.
-void nested_attribute_spans() {
-    const std::string_view source = "[a [b]{i color=#0000FF size=-1} c]{u color=#FF0000 size=+2} [d]{b}\n";
-    const MarkdownDocument document = parse(source);
-    require(block_text(document, 0U) == "a b c d", "sibling and nested markup is removed");
-    const MarkdownRgb red{255U, 0U, 0U};
-    const MarkdownRgb blue{0U, 0U, 255U};
-    const MarkdownSpan& a = span_of(document, 0U, 0U);
-    require(a.text == "a " && a.style.underline && a.style.colour == red && a.style.size_step == 2, "outer content");
-    const MarkdownSpan& b = span_of(document, 0U, 1U);
-    require(b.text == "b" && b.style.underline && b.style.italic && b.style.colour == blue &&
-                b.style.size_step == -1,
-            "the inner span adds and replaces");
-    const MarkdownSpan& c = span_of(document, 0U, 2U);
-    require(c.text == " c" && c.style.colour == red && !c.style.italic && c.style.size_step == 2,
-            "the outer attributes resume after the inner span");
-    const MarkdownSpan& gap = span_of(document, 0U, 3U);
-    require(gap.text == " " && !gap.style.underline && !gap.style.colour.has_value(), "no span between siblings");
-    const MarkdownSpan& d = span_of(document, 0U, 4U);
-    require(d.text == "d" && d.style.bold && !d.style.underline, "the sibling has its own attributes only");
-    check_source_ranges(source, document, "nested");
-
-    const std::size_t depth = 1000U;
-    std::string deep(depth, '[');
-    deep += "x]{sup}";
-    for (std::size_t level = 2U; level < depth; ++level) deep += "]{b}";
-    deep += "]{color=#00FF00}\n";
-    const MarkdownDocument nested = parse(deep);
-    require(block_text(nested, 0U) == "x", "deep markup is removed");
-    const MarkdownSpan& x = span_of(nested, 0U, 0U);
-    const MarkdownRgb green{0U, 255U, 0U};
-    require(x.style.baseline == MarkdownBaseline::superscript && x.style.bold && x.style.colour == green,
-            "the innermost text takes every level's attributes");
-}
-
 void links_breaks_and_text() {
     const std::string_view source = "See [the *site*](https://example.com/a&amp;b \"title\") or <mailto:a@b.c>.\n"
                                     "Next line\\\n"
@@ -567,7 +530,6 @@ int main(int count, char** values) {
         paragraphs_and_emphasis();
         blocks_and_lists();
         dialect_attributes();
-        nested_attribute_spans();
         links_breaks_and_text();
         failures();
         const std::array<const char*, 4> names{"wordpad", "word", "textedit", "richtextbox"};

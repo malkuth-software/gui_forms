@@ -189,13 +189,6 @@ struct OuterFirst final {
     }
 };
 
-// One attribute span around the byte the sweep is at: where its content
-// ends, and its attributes added over those of the spans around it.
-struct SpanAround final {
-    std::size_t close{};
-    SpanAttributes attributes{};
-};
-
 // What the dialect gives one byte of a block's joined text: removed when
 // it is attribute markup, otherwise the attributes of the spans around it.
 struct ByteStyle final {
@@ -487,40 +480,6 @@ struct MarkdownParser final {
         return adjacent;
     }
 
-    // Applies the attribute spans, sorted outer first, to the block's byte
-    // styles in one sweep (A-gf-core-12-F1): each byte's attributes are
-    // written once, from a stack holding, for each span around the byte,
-    // the attributes of it and the spans around it added outer to inner.
-    // The spans are properly nested (their brackets were matched by a
-    // stack, and an inner span's markup lies in the outer one's content),
-    // so the result is what adding each span over its content, outer
-    // first, gives; it costs the block's length plus the spans' count,
-    // where that took the sum of the spans' lengths (nesting depth times
-    // length). Markup bytes are marked removed: each span's own, which do
-    // not overlap.
-    static void apply_pairs(const std::vector<SpanPair>& pairs, std::vector<ByteStyle>& styles) {
-        std::vector<SpanAround> around{};
-        around.reserve(pairs.size());
-        std::size_t next = 0U;
-        for (std::size_t index = 0U; index < styles.size(); ++index) {
-            while (!around.empty() && around.back().close <= index) around.pop_back();
-            while (next < pairs.size() && pairs[next].open < index) {
-                const SpanPair& pair = pairs[next];
-                SpanAround entry{};
-                entry.close = pair.close;
-                if (!around.empty()) entry.attributes = around.back().attributes;
-                add_attributes(entry.attributes, pair.attributes);
-                around.push_back(entry);
-                ++next;
-            }
-            if (!around.empty()) add_attributes(styles[index].attributes, around.back().attributes);
-        }
-        for (const SpanPair& pair : pairs) {
-            styles[pair.open].removed = true;
-            for (std::size_t index = pair.close; index <= pair.end; ++index) styles[index].removed = true;
-        }
-    }
-
     // Applies the dialect to the block that is ending and moves its spans
     // into the document: a leading block attribute line sets its alignment
     // (or, alone, the next block's), and each [content]{list} span styles
@@ -598,7 +557,13 @@ struct MarkdownParser final {
             index += 2U;
         }
         std::sort(pairs.begin(), pairs.end(), OuterFirst{});
-        apply_pairs(pairs, styles);
+        for (const SpanPair& pair : pairs) {
+            styles[pair.open].removed = true;
+            for (std::size_t index = pair.close; index <= pair.end; ++index) styles[index].removed = true;
+            for (std::size_t index = pair.open + 1U; index < pair.close; ++index) {
+                add_attributes(styles[index].attributes, pair.attributes);
+            }
+        }
         marks.clear();
         const bool kept = publish(joined, starts, styles);
         pieces.clear();
