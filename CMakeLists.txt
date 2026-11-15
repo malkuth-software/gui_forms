@@ -4333,10 +4333,14 @@ if(GUI_FORMS_BUILD_TESTS)
             # generated at build time from the worked examples.
             add_executable(gui_forms_composite_generated_tests tests/control_language/composite_generated_tests.cpp)
             target_link_libraries(gui_forms_composite_generated_tests PRIVATE gui_forms_controls)
+            # Their own output directory: the gallery model generates the same
+            # two documents into gui_forms_controls/.
             gui_forms_add_control(gui_forms_composite_generated_tests demo/composites/toggle-pill.control
-                CLASS TogglePill NAMESPACE composite_generated COMPILER gui_forms_form_compiler)
+                CLASS TogglePill NAMESPACE composite_generated COMPILER gui_forms_form_compiler
+                OUTPUT composite_generated_controls/toggle_pill_control.hpp)
             gui_forms_add_control(gui_forms_composite_generated_tests demo/composites/card-with-action.control
-                CLASS CardWithAction NAMESPACE composite_generated COMPILER gui_forms_form_compiler)
+                CLASS CardWithAction NAMESPACE composite_generated COMPILER gui_forms_form_compiler
+                OUTPUT composite_generated_controls/card_with_action_control.hpp)
             # A form naming both (gui_forms_add_form COMPOSITES): the card's
             # slot takes the form's children.
             gui_forms_add_form(gui_forms_composite_generated_tests tests/control_language/composite_panel.form
