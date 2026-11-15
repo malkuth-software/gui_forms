@@ -49,6 +49,14 @@ protected:
         return structural_from;
     }
 
+    // How many edits and owner stores the items have seen: a declaring class
+    // that raises a handler compares it before and after, to act only on the
+    // items the handler saw (CollectionCell::revision).
+    [[nodiscard]] static std::uint64_t items_revision(const TextItemsCapability& capability) noexcept {
+        const std::uint64_t revision = capability.items.revision();
+        return revision;
+    }
+
     // Reorders the items in place by `order` and records every position
     // written, without hooks: for a declaring class that keeps its items
     // sorted. `order` must be a strict weak ordering whose equivalent items
