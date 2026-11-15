@@ -4204,6 +4204,10 @@ Functions, constants and aliases
 
 .. cpp:function:: bool is_mnemonic(char32_t character, std::string_view text) noexcept
 
+.. cpp:function:: bool is_first_letter(char32_t character, std::string_view text) noexcept
+
+   Whether ``text`` marks no mnemonic and its first displayed scalar matches ``character`` (the same folding as is_mnemonic): a menu's first-letter jump for items without a mnemonic, as Windows menus and ToolStripDropDown do.
+
 .. cpp:function:: constexpr bool has_bounds_specified(BoundsSpecified value, BoundsSpecified flag) noexcept
 
 .. cpp:function:: constexpr bool has_child_skip(GetChildAtPointSkip value, GetChildAtPointSkip flag) noexcept

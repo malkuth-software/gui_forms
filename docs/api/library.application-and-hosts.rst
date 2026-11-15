@@ -1255,6 +1255,14 @@ Related types
 
       The filter the dialog starts with, an index into ``filters``; zero when there are none.
 
+   .. cpp:member:: bool check_file_exists
+
+      Windows Forms' CheckFileExists and CheckPathExists: accept only an existing file, and only a name in an existing folder. An adapter whose dialog always requires both (macOS's NSOpenPanel) ignores false. Default: ``{true}``.
+
+   .. cpp:member:: bool check_path_exists
+
+      Default: ``{true}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: HostPathDialogResult final
@@ -1340,6 +1348,16 @@ Related types
    .. cpp:member:: std::size_t initial_filter
 
       The filter the dialog starts with, an index into ``filters``; zero when there are none.
+
+   .. cpp:member:: bool check_file_exists
+
+      Windows Forms' CheckFileExists, CheckPathExists and CreatePrompt: accept only an existing file; accept only a name in an existing folder (macOS's NSSavePanel always requires one and ignores false); ask before accepting a file that does not exist yet. A refused name leaves the dialog open (or shows it again) with the name kept.
+
+   .. cpp:member:: bool check_path_exists
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool create_prompt
 
 .. cpp:namespace:: gui_forms
 

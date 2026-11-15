@@ -303,6 +303,13 @@ gui_forms::Control
 
       **owned_decorations** : ``std::span<const OwnerDecorationRecipe>``
 
+      **active_border** : ``std::optional<ActiveBorder>``
+
+      **active_border_pose** : ``std::optional<ActiveBorderPose>``, read-only
+         The pose the border last painted with (resolve_active_border), empty before its first paint or with no border; and whether its timer runs.
+
+      **active_border_animating** : ``bool``, read-only
+
       **visual_status** : ``ControlVisualStatus``, default ``ControlVisualStatus::normal``
          :cpp:enumerator:`ControlVisualStatus::pending <gui_forms::ControlVisualStatus::pending>` or :cpp:enumerator:`ControlVisualStatus::invalid <gui_forms::ControlVisualStatus::invalid>` change
          how stock controls paint and what state they report to assistive
@@ -1124,6 +1131,18 @@ gui_forms::Control
    .. cpp:function:: std::span<const OwnerDecorationRecipe> owned_decorations() const& noexcept
 
    .. cpp:function:: void set_owned_decorations(const OwnerDecorationRecipe* decorations, std::size_t decoration_count)
+
+   .. cpp:function:: std::optional<ActiveBorder> active_border() const
+
+   .. cpp:function:: void set_active_border(std::optional<ActiveBorder> border)
+
+      The control border (active_border.hpp; the active border study's phase 2): set, validated first (an invalid border throws std::invalid_argument and changes nothing), or cleared with std::nullopt. It paints after the control's content and its owned decorations, and its reach (active_border_reach) widens the visual outsets. A change repaints the control; a moving border repaints on a paint-gated timer (ADR-016) only while its pose moves, and its motion restarts lit whenever the timer starts. UI thread.
+
+   .. cpp:function:: std::optional<ActiveBorderPose> active_border_pose() const noexcept
+
+      The pose the border last painted with (resolve_active_border), empty before its first paint or with no border; and whether its timer runs.
+
+   .. cpp:function:: bool active_border_animating() const noexcept
 
    .. cpp:function:: ControlVisualStatus visual_status() const noexcept
 
@@ -2395,7 +2414,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 236 supported, 0 deferred, 12 excluded, 314 unclassified; 205 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 239 supported, 0 deferred, 12 excluded, 314 unclassified; 208 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -3837,6 +3856,18 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 236 supp
    * - property
      - GUI.Forms-only
      - ``absolute_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_border``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_border_animating``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_border_pose``
      - supported
    * - property
      - GUI.Forms-only

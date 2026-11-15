@@ -46,6 +46,7 @@
 #include "gui_forms/controls/check_box_values.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/command_bar.hpp"
@@ -1351,6 +1352,7 @@ void append_field(EventFields& fields, std::string_view name, const RangeScrollE
 void append_field(EventFields& fields, std::string_view name, const RibbonCommandClick& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonDialogLaunch& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonDropDownInvocation& value);
+void append_field(EventFields& fields, std::string_view name, const RibbonHelpRequest& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonRecentItemInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonTabChange& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonToolTipContent& value);
@@ -1392,6 +1394,8 @@ void append_field(EventFields& fields, std::string_view name, const TreeSelectio
 void append_field(EventFields& fields, std::string_view name, const VirtualRowIndex& value);
 void append_field(EventFields& fields, std::string_view name, const VirtualRowScroll& value);
 void append_field(EventFields& fields, std::string_view name, const VirtualRowSelection& value);
+void append_field(EventFields& fields, std::string_view name, const VirtualRowsColumnMove& value);
+void append_field(EventFields& fields, std::string_view name, const VirtualRowsHeaderClick& value);
 void append_field(EventFields& fields, std::string_view name, const WindowBackdropGrant& value);
 void append_field(EventFields& fields, std::string_view name, const WizardPageChangingEvent& value);
 void read_field(EventFields& fields, std::string_view name, WizardPageChangingEvent& value);
@@ -3092,6 +3096,13 @@ inline void append_field(EventFields& fields, std::string_view name, const Ribbo
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const RibbonHelpRequest& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "ribbon_id", value.ribbon_id);
+    append_field(fields, "tab_id", value.tab_id);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const RibbonRecentItemInvocation& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "ribbon_id", value.ribbon_id);
@@ -3416,6 +3427,20 @@ inline void append_field(EventFields& fields, std::string_view name, const Virtu
     append_field(fields, "previous", value.previous);
     append_field(fields, "current", value.current);
     append_field(fields, "selected_count", value.selected_count);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const VirtualRowsColumnMove& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "from", value.from);
+    append_field(fields, "to", value.to);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const VirtualRowsHeaderClick& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "column", value.column);
+    append_field(fields, "modifiers", value.modifiers);
     fields.leave(prefix);
 }
 
@@ -3754,6 +3779,15 @@ inline SubscriptionToken connect_data_grid_view_cell_content_click(Component& so
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).cell_content_click(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_virtual_rows_view_cell_content_paint(Component& source, const EventSink& sink) {
+    VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_content_paint(), sink);
     return token;
 }
 
@@ -4180,12 +4214,30 @@ inline SubscriptionToken connect_tree_list_view_column_moved(Component& source, 
     return token;
 }
 
+inline SubscriptionToken connect_virtual_rows_view_column_moved(Component& source, const EventSink& sink) {
+    VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).column_moved(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_data_grid_view_column_removed(Component& source, const EventSink& sink) {
     DataGridView* typed = dynamic_cast<DataGridView*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).column_removed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_virtual_rows_view_column_resized(Component& source, const EventSink& sink) {
+    VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).column_resized(), sink);
     return token;
 }
 
@@ -4923,6 +4975,24 @@ inline SubscriptionToken connect_property_list_group_changed(Component& source, 
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).group_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_virtual_rows_view_header_clicked(Component& source, const EventSink& sink) {
+    VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).header_clicked(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_ribbon_help_requested(Component& source, const EventSink& sink) {
+    Ribbon* typed = dynamic_cast<Ribbon*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).help_requested(), sink);
     return token;
 }
 
@@ -6619,6 +6689,15 @@ inline SubscriptionToken connect_property_list_value_changed(Component& source, 
     return token;
 }
 
+inline SubscriptionToken connect_color_picker_value_changed(Component& source, const EventSink& sink) {
+    ColorPicker* typed = dynamic_cast<ColorPicker*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_range_control_value_changed(Component& source, const EventSink& sink) {
     RangeControl* typed = dynamic_cast<RangeControl*>(&source);
     if (typed == nullptr) {
@@ -6691,6 +6770,15 @@ inline SubscriptionToken connect_value_bar_value_committed(Component& source, co
     return token;
 }
 
+inline SubscriptionToken connect_color_picker_value_committed(Component& source, const EventSink& sink) {
+    ColorPicker* typed = dynamic_cast<ColorPicker*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).value_committed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_task_dialog_verification_changed(Component& source, const EventSink& sink) {
     TaskDialog* typed = dynamic_cast<TaskDialog*>(&source);
     if (typed == nullptr) {
@@ -6746,7 +6834,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 357> event_connectors{{
+inline constexpr std::array<EventConnector, 368> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6780,6 +6868,7 @@ inline constexpr std::array<EventConnector, 357> event_connectors{{
     {"cell_begin_edit", "DataGridView", &connect_data_grid_view_cell_begin_edit},
     {"cell_click", "DataGridView", &connect_data_grid_view_cell_click},
     {"cell_content_click", "DataGridView", &connect_data_grid_view_cell_content_click},
+    {"cell_content_paint", "VirtualRowsView", &connect_virtual_rows_view_cell_content_paint},
     {"cell_double_click", "DataGridView", &connect_data_grid_view_cell_double_click},
     {"cell_end_edit", "DataGridView", &connect_data_grid_view_cell_end_edit},
     {"cell_enter", "DataGridView", &connect_data_grid_view_cell_enter},
@@ -6827,7 +6916,9 @@ inline constexpr std::array<EventConnector, 357> event_connectors{{
     {"column_display_index_changed", "DataGridView", &connect_data_grid_view_column_display_index_changed},
     {"column_header_click", "DataGridView", &connect_data_grid_view_column_header_click},
     {"column_moved", "TreeListView", &connect_tree_list_view_column_moved},
+    {"column_moved", "VirtualRowsView", &connect_virtual_rows_view_column_moved},
     {"column_removed", "DataGridView", &connect_data_grid_view_column_removed},
+    {"column_resized", "VirtualRowsView", &connect_virtual_rows_view_column_resized},
     {"column_width_changed", "DataGridView", &connect_data_grid_view_column_width_changed},
     {"column_width_changed", "ListView", &connect_list_view_column_width_changed},
     {"column_width_changed", "TreeListView", &connect_tree_list_view_column_width_changed},
@@ -6909,6 +7000,8 @@ inline constexpr std::array<EventConnector, 357> event_connectors{{
     {"format", "Binding", &connect_binding_format},
     {"graph_edited", "NodeCanvas", &connect_node_canvas_graph_edited},
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
+    {"header_clicked", "VirtualRowsView", &connect_virtual_rows_view_header_clicked},
+    {"help_requested", "Ribbon", &connect_ribbon_help_requested},
     {"help_requested", "Control", &connect_control_help_requested},
     {"help_requested", "HelpProvider", &connect_help_provider_help_requested},
     {"help_requested", "RibbonToolTip", &connect_ribbon_tool_tip_help_requested},
@@ -7094,6 +7187,7 @@ inline constexpr std::array<EventConnector, 357> event_connectors{{
     {"value_changed", "DateTimePicker", &connect_date_time_picker_value_changed},
     {"value_changed", "FlagsValueEditor", &connect_flags_value_editor_value_changed},
     {"value_changed", "PropertyList", &connect_property_list_value_changed},
+    {"value_changed", "ColorPicker", &connect_color_picker_value_changed},
     {"value_changed", "RangeControl", &connect_range_control_value_changed},
     {"value_changed", "RibbonColorPicker", &connect_ribbon_color_picker_value_changed},
     {"value_changed", "RibbonFontControl", &connect_ribbon_font_control_value_changed},
@@ -7102,6 +7196,7 @@ inline constexpr std::array<EventConnector, 357> event_connectors{{
     {"value_changed", "GalleryCommand", &connect_gallery_command_value_changed},
     {"value_committed", "PropertyList", &connect_property_list_value_committed},
     {"value_committed", "ValueBar", &connect_value_bar_value_committed},
+    {"value_committed", "ColorPicker", &connect_color_picker_value_committed},
     {"verification_changed", "TaskDialog", &connect_task_dialog_verification_changed},
     {"view_changed", "NodeCanvas", &connect_node_canvas_view_changed},
     {"view_changed", "PlotView", &connect_plot_view_view_changed},

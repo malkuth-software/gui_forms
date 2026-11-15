@@ -147,6 +147,10 @@ Related types
      - Whether the application wants the icon shown.
    * - :cpp:class:`OpenFileDialogCapabilities <gui_forms::OpenFileDialogCapabilities>`
      - Every OpenFileDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`OpenFileDialogCheckFileExistsCapability <gui_forms::OpenFileDialogCheckFileExistsCapability>`
+     - Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default).
+   * - :cpp:class:`OpenFileDialogCheckPathExistsCapability <gui_forms::OpenFileDialogCheckPathExistsCapability>`
+     - Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default).
    * - :cpp:class:`OpenFileDialogFileNameCapability <gui_forms::OpenFileDialogFileNameCapability>`
      - The first chosen path, or empty.
    * - :cpp:class:`OpenFileDialogFilterCapability <gui_forms::OpenFileDialogFilterCapability>`
@@ -935,7 +939,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> OpenFileDialogCapabilities : public OpenFileDialogTitleCapability<Declaring>, public OpenFileDialogInitialDirectoryCapability<Declaring>, public OpenFileDialogFilterCapability<Declaring>, public OpenFileDialogFilterIndexCapability<Declaring>, public OpenFileDialogMultiselectCapability<Declaring>, public OpenFileDialogFileNameCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> OpenFileDialogCapabilities : public OpenFileDialogTitleCapability<Declaring>, public OpenFileDialogInitialDirectoryCapability<Declaring>, public OpenFileDialogFilterCapability<Declaring>, public OpenFileDialogFilterIndexCapability<Declaring>, public OpenFileDialogMultiselectCapability<Declaring>, public OpenFileDialogFileNameCapability<Declaring>, public OpenFileDialogCheckFileExistsCapability<Declaring>, public OpenFileDialogCheckPathExistsCapability<Declaring>
 
    ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
 
@@ -967,6 +971,48 @@ Related types
    .. cpp:member:: std::string file_name
 
       The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: bool check_file_exists
+
+      Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default). Off, a typed name of a file that does not exist is accepted where the host can (the X11 dialog, Windows); macOS's open panel always requires an existing file.
+
+   .. cpp:member:: bool check_path_exists
+
+      Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's open panel always requires one.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogCheckFileExistsCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default). Off, a typed name of a file that does not exist is accepted where the host can (the X11 dialog, Windows); macOS's open panel always requires an existing file.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogCheckFileExistsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, OpenFileDialogCheckFileExistsCapability<Declaring>> check_file_exists
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogCheckPathExistsCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's open panel always requires one.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogCheckPathExistsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, OpenFileDialogCheckPathExistsCapability<Declaring>> check_path_exists
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 

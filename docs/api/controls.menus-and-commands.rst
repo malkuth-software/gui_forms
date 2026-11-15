@@ -240,6 +240,10 @@ Related types
      - One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many small commands stack in a column.
    * - :cpp:class:`RibbonGroupSpec <gui_forms::RibbonGroupSpec>`
      - A group of commands on a tab, with a caption beneath and, when ``dialog_launcher`` is set, a launcher button in the caption's corner.
+   * - :cpp:class:`RibbonHelpButtonVisibleCapability <gui_forms::RibbonHelpButtonVisibleCapability>`
+     - Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows.
+   * - :cpp:class:`RibbonHelpRequest <gui_forms::RibbonHelpRequest>`
+     - A click on the help button (help_button_visible): the ribbon and the tab selected then (empty when none is).
    * - :cpp:class:`RibbonLadderEntry <gui_forms::RibbonLadderEntry>`
      - One entry of a tab's reduction ladder: every group's state and the width, in logical units, the groups need side by side.
    * - :cpp:class:`RibbonLadderGroupState <gui_forms::RibbonLadderGroupState>`
@@ -1089,7 +1093,9 @@ Related types
 
    .. cpp:member:: PartGeometry help_button
 
-      Reserved for the help button (owner, N4); never present yet.
+      The help button at the right end of the tab row and its question mark (owner ruling N4); present while help_button_visible holds.
+
+   .. cpp:member:: PartGeometry help_label
 
    .. cpp:member:: PartGeometry focus
 
@@ -1190,7 +1196,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>, public RibbonSelectedTabCapability<Declaring>, public RibbonTabsActivateOnReleaseCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>, public RibbonSelectedTabCapability<Declaring>, public RibbonTabsActivateOnReleaseCapability<Declaring>, public RibbonHelpButtonVisibleCapability<Declaring>
 
    ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
 
@@ -1243,6 +1249,10 @@ Related types
    .. cpp:member:: bool tabs_activate_on_release
 
       Whether a tab is selected when the pointer is released over the tab it was pressed on (a click), instead of on the press (false, the default, as Office's ribbon does; the ribbon study does not decide it). The keyboard, mnemonics and accessibility select at once either way.
+
+   .. cpp:member:: bool help_button_visible
+
+      Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_requested; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
 
 .. cpp:namespace:: gui_forms
 
@@ -1884,6 +1894,35 @@ Related types
    .. cpp:member:: std::uint32_t modes
 
       Default: ``{ribbon_all_modes}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonHelpButtonVisibleCapability
+
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+
+   Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_requested; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonHelpButtonVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RibbonHelpButtonVisibleCapability<Declaring>> help_button_visible
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RibbonHelpRequest final
+
+   ``#include <gui_forms/controls/ribbon.hpp>``
+
+   A click on the help button (help_button_visible): the ribbon and the tab selected then (empty when none is).
+
+   .. cpp:member:: std::string ribbon_id
+
+   .. cpp:member:: std::string tab_id
 
 .. cpp:namespace:: gui_forms
 
@@ -2780,6 +2819,8 @@ Enumerations
    .. cpp:enumerator:: scroll_left
 
    .. cpp:enumerator:: scroll_right
+
+   .. cpp:enumerator:: help
 
 .. cpp:namespace:: gui_forms
 

@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 175> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 185> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -44,14 +44,21 @@ inline constexpr std::array<InteractionFieldsEntry, 175> interaction_fields{{
     {"DataGridViewCellErrorTextNeededEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer, error_text: text"},
     {"DataGridViewCellEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer"},
     {"DataGridViewCellFormattingEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer, value: any, cell_style.font.role: enumeration optional, cell_style.font.size: number optional, cell_style.font.weight: unsigned_integer optional, cell_style.font.italic: boolean optional, cell_style.font.letter_spacing: number optional, cell_style.font.family.value: unsigned_integer optional, cell_style.font.stack.value: unsigned_integer optional, cell_style.alignment: enumeration optional, cell_style.padding: insets optional, cell_style.wrap_mode: boolean optional, cell_style.format: text optional, cell_style.null_value: any optional, cell_style.data_source_null_value: any optional, cell_style.back_color: color optional, cell_style.fore_color: color optional, cell_style.selection_back_color: color optional, cell_style.selection_fore_color: color optional, formatted_value: text, formatting_applied: boolean"},
+    {"DataGridViewCellMouseEvent", "area: enumeration, row_id.value: text, row.value: unsigned_integer optional, column: unsigned_integer optional, location: point, button: enumeration, click_count: unsigned_integer, modifiers: enumeration"},
     {"DataGridViewCellParsingEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer, formatted_value: text, cell_style.font.role: enumeration optional, cell_style.font.size: number optional, cell_style.font.weight: unsigned_integer optional, cell_style.font.italic: boolean optional, cell_style.font.letter_spacing: number optional, cell_style.font.family.value: unsigned_integer optional, cell_style.font.stack.value: unsigned_integer optional, cell_style.alignment: enumeration optional, cell_style.padding: insets optional, cell_style.wrap_mode: boolean optional, cell_style.format: text optional, cell_style.null_value: any optional, cell_style.data_source_null_value: any optional, cell_style.back_color: color optional, cell_style.fore_color: color optional, cell_style.selection_back_color: color optional, cell_style.selection_fore_color: color optional, value: any, parsing_applied: boolean"},
+    {"DataGridViewCellToolTipTextNeededEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer, tool_tip_text: text"},
     {"DataGridViewCellValidatingEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer, formatted_value: text, cancel: boolean"},
+    {"DataGridViewColumnChangedEvent", "column: unsigned_integer, name: text"},
     {"DataGridViewDataErrorEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer, context: enumeration, formatted_value: text, cancel: boolean"},
+    {"DataGridViewEditingControlShowingEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer, kind: enumeration"},
     {"DataGridViewRowCancelEvent", "row_id.value: text, row.value: unsigned_integer, cancel: boolean"},
     {"DataGridViewRowErrorTextNeededEvent", "row_id.value: text, row.value: unsigned_integer, error_text: text"},
     {"DataGridViewRowEvent", "row_id.value: text, row.value: unsigned_integer"},
     {"DataGridViewRowOrderModeChange", "old_mode: enumeration, new_mode: enumeration, reason: enumeration, row_count: unsigned_integer, changes: unsigned_integer"},
+    {"DataGridViewRowPostPaintEvent", "row_id.value: text, row.value: unsigned_integer, bounds: rectangle, selected: boolean, current: boolean, overlays: collection"},
+    {"DataGridViewRowPrePaintEvent", "row_id.value: text, row.value: unsigned_integer, bounds: rectangle, selected: boolean, current: boolean, parts.background: boolean, parts.content: boolean, parts.selection: boolean, parts.focus: boolean, parts.error_glyph: boolean, parts.row_header: boolean, background: color optional, handled: boolean"},
     {"DataGridViewRowValuesEvent", "row_id.value: text, row.value: unsigned_integer, values: collection"},
+    {"DataGridViewRowsChangedEvent", "position.value: unsigned_integer, count: unsigned_integer"},
     {"DataGridViewSortCompareEvent", "column: unsigned_integer, row_id1: text, row_id2: text, row1.value: unsigned_integer, row2.value: unsigned_integer, sort_result: signed_integer, handled: boolean"},
     {"DateTimeValue", "year: signed_integer, month: unsigned_integer, day: unsigned_integer, hour: unsigned_integer, minute: unsigned_integer, second: unsigned_integer, millisecond: unsigned_integer"},
     {"DialogResult", "value: enumeration"},
@@ -136,6 +143,7 @@ inline constexpr std::array<InteractionFieldsEntry, 175> interaction_fields{{
     {"RibbonCommandClick", "ribbon_id: text, command_id: text"},
     {"RibbonDialogLaunch", "ribbon_id: text, group_id: text"},
     {"RibbonDropDownInvocation", "ribbon_id: text, command_id: text, choice.menu_id: text, choice.item_id: text, choice.command_id: text, choice.source_id: text"},
+    {"RibbonHelpRequest", "ribbon_id: text, tab_id: text"},
     {"RibbonRecentItemInvocation", "ribbon_id: text, item_id: text"},
     {"RibbonTabChange", "ribbon_id: text, tab: unsigned_integer, tab_id: text"},
     {"RibbonToolTipEvent", "target_stable_id: text, item_id: text, content.shortcut: text, content.image.value: unsigned_integer, content.help_topic: text, content.command: object, shown: boolean, keyboard_initiated: boolean"},
@@ -171,6 +179,8 @@ inline constexpr std::array<InteractionFieldsEntry, 175> interaction_fields{{
     {"VirtualRowIndex", "value: unsigned_integer"},
     {"VirtualRowScroll", "first_visible.value: unsigned_integer, offset: number, following_tail: boolean"},
     {"VirtualRowSelection", "previous.value: unsigned_integer optional, current.value: unsigned_integer optional, selected_count: unsigned_integer"},
+    {"VirtualRowsColumnMove", "from: unsigned_integer, to: unsigned_integer"},
+    {"VirtualRowsHeaderClick", "column: unsigned_integer, modifiers: enumeration"},
     {"WindowBackdropGrant", "requested: enumeration, granted: enumeration, reason: enumeration, generation.value: unsigned_integer"},
     {"WizardPageChangingEvent", "from: unsigned_integer, to: unsigned_integer, cancel: boolean"},
     {"bool", "value: boolean"},

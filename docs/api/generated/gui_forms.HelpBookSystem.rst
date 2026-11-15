@@ -82,6 +82,8 @@ gui_forms::HelpBookSystem
         -  
       * - :cpp:func:`attach_ribbon_tool_tip <gui_forms::HelpBookSystem::attach_ribbon_tool_tip>`
         -  
+      * - :cpp:func:`attach_ribbon <gui_forms::HelpBookSystem::attach_ribbon>`
+        - Answers the ribbon's help button (Ribbon::help_requested) with the window card: the ribbon's window's help line and "More..." to its page, beside the ribbon.
       * - :cpp:func:`resolve <gui_forms::HelpBookSystem::resolve>`
         -  
       * - :cpp:func:`show <gui_forms::HelpBookSystem::show>`
@@ -108,6 +110,8 @@ gui_forms::HelpBookSystem
         - Program routes: a HelpProvider's request (its target's page unless a handler took it) and the ribbon's "?" or a RibbonToolTip's F1 (the help topic, else the target's page).
       * - :cpp:func:`on_ribbon_help <gui_forms::HelpBookSystem::on_ribbon_help>`
         -  
+      * - :cpp:func:`on_ribbon_button_help <gui_forms::HelpBookSystem::on_ribbon_button_help>`
+        - The ribbon's help button: the window card of the attached window that holds the ribbon, beside it; nothing when no attached window holds it.
       * - :cpp:func:`on_help_key <gui_forms::HelpBookSystem::on_help_key>`
         - The accelerators' targets in an attached window: F1 shows the focused control's help (ending What's This when it is on), Shift+F1 enters What's This.
       * - :cpp:func:`on_help_mode_key <gui_forms::HelpBookSystem::on_help_mode_key>`
@@ -203,6 +207,10 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: void attach_ribbon_tool_tip(RibbonToolTip& tool_tip)
 
+   .. cpp:function:: void attach_ribbon(Ribbon& ribbon)
+
+      Answers the ribbon's help button (Ribbon::help_requested) with the window card: the ribbon's window's help line and "More..." to its page, beside the ribbon. The ribbon must sit in an attached window.
+
    .. cpp:function:: HelpTarget resolve(const Control& control)
 
    .. cpp:function:: bool show(std::string_view stable_id, std::string_view anchor = {})
@@ -235,6 +243,10 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: void on_ribbon_help(const RibbonToolTipHelpRequest& request)
 
+   .. cpp:function:: void on_ribbon_button_help(const RibbonHelpRequest& request)
+
+      The ribbon's help button: the window card of the attached window that holds the ribbon, beside it; nothing when no attached window holds it.
+
    .. cpp:function:: bool on_help_key(Window& window)
 
       The accelerators' targets in an attached window: F1 shows the focused control's help (ending What's This when it is on), Shift+F1 enters What's This. True when the key was used.
@@ -256,7 +268,7 @@ gui_forms::HelpBookSystem
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Help``. Members declared here and by the counterpart: 30 supported, 0 deferred, 0 excluded, 13 unclassified; 40 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Help``. Members declared here and by the counterpart: 32 supported, 0 deferred, 0 excluded, 13 unclassified; 42 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -329,6 +341,10 @@ Counterpart: ``Help``. Members declared here and by the counterpart: 30 supporte
      - supported
    * - method
      - GUI.Forms-only
+     - ``attach_ribbon``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``attach_ribbon_tool_tip``
      - unclassified (untested)
    * - method
@@ -386,6 +402,10 @@ Counterpart: ``Help``. Members declared here and by the counterpart: 30 supporte
    * - method
      - GUI.Forms-only
      - ``on_help_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_ribbon_button_help``
      - supported
    * - method
      - GUI.Forms-only

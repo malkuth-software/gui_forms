@@ -166,6 +166,8 @@ Related types
      - Whether the user may drag row edges (AllowUserToResizeRows).
    * - :cpp:class:`DataGridViewAlternatingRowsDefaultCellStyleCapability <gui_forms::DataGridViewAlternatingRowsDefaultCellStyleCapability>`
      - A level of the cell style inheritance (AlternatingRowsDefaultCellStyle).
+   * - :cpp:class:`DataGridViewAutoGenerateColumnsCapability <gui_forms::DataGridViewAutoGenerateColumnsCapability>`
+     - Whether binding a data_source adds a column for each source field no column's data_property_name names (AutoGenerateColumns; off by default here, unlike Windows Forms, so that bound grids keep exactly their columns).
    * - :cpp:class:`DataGridViewAutoSizeColumnsModeCapability <gui_forms::DataGridViewAutoSizeColumnsModeCapability>`
      - How columns size themselves (AutoSizeColumnsMode).
    * - :cpp:class:`DataGridViewAutoSizeRowsModeCapability <gui_forms::DataGridViewAutoSizeRowsModeCapability>`
@@ -188,6 +190,8 @@ Related types
      - The cell an event concerns: its row's identity, the row's position when the event is raised (the position it had, for a row just removed), and the column.
    * - :cpp:class:`DataGridViewCellFormattingEvent <gui_forms::DataGridViewCellFormattingEvent>`
      - Raised when the grid needs a cell's text (Windows Forms' CellFormatting): to paint and lay it out, for its semantic value, and as the text an edit begins with.
+   * - :cpp:class:`DataGridViewCellMouseEvent <gui_forms::DataGridViewCellMouseEvent>`
+     - A pointer event over a cell or header (Windows Forms' DataGridViewCellMouseEventArgs): ``area`` is cell, column_header, row_header or top_left (a divider counts as its header); ``row_id`` and ``row`` name the row of a cell or row header (``row`` empty for a row gone since), ``column`` the column of a cell or column header.
    * - :cpp:class:`DataGridViewCellParsingEvent <gui_forms::DataGridViewCellParsingEvent>`
      - Raised when an edited text cell stores its text (Windows Forms' CellParsing), after cell_validating and before the text converts to the column's value kind.
    * - :cpp:class:`DataGridViewCellsCell <gui_forms::DataGridViewCellsCell>`
@@ -205,7 +209,7 @@ Related types
    * - :cpp:class:`DataGridViewCellsProvided <gui_forms::DataGridViewCellsProvided>`
      - A cell whose text the region's own provider fills on the sub-surface's thread (DataGridViewCellsTextProvider; decision 3(a), the virtual-mode half): its row, an index of DataGridViewCellsSnapshot::provided_rows, and its column.
    * - :cpp:class:`DataGridViewCellsSnapshot <gui_forms::DataGridViewCellsSnapshot>`
-     - What the cell region shows in one content epoch: complete, so a newer snapshot replaces an older one whole.
+     -  
    * - :cpp:class:`DataGridViewCellsTextProvider <gui_forms::DataGridViewCellsTextProvider>`
      - The sub-surface half of virtual mode on a cell region (threaded sub-surfaces decision 3(a): a model the sub-surface's thread owns): the application's model of the rows' text, moved to the region's thread with its content (DataGridView::set_cells_text_provider) and called only there, once per snapshot that has provided cells.
    * - :cpp:class:`DataGridViewCellsTextRange <gui_forms::DataGridViewCellsTextRange>`
@@ -216,6 +220,8 @@ Related types
      - A cell style (Windows Forms' DataGridViewCellStyle).
    * - :cpp:class:`DataGridViewCellsUpdate <gui_forms::DataGridViewCellsUpdate>`
      - One snapshot on its way to the sub-surface (SubSurfaceHost::redraw_all).
+   * - :cpp:class:`DataGridViewCellToolTipTextNeededEvent <gui_forms::DataGridViewCellToolTipTextNeededEvent>`
+     - Raised when the grid reads a cell's tooltip while show_cell_tool_tips holds (Windows Forms' CellToolTipTextNeeded), in every row source: ``tool_tip_text`` starts empty and a handler may set valid UTF-8 (other text is ignored).
    * - :cpp:class:`DataGridViewCellValidatingEvent <gui_forms::DataGridViewCellValidatingEvent>`
      - Raised before an edited text cell commits, with the text as typed.
    * - :cpp:class:`DataGridViewCellValueProvider <gui_forms::DataGridViewCellValueProvider>`
@@ -224,12 +230,16 @@ Related types
      - What a copy puts on the clipboard (ClipboardCopyMode).
    * - :cpp:class:`DataGridViewColumn <gui_forms::DataGridViewColumn>`
      - One column.
+   * - :cpp:class:`DataGridViewColumnChangedEvent <gui_forms::DataGridViewColumnChangedEvent>`
+     - A column added or removed (Windows Forms' ColumnAdded and ColumnRemoved): its index, after the addition or before the removal, and its name.
    * - :cpp:class:`DataGridViewColumnHeadersBorderStyleCapability <gui_forms::DataGridViewColumnHeadersBorderStyleCapability>`
      - The column headers' border (ColumnHeadersBorderStyle).
    * - :cpp:class:`DataGridViewColumnHeadersDefaultCellStyleCapability <gui_forms::DataGridViewColumnHeadersDefaultCellStyleCapability>`
      - A level of the cell style inheritance (ColumnHeadersDefaultCellStyle).
    * - :cpp:class:`DataGridViewColumnHeadersHeightCapability <gui_forms::DataGridViewColumnHeadersHeightCapability>`
      - The column header band's height, 4 to 256 logical units (ColumnHeadersHeight).
+   * - :cpp:class:`DataGridViewColumnHeadersHeightSizeModeCapability <gui_forms::DataGridViewColumnHeadersHeightSizeModeCapability>`
+     - Whether the user drags the column header band's bottom edge, may not, or the band takes its headers' preferred height (ColumnHeadersHeightSizeMode).
    * - :cpp:class:`DataGridViewColumnHeadersVisibleCapability <gui_forms::DataGridViewColumnHeadersVisibleCapability>`
      - Whether the column header band is shown (ColumnHeadersVisible).
    * - :cpp:class:`DataGridViewDataErrorEvent <gui_forms::DataGridViewDataErrorEvent>`
@@ -242,12 +252,20 @@ Related types
      - A column's place in the order the grid shows its columns (Windows Forms' DisplayIndex), apart from its index in columns(), which never changes with the order.
    * - :cpp:class:`DataGridViewDrawModeCapability <gui_forms::DataGridViewDrawModeCapability>`
      - Whether cells are drawn by the grid or by the owner-draw event.
+   * - :cpp:class:`DataGridViewEditingControlShowingEvent <gui_forms::DataGridViewEditingControlShowingEvent>`
+     - Raised when an edit shows its control (Windows Forms' EditingControlShowing), after cell_begin_edit: for a text edit with the editor holding the cell's text and laid out over the cell, before it takes the focus, so a handler may set the editor's own properties through editing_control(); for a choice list before it opens.
    * - :cpp:class:`DataGridViewEditModeCapability <gui_forms::DataGridViewEditModeCapability>`
      - What starts an edit (EditMode).
    * - :cpp:class:`DataGridViewEnableHeadersVisualStylesCapability <gui_forms::DataGridViewEnableHeadersVisualStylesCapability>`
      - Whether headers take the theme's look over their cell styles (EnableHeadersVisualStyles).
+   * - :cpp:class:`DataGridViewFrozenRowCountCapability <gui_forms::DataGridViewFrozenRowCountCapability>`
+     - The leading rows that stay at the top of the data area while the other rows scroll (Windows Forms' DataGridViewRow.Frozen, which freezes a row and every row above it); counts past the rows freeze them all.
    * - :cpp:class:`DataGridViewGridColorCapability <gui_forms::DataGridViewGridColorCapability>`
      - The authored colour of the grid lines; empty takes the theme's (GridColor).
+   * - :cpp:class:`DataGridViewHitTestInfo <gui_forms::DataGridViewHitTestInfo>`
+     - What hit_test_at found (Windows Forms' HitTestInfo): the row for cells, row headers and row dividers, the column for cells, column headers and column dividers (and for the header band's edge, the header under it), and neither elsewhere.
+   * - :cpp:class:`DataGridViewMinimumRowHeightCapability <gui_forms::DataGridViewMinimumRowHeightCapability>`
+     - The least height of every row, 4 to 4096 logical units (RowTemplate.MinimumHeight, for every row): user resizing, automatic heights and set_row_height_at stop there, and shorter heights are laid out at it.
    * - :cpp:class:`DataGridViewMultiSelectCapability <gui_forms::DataGridViewMultiSelectCapability>`
      - Whether more than one cell or row may be selected (MultiSelect).
    * - :cpp:class:`DataGridViewReadOnlyCapability <gui_forms::DataGridViewReadOnlyCapability>`
@@ -290,10 +308,20 @@ Related types
      - The automatic policy's thresholds.
    * - :cpp:class:`DataGridViewRowOrderThresholdsCapability <gui_forms::DataGridViewRowOrderThresholdsCapability>`
      - The sizes at which automatic row order switches between edit and window.
+   * - :cpp:class:`DataGridViewRowOverlayPart <gui_forms::DataGridViewRowOverlayPart>`
+     - What the cell region shows in one content epoch: complete, so a newer snapshot replaces an older one whole.
+   * - :cpp:class:`DataGridViewRowPaintParts <gui_forms::DataGridViewRowPaintParts>`
+     - Which parts of a row the grid paints (Windows Forms' DataGridViewPaintParts, as a row_pre_paint handler leaves them): the cells' backgrounds (their authored colours), their content (text, check boxes, buttons, images, links, drop-down buttons), the selection highlight, the current cell's focus cue, the error glyphs, and the row header.
    * - :cpp:class:`DataGridViewRowPosition <gui_forms::DataGridViewRowPosition>`
      - A row's presentation position: its index in the grid's current row order, 0 at the top.
+   * - :cpp:class:`DataGridViewRowPostPaintEvent <gui_forms::DataGridViewRowPostPaintEvent>`
+     - Raised once per shown row after a paint drew the rows (Windows Forms' RowPostPaint, as a part hook): a handler appends parts for the grid to paint over the row's cells through the theme engine, cut to the data area.
+   * - :cpp:class:`DataGridViewRowPrePaintEvent <gui_forms::DataGridViewRowPrePaintEvent>`
+     - Raised once per shown row before a paint draws it (Windows Forms' RowPrePaint, as a part hook: the handler gets no painter).
    * - :cpp:class:`DataGridViewRowsCapability <gui_forms::DataGridViewRowsCapability>`
      - A grid's unbound rows edited in place (in-place collections design, owner 2026-11-07; the DataGridView pilot): ``(*grid).rows.read()``, ``rows[i]``, ``rows = {...}``, ``rows.insert(i, row)``, ``rows.append(row)``, ``rows.append(rows)``, ``rows.erase(i, n)``, ``rows.replace(i, row)`` and ``rows.clear()``.
+   * - :cpp:class:`DataGridViewRowsChangedEvent <gui_forms::DataGridViewRowsChangedEvent>`
+     - Rows added to or removed from the rows before the new row (Windows Forms' RowsAdded and RowsRemoved): the first position, in the rows as they stand after an addition and as they stood before a removal, and how many.
    * - :cpp:class:`DataGridViewRowsDefaultCellStyleCapability <gui_forms::DataGridViewRowsDefaultCellStyleCapability>`
      - A level of the cell style inheritance (RowsDefaultCellStyle).
    * - :cpp:class:`DataGridViewRowValuesEvent <gui_forms::DataGridViewRowValuesEvent>`
@@ -304,12 +332,16 @@ Related types
      - Whether selection takes cells or full rows (SelectionMode).
    * - :cpp:class:`DataGridViewShowCellErrorsCapability <gui_forms::DataGridViewShowCellErrorsCapability>`
      - Whether cells show their error glyphs (ShowCellErrors).
+   * - :cpp:class:`DataGridViewShowCellToolTipsCapability <gui_forms::DataGridViewShowCellToolTipsCapability>`
+     - Whether cells and column headers publish their tooltips (ShowCellToolTips): a cell's from cell_tool_tip_text_needed, a header's from its column's tool_tip_text.
    * - :cpp:class:`DataGridViewShowEditingIconCapability <gui_forms::DataGridViewShowEditingIconCapability>`
      - Whether the current row's header shows the editing glyph (ShowEditingIcon).
    * - :cpp:class:`DataGridViewShowRowErrorsCapability <gui_forms::DataGridViewShowRowErrorsCapability>`
      - Whether row headers show their error glyphs (ShowRowErrors).
    * - :cpp:class:`DataGridViewSortCompareEvent <gui_forms::DataGridViewSortCompareEvent>`
      - Raised for each comparison while sort(column, direction) orders unbound rows, when it has a handler (Windows Forms' SortCompare).
+   * - :cpp:class:`DataGridViewStandardTabCapability <gui_forms::DataGridViewStandardTabCapability>`
+     - Whether Tab moves the focus out of the grid and Ctrl+Tab moves between cells (StandardTab); off, Tab moves between cells and Ctrl+Tab leaves the grid.
    * - :cpp:class:`DefaultGroupHeaderCapability <gui_forms::DefaultGroupHeaderCapability>`
      - The default group's header; "Default" until set.
    * - :cpp:class:`ItemCheckEvent <gui_forms::ItemCheckEvent>`
@@ -1310,6 +1342,10 @@ Related types
 
    .. cpp:member:: bool checked
 
+   .. cpp:member:: bool indeterminate
+
+      A three-state check box cell whose value is empty.
+
    .. cpp:member:: bool pressed
 
    .. cpp:member:: bool open
@@ -1584,6 +1620,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DataGridViewAutoGenerateColumnsCapability
+
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
+
+   Whether binding a data_source adds a column for each source field no column's data_property_name names (AutoGenerateColumns; off by default here, unlike Windows Forms, so that bound grids keep exactly their columns).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewAutoGenerateColumnsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DataGridViewAutoGenerateColumnsCapability<Declaring>> auto_generate_columns
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> DataGridViewAutoSizeColumnsModeCapability
 
    ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
@@ -1650,7 +1703,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>, public DataGridViewAutoSizeRowsModeCapability<Declaring>, public DataGridViewClipboardCopyModeCapability<Declaring>, public DataGridViewRowOrderPolicyCapability<Declaring>, public DataGridViewRowOrderThresholdsCapability<Declaring>, public DataGridViewAllowUserToDeleteRowsCapability<Declaring>, public DataGridViewShowCellErrorsCapability<Declaring>, public DataGridViewShowRowErrorsCapability<Declaring>, public DataGridViewShowEditingIconCapability<Declaring>, public DataGridViewDefaultCellStyleCapability<Declaring>, public DataGridViewRowsDefaultCellStyleCapability<Declaring>, public DataGridViewAlternatingRowsDefaultCellStyleCapability<Declaring>, public DataGridViewColumnHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewRowHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewEnableHeadersVisualStylesCapability<Declaring>, public DataGridViewGridColorCapability<Declaring>, public DataGridViewBackgroundColorCapability<Declaring>, public DataGridViewBorderStyleCapability<Declaring>, public DataGridViewCellBorderStyleCapability<Declaring>, public DataGridViewColumnHeadersBorderStyleCapability<Declaring>, public DataGridViewRowHeadersBorderStyleCapability<Declaring>, public DataGridViewDrawModeCapability<Declaring>, public DataGridViewColumnHeadersVisibleCapability<Declaring>, public DataGridViewRowHeadersVisibleCapability<Declaring>, public DataGridViewColumnHeadersHeightCapability<Declaring>, public DataGridViewRowHeadersWidthCapability<Declaring>, public DataGridViewRowHeightCapability<Declaring>, public FontCapability<Declaring>, public DataGridViewReadOnlyCapability<Declaring>, public DataGridViewAllowUserToResizeColumnsCapability<Declaring>, public DataGridViewAllowUserToResizeRowsCapability<Declaring>, public DataGridViewAllowUserToOrderColumnsCapability<Declaring>, public DataGridViewSelectionModeCapability<Declaring>, public DataGridViewMultiSelectCapability<Declaring>, public DataGridViewEditModeCapability<Declaring>, public DataGridViewCellsOnSubSurfaceCapability<Declaring>, public DataGridViewAllowUserToAddRowsCapability<Declaring>, public DataGridViewDataSourceCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>, public DataGridViewAutoSizeRowsModeCapability<Declaring>, public DataGridViewClipboardCopyModeCapability<Declaring>, public DataGridViewRowOrderPolicyCapability<Declaring>, public DataGridViewRowOrderThresholdsCapability<Declaring>, public DataGridViewAllowUserToDeleteRowsCapability<Declaring>, public DataGridViewShowCellToolTipsCapability<Declaring>, public DataGridViewShowCellErrorsCapability<Declaring>, public DataGridViewShowRowErrorsCapability<Declaring>, public DataGridViewShowEditingIconCapability<Declaring>, public DataGridViewDefaultCellStyleCapability<Declaring>, public DataGridViewRowsDefaultCellStyleCapability<Declaring>, public DataGridViewAlternatingRowsDefaultCellStyleCapability<Declaring>, public DataGridViewColumnHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewRowHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewEnableHeadersVisualStylesCapability<Declaring>, public DataGridViewGridColorCapability<Declaring>, public DataGridViewBackgroundColorCapability<Declaring>, public DataGridViewBorderStyleCapability<Declaring>, public DataGridViewCellBorderStyleCapability<Declaring>, public DataGridViewColumnHeadersBorderStyleCapability<Declaring>, public DataGridViewRowHeadersBorderStyleCapability<Declaring>, public DataGridViewDrawModeCapability<Declaring>, public DataGridViewColumnHeadersVisibleCapability<Declaring>, public DataGridViewRowHeadersVisibleCapability<Declaring>, public DataGridViewColumnHeadersHeightCapability<Declaring>, public DataGridViewColumnHeadersHeightSizeModeCapability<Declaring>, public DataGridViewRowHeadersWidthCapability<Declaring>, public DataGridViewRowHeightCapability<Declaring>, public DataGridViewMinimumRowHeightCapability<Declaring>, public DataGridViewFrozenRowCountCapability<Declaring>, public FontCapability<Declaring>, public DataGridViewReadOnlyCapability<Declaring>, public DataGridViewAllowUserToResizeColumnsCapability<Declaring>, public DataGridViewAllowUserToResizeRowsCapability<Declaring>, public DataGridViewAllowUserToOrderColumnsCapability<Declaring>, public DataGridViewSelectionModeCapability<Declaring>, public DataGridViewMultiSelectCapability<Declaring>, public DataGridViewEditModeCapability<Declaring>, public DataGridViewCellsOnSubSurfaceCapability<Declaring>, public DataGridViewAllowUserToAddRowsCapability<Declaring>, public DataGridViewAutoGenerateColumnsCapability<Declaring>, public DataGridViewStandardTabCapability<Declaring>, public DataGridViewDataSourceCapability<Declaring>
 
    ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
@@ -1687,6 +1740,10 @@ Related types
    .. cpp:member:: bool allow_user_to_delete_rows
 
       Whether the user may delete rows (AllowUserToDeleteRows).
+
+   .. cpp:member:: bool show_cell_tool_tips
+
+      Whether cells and column headers publish their tooltips (ShowCellToolTips): a cell's from cell_tool_tip_text_needed, a header's from its column's tool_tip_text.
 
    .. cpp:member:: bool show_cell_errors
 
@@ -1764,6 +1821,10 @@ Related types
 
       The column header band's height, 4 to 256 logical units (ColumnHeadersHeight).
 
+   .. cpp:member:: DataGridViewColumnHeadersHeightSizeMode column_headers_height_size_mode
+
+      Whether the user drags the column header band's bottom edge, may not, or the band takes its headers' preferred height (ColumnHeadersHeightSizeMode).
+
    .. cpp:member:: double row_headers_width
 
       The row header band's width, 4 to 1024 logical units (RowHeadersWidth).
@@ -1771,6 +1832,14 @@ Related types
    .. cpp:member:: double row_height
 
       The default row height, 4 to 256 logical units (RowTemplate.Height).
+
+   .. cpp:member:: double minimum_row_height
+
+      The least height of every row, 4 to 4096 logical units (RowTemplate.MinimumHeight, for every row): user resizing, automatic heights and set_row_height_at stop there, and shorter heights are laid out at it.
+
+   .. cpp:member:: std::size_t frozen_row_count
+
+      The leading rows that stay at the top of the data area while the other rows scroll (Windows Forms' DataGridViewRow.Frozen, which freezes a row and every row above it); counts past the rows freeze them all.
 
    .. cpp:member:: FontSpec font
 
@@ -1811,6 +1880,14 @@ Related types
    .. cpp:member:: bool allow_user_to_add_rows
 
       Whether unbound and bound grids show a new row after the last row (Windows Forms' new row); on by default. Turning it off cancels an edit on the new row and moves a current cell on it to the last row. A view onto the grid's flag.
+
+   .. cpp:member:: bool auto_generate_columns
+
+      Whether binding a data_source adds a column for each source field no column's data_property_name names (AutoGenerateColumns; off by default here, unlike Windows Forms, so that bound grids keep exactly their columns).
+
+   .. cpp:member:: bool standard_tab
+
+      Whether Tab moves the focus out of the grid and Ctrl+Tab moves between cells (StandardTab); off, Tab moves between cells and Ctrl+Tab leaves the grid.
 
    .. cpp:member:: std::shared_ptr<BindingSource> data_source
 
@@ -1915,6 +1992,36 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DataGridViewCellMouseEvent final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   A pointer event over a cell or header (Windows Forms' DataGridViewCellMouseEventArgs): ``area`` is cell, column_header, row_header or top_left (a divider counts as its header); ``row_id`` and ``row`` name the row of a cell or row header (``row`` empty for a row gone since), ``column`` the column of a cell or column header. ``location`` is the pointer relative to the cell's or header's top-left corner, in the grid's layout units; ``click_count`` counts a press's clicks (zero for moves).
+
+   .. cpp:member:: DataGridViewHitTestType area
+
+      Default: ``{DataGridViewHitTestType::none}``.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: std::optional<DataGridViewRowPosition> row
+
+   .. cpp:member:: std::optional<std::size_t> column
+
+   .. cpp:member:: Point location
+
+   .. cpp:member:: PointerButton button
+
+      Default: ``{PointerButton::none}``.
+
+   .. cpp:member:: std::uint32_t click_count
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DataGridViewCellParsingEvent final
 
    ``#include <gui_forms/controls/data_grid_view.hpp>``
@@ -1944,6 +2051,10 @@ Related types
    One visible cell, resolved. Text and lines are ranges of the snapshot's shared buffers, so a snapshot of any size makes three allocations, not one per cell.
 
    .. cpp:member:: DataGridViewCellsParts parts
+
+   .. cpp:member:: Rect pane
+
+      The pane the cell is cut to, in the region's coordinates, when the grid has frozen rows or columns (a scrolling cell passes under the frozen ones); empty for the whole data area.
 
    .. cpp:member:: AnatomyStateSet states
 
@@ -2122,8 +2233,6 @@ Related types
 
    ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
-   What the cell region shows in one content epoch: complete, so a newer snapshot replaces an older one whole. Coordinates are the region's (the grid's data area at the origin). Made and filled on the UI thread, then moved to the sub-surface's thread inside a DataGridViewCellsUpdate.
-
    .. cpp:member:: DataGridViewCellsLook look
 
    .. cpp:member:: PartGeometry well
@@ -2145,6 +2254,10 @@ Related types
    .. cpp:member:: std::vector<std::string> provided_rows
 
       The row identities (DataGridViewRowId values) the provided cells name, one per visible row that has any; empty without a provider.
+
+   .. cpp:member:: std::vector<DataGridViewRowOverlayPart> overlays
+
+      The rows' overlay parts (row_post_paint), in the region's coordinates, painted after every cell.
 
 .. cpp:namespace:: gui_forms
 
@@ -2229,6 +2342,22 @@ Related types
    .. cpp:function:: explicit DataGridViewCellsUpdate(DataGridViewCellsSnapshot snapshot)
 
    .. cpp:member:: DataGridViewCellsSnapshot snapshot
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellToolTipTextNeededEvent final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   Raised when the grid reads a cell's tooltip while show_cell_tool_tips holds (Windows Forms' CellToolTipTextNeeded), in every row source: ``tool_tip_text`` starts empty and a handler may set valid UTF-8 (other text is ignored). Raised from const reads (semantics); handlers may not change the grid.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: std::size_t column
+
+   .. cpp:member:: std::string tool_tip_text
 
 .. cpp:namespace:: gui_forms
 
@@ -2326,6 +2455,16 @@ Related types
 
    .. cpp:member:: std::vector<std::string> items
 
+   .. cpp:member:: DataGridViewComboBoxDisplayStyle display_style
+
+      A combo box column's look (DisplayStyle), and whether it applies to the current cell only, the others drawn as text alone (DisplayStyleForCurrentCellOnly). Default: ``{DataGridViewComboBoxDisplayStyle::combo_box}``.
+
+   .. cpp:member:: bool display_style_for_current_cell_only
+
+   .. cpp:member:: bool three_state
+
+      A check box column with three states (ThreeState): an empty value is indeterminate, and the user's toggle runs unchecked, checked, indeterminate. Without it an empty value is unchecked.
+
    .. cpp:member:: std::string button_text
 
    .. cpp:member:: DataGridViewImageLayout image_layout
@@ -2358,6 +2497,10 @@ Related types
 
       A fill column's share of the width the other columns leave, against the other fill columns' weights; finite and positive. Default: ``{100.0}``.
 
+   .. cpp:member:: std::optional<bool> resizable
+
+      Whether the user may resize the column (Windows Forms' Resizable): none inherits allow_user_to_resize_columns, a value overrides it. An automatically sized column is never resized by the user.
+
    .. cpp:member:: bool visible
 
       Whether the grid shows the column (Windows Forms' Visible). A hidden column keeps its index, display index, width and values; layout, painting, hit testing, keyboard movement, selection ranges and the semantic tree pass over it. Default: ``{true}``.
@@ -2365,6 +2508,26 @@ Related types
    .. cpp:member:: bool owner_draw
 
       Whether the column's cells are owner drawn while the grid's draw_mode is normal: each raises draw_item_content as every cell does under owner_draw, and the other columns draw as usual (the ImGui-class demonstrator's gap I4). Under owner_draw every column is raised whatever this says. A grid with an owner-drawn column paints its cells on the UI thread, as under owner_draw.
+
+   .. cpp:member:: bool frozen
+
+      Whether the column stays at the data area's reading start while the other columns scroll (Windows Forms' Frozen). As there, a frozen column freezes every column shown before it in display order.
+
+   .. cpp:member:: std::string tool_tip_text
+
+      The column header's tooltip (Windows Forms' ToolTipText), published on the header's semantic node while show_cell_tool_tips holds; valid UTF-8, and empty for none.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewColumnChangedEvent final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   A column added or removed (Windows Forms' ColumnAdded and ColumnRemoved): its index, after the addition or before the removal, and its name. set_columns raises column_removed for each former column, last first, then column_added for each new one in order.
+
+   .. cpp:member:: std::size_t column
+
+   .. cpp:member:: std::string name
 
 .. cpp:namespace:: gui_forms
 
@@ -2414,6 +2577,23 @@ Related types
    .. cpp:member:: PropertyCell<double, DataGridViewColumnHeadersHeightCapability<Declaring>> column_headers_height
 
       Default: ``{23.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DataGridViewColumnHeadersHeightSizeModeCapability
+
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
+
+   Whether the user drags the column header band's bottom edge, may not, or the band takes its headers' preferred height (ColumnHeadersHeightSizeMode).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewColumnHeadersHeightSizeModeCapability& capability, DataGridViewColumnHeadersHeightSizeMode incoming)
+
+   .. cpp:member:: PropertyCell<DataGridViewColumnHeadersHeightSizeMode, DataGridViewColumnHeadersHeightSizeModeCapability<Declaring>> column_headers_height_size_mode
+
+      Default: ``{DataGridViewColumnHeadersHeightSizeMode::enable_resizing}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2517,6 +2697,24 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DataGridViewEditingControlShowingEvent final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   Raised when an edit shows its control (Windows Forms' EditingControlShowing), after cell_begin_edit: for a text edit with the editor holding the cell's text and laid out over the cell, before it takes the focus, so a handler may set the editor's own properties through editing_control(); for a choice list before it opens. A handler that ends the edit or moves the current cell stops it.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: std::size_t column
+
+   .. cpp:member:: DataGridViewEditingControlKind kind
+
+      Default: ``{DataGridViewEditingControlKind::text_box}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> DataGridViewEditModeCapability
 
    ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
@@ -2551,6 +2749,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DataGridViewFrozenRowCountCapability
+
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
+
+   The leading rows that stay at the top of the data area while the other rows scroll (Windows Forms' DataGridViewRow.Frozen, which freezes a row and every row above it); counts past the rows freeze them all.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewFrozenRowCountCapability& capability, std::size_t incoming)
+
+   .. cpp:member:: PropertyCell<std::size_t, DataGridViewFrozenRowCountCapability<Declaring>> frozen_row_count
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> DataGridViewGridColorCapability
 
    ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
@@ -2563,6 +2778,39 @@ Related types
    .. cpp:function:: static void assign(DataGridViewGridColorCapability& capability, std::optional<Color> incoming)
 
    .. cpp:member:: PropertyCell<std::optional<Color>, DataGridViewGridColorCapability<Declaring>> grid_color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewHitTestInfo final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   What hit_test_at found (Windows Forms' HitTestInfo): the row for cells, row headers and row dividers, the column for cells, column headers and column dividers (and for the header band's edge, the header under it), and neither elsewhere.
+
+   .. cpp:member:: DataGridViewHitTestType type
+
+      Default: ``{DataGridViewHitTestType::none}``.
+
+   .. cpp:member:: std::optional<DataGridViewRowPosition> row
+
+   .. cpp:member:: std::optional<std::size_t> column
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DataGridViewMinimumRowHeightCapability
+
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
+
+   The least height of every row, 4 to 4096 logical units (RowTemplate.MinimumHeight, for every row): user resizing, automatic heights and set_row_height_at stop there, and shorter heights are laid out at it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewMinimumRowHeightCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, DataGridViewMinimumRowHeightCapability<Declaring>> minimum_row_height
+
+      Default: ``{4.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3029,6 +3277,58 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DataGridViewRowOverlayPart final
+
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
+
+   What the cell region shows in one content epoch: complete, so a newer snapshot replaces an older one whole. Coordinates are the region's (the grid's data area at the origin). Made and filled on the UI thread, then moved to the sub-surface's thread inside a DataGridViewCellsUpdate. A part a row_post_paint handler asks the grid to paint over a row's cells (Windows Forms' RowPostPaint, as a part request): drawn through the theme engine as ``role`` in the grid's editor family, with ``mark`` (none for a plain part) and an authored background colour (none for the theme's), at ``bounds`` in the grid's own coordinates and cut to the data area.
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: PartRole role
+
+      Default: ``{PartRole::glyph}``.
+
+   .. cpp:member:: PartMark mark
+
+      Default: ``{PartMark::none}``.
+
+   .. cpp:member:: std::optional<Color> background
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewRowPaintParts final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   Which parts of a row the grid paints (Windows Forms' DataGridViewPaintParts, as a row_pre_paint handler leaves them): the cells' backgrounds (their authored colours), their content (text, check boxes, buttons, images, links, drop-down buttons), the selection highlight, the current cell's focus cue, the error glyphs, and the row header.
+
+   .. cpp:member:: bool background
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool content
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool selection
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool focus
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool error_glyph
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool row_header
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DataGridViewRowPosition final
 
    ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
@@ -3036,6 +3336,50 @@ Related types
    A row's presentation position: its index in the grid's current row order, 0 at the top. A position is not an identity: inserting, removing or sorting rows changes which row holds it. row_id and row_position convert between the two.
 
    .. cpp:member:: std::size_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewRowPostPaintEvent final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   Raised once per shown row after a paint drew the rows (Windows Forms' RowPostPaint, as a part hook): a handler appends parts for the grid to paint over the row's cells through the theme engine, cut to the data area. Raised from paint; handlers may not change the grid.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: bool selected
+
+   .. cpp:member:: bool current
+
+   .. cpp:member:: std::vector<DataGridViewRowOverlayPart> overlays
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewRowPrePaintEvent final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   Raised once per shown row before a paint draws it (Windows Forms' RowPrePaint, as a part hook: the handler gets no painter). ``bounds`` is the row's header and cells in the grid's coordinates; ``selected`` and ``current`` say whether the row is selected or holds the current cell. A handler may turn parts off, give the row's cells an authored background, or set ``handled`` to have the grid paint none of the row (rules included). Raised from paint; handlers may not change the grid.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: bool selected
+
+   .. cpp:member:: bool current
+
+   .. cpp:member:: DataGridViewRowPaintParts parts
+
+   .. cpp:member:: std::optional<Color> background
+
+   .. cpp:member:: bool handled
 
 .. cpp:namespace:: gui_forms
 
@@ -3084,6 +3428,18 @@ Related types
       *Protected.*
 
    .. cpp:member:: CollectionCell<DataGridViewRow, DataGridViewRowsCapability<Declaring>> rows
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewRowsChangedEvent final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   Rows added to or removed from the rows before the new row (Windows Forms' RowsAdded and RowsRemoved): the first position, in the rows as they stand after an addition and as they stood before a removal, and how many. The new row's appearing and going raise neither. A replacement of every row (clear_rows, a new data source, virtual rows or order, an assignment to ``rows``, a bound reset) raises rows_removed for the former rows, then rows_added for the new ones. Sorting and moving rows raise neither.
+
+   .. cpp:member:: DataGridViewRowPosition position
+
+   .. cpp:member:: std::size_t count
 
 .. cpp:namespace:: gui_forms
 
@@ -3173,6 +3529,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DataGridViewShowCellToolTipsCapability
+
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
+
+   Whether cells and column headers publish their tooltips (ShowCellToolTips): a cell's from cell_tool_tip_text_needed, a header's from its column's tool_tip_text.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewShowCellToolTipsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DataGridViewShowCellToolTipsCapability<Declaring>> show_cell_tool_tips
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> DataGridViewShowEditingIconCapability
 
    ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
@@ -3230,6 +3603,23 @@ Related types
    .. cpp:member:: int sort_result
 
    .. cpp:member:: bool handled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DataGridViewStandardTabCapability
+
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
+
+   Whether Tab moves the focus out of the grid and Ctrl+Tab moves between cells (StandardTab); off, Tab moves between cells and Ctrl+Tab leaves the grid.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewStandardTabCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DataGridViewStandardTabCapability<Declaring>> standard_tab
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -5782,6 +6172,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DataGridViewColumnHeadersHeightSizeMode
+
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
+
+   .. cpp:enumerator:: enable_resizing
+
+   .. cpp:enumerator:: disable_resizing
+
+   .. cpp:enumerator:: auto_size
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: DataGridViewColumnKind
 
    ``#include <gui_forms/controls/data_grid_view_types.hpp>``
@@ -5811,6 +6213,18 @@ Enumerations
    .. cpp:enumerator:: automatic
 
    .. cpp:enumerator:: programmatic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewComboBoxDisplayStyle
+
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
+
+   .. cpp:enumerator:: combo_box
+
+   .. cpp:enumerator:: drop_down_button
+
+   .. cpp:enumerator:: nothing
 
 .. cpp:namespace:: gui_forms
 
@@ -5848,6 +6262,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DataGridViewEditingControlKind
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: text_box
+
+   .. cpp:enumerator:: choice_list
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: DataGridViewEditMode
 
    ``#include <gui_forms/controls/data_grid_view_types.hpp>``
@@ -5875,6 +6299,28 @@ Enumerations
    .. cpp:enumerator:: sunken
 
    .. cpp:enumerator:: none
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewHitTestType
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: cell
+
+   .. cpp:enumerator:: column_header
+
+   .. cpp:enumerator:: column_divider
+
+   .. cpp:enumerator:: row_header
+
+   .. cpp:enumerator:: row_divider
+
+   .. cpp:enumerator:: top_left
+
+   .. cpp:enumerator:: column_headers_divider
 
 .. cpp:namespace:: gui_forms
 
@@ -5945,6 +6391,12 @@ Enumerations
    .. cpp:enumerator:: cell_select
 
    .. cpp:enumerator:: full_row_select
+
+   .. cpp:enumerator:: full_column_select
+
+   .. cpp:enumerator:: row_header_select
+
+   .. cpp:enumerator:: column_header_select
 
 .. cpp:namespace:: gui_forms
 
@@ -6167,8 +6619,10 @@ Functions, constants and aliases
 
    Paints one resolved cell of ``snapshot``, its parts in the grid's order, cut to ``data`` (the region's data area), for ``owner`` (whose theme and look select the parts). It is the cell painter both sides share: the sub-surface's control and, once wired, the grid itself. The cell must be one ``data_grid_view_cells_snapshot_valid`` accepted.
 
-.. cpp:function:: void paint_data_grid_view_cell_selection(Painter& painter, const Control& owner, const DataGridViewCellsCell& cell)
+.. cpp:function:: void paint_data_grid_view_row_overlay(Painter& painter, const Control& owner, const DataGridViewRowOverlayPart& overlay)
 
-   The same cell painted in two steps, for the grid's owner drawing, which draws between them: the selection plate, then the other parts. Without ``default_content`` the content parts (link, text, image, check box, button) are the owner's and are left out; the drop-down, the error glyph, the rules and the focus part are drawn either way.
+   The same cell painted in two steps, for the grid's owner drawing, which draws between them: the selection plate, then the other parts. Without ``default_content`` the content parts (link, text, image, check box, button) are the owner's and are left out; the drop-down, the error glyph, the rules and the focus part are drawn either way. Paints one row overlay part for ``owner`` through the theme engine.
+
+.. cpp:function:: void paint_data_grid_view_cell_selection(Painter& painter, const Control& owner, const DataGridViewCellsCell& cell)
 
 .. cpp:function:: void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot, const DataGridViewCellsCell& cell, Rect data, bool default_content)

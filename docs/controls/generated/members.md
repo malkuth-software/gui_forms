@@ -8,14 +8,14 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2129 | 13 | 367 | 4126 | 2244 |
+| 2238 | 13 | 367 | 4111 | 2338 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 231 | 0 | 12 | 312 | 198 |
-| `Component` | `Component` | 9 | 0 | 0 | 11 | 11 |
+| `Control` | `Control` | 239 | 0 | 12 | 314 | 208 |
+| `Component` | `Component` | 10 | 0 | 0 | 10 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 37 | 22 |
 | `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
 | `DropDownButton` | `ToolStripSplitButton` | 6 | 0 | 0 | 18 | 5 |
@@ -39,19 +39,19 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Spinner` | GUI.Forms-only | 2 | 0 | 0 | 2 | 4 |
 | `SweepScope` | GUI.Forms-only | 2 | 0 | 0 | 3 | 5 |
 | `Sparkline` | GUI.Forms-only | 6 | 0 | 0 | 4 | 10 |
-| `PlotView` | GUI.Forms-only | 18 | 0 | 0 | 11 | 29 |
+| `PlotView` | GUI.Forms-only | 24 | 0 | 0 | 11 | 35 |
 | `PlotAxisItem` | GUI.Forms-only | 2 | 0 | 0 | 8 | 10 |
-| `PlotSeriesItem` | GUI.Forms-only | 8 | 0 | 0 | 19 | 27 |
+| `PlotSeriesItem` | GUI.Forms-only | 9 | 0 | 0 | 20 | 29 |
 | `PlotAnnotationItem` | GUI.Forms-only | 0 | 0 | 0 | 4 | 4 |
 | `ListBox` | `ListBox` | 14 | 0 | 1 | 48 | 14 |
 | `CheckedListBox` | `CheckedListBox` | 12 | 0 | 0 | 18 | 6 |
 | `ComboBox` | `ComboBox` | 11 | 0 | 1 | 54 | 9 |
-| `TreeView` | `TreeView` | 10 | 0 | 2 | 75 | 9 |
+| `TreeView` | `TreeView` | 13 | 0 | 2 | 73 | 10 |
 | `ObjectView` | `ListView` | 20 | 0 | 2 | 107 | 18 |
 | `ListView` | `ListView` | 49 | 0 | 2 | 98 | 38 |
 | `TreeListView` | GUI.Forms-only | 31 | 0 | 0 | 5 | 36 |
-| `VirtualRowsView` | GUI.Forms-only | 33 | 0 | 0 | 2 | 35 |
-| `DataGridView` | `DataGridView` | 130 | 0 | 0 | 330 | 79 |
+| `VirtualRowsView` | GUI.Forms-only | 46 | 0 | 0 | 2 | 48 |
+| `DataGridView` | `DataGridView` | 157 | 0 | 0 | 310 | 86 |
 | `ChoiceGroup` | GUI.Forms-only | 6 | 0 | 0 | 3 | 9 |
 | `BreadcrumbTrail` | GUI.Forms-only | 12 | 0 | 0 | 3 | 15 |
 | `CheckBox` | `CheckBox` | 4 | 0 | 0 | 14 | 3 |
@@ -60,27 +60,28 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `RangeControl` | GUI.Forms-only | 8 | 0 | 0 | 6 | 14 |
 | `TrackBar` | `TrackBar` | 12 | 0 | 1 | 29 | 8 |
 | `ValueBar` | GUI.Forms-only | 18 | 0 | 0 | 19 | 37 |
-| `NumericUpDown` | `NumericUpDown` | 7 | 0 | 0 | 16 | 6 |
+| `NumericUpDown` | `NumericUpDown` | 9 | 0 | 0 | 17 | 9 |
 | `DomainUpDown` | `DomainUpDown` | 3 | 0 | 0 | 13 | 5 |
-| `ColorValueEditor` | GUI.Forms-only | 3 | 0 | 0 | 3 | 6 |
+| `ColorPicker` | GUI.Forms-only | 4 | 0 | 0 | 3 | 7 |
+| `ColorValueEditor` | GUI.Forms-only | 7 | 0 | 0 | 3 | 10 |
 | `FlagsValueEditor` | GUI.Forms-only | 1 | 0 | 0 | 6 | 7 |
 | `PropertyGrid` | `PropertyGrid` | 19 | 0 | 2 | 72 | 19 |
 | `PropertyList` | GUI.Forms-only | 16 | 0 | 0 | 5 | 21 |
-| `DateTimePicker` | `DateTimePicker` | 6 | 0 | 1 | 46 | 4 |
-| `MonthCalendar` | `MonthCalendar` | 18 | 0 | 1 | 44 | 5 |
+| `DateTimePicker` | `DateTimePicker` | 8 | 0 | 1 | 47 | 7 |
+| `MonthCalendar` | `MonthCalendar` | 21 | 0 | 1 | 45 | 9 |
 | `Panel` | `Panel` | 8 | 0 | 0 | 8 | 7 |
 | `GroupBox` | `GroupBox` | 4 | 0 | 0 | 21 | 1 |
 | `ScaledGroupBox` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
 | `MaterialPanel` | GUI.Forms-only | 1 | 0 | 0 | 0 | 1 |
 | `Card` | GUI.Forms-only | 10 | 0 | 0 | 1 | 11 |
-| `ExpandableSections` | GUI.Forms-only | 5 | 0 | 0 | 0 | 5 |
+| `ExpandableSections` | GUI.Forms-only | 7 | 0 | 0 | 0 | 7 |
 | `ContainerControl` | `ContainerControl` | 9 | 0 | 0 | 11 | 4 |
 | `UserControl` | `UserControl` | 5 | 0 | 0 | 7 | 4 |
 | `TabControl` | `TabControl` | 16 | 1 | 2 | 38 | 12 |
 | `PageStrip` | GUI.Forms-only | 30 | 0 | 0 | 7 | 37 |
 | `PageView` | GUI.Forms-only | 8 | 0 | 0 | 1 | 9 |
 | `NavigationPane` | GUI.Forms-only | 17 | 0 | 0 | 3 | 20 |
-| `DockSite` | GUI.Forms-only | 44 | 0 | 0 | 7 | 51 |
+| `DockSite` | GUI.Forms-only | 46 | 0 | 0 | 7 | 53 |
 | `DockNavigator` | GUI.Forms-only | 10 | 0 | 0 | 4 | 14 |
 | `TabPage` | `TabPage` | 4 | 0 | 0 | 16 | 0 |
 | `FlexPanel` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |
@@ -89,6 +90,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `FlowLayoutPanelCompat` | `FlowLayoutPanel` | 3 | 0 | 0 | 9 | 7 |
 | `TableLayoutPanelCompat` | `TableLayoutPanel` | 13 | 0 | 0 | 26 | 13 |
 | `ResponsiveTrackPanel` | GUI.Forms-only | 6 | 0 | 0 | 5 | 11 |
+| `FormLayout` | GUI.Forms-only | 6 | 0 | 0 | 1 | 7 |
 | `ScaledPanel` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
 | `SplitContainer` | `SplitContainer` | 12 | 0 | 0 | 37 | 14 |
 | `SplitterPanel` | `SplitterPanel` | 4 | 0 | 0 | 19 | 0 |
@@ -100,7 +102,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `HScrollBar` | `HScrollBar` | 1 | 0 | 0 | 0 | 0 |
 | `VScrollBar` | `VScrollBar` | 1 | 0 | 0 | 1 | 0 |
 | `MenuStrip` | `MenuStrip` | 9 | 0 | 0 | 9 | 7 |
-| `ToolStrip` | `ToolStrip` | 15 | 0 | 2 | 76 | 18 |
+| `ToolStrip` | `ToolStrip` | 16 | 0 | 2 | 75 | 18 |
 | `RibbonFontControl` | GUI.Forms-only | 9 | 0 | 0 | 1 | 10 |
 | `RibbonColorPicker` | GUI.Forms-only | 7 | 0 | 0 | 2 | 9 |
 | `BackstageView` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
@@ -110,9 +112,9 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ToolStripPanel` | `ToolStripPanel` | 8 | 0 | 1 | 17 | 5 |
 | `ToolStripContainer` | `ToolStripContainer` | 16 | 0 | 0 | 25 | 16 |
 | `BindingNavigator` | `BindingNavigator` | 8 | 0 | 0 | 18 | 8 |
-| `Ribbon` | GUI.Forms-only | 38 | 0 | 0 | 6 | 44 |
+| `Ribbon` | GUI.Forms-only | 44 | 0 | 0 | 6 | 50 |
 | `ContextMenu` | `ContextMenuStrip` | 9 | 0 | 0 | 1 | 5 |
-| `DockWorkspace` | GUI.Forms-only | 39 | 0 | 0 | 16 | 55 |
+| `DockWorkspace` | GUI.Forms-only | 41 | 0 | 0 | 15 | 56 |
 | `Command` | GUI.Forms-only | 15 | 0 | 0 | 4 | 19 |
 | `FontCommand` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |
 | `ColorCommand` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
@@ -130,7 +132,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Wizard` | GUI.Forms-only | 11 | 0 | 0 | 14 | 25 |
 | `WizardPage` | GUI.Forms-only | 0 | 0 | 0 | 4 | 4 |
 | `Callout` | GUI.Forms-only | 6 | 0 | 0 | 8 | 14 |
-| `ModalLayer` | GUI.Forms-only | 6 | 0 | 0 | 3 | 9 |
+| `ModalLayer` | GUI.Forms-only | 7 | 0 | 0 | 3 | 10 |
 | `LookupComboBox` | GUI.Forms-only | 9 | 0 | 0 | 7 | 16 |
 | `AboutDialog` | GUI.Forms-only | 5 | 0 | 0 | 1 | 6 |
 | `FolderBrowserDialog` | `FolderBrowserDialog` | 6 | 0 | 0 | 15 | 3 |
@@ -142,9 +144,10 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `NodeCanvas` | GUI.Forms-only | 55 | 0 | 0 | 14 | 69 |
 | `LiveSurface` | GUI.Forms-only | 10 | 0 | 0 | 0 | 10 |
 | `SubSurfaceHost` | GUI.Forms-only | 14 | 0 | 0 | 1 | 15 |
-| `ContentSurface` | GUI.Forms-only | 18 | 0 | 0 | 2 | 20 |
-| `ContentTextEditor` | GUI.Forms-only | 15 | 0 | 0 | 2 | 17 |
+| `ContentSurface` | GUI.Forms-only | 18 | 0 | 0 | 3 | 21 |
+| `ContentTextEditor` | GUI.Forms-only | 18 | 0 | 0 | 1 | 19 |
 | `MetricsView` | GUI.Forms-only | 1 | 0 | 0 | 0 | 1 |
+| `PlotLinkGroup` | GUI.Forms-only | 6 | 0 | 0 | 1 | 7 |
 | `Timer` | `Timer` | 6 | 0 | 0 | 3 | 1 |
 | `BackgroundWorker` | `BackgroundWorker` | 10 | 0 | 0 | 6 | 2 |
 | `NotifyIcon` | `NotifyIcon` | 12 | 0 | 0 | 14 | 6 |
@@ -154,8 +157,8 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ErrorProvider` | `ErrorProvider` | 14 | 0 | 0 | 17 | 9 |
 | `HelpProvider` | `HelpProvider` | 16 | 0 | 0 | 7 | 10 |
 | `HelpBook` | GUI.Forms-only | 9 | 0 | 0 | 17 | 26 |
-| `HelpBookViewer` | GUI.Forms-only | 26 | 0 | 0 | 16 | 42 |
-| `HelpBookSystem` | `Help` | 30 | 0 | 0 | 13 | 40 |
+| `HelpBookViewer` | GUI.Forms-only | 27 | 0 | 0 | 15 | 42 |
+| `HelpBookSystem` | `Help` | 32 | 0 | 0 | 13 | 42 |
 | `SemanticFeedback` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
 | `Binding` | `Binding` | 8 | 0 | 0 | 22 | 7 |
 | `BindingSource` | `BindingSource` | 45 | 0 | 0 | 60 | 28 |
@@ -163,7 +166,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TextBoxBase` | `TextBoxBase` | 11 | 0 | 0 | 40 | 4 |
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
-| `Window` | `Form` | 220 | 10 | 10 | 132 | 232 |
+| `Window` | `Form` | 223 | 10 | 10 | 132 | 235 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -305,6 +308,6 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `nested` | 641 |
 | `no-entry` | 497 |
 | `review` | 13 |
-| `unmatched` | 1633 |
-| `untested` | 917 |
+| `unmatched` | 1611 |
+| `untested` | 924 |
 | `w-open` | 5 |

@@ -155,6 +155,12 @@ Related types
      - Whether a chosen name without an extension is given one (Windows Forms' AddExtension; on by default): the chosen filter's first extension, unless that filter is any file, else default_ext.
    * - :cpp:class:`SaveFileDialogCapabilities <gui_forms::SaveFileDialogCapabilities>`
      - Every SaveFileDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`SaveFileDialogCheckFileExistsCapability <gui_forms::SaveFileDialogCheckFileExistsCapability>`
+     - Whether the host accepts only a file that exists (Windows Forms' CheckFileExists; off by default for saving).
+   * - :cpp:class:`SaveFileDialogCheckPathExistsCapability <gui_forms::SaveFileDialogCheckPathExistsCapability>`
+     - Whether the host accepts only a name in a folder that exists (Windows Forms' CheckPathExists; on by default).
+   * - :cpp:class:`SaveFileDialogCreatePromptCapability <gui_forms::SaveFileDialogCreatePromptCapability>`
+     - Whether the host asks before the user chooses a file that does not exist yet (Windows Forms' CreatePrompt; off by default).
    * - :cpp:class:`SaveFileDialogDefaultExtCapability <gui_forms::SaveFileDialogDefaultExtCapability>`
      - The extension a chosen name without one is given, without its dot (Windows Forms' DefaultExt; a leading dot is removed when set).
    * - :cpp:class:`SaveFileDialogFileNameCapability <gui_forms::SaveFileDialogFileNameCapability>`
@@ -1059,7 +1065,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> SaveFileDialogCapabilities : public SaveFileDialogTitleCapability<Declaring>, public SaveFileDialogInitialDirectoryCapability<Declaring>, public SaveFileDialogFilterCapability<Declaring>, public SaveFileDialogFilterIndexCapability<Declaring>, public SaveFileDialogDefaultExtCapability<Declaring>, public SaveFileDialogAddExtensionCapability<Declaring>, public SaveFileDialogOverwritePromptCapability<Declaring>, public SaveFileDialogFileNameCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> SaveFileDialogCapabilities : public SaveFileDialogTitleCapability<Declaring>, public SaveFileDialogInitialDirectoryCapability<Declaring>, public SaveFileDialogFilterCapability<Declaring>, public SaveFileDialogFilterIndexCapability<Declaring>, public SaveFileDialogDefaultExtCapability<Declaring>, public SaveFileDialogAddExtensionCapability<Declaring>, public SaveFileDialogOverwritePromptCapability<Declaring>, public SaveFileDialogFileNameCapability<Declaring>, public SaveFileDialogCheckFileExistsCapability<Declaring>, public SaveFileDialogCheckPathExistsCapability<Declaring>, public SaveFileDialogCreatePromptCapability<Declaring>
 
    ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
 
@@ -1099,6 +1105,69 @@ Related types
    .. cpp:member:: std::string file_name
 
       The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: bool check_file_exists
+
+      Whether the host accepts only a file that exists (Windows Forms' CheckFileExists; off by default for saving).
+
+   .. cpp:member:: bool check_path_exists
+
+      Whether the host accepts only a name in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's save panel always requires one.
+
+   .. cpp:member:: bool create_prompt
+
+      Whether the host asks before the user chooses a file that does not exist yet (Windows Forms' CreatePrompt; off by default).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogCheckFileExistsCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   Whether the host accepts only a file that exists (Windows Forms' CheckFileExists; off by default for saving).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogCheckFileExistsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SaveFileDialogCheckFileExistsCapability<Declaring>> check_file_exists
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogCheckPathExistsCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   Whether the host accepts only a name in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's save panel always requires one.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogCheckPathExistsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SaveFileDialogCheckPathExistsCapability<Declaring>> check_path_exists
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogCreatePromptCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   Whether the host asks before the user chooses a file that does not exist yet (Windows Forms' CreatePrompt; off by default).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogCreatePromptCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SaveFileDialogCreatePromptCapability<Declaring>> create_prompt
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
