@@ -241,6 +241,10 @@ public:
     // In the hand, the remarks paint around the card: the outsets reach the
     // window's client edges.
     [[nodiscard]] Insets visual_outsets() const noexcept override;
+    // The card's keys (Escape, Left and Right in the hand; Enter and Space)
+    // reach it as the focused control (on_key_down) and from a focused
+    // descendant (on_key_bubble); the window's bubble phase skips the
+    // focused control itself, so both are needed.
     void on_key_bubble(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
@@ -266,6 +270,7 @@ public:
 protected:
     void on_mouse_down(MouseEventArgs& arguments) override;
     void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_key_down(KeyEventArgs& arguments) override;
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
@@ -338,6 +343,8 @@ private:
     void follow_pointer(Point local_point);
     void ask_to_open();
     void ask_for_website();
+    // Handles a key down the card takes; false, doing nothing, for others.
+    bool take_key(std::uint32_t physical_key);
     void put_self_away();
     void outside_pressed();
     void announce_put_away();

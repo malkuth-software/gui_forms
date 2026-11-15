@@ -1130,25 +1130,34 @@ void BusinessCard::on_mouse_up(MouseEventArgs& arguments) {
 void BusinessCard::on_key_bubble(KeyEvent& event) {
     const CardHandlerScope running;
     if (event.action != KeyAction::down || event.handled) return;
+    if (take_key(event.physical_key)) event.handled = true;
+}
+
+void BusinessCard::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !is_alive()) return;
+    const CardHandlerScope running;
+    if (take_key(arguments.physical_key)) arguments.handled = true;
+}
+
+bool BusinessCard::take_key(const std::uint32_t physical_key) {
     const bool hand = presentation_ == BusinessCardPresentation::hand;
-    if (hand && event.physical_key == PhysicalKey::escape) {
-        event.handled = true;
+    if (hand && physical_key == PhysicalKey::escape) {
         put_self_away();
-        return;
+        return true;
     }
-    if (hand && (event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::right)) {
-        event.handled = true;
-        turn_over(event.physical_key == PhysicalKey::left ? -1.0 : 1.0);
-        return;
+    if (hand && (physical_key == PhysicalKey::left || physical_key == PhysicalKey::right)) {
+        turn_over(physical_key == PhysicalKey::left ? -1.0 : 1.0);
+        return true;
     }
-    const bool activation = event.physical_key == PhysicalKey::enter || event.physical_key == PhysicalKey::space;
-    if (!activation) return;
-    event.handled = true;
+    const bool activation = physical_key == PhysicalKey::enter || physical_key == PhysicalKey::space;
+    if (!activation) return false;
     if (!hand) {
         ask_to_open();
     } else {
         ask_for_website();
     }
+    return true;
 }
 
 void BusinessCard::ask_to_open() {

@@ -274,6 +274,10 @@ void page_opens_hand() {
     expect((*hand).last_website_request() == BusinessCardLinkOutcome::unavailable,
            "unhandled, in a window without a host, the address has nowhere to go");
 
+    // The card itself holds the focus: the key reaches it as the focused
+    // control, not through the bubble phase (which skips the target).
+    expect((*f.window).request_focus(hand) && (*f.window).focused_control() == hand,
+           "the card in the hand takes focus");
     key(*f.window, KeyAction::down, PhysicalKey::escape);
     key(*f.window, KeyAction::up, PhysicalKey::escape);
     expect(!business_card_shown(*f.window) && put_away == 1, "Escape puts the card away");
