@@ -398,6 +398,10 @@ void test_grid_program_drawn_rows_are_repainted() {
 
     int frame = 0;
     SubscriptionToken token = grid.row_pre_paint().subscribe(ChangingRowPaint{&frame});
+    // Subscribing draws nothing by itself (as adding a RowPrePaint handler
+    // in Windows Forms does not): the grid's retained recording stands
+    // until the program invalidates what its hook now draws differently.
+    grid.invalidate(Dirty::paint);
     fixture.settle();
     require(frame > 0, "the hook runs at each paint");
     const DataGridViewScrollStatistics before = grid.scroll_statistics();
