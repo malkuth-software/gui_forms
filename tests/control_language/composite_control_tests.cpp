@@ -332,7 +332,7 @@ void no_look() {
     const CompositeLoadResult loaded = load_composite_definition("live-slider.control", live_slider, none);
     require(static_cast<bool>(loaded), "the live slider loads");
     if (!loaded) return;
-    require((*loaded.definition).look_rules == nullptr && (*loaded.definition).look_compiles == 0U,
+    require((*loaded.definition).compiled_look == nullptr && (*loaded.definition).look_compiles == 0U,
             "nothing compiles without a look");
     const std::shared_ptr<CompositeControl> slider =
         make_control<CompositeControl>(StableId(std::string("plain")), loaded.definition);

@@ -46,13 +46,16 @@ if(COMMAND gui_forms_add_form)
 endif()
 
 # Appends --composite for each "<document>,<C++ class>,<header>" in the list
-# named by `composites` to the list named by `arguments`, the document made
-# absolute against the current source directory, and each document to the
-# list named by `documents`.
-function(gui_forms_composite_arguments composites arguments documents)
-    set(appended ${${arguments}})
-    set(read ${${documents}})
-    foreach(composite IN LISTS ${composites})
+# named by `composites_variable` to the list named by `arguments_variable`,
+# the document made absolute against the current source directory, and each
+# document to the list named by `documents_variable`.
+# The parameters hold the names of the caller's variables; they are named
+# apart from those variables (arguments, documents), which a parameter of
+# the same name would hide.
+function(gui_forms_composite_arguments composites_variable arguments_variable documents_variable)
+    set(appended ${${arguments_variable}})
+    set(read ${${documents_variable}})
+    foreach(composite IN LISTS ${composites_variable})
         if(NOT composite MATCHES "^(.+),([^,]+),([^,]+)$")
             message(FATAL_ERROR "gui_forms: COMPOSITES expects <document>,<C++ class>,<header>: ${composite}")
         endif()
@@ -60,8 +63,8 @@ function(gui_forms_composite_arguments composites arguments documents)
         list(APPEND appended --composite "${composite_document},${CMAKE_MATCH_2},${CMAKE_MATCH_3}")
         list(APPEND read "${composite_document}")
     endforeach()
-    set(${arguments} ${appended} PARENT_SCOPE)
-    set(${documents} ${read} PARENT_SCOPE)
+    set(${arguments_variable} ${appended} PARENT_SCOPE)
+    set(${documents_variable} ${read} PARENT_SCOPE)
 endfunction()
 
 function(gui_forms_add_form target document)
