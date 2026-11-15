@@ -18,13 +18,45 @@ namespace gui_forms::render::text {
 namespace {
 
 constexpr FT_Int32 light_flags = FT_LOAD_NO_BITMAP | FT_LOAD_TARGET_LIGHT | FT_LOAD_FORCE_AUTOHINT;
-// Coverage dimensions above this are refused rather than allocated.
-constexpr std::int64_t maximum_extent = 16384;
+// Coverage dimensions above this are reported as oversized rather than allocated.
+constexpr std::int64_t maximum_extent = glyph_run_maximum_extent;
 
 std::int64_t floor_div_64(const std::int64_t value) noexcept {
     std::int64_t quotient = value / 64;
     if (value % 64 != 0 && value < 0) --quotient;
     return quotient;
+}
+
+std::int64_t ceil_div_64(const std::int64_t value) noexcept {
+    std::int64_t quotient = value / 64;
+    if (value % 64 != 0 && value > 0) ++quotient;
+    return quotient;
+}
+
+// A device pixel box, [left, right) x [top, bottom), relative to the origin pixel.
+struct PixelBox final {
+    std::int64_t left{};
+    std::int64_t top{};
+    std::int64_t right{};
+    std::int64_t bottom{};
+};
+
+// Whether a placed outline's box can reach the window. The box is the
+// outline's control box in whole pixels, which contains the bitmap
+// FT_Render_Glyph makes from it, widened by one pixel for antialiased edges.
+bool outline_can_show(const FT_Outline& outline, const std::int64_t pixel_x, const std::int64_t pixel_y,
+                      const GlyphRunWindow& window) noexcept {
+    FT_BBox control{};
+    FT_Outline_Get_CBox(&outline, &control);
+    // FreeType's outline space is y-up; device rows grow downward.
+    PixelBox box{};
+    box.left = pixel_x + floor_div_64(static_cast<std::int64_t>(control.xMin)) - 1;
+    box.right = pixel_x + ceil_div_64(static_cast<std::int64_t>(control.xMax)) + 1;
+    box.top = pixel_y - ceil_div_64(static_cast<std::int64_t>(control.yMax)) - 1;
+    box.bottom = pixel_y - floor_div_64(static_cast<std::int64_t>(control.yMin)) + 1;
+    const bool apart = box.right <= window.left || box.left >= window.right || box.bottom <= window.top ||
+        box.top >= window.bottom;
+    return !apart;
 }
 
 // One rendered glyph, copied out of FreeType's slot before the next render.
@@ -160,6 +192,8 @@ struct RunPlacement final {
     std::optional<FT_Matrix> matrix{};
     // Total outline thickening in 26.6 device units; 0 for none.
     FT_Pos embolden{};
+    // The pixels the run can show, relative to the origin pixel; none: all.
+    std::optional<GlyphRunWindow> window{};
 };
 
 FT_Fixed fixed_16_16(const double value) noexcept {
@@ -196,7 +230,11 @@ public:
         std::int64_t top = std::numeric_limits<std::int64_t>::max();
         std::int64_t right = std::numeric_limits<std::int64_t>::min();
         std::int64_t bottom = std::numeric_limits<std::int64_t>::min();
+        // Set once the kept glyphs' union passes maximum_extent; no further
+        // glyph is rendered and the run draws nothing.
+        bool oversized = false;
         for (const ShapedFontRun& run : shaped.runs) {
+            if (oversized) break;
             const FT_Face face = impl.face(run.face);
             if (face == nullptr) {
                 result.missing_glyphs += static_cast<std::uint32_t>(run.glyphs.size());
@@ -207,6 +245,9 @@ public:
             // run order. Empty glyphs stay unset.
             std::vector<std::optional<RenderedGlyph>> placed(run_glyphs.size());
             const FontFamilyId family = impl.face_family(run.face);
+            // This run's kept glyphs with those of the runs before it; merged
+            // into (left, top, right, bottom) only once the run has succeeded.
+            PixelBox run_union{left, top, right, bottom};
             try {
                 if (FT_Set_Char_Size(face, 0, placement.size, 72U, 72U) != 0) throw std::runtime_error("Glyph run size failed");
                 // FT_Load_Glyph hints (or, unhinted, scales) a glyph before it
@@ -221,13 +262,13 @@ public:
                 for (std::size_t index = 0; index < order.size(); ++index) order[index] = index;
                 std::stable_sort(order.begin(), order.end(), ByGlyphId{&run_glyphs});
                 std::size_t next = 0;
-                while (next < order.size()) {
+                while (next < order.size() && !oversized) {
                     const std::uint32_t glyph_id = run_glyphs[order[next]].glyph.value;
                     if (FT_Load_Glyph(face, glyph_id, placement.flags) != 0) throw std::runtime_error("Glyph load failed");
                     const FT_GlyphSlot slot = (*face).glyph;
                     if ((*slot).format != FT_GLYPH_FORMAT_OUTLINE) throw std::runtime_error("Glyph is not an outline");
                     const OwnedOutline loaded(impl.library(), (*slot).outline);
-                    for (; next < order.size() && run_glyphs[order[next]].glyph.value == glyph_id; ++next) {
+                    for (; next < order.size() && run_glyphs[order[next]].glyph.value == glyph_id && !oversized; ++next) {
                         const ShapedGlyph& glyph = run_glyphs[order[next]];
                         const double x = static_cast<double>(glyph.x);
                         const double y = static_cast<double>(glyph.y);
@@ -253,6 +294,11 @@ public:
                             FT_Outline_EmboldenXY(&(*slot).outline, placement.embolden, placement.embolden) != 0) {
                             throw std::runtime_error("Glyph embolden failed");
                         }
+                        if (placement.window.has_value() &&
+                            !outline_can_show((*slot).outline, pixel_x, pixel_y, *placement.window)) {
+                            result.outside_glyphs += 1U;
+                            continue;
+                        }
                         if (FT_Render_Glyph(slot, FT_RENDER_MODE_NORMAL) != 0) throw std::runtime_error("Glyph render failed");
                         const FT_Bitmap& bitmap = (*slot).bitmap;
                         if (bitmap.width == 0 || bitmap.rows == 0) continue;
@@ -266,6 +312,16 @@ public:
                         rendered.width = bitmap.width;
                         rendered.height = bitmap.rows;
                         rendered.offset = bitmaps.size();
+                        // The extent is checked as glyphs are kept, before their bitmaps are.
+                        run_union.left = std::min(run_union.left, rendered.left);
+                        run_union.top = std::min(run_union.top, rendered.top);
+                        run_union.right = std::max(run_union.right, rendered.left + static_cast<std::int64_t>(rendered.width));
+                        run_union.bottom = std::max(run_union.bottom, rendered.top + static_cast<std::int64_t>(rendered.height));
+                        if (run_union.right - run_union.left > maximum_extent ||
+                            run_union.bottom - run_union.top > maximum_extent) {
+                            oversized = true;
+                            continue;
+                        }
                         for (unsigned row = 0; row < bitmap.rows; ++row) {
                             const std::uint8_t* const line = bitmap.buffer + static_cast<std::size_t>(row) * static_cast<std::size_t>(bitmap.pitch);
                             bitmaps.insert(bitmaps.end(), line, line + bitmap.width);
@@ -291,8 +347,11 @@ public:
                 glyphs.push_back(*rendered);
             }
         }
+        if (oversized) {
+            result.oversized = true;
+            return result;
+        }
         if (glyphs.empty()) return result;
-        if (right - left > maximum_extent || bottom - top > maximum_extent) throw std::length_error("Glyph run too large");
         result.left = static_cast<std::int32_t>(left);
         result.top = static_cast<std::int32_t>(top);
         result.width = static_cast<std::uint32_t>(right - left);
@@ -316,7 +375,8 @@ public:
 };
 
 GlyphRunCoverage GlyphRunRasterizer::rasterize(const ShapedText& shaped, const FontSpec font, const double scale,
-                                               const std::int32_t phase_x, const GlyphRunSynthesis synthesis) {
+                                               const std::int32_t phase_x, const GlyphRunSynthesis synthesis,
+                                               const std::optional<GlyphRunWindow> window) {
     if (!std::isfinite(scale) || scale <= 0.0 || !std::isfinite(font.size) || phase_x < 0 || phase_x > 63) {
         throw std::invalid_argument("Invalid glyph run placement");
     }
@@ -330,6 +390,7 @@ GlyphRunCoverage GlyphRunRasterizer::rasterize(const ShapedText& shaped, const F
         placement.matrix = oblique_matrix();
     }
     if (synthesis.embolden) placement.embolden = embolden_strength(device_size);
+    placement.window = window;
     GlyphRunCoverage result = Impl::Runner::run(*impl_, shaped, placement);
     return result;
 }
@@ -337,7 +398,8 @@ GlyphRunCoverage GlyphRunRasterizer::rasterize(const ShapedText& shaped, const F
 GlyphRunCoverage GlyphRunRasterizer::rasterize_transformed(const ShapedText& shaped, const FontSpec font,
                                                            const GlyphRunTransform transform, const double device_x,
                                                            const double device_y, const GlyphRunSynthesis synthesis,
-                                                           GlyphRunOrigin& origin) {
+                                                           GlyphRunOrigin& origin,
+                                                           const std::optional<GlyphRunWindow> window) {
     const double determinant = transform.xx * transform.yy - transform.xy * transform.yx;
     if (!std::isfinite(font.size) || !std::isfinite(device_x) || !std::isfinite(device_y) ||
         !std::isfinite(determinant) || determinant == 0.0 || std::abs(device_x) > 16'000'000.0 ||
@@ -371,6 +433,7 @@ GlyphRunCoverage GlyphRunRasterizer::rasterize_transformed(const ShapedText& sha
     }
     placement.matrix = matrix;
     if (synthesis.embolden) placement.embolden = embolden_strength(logical_size * std::sqrt(std::abs(determinant)));
+    placement.window = window;
     GlyphRunCoverage result = Impl::Runner::run(*impl_, shaped, placement);
     return result;
 }

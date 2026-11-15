@@ -293,6 +293,49 @@ void unknown_faces_are_reported() {
     require(coverage.missing_glyphs == 1U && coverage.pixels.empty(), "unknown face draws nothing and is counted");
 }
 
+// A-gf-core-10-F1: a line whose ink is wider than glyph_run_maximum_extent
+// is reported as oversized and draws nothing, rather than throwing out of
+// paint; with a window, only the glyphs that can show are rendered, so the
+// same line draws its visible part.
+void long_lines_fail_soft_and_window_limits_glyphs(const char* font_path) {
+    HarfBuzzFontEngine engine;
+    require(engine.register_typeface(FontRole::control, 400, false, read_file(font_path)).has_value(), "font registers");
+    const FontSpec font{FontRole::control, 13.0, 400, false};
+    std::string line;
+    while (line.size() < 6000U) line += corpus;
+    line += ' ';
+    const ShapedText shaped = engine.shape(line, font);
+    require(shaped.width * 2.0 > static_cast<double>(glyph_run_maximum_extent), "the line is wider than the extent at scale 2");
+    GlyphRunRasterizer rasterizer(engine);
+    bool thrown = false;
+    GlyphRunCoverage whole{};
+    try {
+        whole = rasterizer.rasterize(shaped, font, 2.0, 0);
+    } catch (const std::exception&) {
+        thrown = true;
+    }
+    require(!thrown, "an over-wide line does not throw");
+    require(whole.oversized && whole.pixels.empty() && whole.width == 0U, "an over-wide line is reported and draws nothing");
+
+    const GlyphRunWindow window{0, -200, 800, 200};
+    const GlyphRunCoverage shown = rasterizer.rasterize(shaped, font, 2.0, 0, {}, window);
+    require(!shown.oversized && !shown.pixels.empty(), "the visible part of the line draws");
+    require(shown.outside_glyphs > 0U, "glyphs outside the window are left out");
+    require(static_cast<std::int64_t>(shown.left) + static_cast<std::int64_t>(shown.width) <= window.right + 64,
+            "the coverage ends near the window's right edge");
+    require(static_cast<std::int64_t>(shown.width) < glyph_run_maximum_extent, "the coverage is bounded by the window");
+
+    // The window's part equals the same glyphs rasterized without a window.
+    const ShapedText head = engine.shape(corpus, font);
+    const GlyphRunCoverage head_whole = rasterizer.rasterize(head, font, 2.0, 0);
+    const GlyphRunCoverage head_windowed = rasterizer.rasterize(head, font, 2.0, 0, {}, GlyphRunWindow{-64, -200, 4096, 200});
+    require(head_windowed.outside_glyphs == 0U && same_coverage(head_whole, head_windowed),
+            "a window that holds the whole run changes nothing");
+
+    const GlyphRunCoverage none = rasterizer.rasterize(shaped, font, 2.0, 0, {}, GlyphRunWindow{0, 5000, 800, 5100});
+    require(none.pixels.empty() && !none.oversized && none.outside_glyphs > 0U, "a window below the line draws nothing");
+}
+
 } // namespace
 
 int main() {
@@ -303,6 +346,7 @@ int main() {
     repeated_glyphs_match_single_glyph_runs(GUI_FORMS_TEST_RAPIDS_REGULAR);
     repeated_glyphs_match_single_glyph_runs(GUI_FORMS_TEST_CARLITO_REGULAR);
     glyphs_beyond_ten_ems_are_refused(GUI_FORMS_TEST_CARLITO_REGULAR);
+    long_lines_fail_soft_and_window_limits_glyphs(GUI_FORMS_TEST_RAPIDS_REGULAR);
     synthesis_and_transforms(GUI_FORMS_TEST_RAPIDS_REGULAR, {0xa2199bda6d0e05e7ULL, 0xf3fdfff6b1ef2453ULL, 0x3509b246406a7aadULL,
                                                              0xeece270b10c7e4b9ULL, 0xb26a36159298eee6ULL});
     synthesis_and_transforms(GUI_FORMS_TEST_CARLITO_REGULAR, {0x740132e6ee72d463ULL, 0x21207356b2411a38ULL, 0x535dbda7fa2302b1ULL,

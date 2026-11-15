@@ -1197,6 +1197,36 @@ public:
     std::string trimmed_text;
 };
 
+namespace {
+
+// The pixels a text clip can show, relative to a run's origin pixel, so the
+// rasterizer renders only the glyphs that can show (A-gf-core-10-F1). The
+// rectangle is widened to whole pixels; a non-finite one shows everything.
+text::GlyphRunWindow clip_window(const gui_forms::Rect& clip, const std::int64_t pixel_x, const std::int64_t pixel_y) {
+    text::GlyphRunWindow window{};
+    const double limit = static_cast<double>(text::glyph_run_maximum_extent) * 1024.0;
+    const double left = std::floor(clip.x);
+    const double top = std::floor(clip.y);
+    const double right = std::ceil(clip.x + clip.width);
+    const double bottom = std::ceil(clip.y + clip.height);
+    const bool usable = std::isfinite(left) && std::isfinite(top) && std::isfinite(right) && std::isfinite(bottom) &&
+        std::abs(left) < limit && std::abs(top) < limit && std::abs(right) < limit && std::abs(bottom) < limit;
+    if (!usable) {
+        window.left = -static_cast<std::int64_t>(limit);
+        window.top = -static_cast<std::int64_t>(limit);
+        window.right = static_cast<std::int64_t>(limit);
+        window.bottom = static_cast<std::int64_t>(limit);
+        return window;
+    }
+    window.left = static_cast<std::int64_t>(left) - pixel_x;
+    window.top = static_cast<std::int64_t>(top) - pixel_y;
+    window.right = static_cast<std::int64_t>(right) - pixel_x;
+    window.bottom = static_cast<std::int64_t>(bottom) - pixel_y;
+    return window;
+}
+
+} // namespace
+
 // Shapes and draws one draw_string command through the shared text engine
 // and compositor (ADR-004). A laid-out command (draw_string_in_rect) places
 // its lines in the box, trims those wider than it, and is clipped to it.
@@ -1259,11 +1289,16 @@ void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
             text::GlyphRunCoverage coverage{};
             if (uniform) {
                 origin = text::glyph_run_origin(device_x, device_y);
-                coverage = (*family.rasterizer).rasterize(shaped, font.spec, matrix.m11(), origin.phase_x, font.synthesis);
+                const text::GlyphRunWindow window = clip_window(clip_rect, origin.pixel_x, origin.pixel_y);
+                coverage = (*family.rasterizer).rasterize(shaped, font.spec, matrix.m11(), origin.phase_x, font.synthesis,
+                                                          window);
             } else {
                 const text::GlyphRunTransform linear{matrix.m11(), matrix.m21(), matrix.m12(), matrix.m22()};
+                const text::GlyphRunWindow window =
+                    clip_window(clip_rect, static_cast<std::int64_t>(std::floor(device_x)),
+                                static_cast<std::int64_t>(std::floor(device_y)));
                 coverage = (*family.rasterizer).rasterize_transformed(shaped, font.spec, linear, device_x, device_y,
-                                                                     font.synthesis, origin);
+                                                                     font.synthesis, origin, window);
             }
             const gui_forms::detail::TextCoverage placed{coverage.pixels, coverage.width, coverage.height,
                                                          origin.pixel_x + coverage.left, origin.pixel_y + coverage.top};

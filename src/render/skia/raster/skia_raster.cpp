@@ -674,6 +674,28 @@ public:
     std::vector<TextClipState> text_clips;
     int text_clip_base{};
     std::unique_ptr<text::GlyphRunRasterizer> glyph_runs;
+    // Text runs whose visible coverage was too large to produce
+    // (GlyphRunCoverage::oversized); each drew nothing and painting went on.
+    std::uint64_t oversized_text_runs{};
+
+    // The canvas's device clip bounds relative to a run's origin pixel: the
+    // glyphs a run renders are limited to those that can show
+    // (A-gf-core-10-F1), so a long line costs what is visible.
+    [[nodiscard]] static text::GlyphRunWindow run_window(const SkCanvas& target, const std::int64_t pixel_x,
+                                                         const std::int64_t pixel_y) {
+        const SkIRect bounds = target.getDeviceClipBounds();
+        text::GlyphRunWindow window{};
+        window.left = static_cast<std::int64_t>(bounds.left()) - pixel_x;
+        window.top = static_cast<std::int64_t>(bounds.top()) - pixel_y;
+        window.right = static_cast<std::int64_t>(bounds.right()) - pixel_x;
+        window.bottom = static_cast<std::int64_t>(bounds.bottom()) - pixel_y;
+        return window;
+    }
+
+    // Counts a run that drew nothing because it was too large.
+    void note_coverage(const text::GlyphRunCoverage& coverage) noexcept {
+        if (coverage.oversized) ++oversized_text_runs;
+    }
 
     void reset_text_clips(SkCanvas& target, const SkRegion* region) {
         text_clips.clear();
@@ -1912,16 +1934,21 @@ void SkiaRaster::Impl::draw_shaped_text(SkCanvas& target, const text::ShapedText
     text::GlyphRunCoverage coverage{};
     if (matrix.isScaleTranslate() && matrix.getScaleX() > 0.0F && matrix.getScaleX() == matrix.getScaleY()) {
         placement = text::glyph_run_origin(static_cast<double>(device.x()), static_cast<double>(device.y()));
+        const text::GlyphRunWindow window = run_window(target, placement.pixel_x, placement.pixel_y);
         coverage = (*glyph_runs).rasterize(shaped, font_spec, static_cast<double>(matrix.getScaleX()),
-                                           placement.phase_x);
+                                           placement.phase_x, {}, window);
     } else {
         const text::GlyphRunTransform transform{static_cast<double>(matrix.getScaleX()),
                                                 static_cast<double>(matrix.getSkewX()),
                                                 static_cast<double>(matrix.getSkewY()),
                                                 static_cast<double>(matrix.getScaleY())};
+        const text::GlyphRunWindow window =
+            run_window(target, static_cast<std::int64_t>(std::floor(static_cast<double>(device.x()))),
+                       static_cast<std::int64_t>(std::floor(static_cast<double>(device.y()))));
         coverage = (*glyph_runs).rasterize_transformed(shaped, font_spec, transform, static_cast<double>(device.x()),
-                                                       static_cast<double>(device.y()), {}, placement);
+                                                       static_cast<double>(device.y()), {}, placement, window);
     }
+    note_coverage(coverage);
     draw_coverage_mask(target, coverage, placement, color);
 }
 
@@ -1961,9 +1988,13 @@ void SkiaRaster::Impl::draw_rotated_run(SkCanvas& target, const text::ShapedText
     const SkPoint device =
         matrix.mapPoint(SkPoint::Make(static_cast<SkScalar>(anchor.x), static_cast<SkScalar>(anchor.y)));
     text::GlyphRunOrigin placement{};
+    const text::GlyphRunWindow window =
+        run_window(target, static_cast<std::int64_t>(std::floor(static_cast<double>(device.x()))),
+                   static_cast<std::int64_t>(std::floor(static_cast<double>(device.y()))));
     const text::GlyphRunCoverage coverage =
         (*glyph_runs).rasterize_transformed(shaped, font_spec, transform, static_cast<double>(device.x()),
-                                            static_cast<double>(device.y()), {}, placement);
+                                            static_cast<double>(device.y()), {}, placement, window);
+    note_coverage(coverage);
     if (coverage.pixels.empty()) return;
     const detail::TextCoverage placed{.pixels = coverage.pixels, .width = coverage.width, .height = coverage.height,
                                       .left = placement.pixel_x + coverage.left,
@@ -2125,11 +2156,15 @@ bool SkiaRaster::Impl::composite_run(SkCanvas& target, const text::ShapedText& s
     if (!glyph_runs) glyph_runs = std::make_unique<text::GlyphRunRasterizer>(text_engine);
     text::GlyphRunCoverage fresh{};
     const text::GlyphRunCoverage* coverage = &fresh;
+    // Kept coverage is reused only when it holds the whole run: one cut to
+    // an earlier paint's window may lack glyphs this paint shows.
     if (kept != nullptr && kept_scale != nullptr && kept_phase != nullptr && *kept_scale == device_scale &&
-        *kept_phase == placement.phase_x && !(*kept).pixels.empty()) {
+        *kept_phase == placement.phase_x && !(*kept).pixels.empty() && (*kept).outside_glyphs == 0U) {
         coverage = kept;
     } else {
-        fresh = (*glyph_runs).rasterize(shaped, font, device_scale, placement.phase_x);
+        const text::GlyphRunWindow window = run_window(target, placement.pixel_x, placement.pixel_y);
+        fresh = (*glyph_runs).rasterize(shaped, font, device_scale, placement.phase_x, {}, window);
+        note_coverage(fresh);
         if (kept != nullptr && kept_scale != nullptr && kept_phase != nullptr) {
             *kept = std::move(fresh);
             *kept_scale = device_scale;

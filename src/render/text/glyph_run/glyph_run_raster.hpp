@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace gui_forms::render::text {
@@ -35,6 +36,28 @@ struct GlyphRunCoverage final {
     std::int32_t top{};
     // Glyphs whose face the engine could not provide; they draw nothing.
     std::uint32_t missing_glyphs{};
+    // Glyphs left out because they lie wholly outside the run's window; 0
+    // when the coverage holds the whole run.
+    std::uint32_t outside_glyphs{};
+    // The shown glyphs' coverage would have been wider or taller than
+    // glyph_run_maximum_extent: nothing is drawn (pixels is empty) and the
+    // caller counts the run. Never an exception, so painting goes on.
+    bool oversized{};
+};
+
+// Coverage wider or taller than this, in device pixels, is not produced.
+inline constexpr std::int64_t glyph_run_maximum_extent = 16384;
+
+// The device pixels a run can show, [left, right) x [top, bottom), relative
+// to the coverage's origin pixel (GlyphRunOrigin's pixel_x and pixel_y, or
+// floor of the transformed run's device origin). A glyph wholly outside is
+// neither rendered nor kept, so the coverage is bounded by what the surface
+// shows rather than by the length of the text.
+struct GlyphRunWindow final {
+    std::int64_t left{};
+    std::int64_t top{};
+    std::int64_t right{};
+    std::int64_t bottom{};
 };
 
 // Synthesized styles for faces a family lacks (the C drawing API). Bold
@@ -66,9 +89,12 @@ public:
     // shaped holds logical positions relative to the run origin (y down).
     // scale is device pixels per logical unit; phase_x is the origin's
     // subpixel phase. Overlapping glyphs combine as c + p * (255 - c) / 255.
-    // FreeType failures throw; the coverage is then not produced.
+    // window, when given, limits the glyphs rendered to those that can show.
+    // FreeType failures throw; the coverage is then not produced. A run too
+    // large to cover is reported as GlyphRunCoverage::oversized, not thrown.
     [[nodiscard]] GlyphRunCoverage rasterize(const ShapedText& shaped, FontSpec font, double scale,
-                                             std::int32_t phase_x, GlyphRunSynthesis synthesis = {});
+                                             std::int32_t phase_x, GlyphRunSynthesis synthesis = {},
+                                             std::optional<GlyphRunWindow> window = std::nullopt);
 
     // General affine placement: the run origin maps to (device_x, device_y)
     // and glyph positions through transform. Hinting is off (it assumes
@@ -77,7 +103,8 @@ public:
     [[nodiscard]] GlyphRunCoverage rasterize_transformed(const ShapedText& shaped, FontSpec font,
                                                          GlyphRunTransform transform, double device_x,
                                                          double device_y, GlyphRunSynthesis synthesis,
-                                                         GlyphRunOrigin& origin);
+                                                         GlyphRunOrigin& origin,
+                                                         std::optional<GlyphRunWindow> window = std::nullopt);
 
     class Impl;
 
