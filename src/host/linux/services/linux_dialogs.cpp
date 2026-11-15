@@ -444,11 +444,11 @@ HostDialogResult retained_dialog(NativeWindow &owner,
       (*message_label).alignment = HorizontalAlignment::far;
     for (std::size_t i = 0; i < choices.size(); ++i) {
       const HostDialogChoice choice = choices[i];
+      // The button's stable ID: the choice's name with '-' for '_' (stable IDs
+      // are lowercase ASCII segments); the label is choice_label's.
       std::string name = host_dialog_choice_name(choice);
+      std::replace(name.begin(), name.end(), '_', '-');
       const std::string text = choice_label(choice);
-      if (!name.empty())
-        name[0] = static_cast<char>(
-            std::toupper(static_cast<unsigned char>(name[0])));
       const int action =
           choice == HostDialogChoice::help ? 50 : 100 + static_cast<int>(choice);
       const std::shared_ptr<Button> button =
