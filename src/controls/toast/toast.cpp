@@ -87,6 +87,11 @@ ToastContent checked_content(ToastContent content) {
         !validate_utf8(content.action_text).valid()) {
         throw std::invalid_argument("Toast message must be non-empty and its texts valid UTF-8");
     }
+    // The severity is the custom state index painting reads
+    // (A-gf-controls-14-F6).
+    if (!notice_severity_known(content.severity)) {
+        throw std::invalid_argument("Toast severity is outside NoticeSeverity");
+    }
     return content;
 }
 

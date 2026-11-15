@@ -525,6 +525,17 @@ void test_toast_content_and_semantics() {
         invalid_refused = true;
     }
     require(invalid_refused, "a message that is not UTF-8 is refused");
+    // A-gf-controls-14-F6: a severity outside the enumeration is refused at construction.
+    bool severity_refused = false;
+    try {
+        ToastContent unknown{};
+        unknown.message = "Shifted";
+        unknown.severity = static_cast<NoticeSeverity>(32);
+        static_cast<void>(make_control<Toast>(StableId("display.toast.severity"), std::move(unknown)));
+    } catch (const std::invalid_argument&) {
+        severity_refused = true;
+    }
+    require(severity_refused, "a severity outside NoticeSeverity is refused");
 
     const std::shared_ptr<Toast> plain = make_toast("display.toast.plain", "", false);
     require(!(*plain).action() && (*plain).children().empty(), "a toast without action text has no button");
