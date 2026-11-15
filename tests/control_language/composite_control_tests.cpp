@@ -997,7 +997,7 @@ void capsule_pointer_reaches_buttons() {
     press_and_release(window, Point{4.0, 4.0});
     require(window.last_press_trace().outcome == PressOutcome::no_target, "a press beside the pill lands on nothing");
     require(go_clicks.count == 1U && added_clicks.count == 1U, "neither button clicked again");
-    require(window.last_press_trace().presses == 5U, "every primary press is traced");
+    require(window.last_press_trace().presses == 4U, "every primary press is traced (four: go, added, pill, margin)");
 }
 
 int main() {
