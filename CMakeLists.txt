@@ -6991,7 +6991,10 @@ if(GUI_FORMS_BUILD_TESTS AND TARGET gui_forms_application AND NOT GUI_FORMS_BUIL
                 --c-abi ${gui_forms_sdk_consumer_c_abi}
                 -- ${gui_forms_sdk_consumer_cmake_arguments})
         # It installs the whole tree and builds a program: minutes, not seconds.
-        set_tests_properties(gui_forms_sdk_consumer_link PROPERTIES TIMEOUT 1200 LABELS sdk)
+        # A tree without the text masks or the C ABI library proves less:
+        # the tool says so and exits 77, which CTest reports as skipped
+        # instead of passed (CI's tree builds the masks, tools/ci_build.py).
+        set_tests_properties(gui_forms_sdk_consumer_link PROPERTIES TIMEOUT 1200 LABELS sdk SKIP_RETURN_CODE 77)
     endif()
 endif()
 

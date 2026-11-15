@@ -26,8 +26,14 @@ class SdkConsumerLinkTests(unittest.TestCase):
         self.assertIn('-DCMAKE_CXX_COMPILER=/usr/bin/clang++', arguments)
         self.assertNotIn('-DCMAKE_TOOLCHAIN_FILE=', arguments)
 
+    def test_unchecked_features_are_named(self) -> None:
+        self.assertEqual(link.unchecked_features(True, True), [])
+        self.assertEqual(link.unchecked_features(False, True), ['TextMasks'])
+        self.assertEqual(link.unchecked_features(False, False), ['TextMasks', 'CAbi'])
+        self.assertEqual(link.SKIPPED_FEATURES, 77)
+
     def test_consumer_sources_exist(self) -> None:
-        for name in ('CMakeLists.txt', 'main.cpp', 'c_abi_consumer.c'):
+        for name in ('CMakeLists.txt', 'main.cpp', 'text_masks_consumer.cpp', 'c_abi_consumer.c'):
             self.assertTrue((link.CONSUMER / name).is_file(), name)
         self.assertTrue(link.DEFAULT_FACE.is_file())
 

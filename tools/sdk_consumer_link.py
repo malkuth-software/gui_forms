@@ -23,6 +23,10 @@ import subprocess
 import sys
 
 ROOT: Path = Path(__file__).resolve().parent.parent
+# The exit status of a run that passed without a feature it should check (a
+# tree without the text masks or the C ABI library): CTest reports it as
+# skipped (SKIP_RETURN_CODE), not passed, since the test proved less.
+SKIPPED_FEATURES: int = 77
 CONSUMER: Path = ROOT / "tests" / "sdk_consumer"
 DEFAULT_FACE: Path = ROOT / "assets" / "fonts" / "Arimo-Regular.ttf"
 
@@ -41,6 +45,16 @@ def switch(value: str) -> bool:
     lowered: str = value.strip().lower()
     truth: bool = lowered in ("1", "on", "yes", "true", "y")
     return truth
+
+
+def unchecked_features(text_masks: bool, c_abi: bool) -> list[str]:
+    """The components a run did not check, by their CMake names."""
+    missing: list[str] = []
+    if not text_masks:
+        missing.append("TextMasks")
+    if not c_abi:
+        missing.append("CAbi")
+    return missing
 
 
 def consumer_arguments(prefix: Path, face: Path, text_masks: bool, c_abi: bool,
@@ -107,6 +121,12 @@ def main() -> int:
     print(output, flush=True)
     # The prefix and the consumer's tree are large; a passing run leaves nothing.
     shutil.rmtree(scratch)
+    missing: list[str] = unchecked_features(switch(args.text_masks), switch(args.c_abi))
+    if missing:
+        print("sdk_consumer_link: NOT PROVEN: this tree builds no " + " and no ".join(missing)
+              + ", so the consumer could not check them; configure with GUI_FORMS_BUILD_TEXT_MASKS=ON "
+              "(build_sdk.py --features all, tools/ci_build.py) for the whole test", file=sys.stderr, flush=True)
+        return SKIPPED_FEATURES
     print("sdk_consumer_link: the installed SDK links and runs every component", flush=True)
     return 0
 

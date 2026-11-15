@@ -29,7 +29,18 @@ int main(void) {
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_0_4, &api) == GD_OK);
-    CHECK(api.struct_size == sizeof(api));
+    /* The library reports its table's size. A different size means the
+       installed library and this header come from different GUI.Forms
+       versions (an SDK older or newer than the source tree built against
+       it): version skew, expected when mixing trees, not a library defect. */
+    if (api.struct_size != sizeof(api)) {
+        fprintf(stderr,
+                "drawing_abi_consumer:%d: the library's drawing table is %u bytes and this header's %u: version "
+                "skew between the installed SDK and the header this consumer was compiled with (rebuild the SDK "
+                "from the same tree), not a drawing ABI failure\n",
+                __LINE__, (unsigned)api.struct_size, (unsigned)sizeof(api));
+        return 1;
+    }
     CHECK(api.recorder_create(&recorder) == GD_OK);
     CHECK(api.pen_create((gd_color){UINT32_C(0xff000000), 0}, 1.0, &pen) == GD_OK);
     CHECK(api.solid_brush_create((gd_color){UINT32_C(0x800000ff), 0}, &brush) == GD_OK);

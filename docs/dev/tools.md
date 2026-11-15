@@ -256,8 +256,13 @@ the change that needs it.
 : The SDK-consumer link test, the `gui_forms_sdk_consumer_link` test: installs
   a build tree into a temporary prefix and builds `tests/sdk_consumer/`
   against that prefix alone, configured as the tree was. A symbol the
-  installed archives lack fails the link. The suite registers it in an
-  installable tree (a native host, and no development prepared text).
+  installed archives lack fails the link; a separate program links
+  `GUIForms::TextMasks` alone, so an empty interface fails too. The suite
+  registers it in an installable tree (a native host, and no development
+  prepared text). CI's tree builds the text masks for it
+  (`GUI_FORMS_BUILD_TEXT_MASKS=ON`, as `build_sdk.py --features all`); in a
+  tree without them, or without the C ABI library, it says what it could not
+  check and CTest reports it skipped, not passed.
   `python3 tools/sdk_consumer_link.py --build-dir build --scratch build/sdk-consumer-link -- -GNinja`
 
 `tools/package_programs.py`

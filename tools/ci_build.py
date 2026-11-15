@@ -330,6 +330,12 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     # GUIForms::DemoControls (audit F9), so the SDK this build installs
     # carries the lab and the Gallery model.
     options.extend(['-DGUI_FORMS_INSTALL_LAB=ON', '-DGUI_FORMS_INSTALL_GALLERY_MODEL=ON'])
+    # The text masks, as build_sdk.py --features all builds them: the
+    # SDK-consumer link test (gui_forms_sdk_consumer_link) then links
+    # GUIForms::TextMasks from the installed Application archive, which the
+    # one-module SDK once shipped without the masks (b68c80ecc, 2d4bb797b)
+    # while a tree without them passed.
+    options.append('-DGUI_FORMS_BUILD_TEXT_MASKS=ON')
     configure: list[str] = [
         'cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(toolkit), '-G', 'Ninja',
         *toolkit_options(ROOT / 'gui_forms', sdk, gallery, True), *options]

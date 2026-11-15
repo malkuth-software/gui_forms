@@ -156,6 +156,14 @@ def main() -> None:
                 prefix, scratch_path, sdk_consumer_link.DEFAULT_FACE,
                 sdk_consumer_link.switch(args.sdk_consumer_text_masks),
                 sdk_consumer_link.switch(args.sdk_consumer_c_abi), consumer_arguments))
+            # A component the prefix lacks fails the consumer's configure; one
+            # switched off here was not checked, and that is said, not hidden.
+            unchecked: list[str] = sdk_consumer_link.unchecked_features(
+                sdk_consumer_link.switch(args.sdk_consumer_text_masks),
+                sdk_consumer_link.switch(args.sdk_consumer_c_abi))
+            if unchecked:
+                print("WARNING: the SDK consumer did not check " + ", ".join(unchecked)
+                      + " (switched off); the link test is not proven for them")
         invalid: Path = scratch_path / "invalid"
         invalid.mkdir()
         components: list[str] = ["NotAComponent"]

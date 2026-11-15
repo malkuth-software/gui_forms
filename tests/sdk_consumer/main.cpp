@@ -1,8 +1,8 @@
 // A consumer of every public C++ component, built against an installed SDK
 // only (tests/sdk_consumer/CMakeLists.txt): the controls in a window, a
 // composite made from a document at run time, an application font family,
-// GUI.Drawing's raster seam (execute_recorder) and, when the SDK has them,
-// the text masks with the prepared-text vocabulary they are written in. Each
+// and GUI.Drawing's raster seam (execute_recorder); the text masks are
+// text_masks_consumer.cpp's, a program linking GUIForms::TextMasks alone. Each
 // part calls into the installed archives, so a symbol they lack fails the
 // link, and a part that links but misbehaves fails the run.
 //
@@ -17,10 +17,6 @@
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/window/window.hpp"
-#if defined(GUI_FORMS_SDK_CONSUMER_TEXT_MASKS)
-#include "gui_forms/prepared_text/layout/prepared_text_layout.hpp"
-#include "gui_forms/text_mask.hpp"
-#endif
 
 #include <array>
 #include <cstddef>
@@ -135,28 +131,6 @@ void drawing_raster_seam() {
     require(bitmap.get_pixel(2, 2).argb() == UINT32_C(0xff336699), "the raster fills the bitmap");
 }
 
-#if defined(GUI_FORMS_SDK_CONSUMER_TEXT_MASKS)
-// The text masks (TextMasks, inside Application's archive) and the
-// prepared-text vocabulary installed with them.
-void text_masks_and_prepared_text() {
-    gui_forms::TextMaskService masks{};
-    std::unique_ptr<gui_forms::TextMaskSession> session{};
-    const gui_forms::TextMaskResult opened = masks.open_session(nullptr, session);
-    require(opened.status == gui_forms::TextMaskStatus::success && session != nullptr,
-            "the installed Application archive holds the mask service");
-    if (session != nullptr) {
-        gui_forms::TextMaskSession& active = *session;
-        active.begin_close();
-        active.join_and_release();
-    }
-    masks.begin_close();
-    const gui_forms::PreparedTextLayout layout{};
-    require(layout.empty(), "a default prepared layout is empty");
-    const gui_forms::PrepareInput input{};
-    require(input.empty(), "an empty prepare input is empty");
-}
-#endif
-
 } // namespace
 
 int main(int argument_count, char** arguments) {
@@ -168,9 +142,6 @@ int main(int argument_count, char** arguments) {
     composite_from_a_document();
     application_font_family(arguments[1]);
     drawing_raster_seam();
-#if defined(GUI_FORMS_SDK_CONSUMER_TEXT_MASKS)
-    text_masks_and_prepared_text();
-#endif
     if (failures != 0) {
         std::cerr << failures << " SDK consumer check(s) failed\n";
         return 1;

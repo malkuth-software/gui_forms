@@ -46,7 +46,9 @@ def definitions(command: list[str]) -> dict[str, str]:
 
 
 # The options ci_build adds for the installed reference examples (audit F9).
-CI_EXAMPLE_OPTIONS: tuple[str, ...] = ("GUI_FORMS_INSTALL_LAB", "GUI_FORMS_INSTALL_GALLERY_MODEL")
+# CI's tree also builds the text masks, for the SDK-consumer link test (tools/ci_build.py).
+CI_EXAMPLE_OPTIONS: tuple[str, ...] = ("GUI_FORMS_INSTALL_LAB", "GUI_FORMS_INSTALL_GALLERY_MODEL",
+                                       "GUI_FORMS_BUILD_TEXT_MASKS")
 
 
 def ci_configure(host: str, build: Path) -> list[str]:

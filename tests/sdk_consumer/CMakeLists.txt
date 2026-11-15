@@ -9,10 +9,17 @@
 #
 #   GUI_FORMS_SDK_CONSUMER_FACE        a TrueType face for the application
 #                                      font family (assets/fonts/Arimo-Regular.ttf)
-#   GUI_FORMS_SDK_CONSUMER_TEXT_MASKS  ON: require TextMasks (a build with
-#                                      GUI_FORMS_BUILD_TEXT_MASKS)
-#   GUI_FORMS_SDK_CONSUMER_C_ABI       ON: require CAbi and link a C consumer
-#                                      of gf_abi_get_table and gd_get_api_v0
+#   GUI_FORMS_SDK_CONSUMER_TEXT_MASKS  ON (the default): require TextMasks (a
+#                                      build with GUI_FORMS_BUILD_TEXT_MASKS, as
+#                                      build_sdk.py --features all and CI's tree)
+#                                      and link a program of TextMasks alone
+#   GUI_FORMS_SDK_CONSUMER_C_ABI       ON (the default): require CAbi and link a
+#                                      C consumer of gf_abi_get_table and
+#                                      gd_get_api_v0
+# A component the SDK lacks fails the configure (find_package REQUIRED); it
+# is never skipped quietly. Turning one off is a statement about the prefix,
+# said in a warning, and tools/sdk_consumer_link.py then reports the test as
+# skipped, not passed, since it proved less than it should.
 cmake_minimum_required(VERSION 3.25)
 project(GUIFormsSdkConsumer LANGUAGES C CXX)
 option(GUI_FORMS_SDK_CONSUMER_TEXT_MASKS "Require the TextMasks component" ON)
@@ -25,6 +32,12 @@ if(GUI_FORMS_SDK_CONSUMER_C_ABI)
     list(APPEND _sdk_components CAbi)
 endif()
 find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS ${_sdk_components})
+if(NOT GUI_FORMS_SDK_CONSUMER_TEXT_MASKS)
+    message(WARNING "GUI_FORMS_SDK_CONSUMER_TEXT_MASKS is OFF: the text masks are not checked")
+endif()
+if(NOT GUI_FORMS_SDK_CONSUMER_C_ABI)
+    message(WARNING "GUI_FORMS_SDK_CONSUMER_C_ABI is OFF: the C ABI library and the drawing ABI are not checked")
+endif()
 if(NOT EXISTS "${GUI_FORMS_SDK_CONSUMER_FACE}")
     message(FATAL_ERROR "Set GUI_FORMS_SDK_CONSUMER_FACE to a TrueType face (assets/fonts/Arimo-Regular.ttf)")
 endif()
@@ -34,14 +47,22 @@ add_executable(sdk_consumer main.cpp)
 target_compile_features(sdk_consumer PRIVATE cxx_std_20)
 target_link_libraries(sdk_consumer PRIVATE
     GUIForms::Core GUIForms::Controls GUIForms::Drawing GUIForms::Threading GUIForms::Application)
-if(GUI_FORMS_SDK_CONSUMER_TEXT_MASKS)
-    target_link_libraries(sdk_consumer PRIVATE GUIForms::TextMasks)
-    target_compile_definitions(sdk_consumer PRIVATE GUI_FORMS_SDK_CONSUMER_TEXT_MASKS=1)
-endif()
 
 enable_testing()
 add_test(NAME sdk_consumer COMMAND sdk_consumer "${GUI_FORMS_SDK_CONSUMER_FACE}")
 set_tests_properties(sdk_consumer PROPERTIES PASS_REGULAR_EXPRESSION "sdk_consumer: every component linked and ran")
+
+# The text masks through GUIForms::TextMasks alone: no Application named here,
+# so an empty TextMasks interface fails the link as surely as an Application
+# archive without the masks.
+if(GUI_FORMS_SDK_CONSUMER_TEXT_MASKS)
+    add_executable(sdk_text_masks_consumer text_masks_consumer.cpp)
+    target_compile_features(sdk_text_masks_consumer PRIVATE cxx_std_20)
+    target_link_libraries(sdk_text_masks_consumer PRIVATE GUIForms::TextMasks)
+    add_test(NAME sdk_text_masks_consumer COMMAND sdk_text_masks_consumer)
+    set_tests_properties(sdk_text_masks_consumer PROPERTIES
+        PASS_REGULAR_EXPRESSION "sdk_text_masks_consumer: TextMasks alone links and runs")
+endif()
 
 # The C program: the C ABI library alone, with GUI.Drawing's raster seam.
 if(GUI_FORMS_SDK_CONSUMER_C_ABI)
