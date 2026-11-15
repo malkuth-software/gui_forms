@@ -478,7 +478,9 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
                 std::span<const std::byte> submitted) noexcept {
         if (submitted_width == 0U || submitted_height == 0U ||
             submitted_row_bytes < static_cast<std::uint64_t>(submitted_width) * 4U ||
-            submitted.size() < submitted_row_bytes * submitted_height) {
+            submitted_row_bytes > submitted.size() / submitted_height) {
+            // Divided, not multiplied: row_bytes * height can wrap for a
+            // direct C++ caller's row size (A-gf-host-03-F9).
             return false;
         }
         std::scoped_lock lock(state_mutex);
