@@ -436,9 +436,9 @@ them in their host requests (`HostOpenFileDialogRequest`,
 | `multiselect` | `allow_multiple` | yes | yes | yes |
 | `default_ext`, `add_extension` | `default_extension` | yes | yes | yes |
 | `overwrite_prompt` | `confirm_overwrite` | always asks (NSSavePanel) | asks | asks |
-| `check_file_exists` | `check_file_exists` | open: always on; save: told, shown again | refused, the dialog stays open | contract below |
-| `check_path_exists` | `check_path_exists` | always on | refused, the dialog stays open | contract below |
-| `create_prompt` (save) | `create_prompt` | asked, No shows the panel again | asked, No keeps the dialog open | contract below |
+| `check_file_exists` | `check_file_exists` | open: always on; save: told, shown again | refused, the dialog stays open | `FOS_FILEMUSTEXIST`, the dialog stays open |
+| `check_path_exists` | `check_path_exists` | always on | refused, the dialog stays open | `FOS_PATHMUSTEXIST`, the dialog stays open |
+| `create_prompt` (save) | `create_prompt` | asked, No shows the panel again | asked, No keeps the dialog open | `FOS_CREATEPROMPT`, asked by the shell |
 
 The defaults are Windows Forms': opening checks that the file and its
 folder exist; saving checks the folder only and asks before replacing a
@@ -451,9 +451,10 @@ it on, `GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER` (open and save) turns
 `check_path_exists` off, and `GF_DIALOG_FLAGS_CREATE_PROMPT` (save) turns
 `create_prompt` on. A flag the kind does not read is refused, as before.
 
-What the Windows host must provide (the hand-back of these settings): the
-common item dialog's options follow the request instead of fixed flags.
-For `IFileOpenDialog`, `FOS_FILEMUSTEXIST` is set exactly when
+On Windows the common item dialog's options follow the request instead of
+fixed flags (`open_dialog_options` and `save_dialog_options` in the Windows
+host), starting from the shell's own defaults, some of which set these
+flags; each flag is set when its setting holds and cleared otherwise. For `IFileOpenDialog`, `FOS_FILEMUSTEXIST` is set exactly when
 `check_file_exists` holds and `FOS_PATHMUSTEXIST` exactly when
 `check_path_exists` holds; with `check_file_exists` false a typed name of a
 missing file is returned as chosen. For `IFileSaveDialog`,
@@ -461,9 +462,12 @@ missing file is returned as chosen. For `IFileSaveDialog`,
 follows `check_path_exists`, and `FOS_CREATEPROMPT` is set exactly when
 `create_prompt` holds; `FOS_OVERWRITEPROMPT` keeps following
 `confirm_overwrite`. A name the dialog refuses never reaches the result:
-the shell keeps its dialog open, as the other hosts do. The existing
-`open_file_dialog_tests` and `save_file_dialog_tests` show what the
-component sends; a Windows host test shows each flag's effect.
+the shell keeps its dialog open, as the other hosts do. Options the shell
+refuses fail the request (`backend_failure`) rather than show a dialog with
+its own checks. The existing `open_file_dialog_tests` and
+`save_file_dialog_tests` show what the component sends;
+`gui_forms_windows_live_idle_tests` checks each flag on the computed
+options and on real dialog objects, which are created but not shown.
 
 ## What stays portable
 
