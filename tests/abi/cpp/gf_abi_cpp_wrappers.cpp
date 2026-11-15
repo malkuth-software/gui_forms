@@ -149,7 +149,7 @@ void self_owned_release(void* context) {
 
 void self_owned_subscription(const ObjectsTable& objects, const EventsTable& events) {
     gf_object created = 0u;
-    require(objects.create(text_view("check_box"), text_view("cpp.self_owned"), &created) == GF_STATUS_OK,
+    require(objects.create(text_view("check_box"), text_view("cpp.self-owned"), &created) == GF_STATUS_OK,
             "create a check box for a self-owned handler");
     const ObjectReference check_box(objects, created);
     std::uint32_t deletions = 0u;

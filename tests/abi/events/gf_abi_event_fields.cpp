@@ -743,7 +743,7 @@ void writable_arrays() {
 // the registry when the element is read, so the read makes its identity.
 void object_element_identity(const Tables& tables) {
     const abi1::SlotIdentity slot{GF_TABLE_EVENTS, 0U};
-    const gf_object made = create(tables, "button", "fields.element_button");
+    const gf_object made = create(tables, "button", "fields.element-button");
     const std::shared_ptr<Button> button = control_of<Button>(made);
     require_ok(tables.objects.release(made), "release the made handle; the test's pointer keeps the button");
     const std::vector<const Control*> items{button.get()};
