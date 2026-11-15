@@ -630,6 +630,7 @@ Properties beyond every control's: `crosshair` (boolean), `live` (boolean), `sho
 |---|---|---|---|
 | `region` | region |  |  |
 | `plot` | plot |  |  |
+| `picture` | image |  |  |
 | `x_axis` | axis |  |  |
 | `y_axis` | axis |  |  |
 | `z_axis` | axis |  |  |
