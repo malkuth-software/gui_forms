@@ -231,6 +231,12 @@ Related types
      - A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input.
    * - :cpp:class:`SplashscreenResult <gui_forms::SplashscreenResult>`
      -  
+   * - :cpp:class:`SurfaceApplicationOptions <gui_forms::host::SurfaceApplicationOptions>`
+     -  
+   * - :cpp:class:`SurfaceApplicationWindow <gui_forms::host::SurfaceApplicationWindow>`
+     -  
+   * - :cpp:class:`SurfaceHostOptions <gui_forms::host::SurfaceHostOptions>`
+     - The windows of a single-surface host (owner decision, 2026-11-15): the browser now, a framebuffer appliance later, any host with one surface.
    * - :cpp:class:`ThemeChoice <gui_forms::ThemeChoice>`
      -  
    * - :cpp:class:`ThemeCommandLine <gui_forms::ThemeCommandLine>`
@@ -249,12 +255,6 @@ Related types
      - Where a scan reads: the folder beside the program (read-only, shipped with it) and the user's own; an empty path is a folder not read.
    * - :cpp:class:`UserThemeScan <gui_forms::UserThemeScan>`
      - What a scan found: the themes by name (where both folders hold one, the per-user one), and one line for each file passed over (no theme header, a name the rule refuses, a limit, a folder that could not be read).
-   * - :cpp:class:`WebApplicationOptions <gui_forms::host::WebApplicationOptions>`
-     -  
-   * - :cpp:class:`WebApplicationWindow <gui_forms::host::WebApplicationWindow>`
-     -  
-   * - :cpp:class:`WebHostOptions <gui_forms::host::WebHostOptions>`
-     - The browser host (Emscripten; owner decisions, 2026-11-15).
    * - :cpp:class:`WindowBackdropConditions <gui_forms::WindowBackdropConditions>`
      - The window-side conditions a grant depends on besides the host's state.
    * - :cpp:class:`WindowBackdropGrant <gui_forms::WindowBackdropGrant>`
@@ -2821,6 +2821,98 @@ Related types
 
    .. cpp:member:: std::unique_ptr<Splashscreen> splashscreen
 
+.. cpp:namespace:: gui_forms::host
+
+.. cpp:struct:: SurfaceApplicationOptions final
+
+   ``#include <gui_forms/platform/surface_host.hpp>``
+
+   .. cpp:member:: std::function<void(HostWindowing &windowing, SurfaceOpenWindow open)> windowing_ready
+
+      Published once on the run's thread before the first window is created. ``windowing`` lives until windowing_ended has been called.
+
+   .. cpp:member:: std::function<void()> windowing_ended
+
+      Published once when the event loop ends (or the run fails), before the windowing is shut down and released.
+
+.. cpp:namespace:: gui_forms::host
+
+.. cpp:struct:: SurfaceApplicationWindow final
+
+   ``#include <gui_forms/platform/surface_host.hpp>``
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::string owner_id
+
+   .. cpp:member:: std::unique_ptr<Window> model
+
+   .. cpp:member:: SurfaceHostOptions options
+
+   .. cpp:member:: bool tool_window
+
+   .. cpp:member:: HostWindowFloating floating
+
+      See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
+
+   .. cpp:member:: std::optional<HostPopupPlacement> popup
+
+      A popup layer (ApplicationWindow::popup); none for every other kind.
+
+.. cpp:namespace:: gui_forms::host
+
+.. cpp:struct:: SurfaceHostOptions final
+
+   ``#include <gui_forms/platform/surface_host.hpp>``
+
+   The windows of a single-surface host (owner decision, 2026-11-15): the browser now, a framebuffer appliance later, any host with one surface. GUI.Forms' own window manager (src/host/surface/) makes every window of the run a layer of that surface: the primary window fills it; owned, tool and floating windows have a frame it draws, with a title bar and minimise, maximise and close boxes, and can be moved, resized, minimised to a tab along the surface's bottom edge, maximised and restored; popups and menus are placed as the program puts them; modal windows block the windows beneath them. The host supplies only the surface, its input and a present call. The options mirror LinuxHostOptions and are published the same way, on the run's thread.
+
+   .. cpp:member:: std::string title
+
+      Default: ``{"GUI.Forms Application"}``.
+
+   .. cpp:member:: Size initial_size
+
+      A primary window takes the surface's size; other windows open at this client size, centred over their owner. Default: ``{1120.0, 680.0}``.
+
+   .. cpp:member:: Size minimum_size
+
+   .. cpp:member:: bool print_metrics_on_close
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool initially_visible
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool hide_on_close
+
+   .. cpp:member:: bool minimizable
+
+      Whether a framed window shows a minimise box. Default: ``{true}``.
+
+   .. cpp:member:: std::function<void(std::function<void()> show, std::function<void()> hide)> visibility_ready
+
+   .. cpp:member:: std::function<void(std::function<void()> toggle)> full_screen_ready
+
+      The primary window's full-screen toggle is the host's (a browser's requestFullscreen); other windows ignore it.
+
+   .. cpp:member:: std::function<void(std::function<HostServiceStatus(std::string_view)>)> title_ready
+
+      The primary window's title is the host's (a document's title).
+
+   .. cpp:member:: std::function<void(std::function<HostServiceStatus(Size)>)> client_size_ready
+
+      The primary window's client size is the surface's, decided by the host: its request is unsupported. Other windows are resized in the surface.
+
+   .. cpp:member:: std::function<void(HostCloseRequest &)> close_request
+
+   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest &)> show_dialog, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
+
+   .. cpp:member:: std::function<void()> dispatch_pending
+
+   .. cpp:member:: std::function<void()> closed
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ThemeChoice final
@@ -2990,98 +3082,6 @@ Related types
    .. cpp:member:: std::vector<UserThemeCandidate> themes
 
    .. cpp:member:: std::vector<std::string> log
-
-.. cpp:namespace:: gui_forms::host
-
-.. cpp:struct:: WebApplicationOptions final
-
-   ``#include <gui_forms/platform/web_host.hpp>``
-
-   .. cpp:member:: std::function<void(HostWindowing &windowing, WebOpenWindow open)> windowing_ready
-
-      Published once on the program's thread before the first window is created. ``windowing`` lives until windowing_ended has been called.
-
-   .. cpp:member:: std::function<void()> windowing_ended
-
-      Published once when the event loop ends (or the run fails), before the windowing is shut down and released.
-
-.. cpp:namespace:: gui_forms::host
-
-.. cpp:struct:: WebApplicationWindow final
-
-   ``#include <gui_forms/platform/web_host.hpp>``
-
-   .. cpp:member:: std::string stable_id
-
-   .. cpp:member:: std::string owner_id
-
-   .. cpp:member:: std::unique_ptr<Window> model
-
-   .. cpp:member:: WebHostOptions options
-
-   .. cpp:member:: bool tool_window
-
-   .. cpp:member:: HostWindowFloating floating
-
-      See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
-
-   .. cpp:member:: std::optional<HostPopupPlacement> popup
-
-      A popup layer (ApplicationWindow::popup); none for every other kind.
-
-.. cpp:namespace:: gui_forms::host
-
-.. cpp:struct:: WebHostOptions final
-
-   ``#include <gui_forms/platform/web_host.hpp>``
-
-   The browser host (Emscripten; owner decisions, 2026-11-15). The program runs on a worker thread (the page is linked with PROXY_TO_PTHREAD), so its event loop, nested modal loops included, blocks there as on a desktop, while the page's main thread keeps the browser's events, the canvas and WebGL2. Every window of the run is a layer in one canvas (the element ``#gui-forms-canvas``, unless the page sets Module.guiFormsCanvas): the primary window fills it; owned, tool and floating windows have a frame the host draws, with a title bar and a close box, and can be moved and resized; popups are placed as the program puts them. The host keeps their stacking, focus and modal blocking (src/host/web/desk/web_desk.hpp). What a page cannot do is reported, not imitated (web_capabilities): no accessibility publication yet, no window frames outside the canvas, no tray, no sound cues, no clipboard images, no frame capture, no folder dialog. The open-file dialog is the browser's file chooser (files are copied into the program's file system under /web/files/<request>/); the save dialog is the browser's save chooser where it has one and a download otherwise, made when the program closes the file it wrote at the path the dialog returned. Message boxes are drawn by the host. The options mirror LinuxHostOptions and are published the same way, on the program's thread.
-
-   .. cpp:member:: std::string title
-
-      Default: ``{"GUI.Forms Application"}``.
-
-   .. cpp:member:: Size initial_size
-
-      A primary window takes the canvas's size; other windows open at this client size, centred over their owner. Default: ``{1120.0, 680.0}``.
-
-   .. cpp:member:: Size minimum_size
-
-   .. cpp:member:: bool print_metrics_on_close
-
-      Default: ``{true}``.
-
-   .. cpp:member:: bool initially_visible
-
-      Default: ``{true}``.
-
-   .. cpp:member:: bool hide_on_close
-
-   .. cpp:member:: bool minimizable
-
-      Default: ``{true}``.
-
-   .. cpp:member:: std::function<void(std::function<void()> show, std::function<void()> hide)> visibility_ready
-
-   .. cpp:member:: std::function<void(std::function<void()> toggle)> full_screen_ready
-
-      The primary window's full-screen toggle is the page's (Element requestFullscreen on the canvas's parent); other windows ignore it.
-
-   .. cpp:member:: std::function<void(std::function<HostServiceStatus(std::string_view)>)> title_ready
-
-      The primary window's title is the document's title.
-
-   .. cpp:member:: std::function<void(std::function<HostServiceStatus(Size)>)> client_size_ready
-
-      The primary window's client size is the canvas's, decided by the page: its request is unsupported. Other windows are resized in the canvas.
-
-   .. cpp:member:: std::function<void(HostCloseRequest &)> close_request
-
-   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest &)> show_dialog, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
-
-   .. cpp:member:: std::function<void()> dispatch_pending
-
-   .. cpp:member:: std::function<void()> closed
 
 .. cpp:namespace:: gui_forms
 
@@ -4484,6 +4484,14 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::host
 
+``#include <gui_forms/platform/surface_host.hpp>``
+
+.. cpp:type:: SurfaceOpenWindow = std::function<HostWindowAdmission(SurfaceApplicationWindow)>
+
+   Opens one window while the application runs, as LinuxOpenWindow does. Callable on the run's thread while the run lives; afterwards it reports after_shutdown.
+
+.. cpp:namespace:: gui_forms::host
+
 ``#include <gui_forms/platform/web_host.hpp>``
 
 .. cpp:function:: HostCapabilities web_capabilities()
@@ -4494,9 +4502,15 @@ Functions, constants and aliases
 
 .. cpp:function:: int run_web(std::unique_ptr<Window> window, WebHostOptions options = {})
 
-.. cpp:type:: WebOpenWindow = std::function<HostWindowAdmission(WebApplicationWindow)>
+.. cpp:type:: WebHostOptions = SurfaceHostOptions
 
-   Opens one window while the application runs, as LinuxOpenWindow does. Callable on the program's thread while the run lives; afterwards it reports after_shutdown.
+   The browser host (Emscripten; owner decisions, 2026-11-15). The program runs on a worker thread (the page is linked with PROXY_TO_PTHREAD), so its event loop, nested modal loops included, blocks there as on a desktop, while the page's main thread keeps the browser's events, the canvas and WebGL2. The canvas (the element ``#gui-forms-canvas``, unless the page sets Module.guiFormsCanvas) is the one surface of GUI.Forms' window manager (surface_host.hpp): every window of the run is a layer the manager composes into it on the CPU, and the page shows the result as one WebGL2 texture. What a page cannot do is reported, not imitated (web_capabilities): no accessibility publication yet, no window frames outside the canvas, no tray, no sound cues, no clipboard images, no frame capture, no folder dialog. The open-file dialog is the browser's file chooser (files are copied into the program's file system under /web/files/<request>/); the save dialog is the browser's save chooser where it has one and a download otherwise, made when the program closes the file it wrote at the path the dialog returned. Message boxes are drawn by the host. The window types are the single-surface host's (surface_host.hpp).
+
+.. cpp:type:: WebApplicationWindow = SurfaceApplicationWindow
+
+.. cpp:type:: WebOpenWindow = SurfaceOpenWindow
+
+.. cpp:type:: WebApplicationOptions = SurfaceApplicationOptions
 
 .. cpp:namespace:: gui_forms::host
 

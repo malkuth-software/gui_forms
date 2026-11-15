@@ -3,13 +3,14 @@
 // thread: the program's calls (gf_web_js_*) are proxied to it, "sync" ones
 // blocking the program's thread until they return. The page posts what
 // happens back through the gf_web_post_* exports (web_page_exports.cpp)
-// and presents the frames the program hands over in the present record
+// and presents the surface the program hands over in the present record
 // (web_present.hpp, whose offsets are repeated below).
 //
-// Presentation is WebGL2 only (owner, 2026-10-27 and 2026-11-15): each
-// surface is a texture, its damaged rectangles uploaded from the program's
-// raster (premultiplied BGRA bytes, uploaded as RGBA and swizzled in the
-// shader), the layers drawn back to front with premultiplied blending.
+// Presentation is WebGL2 only (owner, 2026-10-27 and 2026-11-15): GUI.Forms'
+// window manager composes every window into one surface on the CPU, and the
+// page keeps one texture of it, uploads the damaged rectangles
+// (premultiplied BGRA bytes, uploaded as RGBA and swizzled in the shader)
+// and draws it over the canvas.
 
 addToLibrary({
   $GFWeb__deps: ['$FS', '$stringToNewUTF8', '$UTF8ToString'],
@@ -18,7 +19,10 @@ addToLibrary({
     gl: null,
     program: null,
     uniforms: null,
-    textures: new Map(),
+    texture: null,
+    textureWidth: 0,
+    textureHeight: 0,
+    lastPointer: 1,
     // The present record's address in the module's memory.
     frame: 0,
     presentScheduled: false,
@@ -36,12 +40,7 @@ addToLibrary({
     scratch: null,
     copyUploads: false,
     // web_present.hpp offsets (bytes).
-    SURFACES: 32,
-    SURFACE_BYTES: 32,
-    LAYERS: 32 + 32 * 160,
-    LAYER_BYTES: 32,
-    RECTS: 32 + 32 * 160 + 32 * 320,
-    RELEASED: 32 + 32 * 160 + 32 * 320 + 16 * 1024,
+    RECTS: 32,
 
     // gui_forms::Modifier bits: shift 1, control 2, alt 4, meta 8.
     modifiers(event) {
@@ -241,8 +240,10 @@ addToLibrary({
       GFWeb.copyUploads = typeof SharedArrayBuffer !== 'undefined' && HEAPU8.buffer instanceof SharedArrayBuffer;
       GFWeb.canvas.addEventListener('webglcontextlost', (event) => event.preventDefault());
       GFWeb.canvas.addEventListener('webglcontextrestored', () => {
-        GFWeb.textures.clear();
+        GFWeb.texture = null;
         GFWeb.setUpGl();
+        // The surface is composed again whole.
+        _gf_web_post_activation(1);
       });
     },
 
@@ -281,81 +282,45 @@ addToLibrary({
       if (Atomics.load(HEAPU32, base >> 2) !== 1) return;
       const gl = GFWeb.gl;
       const word = base >> 2;
-      const canvasWidth = HEAPU32[word + 1];
-      const canvasHeight = HEAPU32[word + 2];
-      const surfaceCount = HEAPU32[word + 3];
-      const layerCount = HEAPU32[word + 4];
-      const releasedCount = HEAPU32[word + 6];
-      const background = HEAPU32[word + 7];
-      if (GFWeb.canvas.width !== canvasWidth) GFWeb.canvas.width = canvasWidth;
-      if (GFWeb.canvas.height !== canvasHeight) GFWeb.canvas.height = canvasHeight;
-      for (let index = 0; index < surfaceCount; ++index) {
-        const at = (base + GFWeb.SURFACES + index * GFWeb.SURFACE_BYTES) >> 2;
-        const id = HEAPU32[at];
-        const pixels = HEAPU32[at + 1];
-        const rowBytes = HEAPU32[at + 2];
-        const width = HEAPU32[at + 3];
-        const height = HEAPU32[at + 4];
-        const firstRect = HEAPU32[at + 5];
-        const rectCount = HEAPU32[at + 6];
-        const alpha = HEAPU32[at + 7];
-        let entry = GFWeb.textures.get(id);
-        let whole = false;
-        if (!entry || entry.width !== width || entry.height !== height) {
-          if (entry) gl.deleteTexture(entry.texture);
-          const texture = gl.createTexture();
-          gl.bindTexture(gl.TEXTURE_2D, texture);
-          gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, width, height);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-          entry = { texture: texture, width: width, height: height, alpha: alpha };
-          GFWeb.textures.set(id, entry);
-          whole = true;
-        }
-        entry.alpha = alpha;
-        if (whole) {
-          GFWeb.upload(entry.texture, pixels, rowBytes, 0, 0, width, height);
-          continue;
-        }
+      const width = HEAPU32[word + 1];
+      const height = HEAPU32[word + 2];
+      const pixels = HEAPU32[word + 3];
+      const rowBytes = HEAPU32[word + 4];
+      const rectCount = HEAPU32[word + 5];
+      if (GFWeb.canvas.width !== width) GFWeb.canvas.width = width;
+      if (GFWeb.canvas.height !== height) GFWeb.canvas.height = height;
+      let whole = false;
+      if (!GFWeb.texture || GFWeb.textureWidth !== width || GFWeb.textureHeight !== height) {
+        if (GFWeb.texture) gl.deleteTexture(GFWeb.texture);
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, width, height);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        GFWeb.texture = texture;
+        GFWeb.textureWidth = width;
+        GFWeb.textureHeight = height;
+        whole = true;
+      }
+      if (whole) {
+        GFWeb.upload(GFWeb.texture, pixels, rowBytes, 0, 0, width, height);
+      } else {
         for (let rect = 0; rect < rectCount; ++rect) {
-          const r = (base + GFWeb.RECTS) / 4 + (firstRect + rect) * 4;
-          GFWeb.upload(entry.texture, pixels, rowBytes, HEAP32[r], HEAP32[r + 1], HEAP32[r + 2], HEAP32[r + 3]);
+          const r = (base + GFWeb.RECTS) / 4 + rect * 4;
+          GFWeb.upload(GFWeb.texture, pixels, rowBytes, HEAP32[r], HEAP32[r + 1], HEAP32[r + 2], HEAP32[r + 3]);
         }
       }
-      for (let index = 0; index < releasedCount; ++index) {
-        const id = HEAPU32[(base + GFWeb.RELEASED) / 4 + index];
-        const entry = GFWeb.textures.get(id);
-        if (entry) gl.deleteTexture(entry.texture);
-        GFWeb.textures.delete(id);
-      }
-      gl.viewport(0, 0, canvasWidth, canvasHeight);
-      gl.clearColor(((background >>> 24) & 255) / 255, ((background >>> 16) & 255) / 255,
-                    ((background >>> 8) & 255) / 255, 1.0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.viewport(0, 0, width, height);
       gl.useProgram(GFWeb.program);
-      gl.uniform2f(GFWeb.uniforms.canvas, canvasWidth, canvasHeight);
+      gl.uniform2f(GFWeb.uniforms.canvas, width, height);
+      gl.uniform4f(GFWeb.uniforms.rect, 0, 0, width, height);
+      gl.uniform1i(GFWeb.uniforms.mode, 0);
+      gl.uniform1i(GFWeb.uniforms.opaque, 1);
       gl.activeTexture(gl.TEXTURE0);
-      for (let index = 0; index < layerCount; ++index) {
-        const at = (base + GFWeb.LAYERS + index * GFWeb.LAYER_BYTES) >> 2;
-        const kind = HEAPU32[at];
-        gl.uniform4f(GFWeb.uniforms.rect, HEAPF32[at + 4], HEAPF32[at + 5], HEAPF32[at + 6], HEAPF32[at + 7]);
-        if (kind === 1) {
-          const colour = HEAPU32[at + 2];
-          const a = (colour & 255) / 255;
-          gl.uniform1i(GFWeb.uniforms.mode, 1);
-          gl.uniform4f(GFWeb.uniforms.color, ((colour >>> 24) & 255) / 255 * a, ((colour >>> 16) & 255) / 255 * a,
-                       ((colour >>> 8) & 255) / 255 * a, a);
-        } else {
-          const entry = GFWeb.textures.get(HEAPU32[at + 1]);
-          if (!entry) continue;
-          gl.uniform1i(GFWeb.uniforms.mode, 0);
-          gl.uniform1i(GFWeb.uniforms.opaque, entry.alpha ? 0 : 1);
-          gl.bindTexture(gl.TEXTURE_2D, entry.texture);
-        }
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      }
+      gl.bindTexture(gl.TEXTURE_2D, GFWeb.texture);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       Atomics.store(HEAPU32, base >> 2, 0);
       _gf_web_post_presented();
     },
@@ -390,6 +355,7 @@ addToLibrary({
     },
 
     pointer(action, event) {
+      GFWeb.lastPointer = event.pointerId;
       const position = GFWeb.position(event);
       _gf_web_post_pointer(action, position[0], position[1], event.button, event.pointerId,
                            GFWeb.modifiers(event), event.timeStamp);
@@ -591,9 +557,10 @@ addToLibrary({
 
   gf_web_js_pointer_capture__deps: ['$GFWeb'],
   gf_web_js_pointer_capture__proxy: 'async',
-  gf_web_js_pointer_capture: (captured, pointer) => {
+  gf_web_js_pointer_capture: (captured) => {
     // The canvas captures every press (listen); a release lets go.
     if (captured) return;
+    const pointer = GFWeb.lastPointer;
     try {
       if (GFWeb.canvas.hasPointerCapture(pointer)) GFWeb.canvas.releasePointerCapture(pointer);
     } catch (error) {

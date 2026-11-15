@@ -80,50 +80,37 @@ PointerButton web_pointer_button(std::int32_t button) noexcept {
     }
 }
 
-std::uint32_t next_web_click_count(WebClickHistory& history, PointerButton button, double time,
-                                   Point position, double interval, double distance) noexcept {
-    const double elapsed = time - history.time;
-    const bool same_button = history.count != 0U && history.button == button;
-    const bool soon = std::isfinite(elapsed) && elapsed >= 0.0 && elapsed <= interval;
-    const bool near = std::abs(position.x - history.position.x) <= distance &&
-                      std::abs(position.y - history.position.y) <= distance;
-    std::uint32_t count = 1U;
-    if (same_button && soon && near && history.count < 3U) count = history.count + 1U;
-    history.count = count;
-    history.button = button;
-    history.time = time;
-    history.position = position;
-    return count;
+std::optional<surface_detail::SurfacePointerAction> web_pointer_action(std::int32_t action) noexcept {
+    if (action < 0 || action > 5) return std::nullopt;
+    const surface_detail::SurfacePointerAction result = static_cast<surface_detail::SurfacePointerAction>(action);
+    return result;
 }
 
-WebWheel web_wheel(double delta_x, double delta_y, WebWheelMode mode, double page_height) noexcept {
-    WebWheel wheel{};
-    const double x = -finite_or_zero(delta_x);
-    const double y = -finite_or_zero(delta_y);
+Point web_wheel_delta(double delta_x, double delta_y) noexcept {
+    const Point delta{-finite_or_zero(delta_x), -finite_or_zero(delta_y)};
+    return delta;
+}
+
+surface_detail::SurfaceWheelUnit web_wheel_unit(std::int32_t mode) noexcept {
     switch (mode) {
-    case WebWheelMode::lines:
-        wheel.unit = WheelDeltaUnit::lines;
-        wheel.delta = Point{x, y};
-        break;
-    case WebWheelMode::pages: {
-        const double page = std::isfinite(page_height) && page_height > 0.0 ? page_height : 0.0;
-        wheel.unit = WheelDeltaUnit::pixels;
-        wheel.delta = Point{x * page, y * page};
-        break;
-    }
-    case WebWheelMode::pixels:
+    case 1:
+        return surface_detail::SurfaceWheelUnit::lines;
+    case 2:
+        return surface_detail::SurfaceWheelUnit::pages;
     default:
-        wheel.unit = WheelDeltaUnit::pixels;
-        wheel.delta = Point{x, y};
-        break;
+        return surface_detail::SurfaceWheelUnit::pixels;
     }
-    return wheel;
 }
 
-bool web_requests_keyboard_context(std::uint32_t physical_key, Modifier modifiers) noexcept {
-    if (physical_key == PhysicalKey::context_menu) return modifiers == Modifier::none;
-    const bool shift_f10 = physical_key == PhysicalKey::f10 && modifiers == Modifier::shift;
-    return shift_f10;
+surface_detail::SurfaceDialogOutcome web_dialog_outcome(std::int32_t outcome) noexcept {
+    switch (outcome) {
+    case 0:
+        return surface_detail::SurfaceDialogOutcome::cancelled;
+    case 1:
+        return surface_detail::SurfaceDialogOutcome::accepted;
+    default:
+        return surface_detail::SurfaceDialogOutcome::failed;
+    }
 }
 
 } // namespace gui_forms::host::web_detail

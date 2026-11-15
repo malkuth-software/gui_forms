@@ -187,10 +187,10 @@ directory.
 - GUI.Forms has no GPU capability. Do not compile, link, initialize, probe, or
   expose Ganesh, Graphite, GL, Vulkan, Metal, Direct3D, Dawn, or WebGPU.
   One written exception (owner, 2026-10-27, confirmed 2026-11-15): the
-  Emscripten browser host (`src/host/web/`) presents its CPU rasters with
-  WebGL2, uploading pixels to textures and drawing them as quads. WebGL2 is
-  only that host's present backend; nothing renders with it, and no other
-  target may use it.
+  Emscripten browser host (`src/host/web/`) presents the window manager's
+  CPU-composed surface with WebGL2, uploading its pixels to one texture and
+  drawing it as a quad. WebGL2 is only that host's present backend; nothing
+  renders with it, and no other target may use it.
 - Skia may be used only through a private CPU renderer adapter. No Skia type may
   appear in public headers, DML, demo-facing control APIs, C ABI, or tests of the
   renderer-neutral core.
@@ -232,6 +232,8 @@ directory.
   `src/controls/`.
 - Skia implementation lives under `src/render/skia/`.
 - Native macOS code lives under `src/host/macos/`.
+- GUI.Forms' own window manager for single-surface hosts lives under
+  `src/host/surface/` (portable C++; owner decision, 2026-11-15).
 - Browser (Emscripten) code lives under `src/host/web/`; its page half is
   `src/host/web/page/web_host.js` and the hosted page shell `web/paint/`.
 - Native Windows code lives under `src/host/windows/`.

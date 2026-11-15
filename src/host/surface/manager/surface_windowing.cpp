@@ -1,19 +1,18 @@
-// Application-scope windowing in one canvas (web_host_internal.hpp): every
-// window of the run is a desk layer. The desktop is the canvas, in its CSS
-// pixels (desktop logical units), with one monitor at the page's
-// devicePixelRatio.
-#include "web_host_internal.hpp"
+// Application-scope windowing in one surface (surface_manager_internal.hpp):
+// every window of the run is a desk layer. The desktop is the surface, in
+// its logical units, with one monitor at the surface's scale.
+#include "surface_manager_internal.hpp"
 
 #include <algorithm>
 #include <memory>
 #include <optional>
 #include <utility>
 
-namespace gui_forms::host::web_detail {
+namespace gui_forms::host::surface_detail {
 
-WebWindowing::WebWindowing(Runtime& runtime) : HostWindowing(web_capabilities()), runtime_(runtime) {}
+SurfaceWindowing::SurfaceWindowing(Runtime& runtime) : HostWindowing(runtime.host.capabilities()), runtime_(runtime) {}
 
-HostWindowAdmission WebWindowing::open(WebApplicationWindow entry, bool runtime) {
+HostWindowAdmission SurfaceWindowing::open(SurfaceApplicationWindow entry, bool runtime) {
     HostWindowAdmission admission;
     if (!entry.model || entry.stable_id.empty()) {
         admission.status.error = HostServiceError::invalid_argument;
@@ -41,7 +40,7 @@ HostWindowAdmission WebWindowing::open(WebApplicationWindow entry, bool runtime)
     const HostWindowId id = admission.window;
     const bool initially_visible = entry.options.initially_visible;
     if (floating) entry.options.initially_visible = false;
-    // Where the layer opens: the primary window fills the canvas, a popup
+    // Where the layer opens: the primary window fills the surface, a popup
     // is where the program put it, every other window is centred over its
     // owner (cascaded when that spot is taken).
     const Size extent = runtime_.desk.extent();
@@ -54,10 +53,10 @@ HostWindowAdmission WebWindowing::open(WebApplicationWindow entry, bool runtime)
     } else {
         const Size wanted{std::min(entry.options.initial_size.width, std::max(64.0, extent.width - 16.0)),
                           std::min(entry.options.initial_size.height,
-                                   std::max(64.0, extent.height - WebDesk::title_bar_height - 8.0))};
+                                   std::max(64.0, extent.height - runtime_.desk.theme().title_bar_height - 8.0))};
         content = runtime_.desk.placement(kind, owner_id, wanted);
     }
-    WebDeskLayerInit layer{};
+    SurfaceDeskLayerInit layer{};
     layer.id = id;
     layer.owner = owner_id;
     layer.kind = kind;
@@ -65,6 +64,7 @@ HostWindowAdmission WebWindowing::open(WebApplicationWindow entry, bool runtime)
     layer.content = content;
     layer.minimum = entry.options.minimum_size;
     layer.resizable = !popup.has_value();
+    layer.minimizable = !popup.has_value() && entry.options.minimizable;
     if (!runtime_.desk.add(layer)) {
         retire(id);
         admission.status.error = HostServiceError::too_large;
@@ -94,20 +94,20 @@ HostWindowAdmission WebWindowing::open(WebApplicationWindow entry, bool runtime)
     return admission;
 }
 
-bool WebWindowing::supports_popup_windows() const noexcept { return true; }
+bool SurfaceWindowing::supports_popup_windows() const noexcept { return true; }
 
-bool WebWindowing::supports_splash_windows() const noexcept { return true; }
+bool SurfaceWindowing::supports_splash_windows() const noexcept { return true; }
 
-bool WebWindowing::transient_windows_translucent() const noexcept { return true; }
+bool SurfaceWindowing::transient_windows_translucent() const noexcept { return true; }
 
-bool WebWindowing::supports_modal_windows() const noexcept { return true; }
+bool SurfaceWindowing::supports_modal_windows() const noexcept { return true; }
 
-void WebWindowing::report_native_frame(NativeWindow& window) {
+void SurfaceWindowing::report_native_frame(NativeWindow& window) {
     if (window.closed || !live(window.window_id)) return;
     report_frame(window.window_id, window.frame());
 }
 
-HostWindowFrameResult WebWindowing::frame_impl(HostWindowId window) {
+HostWindowFrameResult SurfaceWindowing::frame_impl(HostWindowId window) {
     HostWindowFrameResult result;
     NativeWindow* found = runtime_.window(window);
     if (found == nullptr) {
@@ -118,50 +118,51 @@ HostWindowFrameResult WebWindowing::frame_impl(HostWindowId window) {
     return result;
 }
 
-HostServiceStatus WebWindowing::request_frame_impl(HostWindowId window, Rect content) {
+HostServiceStatus SurfaceWindowing::request_frame_impl(HostWindowId window, Rect content) {
     NativeWindow* found = runtime_.window(window);
     if (found == nullptr) return {HostServiceError::after_shutdown};
-    // The primary window is the canvas: the page decides its size.
+    // The primary window is the surface: the host decides its size.
     if (primary() == window) return {HostServiceError::unsupported};
     const std::optional<Rect> placed = runtime_.desk.set_content(window, content);
     if (!placed.has_value()) return {HostServiceError::backend_failure};
     (*found).apply_content(*placed);
+    (*found).refresh_chrome();
     return {};
 }
 
-HostScreenPointResult WebWindowing::pointer_position_impl() {
+HostScreenPointResult SurfaceWindowing::pointer_position_impl() {
     HostScreenPointResult result;
     result.position = DesktopLogicalPoint{runtime_.pointer_position.x, runtime_.pointer_position.y};
     return result;
 }
 
-HostWindowAtResult WebWindowing::window_at_impl(DesktopLogicalPoint point) {
+HostWindowAtResult SurfaceWindowing::window_at_impl(DesktopLogicalPoint point) {
     HostWindowAtResult result;
-    const WebDeskHit hit = runtime_.desk.hit(Point{point.x, point.y});
+    const SurfaceDeskHit hit = runtime_.desk.hit(Point{point.x, point.y});
     // A host dialog's layer is no window of the run's table.
     if (hit.window.valid() && live(hit.window)) result.window = hit.window;
     return result;
 }
 
-HostServiceStatus WebWindowing::bring_to_front_impl(HostWindowId window) {
+HostServiceStatus SurfaceWindowing::bring_to_front_impl(HostWindowId window) {
     if (runtime_.window(window) == nullptr) return {HostServiceError::after_shutdown};
     runtime_.desk.raise(window);
     runtime_.scene_changed();
     return {};
 }
 
-HostServiceStatus WebWindowing::destroy_window_impl(HostWindowId window) {
+HostServiceStatus SurfaceWindowing::destroy_window_impl(HostWindowId window) {
     NativeWindow* found = runtime_.window(window);
     if (found == nullptr) return {HostServiceError::after_shutdown};
     (*found).close(HostCloseReason::application, true);
     return {};
 }
 
-HostMonitorResult WebWindowing::query_monitors_impl() {
+HostMonitorResult SurfaceWindowing::query_monitors_impl() {
     HostMonitorResult result;
     result.monitors.resize(1U);
     HostMonitor& monitor = result.monitors.front();
-    monitor.id.assign("web-canvas");
+    monitor.id.assign(runtime_.host.monitor_id());
     monitor.frame = Rect{0.0, 0.0, runtime_.extent.width, runtime_.extent.height};
     monitor.work_area = monitor.frame;
     monitor.scale = runtime_.scale;
@@ -169,14 +170,14 @@ HostMonitorResult WebWindowing::query_monitors_impl() {
     return result;
 }
 
-HostServiceStatus WebWindowing::show_impl(HostWindowId window) {
+HostServiceStatus SurfaceWindowing::show_impl(HostWindowId window) {
     NativeWindow* found = runtime_.window(window);
     if (found == nullptr) return {HostServiceError::after_shutdown};
     (*found).set_visible(true);
     return {};
 }
 
-HostServiceStatus WebWindowing::hide_impl(HostWindowId window) {
+HostServiceStatus SurfaceWindowing::hide_impl(HostWindowId window) {
     NativeWindow* found = runtime_.window(window);
     if (found == nullptr) return {HostServiceError::after_shutdown};
     (*found).set_visible(false);
@@ -184,9 +185,9 @@ HostServiceStatus WebWindowing::hide_impl(HostWindowId window) {
 }
 
 // The nested loop blocks the program's thread as a desktop modal loop does
-// (the page keeps running on its own thread). The desk fixes the blocked
+// (the host keeps its own events coming). The desk fixes the blocked
 // windows when the loop begins: every window not owned by the modal one.
-HostServiceStatus WebWindowing::run_modal_impl(HostWindowId window) {
+HostServiceStatus SurfaceWindowing::run_modal_impl(HostWindowId window) {
     if (runtime_.window(window) == nullptr) return {HostServiceError::after_shutdown};
     const std::optional<HostWindowId> owner_id = owner(window);
     runtime_.desk.begin_modal(window);
@@ -201,4 +202,4 @@ HostServiceStatus WebWindowing::run_modal_impl(HostWindowId window) {
     return {};
 }
 
-} // namespace gui_forms::host::web_detail
+} // namespace gui_forms::host::surface_detail

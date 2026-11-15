@@ -1,0 +1,1753 @@
+// The single-surface window manager's run (surface_manager_internal.hpp):
+// its windows as desk layers, input from the host's records, and the scene
+// composed into the host's surface.
+#include "surface_manager_internal.hpp"
+#include "../../../core/failure/fail_fast.hpp"
+#include "../../../core/damage/device_damage/device_damage.hpp"
+#include "../../../render/skia/raster/skia_splash_bake.hpp"
+#include "gui_forms/live_surface.hpp"
+#include "gui_forms/metrics/font_sources/bundled_font_sources.hpp"
+#include "gui_forms/text/types/text_types.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <stdexcept>
+#include <string>
+#include <utility>
+
+#if defined(GUI_FORMS_PREPARED_TEXT)
+#error "The surface window manager composes the Skia raster; the prepared-text raster is not supported here."
+#endif
+
+namespace gui_forms::host::surface_detail {
+namespace {
+
+// Device rectangles one compose or one window's paint counts at most;
+// more are united into their bounds (surface_device_rects).
+constexpr std::size_t maximum_compose_rects = 32U;
+
+std::uint64_t now_ns() {
+    const std::chrono::steady_clock::duration since = std::chrono::steady_clock::now().time_since_epoch();
+    const std::uint64_t nanoseconds =
+        static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(since).count());
+    return nanoseconds;
+}
+
+Color theme_color(std::uint32_t rgb) noexcept {
+    const Color color{static_cast<std::uint8_t>((rgb >> 16U) & 0xFFU), static_cast<std::uint8_t>((rgb >> 8U) & 0xFFU),
+                      static_cast<std::uint8_t>(rgb & 0xFFU), 255U};
+    return color;
+}
+
+// The schedule-wake seam (SurfaceRoot::set_schedule_wake_handler) arrives
+// with the macOS modal-wake change; until this branch is rebased onto it the
+// handler is installed only where the model has it. Remove the test after
+// the rebase.
+template <typename Model>
+void install_schedule_wake(Model& model, SurfaceInputQueue* queue) {
+    if constexpr (requires(Model& candidate) { candidate.set_schedule_wake_handler(std::function<void()>{}); }) {
+        if (queue != nullptr) {
+            model.set_schedule_wake_handler(Wake{queue});
+        } else {
+            model.set_schedule_wake_handler(std::function<void()>{});
+        }
+    } else {
+        static_cast<void>(model);
+        static_cast<void>(queue);
+    }
+}
+
+// The device pixels of a logical extent at `scale`, at least 1.
+std::uint32_t device_extent(double logical, double scale) noexcept {
+    const double device = std::round(logical * scale);
+    if (!(device >= 1.0)) return 1U;
+    if (device > 32768.0) return 32768U;
+    const std::uint32_t pixels = static_cast<std::uint32_t>(device);
+    return pixels;
+}
+
+// A logical coordinate on the surface's device pixel grid.
+std::int32_t device_coordinate(double logical, double scale) noexcept {
+    const double device = std::round(logical * scale);
+    if (!(device > -32768.0)) return -32768;
+    if (device > 32768.0) return 32768;
+    const std::int32_t pixel = static_cast<std::int32_t>(device);
+    return pixel;
+}
+
+SurfaceDeviceRect device_rect(Rect logical, double scale) noexcept {
+    const SurfaceDeviceRect rect{device_coordinate(logical.x, scale), device_coordinate(logical.y, scale),
+                                 device_coordinate(logical.right(), scale),
+                                 device_coordinate(logical.bottom(), scale)};
+    return rect;
+}
+
+// A raster's pixels as an image layer at device position left, top.
+SurfaceComposeLayer image_layer(const render::SkiaRaster& raster, std::int32_t left, std::int32_t top,
+                                bool blended) noexcept {
+    SurfaceComposeLayer layer{};
+    layer.kind = blended ? SurfaceLayerKind::blended_image : SurfaceLayerKind::opaque_image;
+    layer.pixels = static_cast<const std::uint8_t*>(raster.pixels());
+    layer.row_bytes = raster.row_bytes();
+    layer.width = raster.pixel_width();
+    layer.height = raster.pixel_height();
+    layer.bounds = SurfaceDeviceRect{left, top, left + static_cast<std::int32_t>(layer.width),
+                                     top + static_cast<std::int32_t>(layer.height)};
+    return layer;
+}
+
+SurfaceComposeLayer solid_layer(SurfaceDeviceRect bounds, std::uint32_t rgb) noexcept {
+    SurfaceComposeLayer layer{};
+    layer.kind = SurfaceLayerKind::solid;
+    layer.bounds = bounds;
+    layer.color = surface_opaque_pixel(rgb);
+    return layer;
+}
+
+// The cursor a frame part shows.
+CursorKind frame_part_cursor(SurfaceDeskPart part) noexcept {
+    switch (part) {
+    case SurfaceDeskPart::edge_left:
+    case SurfaceDeskPart::edge_right:
+        return CursorKind::resize_horizontal;
+    case SurfaceDeskPart::edge_top:
+    case SurfaceDeskPart::edge_bottom:
+        return CursorKind::resize_vertical;
+    case SurfaceDeskPart::corner_top_left:
+    case SurfaceDeskPart::corner_bottom_right:
+        return CursorKind::resize_diagonal_down;
+    case SurfaceDeskPart::corner_top_right:
+    case SurfaceDeskPart::corner_bottom_left:
+        return CursorKind::resize_diagonal_up;
+    default:
+        return CursorKind::arrow;
+    }
+}
+
+// The parts acted on at their release (a click), not dragged.
+bool frame_part_clicks(SurfaceDeskPart part) noexcept {
+    const bool clicks = part == SurfaceDeskPart::close_box || part == SurfaceDeskPart::minimize_box ||
+                        part == SurfaceDeskPart::maximize_box || part == SurfaceDeskPart::minimized_tab;
+    return clicks;
+}
+
+struct Closing final {
+    NativeWindow* window;
+    void operator()(HostCloseRequest& request) const {
+        if ((*window).entry.options.close_request) (*window).entry.options.close_request(request);
+    }
+};
+struct Dialog final {
+    NativeWindow* window;
+    HostDialogResult operator()(const HostDialogRequest& request) const {
+        const HostDialogResult result = (*(*window).services).show_dialog(request);
+        return result;
+    }
+};
+struct ReadText final {
+    NativeWindow* window;
+    HostClipboardTextResult operator()() const {
+        const HostClipboardTextResult result = (*(*window).services).read_clipboard_text();
+        return result;
+    }
+};
+struct WriteText final {
+    NativeWindow* window;
+    HostServiceStatus operator()(std::string_view text) const {
+        const HostServiceStatus status = (*(*window).services).write_clipboard_text(text);
+        return status;
+    }
+};
+
+bool is_primary(const SurfaceApplicationWindow& entry) noexcept {
+    const bool primary = entry.owner_id.empty() && !entry.tool_window && !entry.popup.has_value();
+    return primary;
+}
+
+// The primary window's title is the host's; another window's is its
+// frame's.
+struct WindowTitle final {
+    std::weak_ptr<NativeWindow> owner{};
+    const std::thread::id thread{std::this_thread::get_id()};
+    HostServiceStatus operator()(const std::string_view text) const {
+        if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+        const std::shared_ptr<NativeWindow> window = owner.lock();
+        if (!window || (*window).closed) return {HostServiceError::after_shutdown};
+        try {
+            if (text.size() > 65536U || text.find('\0') != std::string_view::npos || !validate_utf8(text).valid())
+                return {HostServiceError::invalid_argument};
+            const std::string title(text);
+            NativeWindow& native = *window;
+            native.entry.options.title = title;
+            if (native.chrome) (*native.chrome).set_title(title);
+            if (is_primary(native.entry)) native.runtime.host.set_title(title);
+            return {};
+        } catch (...) {
+            return {HostServiceError::backend_failure};
+        }
+    }
+};
+
+// A framed window's client size is changed in the surface; the primary
+// window's is the surface's, decided by the host.
+struct WindowClientSize final {
+    std::weak_ptr<NativeWindow> owner{};
+    const std::thread::id thread{std::this_thread::get_id()};
+    HostServiceStatus operator()(const Size client_size) const {
+        if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+        const std::shared_ptr<NativeWindow> window = owner.lock();
+        if (!window || (*window).closed) return {HostServiceError::after_shutdown};
+        NativeWindow& native = *window;
+        const Size minimum = native.minimum_size();
+        if (!std::isfinite(client_size.width) || !std::isfinite(client_size.height) || client_size.width > 32768.0 ||
+            client_size.height > 32768.0 || client_size.width < std::max(1.0, minimum.width) ||
+            client_size.height < std::max(1.0, minimum.height))
+            return {HostServiceError::invalid_argument};
+        if (!native.runtime.desk.framed(native.window_id)) return {HostServiceError::unsupported};
+        const Rect wanted{native.content.x, native.content.y, client_size.width, client_size.height};
+        const std::optional<Rect> placed = native.runtime.desk.set_content(native.window_id, wanted);
+        if (!placed.has_value()) return {HostServiceError::backend_failure};
+        native.apply_content(*placed);
+        native.refresh_chrome();
+        return {};
+    }
+};
+
+// A show, hide, close or full-screen request from any thread, queued for
+// the run's next turn.
+struct WindowAction final {
+    std::weak_ptr<NativeWindow> window{};
+    std::weak_ptr<ActionQueue> queue{};
+    ActionKind kind{ActionKind::close};
+    void operator()() const {
+        const std::shared_ptr<ActionQueue> actions = queue.lock();
+        if (!actions) return;
+        (*actions).post(Action{window, kind});
+    }
+};
+
+} // namespace
+
+SurfaceHost::~SurfaceHost() = default;
+
+void Wake::operator()() const noexcept {
+    if (queue != nullptr) (*queue).wake();
+}
+
+void ActionQueue::post(Action action) {
+    {
+        const std::lock_guard<std::mutex> guard(mutex);
+        pending.push_back(std::move(action));
+    }
+    (*input).wake();
+}
+
+void register_fonts(render::SkiaRaster& raster, const std::shared_ptr<gui_forms::detail::BundledFontSet>& fonts) {
+    if (!fonts || !raster.register_bundled_fonts(fonts))
+        throw std::runtime_error("Cannot load the bundled GUI.Forms fonts for the surface window manager");
+}
+
+// ---------------------------------------------------------------------------
+// FrameChrome
+
+FrameChrome::FrameChrome(Runtime& runtime, std::string_view title, double width, double scale)
+    : runtime_(runtime),
+      size_{std::max(1.0, width), runtime.desk.theme().title_bar_height - runtime.desk.theme().border_width},
+      scale_(scale) {
+    const SurfaceFrameTheme& theme = runtime_.desk.theme();
+    const Color text = theme_color(theme.title_text);
+    root_ = make_control<Panel>(StableId("host.frame.root"));
+    (*root_).set_background(theme_color(theme.title_inactive));
+    title_ = make_control<Label>(StableId("host.frame.title"), std::string(title));
+    (*title_).font = FontSpec{FontRole::control, 13, 400, false};
+    (*title_).fore_color = text;
+    (*title_).vertical_alignment = VerticalAlignment::center;
+    (*root_).add_child(title_);
+    // U+2013, U+25A1 and U+00D7: minimise, maximise and close.
+    minimize_ = make_control<Label>(StableId("host.frame.minimize"), std::string("\xE2\x80\x93"));
+    maximize_ = make_control<Label>(StableId("host.frame.maximize"), std::string("\xE2\x96\xA1"));
+    close_ = make_control<Label>(StableId("host.frame.close"), std::string("\xC3\x97"));
+    const std::array<Label*, 3> boxes{minimize_.get(), maximize_.get(), close_.get()};
+    for (std::size_t index = 0U; index < boxes.size(); ++index) {
+        Label& box = *boxes[index];
+        box.font = FontSpec{FontRole::control, 15, 400, false};
+        box.fore_color = text;
+        box.alignment = HorizontalAlignment::center;
+        box.vertical_alignment = VerticalAlignment::center;
+    }
+    (*root_).add_child(minimize_);
+    (*root_).add_child(maximize_);
+    (*root_).add_child(close_);
+    register_fonts(raster_, runtime_.fonts);
+    model_ = std::make_unique<Window>(root_, size_);
+    (*model_).set_text_metrics_provider(&raster_);
+    (*model_).set_framebuffer_painter(&raster_);
+    session_ = std::make_unique<HostSession>(*model_, runtime_.host.capabilities(), nullptr);
+    if (!dispatch(HostAttachEvent{size_, scale_}).accepted()) throw std::runtime_error("Frame strip attach rejected");
+    resize(width, scale);
+}
+
+FrameChrome::~FrameChrome() {
+    if (model_) {
+        (*model_).set_text_metrics_provider(nullptr);
+        (*model_).set_framebuffer_painter(nullptr);
+    }
+    if (session_) (*session_).shutdown();
+}
+
+HostDispatchResult FrameChrome::dispatch(HostEventPayload payload) {
+    ++sequence_;
+    const HostDispatchResult result = (*session_).dispatch({sequence_, now_ns(), std::move(payload)});
+    return result;
+}
+
+void FrameChrome::set_title(std::string_view title) { (*title_).text = std::string(title); }
+
+void FrameChrome::set_active(bool active) {
+    if (active == active_) return;
+    active_ = active;
+    const SurfaceFrameTheme& theme = runtime_.desk.theme();
+    (*root_).set_background(theme_color(active ? theme.title_active : theme.title_inactive));
+}
+
+void FrameChrome::set_boxes(bool minimize, bool maximize, bool maximized) {
+    if (minimize == shows_minimize_ && maximize == shows_maximize_ && maximized == maximized_) return;
+    shows_minimize_ = minimize;
+    shows_maximize_ = maximize;
+    maximized_ = maximized;
+    // U+2750 restores a maximised window; U+25A1 maximises.
+    (*maximize_).text = maximized ? std::string("\xE2\x9D\x90") : std::string("\xE2\x96\xA1");
+    layout();
+}
+
+// The boxes in the desk's order (SurfaceDesk::box): close outermost at the
+// theme's controls end, then maximise, then minimise; the title fills the
+// rest.
+void FrameChrome::layout() {
+    const SurfaceFrameTheme& theme = runtime_.desk.theme();
+    const double box_width = std::min(theme.title_box_width, size_.width);
+    const std::array<Label*, 3> order{close_.get(), maximize_.get(), minimize_.get()};
+    const std::array<bool, 3> shown{true, shows_maximize_, shows_minimize_};
+    double used = 0.0;
+    for (std::size_t index = 0U; index < order.size(); ++index) {
+        if (!shown[index]) {
+            (*order[index]).set_bounds({0.0, 0.0, 0.0, 0.0});
+            continue;
+        }
+        const double left =
+            theme.controls == SurfaceControlsSide::left ? used : size_.width - used - box_width;
+        (*order[index]).set_bounds({left, 0.0, box_width, size_.height});
+        used += box_width;
+    }
+    const double title_left = theme.controls == SurfaceControlsSide::left ? used + 10.0 : 10.0;
+    (*title_).set_bounds({title_left, 0.0, std::max(0.0, size_.width - used - 20.0), size_.height});
+}
+
+void FrameChrome::resize(double width, double scale) {
+    const SurfaceFrameTheme& theme = runtime_.desk.theme();
+    const Size next{std::max(1.0, width), std::max(1.0, theme.title_bar_height - theme.border_width)};
+    if (scale != scale_) {
+        scale_ = scale;
+        static_cast<void>(dispatch(HostScaleEvent{scale_}));
+    }
+    if (next != size_) {
+        size_ = next;
+        static_cast<void>(dispatch(HostResizeEvent{size_}));
+    }
+    layout();
+    damage_.add({0.0, 0.0, size_.width, size_.height});
+}
+
+bool FrameChrome::paint(std::vector<Rect>& painted, bool& resized) {
+    resized = false;
+    static_cast<void>((*model_).drain_posted_work());
+    const DamageRegion fresh = (*model_).take_damage();
+    for (std::size_t index = 0U; index < fresh.rectangles().size(); ++index) damage_.add(fresh.rectangles()[index]);
+    if (damage_.empty()) return false;
+    const void* before = raster_.pixels();
+    const std::uint32_t before_width = raster_.pixel_width();
+    const std::uint32_t before_height = raster_.pixel_height();
+    raster_.resize(size_, scale_);
+    raster_resized_ = raster_resized_ || before != raster_.pixels() || before_width != raster_.pixel_width() ||
+                      before_height != raster_.pixel_height();
+    static_cast<void>(raster_.synchronize_images((*model_).image_resources()));
+    DamageRegion screen = damage_;
+    raster_.begin_frame(screen);
+    const std::optional<PaintReceipt> receipt = (*model_).paint(raster_, damage_.rectangles());
+    raster_.end_frame();
+    if (!receipt) return false;
+    const std::span<const Rect> changed = damage_.rectangles();
+    PresentedArea area;
+    for (std::size_t index = 0U; index < changed.size(); ++index) painted.push_back(changed[index]);
+    area.rectangles = changed.size();
+    static_cast<void>((*model_).notify_presented(*receipt, 0U, area));
+    damage_.clear();
+    resized = raster_resized_;
+    raster_resized_ = false;
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// NativeWindow
+
+NativeWindow::NativeWindow(Runtime& host, SurfaceApplicationWindow source, HostWindowId id, Rect area, bool kept)
+    : runtime(host), entry(std::move(source)), window_id(id), initial(kept), content(area), scale(host.scale) {
+    register_fonts(raster, runtime.fonts);
+    (*entry.model).set_text_metrics_provider(&raster);
+    (*entry.model).set_framebuffer_painter(&raster);
+    (*entry.model).metrics().set_renderer("Skia CPU / HarfBuzz / FreeType / surface window manager", true);
+    services = std::make_unique<Services>(*this);
+    // The availability record (stage DP): the manager composes each damage
+    // rectangle.
+    PresentationDeclaration presentation;
+    presentation.contract_version = paint_contract_version;
+    presentation.extensions.partial_present = true;
+    (*entry.model).declare_presentation(presentation);
+    session = std::make_unique<HostSession>(*entry.model, runtime.host.capabilities(), services.get());
+    closing_token = (*session).closing().subscribe(Closing{this});
+    if (runtime.desk.framed(window_id)) {
+        chrome = std::make_unique<FrameChrome>(runtime, entry.options.title, content.width, scale);
+        refresh_chrome();
+    }
+}
+
+NativeWindow::~NativeWindow() {
+    (*entry.model).set_dispatch_wake_handler({});
+    (*entry.model).set_live_surface_idle_wake_handler({});
+    (*entry.model).set_paint_wake_handler({});
+    install_schedule_wake(*entry.model, nullptr);
+    (*entry.model).set_text_metrics_provider(nullptr);
+    (*entry.model).set_framebuffer_painter(nullptr);
+    if (session) (*session).shutdown();
+}
+
+HostDispatchResult NativeWindow::dispatch(HostEventPayload payload) {
+    ++sequence;
+    const HostDispatchResult result = (*session).dispatch({sequence, now_ns(), std::move(payload)});
+    return result;
+}
+
+void NativeWindow::attach() {
+    SurfaceInputQueue* queue = &runtime.queue;
+    (*entry.model).set_dispatch_wake_handler(Wake{queue});
+    (*entry.model).set_paint_wake_handler(Wake{queue});
+    (*entry.model).set_live_surface_idle_wake_handler(Wake{queue});
+    install_schedule_wake(*entry.model, queue);
+    // The raster keeps its pixels between frames, so a scroll's pixels move
+    // instead of repainting.
+    (*entry.model).set_scroll_copies_supported(true);
+    if (!dispatch(HostAttachEvent{Size{content.width, content.height}, scale}).accepted())
+        throw std::runtime_error("Surface window attach rejected");
+    static_cast<void>(dispatch(HostCompositorEvent{surface_compositor_state()}));
+    if (entry.options.initially_visible) set_visible(true);
+}
+
+void NativeWindow::ready() {
+    const WindowAction show{weak_from_this(), runtime.actions, ActionKind::show};
+    const WindowAction hide{weak_from_this(), runtime.actions, ActionKind::hide};
+    const WindowAction close_window{weak_from_this(), runtime.actions, ActionKind::close};
+    if (entry.options.host_ready)
+        entry.options.host_ready(Wake{&runtime.queue}, close_window, Dialog{this}, ReadText{this}, WriteText{this});
+    if (entry.options.full_screen_ready)
+        entry.options.full_screen_ready(WindowAction{weak_from_this(), runtime.actions, ActionKind::fullscreen});
+    if (entry.options.title_ready) entry.options.title_ready(WindowTitle{weak_from_this()});
+    if (entry.options.client_size_ready) entry.options.client_size_ready(WindowClientSize{weak_from_this()});
+    if (entry.options.visibility_ready) entry.options.visibility_ready(show, hide);
+    if (is_primary(entry)) runtime.host.set_title(entry.options.title);
+}
+
+void NativeWindow::action(ActionKind kind) {
+    if (closed) return;
+    switch (kind) {
+    case ActionKind::close:
+        close(HostCloseReason::application);
+        break;
+    case ActionKind::show:
+        set_visible(true);
+        break;
+    case ActionKind::hide:
+        set_visible(false);
+        break;
+    case ActionKind::fullscreen:
+        // Only the primary window fills the surface the host can enlarge.
+        if (is_primary(entry)) runtime.host.toggle_full_screen();
+        break;
+    default:
+        break;
+    }
+}
+
+Size NativeWindow::minimum_size() const noexcept {
+    const Size minimum = entry.options.minimum_size;
+    return minimum;
+}
+
+void NativeWindow::close(HostCloseReason reason, bool force) {
+    if (closed) return;
+    if (force && reason == HostCloseReason::session_end)
+        static_cast<void>(dispatch(HostCloseRequest{reason, false, false}));
+    if (!force) {
+        const HostDispatchResult result = dispatch(HostCloseRequest{reason, false, entry.options.hide_on_close});
+        if (!result.accepted() || !result.close_allowed) return;
+        if (entry.options.hide_on_close) {
+            set_visible(false);
+            if (runtime.windowing && (*runtime.windowing).live(window_id))
+                (*runtime.windowing).report_hidden_on_close(window_id);
+            return;
+        }
+    }
+    closed = true;
+    const bool was_active = runtime.desk.active() == window_id;
+    if (visible) runtime.desk.set_visible(window_id, false);
+    visible = false;
+    static_cast<void>(dispatch(HostClosedEvent{reason}));
+    (*entry.model).set_dispatch_wake_handler({});
+    (*entry.model).set_live_surface_idle_wake_handler({});
+    (*entry.model).set_paint_wake_handler({});
+    install_schedule_wake(*entry.model, nullptr);
+    (*session).shutdown();
+    runtime.desk.remove(window_id);
+    runtime.scene_changed();
+    if (runtime.pressed_window == window_id) runtime.pressed_window = {};
+    if (runtime.pointer_window == window_id) runtime.pointer_window = {};
+    if (runtime.pressed_part.window == window_id) runtime.pressed_part = {};
+    if (entry.options.print_metrics_on_close)
+        std::cout << "{\"window\":" << (*entry.model).metrics_snapshot().to_json()
+                  << ",\"host\":" << (*session).snapshot().to_json() << "}\n";
+    // Retired before the closed callback, so the callback may open a
+    // replacement under the same stable id. A host dialog has no identity
+    // in the windowing table.
+    if (runtime.windowing && (*runtime.windowing).live(window_id)) (*runtime.windowing).retire(window_id);
+    if (was_active) runtime.activate_topmost();
+    if (entry.options.closed) entry.options.closed();
+}
+
+void NativeWindow::apply_content(Rect next) {
+    if (closed) return;
+    const Size before{content.width, content.height};
+    content = next;
+    const Size after{content.width, content.height};
+    if (after != before) {
+        static_cast<void>(dispatch(HostResizeEvent{after}));
+        damage.add({0.0, 0.0, after.width, after.height});
+        if (chrome) (*chrome).resize(after.width, scale);
+    }
+    runtime.scene_changed();
+    if (runtime.windowing) (*runtime.windowing).report_native_frame(*this);
+}
+
+void NativeWindow::apply_scale(double next) {
+    if (closed || !std::isfinite(next) || next <= 0.0 || next == scale) return;
+    scale = next;
+    static_cast<void>(dispatch(HostScaleEvent{scale}));
+    if (closed) return;
+    if (chrome) (*chrome).resize(content.width, scale);
+    // The whole window re-rasters at the new scale on the next frame.
+    damage.add({0.0, 0.0, content.width, content.height});
+    runtime.scene_changed();
+}
+
+void NativeWindow::set_visible(bool shown) {
+    if (closed || shown == visible) return;
+    visible = shown;
+    runtime.desk.set_visible(window_id, shown);
+    static_cast<void>(dispatch(HostOcclusionEvent{!shown || runtime.host_hidden}));
+    if (closed) return;
+    runtime.scene_changed();
+    if (shown) {
+        damage.add({0.0, 0.0, content.width, content.height});
+        const bool takes_focus = !entry.popup.has_value() || (*entry.popup).focus == HostPopupFocus::takes_focus;
+        if (takes_focus) runtime.activate(window_id, true);
+    } else if (runtime.desk.active() == window_id || active) {
+        runtime.activate_topmost();
+    }
+    if (runtime.windowing) (*runtime.windowing).report_native_frame(*this);
+}
+
+void NativeWindow::set_active(bool next) {
+    if (closed) return;
+    const bool keyed = next && runtime.host_focused;
+    if (chrome) (*chrome).set_active(next);
+    if (keyed == active) return;
+    active = keyed;
+    if (!active && composing) {
+        composing = false;
+        TextInputEvent cancel;
+        cancel.composing = true;
+        static_cast<void>(dispatch(std::move(cancel)));
+    }
+    static_cast<void>(dispatch(HostActivationEvent{active}));
+}
+
+void NativeWindow::refresh_chrome() {
+    if (!chrome) return;
+    const SurfaceWindowState state = runtime.desk.state(window_id);
+    const bool minimize = runtime.desk.box(window_id, SurfaceDeskPart::minimize_box).width > 0.0;
+    const bool maximize = runtime.desk.box(window_id, SurfaceDeskPart::maximize_box).width > 0.0;
+    (*chrome).set_boxes(minimize, maximize, state == SurfaceWindowState::maximized);
+}
+
+void NativeWindow::update_cursor(Point position) {
+    const Control::Ptr captured = (*entry.model).captured_control();
+    const Control::Ptr target = captured ? captured : (*entry.model).hit_test(position);
+    static_cast<void>((*services).set_custom_cursor(target ? (*target).effective_cursor_images() : CursorImagesPtr{},
+                                                    scale, target ? (*target).effective_cursor() : CursorKind::arrow));
+}
+
+void NativeWindow::pointer(PointerEvent event) {
+    if (closed) return;
+    const Point position = event.position;
+    const PointerAction action = event.action;
+    const PointerButton button = event.button;
+    static_cast<void>(dispatch(std::move(event)));
+    if (closed) return;
+    if (action == PointerAction::down && button == PointerButton::secondary)
+        static_cast<void>(dispatch(HostContextRequestEvent{ContextRequestOrigin::pointer, position}));
+    if (closed) return;
+    update_cursor(position);
+}
+
+HostWindowFrame NativeWindow::frame() const {
+    HostWindowFrame result;
+    result.content = content;
+    const std::optional<Rect> outer = runtime.desk.outer(window_id);
+    result.outer = outer.has_value() ? *outer : content;
+    result.outer_measured = runtime.desk.framed(window_id);
+    return result;
+}
+
+bool NativeWindow::has_compose_work() const noexcept {
+    const bool work = !composed.empty() || !chrome_composed.empty() || raster_resized || chrome_resized;
+    return work;
+}
+
+bool NativeWindow::wants_frames() const noexcept {
+    const bool wanted = !closed && (*entry.model).has_live_surface_presentations() && !live_idle;
+    return wanted;
+}
+
+void NativeWindow::update() {
+    if (closed) return;
+    if (entry.options.dispatch_pending) entry.options.dispatch_pending();
+    if (closed) return;
+    static_cast<void>((*entry.model).drain_posted_work());
+    static_cast<void>((*entry.model).poll_frame_schedule(std::chrono::steady_clock::now()));
+    if (closed) return;
+    if (chrome && visible) {
+        bool resized = false;
+        if ((*chrome).paint(chrome_composed, resized)) chrome_resized = chrome_resized || resized;
+    }
+    // Gather before taking damage: a new frame beneath an overlay damages the
+    // overlay's share, and that damage is taken with the rest.
+    const bool regions_taken = gather_live_frames();
+    const DamageRegion fresh = (*entry.model).take_damage();
+    live_idle = (*entry.model).has_live_surface_presentations() && live_updates.empty() && fresh.empty();
+    if (live_idle) (*entry.model).set_live_surface_idle_waiting(true);
+    taken_copies.clear();
+    (*entry.model).take_scroll_copies(taken_copies);
+    for (std::size_t index = 0U; index < taken_copies.size(); ++index) {
+        const ScrollCopy& copy = taken_copies[index];
+        if (!damage.empty()) damage = damage_after_scroll_copy(damage, copy.clip, copy.offset);
+        pending_copies.push_back(copy);
+    }
+    taken_copies.clear();
+    for (std::size_t index = 0U; index < fresh.rectangles().size(); ++index) damage.add(fresh.rectangles()[index]);
+    if (regions_taken) live_region_lost = true;
+    if (!pending_copies.empty()) {
+        for (std::size_t index = 0U; index < live_regions.size(); ++index) {
+            if (!live_regions[index].empty()) live_regions[index] = live_updates[index].clip;
+        }
+    }
+    DamageRegion screen = damage;
+    for (std::size_t index = 0U; index < live_regions.size(); ++index) {
+        if (!live_regions[index].empty()) screen.add(live_regions[index]);
+    }
+    for (std::size_t index = 0U; index < pending_copies.size(); ++index) screen.add(pending_copies[index].clip);
+    // A hidden or minimised window keeps its damage until it is shown.
+    if (!visible || !runtime.desk.shown(window_id) || screen.empty()) {
+        live_frames.clear();
+        return;
+    }
+    paint(screen, regions_taken);
+}
+
+void NativeWindow::paint(DamageRegion& screen, bool regions_taken) {
+    const Size logical{content.width, content.height};
+    const void* before = raster.pixels();
+    const std::uint32_t before_width = raster.pixel_width();
+    const std::uint32_t before_height = raster.pixel_height();
+    raster.resize(logical, scale);
+    raster_resized = raster_resized || before != raster.pixels() || before_width != raster.pixel_width() ||
+                     before_height != raster.pixel_height();
+    static_cast<void>(raster.synchronize_images((*entry.model).image_resources()));
+    const std::chrono::steady_clock::time_point started = std::chrono::steady_clock::now();
+    raster.begin_frame(screen);
+    applied_copy_clips.clear();
+    bool copies_applied = true;
+    for (std::size_t index = 0U; index < pending_copies.size(); ++index) {
+        const ScrollCopy& copy = pending_copies[index];
+        if (copies_applied) copies_applied = raster.scroll_copy(copy.clip, copy.offset);
+        applied_copy_clips.push_back(copy.clip);
+    }
+    pending_copies.clear();
+    if (!copies_applied) {
+        for (std::size_t index = 0U; index < applied_copy_clips.size(); ++index) damage.add(applied_copy_clips[index]);
+    }
+    compose_live_frames();
+    std::optional<PaintReceipt> receipt{};
+    if (!damage.empty()) {
+        receipt = (*entry.model).paint(raster, damage.rectangles());
+        const std::span<const Rect> painted = damage.rectangles();
+        for (std::size_t index = 0U; index < painted.size(); ++index) screen.add(painted[index]);
+    }
+    raster.end_frame();
+    live_frames.clear();
+    if (!damage.empty() && !receipt) {
+        for (std::size_t index = 0U; index < applied_copy_clips.size(); ++index) damage.add(applied_copy_clips[index]);
+        return;
+    }
+    // The rectangles the next compose copies: the screen's, on whole device
+    // pixels for the count.
+    std::array<SurfaceDeviceRect, maximum_compose_rects> device{};
+    const std::size_t count =
+        surface_device_rects(screen.rectangles(), scale, raster.pixel_width(), raster.pixel_height(), device);
+    PresentedArea copied;
+    for (std::size_t index = 0U; index < count; ++index) {
+        const std::uint64_t columns = static_cast<std::uint64_t>(device[index].right - device[index].left);
+        const std::uint64_t rows = static_cast<std::uint64_t>(device[index].bottom - device[index].top);
+        copied.device_pixels += columns * rows;
+    }
+    copied.rectangles = count;
+    const std::span<const Rect> changed = screen.rectangles();
+    for (std::size_t index = 0U; index < changed.size(); ++index) composed.push_back(changed[index]);
+    const std::uint64_t elapsed = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - started).count());
+    if (regions_taken) live_region_lost = false;
+    // Reported when the raster holds the frame, as the X11 host reports
+    // after XPutImage: the manager composes it into the surface from here.
+    const bool acknowledged = report_presented(receipt, elapsed, copied);
+    if (!receipt) return;
+    const PaintLeaseSnapshot lease = (*entry.model).paint_lease_snapshot();
+    const bool shown = acknowledged || (lease.surface_epoch == (*receipt).surface_epoch &&
+                                        lease.presented_revision == (*receipt).rendered_revision);
+    if (shown) damage.clear();
+}
+
+bool NativeWindow::gather_live_frames() {
+    live_updates.clear();
+    live_frames.clear();
+    live_frame_sources.clear();
+    live_regions.clear();
+    live_frame_pixels.clear();
+    live_frame_rectangles.clear();
+    if (!(*entry.model).has_live_surface_presentations()) return false;
+    live_updates = (*entry.model).take_live_surface_presentations();
+    const bool regions_usable = !live_region_lost;
+    bool regions_taken = false;
+    std::vector<Rect> changed_regions;
+    changed_regions.reserve(live_updates.size());
+    for (std::size_t index = 0U; index < live_updates.size(); ++index) {
+        const LiveSurfacePresentation& presentation = live_updates[index];
+        std::size_t source = live_frames.size();
+        for (std::size_t earlier = 0U; earlier < index; ++earlier) {
+            if (live_updates[earlier].surface == presentation.surface) {
+                source = live_frame_sources[earlier];
+                break;
+            }
+        }
+        if (source == live_frames.size()) {
+            LiveSurfaceFrame taken{};
+            if (presentation.surface) taken = (*presentation.surface).acquire_for_presentation(this);
+            if (taken) regions_taken = true;
+            Rect changed = presentation.clip;
+            if (!taken) {
+                changed = {};
+            } else if (presentation.damage_limited && regions_usable) {
+                changed = gui_forms::detail::live_damage_in_window(taken.damage(), presentation.destination,
+                                                                   taken.width(), taken.height(), scale);
+            }
+            live_frames.push_back(std::move(taken));
+            changed_regions.push_back(changed);
+            live_frame_pixels.push_back(0U);
+            live_frame_rectangles.push_back(0U);
+        }
+        live_frame_sources.push_back(source);
+        live_regions.push_back(Rect{});
+        const Rect changed = changed_regions[source];
+        const Rect region = presentation.damage_limited && regions_usable
+                                ? Rect::intersection(presentation.clip, changed)
+                                : (changed.empty() ? Rect{} : presentation.clip);
+        if (region.empty()) continue;
+        if (live_frames[source].opaque()) {
+            live_regions[index] = region;
+        } else {
+            damage.add(region);
+        }
+        const Rect aligned = gui_forms::detail::align_damage_outward(region, scale);
+        const std::uint64_t columns = static_cast<std::uint64_t>(std::lround(aligned.width * scale));
+        const std::uint64_t rows = static_cast<std::uint64_t>(std::lround(aligned.height * scale));
+        live_frame_pixels[source] += columns * rows;
+        ++live_frame_rectangles[source];
+    }
+    return regions_taken;
+}
+
+void NativeWindow::compose_live_frames() {
+    for (std::size_t index = 0U; index < live_regions.size(); ++index) {
+        const Rect region = live_regions[index];
+        if (region.empty()) continue;
+        raster.save();
+        raster.clip_rect(region);
+        const bool drawn = raster.draw_live_surface_frame(live_frames[live_frame_sources[index]],
+                                                          live_updates[index].destination, scale);
+        raster.restore();
+        if (drawn) {
+            (*entry.model).note_live_surface_presented(live_updates[index], region);
+            continue;
+        }
+        live_regions[index] = {};
+        damage.add(region);
+    }
+}
+
+bool NativeWindow::report_presented(const std::optional<PaintReceipt>& receipt, std::uint64_t elapsed,
+                                    PresentedArea copied) {
+    std::uint64_t live_pixels = 0U;
+    std::uint64_t live_frames_copied = 0U;
+    for (std::size_t index = 0U; index < live_frame_rectangles.size(); ++index) {
+        if (live_frame_rectangles[index] == 0U) continue;
+        live_pixels += live_frame_pixels[index];
+        ++live_frames_copied;
+    }
+    if (live_pixels > copied.device_pixels) live_pixels = copied.device_pixels;
+    bool acknowledged = false;
+    std::uint64_t live_elapsed = elapsed;
+    if (receipt) {
+        PresentedArea retained;
+        retained.device_pixels = copied.device_pixels - live_pixels;
+        retained.rectangles = copied.rectangles;
+        retained.copy_nanoseconds = copied.copy_nanoseconds;
+        live_elapsed = copied.device_pixels == 0U
+                           ? 0U
+                           : static_cast<std::uint64_t>(static_cast<double>(elapsed) *
+                                                        static_cast<double>(live_pixels) /
+                                                        static_cast<double>(copied.device_pixels));
+        acknowledged = (*entry.model).notify_presented(*receipt, elapsed - live_elapsed, retained);
+    }
+    const std::uint64_t live_duration = live_frames_copied == 0U ? 0U : live_elapsed / live_frames_copied;
+    for (std::size_t index = 0U; index < live_frame_rectangles.size(); ++index) {
+        if (live_frame_rectangles[index] == 0U) continue;
+        PresentedArea live;
+        live.device_pixels = live_frame_pixels[index];
+        live.rectangles = live_frame_rectangles[index];
+        (*entry.model).notify_live_presented(live_duration, live);
+    }
+    live_frame_rectangles.clear();
+    return acknowledged;
+}
+
+// ---------------------------------------------------------------------------
+// Runtime
+
+Runtime::Runtime(SurfaceHost& surface_host, std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts)
+    : host(surface_host), queue(surface_host.input()), fonts(std::move(run_fonts)),
+      actions(std::make_shared<ActionQueue>(surface_host.input())) {
+    const SurfaceHostStart start = host.start();
+    extent = Size{std::max(1.0, start.extent.width), std::max(1.0, start.extent.height)};
+    scale = std::isfinite(start.scale) && start.scale > 0.0 ? start.scale : 1.0;
+    desk.set_extent(extent);
+    layers_.reserve(4U * HostWindowing::maximum_windows + 1U);
+    device_rects_.reserve(maximum_compose_rects);
+}
+
+Runtime::~Runtime() {
+    // A copy: a closed callback may open a replacement window.
+    const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+    for (std::size_t index = snapshot.size(); index > 0U; --index)
+        (*snapshot[index - 1U]).close(HostCloseReason::application, true);
+    // The host's surface is its own, so nothing it may still read goes with
+    // the windows.
+    windows.clear();
+}
+
+std::shared_ptr<NativeWindow> Runtime::add(SurfaceApplicationWindow entry, HostWindowId window_id, Rect content,
+                                           bool initial) {
+    const std::shared_ptr<NativeWindow> window =
+        std::make_shared<NativeWindow>(*this, std::move(entry), window_id, content, initial);
+    windows.push_back(window);
+    (*window).attach();
+    scene_dirty_ = true;
+    return window;
+}
+
+NativeWindow* Runtime::window(HostWindowId window_id) noexcept {
+    for (std::size_t index = 0U; index < windows.size(); ++index) {
+        NativeWindow& candidate = *windows[index];
+        if (!candidate.closed && candidate.window_id == window_id) return &candidate;
+    }
+    return nullptr;
+}
+
+bool Runtime::primary_open() const noexcept {
+    bool open = false;
+    for (std::size_t index = 0U; index < windows.size(); ++index) {
+        const NativeWindow& candidate = *windows[index];
+        if (!candidate.closed && candidate.initial && is_primary(candidate.entry)) open = true;
+    }
+    return open;
+}
+
+NativeWindow* Runtime::keyboard_window() noexcept {
+    NativeWindow* found = window(desk.active());
+    if (found != nullptr && desk.blocked((*found).window_id)) found = nullptr;
+    return found;
+}
+
+void Runtime::activation_moved(HostWindowId before) {
+    const HostWindowId after = desk.active();
+    scene_dirty_ = true;
+    if (before == after) return;
+    NativeWindow* lost = window(before);
+    if (lost != nullptr) (*lost).set_active(false);
+    NativeWindow* gained = window(after);
+    if (gained != nullptr) (*gained).set_active(true);
+}
+
+void Runtime::activate(HostWindowId target, bool takes_focus) {
+    const HostWindowId before = desk.active();
+    const HostWindowId after = desk.activate(target, takes_focus);
+    scene_dirty_ = true;
+    if (before == after) {
+        NativeWindow* same = window(after);
+        if (same != nullptr) (*same).set_active(true);
+        return;
+    }
+    activation_moved(before);
+}
+
+void Runtime::activate_topmost() {
+    const HostWindowId before = desk.active();
+    static_cast<void>(desk.activate_topmost());
+    activation_moved(before);
+}
+
+bool Runtime::minimize_window(HostWindowId target) {
+    NativeWindow* found = window(target);
+    if (found == nullptr) return false;
+    const HostWindowId before = desk.active();
+    if (!desk.minimize(target)) return false;
+    if (pressed_window.valid() && !desk.shown(pressed_window)) pressed_window = {};
+    activation_moved(before);
+    static_cast<void>((*found).dispatch(HostOcclusionEvent{true}));
+    if (windowing && (*windowing).live(target)) (*windowing).report_minimized(target, true);
+    return true;
+}
+
+bool Runtime::maximize_window(HostWindowId target) {
+    NativeWindow* found = window(target);
+    if (found == nullptr || !desk.maximize(target)) return false;
+    const std::optional<Rect> placed = desk.content(target);
+    if (placed.has_value()) (*found).apply_content(*placed);
+    (*found).refresh_chrome();
+    scene_dirty_ = true;
+    return true;
+}
+
+bool Runtime::restore_window(HostWindowId target) {
+    NativeWindow* found = window(target);
+    if (found == nullptr) return false;
+    const bool was_minimized = desk.state(target) == SurfaceWindowState::minimized;
+    if (!desk.restore(target)) return false;
+    const std::optional<Rect> placed = desk.content(target);
+    if (placed.has_value()) (*found).apply_content(*placed);
+    (*found).refresh_chrome();
+    scene_dirty_ = true;
+    if (was_minimized) {
+        static_cast<void>((*found).dispatch(HostOcclusionEvent{host_hidden}));
+        if (windowing && (*windowing).live(target)) (*windowing).report_minimized(target, false);
+        activate(target, true);
+    }
+    return true;
+}
+
+bool Runtime::toggle_maximized(HostWindowId target) {
+    const SurfaceWindowState state = desk.state(target);
+    const bool changed = state == SurfaceWindowState::maximized ? restore_window(target) : maximize_window(target);
+    return changed;
+}
+
+void Runtime::show_cursor(CursorKind cursor) {
+    if (host.draws_cursor()) {
+        host.set_cursor(cursor);
+        return;
+    }
+    if (cursor == cursor_kind_) return;
+    cursor_kind_ = cursor;
+    scene_dirty_ = true;
+}
+
+void Runtime::damage_surface() noexcept {
+    surface_damage_.add({0.0, 0.0, extent.width, extent.height});
+    scene_dirty_ = true;
+}
+
+void Runtime::reclaim() {
+    // The host never reads a window's raster (the surface holds copies), so
+    // a closed runtime window goes at once.
+    for (std::size_t index = windows.size(); index > 0U; --index) {
+        const NativeWindow& candidate = *windows[index - 1U];
+        if (candidate.initial || !candidate.closed) continue;
+        windows.erase(windows.begin() + static_cast<std::ptrdiff_t>(index - 1U));
+        scene_dirty_ = true;
+    }
+}
+
+std::optional<std::chrono::steady_clock::time_point> Runtime::next_deadline(bool& immediate) {
+    bool work = scene_dirty_;
+    for (std::size_t index = 0U; index < windows.size() && !work; ++index) {
+        if ((*windows[index]).has_compose_work()) work = true;
+    }
+    immediate = work && !present_pending_ && !surface_inactive_;
+    std::optional<std::chrono::steady_clock::time_point> deadline{};
+    for (std::size_t index = 0U; index < windows.size(); ++index) {
+        const NativeWindow& candidate = *windows[index];
+        if (candidate.closed) continue;
+        const std::optional<FrameTime> wake = (*candidate.entry.model).next_wake();
+        if (!wake) continue;
+        if (!deadline.has_value() || *wake < *deadline) deadline = *wake;
+    }
+    return deadline;
+}
+
+PendingDialog Runtime::wait_for_dialog(std::uint64_t ticket) {
+    PendingDialog pending{};
+    pending.ticket = ticket;
+    dialogs_.push_back(&pending);
+    while (!pending.done && !quitting && primary_open()) step();
+    for (std::size_t index = dialogs_.size(); index > 0U; --index) {
+        if (dialogs_[index - 1U] == &pending) {
+            dialogs_.erase(dialogs_.begin() + static_cast<std::ptrdiff_t>(index - 1U));
+            break;
+        }
+    }
+    if (!pending.done) pending.outcome = SurfaceDialogOutcome::cancelled;
+    return pending;
+}
+
+void Runtime::step() {
+    bool immediate = false;
+    const std::optional<std::chrono::steady_clock::time_point> deadline = next_deadline(immediate);
+    std::optional<std::chrono::steady_clock::time_point> wait = deadline;
+    if (immediate) wait = std::chrono::steady_clock::now();
+    static_cast<void>(queue.take(records_, wait));
+    // The queued show, hide, close and full-screen requests.
+    std::deque<Action> queued;
+    {
+        const std::lock_guard<std::mutex> guard((*actions).mutex);
+        queued.swap((*actions).pending);
+    }
+    for (std::size_t index = 0U; index < queued.size(); ++index) {
+        const std::shared_ptr<NativeWindow> target = queued[index].window.lock();
+        if (target) (*target).action(queued[index].kind);
+    }
+    // One record is the native callback of this loop: application code runs
+    // under it, so it goes through the fail-fast boundary. Taken records
+    // are moved out first, since a nested turn (a modal loop) takes again.
+    std::deque<SurfaceInputRecord> taken;
+    taken.swap(records_);
+    for (std::size_t index = 0U; index < taken.size(); ++index)
+        gui_forms::detail::call_failing_fast("surface.input_record", &Runtime::handle, *this, taken[index]);
+    taken.clear();
+    if (records_.empty()) records_.swap(taken);
+    const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+    bool wanted = false;
+    for (std::size_t index = 0U; index < snapshot.size(); ++index) {
+        NativeWindow& candidate = *snapshot[index];
+        candidate.update();
+        if (candidate.wants_frames()) wanted = true;
+    }
+    if (wanted != frames_wanted_) {
+        frames_wanted_ = wanted;
+        host.want_frames(wanted);
+    }
+    compose();
+    place_input();
+}
+
+Rect Runtime::cursor_rect() const noexcept {
+    if (host.draws_cursor() || !cursor_inside_ || cursor_sprite_.width == 0U) return Rect{};
+    const Rect rect{pointer_position.x - static_cast<double>(cursor_sprite_.hotspot_x) / scale,
+                    pointer_position.y - static_cast<double>(cursor_sprite_.hotspot_y) / scale,
+                    static_cast<double>(cursor_sprite_.width) / scale,
+                    static_cast<double>(cursor_sprite_.height) / scale};
+    return rect;
+}
+
+// The surface's damage since the last compose: the scene's differences
+// (layers moved, sized, restacked, shown, hidden or changed state; tabs
+// changed), each shown window's painted rectangles, its strip's, and the
+// drawn cursor's old and new places.
+void Runtime::gather_damage() {
+    desk.scene(quads_);
+    desk.tabs(tabs_);
+    const std::size_t count = std::max(quads_.size(), composed_quads_.size());
+    for (std::size_t index = 0U; index < count; ++index) {
+        const bool before = index < composed_quads_.size();
+        const bool now = index < quads_.size();
+        if (before && now && composed_quads_[index] == quads_[index]) continue;
+        if (before) surface_damage_.add(composed_quads_[index].outer);
+        if (now) surface_damage_.add(quads_[index].outer);
+    }
+    bool tabs_changed = tabs_.size() != composed_tabs_.size();
+    for (std::size_t index = 0U; index < tabs_.size() && !tabs_changed; ++index) {
+        tabs_changed = tabs_[index].window != composed_tabs_[index].window ||
+                       tabs_[index].bounds != composed_tabs_[index].bounds;
+    }
+    const SurfaceFrameTheme& theme = desk.theme();
+    const Rect tab_band{0.0, extent.height - theme.tab_height - 2.0 * theme.tab_gap, extent.width,
+                        theme.tab_height + 2.0 * theme.tab_gap};
+    if (tabs_changed) surface_damage_.add(tab_band);
+    // A window's rectangles land a device pixel either way of where its
+    // logical origin rounds, so they are widened by one.
+    const double slack = 1.0 / scale;
+    for (std::size_t index = 0U; index < windows.size(); ++index) {
+        NativeWindow& candidate = *windows[index];
+        if (candidate.closed || !desk.shown(candidate.window_id)) {
+            if (candidate.chrome && !candidate.chrome_composed.empty() && !candidate.closed &&
+                desk.state(candidate.window_id) == SurfaceWindowState::minimized)
+                surface_damage_.add(tab_band);
+            candidate.chrome_composed.clear();
+            continue;
+        }
+        const Rect client = candidate.content;
+        if (candidate.raster_resized) {
+            surface_damage_.add(client);
+        } else {
+            for (std::size_t rect = 0U; rect < candidate.composed.size(); ++rect) {
+                const Rect local = candidate.composed[rect];
+                surface_damage_.add(Rect{client.x + local.x - slack, client.y + local.y - slack,
+                                         local.width + 2.0 * slack, local.height + 2.0 * slack});
+            }
+        }
+        candidate.composed.clear();
+        candidate.raster_resized = false;
+        if (candidate.chrome) {
+            const std::optional<Rect> outer = desk.outer(candidate.window_id);
+            const double strip_top = outer.has_value() ? (*outer).y + theme.border_width : client.y;
+            if (candidate.chrome_resized) {
+                surface_damage_.add(Rect{client.x, strip_top, client.width, client.y - strip_top});
+            } else {
+                for (std::size_t rect = 0U; rect < candidate.chrome_composed.size(); ++rect) {
+                    const Rect local = candidate.chrome_composed[rect];
+                    surface_damage_.add(Rect{client.x + local.x - slack, strip_top + local.y - slack,
+                                             local.width + 2.0 * slack, local.height + 2.0 * slack});
+                }
+            }
+            candidate.chrome_composed.clear();
+            candidate.chrome_resized = false;
+        }
+    }
+    // The drawn cursor: a new sprite when its kind or the scale changed.
+    if (!host.draws_cursor()) {
+        const std::uint32_t factor = static_cast<std::uint32_t>(std::max(1.0, std::round(scale)));
+        if (cursor_sprite_.width == 0U || cursor_sprite_kind_ != cursor_kind_ || cursor_sprite_factor_ != factor) {
+            surface_cursor_sprite(cursor_kind_, factor, cursor_sprite_);
+            cursor_sprite_kind_ = cursor_kind_;
+            cursor_sprite_factor_ = factor;
+        }
+        const Rect now = cursor_rect();
+        if (now != cursor_composed_) {
+            if (!cursor_composed_.empty()) surface_damage_.add(cursor_composed_);
+            if (!now.empty()) surface_damage_.add(now);
+        }
+    }
+}
+
+// The scene back to front, in device pixels: each layer's edge, title strip
+// and client raster, then the tabs, then the drawn cursor.
+void Runtime::build_layers() {
+    layers_.clear();
+    const SurfaceFrameTheme& theme = desk.theme();
+    for (std::size_t index = 0U; index < quads_.size(); ++index) {
+        const SurfaceDeskQuad& quad = quads_[index];
+        NativeWindow* found = window(quad.window);
+        if (found == nullptr || (*found).raster.pixels() == nullptr) continue;
+        const NativeWindow& target = *found;
+        if (quad.framed) {
+            layers_.push_back(
+                solid_layer(device_rect(quad.outer, scale), quad.active ? theme.border_active : theme.border_inactive));
+            if (target.chrome && (*target.chrome).raster().pixels() != nullptr) {
+                const std::int32_t left = device_coordinate(quad.content.x, scale);
+                const std::int32_t top = device_coordinate(quad.outer.y + theme.border_width, scale);
+                SurfaceComposeLayer strip = image_layer((*target.chrome).raster(), left, top, false);
+                // The strip never covers the client area beneath it.
+                strip.bounds.bottom = std::min(strip.bounds.bottom, device_coordinate(quad.content.y, scale));
+                layers_.push_back(strip);
+            }
+        }
+        const bool blended = target.entry.popup.has_value() || target.present_alpha;
+        layers_.push_back(image_layer(target.raster, device_coordinate(quad.content.x, scale),
+                                      device_coordinate(quad.content.y, scale), blended));
+    }
+    // A tab is an edge around the left part of the window's title strip,
+    // until the theme engine supplies a tab part (an owner choice of
+    // 2026-11-15).
+    for (std::size_t index = 0U; index < tabs_.size(); ++index) {
+        const SurfaceDeskTab& tab = tabs_[index];
+        NativeWindow* found = window(tab.window);
+        if (found == nullptr) continue;
+        const SurfaceDeviceRect bounds = device_rect(tab.bounds, scale);
+        layers_.push_back(solid_layer(bounds, theme.border_inactive));
+        if ((*found).chrome && (*(*found).chrome).raster().pixels() != nullptr) {
+            const std::int32_t inset = std::max<std::int32_t>(1, device_coordinate(theme.border_width, scale));
+            SurfaceComposeLayer strip = image_layer((*(*found).chrome).raster(), bounds.left + inset,
+                                                    bounds.top + inset, false);
+            strip.bounds.right = std::min(strip.bounds.right, bounds.right - inset);
+            strip.bounds.bottom = std::min(strip.bounds.bottom, bounds.bottom - inset);
+            layers_.push_back(strip);
+        }
+    }
+    const Rect cursor = cursor_rect();
+    if (!cursor.empty()) {
+        SurfaceComposeLayer sprite{};
+        sprite.kind = SurfaceLayerKind::blended_image;
+        sprite.pixels = cursor_sprite_.pixels.data();
+        sprite.row_bytes = static_cast<std::size_t>(cursor_sprite_.width) * 4U;
+        sprite.width = cursor_sprite_.width;
+        sprite.height = cursor_sprite_.height;
+        const std::int32_t left = device_coordinate(pointer_position.x, scale) - cursor_sprite_.hotspot_x;
+        const std::int32_t top = device_coordinate(pointer_position.y, scale) - cursor_sprite_.hotspot_y;
+        sprite.bounds = SurfaceDeviceRect{left, top, left + static_cast<std::int32_t>(sprite.width),
+                                          top + static_cast<std::int32_t>(sprite.height)};
+        layers_.push_back(sprite);
+    }
+}
+
+void Runtime::compose() {
+    // While the host reads the last present, or another surface holds the
+    // screen, the surface is left alone; the damage waits.
+    if (present_pending_ || surface_inactive_) return;
+    gather_damage();
+    scene_dirty_ = false;
+    if (surface_damage_.empty()) {
+        composed_quads_ = quads_;
+        composed_tabs_ = tabs_;
+        return;
+    }
+    const std::uint32_t width = device_extent(extent.width, scale);
+    const std::uint32_t height = device_extent(extent.height, scale);
+    if (view_.pixels == nullptr || view_.width != width || view_.height != height) {
+        view_ = host.acquire_surface(width, height);
+        if (view_.pixels == nullptr || view_.width != width || view_.height != height ||
+            view_.row_bytes < static_cast<std::size_t>(width) * 4U) {
+            view_ = SurfaceView{};
+            scene_dirty_ = true;
+            return;
+        }
+        // A new surface holds nothing yet.
+        surface_damage_.add({0.0, 0.0, extent.width, extent.height});
+    }
+    std::array<SurfaceDeviceRect, maximum_compose_rects> device{};
+    const std::size_t count = surface_device_rects(surface_damage_.rectangles(), scale, width, height, device);
+    composed_quads_ = quads_;
+    composed_tabs_ = tabs_;
+    cursor_composed_ = cursor_rect();
+    if (count == 0U) {
+        surface_damage_.clear();
+        return;
+    }
+    build_layers();
+    const SurfaceTarget target{view_.pixels, view_.row_bytes, view_.width, view_.height};
+    const SurfacePixel background = surface_opaque_pixel(desk.theme().background);
+    device_rects_.assign(device.begin(), device.begin() + static_cast<std::ptrdiff_t>(count));
+    for (std::size_t index = 0U; index < device_rects_.size(); ++index)
+        surface_compose(target, device_rects_[index], background, layers_);
+    const SurfacePresentResult result = host.present(device_rects_);
+    switch (result) {
+    case SurfacePresentResult::presented:
+        surface_damage_.clear();
+        break;
+    case SurfacePresentResult::pending:
+        surface_damage_.clear();
+        present_pending_ = true;
+        break;
+    case SurfacePresentResult::inactive:
+        surface_inactive_ = true;
+        break;
+    case SurfacePresentResult::failed:
+    default:
+        // Kept for the next turn.
+        scene_dirty_ = true;
+        break;
+    }
+}
+
+void Runtime::place_input() {
+    NativeWindow* target = keyboard_window();
+    std::optional<Rect> caret{};
+    if (target != nullptr && !(*target).closed) {
+        const std::optional<Rect> local = (*(*target).entry.model).text_input_caret();
+        if (local.has_value())
+            caret = Rect{(*local).x + (*target).content.x, (*local).y + (*target).content.y, (*local).width,
+                         (*local).height};
+    }
+    const bool editing = caret.has_value();
+    if (caret == placed_caret_ && editing == placed_editing_) return;
+    placed_caret_ = caret;
+    placed_editing_ = editing;
+    const Rect box = caret.has_value() ? *caret : Rect{};
+    host.place_text_input(box, editing);
+}
+
+SurfaceDeskHit Runtime::pointer_target(Point point) const noexcept {
+    SurfaceDeskHit hit = desk.hit(point);
+    if (!pressed_window.valid()) return hit;
+    const std::optional<Rect> content = desk.content(pressed_window);
+    if (!content.has_value()) return hit;
+    hit.window = pressed_window;
+    hit.part = SurfaceDeskPart::client;
+    hit.local = Point{point.x - (*content).x, point.y - (*content).y};
+    return hit;
+}
+
+void Runtime::handle(SurfaceInputRecord& record) {
+    switch (record.kind) {
+    case SurfaceInputKind::pointer:
+        handle_pointer(record);
+        break;
+    case SurfaceInputKind::wheel:
+        handle_wheel(record);
+        break;
+    case SurfaceInputKind::key:
+        handle_key(record);
+        break;
+    case SurfaceInputKind::text:
+        handle_text(record, false);
+        break;
+    case SurfaceInputKind::composition:
+        handle_text(record, true);
+        break;
+    case SurfaceInputKind::clipboard:
+        clipboard_text = std::move(record.text);
+        ++clipboard_generation;
+        break;
+    case SurfaceInputKind::resize:
+        handle_resize(record);
+        break;
+    case SurfaceInputKind::focus: {
+        host_focused = record.down;
+        NativeWindow* active_window = window(desk.active());
+        if (active_window != nullptr) (*active_window).set_active(true);
+        if (windowing) (*windowing).report_application_active(host_focused);
+        break;
+    }
+    case SurfaceInputKind::visibility: {
+        host_hidden = record.down;
+        const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+        for (std::size_t index = 0U; index < snapshot.size(); ++index) {
+            NativeWindow& candidate = *snapshot[index];
+            if (candidate.closed || !candidate.visible) continue;
+            static_cast<void>(candidate.dispatch(HostOcclusionEvent{host_hidden}));
+        }
+        break;
+    }
+    case SurfaceInputKind::presented:
+        present_pending_ = false;
+        break;
+    case SurfaceInputKind::activation:
+        surface_inactive_ = !record.down;
+        if (record.down) damage_surface();
+        break;
+    case SurfaceInputKind::frame:
+        // The turn's update follows: live surfaces sample.
+        break;
+    case SurfaceInputKind::dialog:
+        for (std::size_t index = 0U; index < dialogs_.size(); ++index) {
+            PendingDialog& pending = *dialogs_[index];
+            if (pending.ticket != record.request) continue;
+            pending.done = true;
+            pending.outcome = record.outcome;
+            pending.text = std::move(record.text);
+            pending.paths = std::move(record.paths);
+            break;
+        }
+        break;
+    case SurfaceInputKind::drop:
+        handle_drop(record);
+        break;
+    case SurfaceInputKind::fonts: {
+        // A font group arrived: text that fell back may now find its face.
+        const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+        for (std::size_t index = 0U; index < snapshot.size(); ++index) {
+            NativeWindow& candidate = *snapshot[index];
+            if (candidate.closed) continue;
+            candidate.damage.add({0.0, 0.0, candidate.content.width, candidate.content.height});
+        }
+        break;
+    }
+    case SurfaceInputKind::close: {
+        quitting = true;
+        const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+        for (std::size_t index = snapshot.size(); index > 0U; --index)
+            (*snapshot[index - 1U]).close(HostCloseReason::session_end, true);
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+void Runtime::leave_pointer_window(Point point) {
+    NativeWindow* left = window(pointer_window);
+    if (left == nullptr || pressed_window.valid()) return;
+    PointerEvent event;
+    event.action = PointerAction::leave;
+    event.pointer_id = 1U;
+    event.position = Point{point.x - (*left).content.x, point.y - (*left).content.y};
+    pointer_window = {};
+    (*left).pointer(std::move(event));
+}
+
+// A press on a frame: a box or tab is acted on at its release over the same
+// part; a double click on the title bar maximises or restores; the title
+// bar and the grips start a frame drag.
+void Runtime::handle_frame_press(const SurfaceInputRecord& record, const SurfaceDeskHit& hit) {
+    if (record.button != PointerButton::primary) return;
+    if (frame_part_clicks(hit.part)) {
+        pressed_part = PressedPart{hit.window, hit.part};
+        return;
+    }
+    if (hit.part == SurfaceDeskPart::title_bar) {
+        const std::uint32_t clicks =
+            next_surface_click_count(title_clicks_, record.button, record.time, record.position,
+                                     default_double_click_milliseconds, default_double_click_distance);
+        if (clicks == 2U && desk.box(hit.window, SurfaceDeskPart::maximize_box).width > 0.0) {
+            static_cast<void>(toggle_maximized(hit.window));
+            return;
+        }
+    }
+    if (desk.begin_frame_drag(hit.window, hit.part, record.position)) host.pointer_capture(true);
+}
+
+void Runtime::handle_pointer(const SurfaceInputRecord& record) {
+    const Point point = record.position;
+    const SurfacePointerAction action = record.action;
+    pointer_position = point;
+    if (!host.draws_cursor()) {
+        cursor_inside_ = action != SurfacePointerAction::leave;
+        scene_dirty_ = true;
+    }
+    // A frame drag owns the pointer until its release.
+    if (desk.frame_dragging()) {
+        if (action == SurfacePointerAction::move) {
+            const HostWindowId dragged = desk.frame_drag_window();
+            const std::optional<Rect> moved = desk.frame_drag_to(point);
+            NativeWindow* target = window(dragged);
+            if (moved.has_value() && target != nullptr) (*target).apply_content(*moved);
+            return;
+        }
+        if (action == SurfacePointerAction::up || action == SurfacePointerAction::cancel) {
+            desk.end_frame_drag();
+            host.pointer_capture(false);
+        }
+        return;
+    }
+    if (action == SurfacePointerAction::leave) {
+        leave_pointer_window(point);
+        return;
+    }
+    const SurfaceDeskHit hit = pointer_target(point);
+    if (action == SurfacePointerAction::down) {
+        if (!hit.window.valid()) return;
+        if (hit.part == SurfaceDeskPart::minimized_tab) {
+            pressed_part = PressedPart{hit.window, hit.part};
+            return;
+        }
+        // A passive popup never takes the keyboard from its owner.
+        const NativeWindow* pressed = window(hit.window);
+        const bool passive = pressed != nullptr && (*pressed).entry.popup.has_value() &&
+                             (*(*pressed).entry.popup).focus != HostPopupFocus::takes_focus;
+        activate(hit.window, !passive);
+        if (desk.blocked(hit.window)) return;
+        if (hit.part != SurfaceDeskPart::client) {
+            handle_frame_press(record, hit);
+            return;
+        }
+    }
+    if ((action == SurfacePointerAction::up || action == SurfacePointerAction::cancel) && pressed_part.window.valid()) {
+        const PressedPart pressed = pressed_part;
+        pressed_part = {};
+        const bool over = action == SurfacePointerAction::up && hit.window == pressed.window &&
+                          hit.part == pressed.part;
+        if (!over) return;
+        switch (pressed.part) {
+        case SurfaceDeskPart::close_box: {
+            NativeWindow* target = window(pressed.window);
+            if (target != nullptr) (*target).close(HostCloseReason::user);
+            break;
+        }
+        case SurfaceDeskPart::minimize_box:
+            static_cast<void>(minimize_window(pressed.window));
+            break;
+        case SurfaceDeskPart::maximize_box:
+            static_cast<void>(toggle_maximized(pressed.window));
+            break;
+        case SurfaceDeskPart::minimized_tab:
+            static_cast<void>(restore_window(pressed.window));
+            break;
+        default:
+            break;
+        }
+        return;
+    }
+    // Frame parts and tabs: their cursor, and the client window under the
+    // pointer left.
+    if (hit.part != SurfaceDeskPart::client || desk.blocked(hit.window)) {
+        leave_pointer_window(point);
+        show_cursor(frame_part_cursor(hit.part));
+        return;
+    }
+    NativeWindow* target = window(hit.window);
+    if (target == nullptr) return;
+    if (pointer_window != hit.window) {
+        leave_pointer_window(point);
+        pointer_window = hit.window;
+        PointerEvent enter;
+        enter.action = PointerAction::enter;
+        enter.pointer_id = 1U;
+        enter.position = hit.local;
+        enter.modifiers = record.modifiers;
+        (*target).pointer(std::move(enter));
+        if ((*target).closed) return;
+        show_cursor((*target).current_cursor);
+    }
+    PointerEvent event;
+    event.pointer_id = 1U;
+    event.position = hit.local;
+    event.modifiers = record.modifiers;
+    switch (action) {
+    case SurfacePointerAction::down:
+        event.action = PointerAction::down;
+        event.button = record.button;
+        static_cast<void>(next_surface_click_count((*target).click_history, event.button, record.time, hit.local,
+                                                   default_double_click_milliseconds,
+                                                   default_double_click_distance));
+        event.click_count = (*target).click_history.count;
+        pressed_window = hit.window;
+        break;
+    case SurfacePointerAction::up:
+    case SurfacePointerAction::cancel:
+        event.action = PointerAction::up;
+        event.button = record.button;
+        event.click_count = (*target).click_history.count;
+        pressed_window = {};
+        break;
+    case SurfacePointerAction::enter:
+    case SurfacePointerAction::move:
+        event.action = PointerAction::move;
+        event.click_count = 0U;
+        break;
+    default:
+        return;
+    }
+    (*target).pointer(std::move(event));
+}
+
+void Runtime::handle_wheel(const SurfaceInputRecord& record) {
+    const SurfaceDeskHit hit = desk.hit(record.position);
+    if (!hit.window.valid() || hit.part != SurfaceDeskPart::client || desk.blocked(hit.window)) return;
+    NativeWindow* target = window(hit.window);
+    if (target == nullptr) return;
+    const SurfaceWheel wheel = surface_wheel(record.wheel_delta, record.wheel_unit, (*target).content.height);
+    PointerEvent event;
+    event.action = PointerAction::wheel;
+    event.pointer_id = 1U;
+    event.position = hit.local;
+    event.modifiers = record.modifiers;
+    event.wheel_delta = wheel.delta;
+    event.wheel_unit = wheel.unit;
+    event.click_count = 0U;
+    (*target).pointer(std::move(event));
+}
+
+void Runtime::handle_key(const SurfaceInputRecord& record) {
+    NativeWindow* target = keyboard_window();
+    if (target == nullptr) return;
+    KeyEvent key;
+    key.action = record.down ? KeyAction::down : KeyAction::up;
+    key.physical_key = record.physical_key;
+    key.modifiers = record.modifiers;
+    key.repeat = record.repeat;
+    const HostDispatchResult result = (*target).dispatch(key);
+    if ((*target).closed) return;
+    const bool context_key = record.down && !result.handled && !key.repeat &&
+                             surface_requests_keyboard_context(key.physical_key, key.modifiers);
+    if (context_key)
+        static_cast<void>((*target).dispatch(HostContextRequestEvent{ContextRequestOrigin::keyboard, Point{}}));
+}
+
+void Runtime::handle_text(const SurfaceInputRecord& record, bool composition) {
+    NativeWindow* target = keyboard_window();
+    if (target == nullptr) return;
+    if (!validate_utf8(record.text).valid()) return;
+    TextInputEvent text;
+    text.text_utf8 = record.text;
+    text.composing = composition;
+    if (composition) {
+        (*target).composing = !record.text.empty();
+    } else {
+        (*target).composing = false;
+        if (text.text_utf8.empty()) return;
+    }
+    static_cast<void>((*target).dispatch(std::move(text)));
+}
+
+void Runtime::handle_resize(const SurfaceInputRecord& record) {
+    const Size next{std::max(1.0, record.extent.width), std::max(1.0, record.extent.height)};
+    const double ratio = std::isfinite(record.scale) && record.scale > 0.0 ? record.scale : scale;
+    const bool rescaled = ratio != scale;
+    extent = next;
+    scale = ratio;
+    desk.set_extent(extent);
+    damage_surface();
+    const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+    for (std::size_t index = 0U; index < snapshot.size(); ++index) {
+        NativeWindow& candidate = *snapshot[index];
+        if (candidate.closed) continue;
+        if (rescaled) candidate.apply_scale(scale);
+        if (candidate.closed) continue;
+        // The desk keeps every layer's frame top reachable; the primary
+        // window fills the surface, a maximised one all of it.
+        const std::optional<Rect> placed = desk.content(candidate.window_id);
+        if (placed.has_value() && *placed != candidate.content) {
+            candidate.apply_content(*placed);
+        } else if (windowing) {
+            (*windowing).report_native_frame(candidate);
+        }
+    }
+}
+
+void Runtime::handle_drop(const SurfaceInputRecord& record) {
+    const SurfaceDeskHit hit = desk.hit(record.position);
+    if (!hit.window.valid() || hit.part != SurfaceDeskPart::client || desk.blocked(hit.window)) return;
+    NativeWindow* target = window(hit.window);
+    if (target == nullptr || record.paths.empty()) return;
+    DragFileListData files;
+    for (std::size_t index = 0U; index < record.paths.size() && index < DragLimits::maximum_paths; ++index)
+        files.paths_utf8.push_back(record.paths[index]);
+    // The host delivers the files after the drop, so the program sees the
+    // whole gesture at once: an enter, then the drop or a leave.
+    DragEvent drag;
+    drag.session_id = ++drag_sessions_;
+    drag.allowed_effects = DragEffect::copy;
+    drag.items.push_back(std::move(files));
+    drag.position = hit.local;
+    drag.modifiers = record.modifiers;
+    drag.action = DragAction::enter;
+    const bool accepted = (*target).dispatch(drag).drag_effect == DragEffect::copy;
+    if ((*target).closed) return;
+    drag.handled = false;
+    drag.accepted_effect = DragEffect::none;
+    drag.action = accepted ? DragAction::drop : DragAction::leave;
+    static_cast<void>((*target).dispatch(drag));
+}
+
+// ---------------------------------------------------------------------------
+// The run
+
+HostWindowAdmission RunOpen::operator()(SurfaceApplicationWindow entry) const {
+    HostWindowAdmission refused;
+    const std::shared_ptr<RunOpenState> state = owner.lock();
+    if (!state || (*state).windowing == nullptr) {
+        refused.status.error = HostServiceError::after_shutdown;
+        return refused;
+    }
+    if ((*state).thread != std::this_thread::get_id()) {
+        refused.status.error = HostServiceError::wrong_thread;
+        return refused;
+    }
+    const HostWindowAdmission admission = (*(*state).windowing).open(std::move(entry), true);
+    return admission;
+}
+
+WindowingEndGuard::~WindowingEndGuard() {
+    (*state_).windowing = nullptr;
+    try {
+        if ((*options_).windowing_ended) (*options_).windowing_ended();
+    } catch (...) {
+    }
+    (*windowing_).shutdown();
+}
+
+CompositorState surface_compositor_state() {
+    // The manager composes every layer with premultiplied alpha. A window's
+    // layer is transparent when its backdrop is granted; the materials are
+    // not offered.
+    CompositorState state{};
+    state.generation = CompositorGeneration{1U};
+    state.compositing = CompositorPresence::present;
+    state.support[static_cast<std::size_t>(WindowBackdrop::transparent)] = WindowBackdropSupport::supported;
+    state.support[static_cast<std::size_t>(WindowBackdrop::window_material)] = WindowBackdropSupport::host_unsupported;
+    state.support[static_cast<std::size_t>(WindowBackdrop::transient_material)] =
+        WindowBackdropSupport::host_unsupported;
+    state.transparency_enabled = true;
+    state.reduced_transparency = false;
+    state.high_contrast = false;
+    return state;
+}
+
+int run_surface_application(SurfaceHost& host, std::vector<SurfaceApplicationWindow> windows,
+                            SurfaceApplicationOptions application) {
+    const std::shared_ptr<RunOpenState> open_state = std::make_shared<RunOpenState>();
+    try {
+        // The run holds the bundled font set, so windows opened and closed
+        // during it share one copy of each face.
+        const std::filesystem::path font_directory = host.fonts_directory();
+        if (font_directory.empty()) throw std::runtime_error(gui_forms::bundled_font_refusal());
+        const std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts =
+            gui_forms::detail::shared_bundled_font_set(font_directory, host.sealed_pages());
+        // The run's Splash baker, after the fonts it paints with and before
+        // every window, so it outlives each tooltip that reads it.
+        const gui_forms::render::SkiaSplashBakeRun splash_baking(run_fonts);
+        Runtime runtime(host, run_fonts);
+        runtime.windowing = std::make_unique<SurfaceWindowing>(runtime);
+        const WindowingEndGuard end_guard{open_state.get(), &application, runtime.windowing.get()};
+        (*open_state).windowing = runtime.windowing.get();
+        if (application.windowing_ready) application.windowing_ready(*runtime.windowing, RunOpen{open_state});
+        // Owners first; a cycle or an unknown owner leaves windows unopened.
+        std::vector<bool> opened(windows.size(), false);
+        std::size_t remaining = windows.size();
+        bool progress = true;
+        while (remaining > 0U && progress) {
+            progress = false;
+            for (std::size_t index = 0U; index < windows.size(); ++index) {
+                if (opened[index]) continue;
+                if (!windows[index].owner_id.empty() &&
+                    !(*runtime.windowing).find(windows[index].owner_id).has_value())
+                    continue;
+                const HostWindowAdmission admission = (*runtime.windowing).open(std::move(windows[index]), false);
+                if (!admission.status.accepted()) return 2;
+                opened[index] = true;
+                --remaining;
+                progress = true;
+            }
+        }
+        if (remaining > 0U) return 2;
+        (*runtime.windowing).mark_started();
+        for (std::size_t index = 0U; index < runtime.windows.size(); ++index) (*runtime.windows[index]).ready();
+        while (runtime.primary_open() && !runtime.quitting) {
+            runtime.step();
+            runtime.reclaim();
+        }
+        return 0;
+    } catch (const std::exception& error) {
+        std::cerr << "GUI.Forms surface window manager: " << error.what() << '\n';
+        return 1;
+    }
+}
+
+} // namespace gui_forms::host::surface_detail

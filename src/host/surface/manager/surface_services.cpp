@@ -1,25 +1,25 @@
-// The browser host's services (web_host_internal.hpp): the canvas as the
-// one monitor, CSS cursors, pointer capture, the page's clipboard copy and
-// the dialogs (web_dialogs.cpp).
-#include "web_host_internal.hpp"
+// The window manager's services (surface_manager_internal.hpp): the surface
+// as the one monitor, the cursor, pointer capture, the clipboard copy and
+// the dialogs (surface_dialogs.cpp).
+#include "surface_manager_internal.hpp"
 
 #include <string>
 #include <variant>
 
-namespace gui_forms::host::web_detail {
+namespace gui_forms::host::surface_detail {
 
-Services::Services(NativeWindow& window) : HostServices(web_capabilities()), window_(window) {}
+Services::Services(NativeWindow& window) : HostServices(window.runtime.host.capabilities()), window_(window) {}
 
 Services::~Services() { shutdown(); }
 
-// The canvas in device pixels, as a desktop host reports its monitors
+// The surface in device pixels, as a desktop host reports its monitors
 // (HostDisplayEvent's units).
 HostMonitorResult Services::query_monitors_impl() {
     HostMonitorResult result;
     const Runtime& runtime = window_.runtime;
     result.monitors.resize(1U);
     HostMonitor& monitor = result.monitors.front();
-    monitor.id.assign("web-canvas");
+    monitor.id.assign(runtime.host.monitor_id());
     monitor.frame = Rect{0.0, 0.0, runtime.extent.width * runtime.scale, runtime.extent.height * runtime.scale};
     monitor.work_area = monitor.frame;
     monitor.scale = runtime.scale;
@@ -27,13 +27,13 @@ HostMonitorResult Services::query_monitors_impl() {
     return result;
 }
 
-// One cursor for the canvas: the window under the pointer sets it, so a
+// One cursor for the surface: the window under the pointer sets it, so a
 // window elsewhere does not change it.
 HostServiceStatus Services::set_cursor_impl(CursorKind cursor) {
     window_.current_cursor = cursor;
-    const Runtime& runtime = window_.runtime;
+    Runtime& runtime = window_.runtime;
     const bool under_pointer = runtime.pointer_window == window_.window_id || runtime.pressed_window == window_.window_id;
-    if (under_pointer) gf_web_js_set_cursor(static_cast<int>(cursor), 0);
+    if (under_pointer) runtime.show_cursor(cursor);
     return {};
 }
 
@@ -53,11 +53,12 @@ HostServiceStatus Services::apply_window_backdrop_impl(WindowBackdrop backdrop) 
     return {};
 }
 
-// The page captures the DOM pointer on the canvas; the host's own routing
-// already keeps a press's window until its release (Runtime::pressed_window).
+// The host keeps the pointer's events coming outside the surface; the
+// manager's own routing already keeps a press's window until its release
+// (Runtime::pressed_window).
 HostServiceStatus Services::set_pointer_capture_impl(bool captured, std::uint64_t pointer_id) {
     static_cast<void>(pointer_id);
-    gf_web_js_pointer_capture(captured ? 1 : 0, 1);
+    window_.runtime.host.pointer_capture(captured);
     return {};
 }
 
@@ -70,14 +71,14 @@ HostClipboardTextResult Services::read_clipboard_text_impl() {
     return result;
 }
 
-// navigator.clipboard.writeText needs the page focused and a recent user
-// gesture; the page's copy is kept either way, so a paste within the page
-// reads what was copied.
+// The host may refuse the write (a browser wants focus and a recent
+// gesture); the manager's copy is kept either way, so a paste within the
+// run reads what was copied.
 HostServiceStatus Services::write_clipboard_text_impl(std::string_view text) {
     Runtime& runtime = window_.runtime;
     runtime.clipboard_text.assign(text);
     ++runtime.clipboard_generation;
-    gf_web_js_write_clipboard(runtime.clipboard_text.c_str());
+    runtime.host.write_clipboard(runtime.clipboard_text);
     return {};
 }
 
@@ -87,14 +88,7 @@ HostDialogResult Services::show_dialog_impl(const HostDialogRequest& request) {
         const HostDialogResult result = message_dialog(window_, request, *message);
         return result;
     }
-    if (std::holds_alternative<HostFolderDialogRequest>(request.payload)) {
-        // A page cannot choose a folder of the program's file system.
-        HostDialogResult refused;
-        refused.request_id = request.request_id;
-        refused.status.error = HostServiceError::unsupported;
-        return refused;
-    }
-    const HostDialogResult result = browser_dialog(window_, request);
+    const HostDialogResult result = host_dialog(window_, request);
     return result;
 }
 
@@ -103,4 +97,4 @@ HostServiceStatus Services::play_sound_cue_impl(const HostSoundCueRequest& reque
     return {HostServiceError::unsupported};
 }
 
-} // namespace gui_forms::host::web_detail
+} // namespace gui_forms::host::surface_detail

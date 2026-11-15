@@ -12,29 +12,27 @@ The first program is Plan Paint, at malkuthsoft.com/paint.
   never waits on the program.
 - **Two halves.** The program half (`application/`) is C++. The page half
   (`page/web_host.js`, an Emscripten `--js-library`) is JavaScript.
-  - The page posts records to the program through the `gf_web_post_*`
-    exports (`page/web_page_exports.cpp`) into the page queue
-    (`page/web_page_queue.hpp`).
+  - The page posts DOM events to the program through the `gf_web_post_*`
+    exports (`page/web_page_exports.cpp`). They become the window manager's
+    portable input records (`../surface/input/surface_input.hpp`).
   - The program calls `gf_web_js_*`, which Emscripten proxies to the main
     thread.
-- **Presentation (WebGL2 only).** The program paints each window into its
-  CPU Skia raster. It hands the frame over in the present record
+- **The window manager.** The canvas is the one surface of GUI.Forms' own
+  window manager (`../surface/`, shared with the planned framebuffer
+  appliance). `WebSurfaceHost` (`application/web_surface_host.hpp`)
+  supplies the surface, the input queue and the present call. The manager
+  does the windows, frames, states, focus, modal blocking and compositing.
+- **Presentation (WebGL2 only).** The manager composes the damaged part of
+  the scene into the surface on the CPU and presents its damaged
+  rectangles. The host hands them over in the present record
   (`page/web_present.hpp`). On the next animation frame the page uploads
-  the damaged rectangles straight from the rasters into textures and draws
-  the layers. It then posts `presented`. The program paints nothing while a
-  frame is with the page, so the page reads stable pixels without a copy.
+  those rectangles into its one texture, draws it, and posts `presented`.
+  The manager writes no pixel of the surface while a present is with the
+  page, so the page reads stable pixels without a copy. The windows keep
+  painting into their own rasters meanwhile.
   - An `OffscreenCanvas` on the program's thread was not used: a thread that
     blocks in its own loop never commits its frames.
   - This is the one written exception to "no GPU" in `AGENTS.md`.
-- **One canvas, many windows.** Every window of the run is a layer of
-  `#gui-forms-canvas` (`desk/web_desk.hpp`):
-  - The primary window fills the canvas.
-  - Owned, tool and floating windows have a frame the host draws: a title
-    bar and a close box. They can be dragged and resized. The frame's title
-    strip is a small GUI.Forms window painted into a raster of its own
-    (`FrameChrome`).
-  - Popups and tooltips are placed where the program puts them.
-  - The desk keeps the stacking, the active window and modal blocking.
 - **Files.**
   - Opening uses the browser's file chooser, or a drop on the canvas. The
     chosen files are copied into the program's file system under
@@ -100,10 +98,8 @@ cmake --build .build/web --target gui_forms_application
 
 ## Tests
 
-`tests/web_desk_tests.cpp` covers the plain C++ parts on every platform:
-- the desk's stacking, hit tests, modal blocking and frame drags;
-- the input rules;
-- the page queue's order, bound, waits and wakes;
-- the present record's device rectangles.
-
-The Emscripten parts need a browser.
+- `tests/web_host_rules_tests.cpp` covers the plain C++ parts on every
+  platform: the DOM values turned into records, the present record, and the
+  dialogs' accept lists and save names.
+- The window manager's own tests are listed in `../surface/README.md`.
+- The Emscripten parts need a browser.

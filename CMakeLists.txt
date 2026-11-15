@@ -1993,22 +1993,34 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     gui_forms_install_bundled_fonts()
 endif()
 
+if(GUI_FORMS_ENABLE_SKIA)
+    # GUI.Forms' own window manager for hosts with one surface (owner
+    # decision, 2026-11-15): the browser now, a framebuffer appliance later.
+    # Portable C++ over the CPU Skia raster; the hosts supply a surface,
+    # input records and a present call (src/host/surface/README.md).
+    add_library(gui_forms_host_surface STATIC
+        src/host/surface/compose/surface_compose.cpp
+        src/host/surface/desk/surface_desk.cpp
+        src/host/surface/input/surface_input.cpp
+        src/host/surface/manager/surface_manager.cpp
+        src/host/surface/manager/surface_windowing.cpp
+        src/host/surface/manager/surface_services.cpp
+        src/host/surface/manager/surface_dialogs.cpp)
+    target_link_libraries(gui_forms_host_surface PUBLIC gui_forms_core gui_forms_controls gui_forms_skia)
+endif()
+
 if(GUI_FORMS_ENABLE_WEB_HOST)
     if(NOT EMSCRIPTEN OR NOT GUI_FORMS_ENABLE_SKIA)
         message(FATAL_ERROR "The browser host requires the Emscripten toolchain (cmake/emscripten.cmake) and the private CPU Skia adapter")
     endif()
     add_library(gui_forms_host_web STATIC
         src/host/web/application/web_host.cpp
-        src/host/web/application/web_windowing.cpp
-        src/host/web/application/web_services.cpp
-        src/host/web/application/web_dialogs.cpp
-        src/host/web/desk/web_desk.cpp
+        src/host/web/application/web_dialog_rules.cpp
         src/host/web/input/web_input_rules.cpp
-        src/host/web/page/web_page_queue.cpp
         src/host/web/page/web_present.cpp
         src/host/web/page/web_page_exports.cpp
         $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
-    target_link_libraries(gui_forms_host_web PUBLIC gui_forms_core gui_forms_controls gui_forms_skia)
+    target_link_libraries(gui_forms_host_web PUBLIC gui_forms_host_surface gui_forms_core gui_forms_controls gui_forms_skia)
     # The page half, linked into every program that links the host.
     set(GUI_FORMS_WEB_HOST_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/src/host/web/page/web_host.js)
     target_link_options(gui_forms_host_web INTERFACE "SHELL:--js-library ${GUI_FORMS_WEB_HOST_LIBRARY}")
@@ -2033,7 +2045,7 @@ if(GUI_FORMS_ENABLE_WEB_HOST)
     target_compile_definitions(gui_forms_application PRIVATE
         GUI_FORMS_APPLICATION_WEB=1 GUI_FORMS_APPLICATION_SKIA=1)
     target_link_libraries(gui_forms_application PUBLIC
-        "$<LINK_LIBRARY:WHOLE_ARCHIVE,gui_forms_core,gui_drawing_core,gui_forms_controls,gui_forms_host_web,gui_forms_skia>")
+        "$<LINK_LIBRARY:WHOLE_ARCHIVE,gui_forms_core,gui_drawing_core,gui_forms_controls,gui_forms_host_surface,gui_forms_host_web,gui_forms_skia>")
     if(TARGET gui_forms_text_engine)
         target_link_libraries(gui_forms_application PUBLIC gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
     endif()
@@ -2195,7 +2207,7 @@ foreach(_gf_archive IN ITEMS
         gui_forms_host_headless gui_forms_text_engine gui_forms_prepared_text_impl
         gui_forms_text_masks_impl gui_forms_sealed_pages_objects gui_forms_dib_frame_store_objects
         gui_forms_skia gui_drawing_skia gui_forms_host_macos gui_forms_host_linux
-        gui_forms_windows_host_objects gui_forms_host_windows)
+        gui_forms_windows_host_objects gui_forms_host_windows gui_forms_host_surface gui_forms_host_web)
     if(TARGET ${_gf_archive})
         gui_forms_application_archive(${_gf_archive})
     endif()
@@ -4850,17 +4862,25 @@ if(GUI_FORMS_BUILD_TESTS)
         target_compile_definitions(gui_forms_host_locale_tests PRIVATE GUI_FORMS_TEST_POSIX_LOCALE=1)
     endif()
     add_test(NAME gui_forms_host_locale_tests COMMAND gui_forms_host_locale_tests)
-    # The browser host's desk, input rules, page queue and present record:
+    # The single-surface window manager's desk, input queue and compositing,
+    # and the browser host's input rules, present record and dialog rules:
     # plain C++, tested on every platform.
-    add_executable(gui_forms_web_desk_tests
-        tests/web_desk_tests.cpp
-        src/host/web/desk/web_desk.cpp
+    add_executable(gui_forms_surface_desk_tests
+        tests/surface_desk_tests.cpp
+        src/host/surface/compose/surface_compose.cpp
+        src/host/surface/desk/surface_desk.cpp
+        src/host/surface/input/surface_input.cpp)
+    target_include_directories(gui_forms_surface_desk_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(gui_forms_surface_desk_tests PRIVATE gui_forms_core Threads::Threads)
+    add_test(NAME gui_forms_surface_desk_tests COMMAND gui_forms_surface_desk_tests)
+    add_executable(gui_forms_web_host_rules_tests
+        tests/web_host_rules_tests.cpp
+        src/host/web/application/web_dialog_rules.cpp
         src/host/web/input/web_input_rules.cpp
-        src/host/web/page/web_page_queue.cpp
         src/host/web/page/web_present.cpp)
-    target_include_directories(gui_forms_web_desk_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_link_libraries(gui_forms_web_desk_tests PRIVATE gui_forms_core Threads::Threads)
-    add_test(NAME gui_forms_web_desk_tests COMMAND gui_forms_web_desk_tests)
+    target_include_directories(gui_forms_web_host_rules_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(gui_forms_web_host_rules_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_web_host_rules_tests COMMAND gui_forms_web_host_rules_tests)
     # The X11 host's computed click counts and context keys take plain
     # values and no Xlib, so they are tested on every platform.
     add_executable(gui_forms_linux_input_rules_tests
@@ -6335,6 +6355,15 @@ if(GUI_FORMS_BUILD_TESTS)
         # and the danger key, their timing, and that each lights only its
         # own lens or face (offscreen raster). GUI_FORMS_PREVIEW_DIR, when
         # set, receives preview shots.
+        # The single-surface window manager driven headless by a test host:
+        # composing, frames, states, focus and modal blocking.
+        add_executable(gui_forms_surface_window_manager_tests tests/surface_window_manager_tests.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_surface_window_manager_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_surface_window_manager_tests PRIVATE gui_forms_host_surface gui_forms_controls
+            gui_forms_skia)
+        add_test(NAME gui_forms_surface_window_manager_tests COMMAND gui_forms_surface_window_manager_tests)
         add_executable(gui_forms_indicator_lamp_tests tests/indicator_lamp_tests.cpp
             src/runtime/offscreen/offscreen_raster_create.cpp
             $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)

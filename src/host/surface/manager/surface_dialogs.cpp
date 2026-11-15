@@ -1,10 +1,9 @@
-// The browser host's dialogs (web_host_internal.hpp). A message box is
-// drawn by the host as a modal layer over its owner, as the X11 host's
-// retained dialog is. The file and colour dialogs are the browser's own:
-// its file chooser (the chosen files are copied into the program's file
-// system), its save chooser or a download, and its colour input. Each runs
-// nested turns on the program's thread until the page answers.
-#include "web_host_internal.hpp"
+// The window manager's dialogs (surface_manager_internal.hpp). A message
+// box is drawn by the manager as a modal layer over its owner, as the X11
+// host's retained dialog is. The file, folder and colour dialogs are the
+// host's own (SurfaceHost::start_dialog): the run's thread runs nested turns
+// until the host answers.
+#include "surface_manager_internal.hpp"
 
 #include <cctype>
 #include <filesystem>
@@ -12,7 +11,7 @@
 #include <system_error>
 #include <variant>
 
-namespace gui_forms::host::web_detail {
+namespace gui_forms::host::surface_detail {
 namespace {
 
 struct MessageState;
@@ -112,43 +111,6 @@ std::vector<HostDialogChoice> message_choices(const HostMessageDialogRequest& me
     return choices;
 }
 
-// An input element's accept list from the request's filters: ".png,.jpg";
-// empty (every file) when a filter holds `*` or `*.*`, or there is none.
-std::string accept_list(const std::vector<HostFileDialogFilter>& filters) {
-    std::string accept;
-    for (std::size_t filter = 0U; filter < filters.size(); ++filter) {
-        const std::vector<std::string>& extensions = filters[filter].extensions;
-        for (std::size_t index = 0U; index < extensions.size(); ++index) {
-            std::string_view extension = extensions[index];
-            if (extension.starts_with("*")) extension.remove_prefix(1U);
-            if (extension.starts_with(".")) extension.remove_prefix(1U);
-            if (extension.empty() || extension == "*") return std::string{};
-            if (extension.find_first_of(",\"'<>") != std::string_view::npos) continue;
-            if (!accept.empty()) accept.push_back(',');
-            accept.push_back('.');
-            accept.append(extension);
-        }
-    }
-    return accept;
-}
-
-// A file name the program's file system and a download both take: the
-// request's base name without separators, "untitled" when empty, with the
-// default extension where it has none.
-std::string save_name(const HostSaveFileDialogRequest& save) {
-    std::string name = std::filesystem::path(save.suggested_name).filename().string();
-    for (std::size_t index = 0U; index < name.size(); ++index) {
-        const char character = name[index];
-        if (character == '/' || character == '\\' || character == '\0') name[index] = '_';
-    }
-    if (name.empty() || name == "." || name == "..") name = "untitled";
-    if (std::filesystem::path(name).extension().empty() && !save.default_extension.empty()) {
-        if (save.default_extension.front() != '.') name.push_back('.');
-        name.append(save.default_extension);
-    }
-    return name;
-}
-
 // "#rrggbb" as 0xRRGGBBAA with alpha 255; none for anything else.
 std::optional<std::uint32_t> parse_color(std::string_view text) {
     if (text.size() != 7U || text.front() != '#') return std::nullopt;
@@ -169,13 +131,13 @@ std::optional<std::uint32_t> parse_color(std::string_view text) {
 HostDialogResult path_result(const HostDialogRequest& request, const PendingDialog& answer) {
     HostDialogResult result;
     result.request_id = request.request_id;
-    if (answer.outcome == PageDialogOutcome::failed) {
+    if (answer.outcome == SurfaceDialogOutcome::failed) {
         result.status.error = HostServiceError::backend_failure;
         result.payload = HostPathDialogResult{};
         return result;
     }
     HostPathDialogResult paths;
-    if (answer.outcome == PageDialogOutcome::accepted && !answer.paths.empty()) {
+    if (answer.outcome == SurfaceDialogOutcome::accepted && !answer.paths.empty()) {
         paths.outcome = HostDialogOutcome::accepted;
         paths.paths = answer.paths;
     }
@@ -213,7 +175,7 @@ HostDialogResult message_dialog(NativeWindow& owner, const HostDialogRequest& re
         if (choice == message.default_choice) state.accept_button = button;
         if (choice == HostDialogChoice::cancel) state.cancel_button = button;
     }
-    WebApplicationWindow entry;
+    SurfaceApplicationWindow entry;
     entry.stable_id = "host.dialog";
     entry.owner_id = owner.entry.stable_id;
     entry.tool_window = true;
@@ -233,7 +195,7 @@ HostDialogResult message_dialog(NativeWindow& owner, const HostDialogRequest& re
     // A layer of its own, owned by the dialog's owner and outside the run's
     // windowing table (a host dialog is no program window).
     const HostWindowId id = runtime.allocate_private_window();
-    WebDeskLayerInit layer{};
+    SurfaceDeskLayerInit layer{};
     layer.id = id;
     layer.owner = owner.window_id;
     layer.kind = HostWindowKind::standard;
@@ -264,67 +226,40 @@ HostDialogResult message_dialog(NativeWindow& owner, const HostDialogRequest& re
     while (!state.done && !owner.closed && !runtime.quitting) runtime.step();
     help_key.disconnect();
     runtime.desk.end_modal(id);
-    // Closed here; Runtime::reclaim releases it once the page has let go of
-    // its pixels.
+    // Closed here; Runtime::reclaim releases it.
     (*native).close(HostCloseReason::application, true);
     if (!owner.closed) runtime.activate(owner.window_id, true);
     state.tokens.clear();
     return state.result;
 }
 
-HostDialogResult browser_dialog(NativeWindow& owner, const HostDialogRequest& request) {
+HostDialogResult host_dialog(NativeWindow& owner, const HostDialogRequest& request) {
     Runtime& runtime = owner.runtime;
-    const std::uint64_t page_request = runtime.next_dialog_request();
-    const double request_number = static_cast<double>(page_request);
-    if (const HostOpenFileDialogRequest* open = std::get_if<HostOpenFileDialogRequest>(&request.payload)) {
-        const std::string accept = accept_list((*open).filters);
-        gf_web_js_open_files(request_number, accept.c_str(), (*open).allow_multiple ? 1 : 0);
-        const PendingDialog answer = runtime.wait_for_dialog(page_request);
-        const HostDialogResult result = path_result(request, answer);
-        return result;
+    const std::uint64_t ticket = runtime.next_dialog_ticket();
+    const HostServiceStatus started = runtime.host.start_dialog(request, ticket);
+    if (!started.accepted()) {
+        HostDialogResult refused;
+        refused.request_id = request.request_id;
+        refused.status = started;
+        return refused;
     }
-    if (const HostSaveFileDialogRequest* save = std::get_if<HostSaveFileDialogRequest>(&request.payload)) {
-        const std::string name = save_name(*save);
-        const std::filesystem::path directory =
-            std::filesystem::path("/web/save") / std::to_string(page_request);
-        std::error_code error;
-        std::filesystem::create_directories(directory, error);
-        if (error) {
-            HostDialogResult failed;
-            failed.request_id = request.request_id;
-            failed.status.error = HostServiceError::backend_failure;
-            failed.payload = HostPathDialogResult{};
-            return failed;
-        }
-        const std::string path = (directory / name).string();
-        const std::string accept = accept_list((*save).filters);
-        gf_web_js_save_file(request_number, path.c_str(), name.c_str(), accept.c_str());
-        const PendingDialog answer = runtime.wait_for_dialog(page_request);
-        const HostDialogResult result = path_result(request, answer);
-        return result;
-    }
-    if (const HostColorDialogRequest* color = std::get_if<HostColorDialogRequest>(&request.payload)) {
-        // The browser's colour input has no alpha: an accepted colour is
-        // opaque.
-        const unsigned int rgb = static_cast<unsigned int>((*color).initial_rgba >> 8U);
-        gf_web_js_choose_color(request_number, rgb);
-        const PendingDialog answer = runtime.wait_for_dialog(page_request);
+    const PendingDialog answer = runtime.wait_for_dialog(ticket);
+    if (std::holds_alternative<HostColorDialogRequest>(request.payload)) {
+        // The host answers "#rrggbb": an accepted colour is opaque.
         HostDialogResult result;
         result.request_id = request.request_id;
         HostColorDialogResult chosen;
         const std::optional<std::uint32_t> rgba = parse_color(answer.text);
-        if (answer.outcome == PageDialogOutcome::accepted && rgba.has_value()) {
+        if (answer.outcome == SurfaceDialogOutcome::accepted && rgba.has_value()) {
             chosen.outcome = HostDialogOutcome::accepted;
             chosen.rgba = *rgba;
         }
-        if (answer.outcome == PageDialogOutcome::failed) result.status.error = HostServiceError::backend_failure;
+        if (answer.outcome == SurfaceDialogOutcome::failed) result.status.error = HostServiceError::backend_failure;
         result.payload = chosen;
         return result;
     }
-    HostDialogResult refused;
-    refused.request_id = request.request_id;
-    refused.status.error = HostServiceError::unsupported;
-    return refused;
+    const HostDialogResult result = path_result(request, answer);
+    return result;
 }
 
-} // namespace gui_forms::host::web_detail
+} // namespace gui_forms::host::surface_detail
