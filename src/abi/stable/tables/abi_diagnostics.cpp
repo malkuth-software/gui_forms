@@ -36,7 +36,7 @@ constexpr SlotIdentity failure_detail_slot{GF_TABLE_DIAGNOSTICS, 8U};
 constexpr SlotIdentity set_diagnostic_overlay_slot{GF_TABLE_DIAGNOSTICS, 9U};
 
 // The 1.5 failure detail record; its capacities are the core snapshot's.
-constexpr std::uint32_t failure_detail_size_1_5 = 536U;
+constexpr std::uint32_t failure_detail_size_1_5 = 544U;
 static_assert(sizeof(gf_failure_detail) == failure_detail_size_1_5);
 static_assert(GF_FAILURE_TYPE_CAPACITY == detail::failure_type_capacity);
 static_assert(GF_FAILURE_TRACE_CAPACITY == detail::failure_trace_capacity);

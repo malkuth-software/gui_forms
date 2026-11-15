@@ -1689,10 +1689,14 @@ if(GUI_FORMS_ENABLE_SKIA)
     # seam's execute_recorder (drawing/recorder_raster/recorder_raster.hpp),
     # which the C ABI's raster service calls too. C++ programs take it in
     # the Application archive; the C ABI library links it once.
+    # The sealed pages travel with the executor that maps bundled faces into
+    # them (skia_executor.cpp), so a link that takes the executor resolves
+    # them whatever its archive order.
     add_library(gui_drawing_skia STATIC
         src/render/skia/executor/skia_executor.cpp
         src/render/skia/executor/drawing_raster_state.cpp
         src/render/skia/executor/recorder_raster.cpp
+        $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
     )
     if(APPLE)
         # Finds installed families nobody registered (ADR-004 phase 7).
@@ -1762,8 +1766,7 @@ if(GUI_FORMS_ENABLE_SKIA)
         POSITION_INDEPENDENT_CODE ON
     )
     add_library(gui_drawing_raster_c_api STATIC
-        $<TARGET_OBJECTS:gui_drawing_raster_c_api_objects>
-        $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        $<TARGET_OBJECTS:gui_drawing_raster_c_api_objects>)
     target_link_libraries(gui_drawing_raster_c_api PUBLIC gui_drawing_skia gui_drawing_c_api)
     if(WIN32)
         target_link_libraries(gui_drawing_raster_c_api PUBLIC advapi32)
