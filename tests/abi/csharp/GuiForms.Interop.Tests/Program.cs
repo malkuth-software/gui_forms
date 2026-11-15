@@ -408,7 +408,7 @@ internal static unsafe class Program
         "    </flex-panel>\n" +
         "  </children>\n" +
         "  <focus target=\"none\"/>\n" +
-        "  <semantics role=\"group\" name=\"property(title)\" children=\"exposed\"/>\n" +
+        "  <semantics role=\"group\" name=\"property(title)\" actions=\"press(toggle)\" children=\"exposed\"/>\n" +
         "</control>\n";
 
     // Composite controls (C ABI 1.5): a refused document throws with its
