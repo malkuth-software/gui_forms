@@ -1,11 +1,13 @@
 // The host locale record (include/gui_forms/host/types/host_locale) and the
 // hosts' pattern conversions: UTS #35 date patterns for macOS
-// (src/host/macos/locale/icu_date_pattern.hpp) and strftime patterns for
-// Linux (src/host/linux/locale/strftime_date_pattern.hpp), which take plain
-// text and are tested on every platform; and the platform's own reader
-// where it is compiled in.
+// (src/host/macos/locale/icu_date_pattern.hpp), strftime patterns for
+// Linux (src/host/linux/locale/strftime_date_pattern.hpp) and format
+// pictures for Windows (src/surface/windows/locale/windows_date_pattern.hpp),
+// which take plain text and are tested on every platform; and the
+// platform's own reader where it is compiled in.
 #include "../src/host/linux/locale/strftime_date_pattern.hpp"
 #include "../src/host/macos/locale/icu_date_pattern.hpp"
+#include "../src/surface/windows/locale/windows_date_pattern.hpp"
 #include "gui_forms/host/types/host_locale/host_locale.hpp"
 
 #if defined(GUI_FORMS_TEST_MACOS_LOCALE)
@@ -13,6 +15,9 @@
 #endif
 #if defined(GUI_FORMS_TEST_POSIX_LOCALE)
 #include "../src/surface/linux/locale/posix_locale.hpp"
+#endif
+#if defined(GUI_FORMS_TEST_WINDOWS_LOCALE)
+#include "../src/surface/windows/locale/windows_locale.hpp"
 #endif
 
 #include <cstdlib>
@@ -131,6 +136,32 @@ void test_strftime_patterns() {
     require_text(picker_pattern_from_strftime("%Z"), "", "nothing left gives an empty pattern");
 }
 
+void test_windows_patterns() {
+    using gui_forms::host::picker_pattern_from_windows;
+    require_text(picker_pattern_from_windows("M/d/yyyy"), "M/d/yyyy", "en-US short date");
+    require_text(picker_pattern_from_windows("dd/MM/yyyy"), "dd/MM/yyyy", "en-GB short date");
+    require_text(picker_pattern_from_windows("dd.MM.yyyy"), "dd.MM.yyyy", "de-DE short date");
+    require_text(picker_pattern_from_windows("dddd, MMMM d, yyyy"), "dddd, MMMM d, yyyy", "en-US long date");
+    require_text(picker_pattern_from_windows("dddd, d. MMMM yyyy"), "dddd, d. MMMM yyyy", "de-DE long date");
+    require_text(picker_pattern_from_windows("h:mm tt"), "h:mm tt", "en-US short time");
+    require_text(picker_pattern_from_windows("HH:mm"), "HH:mm", "de-DE short time");
+    require_text(picker_pattern_from_windows("H:mm t"), "H:mm t", "a one-letter designator stays");
+    require_text(picker_pattern_from_windows("d/M/y"), "d/M/yy", "y alone is the two-digit year");
+    require_text(picker_pattern_from_windows("yyyyy-MM-ddddd"), "yyyy-MM-dddd", "long runs are clamped");
+    require_text(picker_pattern_from_windows("dddd, d' de 'MMMM' de 'yyyy"), "dddd, d' de 'MMMM' de 'yyyy",
+                 "quoted text stays text");
+    require_text(picker_pattern_from_windows("h 'o''clock' tt"), "h 'o\\'clock' tt", "an apostrophe in quotes");
+    require_text(picker_pattern_from_windows("HH''mm"), "HH'\\''mm", "an apostrophe outside quotes");
+    require_text(picker_pattern_from_windows("gg yyyy/M/d"), "yyyy/M/d", "the era is dropped and trimmed");
+    // ja-JP's long date: the year, month and day kanji in quotes (UTF-8).
+    require_text(picker_pattern_from_windows("yyyy'\xE5\xB9\xB4'M'\xE6\x9C\x88'd'\xE6\x97\xA5'"),
+                 "yyyy'\xE5\xB9\xB4'M'\xE6\x9C\x88'd'\xE6\x97\xA5'", "quoted non-ASCII text stays");
+    require_text(picker_pattern_from_windows("yyyy\xE5\xB9\xB4M"), "yyyy\xE5\xB9\xB4M", "bare non-ASCII text stays");
+    require_text(picker_pattern_from_windows("HH x mm"), "HH 'x' mm", "a bare letter that is no picture is quoted");
+    require_text(picker_pattern_from_windows("H\\m"), "H\\\\m", "a backslash is escaped");
+    require_text(picker_pattern_from_windows("gg"), "", "nothing left gives an empty pattern");
+}
+
 #if defined(GUI_FORMS_TEST_MACOS_LOCALE)
 void test_platform_reader() {
     // The user's locale is not fixed on a build machine; what is fixed is
@@ -160,6 +191,40 @@ void test_platform_reader() {
 }
 #endif
 
+#if defined(GUI_FORMS_TEST_WINDOWS_LOCALE)
+void test_platform_reader() {
+    using gui_forms::host::read_windows_locale_defaults;
+    // Named locales without the user's overrides: Windows' own data for
+    // them (values as of Windows 10 and 11; unconfirmed for every build).
+    const std::optional<HostLocale> us = read_windows_locale_defaults("en-US");
+    require(us.has_value() && gui_forms::valid_host_locale(*us), "en-US is read and valid");
+    require_text((*us).name, "en-US", "the en-US name");
+    require_text((*us).short_date_pattern, "M/d/yyyy", "the en-US short date");
+    require_text((*us).time_pattern, "h:mm tt", "the en-US short time");
+    require_text((*us).day_names[0], "Sunday", "Windows' Monday-first names are put Sunday first");
+    require_text((*us).month_names[0], "January", "the en-US first month");
+    require_text((*us).decimal_separator, ".", "the en-US decimal separator");
+    require((*us).first_day_of_week == HostWeekday::sunday, "the en-US week starts on Sunday");
+    const std::optional<HostLocale> german = read_windows_locale_defaults("de-DE");
+    require(german.has_value() && gui_forms::valid_host_locale(*german), "de-DE is read and valid");
+    require_text((*german).short_date_pattern, "dd.MM.yyyy", "the de-DE short date");
+    require_text((*german).time_pattern, "HH:mm", "the de-DE short time");
+    require_text((*german).day_names[0], "Sonntag", "the de-DE Sunday");
+    require_text((*german).day_names[1], "Montag", "the de-DE Monday");
+    require_text((*german).decimal_separator, ",", "the de-DE decimal separator");
+    require_text((*german).group_separator, ".", "the de-DE group separator");
+    require((*german).first_day_of_week == HostWeekday::monday, "the de-DE week starts on Monday");
+    require(!read_windows_locale_defaults("").has_value(), "an empty name is refused");
+    require(!read_windows_locale_defaults("zz-not-a-locale").has_value(), "an unknown name is refused");
+    require(!read_windows_locale_defaults(std::string(200U, 'a')).has_value(), "a name too long is refused");
+    // The user's locale is not fixed on a build machine; what is fixed is
+    // that whatever is read is a record GUI.Forms can format with.
+    const std::optional<HostLocale> user = gui_forms::host::read_windows_locale();
+    require(user.has_value() && gui_forms::valid_host_locale(*user), "the user's locale is read and valid");
+    require((*user).name.find('_') == std::string::npos, "the Windows name is a BCP 47 tag");
+}
+#endif
+
 } // namespace
 
 int main() {
@@ -169,7 +234,8 @@ int main() {
         test_json();
         test_icu_patterns();
         test_strftime_patterns();
-#if defined(GUI_FORMS_TEST_MACOS_LOCALE) || defined(GUI_FORMS_TEST_POSIX_LOCALE)
+        test_windows_patterns();
+#if defined(GUI_FORMS_TEST_MACOS_LOCALE) || defined(GUI_FORMS_TEST_POSIX_LOCALE) ||     defined(GUI_FORMS_TEST_WINDOWS_LOCALE)
         test_platform_reader();
 #endif
     } catch (const std::exception& error) {

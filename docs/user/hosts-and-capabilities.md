@@ -52,6 +52,7 @@ whole record for logs.
 | `transient_surfaces` | tooltips and the splashscreen in Splash windows, menus, drop-downs and pickers in Popup windows, each the host's own window beside its owner; translucent with the library's shadow and fade (C: `GF_HOST_CAPABILITY_TRANSIENT_SURFACES`, kinds in `gf_host_capabilities.transient_surfaces`) | yes | yes | yes (opaque, with no shadow or fade, without a compositing manager: `opaque_transient_surfaces`, `GF_TRANSIENT_SURFACE_OPAQUE`) |
 | `window_corners` | the window's corners shaped on request and reported (`Window::set_corner_preference`), which the window outer band follows; the host squares a maximized, snapped or full-screen window's; the shapes it may report are `HostCapabilities::window_corner_shapes` (C: `GF_HOST_CAPABILITY_WINDOW_CORNERS`, shapes in `gf_host_capabilities.window_corner_shapes`; see [the window band](window-band.md)) | reported only: square in full screen and for a borderless window, unknown otherwise (the band draws square) | yes (Windows 11; square before) | no (square) |
 | `window_state_reports` | the native window's state reported (`HostWindowStateEvent`): full screen, which hides a band declared `WindowBandFullScreen::hides`, and the maximize, snap and restore changes that can reshape its corners (C: `GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS`) | yes | yes (full screen: a captionless window covering its monitor) | yes (`_NET_WM_STATE_FULLSCREEN`, or the host's own fallback) |
+| `locale` | the platform's locale (`HostCapabilities::locale`: date and time patterns, month and weekday names, AM and PM, number separators, first day of the week), which seeds the application's locale for the DateTimePicker, MonthCalendar and NumericUpDown (host protocol version 14) | yes (CFLocale) | yes (the user's locale through `GetLocaleInfoEx`, with their Region overrides) | yes (the POSIX locale the environment names) |
 | `hosted_content` | a sub-surface program in its own process (`make_hosted_content`, [Content surfaces](content-surfaces.md)): frames through shared memory, input through a channel, its crash leaving the application running (C ABI `GF_HOST_CAPABILITY_HOSTED_CONTENT`, since 1.4) | yes | not yet | yes |
 | `relative_pointer` | motion deltas sent per native sample (`HostRelativeMotionEvent`, protocol version 15) for relative pointer mode ([Relative pointer mode](relative-pointer.md); C: `GF_HOST_CAPABILITY_RELATIVE_POINTER`) | yes | not yet (contract in that page) | yes, with XI 2 |
 | `raw_pointer_motion` | unaccelerated deltas where asked (C: `GF_HOST_CAPABILITY_RAW_POINTER_MOTION`) | no (AppKit's deltas are accelerated) | not yet | yes, with XI 2 |
@@ -468,6 +469,20 @@ its own checks. The existing `open_file_dialog_tests` and
 `save_file_dialog_tests` show what the component sends;
 `gui_forms_windows_live_idle_tests` checks each flag on the computed
 options and on real dialog objects, which are created but not shown.
+
+## Message boxes
+
+`MessageBox` sends `HostMessageDialogRequest`, whose `icon_image` carries the
+stock icon GUI.Forms bakes for its `icon` (`stock_alert_icon_image`), so the
+icon matches the theme on every platform. The macOS host puts it in its
+alert. The Windows host shows it in the native message box in place of the
+system icon: for the length of the `MessageBoxW` call a thread-local CBT
+hook meets the box as it is activated and gives its icon control (the
+static `SS_ICON` child an `MB_ICON*` style creates) the picture, fitted to
+the control's size. Presentation only: without a picture, with no icon, or
+when a step fails, the box keeps the system icon and the result is the
+same. The X11 host keeps its own icon. `gui_forms_windows_message_box_tests`
+shows real boxes and reads the icon control's pixels.
 
 ## What stays portable
 

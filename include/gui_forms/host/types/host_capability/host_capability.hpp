@@ -97,8 +97,8 @@ enum class HostCapability : std::uint64_t {
     // The host read the platform's locale into HostCapabilities::locale
     // (HostLocale: the date and time patterns, names, number separators
     // and first day of the week; exhibit gap E11). Without it the record
-    // holds the portable default. macOS and Linux; the Windows host does
-    // not report it yet. Host protocol version 14.
+    // holds the portable default. macOS, Linux and Windows (the user's
+    // locale through GetLocaleInfoEx). Host protocol version 14.
     locale = 1ULL << 36U,
     // Hosted content runs here (content/hosted/hosted_content.hpp): a
     // sub-surface program in its own process, frames through shared memory

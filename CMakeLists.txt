@@ -2185,6 +2185,8 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         src/surface/windows/accessibility/windows_text_automation.cpp
         src/surface/windows/services/windows_clipboard_image.cpp
         src/surface/windows/services/windows_notify_icons.cpp
+        src/surface/windows/locale/windows_date_pattern.cpp
+        src/surface/windows/locale/windows_locale.cpp
         src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
         src/surface/windows/compositor/windows_compositor.cpp
     )
@@ -3390,6 +3392,8 @@ if(GUI_FORMS_BUILD_TESTS)
                     src/surface/windows/accessibility/windows_text_automation.cpp
                     src/surface/windows/services/windows_clipboard_image.cpp
                     src/surface/windows/services/windows_notify_icons.cpp
+                    src/surface/windows/locale/windows_date_pattern.cpp
+                    src/surface/windows/locale/windows_locale.cpp
                     src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
                     src/surface/windows/compositor/windows_compositor.cpp
                     $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
@@ -3828,6 +3832,16 @@ if(GUI_FORMS_BUILD_TESTS)
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_schedule_wake_tests
                  COMMAND gui_forms_windows_schedule_wake_tests)
+        add_executable(gui_forms_windows_message_box_tests tests/windows_message_box_tests.cpp)
+        target_compile_definitions(gui_forms_windows_message_box_tests PRIVATE
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
+        target_link_libraries(gui_forms_windows_message_box_tests PRIVATE
+            gui_forms_controls gui_forms_host_windows)
+        add_test(NAME gui_forms_windows_message_box_tests
+                 COMMAND gui_forms_windows_message_box_tests)
+        set_tests_properties(gui_forms_windows_message_box_tests PROPERTIES TIMEOUT 60)
+        # Real message boxes, which activate: on a private desktop.
+        gui_forms_foreground_test(gui_forms_windows_message_box_tests)
         add_executable(gui_forms_windows_text_tests tests/windows_text_tests.cpp)
         target_compile_definitions(gui_forms_windows_text_tests PRIVATE
             ${GUI_FORMS_WINDOWS_DEFINITIONS})
@@ -5038,12 +5052,14 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_xsettings_parse_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_xsettings_parse_tests COMMAND gui_forms_xsettings_parse_tests)
     # The hosts' locale pattern conversions (UTS #35 for macOS, strftime for
-    # Linux) take plain text, so they are tested on every platform; each
-    # platform's own reader is compiled in where it builds.
+    # Linux, format pictures for Windows) take plain text, so they are tested
+    # on every platform; each platform's own reader is compiled in where it
+    # builds.
     add_executable(gui_forms_host_locale_tests
         tests/host_locale_tests.cpp
         src/host/macos/locale/icu_date_pattern.cpp
-        src/host/linux/locale/strftime_date_pattern.cpp)
+        src/host/linux/locale/strftime_date_pattern.cpp
+        src/host/windows/locale/windows_date_pattern.cpp)
     target_include_directories(gui_forms_host_locale_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(gui_forms_host_locale_tests PRIVATE gui_forms_core)
     if(APPLE)
@@ -5054,6 +5070,10 @@ if(GUI_FORMS_BUILD_TESTS)
     elseif(UNIX)
         target_sources(gui_forms_host_locale_tests PRIVATE src/surface/linux/locale/posix_locale.cpp)
         target_compile_definitions(gui_forms_host_locale_tests PRIVATE GUI_FORMS_TEST_POSIX_LOCALE=1)
+    elseif(WIN32)
+        target_sources(gui_forms_host_locale_tests PRIVATE src/surface/windows/locale/windows_locale.cpp)
+        target_compile_definitions(gui_forms_host_locale_tests PRIVATE
+            ${GUI_FORMS_WINDOWS_DEFINITIONS} GUI_FORMS_TEST_WINDOWS_LOCALE=1)
     endif()
     add_test(NAME gui_forms_host_locale_tests COMMAND gui_forms_host_locale_tests)
     # The single-surface window manager's desk, input queue and compositing,
@@ -7210,7 +7230,7 @@ foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests
         gui_forms_windows_control_snapshot_tests gui_forms_windows_damage_rectangles_tests
         gui_forms_windows_scroll_copy_tests gui_forms_windows_live_idle_tests
-        gui_forms_windows_schedule_wake_tests gui_forms_windows_text_tests)
+        gui_forms_windows_schedule_wake_tests gui_forms_windows_message_box_tests gui_forms_windows_text_tests)
     if(TARGET ${gui_forms_swizzle_target})
         target_link_libraries(${gui_forms_swizzle_target} PRIVATE stx_skia::swizzle)
     endif()
