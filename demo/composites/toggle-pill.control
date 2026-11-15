@@ -39,7 +39,7 @@
              states="checked(property(checked))" actions="press(toggle)" children="hidden"/>
 
   <look>
-    toggle-pill::part(thumb) { transition: translate 150ms spring(150ms, 0.8); }
+    toggle-pill::part(thumb) { transition: translate spring(150ms, 0.8); }
     toggle-pill::part(track) { transition: face 150ms ease; }
     toggle-pill::part(track):checked { background: role(accent-on-paper background); }
     toggle-pill:active::part(thumb) { scale: 1.08; transition: scale 90ms ease-out; }
