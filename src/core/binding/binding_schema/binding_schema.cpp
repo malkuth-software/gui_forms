@@ -26,6 +26,7 @@ BindingSchema::BindingSchema(std::vector<BindingColumn> columns) {
         throw std::invalid_argument("GUI.Forms binding schema has more than binding_maximum_columns columns");
     }
     columns_.reserve(columns.size());
+    spellings_.reserve(columns.size());
     for (BindingColumn& column : columns) {
         static_cast<void>(append(std::move(column)));
     }
@@ -51,11 +52,20 @@ std::size_t BindingSchema::append(BindingColumn column) {
     if (columns_.size() >= binding_maximum_columns) {
         throw std::invalid_argument("GUI.Forms binding schema has more than binding_maximum_columns columns");
     }
+    // The provider's spelling, trimmed as canonical_binding_name trims.
+    const std::string::size_type first = column.name.find_first_not_of(" \t\r\n");
+    const std::string::size_type last = column.name.find_last_not_of(" \t\r\n");
+    std::string spelling = column.name.substr(first, last - first + 1U);
     column.name = canonical_binding_name(column.name);
     if (find(column.name)) {
         throw std::invalid_argument("GUI.Forms binding schema repeats the column " + column.name);
     }
+    // Both vectors grow before either changes, so a refused allocation
+    // leaves the schema as it was; the moves below do not throw.
+    columns_.reserve(columns_.size() + 1U);
+    spellings_.reserve(spellings_.size() + 1U);
     columns_.push_back(std::move(column));
+    spellings_.push_back(std::move(spelling));
     const std::size_t index = columns_.size() - 1U;
     return index;
 }

@@ -1742,16 +1742,20 @@ void DataGridView::generate_columns(const BindingSchema& schema) {
         const bool blank = column.data_property_name.find_first_not_of(" \t\r\n") == std::string::npos;
         if (!blank) named_fields.push_back(canonical_binding_name(column.data_property_name));
     }
-    for (const BindingColumn& field : schema.columns()) {
+    for (std::size_t index = 0U; index < schema.size(); ++index) {
+        const BindingColumn& field = schema.column(index);
         bool named = false;
         for (const std::string& name : named_fields) {
             if (name == field.name) named = true;
         }
-        if (named || !validate_utf8(field.name).valid()) continue;
+        // The provider's spelling ("City"), as Windows Forms heads a
+        // generated column with its property's name; it folds to the field.
+        const std::string& spelling = schema.spelling(index);
+        if (named || !validate_utf8(spelling).valid()) continue;
         DataGridViewColumn generated{};
-        generated.name = generated_column_name(field.name);
-        generated.header_text = field.name;
-        generated.data_property_name = field.name;
+        generated.name = generated_column_name(spelling);
+        generated.header_text = spelling;
+        generated.data_property_name = spelling;
         generated.value_kind = field.kind;
         generated.read_only = field.read_only;
         if (field.kind == BindingValueKind::boolean) generated.kind = DataGridViewColumnKind::check_box;

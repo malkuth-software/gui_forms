@@ -64,6 +64,11 @@ public:
     std::span<const BindingColumn> columns() const&& = delete;
     // The column at index (below size()).
     [[nodiscard]] const BindingColumn& column(std::size_t index) const { return columns_.at(index); }
+    // The column's name at index as its provider wrote it (trimmed, letters
+    // as given: "City"), for display, such as a generated grid column's
+    // header; column(index).name is the canonical match key ("city").
+    [[nodiscard]] const std::string& spelling(std::size_t index) const& { return spellings_.at(index); }
+    const std::string& spelling(std::size_t index) const&& = delete;
     // The index of the column named name in any spelling that folds to it,
     // or empty. A name that is blank finds nothing.
     [[nodiscard]] std::optional<std::size_t> find(std::string_view name) const;
@@ -73,12 +78,15 @@ public:
     // value of the column's kind, or of any kind for an untyped column.
     [[nodiscard]] bool admits(std::size_t column, const BindingValue& value) const noexcept;
 
+    // A respelled column ("City" for "city") is a change too.
     friend bool operator==(const BindingSchema& left, const BindingSchema& right) noexcept {
-        return left.columns_ == right.columns_;
+        return left.columns_ == right.columns_ && left.spellings_ == right.spellings_;
     }
 
 private:
     std::vector<BindingColumn> columns_;
+    // One per column, in step with columns_: the provider's spelling.
+    std::vector<std::string> spellings_;
 };
 
 // One row given whole to a provider (BindingTable, insert_row): its stable

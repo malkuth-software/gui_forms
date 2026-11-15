@@ -515,6 +515,10 @@ Types
 
       The column at index (below size()).
 
+   .. cpp:function:: const std::string& spelling(std::size_t index) const&
+
+      The column's name at index as its provider wrote it (trimmed, letters as given: "City"), for display, such as a generated grid column's header; column(index).name is the canonical match key ("city").
+
    .. cpp:function:: std::optional<std::size_t> find(std::string_view name) const
 
       The index of the column named name in any spelling that folds to it, or empty. A name that is blank finds nothing.

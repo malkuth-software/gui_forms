@@ -717,11 +717,11 @@ public:
     // auto_generate_columns, binding first appends a column for each field
     // of the source's schema that no column names, in schema order: a check
     // box column for a boolean field, else a text column, named from the
-    // field (lowercase letters, digits and '-', made unique) and headed by
-    // the field's name as the schema spells it (canonical: trimmed, ASCII
-    // letters lowered). A column names a field when its data_property_name
-    // folds to the field's name ("Name" names "name"). A later schema change
-    // adds none. The current row
+    // field (lowercase letters, digits and '-', made unique), headed by the
+    // field's name as its provider spells it (BindingSchema::spelling:
+    // "City") and bound to it under that spelling. A column names a field
+    // when its data_property_name folds to the field's canonical name
+    // ("Name" names "name"). A later schema change adds none. The current row
     // follows the source's position and moves it; a committed edit moves the
     // position to its row and sets the field. A null source returns to
     // unbound rows.
