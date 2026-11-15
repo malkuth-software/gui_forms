@@ -72,10 +72,13 @@ public:
     explicit Canvas(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)), tracker(*this) {
         tracker.callbacks.plan = Delegate<DragPlan&>::bind<Canvas, &Canvas::plan_drag>(*this);
         tracker.callbacks.preview = Delegate<const DragTrackerFrame&>::bind<Canvas, &Canvas::preview_drag>(*this);
+        tracker.callbacks.update = Delegate<const DragTrackerFrame&>::bind<Canvas, &Canvas::update_drag>(*this);
         tracker.callbacks.finished = Delegate<const DragTrackerFrame&>::bind<Canvas, &Canvas::finish_drag>(*this);
         tracker.callbacks.announce = Delegate<DragAnnouncementRequest&>::bind<Canvas, &Canvas::announce_drag>(*this);
         tracker.callbacks.scroll = Delegate<DragAutoScrollStep&>::bind<Canvas, &Canvas::scroll_by>(*this);
         previews.reserve(4096U);
+        updates.reserve(4096U);
+        previews_at_update.reserve(4096U);
         plans.reserve(256U);
         steps.reserve(1024U);
     }
@@ -118,6 +121,10 @@ public:
     bool last_taken{};
     std::vector<DragPlan> plans{};
     std::vector<DragTrackerFrame> previews{};
+    // Live updates, and the preview count when each arrived (an update
+    // follows its move's preview).
+    std::vector<DragTrackerFrame> updates{};
+    std::vector<std::size_t> previews_at_update{};
     std::vector<DragTrackerFrame> ends{};
     std::vector<DragTrackerFrame> announced{};
     std::vector<DragAnnouncementReason> reasons{};
@@ -168,6 +175,11 @@ private:
             const DragStart start{};
             reentrant_start = tracker.press(again, start);
         }
+    }
+
+    void update_drag(const DragTrackerFrame& frame) {
+        updates.push_back(frame);
+        previews_at_update.push_back(previews.size());
     }
 
     void finish_drag(const DragTrackerFrame& frame) { ends.push_back(frame); }
@@ -572,6 +584,73 @@ void reorder_and_value() {
             "an inverted value range is refused");
 }
 
+// A live plan (DragUpdates::live) applies every move of the dragging
+// session through update, after that move's preview, with the hit held
+// included; an on_release plan never calls update. Frames say which.
+void live_updates() {
+    Fixture fixture = make_fixture();
+    Window& window = *fixture.window;
+    Canvas& canvas = *fixture.canvas;
+    canvas.threshold = 0.0;
+
+    // A value, live: one update per move, each after its preview, carrying
+    // the value and `live`.
+    canvas.terms.kind = DragKind::value;
+    canvas.terms.updates = DragUpdates::live;
+    canvas.terms.value.axis = DragAxis::x;
+    canvas.terms.value.origin_value = 50.0;
+    canvas.terms.value.minimum = 0.0;
+    canvas.terms.value.maximum = 100.0;
+    pointer(window, PointerAction::down, press_at);
+    const std::size_t before = canvas.updates.size();
+    pointer(window, PointerAction::move, {110.0, 100.0});
+    pointer(window, PointerAction::move, {120.0, 100.0});
+    pointer(window, PointerAction::move, {120.0, 140.0});
+    require(canvas.updates.size() - before >= 3U, "a live value is applied on every move");
+    require(canvas.updates.back().live && near(canvas.updates.back().value, 70.0),
+            "the live update carries the value now");
+    require(canvas.previews_at_update.back() == canvas.previews.size(), "the update follows the move's preview");
+    pointer(window, PointerAction::up, {120.0, 140.0});
+    require(canvas.ends.back().live && canvas.ends.back().end == DragEnd::free,
+            "a live session's end says it was live");
+    require(canvas.tracker.statistics().live_updates == canvas.updates.size(), "live updates are counted");
+
+    // A target held while the pointer moves inside it: the engine previews
+    // no change, the live session still applies the move.
+    canvas.terms = DragPlan{};
+    canvas.terms.kind = DragKind::placement;
+    canvas.terms.updates = DragUpdates::live;
+    canvas.terms.placement.free_drop = true;
+    canvas.targets.push_back(DragTarget{Rect{200.0, 200.0, 100.0, 100.0}, 7U, 0U});
+    pointer(window, PointerAction::down, press_at);
+    pointer(window, PointerAction::move, {250.0, 250.0});
+    require(canvas.previews.back().hit == DragHit::target, "the pointer inside the target hits it");
+    const std::size_t updates_held = canvas.updates.size();
+    pointer(window, PointerAction::move, {260.0, 255.0});
+    require(canvas.updates.size() > updates_held && canvas.updates.back().hit == DragHit::target &&
+                canvas.updates.back().target == 7U && near(canvas.updates.back().pointer.x, 260.0),
+            "a live session applies the move with the target held");
+    // Escape ends it restoring: the frame is live, so the owner undoes its
+    // updates.
+    key(window, PhysicalKey::escape);
+    require(canvas.ends.back().end == DragEnd::escaped && canvas.ends.back().live &&
+                !drag_end_commits(canvas.ends.back().end),
+            "a cancelled live session restores");
+    canvas.targets.clear();
+
+    // On release (the default): no update at all.
+    canvas.terms = DragPlan{};
+    canvas.terms.kind = DragKind::value;
+    canvas.terms.value.axis = DragAxis::x;
+    canvas.terms.value.maximum = 100.0;
+    const std::size_t updates_before = canvas.updates.size();
+    pointer(window, PointerAction::down, press_at);
+    pointer(window, PointerAction::move, {130.0, 100.0});
+    pointer(window, PointerAction::up, {130.0, 100.0});
+    require(canvas.updates.size() == updates_before, "an on_release session applies nothing live");
+    require(!canvas.previews.back().live && !canvas.ends.back().live, "its frames are not live");
+}
+
 // -- auto-scroll --------------------------------------------------------------------
 
 void auto_scroll_velocity_bounds() {
@@ -830,11 +909,12 @@ int main() {
     constraints();
     drop_targets();
     reorder_and_value();
+    live_updates();
     auto_scroll_velocity_bounds();
     auto_scroll_frames();
     withdrawn_targets();
     reentrant_calls();
     destroyed_mid_drag();
-    std::cout << "drag tracker: transitions, cancels, thresholds, constraints, targets, auto-scroll, reentrancy\n";
+    std::cout << "drag tracker: transitions, cancels, thresholds, constraints, targets, live updates, auto-scroll, reentrancy\n";
     return 0;
 }

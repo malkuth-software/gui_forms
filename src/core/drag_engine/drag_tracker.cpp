@@ -221,6 +221,9 @@ private:
     void announce_withdrawn(DragEngine& engine, std::uint32_t id);
     void update_scroll(Point pointer);
     void stop_scroll() noexcept;
+    // A live session's update of `frame` (DragUpdates::live): counted and
+    // handed to the owner's update callback; nothing for an on_release one.
+    void apply_live(const DragTrackerFrame& frame);
 
     DragTracker* tracker_;
     // Borrowed until a start; observed from then on (observed_).
@@ -231,6 +234,12 @@ private:
     // The session's terms, set at its start and its first plan.
     std::uint64_t key_{};
     DragKind kind_{DragKind::placement};
+    // How the model follows (the last plan's DragPlan::updates).
+    DragUpdates updates_{DragUpdates::on_release};
+    // The last frame previewed in this session, for a live update of a move
+    // that changed no hit (the engine previews only changes and continuous
+    // hits).
+    DragTrackerFrame last_frame_{};
     // The placement's lock as the first plan resolved it (never dominant).
     DragAxisLock lock_{DragAxisLock::none};
     DragAutoScroll scroll_{};
@@ -293,6 +302,7 @@ DragTrackerFrame DragTrackerSession::frame_of(DragPhase phase, DragInputMode mod
     frame.epoch = epoch;
     frame.pointer = pointer;
     frame.modifiers = modifiers_;
+    frame.live = updates_ == DragUpdates::live;
     switch (selection.kind) {
     case DragSelectionKind::candidate:
         if (kind_ == DragKind::reorder) {
@@ -375,6 +385,7 @@ DragPlanRefusal DragTrackerSession::plan_drag(DragPlanBuilder& builder, const Dr
     if (plan.container != nullptr) builder.group_container(DragGroup{}, *plan.container);
     builder.drop_motion(plan.settles);
     kind_ = plan.kind;
+    updates_ = plan.updates;
     const bool scrolls = subject.mode == DragInputMode::pointer;
     scroll_ = scrolls ? plan.auto_scroll : DragAutoScroll{};
     const DragPlanRefusal refusal = builder.finish(root);
@@ -527,9 +538,24 @@ void DragTrackerSession::preview_drag(const DragFrame& frame) {
     ++statistics.previews;
     const DragTrackerFrame shown = frame_of(frame.phase, frame.mode, frame.epoch.value, frame.pointer,
                                             frame.selection, frame.landing);
+    last_frame_ = shown;
+    {
+        const CallbackScope scope(depth_);
+        const Delegate<const DragTrackerFrame&> callback = (*tracker_).callbacks.preview;
+        callback(shown);
+    }
+    // The preview may have cancelled the session: a cancelled session
+    // applies nothing more.
+    if (running_engine() == nullptr) return;
+    apply_live(shown);
+}
+
+void DragTrackerSession::apply_live(const DragTrackerFrame& frame) {
+    if (updates_ != DragUpdates::live) return;
+    ++statistics.live_updates;
     const CallbackScope scope(depth_);
-    const Delegate<const DragTrackerFrame&> callback = (*tracker_).callbacks.preview;
-    callback(shown);
+    const Delegate<const DragTrackerFrame&> callback = (*tracker_).callbacks.update;
+    if (callback) callback(frame);
 }
 
 void DragTrackerSession::announce_drag(const DragFrame& frame, DragAnnouncement& announcement) {
@@ -618,6 +644,8 @@ DragStartResult DragTrackerSession::start(const DragStart& start, DragInputMode 
     stop_scroll();
     key_ = start.key;
     kind_ = DragKind::placement;
+    updates_ = DragUpdates::on_release;
+    last_frame_ = DragTrackerFrame{};
     lock_ = DragAxisLock::none;
     scroll_ = DragAutoScroll{};
     planned_ = false;
@@ -660,8 +688,25 @@ bool DragTrackerSession::pointer(const PointerEvent& event) {
         // The redone plan was refused: the session ended, and took this event.
         if (engine == nullptr) return true;
     }
+    const std::uint64_t previews_before = statistics.previews;
     const bool taken = (*engine).pointer(event);
-    if (event.action == PointerAction::move) update_scroll(event.position);
+    if (event.action == PointerAction::move) {
+        // A live session applies every move of its dragging phase: a move
+        // the engine previewed was applied with its preview; one that kept
+        // the hit (a target or slot held) is applied here, from the last
+        // frame with the pointer and modifiers now.
+        DragEngine* const after = running_engine();
+        const bool unpreviewed = statistics.previews == previews_before;
+        if (after != nullptr && unpreviewed && (*after).phase() == DragPhase::dragging &&
+            updates_ == DragUpdates::live) {
+            DragTrackerFrame moved = last_frame_;
+            moved.pointer = pointer_;
+            moved.modifiers = modifiers_;
+            last_frame_ = moved;
+            apply_live(moved);
+        }
+        if (running_engine() != nullptr) update_scroll(event.position);
+    }
     return taken;
 }
 

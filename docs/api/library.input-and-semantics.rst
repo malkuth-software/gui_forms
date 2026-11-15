@@ -363,7 +363,7 @@ Types
 
    ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
-   The plan callback's record: the tracker fills the inputs, the owner the rest. Only the terms of ``kind`` are read (placement, value or reorder); the others keep their initial values. key, press, source, mode, epoch: the drag (inputs). press is where the pointer was pressed, or the subject's centre for the keyboard; source the subject's rectangle; both move with the content when an auto-scroll step plans again. epoch is 1 at the first plan and one more at each later one. travel: the pointer's travel from the press when the plan is made (input; zero for the keyboard). auto_scroll: read for pointer sessions; replanned each step. container: borrowed for the call; the rules' drop_candidate condition names it while a session runs (null: none). settles: asks for a settling phase after the end (the owner animates and calls finish_settling). refused: the owner has nothing to drag now; the session ends rejected.
+   The plan callback's record: the tracker fills the inputs, the owner the rest. Only the terms of ``kind`` are read (placement, value or reorder); the others keep their initial values. key, press, source, mode, epoch: the drag (inputs). press is where the pointer was pressed, or the subject's centre for the keyboard; source the subject's rectangle; both move with the content when an auto-scroll step plans again. epoch is 1 at the first plan and one more at each later one. travel: the pointer's travel from the press when the plan is made (input; zero for the keyboard). auto_scroll: read for pointer sessions; replanned each step. container: borrowed for the call; the rules' drop_candidate condition names it while a session runs (null: none). updates: on_release or live (DragUpdates); read at every plan, so a replan keeps it only if the owner sets it again. settles: asks for a settling phase after the end (the owner animates and calls finish_settling). refused: the owner has nothing to drag now; the session ends rejected.
 
    .. cpp:member:: std::uint64_t key
 
@@ -392,6 +392,10 @@ Types
    .. cpp:member:: DragAutoScroll auto_scroll
 
    .. cpp:member:: Control* container
+
+   .. cpp:member:: DragUpdates updates
+
+      Default: ``{DragUpdates::on_release}``.
 
    .. cpp:member:: bool settles
 
@@ -524,11 +528,13 @@ Types
 
    ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
-   The named callbacks. plan and finished are required; the rest are optional (auto-scroll is off without scroll). Each is read when it is called, so a change takes effect at the next call.
+   The named callbacks. plan and finished are required; the rest are optional (auto-scroll is off without scroll; a live plan without update changes nothing live). Each is read when it is called, so a change takes effect at the next call. update follows the move's preview, under the same reentrancy rules (it may cancel or withdraw a target).
 
    .. cpp:member:: Delegate<DragPlan&> plan
 
    .. cpp:member:: Delegate<const DragTrackerFrame&> preview
+
+   .. cpp:member:: Delegate<const DragTrackerFrame&> update
 
    .. cpp:member:: Delegate<const DragTrackerFrame&> finished
 
@@ -542,7 +548,7 @@ Types
 
    ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
-   One frame of a session, for preview and finished. key, epoch, mode, pointer, modifiers: the drag now (pointer is where a pointer would be in a keyboard session). hit: what the plan selects. target: the target's id (target) or the slot's index (slot). landing: the target's bounds or the slot's landing rectangle. point: the placement's top-left. value: the value. end: none while running; how it ended in finished. animate: finished only; the session settles until finish_settling.
+   One frame of a session, for preview and finished. key, epoch, mode, pointer, modifiers: the drag now (pointer is where a pointer would be in a keyboard session). hit: what the plan selects. target: the target's id (target) or the slot's index (slot). landing: the target's bounds or the slot's landing rectangle. point: the placement's top-left. value: the value. end: none while running; how it ended in finished. animate: finished only; the session settles until finish_settling. live: the session's plan is live (DragUpdates::live): update applies this frame, and finished's restores what the updates changed.
 
    .. cpp:member:: DragPhase phase
 
@@ -580,13 +586,15 @@ Types
 
    .. cpp:member:: bool animate
 
+   .. cpp:member:: bool live
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: DragTrackerStatistics final
 
    ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
-   The tracker's counters (AGENTS.md: structured instrumentation). withdrawn: targets withdrawn while dragging; deferred_replans: those whose replan waited for the next event (withdrawn inside a callback). scroll_ticks: auto-scroll frames; scroll_steps: frames that scrolled; scroll_stops: frames that applied nothing (the content's end).
+   The tracker's counters (AGENTS.md: structured instrumentation). withdrawn: targets withdrawn while dragging; deferred_replans: those whose replan waited for the next event (withdrawn inside a callback). scroll_ticks: auto-scroll frames; scroll_steps: frames that scrolled; scroll_stops: frames that applied nothing (the content's end). live_updates: update calls (live sessions only).
 
    .. cpp:member:: std::uint64_t sessions
 
@@ -613,6 +621,8 @@ Types
    .. cpp:member:: std::uint64_t scroll_steps
 
    .. cpp:member:: std::uint64_t scroll_stops
+
+   .. cpp:member:: std::uint64_t live_updates
 
 .. cpp:namespace:: gui_forms
 
@@ -1668,6 +1678,16 @@ Enumerations
    .. cpp:enumerator:: refused
 
    .. cpp:enumerator:: bad_input
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DragUpdates
+
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+
+   .. cpp:enumerator:: on_release
+
+   .. cpp:enumerator:: live
 
 .. cpp:namespace:: gui_forms
 
