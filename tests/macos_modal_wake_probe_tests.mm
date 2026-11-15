@@ -36,14 +36,12 @@
 // Then the same for an ordinary owned window: a click whose handler posts
 // its close must close it within the bound.
 //
-// Activation is not under test. An owned window opens ordered front but
-// not key, and AppKit spends the first click on a window that is not key
-// (or on an application that is not active, as on a desktop covered by
-// other programs' dialogs) on making it key: the view does not accept the
-// first mouse. So the plain window is made key, and the application
-// active, before its click; and a round whose close never comes still
-// ends the run with the failure reported (finish_if_stuck), rather than
-// leaving it to the watchdog.
+// The plain window opens ordered front but not key; its click relies on
+// click-through (GUIFormsView acceptsFirstMouse:), so it also works when
+// the application is not active, as on a desktop covered by other
+// programs' dialogs. A round whose close never comes still ends the run
+// with the failure reported (finish_if_stuck), rather than leaving it to
+// the watchdog.
 //
 // The helper thread only waits and posts events (postEvent: is admitted
 // from any thread). If a bound passes it records the failure and posts one
@@ -342,7 +340,6 @@ struct PlainReady final {
         (*probe).ticked = false;
         (*(*probe).timer).stop();
         (*(*probe).timer).start();
-        make_key(plain_title);
         (*probe).report.check("the plain window is found for its click",
                               handoff_probe::find_window(plain_title) != nil, "");
         arm_round((*probe).plain_round, plain_title);
@@ -354,16 +351,6 @@ struct PlainReady final {
 
 void finish_run(void* context);
 void finish_if_stuck(void* context);
-
-// Activation is not under test: the plain window is made key and the
-// application active, so the posted click reaches the OK button instead of
-// being spent on making the window key.
-void make_key(const char* title) {
-    NSWindow* const native = handoff_probe::find_window(title);
-    if (native == nil) return;
-    [NSApp activateIgnoringOtherApps:YES];
-    [native makeKeyAndOrderFront:nil];
-}
 
 struct PlainClosed final {
     WakeProbe* probe{};

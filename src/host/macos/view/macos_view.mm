@@ -647,6 +647,18 @@ void link_view_categories() noexcept {
     return YES;
 }
 
+// Click-through (owner ruling, cp32): the first click on a window that is
+// not key, or of an application that is not active, both activates it and
+// acts on the control under the pointer, as on Windows. AppKit makes the
+// window key (windowDidBecomeKey, GUI.Forms' activation) before it sends
+// the press here, so activation comes first and the press, release and
+// click follow in the usual input order. Covers popup panels too, whose
+// content is this view.
+- (BOOL)acceptsFirstMouse:(NSEvent*)event {
+    static_cast<void>(event);
+    return YES;
+}
+
 - (BOOL)becomeFirstResponder {
     return YES;
 }

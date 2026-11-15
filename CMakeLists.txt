@@ -3200,11 +3200,12 @@ if(GUI_FORMS_BUILD_TESTS)
 
             # Native AppKit readback of the window chrome, modal windows and
             # composite focus (Mac handoff 2026-11-09, item 2), and work that
-            # must wake a modal session by itself (modal_wake_probe). Launched
+            # must wake a modal session by itself (modal_wake_probe), and
+            # click-through on an inactive window (first_click_probe). Launched
             # through LaunchServices so their windows can become key; serial,
             # since they need the key window. The focus probe writes its
             # captures to handoff_focus_captures/ in this directory.
-            foreach(handoff_probe IN ITEMS window_chrome_probe modal_probe composite_focus_probe modal_wake_probe)
+            foreach(handoff_probe IN ITEMS window_chrome_probe modal_probe composite_focus_probe modal_wake_probe first_click_probe)
                 set(handoff_target gui_forms_macos_${handoff_probe}_tests)
                 add_executable(${handoff_target} MACOSX_BUNDLE tests/macos_${handoff_probe}_tests.mm
                     ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})

@@ -228,6 +228,14 @@ set (`MouseDown`, `Click`, `MouseClick`, `DoubleClick`, `MouseDoubleClick`,
 order, under `ControlStyles::standard_click` and `standard_double_click`; a
 button raises no double-click.
 
+The first click on an inactive window both activates it and acts on the
+control under the pointer, as on Windows, where `WM_MOUSEACTIVATE` answers
+`MA_ACTIVATE`. On macOS the view accepts the first mouse
+(`acceptsFirstMouse:`), so AppKit makes the window key, which is GUI.Forms'
+activation, and then delivers the press. The press, release and click follow
+in the usual order. (This is not the clear-pixel pass-through that the
+compositor section calls click-through, which no host does.)
+
 A context request comes from the host only (`HostContextRequestEvent`, with a
 pointer or keyboard origin); the core has no key route of its own. The
 events' order and use are in [Mouse events and context requests](mouse-events.md).
