@@ -16,7 +16,11 @@ function(gui_forms_application_text consumer implementation public_name)
     # Include every public entry point, even when the host itself never calls
     # it: the implementation joins the archives Application links whole.
     gui_forms_application_add_archives(gui_forms_application ${implementation})
-    target_link_libraries(${consumer} INTERFACE GUIForms::Application)
+    # Application is not an exported target since one module (the SDK's
+    # GUIForms::Application is an interface over the merged archives), so the
+    # install names that interface and the build tree the library itself.
+    target_link_libraries(${consumer} INTERFACE $<BUILD_INTERFACE:gui_forms_application>
+                                                $<INSTALL_INTERFACE:GUIForms::Application>)
 endfunction()
 
 gui_forms_application_text(gui_forms_text_masks gui_forms_text_masks_impl TextMasks)
