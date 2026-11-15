@@ -468,6 +468,11 @@ void ContentSurface::set_content_semantics(ContentSemantics semantics) {
 
 void ContentSurface::take_notices() {
     if (!channel_) return;
+    // Held to the end: status_changed's handlers run below (directly and
+    // through check_worker), and one may remove the surface and drop its
+    // last pointer when the program ended; the notice holds only the
+    // listener (A-gf-controls-02-F5).
+    const Control::Ptr retained = weak_from_this().lock();
     ContentSemantics arrived{};
     const bool fresh = detail::take_content_semantics(*channel_, semantics_generation_, arrived);
     if (fresh && !(arrived == semantics_)) {

@@ -286,6 +286,34 @@ void frames_from_a_consumer_thread() {
     require(empty_sink.publish(frame_of(smaller)) == ContentPublishResult::revoked, "an empty sink is revoked");
 }
 
+// Removes the surface from its parent and drops the fixture's pointer when
+// it turns live, as a handler retiring a finished view might.
+struct ReleaseWhenLive final {
+    Fixture* fixture{};
+    void operator()(ContentSurfaceStatus status) const {
+        if (status != ContentSurfaceStatus::live || !(*fixture).surface) return;
+        const RuntimeId id = (*(*fixture).surface).runtime_id();
+        static_cast<void>((*(*fixture).root).remove_child(id));
+        (*fixture).surface.reset();
+    }
+};
+
+// A status_changed handler that releases the surface while a notice is
+// taken (A-gf-controls-02-F5): the surface holds itself to the end of
+// take_notices, and goes once the notice is done.
+void handler_releases_the_surface_in_a_notice() {
+    Fixture fixture = make_fixture("content.release");
+    std::weak_ptr<ContentSurface> observed = fixture.surface;
+    ContentFrameSink sink = (*fixture.surface).open_content(true);
+    const SubscriptionToken token =
+        (*fixture.surface).status_changed().subscribe(ReleaseWhenLive{&fixture});
+    const PixelBuffer pixels = make_pixels(200U, 100U, 0x40U);
+    require(publish_from_thread(sink, frame_of(pixels)) == ContentPublishResult::published,
+            "the frame is published");
+    drain(*fixture.window);
+    require(!fixture.surface && observed.expired(), "the released surface is gone after its notice");
+}
+
 void reopening_revokes_the_old_sink() {
     Fixture fixture = make_fixture("content.reopen");
     ContentSurface& surface = *fixture.surface;
@@ -413,6 +441,7 @@ int main() {
         watchdog_turns_stale_and_recovers();
         frames_from_a_consumer_thread();
         reopening_revokes_the_old_sink();
+        handler_releases_the_surface_in_a_notice();
         stale_frames_keep_the_last_good_frame();
         waiting_content_turns_stale_too();
         semantic_text_from_the_consumer();
