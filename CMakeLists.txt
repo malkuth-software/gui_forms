@@ -3775,6 +3775,13 @@ if(GUI_FORMS_BUILD_TESTS)
         # through the module or the shield (cmake/HostileMacroConformance.cmake).
         # Its objects build on request until they pass on every host.
         include(cmake/HostileMacroConformance.cmake)
+        # The export lists under cmake/exports/ match the GUI_FORMS_API and
+        # GUI_FORMS_THREADING_API marks, and every public declaration that
+        # needs a mark has one (tools/export_annotations.py check, with its
+        # glob self-test). A list that drifts from the marks fails here on
+        # every host, Windows included, where the marks are dllexport.
+        add_test(NAME gui_forms_export_lists_current
+            COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/export_annotations.py check)
     endif()
     add_executable(gui_drawing_core_tests tests/drawing_core_tests.cpp)
     target_link_libraries(gui_drawing_core_tests PRIVATE gui_drawing_core)

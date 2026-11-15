@@ -444,6 +444,21 @@ if(GUI_FORMS_BUILD_TESTS)
             "-DALLOW_SHARED_CXX_RUNTIME=${_gf_abi_shared_runtime}"
             "-DBINARIES=$<TARGET_FILE:gui_forms_abi>"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckSystemImports.cmake")
+    # Windows: no module frees another's memory across the library's boundary
+    # (cmake/CheckAllocatorBoundary.cmake). The library and its C and C++
+    # consumers export no allocation entry point, take the C heap only from
+    # the system CRT and operator new only from their own static libc++, and
+    # the consumers import nothing from the library but its entry points and
+    # the Win32 shim's names.
+    if(WIN32)
+        add_test(NAME gui_forms_abi_allocator_boundary
+            COMMAND "${CMAKE_COMMAND}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
+                "-DBINARIES=$<TARGET_FILE:gui_forms_abi>|$<TARGET_FILE:gui_forms_abi_runtime_c11_tests>|$<TARGET_FILE:gui_forms_abi_conformance>|$<TARGET_FILE:gui_forms_abi_schema_export>|$<TARGET_FILE:gui_forms_abi_cpp_wrappers>"
+                "-DPROVIDER=$<TARGET_FILE_NAME:gui_forms_abi>"
+                "-DPROVIDER_NAMES=${_gf_abi_generated}/gf_abi_exports.txt"
+                "-DPROVIDER_DEF=${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/win32_compat_shim.def"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckAllocatorBoundary.cmake")
+    endif()
 
     # The stage C3 gate: the control schema read through the ABI alone equals
     # manifests/control-schema.json, its composites loaded from the Gallery's
@@ -639,6 +654,7 @@ if(GUI_FORMS_BUILD_TESTS)
     set(_gf_abi_label_candidates
         gui_drawing_c_api_c11_tests gui_drawing_raster_c_api_tests
         gui_forms_abi_exports_only_entry_points gui_forms_abi_system_imports_only
+        gui_forms_abi_allocator_boundary
         gui_forms_windows_gdi_compat_shim_tests
         gui_forms_binding_tests gui_forms_binding_provider_tests gui_forms_binding_navigator_tests
         gui_forms_shadow_frames_tests
