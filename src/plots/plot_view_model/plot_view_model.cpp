@@ -393,7 +393,11 @@ void PlotViewModel::set_gesture_axes(PlotGestureAxes axes) noexcept {
     case PlotGestureAxes::y_only:
         gesture_axes_ = axes;
         break;
+    case PlotGestureAxes::both:
+        gesture_axes_ = PlotGestureAxes::both;
+        break;
     default:
+        // A value outside the enumeration falls back to both axes, the default.
         gesture_axes_ = PlotGestureAxes::both;
         break;
     }

@@ -4475,7 +4475,13 @@ bool DataGridView::raise_cell_mouse(const PointerEvent& event, Point local) {
         }
         case PointerAction::enter:
         case PointerAction::leave:
+            // Cell enter and leave were raised above, from the target change.
+            break;
+        case PointerAction::wheel:
+            // The wheel scrolls the grid (on_mouse_wheel); it raises no cell event.
+            break;
         default:
+            // No other action exists; a value outside the enumeration raises nothing.
             break;
     }
     const bool alive = is_alive();

@@ -874,6 +874,7 @@ void copy_image_rows(const ImageRowCopy& copy, const ImageSnapshot& image, const
         return fits ? RasterError::none : RasterError::missing_image_pixels;
     }
     default:
+        // Not a CommandKind: refused below.
         break;
     }
     // Not a CommandKind: the list cannot be replayed.

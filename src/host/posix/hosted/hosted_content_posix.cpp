@@ -571,6 +571,8 @@ void PosixHostedProgram::handle(const HostedMessage& message, ContentFrameSink& 
         return;
     }
     case HostedMessageKind::goodbye:
+        // The program is about to exit on its own; the end of the channel,
+        // which follows, ends the session, so nothing is done here.
         return;
     case HostedMessageKind::configure:
     case HostedMessageKind::release:
@@ -579,6 +581,10 @@ void PosixHostedProgram::handle(const HostedMessage& message, ContentFrameSink& 
     case HostedMessageKind::pointer:
     case HostedMessageKind::stop:
     case HostedMessageKind::focus:
+        // The parent's own kinds: a child never sends them (fails below).
+        break;
+    default:
+        // A kind outside the protocol (fails below).
         break;
     }
     // The reader admits only the child's kinds; anything else is a breach.

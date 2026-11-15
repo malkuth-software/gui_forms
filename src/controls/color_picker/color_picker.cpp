@@ -282,7 +282,11 @@ void ColorPicker::pick(ColorPickerPart part, Point local) {
         alpha = channel(1.0 - (local.y - layout.alpha_track.y) / height);
         break;
     }
+    case ColorPickerPart::none:
+        // A press outside the field and tracks picks nothing.
+        return;
     default:
+        // No other part exists; a value outside the enumeration picks nothing.
         return;
     }
     apply(next, alpha);
@@ -484,7 +488,12 @@ void ColorPicker::publish_part_geometry(std::span<PartGeometry> geometry) const 
     case ColorPickerPart::field: dragged_thumb = &record.field_thumb; break;
     case ColorPickerPart::hue: dragged_thumb = &record.hue_thumb; break;
     case ColorPickerPart::alpha: dragged_thumb = &record.alpha_thumb; break;
-    default: break;
+    case ColorPickerPart::none:
+        // No drag: no thumb is pressed.
+        break;
+    default:
+        // No other part exists; no thumb is pressed.
+        break;
     }
     if (dragged_thumb != nullptr) {
         (*dragged_thumb).states.insert(AnatomyState::pressed);

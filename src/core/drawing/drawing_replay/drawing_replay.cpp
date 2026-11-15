@@ -263,6 +263,9 @@ void write_points(std::span<const gui_drawing::PointF> source, std::vector<Point
         return true;
     }
     default:
+        // The kinds classify() calls state or unsupported never reach here
+        // (replay_drawing_commands counts them first); any other kind is
+        // reported as not drawn.
         break;
     }
     return false;

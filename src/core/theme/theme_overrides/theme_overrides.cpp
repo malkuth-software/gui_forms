@@ -53,7 +53,14 @@ constexpr std::array<PseudoClassName, 12> pseudo_class_names{{
     case ThemeOverrideProperty::opacity:
         maximum = 1.0;
         break;
+    case ThemeOverrideProperty::background_colour:
+    case ThemeOverrideProperty::border_colour:
+    case ThemeOverrideProperty::text_colour:
+        // Colour properties have no length (colour_property routes them).
+        maximum = 0.0;
+        break;
     default:
+        // No other property exists; a value outside the enumeration takes no length.
         maximum = 0.0;
         break;
     }

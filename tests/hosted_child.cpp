@@ -88,7 +88,10 @@ std::string input_token(const HostedClientInput& event) {
         if (event.pointer.action == static_cast<std::uint32_t>(PointerAction::wheel)) return "pw";
         return std::string{};
     case HostedMessageKind::focus: return event.focused ? "f1" : "f0";
-    default: return std::string{};
+    default:
+        // The other kinds (the child's own messages, resize, goodbye) are not
+        // input the log records.
+        return std::string{};
     }
 }
 

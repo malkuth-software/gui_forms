@@ -162,6 +162,11 @@ void HostedClient::handle(const HostedMessage& message) {
     case HostedMessageKind::heartbeat:
     case HostedMessageKind::semantics:
     case HostedMessageKind::goodbye:
+        // The child's own kinds: a parent never sends them, so the channel
+        // is closed below as for a broken peer.
+        break;
+    default:
+        // A kind outside the protocol: the channel is closed below.
         break;
     }
     // The reader admits only the parent's kinds.
