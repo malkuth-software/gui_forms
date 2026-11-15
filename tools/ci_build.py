@@ -476,7 +476,13 @@ def main() -> None:
     architecture: str = 'x64'
     if platform.machine().lower() in ('arm64', 'aarch64'):
         architecture = 'arm64'
-    build: Path = ROOT / '.build' / ('native-' + host + '-' + architecture)
+    # The build root by its real path: with ccache's base_dir set, depfiles are
+    # written relative to the compiler's real working directory, so a build
+    # tree reached through a symlink records generated headers under paths
+    # ninja does not match to their generating rule (form_shared_source).
+    build_root: Path = ROOT / '.build'
+    build_root.mkdir(parents=True, exist_ok=True)
+    build: Path = build_root.resolve() / ('native-' + host + '-' + architecture)
     build.mkdir(parents=True, exist_ok=True)
     build_toolkit(host, build, build / 'gui-forms-sdk', args.jobs,
                   gallery_enabled(args.gallery, dict(os.environ)), args.sanitize, args.tests,

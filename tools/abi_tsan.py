@@ -99,7 +99,8 @@ def main() -> int:
         return 2
     host: str = hosts[system]
     architecture: str = 'arm64' if platform.machine().lower() in ('arm64', 'aarch64') else 'x64'
-    build: Path = ROOT / '.build' / ('native-' + host + '-' + architecture)
+    # By its real path, as ci_build.py builds (ccache base_dir and symlinked trees).
+    build: Path = (ROOT / '.build').resolve() / ('native-' + host + '-' + architecture)
     tree: Path = build / 'gui-forms-tsan'
     build.mkdir(parents=True, exist_ok=True)
     require_instrumented(tree)
