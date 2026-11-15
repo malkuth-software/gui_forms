@@ -139,7 +139,7 @@
       "hand": [
         "prepare keeps edit below window; written updates the row order mode"
       ],
-      "sample": "DataGridViewRowOrderThresholds{}"
+      "sample": "DataGridViewRowOrderThresholds{300000U, 100000U, 20000U, 1000U, 64U}"
     },
     {
       "name": "allow_user_to_delete_rows",

@@ -661,7 +661,7 @@ void test_data_grid_view_properties() {
         expect((*control).row_order_policy.read() == sample, "DataGridView.row_order_policy: a write stores");
     }
     {
-        const DataGridViewRowOrderThresholds sample = DataGridViewRowOrderThresholds{};
+        const DataGridViewRowOrderThresholds sample = DataGridViewRowOrderThresholds{300000U, 100000U, 20000U, 1000U, 64U};
         (*control).row_order_thresholds = sample;
         expect((*control).row_order_thresholds.read() == sample, "DataGridView.row_order_thresholds: a write stores");
     }
@@ -2945,12 +2945,14 @@ void test_text_box_properties() {
                "TextBox.placeholder_text: the table reads the cell");
     }
     {
-        const bool sample = false;
+        const bool before = (*control).multiline.read();
+        const bool sample = !(*control).multiline.read();
         (*control).multiline = sample;
         expect((*control).multiline.read() == sample, "TextBox.multiline: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("multiline");
         expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
                "TextBox.multiline: the table reads the cell");
+        (*control).multiline = before;
     }
     {
         const bool sample = !(*control).word_wrap.read();

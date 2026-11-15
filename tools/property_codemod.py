@@ -68,7 +68,12 @@ src/controls/shared_property_enums/shared_property_enums.cpp; a family
 naming one declares no traits for it and its capabilities header includes the
 shared header. Generating a family refuses an enumeration it would declare
 that another family declares too, until it is listed there.
-             "sample": a C++ expression the generated test writes.
+             "sample": a C++ expression the generated test writes. It must
+             differ from the cell's value when written, or the read-back
+             cannot fail (B-gf-tests-09-F2).
+             "restore": true when the generated test writes the value it read
+             first back after the block, so a sample that changes the
+             control's mode (multiline) does not refuse later writes.
 Paths in a config are relative to the gui_forms checkout (the current
 directory). Outputs use LF line endings.
 """
@@ -85,7 +90,7 @@ import sys
 PROPERTY_KEYS = {
     "name", "capability", "value", "initial", "comment", "getter", "setter", "clear", "field", "event",
     "on_changed", "localizable", "table", "hooks", "storage", "effects", "thunks", "hand",
-    "comment_generated", "prepare", "written_effects", "traits", "sample", "coerce",
+    "comment_generated", "prepare", "written_effects", "traits", "sample", "coerce", "restore",
 }
 TOP_KEYS = {
     "family", "declaring", "header", "source", "capabilities_header", "properties", "step", "shared",
@@ -1586,7 +1591,10 @@ def test_function(config):
             lines.append(f"    // {member}: no sample for {value}; give the property a \"sample\".")
             continue
         label = f"{family}.{member}"
-        lines += ["    {", f"        const {value} sample = {sample};"]
+        lines.append("    {")
+        if prop.get("restore"):
+            lines.append(f"        const {value} before = (*control).{member}.read();")
+        lines.append(f"        const {value} sample = {sample};")
         if prop.get("event"):
             accessor = prop["event"].rstrip("_")
             lines += ["        int raises = 0;",
@@ -1607,6 +1615,8 @@ def test_function(config):
             lines += [f"        const std::optional<BindingValue> by_name = (*control).property_value(\"{member}\");",
                       f"        expect(by_name && *by_name == PropertyValueTraits<{value}>::to_binding(sample),",
                       f"               \"{label}: the table reads the cell\");"]
+        if prop.get("restore"):
+            lines.append(f"        (*control).{member} = before;")
         lines.append("    }")
     # A hand entry (extra_entries) is reached by name: the table describes it.
     for entry in config.get("extra_entries") or []:
