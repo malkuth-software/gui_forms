@@ -112,7 +112,11 @@ BindingValue SweepScope::sweep_period_property_value() const {
 
 void SweepScope::write_sweep_period_property(const BindingValue& value) {
     const double seconds = std::get<double>(value);
-    if (!std::isfinite(seconds)) {
+    // Converting seconds whose tick count does not fit the interval's integer
+    // is undefined (A-gf-controls-05-F2), so values far outside the range are
+    // refused before the conversion; prepare_write then checks the exact
+    // range on the rounded interval, as before. NaN fails the test too.
+    if (!(seconds >= 0.0 && seconds <= 120.0)) {
         throw std::out_of_range("SweepScope sweep period must be from 0.1 to 60 seconds");
     }
     const FrameInterval period = std::chrono::round<FrameInterval>(std::chrono::duration<double>(seconds));

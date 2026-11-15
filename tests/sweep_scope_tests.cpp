@@ -14,6 +14,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
 
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -122,6 +123,21 @@ void properties() {
             "a period over 60 s is refused, leaving the period as it was");
     (*scope).sweep_period = std::chrono::seconds(60);
     require((*scope).sweep_period.read() == std::chrono::seconds(60), "60 s is admitted");
+    // A-gf-controls-05-F2: seconds whose tick count overflows the interval are refused before
+    // they are converted, and the period stays as it was.
+    const std::array<double, 3> far_out{1e30, -1e30, 121.0};
+    for (const double seconds : far_out) {
+        refused = false;
+        try {
+            (*scope).set_property_value("sweep_period", BindingValue{seconds});
+        } catch (const std::logic_error&) {
+            refused = true;
+        }
+        require(refused && (*scope).sweep_period.read() == std::chrono::seconds(60),
+                "a table period far outside the range is refused before conversion");
+    }
+    (*scope).set_property_value("sweep_period", BindingValue{0.1});
+    require((*scope).sweep_period.read() == std::chrono::milliseconds(100), "0.1 s through the table is admitted");
 }
 
 void anatomy_and_semantics() {
