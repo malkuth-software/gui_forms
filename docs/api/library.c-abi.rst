@@ -488,6 +488,8 @@ Types
 
    .. cpp:function:: gf_status state(gf_application_state* state) const noexcept
 
+   .. cpp:function:: gf_status set_program_identity(const gf_program_identity* identity) const noexcept
+
 .. cpp:namespace:: gui_forms::abi
 
 .. cpp:class:: BindingsTable
@@ -758,9 +760,19 @@ Types
 
    .. cpp:function:: gf_status focus_state(gf_object object, uint32_t* focused, uint32_t* contains_focus) const noexcept
 
+   .. cpp:function:: gf_status request_relative_pointer(gf_object object, const gf_relative_pointer_request* request, gf_relative_pointer_grant* grant) const noexcept
+
+   .. cpp:function:: gf_status release_relative_pointer(gf_object object, uint32_t* released) const noexcept
+
+   .. cpp:function:: gf_status relative_pointer_state(gf_object object, gf_relative_pointer_state* state) const noexcept
+
+   .. cpp:function:: gf_status warp_pointer(gf_object object, gf_logical_point position, uint32_t* warped) const noexcept
+
    .. cpp:function:: gf_status set_pointer_capture(gf_object object, uint32_t captured) const noexcept
 
    .. cpp:function:: gf_status set_scroll_axis(gf_object object, gf_scroll_orientation orientation, const gf_scroll_axis* axis) const noexcept
+
+   .. cpp:function:: gf_status set_pointer_release_regions(gf_object object, const gf_logical_rect* regions, uint32_t count) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -941,9 +953,13 @@ Types
 
    .. cpp:function:: gf_status failure_detail(gf_failure_detail* detail) const noexcept
 
+   .. cpp:function:: gf_status toggle_diagnostic_overlay(uint32_t* enabled) const noexcept
+
    .. cpp:function:: gf_status set_invalidation_overlay(uint32_t enabled) const noexcept
 
    .. cpp:function:: gf_status set_exception_reflection(uint32_t enabled) const noexcept
+
+   .. cpp:function:: gf_status set_diagnostic_overlay(uint32_t enabled) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -6187,6 +6203,8 @@ Types
    .. cpp:function:: gf_status shaping(gf_object window, gf_window_shaping* report) const noexcept
 
    .. cpp:function:: gf_status pointer_location(gf_object window_or_control, gf_logical_point* location, gf_logical_point* window_position, uint32_t* inside) const noexcept
+
+   .. cpp:function:: gf_status show_business_card(gf_object window_or_root, uint32_t* shown) const noexcept
 
    .. cpp:function:: gf_status set_band_appearance(gf_object window, const gf_window_band_appearance* appearance) const noexcept
 
