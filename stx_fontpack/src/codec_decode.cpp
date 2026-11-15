@@ -236,6 +236,13 @@ bool stream_open(StreamDecoder& decoder, const Allocator& allocator, const std::
     decoder.quantiser = quantiser;
     decoder.table_count = table_count;
     const std::uint32_t fine_count = decoder.class_count * (quantiser_classes(quantiser) + 1);
+    // Every table is named by some fine context (the encoder drops unused
+    // clusters), so more tables than contexts is a damaged header. With one
+    // class and no quantiser this also keeps the decoder off the class array,
+    // which is null then (A-gf-typography-01-F3).
+    if (table_count > fine_count) {
+        return false;
+    }
 
     decoder.context_map = static_cast<std::uint8_t*>(block_take(allocator, fine_count));
     decoder.literal_tables =
@@ -689,7 +696,9 @@ bool number_open(NumberDecoder& decoder, const Allocator& allocator, const std::
     }
     const std::uint32_t class_count = get_u8(reader);
     const std::uint32_t table_count = get_u8(reader);
-    if (reader.failed || class_count == 0 || table_count == 0) {
+    // As in stream_open: no more literal tables than classes, so a one-class
+    // stream never reads its (null) class array (A-gf-typography-01-F3).
+    if (reader.failed || class_count == 0 || table_count == 0 || table_count > class_count) {
         return false;
     }
     decoder.class_count = class_count;

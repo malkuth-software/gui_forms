@@ -848,6 +848,96 @@ bool number_shape_opens(const NumberShape& shape) {
     return opened;
 }
 
+// What a crafted byte stream header says. The defaults
+// (byte_shape_default) are a header the encoder could write: one class, no
+// quantiser, one literal table, one chunk of four bytes in one sequence.
+struct ByteShape {
+    std::uint32_t class_count;
+    std::uint32_t quantiser;
+    std::uint32_t table_count;     // the context map maps every fine context to table 0
+    std::uint32_t offset_second;   // the offset table's second used code
+};
+
+ByteShape byte_shape_default() {
+    ByteShape shape;
+    shape.class_count = 1;
+    shape.quantiser = 0;
+    shape.table_count = 1;
+    shape.offset_second = 3;
+    return shape;
+}
+
+// Appends the header and kStreamPadding zero bytes; size receives the header's length.
+void byte_stream_put(const ByteShape& shape, Bytes& out, std::size_t& size) {
+    const std::uint32_t decoded = 4;
+    out.clear();
+    stx_fontpack::put_varint(out, decoded);
+    out.push_back(1);   // coded
+    stx_fontpack::put_varint(out, shape.class_count);
+    out.push_back(static_cast<std::uint8_t>(shape.quantiser));
+    out.push_back(static_cast<std::uint8_t>(shape.table_count));
+    if (shape.table_count != 1) {
+        out.push_back(0);
+        stx_fontpack::put_varint(out, shape.class_count * (stx_fontpack::quantiser_classes(shape.quantiser) + 1));
+    }
+    TestBits bits;
+    test_bits_reset(bits);
+    for (std::uint32_t t = 0; t < shape.table_count; t += 1) {
+        test_table_put(bits, 256, 1);
+    }
+    test_table_put(bits, stx_fontpack::kSeqAlphabet, 1);   // literal lengths
+    test_table_put(bits, stx_fontpack::kSeqAlphabet, 1);   // match lengths
+    test_table_put(bits, stx_fontpack::kSeqAlphabet, shape.offset_second);
+    test_bits_flush(bits);
+    stx_fontpack::put_varint(out, bits.bytes.size());
+    out.insert(out.end(), bits.bytes.begin(), bits.bytes.end());
+    stx_fontpack::put_varint(out, 1);         // chunks
+    stx_fontpack::put_varint(out, decoded);   // the chunk's bytes
+    stx_fontpack::put_varint(out, 1);         // its sequences
+    stx_fontpack::put_varint(out, 0);         // sequence payload bytes
+    stx_fontpack::put_varint(out, 0);         // extra bits bytes
+    stx_fontpack::put_varint(out, 0);         // literal payload bytes
+    size = out.size();
+    out.insert(out.end(), static_cast<std::size_t>(stx_fontpack::kStreamPadding), static_cast<std::uint8_t>(0));
+}
+
+// Whether stream_open accepts the shape; everything it took is given back either way.
+bool byte_shape_opens(const ByteShape& shape) {
+    Bytes blob;
+    std::size_t size = 0;
+    byte_stream_put(shape, blob, size);
+    CheckingAllocator state;
+    checking_reset(state, static_cast<std::size_t>(-1));
+    const stx_fontpack::Allocator allocator = checking_interface(state);
+    stx_fontpack::StreamDecoder decoder;
+    std::size_t consumed = 0;
+    const bool opened = stx_fontpack::stream_open(decoder, allocator, blob.data(), size, consumed);
+    if (opened) {
+        check(consumed == size, "a crafted byte header is consumed whole");
+        stx_fontpack::stream_close(decoder);
+    }
+    check(state.outstanding_blocks.load() == 0 && state.wrong_sizes.load() == 0, "a crafted byte header gives everything back");
+    return opened;
+}
+
+// A-gf-typography-01-F3: no more literal tables than contexts. A one-class
+// stream with two tables would have read its null class array.
+void test_table_counts() {
+    ByteShape bytes = byte_shape_default();
+    check(byte_shape_opens(bytes), "control: a one-class byte stream with one table opens");
+    bytes.table_count = 2;
+    check(!byte_shape_opens(bytes), "a one-class byte stream with two tables is refused");
+    bytes.quantiser = 1;
+    check(byte_shape_opens(bytes), "with a quantiser, two tables for nine fine contexts open");
+    bytes.table_count = 10;
+    check(!byte_shape_opens(bytes), "ten tables for nine fine contexts are refused");
+    NumberShape numbers = number_shape_default();
+    numbers.table_count = 2;
+    check(!number_shape_opens(numbers), "a one-class number stream with two tables is refused");
+    numbers.class_count = 2;
+    check(number_shape_opens(numbers), "control: two classes with two tables open");
+}
+
 // A-gf-typography-01-F1: a correction code indexes 64-entry tables, so a
 // correction table that gives a code of 64 or more a frequency is refused
 // when the stream opens, before any chunk decodes with it.
@@ -868,6 +958,7 @@ int main(int argc, char** argv) {
     test_crc_combine();
     test_manifest();
     test_number_correction_codes();
+    test_table_counts();
 
     std::vector<stx_fontpack::PackInput> fonts;
     fonts.push_back(blob_input("noise-a.bin", 70000, 1, false));
