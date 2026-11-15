@@ -145,7 +145,9 @@ Linear linear_of(Color colour) noexcept {
 
 // Linear light to an sRGB byte through the reference's 4097-step table.
 std::uint8_t encode(double value) noexcept {
-    const double clamped = value <= 0.0 ? 0.0 : (value >= 1.0 ? 1.0 : value);
+    // !(value > 0.0) takes NaN to 0 as well: no value reaches the conversion
+    // unclamped (A-gf-core-06-F1).
+    const double clamped = !(value > 0.0) ? 0.0 : (value >= 1.0 ? 1.0 : value);
     const std::size_t step = static_cast<std::size_t>(clamped * 4096.0);
     return finish_encode_table[step];
 }

@@ -49,6 +49,7 @@
 #include "gui_forms/window.hpp"
 
 #include "../src/core/engine/primitives/finish/finish_kernel.hpp"
+#include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "../src/core/engine/primitives/material/material_bake_policy.hpp"
 #include "support/rgba_order.hpp"
 
@@ -797,6 +798,27 @@ int preview(const std::filesystem::path& directory) {
 
 } // namespace
 
+// A-gf-core-06-F1: a finish lit from the horizon with no ambient light would
+// divide by a zero flat diffuse; such a material is refused, while either
+// value alone, and the glint (which has no flat normalisation), stay valid.
+void horizon_without_ambient_is_refused() {
+    SurfaceMaterial material{};
+    material.fills.clear();
+    FinishFill fill{};
+    fill.kind = FinishKind::flat;
+    fill.ambient = 0.0;
+    fill.light_elevation_degrees = 0;
+    material.fills.push_back(MaterialFillLayer::finish_fill(fill));
+    require(!valid_surface_material(material), "no ambient light and the light on the horizon is refused");
+    fill.light_elevation_degrees = 10;
+    material.fills[0] = MaterialFillLayer::finish_fill(fill);
+    require(valid_surface_material(material), "no ambient light under a raised light is valid");
+    fill.light_elevation_degrees = 0;
+    fill.ambient = 0.1;
+    material.fills[0] = MaterialFillLayer::finish_fill(fill);
+    require(valid_surface_material(material), "some ambient light under a horizon light is valid");
+}
+
 int main(int argc, char** argv) {
     if (argc > 1 && std::strcmp(argv[1], "--measure") == 0) {
         measure();
@@ -813,6 +835,7 @@ int main(int argc, char** argv) {
     material_shows_the_finish();
     bake_budget_refuses_large_finishes();
     theme_language_finish();
+    horizon_without_ambient_is_refused();
     std::cout << "gui_forms_engine_finish_tests passed\n";
     return 0;
 }

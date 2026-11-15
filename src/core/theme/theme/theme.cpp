@@ -196,7 +196,11 @@ bool valid_finish_fill(const FinishFill& fill) noexcept {
                             std::isfinite(fill.gloss) && fill.gloss >= 0.0 && fill.gloss <= maximum_finish_scale;
         // The glint reads its preset, which every other finish ignores.
         const bool preset = fill.kind != FinishKind::glint || valid_glint_preset(fill.glint);
-        const bool valid = grain && light && ambient && scales && preset;
+        // The other finishes divide each pixel's diffuse light by the flat
+        // surface's, ambient + kd * sin(elevation): with no ambient light and
+        // the light on the horizon that is zero (A-gf-core-06-F1).
+        const bool lit = fill.kind == FinishKind::glint || fill.ambient > 0.0 || fill.light_elevation_degrees > 0;
+        const bool valid = grain && light && ambient && scales && preset && lit;
         return valid;
     }
     }
