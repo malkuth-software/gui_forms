@@ -344,7 +344,9 @@ void loading_rules_and_lookup() {
 
 // -- Where a family draws ---------------------------------------------------
 
-// A composite whose look sets its button child's font family to an application family.
+// A composite whose look sets its button child's font family to an application family. A
+// <look> rule's first compound names the composite itself (W920 control_look_foreign_type), so
+// the child is reached through it.
 constexpr std::string_view app_font_pair = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <control xmlns="urn:gui-forms:control:1" name="app-font-pair" version="1.0" base="user-control" family="panel">
   <part name="face" role="face" box="inset(region, 0)"/>
@@ -353,7 +355,7 @@ constexpr std::string_view app_font_pair = R"xml(<?xml version="1.0" encoding="U
   </children>
   <focus target="none"/>
   <look>
-    button { font-family: "App Look Face"; }
+    app-font-pair > button { font-family: "App Look Face"; }
   </look>
 </control>
 )xml";
