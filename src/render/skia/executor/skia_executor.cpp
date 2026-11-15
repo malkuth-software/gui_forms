@@ -99,8 +99,8 @@ void assign_raster_error(RasterError* output, RasterError value) noexcept {
 }
 
 template <std::size_t Count>
-void mark_hatch_pixel(std::array<SkColor, Count>& pixels,
-                      int extent, int x, int y, SkColor color) noexcept {
+void mark_hatch_pixel(std::array<SkPMColor, Count>& pixels,
+                      int extent, int x, int y, SkPMColor color) noexcept {
     pixels[static_cast<std::size_t>(y * extent + x)] = color;
 }
 
@@ -382,9 +382,12 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
     }
     if (brush.kind == BrushKind::hatch) {
         constexpr int extent = 8;
-        std::array<SkColor, extent * extent> pixels;
-        pixels.fill(to_sk_color(brush.secondary));
-        const SkColor hatch_color = to_sk_color(brush.primary);
+        // Premultiplied, as the image info below declares (and as the
+        // checker brush makes its cells): a translucent colour's channels
+        // are scaled by its alpha (A-gf-core-09-F3).
+        std::array<SkPMColor, extent * extent> pixels;
+        pixels.fill(SkPreMultiplyColor(to_sk_color(brush.secondary)));
+        const SkPMColor hatch_color = SkPreMultiplyColor(to_sk_color(brush.primary));
         for (int coordinate = 0; coordinate < extent; ++coordinate) {
             switch (brush.hatch_style) {
             case HatchStyle::horizontal:
@@ -419,7 +422,7 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         const SkImageInfo info = SkImageInfo::MakeN32Premul(extent, extent);
         sk_sp<SkData> data = SkData::MakeWithCopy(pixels.data(), sizeof(pixels));
         sk_sp<SkImage> image = SkImages::RasterFromData(
-            info, std::move(data), extent * sizeof(SkColor));
+            info, std::move(data), extent * sizeof(SkPMColor));
         if (image) {
             paint.setShader((*image).makeShader(
                 SkTileMode::kRepeat, SkTileMode::kRepeat,

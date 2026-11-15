@@ -283,6 +283,24 @@ void gradients_and_hatches_are_native_raster_commands() {
     CHECK(center.red() > edge.red());
 }
 
+// A hatch brush with a translucent colour draws it premultiplied
+// (A-gf-core-09-F3): a transparent white background (System.Drawing's
+// Color.Transparent) leaves black black, and the opaque red line draws.
+void translucent_hatch_colours_are_premultiplied() {
+    SkiaExecutor executor;
+    Bitmap target(8, 8);
+    HatchBrush hatch(HatchStyle::horizontal, Color::from_name("red"), Color::from_argb(0x00FFFFFFU));
+    GraphicsRecorder recorder;
+    recorder.set_quality(SmoothingMode::none, InterpolationMode::nearest,
+                         PixelOffsetMode::none, CompositingMode::source_over,
+                         CompositingQuality::high_speed);
+    recorder.clear(Color::from_name("black"));
+    recorder.fill_rectangle(hatch, {0, 0, 8, 8});
+    CHECK(executor.execute(recorder, target));
+    CHECK(target.get_pixel(1, 0).argb() == Color::from_name("black").argb());
+    CHECK(target.get_pixel(1, 3).argb() == Color::from_name("red").argb());
+}
+
 // A gradient brush whose geometry stx_skia refuses (bounds wider than float can
 // hold, so an end point is infinite) fails its command with invalid_argument and
 // leaves the target untouched, instead of filling with the paint's plain color.
@@ -945,6 +963,7 @@ int main() {
     texture_brush_tiles_and_mirrors_retained_pixels();
     transparent_png_channels_are_premultiplied();
     gradients_and_hatches_are_native_raster_commands();
+    translucent_hatch_colours_are_premultiplied();
     refused_gradient_fails_without_drawing();
     refused_dash_fails_without_drawing();
     state_is_set_only_where_it_changes();
