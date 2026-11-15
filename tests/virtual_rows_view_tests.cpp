@@ -1310,6 +1310,41 @@ void column_semantics() {
 
 } // namespace
 
+// Cuts the view to three rows when it takes focus, once, as a handler that
+// reloads its list on focus does.
+struct ResetOnFocus final {
+    VirtualRowsView* view{};
+    bool* reset{};
+    void operator()(bool focused) const {
+        if (!focused || *reset) return;
+        *reset = true;
+        (*view).reset_rows(3U);
+    }
+};
+
+// A-gf-controls-14-F3: a semantic select or press of row 10 whose focus
+// request cuts the view to three rows selects and activates nothing, and
+// leaves no selection past the rows.
+void focus_handler_resets_the_rows() {
+    for (std::size_t round = 0U; round < 2U; ++round) {
+        SyntheticRows rows;
+        std::shared_ptr<VirtualRowsView> view = make_view(rows, 20U);
+        Window window(view, {400.0, 300.0});
+        window.perform_layout();
+        std::vector<std::size_t> activations;
+        SubscriptionToken activated = (*view).row_activated().subscribe(RecordActivation{&activations});
+        bool reset = false;
+        SubscriptionToken token = (*view).focus_observed().subscribe(ResetOnFocus{view.get(), &reset});
+        const SemanticAction action = round == 0U ? SemanticAction::select : SemanticAction::press;
+        const bool handled = (*view).on_semantic_child_action("rows.row-10", action, {});
+        require(reset && (*view).row_count() == 3U && !handled, "the focus handler cut the rows; row 10 is gone");
+        require(!(*view).selected_row().has_value() && (*view).selected_row_count() == 0U && activations.empty(),
+                "nothing past the rows is selected or activated");
+        static_cast<void>(activated);
+        static_cast<void>(token);
+    }
+}
+
 int main() {
     refinement_invariants();
     anchor_stability();
@@ -1331,6 +1366,7 @@ int main() {
     column_right_to_left();
     column_owner_draw();
     column_semantics();
+    focus_handler_resets_the_rows();
     std::cout << "VirtualRowsView: refinement invariants, anchor stability, scrolling to an index, a million rows "
                  "with bounded work, keyboard, accessibility, right to left, refusals, the themed background, follow tail, append announcements, the measured-row budget, extended selection, scrolled, row invalidation and columns passed\n";
     return 0;

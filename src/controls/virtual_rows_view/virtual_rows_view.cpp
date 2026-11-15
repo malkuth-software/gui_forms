@@ -1002,6 +1002,10 @@ bool VirtualRowsView::shift_selection_for_erase(std::size_t at, std::size_t coun
 }
 
 void VirtualRowsView::select_and_reveal(std::size_t row, SelectGesture gesture) {
+    // Checked before the selection changes: a row a handler removed is not
+    // selected, and scroll_to_row below cannot throw with the selection
+    // already naming it (A-gf-controls-14-F3).
+    if (row >= row_count()) return;
     const Control::Ptr lifetime = shared_from_this();
     const std::optional<std::size_t> previous = selected_;
     const bool extended = selection_mode_ == ListSelectionMode::multiple_extended;
@@ -1530,9 +1534,16 @@ bool VirtualRowsView::on_semantic_child_action(std::string_view stable_id_text, 
     }
     const Control::Ptr lifetime = shared_from_this();
     if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
+    // The focus request and the selection run the program's handlers, which
+    // may erase or reset the rows: the row is found again from its ID after
+    // each (A-gf-controls-14-F3).
     if (!is_alive()) return true;
-    select_and_reveal(*row, SelectGesture::replace);
-    if (action == SemanticAction::press && is_alive()) activate(*row);
+    const std::optional<std::size_t> focused_row = row_of_child_id(stable_id_text);
+    if (!focused_row.has_value()) return false;
+    select_and_reveal(*focused_row, SelectGesture::replace);
+    if (action != SemanticAction::press || !is_alive()) return true;
+    const std::optional<std::size_t> selected_row = row_of_child_id(stable_id_text);
+    if (selected_row.has_value()) activate(*selected_row);
     return true;
 }
 
