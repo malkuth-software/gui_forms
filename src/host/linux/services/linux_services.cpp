@@ -733,6 +733,41 @@ Services::play_sound_cue_impl(const HostSoundCueRequest &request) {
   XBell(window_.runtime.display, static_cast<int>(request.gain * 100.0) - 100);
   return {};
 }
+namespace {
+// text as ISO Latin-1 for the STRING target: each code point up to U+00FF
+// as its byte, anything above (or a malformed sequence) as '?'.
+std::vector<std::byte> latin1_from_utf8(std::string_view text) {
+  std::vector<std::byte> latin1;
+  latin1.reserve(text.size());
+  std::size_t index = 0U;
+  while (index < text.size()) {
+    const unsigned char lead = static_cast<unsigned char>(text[index]);
+    if (lead < 0x80U) {
+      latin1.push_back(static_cast<std::byte>(lead));
+      ++index;
+      continue;
+    }
+    std::size_t length = 1U;
+    if ((lead & 0xE0U) == 0xC0U)
+      length = 2U;
+    else if ((lead & 0xF0U) == 0xE0U)
+      length = 3U;
+    else if ((lead & 0xF8U) == 0xF0U)
+      length = 4U;
+    const bool whole = length > 1U && length <= text.size() - index;
+    if (whole && length == 2U) {
+      const unsigned char trail = static_cast<unsigned char>(text[index + 1U]);
+      const unsigned code = ((lead & 0x1FU) << 6U) | (trail & 0x3FU);
+      const bool latin = (trail & 0xC0U) == 0x80U && code <= 0xFFU;
+      latin1.push_back(latin ? static_cast<std::byte>(code) : std::byte{'?'});
+    } else {
+      latin1.push_back(std::byte{'?'});
+    }
+    index += whole ? length : 1U;
+  }
+  return latin1;
+}
+} // namespace
 void Runtime::selection_request(const XSelectionRequestEvent &request) {
   const ForeignWindowScope guard(display, request.requestor);
   XEvent response{};
@@ -763,16 +798,26 @@ void Runtime::selection_request(const XSelectionRequestEvent &request) {
       response.xselection.property = property;
     } else {
       std::vector<std::byte> bytes;
-      if (request.target == atom("UTF8_STRING") ||
-          request.target == XA_STRING) {
+      // A text target is answered whenever TARGETS offers text, so an empty
+      // clipboard text is pasted as empty rather than refused; STRING is
+      // ISO Latin-1 by ICCCM, so it is converted (A-gf-host-01-F10).
+      bool answered = false;
+      if (request.target == atom("UTF8_STRING") &&
+          clipboard_image.width == 0) {
         bytes.resize(clipboard_text.size());
         std::memcpy(bytes.data(), clipboard_text.data(), bytes.size());
+        answered = true;
+      } else if (request.target == XA_STRING && clipboard_image.width == 0) {
+        bytes = latin1_from_utf8(clipboard_text);
+        answered = true;
       } else if (request.target == atom("image/png"))
         bytes = clipboard_png;
       else if (request.target == atom("application/x-gui-forms-bgra") &&
                clipboard_image.width != 0)
         bytes = detail::encode_clipboard_image(clipboard_image.view());
-      if (!bytes.empty()) {
+      if (!bytes.empty())
+        answered = true;
+      if (answered) {
         if (bytes.size() > 64U * 1024U) {
           if (transfers.size() >= 8) {
             XSendEvent(display, request.requestor, False, 0, &response);
