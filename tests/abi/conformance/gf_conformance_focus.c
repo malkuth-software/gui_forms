@@ -5,10 +5,12 @@
  * disabled inside it loses focus for good, as in Windows Forms. A composite
  * field (a combo box with an edit field, a numeric up-down) gives the caret
  * to its edit part and is still the window's focused control; focusable is
- * a schema property. */
+ * a schema property. The controls table's relative pointer slots (since
+ * 1.5) are checked here too, on a window that has not run. */
 
 #include "gf_conformance_internal.h"
 
+#include <math.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -293,4 +295,137 @@ void gf_kit_focus(gf_kit* kit) {
     gf_kit_status(kit, run.close, GF_STATUS_OK, "close the focus window");
     gf_kit_status(kit, (*kit).objects.release(run.field), GF_STATUS_OK, "release the run's field");
     gf_kit_status(kit, (*kit).objects.release(run.root), GF_STATUS_OK, "release the run's root");
+}
+
+/* The controls table's relative pointer slots (since 1.5), on a control
+ * outside a window and on a window that has not run. A window that has not
+ * run is normally inactive, so the request is refused as NOT_ACTIVE; a host
+ * that reports it active grants it, and then the mode is released. */
+static int controls_have_relative_pointer(const gf_kit* kit) {
+    const int present =
+        (*kit).controls.struct_size >= offsetof(gf_controls_table, set_pointer_release_regions) + sizeof(void*) &&
+        (*kit).controls.request_relative_pointer != NULL && (*kit).controls.release_relative_pointer != NULL &&
+        (*kit).controls.relative_pointer_state != NULL && (*kit).controls.warp_pointer != NULL &&
+        (*kit).controls.set_pointer_release_regions != NULL;
+    return present;
+}
+
+static gf_relative_pointer_request relative_request(gf_relative_pointer_mode mode) {
+    gf_relative_pointer_request request;
+    memset(&request, 0, sizeof(request));
+    request.struct_size = (uint32_t)sizeof(request);
+    request.mode = mode;
+    return request;
+}
+
+void gf_kit_relative_pointer(gf_kit* kit) {
+    if (!controls_have_relative_pointer(kit)) {
+        return;
+    }
+    gf_relative_pointer_grant grant;
+    memset(&grant, 0, sizeof(grant));
+    grant.struct_size = (uint32_t)sizeof(grant);
+    gf_relative_pointer_state state;
+    memset(&state, 0, sizeof(state));
+    state.struct_size = (uint32_t)sizeof(state);
+    uint32_t released = 9u;
+    uint32_t warped = 9u;
+    gf_logical_point position;
+    position.x = 4.0;
+    position.y = 4.0;
+
+    /* A control outside a window. */
+    const gf_object loose = gf_kit_create(kit, "Button", "kit.relative.loose");
+    gf_relative_pointer_request request = relative_request(GF_RELATIVE_POINTER_MODE_LOCKED);
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(loose, &request, &grant), GF_STATUS_OK,
+                  "request a relative pointer outside a window");
+    gf_kit_check(kit, grant.result == GF_RELATIVE_POINTER_RESULT_DETACHED,
+                 "a control outside a window is refused as detached");
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(loose, NULL, &grant), GF_STATUS_INVALID_ARGUMENT,
+                  "a null request is refused");
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(loose, &request, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "a null grant is refused");
+    request.raw_motion = 2u;
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(loose, &request, &grant), GF_STATUS_INVALID_ARGUMENT,
+                  "a request flag that is not 0 or 1 is refused");
+    request = relative_request(3u);
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(loose, &request, &grant), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown mode is refused");
+    state.owned = 9u;
+    gf_kit_status(kit, (*kit).controls.relative_pointer_state(loose, &state), GF_STATUS_OK,
+                  "relative_pointer_state outside a window");
+    gf_kit_check(kit, state.owned == 0u && state.active == 0u && state.grants == 0u,
+                 "a control outside a window reports no relative pointer");
+    gf_kit_status(kit, (*kit).controls.relative_pointer_state(loose, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "relative_pointer_state needs an output");
+    gf_kit_status(kit, (*kit).controls.release_relative_pointer(loose, &released), GF_STATUS_OK,
+                  "release_relative_pointer without a mode");
+    gf_kit_check(kit, released == 0u, "a control without a mode releases nothing");
+    gf_kit_status(kit, (*kit).controls.warp_pointer(loose, position, &warped), GF_STATUS_OK,
+                  "warp_pointer without a mode");
+    gf_kit_check(kit, warped == 0u, "a control without a mode does not warp");
+    gf_logical_point nowhere = position;
+    nowhere.x = NAN;
+    warped = 9u;
+    gf_kit_status(kit, (*kit).controls.warp_pointer(loose, nowhere, &warped), GF_STATUS_INVALID_ARGUMENT,
+                  "a position that is not finite is refused");
+    gf_kit_check(kit, warped == 9u, "a refused warp leaves its output");
+    gf_logical_rect region;
+    region.x = 0.0;
+    region.y = 0.0;
+    region.width = 20.0;
+    region.height = 10.0;
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(loose, &region, 1u), GF_STATUS_INVALID_STATE,
+                  "release regions need a window");
+
+    /* A control in a window that has not run. */
+    const gf_object root = gf_kit_create(kit, "Panel", "kit.relative");
+    const gf_object view = gf_kit_create(kit, "Button", "kit.relative.view");
+    gf_kit_status(kit, (*kit).objects.insert_child(root, view, 0u), GF_STATUS_OK, "put the view in the root");
+    gf_object window = 0u;
+    gf_kit_status(kit, (*kit).windows.create(root, &window), GF_STATUS_OK, "create a window for the relative pointer");
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(view, &region, 1u), GF_STATUS_OK,
+                  "set one release region");
+    gf_logical_rect regions[9];
+    for (uint32_t index = 0u; index < 9u; ++index) {
+        regions[index] = region;
+    }
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(view, regions, 9u), GF_STATUS_INVALID_ARGUMENT,
+                  "more than 8 release regions are refused");
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(view, NULL, 1u), GF_STATUS_INVALID_ARGUMENT,
+                  "release regions need an array");
+    gf_logical_rect broken = region;
+    broken.width = NAN;
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(view, &broken, 1u), GF_STATUS_INVALID_ARGUMENT,
+                  "a release region that is not finite is refused");
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(view, NULL, 0u), GF_STATUS_OK,
+                  "count 0 clears the release regions");
+
+    request = relative_request(GF_RELATIVE_POINTER_MODE_FREE);
+    memset(&grant, 0, sizeof(grant));
+    grant.struct_size = (uint32_t)sizeof(grant);
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(view, &request, &grant), GF_STATUS_OK,
+                  "request a free relative pointer in a window");
+    const int granted =
+        grant.result == GF_RELATIVE_POINTER_RESULT_GRANTED || grant.result == GF_RELATIVE_POINTER_RESULT_DEGRADED;
+    gf_kit_check(kit, granted || grant.result == GF_RELATIVE_POINTER_RESULT_NOT_ACTIVE,
+                 "a window that has not run refuses as not active, or grants");
+    gf_kit_status(kit, (*kit).controls.relative_pointer_state(view, &state), GF_STATUS_OK,
+                  "relative_pointer_state in a window");
+    gf_kit_check(kit, state.owned == (granted ? 1u : 0u) && state.active == (granted ? 1u : 0u),
+                 "the state reports whether the view holds the mode");
+    gf_kit_check(kit, state.grants == (granted ? 1u : 0u), "the state counts the grant");
+    released = 9u;
+    gf_kit_status(kit, (*kit).controls.release_relative_pointer(view, &released), GF_STATUS_OK,
+                  "release the view's relative pointer");
+    gf_kit_check(kit, released == (granted ? 1u : 0u), "release reports whether a mode ended");
+    gf_kit_status(kit, (*kit).controls.release_relative_pointer(view, NULL), GF_STATUS_OK,
+                  "release_relative_pointer takes a null output");
+    gf_kit_status(kit, (*kit).controls.warp_pointer(view, position, NULL), GF_STATUS_OK,
+                  "warp_pointer takes a null output");
+
+    gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the relative pointer window");
+    gf_kit_status(kit, (*kit).objects.release(view), GF_STATUS_OK, "release the view");
+    gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the relative pointer root");
+    gf_kit_status(kit, (*kit).objects.release(loose), GF_STATUS_OK, "release the loose control");
 }

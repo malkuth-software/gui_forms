@@ -109,6 +109,9 @@ void gf_kit_window_properties(gf_kit* kit);
  * gf_kit_focus runs a root. */
 void gf_kit_focus_refusals(gf_kit* kit);
 void gf_kit_focus(gf_kit* kit);
+/* The controls table's relative pointer slots (since 1.5), on a window
+ * that has not run. */
+void gf_kit_relative_pointer(gf_kit* kit);
 /* The window outer band and shaping (since 1.3), on a window that has not
  * run. */
 void gf_kit_band(gf_kit* kit);
