@@ -905,9 +905,29 @@ bool plan_fonts(Loader& loader) {
                 return false;
             }
             if (table.kind == kTableGlyf) {
+                // One glyf table per font: its rebuild owns one loca.
+                if (plan.glyf_table != kNoTable) {
+                    return false;
+                }
                 plan.glyf_table = static_cast<std::uint32_t>(loader.tables.length);
             }
             if (!owned_array_append(loader.tables, loader.scratch, table)) {
+                return false;
+            }
+        }
+        // The glyf table's loca is a table this font plans as loca, so the
+        // font job's loca writes land in bytes no other job writes (the plan's
+        // tables are disjoint), never over a CFF table that chunk jobs
+        // rebuild at the same time (A-gf-typography-01-F8).
+        if (plan.glyf_table != kNoTable) {
+            const TablePlan& glyf = loader.tables.data[plan.glyf_table];
+            bool loca_planned = false;
+            for (std::uint32_t t = 0; t < plan.table_count && !loca_planned; t += 1) {
+                const TablePlan& table = loader.tables.data[plan.table_first + t];
+                loca_planned = table.kind == kTableLoca && table.offset == glyf.loca_offset &&
+                               table.length == glyf.loca_length;
+            }
+            if (!loca_planned) {
                 return false;
             }
         }
