@@ -2053,7 +2053,14 @@ void DataGridView::prepare_write(const decltype(column_headers_height)&, double&
 }
 
 void DataGridView::written(const decltype(column_headers_height)&) {
-    structure_changed();
+    if (header_auto_size_writing_) {
+        // Arrange's own auto_size write: the pass in progress lays the grid
+        // out at this height, so only what it drew and published is stale.
+        header_auto_size_writing_ = false;
+        invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    } else {
+        structure_changed();
+    }
     on_column_headers_height_changed();
 }
 
@@ -2260,11 +2267,14 @@ void DataGridView::arrange(Rect final_bounds) {
     const std::size_t first_before = first_row_;
     const double offset_before = horizontal_offset_;
     arrange_self(final_bounds);
-    // Automatic widths first: everything below reads the columns' widths;
-    // then automatic heights, which wrapped cells take from the widths.
+    // The automatic header height first: one text line, independent of the
+    // widths, and the data area below it is what the displayed-rows modes
+    // measure. Then automatic widths: everything below reads the columns'
+    // widths; then automatic heights, which wrapped cells take from the
+    // widths.
+    apply_column_headers_auto_size();
     apply_auto_sizes();
     apply_row_auto_sizes();
-    apply_column_headers_auto_size();
     const GridLayout layout = grid_layout();
     // The first scrolling row stays past the frozen rows and no further
     // than the last full viewport.

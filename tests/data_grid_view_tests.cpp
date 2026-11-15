@@ -4130,8 +4130,16 @@ void column_headers_height_size_mode() {
     require(preferred > 4.0 && preferred < 40.0, "the headers want a height of one text line");
     (*grid).column_headers_height_size_mode = DataGridViewColumnHeadersHeightSizeMode::auto_size;
     window.perform_layout();
-    window.perform_layout();
     require((*grid).column_headers_height.read() == preferred, "auto_size gives the band the preferred height");
+    // One layout pass settles: arrange's write restarts no layout, and the
+    // band is already placed at the new height.
+    const Dirty settled = (*grid).dirty();
+    require(!has_dirty(settled, Dirty::measure) && !has_dirty(settled, Dirty::arrange),
+            "the auto_size write leaves no layout pending after one pass");
+    require((*grid).parts().column_header_band.bounds.height == preferred,
+            "the band is placed at the auto_size height in the same pass");
+    window.perform_layout();
+    require((*grid).column_headers_height.read() == preferred, "a second pass keeps the height");
     (*grid).column_headers_height_size_mode = DataGridViewColumnHeadersHeightSizeMode::disable_resizing;
     (*grid).column_headers_height = 60.0;
     (*grid).auto_resize_column_headers_height();

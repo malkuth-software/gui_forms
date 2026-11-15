@@ -1384,7 +1384,9 @@ private:
     [[nodiscard]] std::optional<double> automatic_height(std::size_t position, DataGridViewAutoSizeRowMode mode) const;
     void apply_row_auto_sizes();
     // column_headers_height_size_mode auto_size: the band takes the
-    // preferred height at each layout.
+    // preferred height at each layout, first in arrange (the height is one
+    // text line, independent of the columns' widths), written without
+    // structure_changed (header_auto_size_writing_).
     void apply_column_headers_auto_size();
     [[nodiscard]] bool column_resizable(std::size_t column) const;
     [[nodiscard]] bool row_resizable() const noexcept;
@@ -1956,6 +1958,12 @@ private:
     // Counts structure_changed calls, so a paint can tell that a handler it
     // raised changed the grid.
     std::uint64_t structure_revision_{};
+    // Set while arrange writes column_headers_height for auto_size
+    // (apply_column_headers_auto_size), and cleared by the write's
+    // written(): the pass in progress places the band at the new height, so
+    // the write repaints without restarting layout through
+    // structure_changed, and one layout pass settles.
+    bool header_auto_size_writing_{false};
     // The last sort by a column, if the rows are still in its order, and
     // whether sort_compare's handlers are deciding comparisons now.
     std::optional<std::size_t> sorted_column_{};

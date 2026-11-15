@@ -631,8 +631,11 @@ void DataGridView::auto_resize_column_headers_height() {
 void DataGridView::apply_column_headers_auto_size() {
     if (column_headers_height_size_mode.read() != DataGridViewColumnHeadersHeightSizeMode::auto_size) return;
     const double wanted = std::clamp(preferred_column_headers_height(), 4.0, 256.0);
-    // Written only when it differs, so the layout this starts finds it equal.
-    if (wanted != column_headers_height.read()) column_headers_height = wanted;
+    // Written only when it differs, and without restarting layout: this
+    // arrange places the band at the new height (header_auto_size_writing_).
+    if (wanted == column_headers_height.read()) return;
+    header_auto_size_writing_ = true;
+    column_headers_height = wanted;
 }
 
 double DataGridView::preferred_row_header_height(DataGridViewRowPosition row) const {
