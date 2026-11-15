@@ -593,17 +593,26 @@ private:
     std::vector<Slot> slots_;
 };
 
+// The registry and the raster service's lock are never destroyed, as the
+// stable ABI's registry is not (termination releases none of our state,
+// rule 1; A-gf-abi-01-F5): a thread still inside a gd_* call at exit never
+// meets a destroyed mutex or record, and no record's staging is released
+// under Windows' loader lock at process detach.
 Registry& registry() {
-    static Registry value;
-    return value;
+    static Registry* const value = new Registry();
+    return *value;
 }
 
-std::mutex raster_service_mutex;
+std::mutex& raster_service_mutex() {
+    static std::mutex* const value = new std::mutex();
+    return *value;
+}
+
 gd_raster_service_v0 raster_service{};
 
 
 [[nodiscard]] bool load_raster_service(gd_raster_service_v0& output) {
-    std::scoped_lock lock(raster_service_mutex);
+    std::scoped_lock lock(raster_service_mutex());
     if (raster_service.abi_version == 0U) return false;
     output = raster_service;
     return true;
@@ -2286,7 +2295,7 @@ gd_result api_raster_service_install(const gd_raster_service_v0* service) {
         return fail(GD_ERROR_INVALID_ARGUMENT,
                     "raster service requires a complete ABI 0.1 callback table");
     }
-    std::scoped_lock lock(raster_service_mutex);
+    std::scoped_lock lock(raster_service_mutex());
     if (raster_service.abi_version != 0U &&
         (raster_service.execute != (*service).execute ||
          raster_service.encode_png != (*service).encode_png ||

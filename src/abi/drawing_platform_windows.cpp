@@ -15,6 +15,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <thread>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -33,8 +34,20 @@ struct HdcLease final {
     std::size_t byte_count{};
 };
 
-std::mutex lease_mutex;
-std::unordered_map<std::uint64_t, HdcLease> leases;
+// The HDC leases and their lock are never destroyed (termination releases
+// none of our state, rule 1; A-gf-abi-01-F5): process detach runs no
+// SelectObject, DeleteDC or DeleteObject under the loader lock, and a thread
+// still inside a lease call never meets a destroyed mutex.
+std::mutex& lease_mutex() {
+    static std::mutex* const value = new std::mutex();
+    return *value;
+}
+
+std::unordered_map<std::uint64_t, HdcLease>& leases() {
+    static std::unordered_map<std::uint64_t, HdcLease>* const value = new std::unordered_map<std::uint64_t, HdcLease>();
+    return *value;
+}
+
 std::uint64_t next_lease{1U};
 
 BITMAPINFO bitmap_info(std::uint32_t width, std::uint32_t height);
@@ -86,6 +99,10 @@ struct CompatibilityUser32 final {
         }
     }
 };
+
+// Function pointers and a module handle the process does not own: nothing
+// to release at exit (rule 1).
+static_assert(std::is_trivially_destructible_v<CompatibilityUser32>);
 
 CompatibilityUser32& compatibility_user32() {
     static CompatibilityUser32 api;
@@ -253,6 +270,9 @@ struct EndpointProbe final {
     gf_windows_paint_endpoint_table table{};
     bool table_present{};
 };
+
+// A C record and a flag: the probe's static copies release nothing at exit (rule 1).
+static_assert(std::is_trivially_destructible_v<EndpointProbe>);
 
 // Resolved on first use. The library is loaded before any endpoint exists
 // (an endpoint is made through it), so a library absent here has no
@@ -661,7 +681,7 @@ gd_result acquire_hdc(Bitmap& bitmap, std::uintptr_t& output,
     }
     std::memcpy(pixels, snapshot.pixels().data(), snapshot.pixels().size());
     mark_untouched_alpha(static_cast<std::uint8_t*>(pixels), snapshot.pixels().size());
-    std::scoped_lock lock(lease_mutex);
+    std::scoped_lock lock(lease_mutex());
     const std::uint64_t token = next_lease++;
     if (token == 0U) {
         SelectObject(device, previous);
@@ -677,7 +697,7 @@ gd_result acquire_hdc(Bitmap& bitmap, std::uintptr_t& output,
                              .previous = previous,
                              .pixels = pixels,
                              .byte_count = snapshot.pixels().size()};
-        leases.emplace(token, lease);
+        leases().emplace(token, lease);
     } catch (...) {
         SelectObject(device, previous);
         DeleteDC(device);
@@ -692,10 +712,10 @@ gd_result acquire_hdc(Bitmap& bitmap, std::uintptr_t& output,
 gd_result release_hdc(Bitmap& bitmap, std::uint64_t lease_token) {
     HdcLease lease;
     {
-        std::scoped_lock lock(lease_mutex);
+        std::scoped_lock lock(lease_mutex());
         const std::unordered_map<std::uint64_t, HdcLease>::iterator found =
-            leases.find(lease_token);
-        if (found == leases.end()) throw std::invalid_argument("HDC lease token is stale");
+            leases().find(lease_token);
+        if (found == leases().end()) throw std::invalid_argument("HDC lease token is stale");
         if ((*found).second.bitmap != &bitmap) {
             throw std::invalid_argument("HDC lease belongs to a different bitmap");
         }
@@ -703,7 +723,7 @@ gd_result release_hdc(Bitmap& bitmap, std::uint64_t lease_token) {
             return GD_ERROR_WRONG_THREAD;
         }
         lease = (*found).second;
-        leases.erase(found);
+        leases().erase(found);
     }
     struct LeaseCleanup final {
         HdcLease& lease;
@@ -722,8 +742,8 @@ gd_result release_hdc(Bitmap& bitmap, std::uint64_t lease_token) {
 }
 
 bool has_hdc_lease(Bitmap& bitmap) {
-    std::scoped_lock lock(lease_mutex);
-    for (const std::pair<const std::uint64_t, HdcLease>& entry : leases) {
+    std::scoped_lock lock(lease_mutex());
+    for (const std::pair<const std::uint64_t, HdcLease>& entry : leases()) {
         if (entry.second.bitmap == &bitmap) return true;
     }
     return false;
