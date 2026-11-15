@@ -4,12 +4,15 @@
 #include "gui_forms/platform/linux_host.hpp"
 #include "program_options.hpp"
 
+#include <clocale>
 #include <cstdio>
 #include <memory>
 #include <optional>
 #include <utility>
 
 int main(int argc, char** argv) {
+    // std-rules: allow(locale-change) the program, not the library, chooses its locale: the environment's character type, for X input methods and compose
+    std::setlocale(LC_CTYPE, "");
     const std::optional<gui_forms::demo::ProgramOptions> program =
         gui_forms::demo::parse_program_options(argc, argv);
     if (!program) return 2;
