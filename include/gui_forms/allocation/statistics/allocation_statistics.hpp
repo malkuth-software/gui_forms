@@ -51,6 +51,7 @@
 // are exact for the work that thread did inside the scope.
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <array>
 #include <cstddef>
@@ -132,7 +133,7 @@ public:
     void restart() noexcept;
 
 private:
-    std::thread::id thread_{};
+    ThreadId thread_{};
     AllocationStatistics start_{};
 };
 

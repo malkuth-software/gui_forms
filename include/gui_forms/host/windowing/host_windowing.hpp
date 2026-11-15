@@ -4,6 +4,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/host/windowing/desktop_coordinates.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <array>
 #include <cstddef>
@@ -504,7 +505,7 @@ private:
     [[nodiscard]] WindowRecord* record(HostWindowId window) noexcept;
     [[nodiscard]] const WindowRecord* record(HostWindowId window) const noexcept;
 
-    std::thread::id ui_thread_;
+    ThreadId ui_thread_;
     HostWindowingSnapshot snapshot_;
     // Live windows in admission order. Capacity maximum_windows is reserved
     // at construction; admission refuses beyond it, so the table never

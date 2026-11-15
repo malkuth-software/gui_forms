@@ -34,6 +34,7 @@
 #include "gui_forms/content/hosted/hosted_protocol.hpp"
 #include "gui_forms/content/operation/content_operation.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -62,7 +63,7 @@ inline constexpr std::chrono::milliseconds default_hosted_stop_grace{100};
 
 struct GUI_FORMS_API HostedContentOptions final {
     // The program to run, by absolute path; it is not looked up on PATH.
-    std::filesystem::path executable{};
+    FilePath executable{};
     // Its arguments after the program name.
     std::vector<std::string> arguments{};
     // Each frame slot's size in bytes (hosted_protocol.hpp); frames larger

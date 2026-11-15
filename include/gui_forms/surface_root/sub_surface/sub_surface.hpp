@@ -6,6 +6,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/live_surface/pacer/live_surface_pacer.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -479,7 +480,7 @@ public:
 
 private:
     std::shared_ptr<detail::SubSurfaceChannel> channel_;
-    std::thread thread_;
+    Thread thread_;
     std::uint64_t last_content_epoch_{};
 };
 

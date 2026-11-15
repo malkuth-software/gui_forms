@@ -1185,7 +1185,7 @@ Types
 
       Verifies access and reports terminal disposal.
 
-   .. cpp:function:: std::thread::id owner_thread() const noexcept
+   .. cpp:function:: gui_forms::ThreadId owner_thread() const noexcept
 
       Returns the current exclusive owner thread identity.
 
@@ -1958,7 +1958,7 @@ Types
 
    ``#include <gui_forms/content/hosted/hosted_content.hpp>``
 
-   .. cpp:member:: std::filesystem::path executable
+   .. cpp:member:: FilePath executable
 
       The program to run, by absolute path; it is not looked up on PATH.
 

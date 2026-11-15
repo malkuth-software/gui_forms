@@ -1242,7 +1242,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::filesystem::path& font_directory() const noexcept
+   .. cpp:function:: const FilePath& font_directory() const noexcept
 
       The directory its faces came from; empty when they came from the embedded font pack.
 
@@ -1302,7 +1302,7 @@ Related types
 
    ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
 
-   .. cpp:member:: std::filesystem::path font_directory
+   .. cpp:member:: FilePath font_directory
 
       A directory of the bundled faces (assets/fonts) to read in place of the embedded font pack; empty takes the source the hosts' windows take (the pack, or a development build's directory).
 

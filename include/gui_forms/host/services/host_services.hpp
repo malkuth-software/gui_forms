@@ -6,6 +6,7 @@
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/window/band/window_band.hpp"
 #include "gui_forms/window/chrome/window_chrome.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <chrono>
 #include <optional>
@@ -266,7 +267,7 @@ private:
     double active_cursor_scale_{};
     double failed_cursor_scale_{};
     bool cursor_applied_{};
-    std::thread::id ui_thread_;
+    ThreadId ui_thread_;
     HostServicesSnapshot snapshot_;
     Event<const HostModalTransition&> modal_changed_;
     std::vector<std::uint64_t> modal_stack_;

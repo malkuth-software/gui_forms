@@ -4,6 +4,7 @@
 #include "gui_forms/host/types/host_locale/host_locale.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -224,7 +225,7 @@ public:
     // read so far and lays out and repaints every sharing window (a bake's
     // presence changes a part's aspect). On the UI thread
     // (std::logic_error elsewhere).
-    void set_light_plane_directory(std::filesystem::path directory);
+    void set_light_plane_directory(FilePath directory);
     // The bake named `name` (`<directory>/<name>.f32`), or null when no
     // directory is set or the bake is missing, defective or not a name
     // (LightPlaneCache::lend). Throws std::bad_alloc when a read's storage
@@ -293,7 +294,7 @@ private:
     // Window's consumer-scoped operations reach the registry directly.
     [[nodiscard]] ImageRegistry& registry() noexcept { return images_; }
 
-    std::thread::id ui_thread_;
+    ThreadId ui_thread_;
     ImageRegistry images_;
     std::shared_ptr<const Theme> theme_;
     // The program's theme, the same as theme_ but while a user theme

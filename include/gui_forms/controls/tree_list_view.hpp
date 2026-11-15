@@ -6,6 +6,7 @@
 #include "gui_forms/image_list.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/tree_list_view_capabilities.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -658,7 +659,7 @@ private:
     std::string paint_text_{};
     // Type-ahead.
     std::string type_prefix_{};
-    std::chrono::steady_clock::time_point last_type_time_{};
+    IntervalPoint last_type_time_{};
     Event<const TreeListSelectionChange&> selection_changed_{};
     Event<const TreeListExpansionChange&> expansion_changed_{};
     Event<const TreeListActivation&> item_activated_{};

@@ -22,6 +22,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -54,7 +55,7 @@ struct GUI_FORMS_API OffscreenRasterOptions final {
     // A directory of the bundled faces (assets/fonts) to read in place of
     // the embedded font pack; empty takes the source the hosts' windows
     // take (the pack, or a development build's directory).
-    std::filesystem::path font_directory{};
+    FilePath font_directory{};
 };
 
 class OffscreenRaster;
@@ -113,7 +114,7 @@ public:
 
     // The directory its faces came from; empty when they came from the
     // embedded font pack.
-    [[nodiscard]] const std::filesystem::path& font_directory() const noexcept;
+    [[nodiscard]] const FilePath& font_directory() const noexcept;
     // How many attachments to it are alive.
     [[nodiscard]] std::size_t attachments() const noexcept { return attachments_; }
 

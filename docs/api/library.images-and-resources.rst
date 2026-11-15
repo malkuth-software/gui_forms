@@ -220,7 +220,7 @@ Related types
 
    .. cpp:function:: bool remove_image(ImageId image)
 
-   .. cpp:function:: void set_light_plane_directory(std::filesystem::path directory)
+   .. cpp:function:: void set_light_plane_directory(FilePath directory)
 
       Baked light planes (engine/light_planes) for the parts of these windows that composite them (PartPaint::light_planes, such as an IndicatorLamp's lens named by its light_planes property), read from ``directory`` the first time each is asked for and kept (LightPlaneCache). An empty path, the default, holds none, so every such part draws its theme's look. A new directory forgets the bakes read so far and lays out and repaints every sharing window (a bake's presence changes a part's aspect). On the UI thread (std::logic_error elsewhere).
 

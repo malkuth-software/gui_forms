@@ -72,6 +72,7 @@
 #endif
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -160,7 +161,7 @@ struct GUI_FORMS_API BorrowStamp final {
     const void* creation_site{};
     // The thread the view was lent on; the default id (no thread) for an
     // any_thread lender's view.
-    std::thread::id thread{};
+    ThreadId thread{};
 };
 
 // Reports `fault` for the view stamped `stamp` (the fault, the creation
@@ -177,7 +178,7 @@ inline void require_current(const BorrowStamp& stamp) noexcept {
     if (state.generation.load(std::memory_order_relaxed) != stamp.generation) {
         fail_borrow(stamp, BorrowFault::structurally_invalidated);
     }
-    const bool any_thread = stamp.thread == std::thread::id();
+    const bool any_thread = stamp.thread == ThreadId();
     if (!any_thread && std::this_thread::get_id() != stamp.thread) fail_borrow(stamp, BorrowFault::wrong_thread);
 }
 

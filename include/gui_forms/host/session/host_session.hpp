@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <thread>
 
@@ -51,7 +52,7 @@ private:
 
     Window* window_{};
     HostServices* services_{};
-    std::thread::id ui_thread_;
+    ThreadId ui_thread_;
     HostSessionSnapshot snapshot_;
     Event<HostCloseRequest&> closing_;
     Event<const HostEvent&, const HostDispatchResult&> observed_;

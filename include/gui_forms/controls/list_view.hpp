@@ -10,6 +10,7 @@
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <array>
 #include <chrono>
@@ -789,7 +790,7 @@ private:
     std::string paint_stable_id_{};
     // Type-ahead.
     std::string type_prefix_{};
-    std::chrono::steady_clock::time_point last_type_time_{};
+    IntervalPoint last_type_time_{};
     Event<const ListViewSelectionChange&> selection_changed_{};
     Event<const ListViewItemActivation&> item_activated_{};
     Event<ListViewItemCheck&> item_checking_{};

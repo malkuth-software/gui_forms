@@ -4,6 +4,7 @@
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -281,7 +282,7 @@ private:
 // directory. One thread: the UI thread that asks.
 class GUI_FORMS_API LightPlaneCache final {
 public:
-    explicit LightPlaneCache(std::filesystem::path directory);
+    explicit LightPlaneCache(FilePath directory);
 
     // The bake named `name`, or null when it is missing, defective, or the
     // name is not one. Throws std::bad_alloc when a read's storage cannot
@@ -298,7 +299,7 @@ private:
         std::shared_ptr<const LightPlanes> planes{};
         LightPlanesDefect defect{LightPlanesDefect::none};
     };
-    std::filesystem::path directory_;
+    FilePath directory_;
     std::vector<CachedBake> bakes_{};
     std::size_t reads_{};
 };

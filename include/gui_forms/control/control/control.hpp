@@ -28,6 +28,7 @@
 #include "gui_forms/theme/types/control_visual_types.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <atomic>
 #include <any>
@@ -2127,7 +2128,7 @@ private:
     detail::ControlSlot surface_slot_{};
     // dispatcher_mutex_ guards dispatcher_state_: BeginInvoke reads it from a
     // worker while the UI thread attaches or detaches this control.
-    mutable std::mutex dispatcher_mutex_;
+    mutable Mutex dispatcher_mutex_;
     std::shared_ptr<detail::DispatcherState> dispatcher_state_;
     Rect requested_bounds_{};
     Rect arranged_bounds_{};

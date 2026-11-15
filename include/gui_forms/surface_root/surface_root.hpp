@@ -28,6 +28,7 @@
 #include "gui_forms/window/tool_tips/tool_tips.hpp"
 #include "gui_forms/surface_root/requests/surface_requests.hpp"
 #include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -1588,7 +1589,7 @@ private:
     // of shutdown_dispatcher that concerns the queue.
     void close_dispatcher() noexcept;
 
-    std::thread::id root_thread_;
+    ThreadId root_thread_;
     std::shared_ptr<detail::DispatcherState> dispatcher_state_;
     Metrics metrics_;
     // Called through detail::CaretBlinkSchedule (the text controls' caret

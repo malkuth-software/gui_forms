@@ -6,6 +6,7 @@
 #include "gui_forms/controls/object_view_values.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/controls/object_view_capabilities.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -363,7 +364,7 @@ private:
     ObjectViewMode view_mode_{ObjectViewMode::icons};
     std::size_t top_row_{};
     std::string type_prefix_{};
-    std::chrono::steady_clock::time_point last_type_time_{};
+    IntervalPoint last_type_time_{};
     bool focused_{};
     SubscriptionToken image_list_changed_{};
     Event<const ObjectSelectionChange&> selection_changed_{};

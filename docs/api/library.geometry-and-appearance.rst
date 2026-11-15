@@ -3481,7 +3481,7 @@ Types
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit LightPlaneCache(std::filesystem::path directory)
+   .. cpp:function:: explicit LightPlaneCache(FilePath directory)
 
 
    .. rubric:: Properties
@@ -10762,3 +10762,27 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_checker_cells
 
    The most cells Painter::fill_checker draws one by one. Value: ``65536U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/types/platform_types/platform_types.hpp>``
+
+.. cpp:type:: FilePath = std::filesystem::path
+
+   A file system path (a font, a light-plane or a resource directory, an executable to host, a sound file).
+
+.. cpp:type:: IntervalPoint = std::chrono::steady_clock::time_point
+
+   A point on the monotonic clock: intervals between two of them are meaningful, the points themselves are not times of day.
+
+.. cpp:type:: Thread = std::thread
+
+   A thread the library starts and joins (a sub-surface's).
+
+.. cpp:type:: Mutex = std::mutex
+
+   A mutual-exclusion lock.
+
+.. cpp:type:: ThreadId = std::thread::id
+
+   A thread's identity (an owner thread, a UI thread); default-constructed, no thread.
