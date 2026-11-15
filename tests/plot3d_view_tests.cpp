@@ -413,10 +413,17 @@ void test_view_retains_picture() {
     require(painter.rotated.empty(), "no text is turned while labels face the screen");
 
     // Along the axis, each title follows its edge as projected: the z title
-    // (a near-vertical edge at 30 degrees elevation) lies near a quarter
-    // turn, the floor axes' titles at their edges' slants, every angle
-    // reading left to right; tick labels stay level. The titles reach the
-    // painter turned, through the theme's text part.
+    // (a vertical edge, upright on screen in an orthographic view at 30
+    // degrees elevation) lies near a quarter turn, the floor axes' titles at
+    // their edges' slants, every angle reading left to right; tick labels
+    // stay level. The titles reach the painter turned, through the theme's
+    // text part. The default perspective (a 90 degree field of view) leans
+    // a corner's vertical edge toward the vanishing point below the view by
+    // more than the 15 degrees allowed here, so this part looks
+    // orthographically.
+    plots::Plot3DCamera flat = (*plot).camera();
+    flat.projection = plots::Plot3DProjection::orthographic;
+    require((*plot).set_camera(flat), "the camera looks orthographically");
     (*plot).labels_along_axis = true;
     painter.rotated.clear();
     paint(*plot, painter);
