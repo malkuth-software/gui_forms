@@ -9,6 +9,7 @@
 #include <cstring>
 #include <mutex>
 #include <type_traits>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace {
@@ -18,9 +19,17 @@ std::mutex& bitmap_orientation_mutex() {
     static std::mutex* const value = new std::mutex();
     return *value;
 }
-std::unordered_set<HBITMAP>& top_down_bitmaps() {
+// The top-down DIB sections the shim made, with the size each was made at.
+// Keyed by handle value, which GDI recycles: a record is trusted only while
+// the bitmap under that value still has its recorded size
+// (A-gf-host-03-F13).
+struct TopDownExtent final {
+    LONG width{};
+    LONG height{};
+};
+std::unordered_map<HBITMAP, TopDownExtent>& top_down_bitmaps() {
     // Never destroyed (rule 1: process termination releases none of our state).
-    static std::unordered_set<HBITMAP>* const value = new std::unordered_set<HBITMAP>();
+    static std::unordered_map<HBITMAP, TopDownExtent>* const value = new std::unordered_map<HBITMAP, TopDownExtent>();
     return *value;
 }
 // DC classifications are keyed by handle value, and GDI recycles DC values.
@@ -83,11 +92,22 @@ bool tracked_top_down(HBITMAP bitmap) noexcept {
     return top_down_bitmaps().contains(bitmap);
 }
 
-void remember_top_down(HBITMAP bitmap) noexcept {
+// Whether bitmap is a recorded top-down section of this size (width and
+// the absolute height): a recycled handle value of another size is not.
+bool tracked_top_down_extent(HBITMAP bitmap, LONG width, LONG height) noexcept {
+    if (bitmap == nullptr) return false;
+    std::scoped_lock lock(bitmap_orientation_mutex());
+    const std::unordered_map<HBITMAP, TopDownExtent>::const_iterator found = top_down_bitmaps().find(bitmap);
+    if (found == top_down_bitmaps().end()) return false;
+    const bool same = (*found).second.width == width && (*found).second.height == height;
+    return same;
+}
+
+void remember_top_down(HBITMAP bitmap, LONG width, LONG height) noexcept {
     if (bitmap == nullptr) return;
     try {
         std::scoped_lock lock(bitmap_orientation_mutex());
-        top_down_bitmaps().insert(bitmap);
+        top_down_bitmaps().insert_or_assign(bitmap, TopDownExtent{width, height});
     } catch (...) {
         // The optimization is optional. An untracked bitmap retains the
         // ordinary GDI fallback rather than weakening object lifetime.
@@ -223,7 +243,7 @@ bool selected_dib32(HDC dc, HBITMAP* bitmap, DIBSECTION* section) noexcept {
         candidate.dsBmih.biHeight == 0) {
         return false;
     }
-    if (tracked_top_down(selected)) {
+    if (tracked_top_down_extent(selected, candidate.dsBm.bmWidth, std::abs(candidate.dsBm.bmHeight))) {
         candidate.dsBmih.biHeight =
             -std::abs(candidate.dsBmih.biHeight);
     }
@@ -499,10 +519,17 @@ extern "C" HBITMAP WINAPI gf_compat_CreateCompatibleBitmap(
         result = CreateDIBSection(
             dc, &info, DIB_RGB_COLORS, &pixels, nullptr, 0);
         if (result != nullptr && pixels != nullptr) {
-            remember_top_down(result);
+            remember_top_down(result, width, height);
         }
     }
-    if (result == nullptr) result = ::CreateCompatibleBitmap(dc, width, height);
+    if (result == nullptr) {
+        result = ::CreateCompatibleBitmap(dc, width, height);
+        // A bottom-up bitmap: a record left under this handle value by a
+        // tracked bitmap deleted outside the shim (GDI recycles values) is
+        // dropped, or the copy fast path would mirror its rows
+        // (A-gf-host-03-F13).
+        forget_bitmap(result);
+    }
     if (endpoint_lease != 0U) end_endpoint_write(endpoint_lease, false);
     trace("create-compatible-bitmap", dc, result,
           result != nullptr ? 1 : 0, width, height);
