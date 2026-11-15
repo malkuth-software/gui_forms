@@ -540,14 +540,25 @@ extern "C" BOOL WINAPI gf_compat_MoveToEx(
     return ::MoveToEx(dc, x, y, previous);
 }
 
+// Line and polygon drawing write the endpoint's DIB like the fills and
+// copies below, so they take its write lease and request a publish too
+// (A-gf-host-03-F12): no torn frame, and a line alone is published.
 extern "C" BOOL WINAPI gf_compat_PolylineTo(
     HDC dc, const POINT* points, DWORD count) {
-    return ::PolylineTo(dc, points, count);
+    std::uint64_t lease{};
+    const bool leased = begin_endpoint_write(dc, &lease);
+    const BOOL result = ::PolylineTo(dc, points, count);
+    if (leased) end_endpoint_write(lease, result != FALSE);
+    return result;
 }
 
 extern "C" BOOL WINAPI gf_compat_Polygon(
     HDC dc, const POINT* points, int count) {
-    return ::Polygon(dc, points, count);
+    std::uint64_t lease{};
+    const bool leased = begin_endpoint_write(dc, &lease);
+    const BOOL result = ::Polygon(dc, points, count);
+    if (leased) end_endpoint_write(lease, result != FALSE);
+    return result;
 }
 
 extern "C" HGDIOBJ WINAPI gf_compat_SelectObject(HDC dc, HGDIOBJ object) {
