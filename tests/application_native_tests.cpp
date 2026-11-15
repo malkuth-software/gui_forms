@@ -515,7 +515,7 @@ void show_tool_tip_window(RuntimeWindowsProbe& state, Window& window) {
     (*window.root()).add_child(anchor);
     window.perform_layout();
     window.show_tool_tip(anchor, std::chrono::milliseconds(0));
-    const HWND main_window = FindWindowW(nullptr, L"GUI.Forms runtime windows fixture");
+    const HWND main_window = test_support::own_gui_forms_window(L"GUI.Forms runtime windows fixture");
     if (main_window == nullptr || !window.tool_tip_visible()) {
         state.tool_tip_windows = "no tooltip showed";
         static_cast<void>((*window.root()).remove_child((*anchor).runtime_id()));
@@ -561,7 +561,7 @@ void open_splash_window(RuntimeWindowsProbe& state, const ApplicationWindows& wi
     state.splash_open = opened.status;
     if (!opened.status.accepted()) return;
 #if defined(_WIN32)
-    const HWND main_window = FindWindowW(nullptr, L"GUI.Forms runtime windows fixture");
+    const HWND main_window = test_support::own_gui_forms_window(L"GUI.Forms runtime windows fixture");
     if (main_window != nullptr) check_splash_window(state, main_window);
 #endif
     static_cast<void>(windows.destroy_window(opened.window));
@@ -577,7 +577,7 @@ void open_native_popups(RuntimeWindowsProbe& state, Window& window) {
     state.passive_refusal = passive.refusal();
 #if defined(_WIN32)
     if (passive.surface() == NativePopupSurface::native) {
-        const HWND main_window = FindWindowW(nullptr, L"GUI.Forms runtime windows fixture");
+        const HWND main_window = test_support::own_gui_forms_window(L"GUI.Forms runtime windows fixture");
         state.native_owner = main_window != nullptr;
         if (state.native_owner) check_native_popup(state, main_window, bounds);
     }
@@ -762,7 +762,7 @@ struct AutomationOrder final {
 };
 
 LRESULT send_automation(const char* const command) {
-    const HWND target = FindWindowW(nullptr, automation_fixture_title);
+    const HWND target = test_support::own_gui_forms_window(automation_fixture_title);
     if (target == nullptr) return FALSE;
     const std::string message = std::string("GUI.Forms.Automation/1 ") + command;
     COPYDATASTRUCT data{};
