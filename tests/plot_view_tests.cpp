@@ -488,6 +488,26 @@ void test_keyboard_cursor() {
     const std::optional<PlotPointPick> at = (*fixture.plot).cursor();
     require(at.has_value() && (*at).element == 10U && near((*at).y, 1.0), "the cursor names its point");
     require((*fixture.plot).semantic_descriptor().value == "10, 1", "the figure's value is the cursor's point");
+
+    // A-gf-controls-10-F2: a cursor on a series that was removed is dropped
+    // at the next arrow, which places it afresh on the first point.
+    std::shared_ptr<PlotSeriesItem> second = make_control<PlotSeriesItem>(StableId("plot.keys.second"));
+    std::array<double, 3> second_xs{1.0, 2.0, 3.0};
+    std::array<double, 3> second_ys{0.1, 0.2, 0.3};
+    (*second).set_points(second_xs, second_ys);
+    (*fixture.plot).add_child(second);
+    window.perform_layout();
+    KeyEvent down{};
+    down.physical_key = PhysicalKey::down;
+    static_cast<void>(window.dispatch_key(down));
+    require(recorder.last_pick.series == 1U, "Down moves the cursor to the second series");
+    const Control::Ptr removed = (*fixture.plot).remove_child((*second).runtime_id());
+    window.perform_layout();
+    const int picks_before = recorder.picks;
+    require(window.dispatch_key(right) && recorder.picks == picks_before + 1 && recorder.last_pick.series == 0U &&
+                recorder.last_pick.element == 0U,
+            "after its series is removed, an arrow places the cursor afresh on the first point");
+    static_cast<void>(removed);
 }
 
 void test_ranges_and_legend() {

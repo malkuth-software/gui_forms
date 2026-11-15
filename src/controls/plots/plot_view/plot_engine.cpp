@@ -1005,6 +1005,10 @@ PlotEngineOutcome PlotEngine::key(const KeyEvent& event, std::span<const PlotEng
     // (Shift: ten elements), up and down to the previous or next visible
     // series, keeping the element where that series has one.
     if (arrow && !control && !alt) {
+        // The cursor outlives a series removed since the last pick (an item
+        // removed, a live state with fewer series): a position past the list
+        // is no cursor, rather than an index past `series` (A-gf-controls-10-F2).
+        if (cursor_.has_value() && (*cursor_).series >= series.size()) cursor_.reset();
         if (series.empty()) return outcome;
         PlotCursor next = cursor_.value_or(PlotCursor{});
         if (!cursor_.has_value()) {
