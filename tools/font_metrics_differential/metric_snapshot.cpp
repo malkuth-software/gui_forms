@@ -195,6 +195,8 @@ FaceMeasurement read_measurement(SnapshotReader& reader) {
         for (std::size_t set = 0U; set < set_count; ++set) {
             const std::string_view rest = reader.labelled("starts");
             const std::vector<std::string_view> starts = fields_of(rest);
+            // A record holding only its label has no count (B-gf-tests-misc-02-F3).
+            if (starts.empty()) throw InputRejected("the snapshot starts record is empty");
             const std::size_t start_count = integer_field<std::size_t>(starts[0]);
             require_count(starts, start_count + 1U, "starts");
             if (start_count > maximum_paragraph_words) throw InputRejected("the snapshot lists too many line starts");

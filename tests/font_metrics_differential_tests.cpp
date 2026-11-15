@@ -92,6 +92,18 @@ void check_corpus_validation() {
 
 // Snapshots (brief decision 18) read back as the measurement they were
 // written from, and malformed snapshots are rejected whole.
+// `text` with the rest of the first line that begins with `prefix` (which
+// starts with a newline) removed, keeping the prefix itself.
+std::string emptied_record(std::string text, std::string_view prefix) {
+    const std::size_t at = text.find(prefix);
+    require(at != std::string::npos, "snapshot fixture record present");
+    const std::size_t from = at + prefix.size();
+    const std::size_t line_end = text.find('\n', from);
+    require(line_end != std::string::npos, "snapshot fixture record ends");
+    text.erase(from, line_end - from);
+    return text;
+}
+
 void check_snapshots(const font_metrics::Corpus& corpus, const font_metrics::FaceMeasurement& carlito) {
     const font_metrics::Corpus crlf = font_metrics::parse_corpus("[strings]\r\nOK\r\n[paragraphs]\r\none two\r\n");
     const font_metrics::Corpus lf = font_metrics::parse_corpus("[strings]\nOK\n[paragraphs]\none two\n");
@@ -130,6 +142,8 @@ void check_snapshots(const font_metrics::Corpus& corpus, const font_metrics::Fac
             "a malformed advance is rejected");
     require(rejects(SnapshotCall{replaced_once(text, "\nadvance 20 1 ", "\nadvance 20  1 ")}),
             "an empty field is rejected");
+    // B-gf-tests-misc-02-F3: a starts record holding only its label.
+    require(rejects(SnapshotCall{emptied_record(text, "\nstarts ")}), "an empty starts record is rejected");
 }
 
 void check_face_validation(const std::vector<std::byte>& carlito) {
