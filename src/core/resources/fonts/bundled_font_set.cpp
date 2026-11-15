@@ -56,6 +56,8 @@ struct SharedFontSet final {
     std::weak_ptr<BundledFontSet> set{};
 };
 SharedFontSet shared_font_set{};
+// Guards shared_font_set: the hosts ask on the UI thread, GUI.Drawing's executors on theirs.
+std::mutex shared_font_set_mutex;
 
 // The process's font lookups (bundled_font_diagnostics). The refusal and notice texts are
 // guarded by font_refusal_mutex, as a host may read them from another thread.
@@ -357,6 +359,7 @@ bool development_font_directories() noexcept {
 
 std::shared_ptr<BundledFontSet> shared_bundled_font_set(const std::filesystem::path& directory,
                                                         const SealedPageFunctions& pages) {
+    const std::lock_guard<std::mutex> lock(shared_font_set_mutex);
     std::shared_ptr<BundledFontSet> set = shared_font_set.set.lock();
     if (set && !shared_font_set.embedded_pack && shared_font_set.directory == directory) return set;
     set = std::make_shared<BundledFontSet>(directory, pages);
@@ -374,6 +377,7 @@ std::shared_ptr<BundledFontSet> shared_bundled_font_set(const BundledFontLocatio
         set = shared_bundled_font_set(location.directory, pages);
         return set;
     }
+    const std::lock_guard<std::mutex> lock(shared_font_set_mutex);
     set = shared_font_set.set.lock();
     if (set && shared_font_set.embedded_pack) return set;
     set = std::make_shared<BundledFontSet>(bundled_font_pack(), pages);

@@ -130,9 +130,12 @@ function(gui_forms_verify_effects target)
                  COMPILE_DEFINITIONS GUI_FORMS_EFFECTS_UNVERIFIED)
 endfunction()
 
+# The bundled faces' licences and attribution. Since font pack stage 4 no face file is installed:
+# the libraries read every face from the font pack compiled into them.
 set(GUIForms_FONT_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_DATADIR@/GUIForms/fonts")
-# Whether the producer installed the Noto fallback faces (install component fallback_fonts,
-# GUI_FORMS_INSTALL_FALLBACK_FONTS). Without them the runtime falls back as for any missing face.
+# Whether the producer embedded the Noto fallback faces and installed their licences (install
+# component fallback_fonts, GUI_FORMS_INSTALL_FALLBACK_FONTS). Without them the runtime falls back
+# as for any missing face.
 set(GUIForms_FALLBACK_FONTS @GUI_FORMS_INSTALL_FALLBACK_FONTS@)
 # Whether the producer was built with checked borrowed views (the sanitizer
 # tree, GUI_FORMS_CHECKED_BORROWS). A consumer is built the same way: the

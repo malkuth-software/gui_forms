@@ -26,6 +26,12 @@
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
+#include "../../../core/resources/fonts/bundled_font_set.hpp"
+#if defined(_WIN32)
+#include "../../../host/windows/fonts/sealed_pages_windows.hpp"
+#else
+#include "../../../host/posix/fonts/sealed_pages_posix.hpp"
+#endif
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -1035,6 +1041,9 @@ public:
     // Requested family to the registered family drawn for it, both
     // ASCII-lowercased (stage F substitution).
     std::unordered_map<std::string, std::string> aliases;
+    // The process's shared set over the embedded font pack, held from the
+    // first register_bundled_typeface; null until then.
+    std::shared_ptr<gui_forms::detail::BundledFontSet> bundled_fonts;
 
     // The registry family called `name`, as its position in the registry, or none.
     [[nodiscard]] static std::optional<std::size_t> registry_position(std::string_view name) noexcept {
@@ -1321,6 +1330,34 @@ std::string_view SkiaExecutor::Impl::trimmed_line(std::string_view line, const R
 SkiaExecutor::SkiaExecutor()
     : impl_(std::make_unique<Impl>()), owner_thread_(std::this_thread::get_id()) {}
 SkiaExecutor::~SkiaExecutor() = default;
+
+bool SkiaExecutor::register_bundled_typeface(std::string_view family,
+                                             std::string_view file_name,
+                                             std::uint32_t style) {
+    if (!owner_thread() || file_name.empty()) return false;
+    try {
+        if (!(*impl_).bundled_fonts) {
+#if defined(_WIN32)
+            const gui_forms::detail::SealedPageFunctions pages = gui_forms::host::windows_sealed_pages();
+#else
+            const gui_forms::detail::SealedPageFunctions pages = gui_forms::host::posix_sealed_pages();
+#endif
+            gui_forms::detail::BundledFontLocation embedded{};
+            embedded.source = gui_forms::BundledFontSource::embedded_pack;
+            (*impl_).bundled_fonts = gui_forms::detail::shared_bundled_font_set(embedded, pages);
+        }
+        if (!(*impl_).bundled_fonts) return false;
+        const gui_forms::detail::FontFaceLoad load = (*(*impl_).bundled_fonts).face(file_name);
+        const std::shared_ptr<const gui_forms::detail::SealedFontFace>* face = load.face();
+        if (face == nullptr) return false;
+        // register_typeface keeps its own copy of the bytes; the sealed face stays with the set.
+        const std::span<const std::byte> bytes = (*(*face)).bytes();
+        const bool registered = register_typeface(family, bytes, style);
+        return registered;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
 
 bool SkiaExecutor::register_typeface(std::string_view family,
                                      std::span<const std::byte> encoded,

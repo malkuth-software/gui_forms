@@ -75,16 +75,14 @@ inside a Latin label takes the CJK face for exactly that run. The provenance
 of every file, including hashes, is in `assets/fonts/ATTRIBUTION.md` and
 `assets/fonts/language-font-provenance.json`.
 
-The native hosts locate fonts differently:
+Every host, and GUI.Drawing's raster C API, reads the faces from the font
+pack compiled into the library; no font file is read at run time. A
+development build configured with `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=ON`
+reads a font directory first (`GUI_FORMS_FONT_DIR`, then the places each host
+used to look), for work on the faces themselves.
 
-- macOS reads `Contents/Resources/fonts` from the application bundle.
-- Windows reads `GUI_FORMS_FONT_DIR` when set, otherwise `fonts/` beside the executable.
-- Linux reads `GUI_FORMS_FONT_DIR` when set, otherwise `fonts/` beside the
-  executable if present, then `../share/GUIForms/fonts` relative to it.
-
-The native SDK installs fonts and exports their path as the CMake variable
-`GUIForms_FONT_DIR`; that variable does not set the runtime environment.
-Ship the directory, licences included, at the location your host expects.
+The native SDK installs the faces' licences and exports their directory as
+the CMake variable `GUIForms_FONT_DIR`. Ship the licences with your program.
 
 ## The text store
 

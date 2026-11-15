@@ -28,8 +28,6 @@
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#else
-#include <dlfcn.h>
 #endif
 
 namespace {
@@ -47,29 +45,6 @@ using gui_drawing::render::SkiaExecutor;
 SkiaExecutor& executor() {
     thread_local SkiaExecutor value;
     return value;
-}
-
-std::filesystem::path module_directory() {
-#if defined(_WIN32)
-    HMODULE module{};
-    if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-                              GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                          reinterpret_cast<LPCWSTR>(&module_directory), &module) == FALSE) {
-        return {};
-    }
-    std::vector<wchar_t> path(32768);
-    const DWORD count = GetModuleFileNameW(module, path.data(),
-                                           static_cast<DWORD>(path.size()));
-    if (count == 0 || count >= path.size()) return {};
-    return std::filesystem::path(std::wstring(path.data(), count)).parent_path();
-#else
-    Dl_info info{};
-    if (dladdr(reinterpret_cast<const void*>(&module_directory), &info) == 0 ||
-        info.dli_fname == nullptr) {
-        return {};
-    }
-    return std::filesystem::path(info.dli_fname).parent_path();
-#endif
 }
 
 // The largest font file read or accepted from a host.
@@ -109,9 +84,10 @@ std::vector<std::byte> read_file(const std::filesystem::path& path) {
     return result;
 }
 
-// Loads one bundled face file into a family's slot, once per thread: the
-// executor is thread-local, so its registrations are too. False when the
-// file is missing or unreadable or its bytes are not a font.
+// Loads one bundled face into a family's slot, once per thread: the
+// executor is thread-local, so its registrations are too. The face comes
+// from the library's embedded font pack. False when the pack does not hold
+// it or its bytes are not a font.
 bool load_bundled_face(std::string_view family, std::string_view file, FontFaceStyle slot) {
     thread_local std::unordered_map<std::string, bool> loaded;
     std::string key = ascii_folded(family);
@@ -119,10 +95,8 @@ bool load_bundled_face(std::string_view family, std::string_view file, FontFaceS
     key += static_cast<char>('0' + static_cast<int>(slot));
     const std::unordered_map<std::string, bool>::const_iterator found = loaded.find(key);
     if (found != loaded.end()) return (*found).second;
-    const std::filesystem::path path = module_directory() / "fonts" / std::filesystem::path(std::string(file));
-    const std::vector<std::byte> bytes = read_file(path);
-    const bool result = !bytes.empty() &&
-        executor().register_typeface(family, bytes, static_cast<std::uint32_t>(slot));
+    // From the font pack compiled into the library (font pack stage 4), not from files.
+    const bool result = executor().register_bundled_typeface(family, file, static_cast<std::uint32_t>(slot));
     loaded.emplace(std::move(key), result);
     return result;
 }

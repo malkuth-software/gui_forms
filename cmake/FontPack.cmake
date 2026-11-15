@@ -2,7 +2,8 @@
 # assets/fonts/bundled-fonts.sha256, packed by the stx_fontpack tool into the
 # groups of assets/fonts/font-pack.manifest and compiled into Core as a byte
 # array (src/core/resources/fonts/bundled_font_pack.cpp). It is the only font
-# source the GUI.Forms runtime reads in a shipped program. A build configured
+# source the GUI.Forms runtime and GUI.Drawing's raster C API read in a
+# shipped program. A build configured
 # with GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY also reads a font directory the
 # hosts find (GUI_FORMS_FONT_DIR first), for work on the faces themselves.
 #
@@ -12,7 +13,8 @@
 # At run time each face is checked against the CRC-32 the pack stores for it.
 #
 # With GUI_FORMS_INSTALL_FALLBACK_FONTS off, the pack leaves out the Noto
-# fallback faces (font-pack-without-fallback.manifest), as the install does.
+# fallback faces (font-pack-without-fallback.manifest) and the install their
+# licences. No face file is installed: only the licences and attribution.
 #
 # A cross build cannot run the tool it compiles, so it names a host-built one
 # in GUI_FORMS_FONTPACK_TOOL.

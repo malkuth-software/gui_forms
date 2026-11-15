@@ -913,8 +913,34 @@ void laid_out_text_aligns_trims_and_clips() {
     CHECK(run_on.x + run_on.width > 70.0);
 }
 
+// A bundled face registered from the embedded font pack (font pack stage 4)
+// draws exactly what the same face read from its file draws; a name the
+// pack does not hold registers nothing.
+void bundled_faces_come_from_the_pack() {
+    SkiaExecutor from_pack;
+    CHECK(from_pack.register_bundled_typeface("Arimo", "Arimo-Regular.ttf"));
+    CHECK(!from_pack.register_bundled_typeface("Arimo", "Wingdings.ttf"));
+    SkiaExecutor from_file;
+    const std::vector<std::byte> font = read_file(GUI_DRAWING_TEST_ARIMO_FONT);
+    CHECK(from_file.register_typeface("Arimo", font));
+    const Font face("Arimo", 14.0, FontStyle::regular);
+    SolidBrush black(Color::from_name("black"));
+    StringFormat format;
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("white"));
+    recorder.draw_string("Arimo Hag", face, black, {2, 4}, format);
+    Bitmap packed(96, 24);
+    Bitmap filed(96, 24);
+    CHECK(from_pack.execute(recorder, packed));
+    CHECK(from_file.execute(recorder, filed));
+    CHECK(checksum(packed.snapshot()) == checksum(filed.snapshot()));
+    const Bitmap blank(96, 24);
+    CHECK(checksum(packed.snapshot()) != checksum(blank.snapshot()));
+}
+
 int main() {
     command_execution_and_png_round_trip();
+    bundled_faces_come_from_the_pack();
     image_attributes_clip_and_snapshot_execution();
     texture_brush_tiles_and_mirrors_retained_pixels();
     transparent_png_channels_are_premultiplied();

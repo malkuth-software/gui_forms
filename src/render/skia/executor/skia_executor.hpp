@@ -73,6 +73,15 @@ public:
     [[nodiscard]] bool register_typeface(std::string_view family,
                                          std::span<const std::byte> encoded,
                                          std::uint32_t style = 0U);
+    // Registers the bundled face `file_name` (a face of the library's
+    // manifest, decoded from the font pack compiled into it, font pack
+    // stage 4) under `family` in style's slot, as register_typeface does.
+    // The executor holds the process's shared pack set from its first call,
+    // so a group is decoded once per process. False when the pack does not
+    // hold the face or it does not register.
+    [[nodiscard]] bool register_bundled_typeface(std::string_view family,
+                                                 std::string_view file_name,
+                                                 std::uint32_t style = 0U);
     // Draws requests for one family with another registered family's faces
     // (stage F substitution). False when family is not registered.
     [[nodiscard]] bool alias_family(std::string_view requested, std::string_view family);

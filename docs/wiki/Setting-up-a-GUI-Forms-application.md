@@ -31,7 +31,7 @@ You need an installed GUI.Forms SDK and the toolchain it was built with
 source as the [Install](https://gui-forms.readthedocs.io/user/install.html)
 page describes; the result is a prefix such as `/path/to/sdk` holding
 `include/gui_forms/`, the libraries, `lib/cmake/GUIForms/` and
-`share/GUIForms/fonts/`. Keep the path of `cmake/llvm22.cmake`: every
+`share/GUIForms/fonts/` (the font licences). Keep the path of `cmake/llvm22.cmake`: every
 consumer project is configured with the same toolchain file.
 
 ## 2. The CMake project

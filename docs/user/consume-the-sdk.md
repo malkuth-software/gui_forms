@@ -150,13 +150,10 @@ in a post-build step; copy that pattern rather than listing DLL names.
 ## Fonts
 
 Controls never consult the host font catalogue; they draw only the bundled
-faces. Native SDK builds install
-the bundled faces at `GUIForms_FONT_DIR` (`share/GUIForms/fonts` under the
-prefix). This CMake variable does not configure the runtime search path.
-Copy the whole directory, including licences, into your package: macOS reads
-`Your.app/Contents/Resources/fonts`; Windows and Linux accept the environment
-override `GUI_FORMS_FONT_DIR` or use `fonts/` beside the executable. Linux also
-falls back to `../share/GUIForms/fonts` relative to the executable. See
+faces. The faces are compiled into the GUI.Forms library as one font pack, so
+a program needs no font files beside it. Native SDK builds install the faces'
+licences and attribution at `GUIForms_FONT_DIR` (`share/GUIForms/fonts` under
+the prefix); ship those licence files with your package. See
 [Text engine](text-engine) for the fixed font set.
 
 ## Rebuild consumers with the SDK

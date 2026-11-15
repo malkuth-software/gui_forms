@@ -310,17 +310,18 @@ endfunction()
 
 # The bundled fallback faces (owner ruling 2026-11-11): the seven Noto faces and their OFL texts.
 # With GUI_FORMS_INSTALL_FALLBACK_FONTS ON (the default) the embedded font pack carries the faces
-# (cmake/FontPack.cmake) and they and their licences form their own install component,
-# fallback_fonts; OFF leaves them out of both. The runtime works without them: they are optional
-# faces, so text only they cover falls back as for any missing face, and bundled_font_diagnostics
-# reports how many the pack holds. Every other face and notice is the fonts component.
+# (cmake/FontPack.cmake) and their licences form their own install component, fallback_fonts;
+# OFF leaves out both. The runtime works without them: they are optional faces, so text only
+# they cover falls back as for any missing face, and bundled_font_diagnostics reports how many the
+# pack holds.
 #
-# The GUI.Forms runtime reads its faces only from the pack compiled into Core (font pack stage 4);
-# the installed files serve the consumers that still read face files: GUI.Drawing's raster C API
-# (fonts beside its module), the installed FreeType/HarfBuzz consumer and a development build's
-# directory override. gui_forms_install_bundled_fonts() is the one install rule the hosts use.
+# No face file is installed (font pack stage 4): the GUI.Forms runtime and GUI.Drawing's raster
+# C API read every face from the pack compiled into Core. The install carries the faces' licences
+# and the attribution (component fonts, and fallback_fonts for the Noto licences) in
+# share/GUIForms/fonts, still GUIForms_FONT_DIR. gui_forms_install_bundled_fonts() is the one
+# install rule the hosts use.
 option(GUI_FORMS_INSTALL_FALLBACK_FONTS
-       "Embed and install the bundled Noto fallback faces and their licences (install component fallback_fonts)" ON)
+       "Embed the bundled Noto fallback faces in the font pack and install their licences (install component fallback_fonts)" ON)
 set(GUI_FORMS_FALLBACK_FONT_FILES
     NotoSansCJKjp-Regular.otf
     NotoEmoji-Regular.ttf
@@ -338,13 +339,13 @@ function(gui_forms_install_bundled_fonts)
     set(_gf_font_destination ${CMAKE_INSTALL_DATADIR}/GUIForms/fonts)
     set(_gf_excluded)
     set(_gf_fallback)
-    foreach(_gf_name IN LISTS GUI_FORMS_FALLBACK_FONT_FILES GUI_FORMS_FALLBACK_FONT_NOTICES)
+    foreach(_gf_name IN LISTS GUI_FORMS_FALLBACK_FONT_NOTICES)
         list(APPEND _gf_excluded PATTERN ${_gf_name} EXCLUDE)
         list(APPEND _gf_fallback ${_gf_font_source}/${_gf_name})
     endforeach()
-    # The pack manifests are build inputs, not runtime files.
     install(DIRECTORY ${_gf_font_source}/ DESTINATION ${_gf_font_destination}
-            COMPONENT fonts ${_gf_excluded} PATTERN "*.manifest" EXCLUDE)
+            COMPONENT fonts FILES_MATCHING
+            PATTERN "OFL-*.txt" PATTERN "LICENSE-*.txt" PATTERN "ATTRIBUTION.md" ${_gf_excluded})
     if(GUI_FORMS_INSTALL_FALLBACK_FONTS)
         install(FILES ${_gf_fallback} DESTINATION ${_gf_font_destination} COMPONENT fallback_fonts)
     endif()
@@ -1648,7 +1649,12 @@ if(GUI_FORMS_ENABLE_SKIA)
     # the industrial-surfaces study: an offline tool the integrator runs to
     # make the light-plane bakes, its legends drawn by GUI.Drawing's text
     # engine in the bundled Portsmouth Mono (gui_forms_lamp_keys_legend_tests).
-    add_executable(gui_forms_lamp_keys tools/industrial_surfaces/lamp_keys.cpp)
+    # The executor decodes GUI.Drawing's bundled faces from Core's font pack into sealed pages
+    # (SkiaExecutor::register_bundled_typeface); a program that links gui_drawing_skia without
+    # a host also takes the platform's sealed pages. They stay out of gui_drawing_skia itself,
+    # which the Windows Application library links whole beside the host's copy.
+    add_executable(gui_forms_lamp_keys tools/industrial_surfaces/lamp_keys.cpp
+        $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
     target_link_libraries(gui_forms_lamp_keys PRIVATE gui_drawing_skia gui_forms_core)
     target_compile_definitions(gui_forms_lamp_keys PRIVATE
         GUI_FORMS_LEGEND_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthMono.ttf")
@@ -1682,6 +1688,7 @@ if(GUI_FORMS_ENABLE_SKIA)
             gui_drawing_skia
             gui_drawing_c_api
         )
+        target_sources(gui_drawing_raster_c_api PRIVATE $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
     endif()
     target_compile_definitions(gui_drawing_raster_c_api PRIVATE GDR_C_API_BUILD)
     target_include_directories(gui_drawing_raster_c_api INTERFACE
@@ -1716,12 +1723,12 @@ if(GUI_FORMS_ENABLE_SKIA)
         set_target_properties(gui_drawing_raster_c_api PROPERTIES PREFIX "")
         target_link_libraries(gui_drawing_raster_c_api PRIVATE advapi32)
     endif()
-    # Every face the substitution table names, with its licence, the table
-    # itself and the attribution, beside the raster module (stage F).
+    # The licences of the faces the substitution table names, and the
+    # attribution, beside the raster module (stage F). The faces themselves
+    # come from Core's embedded font pack (font pack stage 4), so none is
+    # copied.
     set(gui_drawing_raster_fonts
-        ${GUI_FORMS_SUBSTITUTION_FONT_FILES}
         ${GUI_FORMS_SUBSTITUTION_FONT_LICENCES}
-        font-substitution.json
         ATTRIBUTION.md)
     list(TRANSFORM gui_drawing_raster_fonts PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/)
     add_custom_command(TARGET gui_drawing_raster_c_api POST_BUILD
@@ -6155,11 +6162,13 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
 
     if(TARGET gui_drawing_skia)
-        add_executable(gui_drawing_skia_tests tests/drawing_skia_tests.cpp)
+        add_executable(gui_drawing_skia_tests tests/drawing_skia_tests.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
         target_compile_definitions(gui_drawing_skia_tests PRIVATE
             GUI_DRAWING_TEST_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf"
             GUI_DRAWING_TEST_BOLD_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids-Bold.ttf"
             GUI_DRAWING_TEST_ITALIC_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids-Italic.ttf"
+            GUI_DRAWING_TEST_ARIMO_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Arimo-Regular.ttf"
         )
         target_link_libraries(gui_drawing_skia_tests PRIVATE gui_drawing_skia gui_forms_core)
         target_include_directories(gui_drawing_skia_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
@@ -6649,7 +6658,8 @@ if(GUI_FORMS_BUILD_FOCUS_LABS)
     add_executable(focus_bake_lab benchmarks/focus_labs/bake_lab.cpp)
     target_link_libraries(focus_bake_lab PRIVATE gui_forms_controls)
     if(TARGET gui_drawing_skia)
-        add_executable(focus_exec_lab benchmarks/focus_labs/exec_lab.cpp)
+        add_executable(focus_exec_lab benchmarks/focus_labs/exec_lab.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
         target_link_libraries(focus_exec_lab PRIVATE gui_drawing_skia gui_forms_core)
         target_include_directories(focus_exec_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
     endif()

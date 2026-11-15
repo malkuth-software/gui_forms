@@ -37,7 +37,7 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_BUILD_AUDIO` | OFF | Build `GUIForms::Audio` |
 | `GUI_FORMS_AUDIO_VORBIS_BACKEND` | `stx` | Ogg decoder: `stx` or `stb` |
 | `GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD` | OFF | Build the fixture-backed explorer consumer |
-| `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Embed the seven Noto fallback faces in the font pack, and install them and their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
+| `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Embed the seven Noto fallback faces in the font pack, and install their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
 | `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY` | OFF | Development builds only: read the bundled faces from a directory the hosts find (`GUI_FORMS_FONT_DIR` first) before the embedded pack (see [Embedded font pack](#embedded-font-pack)) |
 | `GUI_FORMS_FONTPACK_TOOL` | empty | A host-built `stx_fontpack` tool for a cross build, which cannot run the one it compiles |
 | `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
@@ -324,20 +324,21 @@ against the CRC-32 the pack stores for it; a refused group is reported once
 on stderr and by `bundled_font_pack_refusal()`, and its faces draw as missing.
 A build configured with `-DGUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=ON` reads a
 font directory the hosts find (`GUI_FORMS_FONT_DIR` first) and falls back to
-the pack; shipped builds leave it off. The installed font files serve the
-consumers that still read files: GUI.Drawing's raster C API and the installed
-FreeType and HarfBuzz consumer.
+the pack; shipped builds leave it off. GUI.Drawing's raster C API reads the
+same pack, so no face file is installed or copied beside a module: only the
+licences and the attribution.
 
 ### Fallback fonts
 
-The bundled font set has two install components. `fonts` holds the faces every
-window needs (Portsmouth Rapids, Carlito, Cousine, Selawik) and their licences.
-`fallback_fonts` holds the seven Noto fallback faces (CJK Japanese, Emoji,
-Arabic, Bengali, Devanagari, Gurmukhi, Hebrew) and their OFL texts
-(`OFL-Noto.txt`, `OFL-NotoSansCJKjp.txt`, `OFL-NotoEmoji.txt`), about 18 MB.
+The seven Noto fallback faces (CJK Japanese, Emoji, Arabic, Bengali,
+Devanagari, Gurmukhi, Hebrew) are about 18 MB of the pack. The install has two
+licence components: `fonts` holds the other faces' licences and the
+attribution, `fallback_fonts` the Noto OFL texts (`OFL-Noto.txt`,
+`OFL-NotoSansCJKjp.txt`, `OFL-NotoEmoji.txt`).
 
 - **SDK install.** `GUI_FORMS_INSTALL_FALLBACK_FONTS` is ON by default, so
-  `cmake --install build` installs both. Configure with
+  the pack embeds the faces and `cmake --install build` installs their
+  licences. Configure with
   `-DGUI_FORMS_INSTALL_FALLBACK_FONTS=OFF` to leave the fallback faces out, or
   install the components one at a time with
   `cmake --install build --component fonts` and

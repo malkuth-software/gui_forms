@@ -235,7 +235,8 @@ private:
 // holds it, and so does an application run for its length, so all of them share one copy of
 // each face; when the last holder lets go, the set and its pages go too, and the next request
 // makes a new one. A request for another source makes a separate set, which then becomes
-// the shared one. UI thread only.
+// the shared one. Any thread: the hosts ask on the UI thread, GUI.Drawing's executors on
+// their own.
 [[nodiscard]] std::shared_ptr<BundledFontSet> shared_bundled_font_set(
     const std::filesystem::path& directory, const SealedPageFunctions& pages);
 
@@ -254,8 +255,8 @@ struct BundledFontLocation final {
 };
 
 // The process's shared set for `location`: the embedded pack's for embedded_pack, the
-// directory's for any other source, null for none. Shared as the directory form is. UI thread
-// only.
+// directory's for any other source, null for none. Shared as the directory form is. Any
+// thread.
 [[nodiscard]] std::shared_ptr<BundledFontSet> shared_bundled_font_set(
     const BundledFontLocation& location, const SealedPageFunctions& pages);
 
