@@ -66,10 +66,18 @@ def main() -> None:
         result: subprocess.CompletedProcess[str] = subprocess.run(
             [str(copied)], env=environment, text=True, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, timeout=60, check=True)
+        # A program that links the runtime's static archives (cmake/llvm22.cmake,
+        # GUI_FORMS_STATIC_CXX_RUNTIME) loads none of the dylibs: then the proof
+        # is that it runs without them, and none may be loaded from elsewhere.
+        linked: str = subprocess.run(['otool', '-L', str(copied)], text=True, stdout=subprocess.PIPE,
+                                     check=True).stdout
+        dynamic_runtime: bool = 'libc++' in linked or 'libunwind' in linked
         for library in sorted((restored / 'lib').glob('*.dylib')):
             if not library.is_symlink():
-                if str(library) not in result.stderr:
+                if dynamic_runtime and str(library) not in result.stderr:
                     raise RuntimeError('Restored library was not loaded: ' + str(library))
+                if not dynamic_runtime and str(library) in result.stderr:
+                    raise RuntimeError('A statically linked program loaded ' + str(library))
         if test_runtime is not None and str(test_runtime) not in result.stderr:
             raise RuntimeError('Relocated test runtime was not loaded')
         print(result.stdout, end='')
