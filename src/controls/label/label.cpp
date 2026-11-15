@@ -8,7 +8,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <cmath>
 #include <iterator>
 #include <memory>
@@ -275,12 +274,12 @@ double Label::widest_unbreakable_segment(const std::string_view shown,
     std::size_t cursor = 0U;
     while (cursor < shown.size()) {
         while (cursor < shown.size() &&
-               std::isspace(static_cast<unsigned char>(shown[cursor])) != 0) {
+               is_wrap_space(shown[cursor])) {
             ++cursor;
         }
         std::size_t word_end = cursor;
         while (word_end < shown.size() &&
-               std::isspace(static_cast<unsigned char>(shown[word_end])) == 0) {
+               !is_wrap_space(shown[word_end])) {
             ++word_end;
         }
         if (word_end > cursor) {
