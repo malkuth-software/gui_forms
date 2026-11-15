@@ -590,7 +590,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "warp_pointer", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "Component", "winforms": "Component", "gui_forms_base": null, "winforms_base": null, "counterpart_note": "System.ComponentModel.Component (dotnet/runtime, not the Windows Forms catalogue)", "status": "supported", "basis": "test", "evidence": "tests/binding_provider_tests.cpp", "members": [
-      {"kind": "constructor", "winforms": "Component", "scope": "admitted", "gui_forms": "Component", "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},
+      {"kind": "constructor", "winforms": "Component", "scope": "admitted", "gui_forms": "Component", "status": "supported", "basis": "test", "evidence": "tests/abi/events/gf_abi_event_fields.cpp"},
       {"kind": "property", "winforms": "CanRaiseEvents", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "Container", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "DesignMode", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
@@ -4928,8 +4928,8 @@
       {"kind": "method", "winforms": null, "gui_forms": "cue_for", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "emit", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/core_tests.cpp"}
     ]},
-    {"type": "Binding", "winforms": "Binding", "gui_forms_base": "Component", "winforms_base": null, "status": "supported", "basis": "test", "evidence": "tests/binding_navigator_tests.cpp", "members": [
-      {"kind": "constructor", "winforms": "Binding", "scope": "admitted", "overloads": 6, "gui_forms": "Binding", "status": "supported", "basis": "test", "evidence": "tests/binding_navigator_tests.cpp"},
+    {"type": "Binding", "winforms": "Binding", "gui_forms_base": "Component", "winforms_base": null, "status": "supported", "basis": "test", "evidence": "tests/abi/events/gf_abi_event_fields.cpp", "members": [
+      {"kind": "constructor", "winforms": "Binding", "scope": "admitted", "overloads": 6, "gui_forms": "Binding", "status": "supported", "basis": "test", "evidence": "tests/abi/events/gf_abi_event_fields.cpp"},
       {"kind": "property", "winforms": "BindableComponent", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "BindingManagerBase", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "BindingMemberInfo", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
@@ -5613,6 +5613,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "warp_cursor", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/cursor_interaction_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "warp_pointer", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "withdraw_alert", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/sub_surface_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "withdraw_live_surface_presentation", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/live_surface_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "withdraw_tool_tip_request", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/sub_surface_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "withdraw_value", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/engine_input_tests.cpp"}
     ]},
