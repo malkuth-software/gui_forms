@@ -7095,6 +7095,47 @@ if(WIN32 AND GUI_FORMS_ENABLE_WINDOWS_HOST AND GUI_FORMS_BUILD_TESTS)
         gui_forms_controls gui_forms_host_windows imm32)
     add_test(NAME gui_forms_windows_input_method_tests COMMAND gui_forms_windows_input_method_tests)
     set_tests_properties(gui_forms_windows_input_method_tests PROPERTIES TIMEOUT 60)
+    # The normative trace on Win32 (tests/windows_normative_trace.cpp), at a
+    # fixed scale 1 and 2 (the references' scales), each then compared with
+    # the headless reference. A foreground test: the steps are posted to the
+    # window's own queue, so a private desktop serves.
+    add_executable(gui_forms_windows_normative_trace
+        tests/windows_normative_trace.cpp
+        tests/support/normative_trace.cpp)
+    target_compile_definitions(gui_forms_windows_normative_trace PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})
+    target_include_directories(gui_forms_windows_normative_trace PRIVATE tests)
+    target_link_libraries(gui_forms_windows_normative_trace PRIVATE gui_forms_controls gui_forms_host_windows)
+    add_test(NAME gui_forms_windows_normative_trace
+             COMMAND gui_forms_windows_normative_trace --scale 1
+                 --output ${CMAKE_CURRENT_BINARY_DIR}/normative/windows.trace)
+    add_test(NAME gui_forms_windows_normative_trace_2x
+             COMMAND gui_forms_windows_normative_trace --scale 2
+                 --output ${CMAKE_CURRENT_BINARY_DIR}/normative/windows-2x.trace)
+    set_tests_properties(gui_forms_windows_normative_trace PROPERTIES
+        TIMEOUT 60 FIXTURES_REQUIRED gui_forms_normative_reference
+        FIXTURES_SETUP gui_forms_normative_windows LABELS "normative_trace")
+    # The foreground label and launcher of the 2x run: the launcher is the
+    # target's (gui_forms_foreground_test, below, sets it for the 1x run).
+    set_tests_properties(gui_forms_windows_normative_trace_2x PROPERTIES
+        TIMEOUT 60 FIXTURES_REQUIRED gui_forms_normative_reference
+        FIXTURES_SETUP gui_forms_normative_windows_2x LABELS "normative_trace;foreground")
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME gui_forms_windows_normative_trace_compare
+                 COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/normative_trace.py compare
+                     --reference-dir ${CMAKE_CURRENT_BINARY_DIR}/normative
+                     --trace ${CMAKE_CURRENT_BINARY_DIR}/normative/windows.trace)
+        set_tests_properties(gui_forms_windows_normative_trace_compare PROPERTIES
+            FIXTURES_REQUIRED "gui_forms_normative_reference;gui_forms_normative_windows"
+            LABELS "normative_trace")
+        add_test(NAME gui_forms_windows_normative_trace_2x_compare
+                 COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/normative_trace.py compare
+                     --reference-dir ${CMAKE_CURRENT_BINARY_DIR}/normative
+                     --trace ${CMAKE_CURRENT_BINARY_DIR}/normative/windows-2x.trace)
+        set_tests_properties(gui_forms_windows_normative_trace_2x_compare PROPERTIES
+            FIXTURES_REQUIRED "gui_forms_normative_reference;gui_forms_normative_windows_2x"
+            LABELS "normative_trace")
+    endif()
     add_executable(gui_forms_windows_accessibility_tests tests/windows_accessibility_tests.cpp)
     target_link_libraries(gui_forms_windows_accessibility_tests PRIVATE GUIForms::Application oleacc uiautomationcore oleaut32 uuid)
     add_test(NAME gui_forms_windows_accessibility_tests COMMAND gui_forms_windows_accessibility_tests)
@@ -7472,6 +7513,7 @@ foreach(gui_forms_foreground_name IN ITEMS
         gui_forms_windows_accessibility_tests
         gui_forms_windows_dib_lifecycle_tests
         gui_forms_windows_input_method_tests
+        gui_forms_windows_normative_trace
         gui_forms_windows_prepared_text_tests)
     if(TEST ${gui_forms_foreground_name})
         gui_forms_foreground_test(${gui_forms_foreground_name})
