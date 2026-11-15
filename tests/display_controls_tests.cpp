@@ -218,6 +218,20 @@ void test_info_banner_properties_and_states() {
             "the table reads the severity cell");
     (*banner).set_property_value("severity", BindingValue{PropertyEnumValue{"notice_severity", "success", 2}});
     require((*banner).severity.read() == NoticeSeverity::success, "the table writes the severity cell");
+
+    // A-gf-controls-05-F3: a severity outside the enumeration would be shifted by as a
+    // custom state index; it is refused and the severity kept.
+    refused = false;
+    try {
+        (*banner).severity = static_cast<NoticeSeverity>(40);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*banner).severity.read() == NoticeSeverity::success, "an unknown severity is refused");
+    AnatomyStateSet past{};
+    past.insert(CustomStateIndex{40U});
+    require(past.custom_bits() == 0U && !past.contains(CustomStateIndex{40U}),
+            "a custom index past sixteen names no state");
 }
 
 void test_info_banner_closing() {

@@ -545,8 +545,11 @@ std::span<const PropertyEntry> InfoBanner::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-void InfoBanner::prepare_write(const decltype(severity)&, NoticeSeverity&) {
+void InfoBanner::prepare_write(const decltype(severity)&, NoticeSeverity& incoming) {
     require_mutable();
+    // The severity is the custom state index painting reads
+    // (A-gf-controls-05-F3).
+    if (!notice_severity_known(incoming)) throw std::invalid_argument("InfoBanner severity is outside NoticeSeverity");
 }
 
 void InfoBanner::written(const decltype(severity)&) {

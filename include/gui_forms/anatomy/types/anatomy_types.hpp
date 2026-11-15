@@ -285,8 +285,11 @@ private:
         const std::uint64_t one = 1U;
         return one << static_cast<std::uint64_t>(state);
     }
+    // The set holds sixteen custom states; an index past them names none,
+    // rather than shifting by the type's width or more.
     [[nodiscard]] static constexpr std::uint16_t custom_bit(
         CustomStateIndex state) noexcept {
+        if (state.value >= 16U) return 0U;
         const unsigned int one = 1U;
         const unsigned int shifted = one << static_cast<unsigned int>(state.value);
         return static_cast<std::uint16_t>(shifted);

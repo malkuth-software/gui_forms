@@ -4975,6 +4975,10 @@ Functions, constants and aliases
 
 ``#include <gui_forms/controls/notice_values.hpp>``
 
+.. cpp:function:: constexpr bool notice_severity_known(NoticeSeverity severity) noexcept
+
+   Whether a severity is one of the four values. A severity read from an integer (a binding, a file) can be any byte, and InfoBanner and Toast use it as a custom state index, so both refuse an unknown one.
+
 .. cpp:function:: constexpr Color notice_severity_colour(NoticeSeverity severity) noexcept
 
    A severity's colour, which InfoBanner's keyline and icon, Toast's icon and InstrumentRack's module keyline draw as an authored foreground over the notice's role, under the severity's custom state (``:state(warning)``). Mid-tone, so that each reads on a light face and a dark one; high contrast replaces it with the role's own colour. Provisional until T4's floor gives the status colours roles.
