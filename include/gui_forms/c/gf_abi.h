@@ -2328,6 +2328,7 @@ typedef struct gf_diagnostics_table {
      * detail or one smaller than its 1.5 size.
      */
     gf_status (GF_CALL* failure_detail)(gf_failure_detail* detail);
+    /*
      * Since 1.5. The diagnostic overlay: the invalidation outlines and,
      * whenever they are on, the counters card at each window's top left
      * (renderer, controls, layout and paint passes, damage, input and
