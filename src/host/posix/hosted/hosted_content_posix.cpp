@@ -72,6 +72,11 @@ namespace {
 
 // Input waiting longer than this is dropped rather than queued.
 constexpr std::size_t hosted_input_backlog_limit = 1024U * 1024U;
+// The whole backlog's bound, for the messages that may not be dropped
+// (releases, configure, focus, the release of each frame): past it the
+// program has stopped reading, which is a protocol failure
+// (A-gf-host-02-F8).
+constexpr std::size_t hosted_input_backlog_hard_limit = 8U * hosted_input_backlog_limit;
 // The longest start timeout and stop grace: a day. Longer ones are taken
 // as this, so now() + timeout cannot overflow (A-gf-host-02-F13).
 constexpr std::chrono::milliseconds hosted_maximum_timeout = std::chrono::hours(24);
@@ -106,11 +111,13 @@ std::ptrdiff_t send_some(int descriptor, const std::byte* data, std::size_t size
 // Queues one whole message behind the backlog, or sends it at once when
 // the backlog is empty; a partly sent message's rest joins the backlog, so
 // messages are never interleaved. `droppable` input is dropped instead when
-// the backlog is over its limit. Called with the state's mutex held.
+// the backlog is over its limit, and any message when the backlog is over
+// the hard limit. Called with the state's mutex held.
 bool enqueue_locked(detail::HostedInputState& state, std::span<const std::byte> message, bool droppable) {
     if (state.descriptor < 0) return false;
     if (!state.backlog.empty()) {
         if (droppable && state.backlog.size() > hosted_input_backlog_limit) return false;
+        if (state.backlog.size() > hosted_input_backlog_hard_limit) return false;
         state.backlog.insert(state.backlog.end(), message.begin(), message.end());
         return true;
     }
@@ -526,7 +533,11 @@ public:
     void run(ContentContext& context) override;
 
 private:
-    // Sends one parent message, queued behind any backlog.
+    // Queues one parent message behind any backlog. Returns true when the
+    // backlog is past its hard limit (the program stopped reading); the
+    // message is then not queued.
+    [[nodiscard]] bool queue_control(HostedMessageKind kind, std::span<const std::byte> payload);
+    // queue_control, failing the protocol when the program stopped reading.
     void send_control(HostedMessageKind kind, std::span<const std::byte> payload);
     void send_configure(const ContentRequest& request);
     // Handles one message; throws std::runtime_error for a protocol breach.
@@ -554,11 +565,23 @@ void PosixHostedProgram::disconnect_input() noexcept {
     (*input_).connected.store(false, std::memory_order_release);
 }
 
-void PosixHostedProgram::send_control(HostedMessageKind kind, std::span<const std::byte> payload) {
+bool PosixHostedProgram::queue_control(HostedMessageKind kind, std::span<const std::byte> payload) {
     outgoing_.clear();
     append_hosted_message(outgoing_, kind, payload);
-    const std::scoped_lock lock((*input_).mutex);
-    static_cast<void>(enqueue_locked(*input_, outgoing_, false));
+    bool stalled = false;
+    {
+        const std::scoped_lock lock((*input_).mutex);
+        const bool queued = enqueue_locked(*input_, outgoing_, false);
+        stalled = !queued && (*input_).descriptor >= 0 &&
+                  (*input_).backlog.size() > hosted_input_backlog_hard_limit;
+    }
+    return stalled;
+}
+
+void PosixHostedProgram::send_control(HostedMessageKind kind, std::span<const std::byte> payload) {
+    // A program whose reader has stopped while it keeps sending frames
+    // would grow the backlog without end (A-gf-host-02-F8).
+    if (queue_control(kind, payload)) fail_protocol("its input channel stopped reading");
 }
 
 void PosixHostedProgram::send_configure(const ContentRequest& request) {
@@ -635,7 +658,8 @@ void PosixHostedProgram::handle(const HostedMessage& message, ContentFrameSink& 
 }
 
 void PosixHostedProgram::stop_process(int channel) {
-    send_control(HostedMessageKind::stop, {});
+    // Stopping anyway: a stalled reader only shortens the grace's use.
+    static_cast<void>(queue_control(HostedMessageKind::stop, {}));
     static_cast<void>(flush_backlog(*input_));
     // The grace: the program may exit on its own, which closes the channel.
     const std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::now() + options_.stop_grace;
