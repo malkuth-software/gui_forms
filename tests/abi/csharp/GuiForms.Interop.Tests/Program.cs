@@ -338,6 +338,9 @@ internal static unsafe class Program
                    "the native trace fits its capacity");
             expect(detail.trace.Length == 0 || native.Data["native_trace"] is string,
                    "the exception's data carries the trace as text");
+            // Filed directly, never parked: no frames were lost at a park.
+            expect(!detail.frames_lost_at_park && !native.Data.Contains("native_frames_lost_at_park"),
+                   "an unparked failure is not marked as having lost frames at a park");
         }
         expect(CallbackFailure.take_pending().Length == 0, "a caught native exception leaves no callback failure");
         expect(ShadowStack.depth() == 0u, "no frame is left open after the reflected failure");

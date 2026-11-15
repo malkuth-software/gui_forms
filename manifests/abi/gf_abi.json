@@ -1612,6 +1612,16 @@
       "type": "uint32"
     },
     {
+      "name": "GF_FAILURE_DETAIL_FLAGS_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
       "name": "GF_SCROLL_ORIENTATION_HORIZONTAL",
       "value": 0,
       "type": "uint32"
@@ -3397,6 +3407,10 @@
     },
     {
       "name": "gf_shadow_frame_flags",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_failure_detail_flags",
       "type": "uint32_t"
     },
     {
@@ -8116,7 +8130,7 @@
     {
       "name": "gf_failure_detail",
       "kind": "extensible",
-      "size": 536,
+      "size": 544,
       "align": 8,
       "fields": [
         {
@@ -8160,6 +8174,18 @@
           "type": "uint64_t[32]",
           "offset": 280,
           "size": 256
+        },
+        {
+          "name": "flags",
+          "type": "gf_failure_detail_flags",
+          "offset": 536,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 540,
+          "size": 4
         }
       ]
     },

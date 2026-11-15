@@ -50,6 +50,7 @@ global using gf_dialog_flags = uint;
 global using gf_dialog_outcome = uint;
 global using gf_shadow_frame_kind = uint;
 global using gf_shadow_frame_flags = uint;
+global using gf_failure_detail_flags = uint;
 global using gf_scroll_orientation = uint;
 global using gf_text_ink_role = uint;
 global using gf_text_underline = uint;

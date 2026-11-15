@@ -682,7 +682,7 @@ public static unsafe class Layout
         {
             gf_failure_detail value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_failure_detail size", sizeof(gf_failure_detail), 536);
+            failures += expect(output, "gf_failure_detail size", sizeof(gf_failure_detail), 544);
             failures += expect(output, "gf_failure_detail.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_failure_detail.status offset", (long)((byte*)&value.status - start), 4);
             failures += expect(output, "gf_failure_detail.sequence offset", (long)((byte*)&value.sequence - start), 8);
@@ -690,6 +690,8 @@ public static unsafe class Layout
             failures += expect(output, "gf_failure_detail.trace_count offset", (long)((byte*)&value.trace_count - start), 20);
             failures += expect(output, "gf_failure_detail.type offset", (long)((byte*)value.type - start), 24);
             failures += expect(output, "gf_failure_detail.trace offset", (long)((byte*)value.trace - start), 280);
+            failures += expect(output, "gf_failure_detail.flags offset", (long)((byte*)&value.flags - start), 536);
+            failures += expect(output, "gf_failure_detail.reserved offset", (long)((byte*)&value.reserved - start), 540);
         }
         {
             gf_diagnostics_table value = default;

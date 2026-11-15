@@ -241,11 +241,16 @@ gf_status GF_CALL diagnostics_raise_native_exception(gf_utf8_view message) noexc
     return call_slot(raise_native_exception_slot, raise_native_exception_body, text);
 }
 
+// gf_failure_detail's first 1.5 size, before flags and reserved (provisional,
+// gf_abi.h): a caller compiled then is still served, with the bytes that fit.
+constexpr std::uint32_t failure_detail_size_first_1_5 = 536U;
+static_assert(offsetof(gf_failure_detail, flags) == failure_detail_size_first_1_5);
+
 // Copies the thread's failure detail out. Opens no frame of its own.
 gf_status GF_CALL diagnostics_failure_detail(gf_failure_detail* output) noexcept {
-    const gf_status checked = check_record(output, failure_detail_slot);
-    if (checked != GF_STATUS_OK) {
-        return checked;
+    if (output == nullptr || (*output).struct_size < failure_detail_size_first_1_5) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, failure_detail_slot,
+                    "the output record is null or smaller than its first 1.5 size");
     }
     // The thread's own storage, read on its thread.
     const detail::FailureSnapshot& source = detail::thread_failure_snapshot();
@@ -253,6 +258,7 @@ gf_status GF_CALL diagnostics_failure_detail(gf_failure_detail* output) noexcept
     complete.struct_size = sizeof(gf_failure_detail);
     complete.status = source.status;
     complete.sequence = source.status == 0 ? 0U : source.sequence;
+    complete.flags = GF_FAILURE_DETAIL_FLAGS_NONE;
     if (source.status != 0) {
         complete.type_size = source.type_size;
         complete.trace_count = source.trace_count;
@@ -260,8 +266,18 @@ gf_status GF_CALL diagnostics_failure_detail(gf_failure_detail* output) noexcept
         for (std::uint32_t index = 0U; index < source.trace_count; ++index) {
             complete.trace[index] = source.trace[index];
         }
+        if (source.frames_lost_at_park) {
+            complete.flags = complete.flags | GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK;
+        }
     }
-    write_record(complete, output);
+    // The fields after struct_size that the caller's record holds; struct_size
+    // and any later bytes stay as the caller set them (abi_records.hpp).
+    const std::size_t skipped = sizeof(std::uint32_t);
+    const std::size_t known = sizeof(gf_failure_detail);
+    const std::size_t written = (*output).struct_size < known ? (*output).struct_size : known;
+    unsigned char* destination = reinterpret_cast<unsigned char*>(output);
+    const unsigned char* bytes = reinterpret_cast<const unsigned char*>(&complete);
+    std::memcpy(destination + skipped, bytes + skipped, written - skipped);
     return GF_STATUS_OK;
 }
 

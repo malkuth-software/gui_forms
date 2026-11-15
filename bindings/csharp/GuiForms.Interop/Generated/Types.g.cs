@@ -724,7 +724,7 @@ public unsafe struct gf_failure_snapshot
     public fixed byte site[64];
 }
 
-/// <summary>gf_failure_detail (extensible, 536 bytes).</summary>
+/// <summary>gf_failure_detail (extensible, 544 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_failure_detail
 {
@@ -735,6 +735,8 @@ public unsafe struct gf_failure_detail
     public uint trace_count;
     public fixed byte type[256];
     public fixed ulong trace[32];
+    public gf_failure_detail_flags flags;
+    public uint reserved;
 }
 
 /// <summary>gf_diagnostics_table (table, 80 bytes).</summary>

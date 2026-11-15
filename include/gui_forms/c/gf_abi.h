@@ -2235,9 +2235,25 @@ typedef struct gf_failure_snapshot {
  * process's module map). A release build of the library records neither:
  * type_size and trace_count are zero. status and sequence are the
  * snapshot's, so a binding can tell that the detail is its failure's.
+ *
+ * flags (provisional: added to 1.5's record after its first form; it stays
+ * 1.5's if 1.5 is unreleased when it lands, else it becomes 1.6's) says
+ * more of the failure in every build. GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK:
+ * the failure was parked by the library and rethrown later, and the park
+ * could not keep its own copy of the frames (its allocation was refused,
+ * out of memory included); the snapshot's frames are then what the thread
+ * still held of the record, possibly none, not necessarily the whole
+ * record. The library accepts a record of 1.5's first size (536 bytes,
+ * without flags and reserved) and writes only the bytes that fit; a library
+ * from before flags leaves them as the caller set them, so set them to
+ * zero.
  */
 #define GF_FAILURE_TYPE_CAPACITY 256u
 #define GF_FAILURE_TRACE_CAPACITY 32u
+
+typedef uint32_t gf_failure_detail_flags;
+#define GF_FAILURE_DETAIL_FLAGS_NONE 0u
+#define GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK 1u
 
 /* The calling thread's last failure detail. An output record, as
  * gf_abi_version_info. */
@@ -2251,6 +2267,9 @@ typedef struct gf_failure_detail {
     uint8_t type[256];
     /* GF_FAILURE_TRACE_CAPACITY addresses. */
     uint64_t trace[32];
+    /* Provisional (see above). */
+    gf_failure_detail_flags flags;
+    uint32_t reserved;
 } gf_failure_detail;
 
 typedef struct gf_diagnostics_table {

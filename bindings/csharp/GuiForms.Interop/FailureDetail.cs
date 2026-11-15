@@ -23,12 +23,20 @@ public sealed class FailureDetail
     public string exception_type { get; }
     /// <summary>Addresses in the library's process, innermost first.</summary>
     public ulong[] trace { get; }
+    /// <summary>
+    /// The library parked the failure and rethrew it later, and the park
+    /// could not keep its own copy of the frames (its allocation was refused,
+    /// out of memory included): the frames are what the thread still held,
+    /// possibly none. Provisional, as gf_failure_detail's flags.
+    /// </summary>
+    public bool frames_lost_at_park { get; }
 
-    private FailureDetail(ulong sequence, string exception_type, ulong[] trace)
+    private FailureDetail(ulong sequence, string exception_type, ulong[] trace, bool frames_lost_at_park)
     {
         this.sequence = sequence;
         this.exception_type = exception_type;
         this.trace = trace;
+        this.frames_lost_at_park = frames_lost_at_park;
     }
 
     // The diagnostics table's size once it has failure_detail (1.5).
@@ -36,7 +44,8 @@ public sealed class FailureDetail
 
     /// <summary>
     /// The calling thread's failure detail when it is the detail of a failure
-    /// refused with status and holds a type or a trace; otherwise null.
+    /// refused with status and holds a type, a trace or a flag; otherwise
+    /// null. An older library leaves flags zero (the record starts zeroed).
     /// </summary>
     internal static unsafe FailureDetail? read(gf_status status)
     {
@@ -48,7 +57,12 @@ public sealed class FailureDetail
         gf_failure_detail detail = default;
         detail.struct_size = (uint)sizeof(gf_failure_detail);
         if (diagnostics.failure_detail(&detail) != Constants.GF_STATUS_OK || detail.status != status ||
-            detail.sequence == 0ul || (detail.type_size == 0u && detail.trace_count == 0u))
+            detail.sequence == 0ul)
+        {
+            return null;
+        }
+        bool frames_lost_at_park = (detail.flags & Constants.GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK) != 0u;
+        if (detail.type_size == 0u && detail.trace_count == 0u && !frames_lost_at_park)
         {
             return null;
         }
@@ -60,7 +74,7 @@ public sealed class FailureDetail
         {
             trace[index] = detail.trace[index];
         }
-        return new FailureDetail(detail.sequence, type, trace);
+        return new FailureDetail(detail.sequence, type, trace, frames_lost_at_park);
     }
 
     /// <summary>
@@ -82,6 +96,10 @@ public sealed class FailureDetail
         if (detail.trace.Length != 0)
         {
             refused.Data["native_trace"] = describe(detail.trace);
+        }
+        if (detail.frames_lost_at_park)
+        {
+            refused.Data["native_frames_lost_at_park"] = true;
         }
     }
 

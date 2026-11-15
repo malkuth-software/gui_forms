@@ -287,6 +287,17 @@ void test_parked_failure_with_copy_refused() {
             "the outer gate files the rethrown failure");
     require(rethrown.frames_lost_at_park && !holds_original_throw(rethrown),
             "the outer filing says its frames were lost at the park");
+    // C and C# callers read it through gf_failure_detail's flags.
+    gf_diagnostics_table diagnostics{};
+    require(gf_abi_get_table(GF_TABLE_DIAGNOSTICS, GF_ABI_MAJOR, GF_ABI_MINOR, &diagnostics, sizeof(diagnostics)) ==
+                GF_STATUS_OK,
+            "the diagnostics table loads");
+    gf_failure_detail lost_detail{};
+    lost_detail.struct_size = sizeof(gf_failure_detail);
+    require(diagnostics.failure_detail(&lost_detail) == GF_STATUS_OK &&
+                lost_detail.sequence == rethrown.sequence &&
+                (lost_detail.flags & GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK) != 0U,
+            "the C ABI failure detail says the frames were lost at the park");
     require(!parked.frames_lost && parked.exception == nullptr, "the rethrow holds nothing afterwards");
     require(detail::failure_statistics().parked_frames_dropped == dropped_before + 1U,
             "only the park counts the loss");
@@ -295,6 +306,11 @@ void test_parked_failure_with_copy_refused() {
     // failure, and the next park, are whole.
     require(abi1::call_slot(intervening_slot, intervening_body) == GF_STATUS_INTERNAL, "a later failure is filed");
     require(!detail::thread_failure_snapshot().frames_lost_at_park, "a spent mark is attached to no other failure");
+    gf_failure_detail later_detail{};
+    later_detail.struct_size = sizeof(gf_failure_detail);
+    require(diagnostics.failure_detail(&later_detail) == GF_STATUS_OK &&
+                (later_detail.flags & GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK) == 0U,
+            "the C ABI detail of a later failure has no flag");
     abi1::ParkedFailure whole;
     require(abi1::call_slot(parking_slot, parking_body, whole) == GF_STATUS_INTERNAL && whole.frames != nullptr &&
                 !whole.frames_lost,

@@ -470,7 +470,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_failure_snapshot, depth) == 28, "gf_failure_snapsho
 GF_LAYOUT_ASSERT(offsetof(gf_failure_snapshot, site_size) == 32, "gf_failure_snapshot.site_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_failure_snapshot, message_size) == 36, "gf_failure_snapshot.message_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_failure_snapshot, site) == 40, "gf_failure_snapshot.site offset");
-GF_LAYOUT_ASSERT(sizeof(gf_failure_detail) == 536, "gf_failure_detail size");
+GF_LAYOUT_ASSERT(sizeof(gf_failure_detail) == 544, "gf_failure_detail size");
 GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, struct_size) == 0, "gf_failure_detail.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, status) == 4, "gf_failure_detail.status offset");
 GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, sequence) == 8, "gf_failure_detail.sequence offset");
@@ -478,6 +478,8 @@ GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, type_size) == 16, "gf_failure_detai
 GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, trace_count) == 20, "gf_failure_detail.trace_count offset");
 GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, type) == 24, "gf_failure_detail.type offset");
 GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, trace) == 280, "gf_failure_detail.trace offset");
+GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, flags) == 536, "gf_failure_detail.flags offset");
+GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, reserved) == 540, "gf_failure_detail.reserved offset");
 GF_LAYOUT_ASSERT(sizeof(gf_diagnostics_table) == 80, "gf_diagnostics_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, struct_size) == 0, "gf_diagnostics_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, abi_minor) == 4, "gf_diagnostics_table.abi_minor offset");

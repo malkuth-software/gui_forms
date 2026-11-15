@@ -344,6 +344,8 @@ static void failure_detail(gf_kit* kit) {
     gf_kit_check(kit, detail.status == GF_STATUS_OK && detail.sequence == 0u && detail.type_size == 0u &&
                           detail.trace_count == 0u,
                  "a cleared thread has no failure detail");
+    gf_kit_check(kit, detail.flags == GF_FAILURE_DETAIL_FLAGS_NONE && detail.reserved == 0u,
+                 "a cleared thread's detail has no flags");
 
     gf_kit_status(kit, (*kit).diagnostics.raise_native_exception(gf_kit_text("kit detail failure")),
                   GF_STATUS_INTERNAL, "a native exception for the detail");
@@ -359,6 +361,28 @@ static void failure_detail(gf_kit* kit) {
     gf_kit_check(kit, detail.type_size == 0u || text_contains(detail.type, detail.type_size, "runtime_error"),
                  "a kept type names the exception's type");
     gf_kit_check(kit, detail.trace_count == 0u || detail.trace[0] != 0u, "a kept trace holds addresses");
+    /* A failure filed directly, never parked, lost no frames at a park. */
+    gf_kit_check(kit, (detail.flags & GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK) == 0u && detail.reserved == 0u,
+                 "an unparked failure is not marked as having lost frames at a park");
+
+    /* flags and reserved are provisional additions to 1.5's record: a caller
+     * of the first 1.5 size (536 bytes) is served the bytes that fit, and
+     * the bytes after them stay as it set them. */
+    gf_failure_detail first;
+    memset(&first, 0xA5, sizeof(first));
+    first.struct_size = 536u;
+    gf_kit_status(kit, (*kit).diagnostics.failure_detail(&first), GF_STATUS_OK,
+                  "a record of the first 1.5 size is accepted");
+    gf_kit_check(kit, first.struct_size == 536u && first.status == GF_STATUS_INTERNAL &&
+                          first.sequence == read.snapshot.sequence,
+                 "the first 1.5 size receives the detail");
+    gf_kit_check(kit, first.flags == 0xA5A5A5A5u && first.reserved == 0xA5A5A5A5u,
+                 "the bytes after the first 1.5 size are not written");
+    gf_failure_detail small;
+    memset(&small, 0, sizeof(small));
+    small.struct_size = 528u;
+    gf_kit_status(kit, (*kit).diagnostics.failure_detail(&small), GF_STATUS_INVALID_ARGUMENT,
+                  "a record smaller than the first 1.5 size is refused");
     gf_kit_status(kit, (*kit).diagnostics.clear_failure_snapshot(), GF_STATUS_OK, "clear after the detail");
 }
 

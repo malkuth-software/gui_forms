@@ -3347,6 +3347,10 @@ Types
 
    .. cpp:member:: uint64_t trace[32]
 
+   .. cpp:member:: gf_failure_detail_flags flags
+
+   .. cpp:member:: uint32_t reserved
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_failure_snapshot
