@@ -273,6 +273,8 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     sidebar.auto_scroll_min_size = Size{};
     std::shared_ptr<ListView> navigation = make_control<ListView>(StableId("gallery.sidebar.pages"));
     (*navigation).accessible_name = "Pages";
+    // Shell chrome: the control typography role (gallery.theme.css).
+    static_cast<void>((*navigation).add_class("navigation-list"));
     (*navigation).multi_select = false;
     (*navigation).full_row_select = true;
     (*navigation).activation = ListViewActivation::one_click;

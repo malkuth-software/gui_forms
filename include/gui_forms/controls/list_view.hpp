@@ -743,6 +743,10 @@ private:
     std::optional<PendingLabelClick> label_click_{};
     FrameRequestToken label_click_timer_{};
     std::optional<std::size_t> pressed_column_{};
+    // A primary press this view took (an item, a check box or the empty
+    // viewport): its release is this view's too, so the window sees the
+    // click handled whole.
+    bool primary_press_taken_{};
     std::optional<std::size_t> resizing_column_{};
     double resize_start_x_{};
     double resize_start_width_{};

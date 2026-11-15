@@ -480,8 +480,11 @@ SemanticDescriptor ScrollBar::semantic_descriptor() const {
     // The arrow keys move by the small change, the page keys by the large.
     descriptor.small_step = small_change.read();
     descriptor.large_step = large_change.read();
-    descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
-                          SemanticAction::decrement, SemanticAction::set_value};
+    descriptor.actions = {SemanticAction::increment, SemanticAction::decrement, SemanticAction::set_value};
+    // A bar a composite owns without focus (ListView's, a scroll viewer's)
+    // offers no focus action: the window refuses to focus it, so a client's
+    // default action would fail.
+    if (focusable.read()) descriptor.actions.insert(descriptor.actions.begin(), SemanticAction::focus);
     descriptor.exposed = true;
     return descriptor;
 }

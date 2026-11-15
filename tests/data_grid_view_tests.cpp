@@ -2180,8 +2180,10 @@ void sparkline_column() {
     trend.header_text = "Trend";
     trend.kind = DataGridViewColumnKind::sparkline;
     (*grid).set_columns({name, trend});
-    const std::vector<BindingValue> samples{BindingValue{1.0}, BindingValue{std::int64_t{3}}, BindingValue{std::string("x")},
-                                            BindingValue{2.5}};
+    // A number collection holds numbers only (make_property_collection
+    // converts each item to the declared kind and refuses text); the
+    // integer is converted to a number.
+    const std::vector<BindingValue> samples{BindingValue{1.0}, BindingValue{std::int64_t{3}}, BindingValue{2.5}};
     const PropertyCollectionValue series = make_property_collection("number", BindingValueKind::number, samples);
     (*grid).rows.append({.stable_id = {"alpha"}, .cells = {BindingValue{std::string("Alpha")}, BindingValue{series}}});
     (*grid).rows.append({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}, BindingValue{}}});

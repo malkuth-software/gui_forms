@@ -100,8 +100,8 @@ public:
     Shell(gf::ContentSurface& surface, gf::Label& status, gf::Button& terminate, gf::Button& count)
         : surface_(surface), status_(status), terminate_(terminate) {
         gf::on(surface.status_changed(), *this, &Shell::status_changed);
-        gf::on(terminate.click(), *this, &Shell::terminate_clicked);
-        gf::on(count.click(), *this, &Shell::count_clicked);
+        gf::on(terminate.clicked(), *this, &Shell::terminate_clicked);
+        gf::on(count.clicked(), *this, &Shell::count_clicked);
         terminate_.enabled = false;
     }
 

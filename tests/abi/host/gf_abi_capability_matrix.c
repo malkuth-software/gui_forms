@@ -60,6 +60,7 @@ static const capability_name capability_names[] = {
     {"transient_surfaces", GF_HOST_CAPABILITY_TRANSIENT_SURFACES},
     {"window_corners", GF_HOST_CAPABILITY_WINDOW_CORNERS},
     {"window_state_reports", GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS},
+    {"hosted_content", GF_HOST_CAPABILITY_HOSTED_CONTENT},
 };
 
 enum { capability_name_count = (int)(sizeof(capability_names) / sizeof(capability_names[0])) };

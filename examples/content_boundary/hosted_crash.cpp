@@ -59,8 +59,8 @@ public:
           std::filesystem::path executable)
         : surface_(surface), status_(status), restart_(restart), executable_(std::move(executable)) {
         gf::on(surface.status_changed(), *this, &Shell::status_changed);
-        gf::on(restart.click(), *this, &Shell::restart_clicked);
-        gf::on(count.click(), *this, &Shell::count_clicked);
+        gf::on(restart.clicked(), *this, &Shell::restart_clicked);
+        gf::on(count.clicked(), *this, &Shell::count_clicked);
         restart_.enabled = false;
     }
 

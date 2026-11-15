@@ -2750,6 +2750,9 @@ bool Ribbon::show_plane_popup() {
     placement.horizontal_alignment = OverlayHorizontalAlignment::near;
     placement.vertical_preference = OverlayVerticalPreference::below;
     placement.gap = 0.0;
+    // Flush with the ribbon's edges: the default 4-unit viewport margin
+    // would inset a full-width ribbon's popup from the window's sides.
+    placement.viewport_margin = 0.0;
     sync_overlay_themes();
     (*plane_layer_).set_anchor(self);
     (*plane_layer_).placement = placement;

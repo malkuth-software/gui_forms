@@ -20,8 +20,16 @@ log="$(dirname "$bundle")/handoff_open_files/log.txt"
 rm -f "$log"
 executable="$bundle/Contents/MacOS/"
 pkill -f "$executable" 2>/dev/null || true
+# A bundle rebuilt in place is registered with LaunchServices again on its
+# first launch; register it first, so the launch's open-documents event is
+# not spent on that (cp32 gate: a.txt reached neither the queue nor an
+# event, while the later requests did).
+lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+if [ -x "$lsregister" ]; then "$lsregister" -f "$bundle" || true; fi
 
-open -a "$bundle" "$inputs/a.txt"
+if ! open -a "$bundle" "$inputs/a.txt"; then
+    echo "FAIL open -a refused the launch request"
+fi
 sleep 4
 open -a "$bundle" "$inputs/b.txt" "$inputs/c.txt"
 sleep 2

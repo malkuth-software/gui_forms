@@ -2373,6 +2373,7 @@ void ListView::handle_pointer(PointerEvent& event) {
             if (hit.zone == HitZone::item && selected_[hit.index] == 0U) choose(hit.index, Modifier::none, false);
             return;
         }
+        primary_press_taken_ = true;
         if (hit.zone == HitZone::divider) {
             resizing_column_ = hit.index;
             resize_start_x_ = local.x;
@@ -2421,6 +2422,13 @@ void ListView::handle_pointer(PointerEvent& event) {
         event.handled = true;
         // A click is a press and release on the same header.
         if (hit.zone == HitZone::header && hit.index == pressed) request_column_click(pressed);
+        return;
+    }
+    if (event.action == PointerAction::up && event.button == PointerButton::primary && primary_press_taken_) {
+        // The release of a press on an item or the viewport: nothing more
+        // happens on it (activation is on the press), but it is handled.
+        primary_press_taken_ = false;
+        event.handled = true;
     }
 }
 
@@ -2670,6 +2678,7 @@ void ListView::on_focus_changed(bool focused) {
             pressed_column_.reset();
             if (has_pointer_capture()) set_pointer_capture(false);
         }
+        primary_press_taken_ = false;
     }
     if (focused_ && !focused_index_ && item_count() != 0U) {
         std::size_t first = 0U;

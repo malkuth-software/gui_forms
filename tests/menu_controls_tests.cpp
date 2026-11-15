@@ -847,14 +847,17 @@ void test_menu_first_letter_jumps() {
     trace.clear();
     menu.show(owner, {20.0, 50.0});
     TextInputEvent typed_o{"o"};
+    // The menu opens with its first row, Open, focused; as with a shared
+    // mnemonic (and a native menu), the search starts after the focused
+    // row, so the first O goes on to Options and the next wraps to Open.
     require(window.dispatch_text(typed_o), "a shared first letter is handled");
     Control::Ptr focused = window.focused_control();
-    require(focused && (*focused).semantic_descriptor().name == "Open" && menu.is_open() && trace.empty(),
-            "a shared first letter moves the focus to the first match without activating");
+    require(focused && (*focused).semantic_descriptor().name == "Options" && menu.is_open() && trace.empty(),
+            "a shared first letter moves the focus to the next match without activating");
     require(window.dispatch_text(typed_o), "the shared first letter again");
     focused = window.focused_control();
-    require(focused && (*focused).semantic_descriptor().name == "Options" && trace.empty(),
-            "the shared first letter moves to the following match");
+    require(focused && (*focused).semantic_descriptor().name == "Open" && trace.empty(),
+            "the shared first letter wraps round to the first match");
 
     TextInputEvent typed_p{"p"};
     require(!window.dispatch_text(typed_p) && menu.is_open() && trace.empty(),

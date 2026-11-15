@@ -103,8 +103,8 @@ enum class HostCapability : std::uint64_t {
     // and input through a channel; its crash leaves the application running
     // (owner decisions 2026-11-13, "The two topologies"). macOS and Linux;
     // the Windows host does not report it until its implementation exists.
-    // Not yet in the C ABI's capability set. Additive flag; no protocol
-    // version change.
+    // In the C ABI as GF_HOST_CAPABILITY_HOSTED_CONTENT (since 1.4).
+    // Additive flag; no protocol version change.
     hosted_content = 1ULL << 37U,
 };
 

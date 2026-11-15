@@ -947,7 +947,10 @@ Dump check_text_ranges(const std::string& path, AXUIElementRef application, Dump
 // The Gallery: every page through its navigation row.
 
 void collect_page_rows(const SemanticNode& node, std::vector<std::string>& rows) {
-    if (node.stable_id.rfind("gallery.page.", 0) == 0) rows.push_back(node.stable_id);
+    // The rows only: a details row's cells (gallery.page.<page>.cell.<column>)
+    // carry no action of their own; the row takes them.
+    const bool row = node.role != SemanticRole::cell;
+    if (row && node.stable_id.rfind("gallery.page.", 0) == 0) rows.push_back(node.stable_id);
     for (const SemanticNode& child : node.children) collect_page_rows(child, rows);
 }
 
