@@ -63,6 +63,21 @@ gd_result fail(gd_result result, std::string_view message) noexcept {
     return result;
 }
 
+// Records the failure with a message of two parts, joined in place in the
+// last-error buffer: no allocation, so an error path called outside
+// translate cannot throw std::bad_alloc through a C entry
+// (A-gf-abi-01-F13). Each part is cut on a whole UTF-8 sequence.
+gd_result fail_joined(gd_result result, std::string_view first, std::string_view second) noexcept {
+    const std::size_t first_kept = utf8_prefix_length(first, last_error_capacity);
+    const std::size_t room = last_error_capacity - first_kept;
+    const std::size_t second_kept = utf8_prefix_length(second, room);
+    last_error.code = result;
+    if (first_kept != 0U) std::memcpy(last_error.message.data(), first.data(), first_kept);
+    if (second_kept != 0U) std::memcpy(last_error.message.data() + first_kept, second.data(), second_kept);
+    last_error.message_size = first_kept + second_kept;
+    return result;
+}
+
 // A count of caller elements checked before any element is read: below
 // minimum, or nonzero with no array, it is an argument fault; above maximum
 // it is over its limit (seal decision 4: every over-limit count gives
@@ -70,7 +85,7 @@ gd_result fail(gd_result result, std::string_view message) noexcept {
 gd_result check_count(const void* elements, std::uint64_t count, std::uint64_t minimum,
                       std::uint64_t maximum, const char* refusal) {
     if (count > maximum) {
-        return fail(GD_ERROR_LIMIT_EXCEEDED, std::string(refusal) + " (the count is over its limit)");
+        return fail_joined(GD_ERROR_LIMIT_EXCEEDED, refusal, " (the count is over its limit)");
     }
     if (count < minimum || (count != 0U && elements == nullptr)) {
         return fail(GD_ERROR_INVALID_ARGUMENT, refusal);
@@ -579,14 +594,12 @@ private:
         if (slot.generation == 0U) ++slot.generation;
     }
 
-    static gd_result stale(std::string_view operation) {
-        return fail(GD_ERROR_STALE_HANDLE,
-                    std::string(operation) + " received a stale drawing handle");
+    static gd_result stale(std::string_view operation) noexcept {
+        return fail_joined(GD_ERROR_STALE_HANDLE, operation, " received a stale drawing handle");
     }
 
-    static gd_result wrong_thread(std::string_view operation) {
-        return fail(GD_ERROR_WRONG_THREAD,
-                    std::string(operation) + " must run on the drawing owner thread");
+    static gd_result wrong_thread(std::string_view operation) noexcept {
+        return fail_joined(GD_ERROR_WRONG_THREAD, operation, " must run on the drawing owner thread");
     }
 
     std::mutex mutex_;
