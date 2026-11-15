@@ -331,6 +331,9 @@ struct PlainOkClicked final {
     }
 };
 
+// Ends a stuck plain-window round with the failure reported (below).
+void finish_if_stuck(void* context);
+
 struct PlainReady final {
     WakeProbe* probe{};
     void operator()(Window& window, ApplicationWindowHandle handle) const {
@@ -350,7 +353,6 @@ struct PlainReady final {
 };
 
 void finish_run(void* context);
-void finish_if_stuck(void* context);
 
 struct PlainClosed final {
     WakeProbe* probe{};
