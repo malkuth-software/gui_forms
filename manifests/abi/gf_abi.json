@@ -6691,9 +6691,95 @@
       ]
     },
     {
+      "name": "gf_schema_composite",
+      "kind": "extensible",
+      "size": 128,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "composite",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "id",
+          "type": "gf_utf8_view",
+          "offset": 16,
+          "size": 16
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 32,
+          "size": 16
+        },
+        {
+          "name": "version",
+          "type": "gf_utf8_view",
+          "offset": 48,
+          "size": 16
+        },
+        {
+          "name": "slot",
+          "type": "gf_utf8_view",
+          "offset": 64,
+          "size": 16
+        },
+        {
+          "name": "part_count",
+          "type": "uint64_t",
+          "offset": 80,
+          "size": 8
+        },
+        {
+          "name": "state_count",
+          "type": "uint64_t",
+          "offset": 88,
+          "size": 8
+        },
+        {
+          "name": "custom_state_count",
+          "type": "uint64_t",
+          "offset": 96,
+          "size": 8
+        },
+        {
+          "name": "property_count",
+          "type": "uint64_t",
+          "offset": 104,
+          "size": 8
+        },
+        {
+          "name": "event_count",
+          "type": "uint64_t",
+          "offset": 112,
+          "size": 8
+        },
+        {
+          "name": "command_count",
+          "type": "uint64_t",
+          "offset": 120,
+          "size": 8
+        }
+      ]
+    },
+    {
       "name": "gf_schema_table",
       "kind": "table",
-      "size": 184,
+      "size": 256,
       "align": 8,
       "fields": [
         {
@@ -7219,6 +7305,218 @@
             ]
           },
           "since": "1.1"
+        },
+        {
+          "name": "composite_count",
+          "type": "function",
+          "offset": 184,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "composite_at",
+          "type": "function",
+          "offset": 192,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_composite*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "composite_part_at",
+          "type": "function",
+          "offset": 200,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "composite",
+                "type": "uint64_t"
+              },
+              {
+                "name": "part",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_part*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "composite_state_at",
+          "type": "function",
+          "offset": 208,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "composite",
+                "type": "uint64_t"
+              },
+              {
+                "name": "part",
+                "type": "uint64_t"
+              },
+              {
+                "name": "state",
+                "type": "uint64_t"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "composite_custom_state_at",
+          "type": "function",
+          "offset": 216,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "composite",
+                "type": "uint64_t"
+              },
+              {
+                "name": "state",
+                "type": "uint64_t"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "composite_property_at",
+          "type": "function",
+          "offset": 224,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "composite",
+                "type": "uint64_t"
+              },
+              {
+                "name": "property",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_property*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "composite_choice_at",
+          "type": "function",
+          "offset": 232,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "composite",
+                "type": "uint64_t"
+              },
+              {
+                "name": "property",
+                "type": "uint64_t"
+              },
+              {
+                "name": "choice",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_choice*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "composite_event_at",
+          "type": "function",
+          "offset": 240,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "composite",
+                "type": "uint64_t"
+              },
+              {
+                "name": "event",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_interaction*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "composite_command_at",
+          "type": "function",
+          "offset": 248,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "composite",
+                "type": "uint64_t"
+              },
+              {
+                "name": "command",
+                "type": "uint64_t"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          },
+          "since": "1.5"
         }
       ]
     },

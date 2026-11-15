@@ -6,9 +6,11 @@
 #include "../schema/abi_schema.hpp"
 
 #include "../../../core/control_language/composite_definition/composite_definition.hpp"
+#include "../../../core/control_language/control_model/control_model.hpp"
 
 #include "gui_forms/controls/button_base.hpp"
 
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <utility>
@@ -16,14 +18,46 @@
 
 namespace gui_forms::abi1 {
 
-CompositeDefinitionHandle::CompositeDefinitionHandle(std::shared_ptr<const CompositeDefinition> definition) noexcept
-    : definition_(std::move(definition)) {}
+CompositeDefinitionHandle::CompositeDefinitionHandle(std::shared_ptr<const CompositeDefinition> definition,
+                                                     const std::uint64_t listing) noexcept
+    : definition_(std::move(definition)), listing_(listing) {}
+
+CompositeDefinitionHandle::~CompositeDefinitionHandle() {
+    forget_loaded_composite(listing_);
+}
 
 void CompositeDefinitionHandle::on_dispose() noexcept {
+    forget_loaded_composite(listing_);
+    listing_ = 0U;
     definition_.reset();
 }
 
 namespace {
+
+// The listed loads (UI thread). Never destroyed, like the handle registry
+// that holds the handles: a handle the registry still holds at exit is
+// never destroyed, and none forgets its entry after this storage is gone.
+struct LoadedComposites final {
+    // In load order; each entry owned here, so a reference to one stays
+    // valid while the vector reallocates.
+    std::vector<std::unique_ptr<LoadedComposite>> listed{};
+    // The last identity given; the next is one more.
+    std::uint64_t last_identity = 0U;
+};
+
+LoadedComposites& loaded_composites() noexcept {
+    static LoadedComposites* const instance = new LoadedComposites();
+    return *instance;
+}
+
+// Whether a loaded entry has an identity (find_if's predicate).
+struct HasIdentity final {
+    std::uint64_t identity = 0U;
+
+    bool operator()(const std::unique_ptr<LoadedComposite>& entry) const noexcept {
+        return (*entry).identity == identity;
+    }
+};
 
 // The stable ID of each prototype a child type is checked on.
 constexpr std::string_view prototype_stable_id = "gf-abi.composite.prototype";
@@ -75,6 +109,74 @@ struct CompositeEventForwarder final {
 };
 
 } // namespace
+
+std::uint64_t record_loaded_composite(const std::shared_ptr<const CompositeDefinition>& definition) {
+    LoadedComposites& loads = loaded_composites();
+    const CompositeDefinition& held = *definition;
+    std::unique_ptr<LoadedComposite> entry = std::make_unique<LoadedComposite>();
+    (*entry).definition = definition;
+    (*entry).version = std::to_string(held.version_major);
+    (*entry).version += '.';
+    (*entry).version += std::to_string(held.version_minor);
+    (*entry).properties.reserve(held.properties.size());
+    for (const control_language::CompositePropertyDefinition& property : held.properties) {
+        if (property.presentational || property.command) continue;
+        (*entry).properties.push_back(schema_property_of(property.descriptor));
+    }
+    (*entry).event_payloads.reserve(held.events.size());
+    for (const control_language::CompositeEventDefinition& event : held.events) {
+        std::string payload;
+        if (event.payload) {
+            // The C++ word (control_payload_type_name), mapped to the ABI's
+            // words as every interaction's payload is (K2).
+            const std::string_view word = control_language::control_payload_type_name(*event.payload);
+            payload = std::string(interaction_payload_fields(word));
+        }
+        (*entry).event_payloads.push_back(std::move(payload));
+    }
+    loads.listed.reserve(loads.listed.size() + 1U);
+    // Nothing below throws: the identity is given only once the entry is in.
+    const std::uint64_t identity = loads.last_identity + 1U;
+    (*entry).identity = identity;
+    loads.listed.push_back(std::move(entry));
+    loads.last_identity = identity;
+    return identity;
+}
+
+void forget_loaded_composite(const std::uint64_t identity) noexcept {
+    if (identity == 0U) return;
+    LoadedComposites& loads = loaded_composites();
+    const HasIdentity matches{identity};
+    const std::vector<std::unique_ptr<LoadedComposite>>::iterator found =
+        std::find_if(loads.listed.begin(), loads.listed.end(), matches);
+    if (found == loads.listed.end()) return;
+    loads.listed.erase(found);
+}
+
+std::size_t loaded_composite_count() noexcept {
+    const std::size_t count = loaded_composites().listed.size();
+    return count;
+}
+
+const LoadedComposite& loaded_composite_at(const std::size_t index) noexcept {
+    const LoadedComposite& entry = *loaded_composites().listed[index];
+    return entry;
+}
+
+LoadedCompositeLookup find_loaded_composite(const std::uint64_t identity, const LoadedComposite*& found) noexcept {
+    LoadedComposites& loads = loaded_composites();
+    if (identity == 0U || identity > loads.last_identity) {
+        return LoadedCompositeLookup::unknown;
+    }
+    const HasIdentity matches{identity};
+    const std::vector<std::unique_ptr<LoadedComposite>>::const_iterator listed =
+        std::find_if(loads.listed.cbegin(), loads.listed.cend(), matches);
+    if (listed == loads.listed.cend()) {
+        return LoadedCompositeLookup::released;
+    }
+    found = (*listed).get();
+    return LoadedCompositeLookup::listed;
+}
 
 void read_composite_child_types(const std::vector<std::string_view>& names, CompositeChildTypesRead& read) {
     read.types.clear();

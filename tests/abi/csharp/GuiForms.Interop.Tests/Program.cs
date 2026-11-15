@@ -413,7 +413,9 @@ internal static unsafe class Program
 
     // Composite controls (C ABI 1.5): a refused document throws with its
     // diagnostics, a loaded one makes a control whose command runs and
-    // whose child is found; the definition goes before the control.
+    // whose child is found, and the schema table lists it while it is held
+    // and refuses its identity once released; the definition goes before
+    // the control.
     private static void composites()
     {
         bool refused = false;
@@ -427,11 +429,47 @@ internal static unsafe class Program
         }
         expect(refused, "a document naming a type not listed is refused");
         ObjectHandle card;
+        ulong listing = 0;
         using (CompositeDefinition definition =
                    CompositeDefinition.load("csharp-card.control", card_document, "flex_panel", "label"))
         {
             card = definition.create("csharp.composite.card");
+            // The schema table lists the held definition (provisional 1.5).
+            CompositeSchemaEntry? listed = null;
+            foreach (CompositeSchemaEntry entry in CompositeSchema.list())
+            {
+                if (entry.name == "csharp-card") listed = entry;
+            }
+            expect(listed != null, "the schema lists the loaded composite");
+            if (listed != null)
+            {
+                listing = listed.identity;
+                expect(listed.id == "csharp_card" && listed.version == "1.0" && listed.slot == "",
+                       "the listing carries the registered name, version and no slot");
+                expect(listed.properties.Length == 2 && listed.properties[0].name == "title" &&
+                       listed.properties[1].name == "checked" &&
+                       listed.properties[1].kind == Constants.GF_VALUE_KIND_BOOLEAN,
+                       "the listing carries the declared properties");
+                expect(listed.commands.Length == 1 && listed.commands[0] == "toggle", "the listing carries the command");
+                expect(listed.events.Length == 0, "the document declares no event");
+                bool face = false;
+                foreach (CompositeSchemaPart part in listed.parts)
+                {
+                    if (part.name == "face" && part.role == "face") face = true;
+                }
+                expect(face, "the listing carries the declared part");
+            }
         }
+        bool removed = false;
+        try
+        {
+            CompositeSchema.find(listing);
+        }
+        catch (GuiFormsException error)
+        {
+            removed = error.status == Constants.GF_STATUS_REMOVED;
+        }
+        expect(removed, "a released definition's listing is refused as removed");
         using (card)
         {
             expect(Composite.perform(card, "toggle"), "the composite's command runs");

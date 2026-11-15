@@ -391,8 +391,16 @@ gf_status load_definition(const gf_composite_spec& spec, gf_object& definition) 
     if (!loaded) {
         return fail(GF_STATUS_INVALID_ARGUMENT, load_composite_slot, joined_diagnostics(loaded.diagnostics));
     }
-    const std::shared_ptr<CompositeDefinitionHandle> handle =
-        std::make_shared<CompositeDefinitionHandle>(loaded.definition);
+    // Listed in the schema table while the handle holds it; a throw after
+    // the listing destroys the handle, which forgets it.
+    const std::uint64_t listing = record_loaded_composite(loaded.definition);
+    std::shared_ptr<CompositeDefinitionHandle> handle;
+    try {
+        handle = std::make_shared<CompositeDefinitionHandle>(loaded.definition, listing);
+    } catch (...) {
+        forget_loaded_composite(listing);
+        throw;
+    }
     definition = registry().add_reference(handle);
     return GF_STATUS_OK;
 }

@@ -4,12 +4,16 @@
 // standard library only, as a binding generator would.
 //
 // Usage: gf_abi_schema_export <control-tables.schema.json> <interaction_fields.json>
-//        [<written.json>]
+//        <composites directory> [<written.json>]
 // The committed schema spells interaction payloads in C++; the ABI publishes
 // them in its own words (K2), so each committed payload is first replaced by
-// its entry in manifests/abi/interaction_fields.json (the public map). The
-// third path, when given, receives the schema as the ABI gave it, so a
-// failure can be compared line by line.
+// its entry in manifests/abi/interaction_fields.json (the public map).
+// Its composites are the ones the Gallery shows, in the order it first shows
+// them: the program loads the same documents from the composites directory
+// (demo/composites) through the custom controls table, card-with-action
+// then toggle-pill, and lists them through the schema table's composite
+// slots (provisional 1.5). The fourth path, when given, receives the schema
+// as the ABI gave it, so a failure can be compared line by line.
 
 #include "gui_forms/c/gf_abi.h"
 
@@ -24,12 +28,14 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
 
 // The tables this program reads.
 struct AbiTables final {
     gf_schema_table schema{};
+    gf_custom_controls_table custom_controls{};
 };
 
 AbiTables tables;
@@ -462,10 +468,12 @@ void append_item_systems(std::string& out, std::uint64_t type, std::uint64_t cou
     out += count == 0U ? "]" : "\n      ]";
 }
 
-// Which of a type's property lists append_properties writes: its own
-// (property_at, choice_at) or the ones it provides to its children
-// (child_property_at, child_choice_at, since 1.1).
-enum class PropertyList : std::uint8_t { own, provided_to_children };
+// Which property list append_properties writes: a type's own
+// (property_at, choice_at), the ones it provides to its children
+// (child_property_at, child_choice_at, since 1.1), or a loaded composite's
+// declared ones (composite_property_at, composite_choice_at, provisional
+// 1.5; type is then the composite's identity).
+enum class PropertyList : std::uint8_t { own, provided_to_children, composite_declared };
 
 void append_properties(std::string& out, std::uint64_t type, std::uint64_t count, PropertyList list) {
     decltype(gf_schema_table::property_at) read_property = tables.schema.property_at;
@@ -473,6 +481,9 @@ void append_properties(std::string& out, std::uint64_t type, std::uint64_t count
     if (list == PropertyList::provided_to_children) {
         read_property = tables.schema.child_property_at;
         read_choice = tables.schema.child_choice_at;
+    } else if (list == PropertyList::composite_declared) {
+        read_property = tables.schema.composite_property_at;
+        read_choice = tables.schema.composite_choice_at;
     }
     out += '[';
     for (std::uint64_t index = 0; index < count; ++index) {
@@ -544,6 +555,119 @@ std::string_view kind_name(gf_schema_kind kind) {
     }
 }
 
+// A loaded composite's states, or (part not GF_SCHEMA_NONE) one part's.
+void append_composite_states(std::string& out, std::uint64_t composite, std::uint64_t part, std::uint64_t count) {
+    out += '[';
+    for (std::uint64_t index = 0; index < count; ++index) {
+        gf_utf8_view name{};
+        require_ok(tables.schema.composite_state_at(composite, part, index, &name), "composite_state_at");
+        if (index > 0U) out += ", ";
+        append_json_string(out, text_of(name));
+    }
+    out += ']';
+}
+
+void append_composite_custom_states(std::string& out, std::uint64_t composite, std::uint64_t count) {
+    out += '[';
+    for (std::uint64_t index = 0; index < count; ++index) {
+        gf_utf8_view name{};
+        require_ok(tables.schema.composite_custom_state_at(composite, index, &name), "composite_custom_state_at");
+        if (index > 0U) out += ", ";
+        append_json_string(out, text_of(name));
+    }
+    out += ']';
+}
+
+// As append_parts writes a type's, one part per line.
+void append_composite_parts(std::string& out, std::uint64_t composite, std::uint64_t count) {
+    out += "[\n";
+    for (std::uint64_t index = 0; index < count; ++index) {
+        gf_schema_part part{};
+        part.struct_size = sizeof(part);
+        require_ok(tables.schema.composite_part_at(composite, index, &part), "composite_part_at");
+        out += "        {\"name\": ";
+        append_json_string(out, text_of(part.name));
+        out += ", \"role\": ";
+        append_json_string(out, text_of(part.role));
+        out += ", \"composed_from\": ";
+        if (part.composed_from.size == 0U) {
+            out += "null";
+        } else {
+            append_json_string(out, text_of(part.composed_from));
+        }
+        out += ", \"states\": ";
+        append_composite_states(out, composite, index, part.state_count);
+        out += index + 1U < count ? "},\n" : "}\n";
+    }
+    out += "      ]";
+}
+
+// One loaded composite as the gallery's writer lists it: anatomy, declared
+// properties, events (payload in the ABI's words, null for none), commands
+// and slot.
+void append_composite(std::string& out, const gf_schema_composite& record) {
+    const std::uint64_t composite = record.composite;
+    out += "    {\n";
+    append_key(out, "      ", "id");
+    append_json_string(out, text_of(record.id));
+    out += ",\n";
+    append_key(out, "      ", "name");
+    append_json_string(out, text_of(record.name));
+    out += ",\n";
+    append_key(out, "      ", "version");
+    append_json_string(out, text_of(record.version));
+    out += ",\n";
+    append_key(out, "      ", "kind");
+    append_json_string(out, "composite");
+    out += ",\n";
+    append_key(out, "      ", "slot");
+    if (record.slot.size == 0U) {
+        out += "null";
+    } else {
+        append_json_string(out, text_of(record.slot));
+    }
+    out += ",\n";
+    append_key(out, "      ", "parts");
+    append_composite_parts(out, composite, record.part_count);
+    out += ",\n";
+    append_key(out, "      ", "states");
+    append_composite_states(out, composite, GF_SCHEMA_NONE, record.state_count);
+    out += ",\n";
+    append_key(out, "      ", "custom_states");
+    append_composite_custom_states(out, composite, record.custom_state_count);
+    out += ",\n";
+    append_key(out, "      ", "properties");
+    append_properties(out, composite, record.property_count, PropertyList::composite_declared);
+    out += ",\n";
+    append_key(out, "      ", "events");
+    out += '[';
+    for (std::uint64_t index = 0; index < record.event_count; ++index) {
+        gf_schema_interaction event{};
+        event.struct_size = sizeof(event);
+        require_ok(tables.schema.composite_event_at(composite, index, &event), "composite_event_at");
+        if (index > 0U) out += ", ";
+        out += "{\"name\": ";
+        append_json_string(out, text_of(event.name));
+        out += ", \"payload\": ";
+        if (event.payload.size == 0U) {
+            out += "null";
+        } else {
+            append_json_string(out, text_of(event.payload));
+        }
+        out += '}';
+    }
+    out += "],\n";
+    append_key(out, "      ", "commands");
+    out += '[';
+    for (std::uint64_t index = 0; index < record.command_count; ++index) {
+        gf_utf8_view name{};
+        require_ok(tables.schema.composite_command_at(composite, index, &name), "composite_command_at");
+        if (index > 0U) out += ", ";
+        append_json_string(out, text_of(name));
+    }
+    out += "]\n    }";
+}
+
 std::string render_schema() {
     std::string out;
     out += "{\n";
@@ -554,7 +678,10 @@ std::string render_schema() {
            "Do not edit.\",\n";
     out += "    \"Controls list their parts, states, item systems, properties and interactions; "
            "components list their interactions. Every name is stored in snake_case; CSS-family "
-           "documents write it in kebab-case and displays in PascalCase.\"\n";
+           "documents write it in kebab-case and displays in PascalCase.\",\n";
+    out += "    \"Composites list the composite controls the Gallery shows (.control documents): their "
+           "anatomy, declared properties, events with payload kinds, commands and slot; their name, "
+           "events and commands are as the document writes them.\"\n";
     out += "  ],\n";
     append_vocabulary(out);
     append_engine(out);
@@ -605,7 +732,18 @@ std::string render_schema() {
         append_interactions(out, index, type.interaction_count);
         out += "\n    }";
     }
-    out += "\n  ]\n}\n";
+    out += "\n  ],\n";
+    std::uint64_t composite_count = 0U;
+    require_ok(tables.schema.composite_count(&composite_count), "composite_count");
+    out += "  \"composites\": [";
+    for (std::uint64_t index = 0; index < composite_count; ++index) {
+        gf_schema_composite record{};
+        record.struct_size = sizeof(record);
+        require_ok(tables.schema.composite_at(index, &record), "composite_at");
+        out += index == 0U ? "\n" : ",\n";
+        append_composite(out, record);
+    }
+    out += composite_count == 0U ? "]\n}\n" : "\n  ]\n}\n";
     return out;
 }
 
@@ -694,18 +832,65 @@ std::size_t first_different_line(std::string_view left, std::string_view right) 
     return line;
 }
 
+// The demo composites the Gallery shows, in the order it first shows them,
+// and the child types their documents name.
+constexpr std::array<std::string_view, 2> composite_files{"card-with-action.control", "toggle-pill.control"};
+constexpr std::array<std::string_view, 3> composite_child_types{"flex_panel", "label", "button"};
+
+// Loads every composite_files document from directory through the custom
+// controls table, in order, into definitions; the caller releases them
+// after rendering (the listing lasts while they are held).
+void load_composites(const char* directory, std::vector<gf_object>& definitions) {
+    std::array<gf_utf8_view, composite_child_types.size()> types{};
+    for (std::size_t index = 0; index < composite_child_types.size(); ++index) {
+        types[index] = gf_utf8_view{composite_child_types[index].data(), composite_child_types[index].size()};
+    }
+    definitions.reserve(composite_files.size());
+    for (const std::string_view file_name : composite_files) {
+        std::string path(directory);
+        path += '/';
+        path += file_name;
+        const std::string document = read_committed(path.c_str());
+        gf_composite_spec spec{};
+        spec.struct_size = sizeof(spec);
+        spec.file = gf_utf8_view{file_name.data(), file_name.size()};
+        spec.document = gf_utf8_view{document.data(), document.size()};
+        spec.child_types = types.data();
+        spec.child_type_count = types.size();
+        gf_object definition = 0U;
+        const gf_status loaded = tables.custom_controls.load_composite(&spec, &definition);
+        if (loaded != GF_STATUS_OK) {
+            throw std::runtime_error("load_composite refused " + path + " with status " + std::to_string(loaded));
+        }
+        definitions.push_back(definition);
+    }
+}
+
 int run(int argc, char** argv) {
-    if (argc < 3) {
+    if (argc < 4) {
         std::cerr << "usage: gf_abi_schema_export <control-tables.schema.json> <interaction_fields.json> "
-                     "[<written.json>]\n";
+                     "<composites directory> [<written.json>]\n";
         return 2;
     }
     tables.schema.struct_size = sizeof(tables.schema);
     require_ok(gf_abi_get_table(GF_TABLE_SCHEMA, GF_ABI_MAJOR, GF_ABI_MINOR, &tables.schema, sizeof(tables.schema)),
                "gf_abi_get_table");
+    tables.custom_controls.struct_size = sizeof(tables.custom_controls);
+    require_ok(gf_abi_get_table(GF_TABLE_CUSTOM_CONTROLS, GF_ABI_MAJOR, GF_ABI_MINOR, &tables.custom_controls,
+                                sizeof(tables.custom_controls)),
+               "gf_abi_get_table");
+    gf_objects_table objects{};
+    objects.struct_size = sizeof(objects);
+    require_ok(gf_abi_get_table(GF_TABLE_OBJECTS, GF_ABI_MAJOR, GF_ABI_MINOR, &objects, sizeof(objects)),
+               "gf_abi_get_table");
+    std::vector<gf_object> definitions;
+    load_composites(argv[3], definitions);
     const std::string written = render_schema();
-    if (argc > 3) {
-        std::ofstream file(argv[3], std::ios::binary | std::ios::trunc);
+    for (const gf_object definition : definitions) {
+        require_ok(objects.release(definition), "objects.release");
+    }
+    if (argc > 4) {
+        std::ofstream file(argv[4], std::ios::binary | std::ios::trunc);
         file << written;
     }
     const std::map<std::string, std::string, std::less<>> fields = read_payload_fields(argv[2]);

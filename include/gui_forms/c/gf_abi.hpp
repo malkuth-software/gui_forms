@@ -873,6 +873,85 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status composite_count(uint64_t* count) const noexcept {
+        if (table_.struct_size < 192u || table_.composite_count == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.composite_count(count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status composite_at(uint64_t index, gf_schema_composite* record) const noexcept {
+        if (table_.struct_size < 200u || table_.composite_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.composite_at(index, record);
+        return called;
+    }
+
+    [[nodiscard]] gf_status composite_part_at(uint64_t composite, uint64_t part,
+                                              gf_schema_part* record) const noexcept {
+        if (table_.struct_size < 208u || table_.composite_part_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.composite_part_at(composite, part, record);
+        return called;
+    }
+
+    [[nodiscard]] gf_status composite_state_at(uint64_t composite, uint64_t part, uint64_t state,
+                                               gf_utf8_view* name) const noexcept {
+        if (table_.struct_size < 216u || table_.composite_state_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.composite_state_at(composite, part, state, name);
+        return called;
+    }
+
+    [[nodiscard]] gf_status composite_custom_state_at(uint64_t composite, uint64_t state,
+                                                      gf_utf8_view* name) const noexcept {
+        if (table_.struct_size < 224u || table_.composite_custom_state_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.composite_custom_state_at(composite, state, name);
+        return called;
+    }
+
+    [[nodiscard]] gf_status composite_property_at(uint64_t composite, uint64_t property,
+                                                  gf_schema_property* record) const noexcept {
+        if (table_.struct_size < 232u || table_.composite_property_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.composite_property_at(composite, property, record);
+        return called;
+    }
+
+    [[nodiscard]] gf_status composite_choice_at(uint64_t composite, uint64_t property, uint64_t choice,
+                                                gf_schema_choice* record) const noexcept {
+        if (table_.struct_size < 240u || table_.composite_choice_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.composite_choice_at(composite, property, choice, record);
+        return called;
+    }
+
+    [[nodiscard]] gf_status composite_event_at(uint64_t composite, uint64_t event,
+                                               gf_schema_interaction* record) const noexcept {
+        if (table_.struct_size < 248u || table_.composite_event_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.composite_event_at(composite, event, record);
+        return called;
+    }
+
+    [[nodiscard]] gf_status composite_command_at(uint64_t composite, uint64_t command,
+                                                 gf_utf8_view* name) const noexcept {
+        if (table_.struct_size < 256u || table_.composite_command_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.composite_command_at(composite, command, name);
+        return called;
+    }
+
 private:
     gf_schema_table table_;
 };

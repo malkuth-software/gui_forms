@@ -512,7 +512,26 @@ public unsafe struct gf_schema_effect
     public gf_logical_insets outsets;
 }
 
-/// <summary>gf_schema_table (table, 184 bytes).</summary>
+/// <summary>gf_schema_composite (extensible, 128 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_schema_composite
+{
+    public uint struct_size;
+    public uint reserved;
+    public ulong composite;
+    public gf_utf8_view id;
+    public gf_utf8_view name;
+    public gf_utf8_view version;
+    public gf_utf8_view slot;
+    public ulong part_count;
+    public ulong state_count;
+    public ulong custom_state_count;
+    public ulong property_count;
+    public ulong event_count;
+    public ulong command_count;
+}
+
+/// <summary>gf_schema_table (table, 256 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_schema_table
 {
@@ -540,6 +559,15 @@ public unsafe struct gf_schema_table
     public delegate* unmanaged[Cdecl]<ulong, ulong*, gf_status> child_property_count;
     public delegate* unmanaged[Cdecl]<ulong, ulong, gf_schema_property*, gf_status> child_property_at;
     public delegate* unmanaged[Cdecl]<ulong, ulong, ulong, gf_schema_choice*, gf_status> child_choice_at;
+    public delegate* unmanaged[Cdecl]<ulong*, gf_status> composite_count;
+    public delegate* unmanaged[Cdecl]<ulong, gf_schema_composite*, gf_status> composite_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_schema_part*, gf_status> composite_part_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, ulong, gf_utf8_view*, gf_status> composite_state_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_utf8_view*, gf_status> composite_custom_state_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_schema_property*, gf_status> composite_property_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, ulong, gf_schema_choice*, gf_status> composite_choice_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_schema_interaction*, gf_status> composite_event_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_utf8_view*, gf_status> composite_command_at;
 }
 
 /// <summary>gf_bytes_view (record, 16 bytes).</summary>

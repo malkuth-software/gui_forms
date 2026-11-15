@@ -1,5 +1,6 @@
 /* Kit part: custom controls (GF_TABLE_CUSTOM_CONTROLS), composite controls
- * (since 1.5), controls.invalidate and, where the library has it, the Windows paint endpoint
+ * (since 1.5) and the schema table's listing of them (provisional 1.5),
+ * controls.invalidate and, where the library has it, the Windows paint endpoint
  * (GF_TABLE_WINDOWS_PAINT_ENDPOINT). Their paint path is checked by the C++ program
  * tests/abi/custom/gf_abi_custom_paint.cpp, which reaches a window's paint. */
 
@@ -394,9 +395,160 @@ static gf_composite_spec kit_card_spec(const gf_utf8_view* types, uint64_t count
     return spec;
 }
 
-/* load_composite's refusals, then a composite made, its title shown by its
- * child, its command performed with its event heard, and its child found;
- * the definition released while the control lives. */
+/* Whether the schema table has the composite listings (provisional 1.5). */
+static int lists_composites(const gf_kit* kit) {
+    const int lists = (*kit).schema.struct_size >= offsetof(gf_schema_table, composite_command_at) + sizeof(void*);
+    return lists;
+}
+
+/* The schema table's listing of the held kit-card definition: every
+ * composite_* slot, with its refusals; listing receives the load's
+ * identity (0 when it is not listed). */
+static void composite_listing(gf_kit* kit, uint64_t* listing) {
+    *listing = 0u;
+    uint64_t count = 0u;
+    gf_kit_status(kit, (*kit).schema.composite_count(NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "composite_count needs an output");
+    gf_kit_status(kit, (*kit).schema.composite_count(&count), GF_STATUS_OK, "count the listed composites");
+    gf_schema_composite record;
+    memset(&record, 0, sizeof(record));
+    record.struct_size = (uint32_t)sizeof(record);
+    gf_kit_status(kit, (*kit).schema.composite_at(count, &record), GF_STATUS_INVALID_ARGUMENT,
+                  "composite_at past the end is refused");
+    record.struct_size = 8u;
+    gf_kit_status(kit, (*kit).schema.composite_at(0u, &record), GF_STATUS_INVALID_ARGUMENT,
+                  "composite_at refuses a short record");
+    for (uint64_t index = 0u; index < count; ++index) {
+        gf_schema_composite listed;
+        memset(&listed, 0, sizeof(listed));
+        listed.struct_size = (uint32_t)sizeof(listed);
+        gf_kit_status(kit, (*kit).schema.composite_at(index, &listed), GF_STATUS_OK, "read a listed composite");
+        if (gf_kit_view_equals(listed.name, "kit-card")) {
+            record = listed;
+        }
+    }
+    gf_kit_check(kit, gf_kit_view_equals(record.name, "kit-card"), "the schema lists the held definition");
+    if (!gf_kit_view_equals(record.name, "kit-card")) {
+        return;
+    }
+    const uint64_t composite = record.composite;
+    *listing = composite;
+    gf_kit_check(kit, composite != 0u && gf_kit_view_equals(record.id, "kit_card") &&
+                          gf_kit_view_equals(record.version, "1.0") && record.slot.size == 0u,
+                 "the listing names the load, its registered name and version, and no slot");
+    gf_kit_check(kit, record.part_count == 3u && record.custom_state_count == 0u && record.property_count == 2u &&
+                          record.event_count == 1u && record.command_count == 1u,
+                 "the listing counts the region, focus and face parts, two properties, one event and one command");
+
+    gf_schema_part part;
+    memset(&part, 0, sizeof(part));
+    part.struct_size = (uint32_t)sizeof(part);
+    gf_kit_status(kit, (*kit).schema.composite_part_at(composite, 2u, &part), GF_STATUS_OK, "read the face part");
+    gf_kit_check(kit, gf_kit_view_equals(part.name, "face") && gf_kit_view_equals(part.role, "face") &&
+                          part.composed_from.size == 0u,
+                 "the declared part follows region and focus");
+    gf_kit_status(kit, (*kit).schema.composite_part_at(composite, record.part_count, &part),
+                  GF_STATUS_INVALID_ARGUMENT, "composite_part_at past the end is refused");
+    gf_utf8_view name;
+    memset(&name, 0, sizeof(name));
+    if (record.state_count != 0u) {
+        gf_kit_status(kit, (*kit).schema.composite_state_at(composite, GF_SCHEMA_NONE, 0u, &name), GF_STATUS_OK,
+                      "read the composite's first state");
+        gf_kit_check(kit, name.size != 0u, "a state has a name");
+    }
+    gf_kit_status(kit, (*kit).schema.composite_state_at(composite, 2u, part.state_count, &name),
+                  GF_STATUS_INVALID_ARGUMENT, "a part's state past the end is refused");
+    gf_kit_status(kit, (*kit).schema.composite_state_at(composite, record.part_count, 0u, &name),
+                  GF_STATUS_INVALID_ARGUMENT, "composite_state_at past the parts is refused");
+    gf_kit_status(kit, (*kit).schema.composite_state_at(composite, GF_SCHEMA_NONE, 0u, NULL),
+                  GF_STATUS_INVALID_ARGUMENT, "composite_state_at needs an output");
+    gf_kit_status(kit, (*kit).schema.composite_custom_state_at(composite, 0u, &name), GF_STATUS_INVALID_ARGUMENT,
+                  "the card declares no custom state");
+
+    gf_schema_property property;
+    memset(&property, 0, sizeof(property));
+    property.struct_size = (uint32_t)sizeof(property);
+    gf_kit_status(kit, (*kit).schema.composite_property_at(composite, 1u, &property), GF_STATUS_OK,
+                  "read the checked property");
+    gf_kit_check(kit, gf_kit_view_equals(property.name, "checked") && property.kind == GF_VALUE_KIND_BOOLEAN &&
+                          gf_kit_view_equals(property.category, "Behavior") && property.choice_count == 0u &&
+                          (property.flags & GF_SCHEMA_PROPERTY_FLAGS_READABLE) != 0u,
+                 "a declared property is listed as property_at lists a type's");
+    gf_kit_status(kit, (*kit).schema.composite_property_at(composite, 2u, &property), GF_STATUS_INVALID_ARGUMENT,
+                  "composite_property_at past the end is refused");
+    gf_schema_choice choice;
+    memset(&choice, 0, sizeof(choice));
+    choice.struct_size = (uint32_t)sizeof(choice);
+    gf_kit_status(kit, (*kit).schema.composite_choice_at(composite, 1u, 0u, &choice), GF_STATUS_INVALID_ARGUMENT,
+                  "a boolean property has no choice");
+
+    gf_schema_interaction event;
+    memset(&event, 0, sizeof(event));
+    event.struct_size = (uint32_t)sizeof(event);
+    gf_kit_status(kit, (*kit).schema.composite_event_at(composite, 0u, &event), GF_STATUS_OK,
+                  "read the declared event");
+    gf_kit_check(kit, gf_kit_view_equals(event.name, "checked-changed") &&
+                          gf_kit_view_equals(event.payload, "value: boolean") && event.mutable_payload == 0u,
+                 "the event is named as written, its payload in the ABI's words");
+    gf_kit_status(kit, (*kit).schema.composite_event_at(composite, 1u, &event), GF_STATUS_INVALID_ARGUMENT,
+                  "composite_event_at past the end is refused");
+    gf_kit_status(kit, (*kit).schema.composite_command_at(composite, 0u, &name), GF_STATUS_OK,
+                  "read the declared command");
+    gf_kit_check(kit, gf_kit_view_equals(name, "toggle"), "the command is named as written");
+    gf_kit_status(kit, (*kit).schema.composite_command_at(composite, 1u, &name), GF_STATUS_INVALID_ARGUMENT,
+                  "composite_command_at past the end is refused");
+    gf_kit_status(kit, (*kit).schema.composite_command_at(0u, 0u, &name), GF_STATUS_INVALID_ARGUMENT,
+                  "an identity no load had is refused");
+}
+
+/* After the load is released: every composite_* slot refuses its identity
+ * as removed, and the listing no longer holds it. */
+static void composite_listing_released(gf_kit* kit, uint64_t composite) {
+    gf_schema_part part;
+    memset(&part, 0, sizeof(part));
+    part.struct_size = (uint32_t)sizeof(part);
+    gf_utf8_view name;
+    memset(&name, 0, sizeof(name));
+    gf_schema_property property;
+    memset(&property, 0, sizeof(property));
+    property.struct_size = (uint32_t)sizeof(property);
+    gf_schema_choice choice;
+    memset(&choice, 0, sizeof(choice));
+    choice.struct_size = (uint32_t)sizeof(choice);
+    gf_schema_interaction event;
+    memset(&event, 0, sizeof(event));
+    event.struct_size = (uint32_t)sizeof(event);
+    gf_kit_status(kit, (*kit).schema.composite_part_at(composite, 0u, &part), GF_STATUS_REMOVED,
+                  "a released load's part is refused");
+    gf_kit_status(kit, (*kit).schema.composite_state_at(composite, GF_SCHEMA_NONE, 0u, &name), GF_STATUS_REMOVED,
+                  "a released load's state is refused");
+    gf_kit_status(kit, (*kit).schema.composite_custom_state_at(composite, 0u, &name), GF_STATUS_REMOVED,
+                  "a released load's custom state is refused");
+    gf_kit_status(kit, (*kit).schema.composite_property_at(composite, 0u, &property), GF_STATUS_REMOVED,
+                  "a released load's property is refused");
+    gf_kit_status(kit, (*kit).schema.composite_choice_at(composite, 0u, 0u, &choice), GF_STATUS_REMOVED,
+                  "a released load's choice is refused");
+    gf_kit_status(kit, (*kit).schema.composite_event_at(composite, 0u, &event), GF_STATUS_REMOVED,
+                  "a released load's event is refused");
+    gf_kit_status(kit, (*kit).schema.composite_command_at(composite, 0u, &name), GF_STATUS_REMOVED,
+                  "a released load's command is refused");
+    uint64_t count = 0u;
+    gf_kit_status(kit, (*kit).schema.composite_count(&count), GF_STATUS_OK, "count the listed composites again");
+    int listed = 0;
+    for (uint64_t index = 0u; index < count; ++index) {
+        gf_schema_composite record;
+        memset(&record, 0, sizeof(record));
+        record.struct_size = (uint32_t)sizeof(record);
+        gf_kit_status(kit, (*kit).schema.composite_at(index, &record), GF_STATUS_OK, "read a listed composite");
+        if (record.composite == composite) listed = 1;
+    }
+    gf_kit_check(kit, listed == 0, "a released load is no longer listed");
+}
+
+/* load_composite's refusals, then a composite made, listed by the schema
+ * table while its definition is held (refused as removed after), its title
+ * shown by its child, its command performed with its event heard, and its
+ * child found; the definition released while the control lives. */
 static void composites(gf_kit* kit) {
     if ((*kit).custom_controls.struct_size <
         offsetof(gf_custom_controls_table, composite_child) + sizeof(void*)) {
@@ -441,8 +593,15 @@ static void composites(gf_kit* kit) {
                   GF_STATUS_WRONG_HANDLE_KIND, "create_composite takes a definition");
     gf_kit_status(kit, (*kit).custom_controls.create_composite(definition, gf_kit_text("kit.composite.card"), &card),
                   GF_STATUS_OK, "create a composite control");
+    uint64_t listing = 0u;
+    if (lists_composites(kit)) {
+        composite_listing(kit, &listing);
+    }
     gf_kit_status(kit, (*kit).objects.release(definition), GF_STATUS_OK,
                   "release the definition while its control lives");
+    if (lists_composites(kit) && listing != 0u) {
+        composite_listing_released(kit, listing);
+    }
 
     char type_buffer[64];
     uint64_t type_size = 0u;

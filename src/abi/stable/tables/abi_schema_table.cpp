@@ -3,10 +3,13 @@
 #include "abi_tables.hpp"
 #include "abi_records.hpp"
 
+#include "../custom/abi_composite.hpp"
 #include "../registry/abi_registry.hpp"
 #include "../schema/abi_schema.hpp"
 
 #include "gui_forms/anatomy.hpp"
+
+#include "../../../core/control_language/composite_definition/composite_definition.hpp"
 
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
@@ -42,6 +45,16 @@ constexpr SlotIdentity effect_at_slot{GF_TABLE_SCHEMA, 18U};
 constexpr SlotIdentity child_property_count_slot{GF_TABLE_SCHEMA, 19U};
 constexpr SlotIdentity child_property_at_slot{GF_TABLE_SCHEMA, 20U};
 constexpr SlotIdentity child_choice_at_slot{GF_TABLE_SCHEMA, 21U};
+// The composite listings (since 1.5, provisional).
+constexpr SlotIdentity composite_count_slot{GF_TABLE_SCHEMA, 22U};
+constexpr SlotIdentity composite_at_slot{GF_TABLE_SCHEMA, 23U};
+constexpr SlotIdentity composite_part_at_slot{GF_TABLE_SCHEMA, 24U};
+constexpr SlotIdentity composite_state_at_slot{GF_TABLE_SCHEMA, 25U};
+constexpr SlotIdentity composite_custom_state_at_slot{GF_TABLE_SCHEMA, 26U};
+constexpr SlotIdentity composite_property_at_slot{GF_TABLE_SCHEMA, 27U};
+constexpr SlotIdentity composite_choice_at_slot{GF_TABLE_SCHEMA, 28U};
+constexpr SlotIdentity composite_event_at_slot{GF_TABLE_SCHEMA, 29U};
+constexpr SlotIdentity composite_command_at_slot{GF_TABLE_SCHEMA, 30U};
 
 // One schema call on the UI thread. A library that had no UI thread binds
 // the calling thread for the call and is unbound again when the call ends,
@@ -65,6 +78,17 @@ public:
         }
         entered_ = true;
         built = &schema();
+        return GF_STATUS_OK;
+    }
+
+    // Enters the UI thread only: the composite listings do not read the
+    // registry's types.
+    [[nodiscard]] gf_status enter_composites(SlotIdentity slot) {
+        const gf_status entered = registry().enter_ui(slot, true);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        entered_ = true;
         return GF_STATUS_OK;
     }
 
@@ -917,6 +941,298 @@ gf_status GF_CALL schema_effect_at(std::uint64_t effect, gf_schema_effect* recor
     return call_slot(effect_at_slot, schema_effect_at_body, effect, record);
 }
 
+// The listed load of composite, entered on the UI thread by call. A
+// released load gives GF_STATUS_REMOVED and an identity no load had
+// GF_STATUS_INVALID_ARGUMENT (gf_schema_composite).
+gf_status find_composite(SchemaCall& call, std::uint64_t composite, SlotIdentity slot, const LoadedComposite*& found) {
+    const gf_status entered = call.enter_composites(slot);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const LoadedCompositeLookup lookup = find_loaded_composite(composite, found);
+    switch (lookup) {
+    case LoadedCompositeLookup::listed:
+        return GF_STATUS_OK;
+    case LoadedCompositeLookup::released:
+        return fail(GF_STATUS_REMOVED, slot, "the composite's load was released");
+    case LoadedCompositeLookup::unknown:
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "no composite load had that identity");
+    default:
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "no composite load had that identity");
+    }
+}
+
+gf_status schema_composite_count_body(std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, composite_count_slot, "composite_count needs an output");
+    }
+    SchemaCall call;
+    const gf_status entered = call.enter_composites(composite_count_slot);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *count = loaded_composite_count();
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_count(std::uint64_t* count) noexcept {
+    return call_slot(composite_count_slot, schema_composite_count_body, count);
+}
+
+gf_status schema_composite_at_body(std::uint64_t index, gf_schema_composite* record) {
+    const gf_status valid = check_record(record, composite_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const gf_status entered = call.enter_composites(composite_at_slot);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const gf_status checked = check_index(index, loaded_composite_count(), composite_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const LoadedComposite& listed = loaded_composite_at(static_cast<std::size_t>(index));
+    const CompositeDefinition& definition = *listed.definition;
+    gf_schema_composite complete{};
+    complete.struct_size = sizeof(gf_schema_composite);
+    complete.composite = listed.identity;
+    complete.id = view_of(definition.registered);
+    complete.name = view_of(definition.name);
+    complete.version = view_of(listed.version);
+    complete.slot = view_of(definition.slot);
+    complete.part_count = definition.anatomy.parts.size();
+    complete.state_count = definition.anatomy.states.size();
+    complete.custom_state_count = definition.anatomy.custom_states.size();
+    complete.property_count = listed.properties.size();
+    complete.event_count = definition.events.size();
+    complete.command_count = definition.commands.size();
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_at(std::uint64_t index, gf_schema_composite* record) noexcept {
+    return call_slot(composite_at_slot, schema_composite_at_body, index, record);
+}
+
+gf_status schema_composite_part_at_body(std::uint64_t composite, std::uint64_t part, gf_schema_part* record) {
+    const gf_status valid = check_record(record, composite_part_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_part_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const std::span<const PartDeclaration> parts = (*(*listed).definition).anatomy.parts;
+    const gf_status checked = check_index(part, parts.size(), composite_part_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const PartDeclaration& declaration = parts[static_cast<std::size_t>(part)];
+    gf_schema_part complete{};
+    complete.struct_size = sizeof(gf_schema_part);
+    complete.name = view_of(declaration.name);
+    complete.role = view_of(part_role_name(declaration.role));
+    complete.composed_from = view_of(declaration.composed_from);
+    complete.state_count = declaration.states.size();
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_part_at(std::uint64_t composite, std::uint64_t part,
+                                           gf_schema_part* record) noexcept {
+    return call_slot(composite_part_at_slot, schema_composite_part_at_body, composite, part, record);
+}
+
+gf_status schema_composite_state_at_body(std::uint64_t composite, std::uint64_t part, std::uint64_t state,
+                                         gf_utf8_view* name) {
+    if (name == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, composite_state_at_slot, "composite_state_at needs an output");
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_state_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const ControlAnatomy& anatomy = (*(*listed).definition).anatomy;
+    std::span<const AnatomyState> states = anatomy.states;
+    if (part != GF_SCHEMA_NONE) {
+        const gf_status part_checked = check_index(part, anatomy.parts.size(), composite_state_at_slot);
+        if (part_checked != GF_STATUS_OK) {
+            return part_checked;
+        }
+        states = anatomy.parts[static_cast<std::size_t>(part)].states;
+    }
+    const gf_status checked = check_index(state, states.size(), composite_state_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    *name = view_of(anatomy_state_name(states[static_cast<std::size_t>(state)]));
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_state_at(std::uint64_t composite, std::uint64_t part, std::uint64_t state,
+                                            gf_utf8_view* name) noexcept {
+    return call_slot(composite_state_at_slot, schema_composite_state_at_body, composite, part, state, name);
+}
+
+gf_status schema_composite_custom_state_at_body(std::uint64_t composite, std::uint64_t state, gf_utf8_view* name) {
+    if (name == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, composite_custom_state_at_slot,
+                    "composite_custom_state_at needs an output");
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_custom_state_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const std::span<const CustomStateDeclaration> custom_states = (*(*listed).definition).anatomy.custom_states;
+    const gf_status checked = check_index(state, custom_states.size(), composite_custom_state_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    *name = view_of(custom_states[static_cast<std::size_t>(state)].name);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_custom_state_at(std::uint64_t composite, std::uint64_t state,
+                                                   gf_utf8_view* name) noexcept {
+    return call_slot(composite_custom_state_at_slot, schema_composite_custom_state_at_body, composite, state, name);
+}
+
+gf_status schema_composite_property_at_body(std::uint64_t composite, std::uint64_t property,
+                                            gf_schema_property* record) {
+    const gf_status valid = check_record(record, composite_property_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_property_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const gf_status checked = check_index(property, (*listed).properties.size(), composite_property_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const SchemaProperty& held = (*listed).properties[static_cast<std::size_t>(property)];
+    gf_schema_property complete{};
+    complete.struct_size = sizeof(gf_schema_property);
+    complete.kind = held.kind;
+    complete.name = view_of(held.name);
+    complete.category = view_of(held.category);
+    complete.enumeration = view_of(held.enumeration);
+    complete.choice_count = held.choices.size();
+    complete.flags = held.flags;
+    complete.serialization = held.serialization;
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_property_at(std::uint64_t composite, std::uint64_t property,
+                                               gf_schema_property* record) noexcept {
+    return call_slot(composite_property_at_slot, schema_composite_property_at_body, composite, property, record);
+}
+
+gf_status schema_composite_choice_at_body(std::uint64_t composite, std::uint64_t property, std::uint64_t choice,
+                                          gf_schema_choice* record) {
+    const gf_status valid = check_record(record, composite_choice_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_choice_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const gf_status property_checked =
+        check_index(property, (*listed).properties.size(), composite_choice_at_slot);
+    if (property_checked != GF_STATUS_OK) {
+        return property_checked;
+    }
+    const SchemaProperty& held = (*listed).properties[static_cast<std::size_t>(property)];
+    const gf_status checked = check_index(choice, held.choices.size(), composite_choice_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const SchemaChoice& value = held.choices[static_cast<std::size_t>(choice)];
+    gf_schema_choice complete{};
+    complete.struct_size = sizeof(gf_schema_choice);
+    complete.name = view_of(value.name);
+    complete.value = value.value;
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_choice_at(std::uint64_t composite, std::uint64_t property, std::uint64_t choice,
+                                             gf_schema_choice* record) noexcept {
+    return call_slot(composite_choice_at_slot, schema_composite_choice_at_body, composite, property, choice, record);
+}
+
+gf_status schema_composite_event_at_body(std::uint64_t composite, std::uint64_t event,
+                                         gf_schema_interaction* record) {
+    const gf_status valid = check_record(record, composite_event_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_event_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const CompositeDefinition& definition = *(*listed).definition;
+    const gf_status checked = check_index(event, definition.events.size(), composite_event_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const std::size_t at = static_cast<std::size_t>(event);
+    gf_schema_interaction complete{};
+    complete.struct_size = sizeof(gf_schema_interaction);
+    complete.mutable_payload = 0U;
+    complete.name = view_of(definition.events[at].name);
+    complete.payload = view_of((*listed).event_payloads[at]);
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_event_at(std::uint64_t composite, std::uint64_t event,
+                                            gf_schema_interaction* record) noexcept {
+    return call_slot(composite_event_at_slot, schema_composite_event_at_body, composite, event, record);
+}
+
+gf_status schema_composite_command_at_body(std::uint64_t composite, std::uint64_t command, gf_utf8_view* name) {
+    if (name == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, composite_command_at_slot, "composite_command_at needs an output");
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_command_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const CompositeDefinition& definition = *(*listed).definition;
+    const gf_status checked = check_index(command, definition.commands.size(), composite_command_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    *name = view_of(definition.commands[static_cast<std::size_t>(command)].name);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_command_at(std::uint64_t composite, std::uint64_t command,
+                                              gf_utf8_view* name) noexcept {
+    return call_slot(composite_command_at_slot, schema_composite_command_at_body, composite, command, name);
+}
+
 constexpr gf_schema_table table{
     .struct_size = sizeof(gf_schema_table),
     .abi_minor = GF_ABI_MINOR,
@@ -942,6 +1258,15 @@ constexpr gf_schema_table table{
     .child_property_count = &schema_child_property_count,
     .child_property_at = &schema_child_property_at,
     .child_choice_at = &schema_child_choice_at,
+    .composite_count = &schema_composite_count,
+    .composite_at = &schema_composite_at,
+    .composite_part_at = &schema_composite_part_at,
+    .composite_state_at = &schema_composite_state_at,
+    .composite_custom_state_at = &schema_composite_custom_state_at,
+    .composite_property_at = &schema_composite_property_at,
+    .composite_choice_at = &schema_composite_choice_at,
+    .composite_event_at = &schema_composite_event_at,
+    .composite_command_at = &schema_composite_command_at,
 };
 
 } // namespace

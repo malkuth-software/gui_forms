@@ -336,6 +336,8 @@ Types
      -  
    * - :cpp:class:`gf_schema_choice <gf_schema_choice>`
      -  
+   * - :cpp:class:`gf_schema_composite <gf_schema_composite>`
+     -  
    * - :cpp:class:`gf_schema_effect <gf_schema_effect>`
      -  
    * - :cpp:class:`gf_schema_engine <gf_schema_engine>`
@@ -4439,6 +4441,38 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_schema_composite
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: uint64_t composite
+
+   .. cpp:member:: gf_utf8_view id
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view version
+
+   .. cpp:member:: gf_utf8_view slot
+
+   .. cpp:member:: uint64_t part_count
+
+   .. cpp:member:: uint64_t state_count
+
+   .. cpp:member:: uint64_t custom_state_count
+
+   .. cpp:member:: uint64_t property_count
+
+   .. cpp:member:: uint64_t event_count
+
+   .. cpp:member:: uint64_t command_count
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_schema_effect
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -4681,6 +4715,24 @@ Types
    .. cpp:member:: gf_status (*child_property_at)(uint64_t type, uint64_t property, gf_schema_property* record)
 
    .. cpp:member:: gf_status (*child_choice_at)(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record)
+
+   .. cpp:member:: gf_status (*composite_count)(uint64_t* count)
+
+   .. cpp:member:: gf_status (*composite_at)(uint64_t index, gf_schema_composite* record)
+
+   .. cpp:member:: gf_status (*composite_part_at)(uint64_t composite, uint64_t part, gf_schema_part* record)
+
+   .. cpp:member:: gf_status (*composite_state_at)(uint64_t composite, uint64_t part, uint64_t state, gf_utf8_view* name)
+
+   .. cpp:member:: gf_status (*composite_custom_state_at)(uint64_t composite, uint64_t state, gf_utf8_view* name)
+
+   .. cpp:member:: gf_status (*composite_property_at)(uint64_t composite, uint64_t property, gf_schema_property* record)
+
+   .. cpp:member:: gf_status (*composite_choice_at)(uint64_t composite, uint64_t property, uint64_t choice, gf_schema_choice* record)
+
+   .. cpp:member:: gf_status (*composite_event_at)(uint64_t composite, uint64_t event, gf_schema_interaction* record)
+
+   .. cpp:member:: gf_status (*composite_command_at)(uint64_t composite, uint64_t command, gf_utf8_view* name)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5901,6 +5953,24 @@ Types
    .. cpp:function:: gf_status child_property_at(uint64_t type, uint64_t property, gf_schema_property* record) const noexcept
 
    .. cpp:function:: gf_status child_choice_at(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record) const noexcept
+
+   .. cpp:function:: gf_status composite_count(uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status composite_at(uint64_t index, gf_schema_composite* record) const noexcept
+
+   .. cpp:function:: gf_status composite_part_at(uint64_t composite, uint64_t part, gf_schema_part* record) const noexcept
+
+   .. cpp:function:: gf_status composite_state_at(uint64_t composite, uint64_t part, uint64_t state, gf_utf8_view* name) const noexcept
+
+   .. cpp:function:: gf_status composite_custom_state_at(uint64_t composite, uint64_t state, gf_utf8_view* name) const noexcept
+
+   .. cpp:function:: gf_status composite_property_at(uint64_t composite, uint64_t property, gf_schema_property* record) const noexcept
+
+   .. cpp:function:: gf_status composite_choice_at(uint64_t composite, uint64_t property, uint64_t choice, gf_schema_choice* record) const noexcept
+
+   .. cpp:function:: gf_status composite_event_at(uint64_t composite, uint64_t event, gf_schema_interaction* record) const noexcept
+
+   .. cpp:function:: gf_status composite_command_at(uint64_t composite, uint64_t command, gf_utf8_view* name) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

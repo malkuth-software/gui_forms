@@ -445,14 +445,16 @@ if(GUI_FORMS_BUILD_TESTS)
             -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckForeignTextSymbols.cmake")
 
     # The stage C3 gate: the control schema read through the ABI alone equals
-    # manifests/control-schema.json. The schema as the ABI gave it is left in
-    # the build tree for comparison.
+    # manifests/control-schema.json, its composites loaded from the Gallery's
+    # documents (demo/composites) and listed through the schema table. The
+    # schema as the ABI gave it is left in the build tree for comparison.
     add_executable(gui_forms_abi_schema_export tests/abi/schema/gf_abi_schema_export.cpp)
     target_link_libraries(gui_forms_abi_schema_export PRIVATE gui_forms_abi)
     target_compile_features(gui_forms_abi_schema_export PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_schema_export
         COMMAND gui_forms_abi_schema_export ${CMAKE_CURRENT_SOURCE_DIR}/manifests/control-schema.json
             ${CMAKE_CURRENT_SOURCE_DIR}/manifests/abi/interaction_fields.json
+            ${CMAKE_CURRENT_SOURCE_DIR}/demo/composites
             ${CMAKE_CURRENT_BINARY_DIR}/gf_abi/control-schema.abi.json)
     # The stage C4 gate: a theme loaded through the ABI paints a fixture as
     # the C++ path does.

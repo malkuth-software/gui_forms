@@ -76,6 +76,12 @@ struct Schema final {
 // The gf_value_kind of a property kind.
 [[nodiscard]] gf_value_kind value_kind_of(BindingValueKind kind) noexcept;
 
+// A property as the schema lists it: its kind, category, enumeration and
+// choices, flags and serialization, from its descriptor. Throws
+// std::bad_alloc. Composite listings (abi_composite.hpp) use it for their
+// declared properties.
+[[nodiscard]] SchemaProperty schema_property_of(const PropertyDescriptor& descriptor);
+
 // The registry's types, in the schema's order, without building the schema:
 // how many there are, the index of the one named in any spelling of its id
 // (the count when none is), its id (static storage), and a new object of

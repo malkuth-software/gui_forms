@@ -483,9 +483,27 @@ public static unsafe class Layout
             failures += expect(output, "gf_schema_effect.outsets offset", (long)((byte*)&value.outsets - start), 80);
         }
         {
+            gf_schema_composite value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_schema_composite size", sizeof(gf_schema_composite), 128);
+            failures += expect(output, "gf_schema_composite.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_schema_composite.reserved offset", (long)((byte*)&value.reserved - start), 4);
+            failures += expect(output, "gf_schema_composite.composite offset", (long)((byte*)&value.composite - start), 8);
+            failures += expect(output, "gf_schema_composite.id offset", (long)((byte*)&value.id - start), 16);
+            failures += expect(output, "gf_schema_composite.name offset", (long)((byte*)&value.name - start), 32);
+            failures += expect(output, "gf_schema_composite.version offset", (long)((byte*)&value.version - start), 48);
+            failures += expect(output, "gf_schema_composite.slot offset", (long)((byte*)&value.slot - start), 64);
+            failures += expect(output, "gf_schema_composite.part_count offset", (long)((byte*)&value.part_count - start), 80);
+            failures += expect(output, "gf_schema_composite.state_count offset", (long)((byte*)&value.state_count - start), 88);
+            failures += expect(output, "gf_schema_composite.custom_state_count offset", (long)((byte*)&value.custom_state_count - start), 96);
+            failures += expect(output, "gf_schema_composite.property_count offset", (long)((byte*)&value.property_count - start), 104);
+            failures += expect(output, "gf_schema_composite.event_count offset", (long)((byte*)&value.event_count - start), 112);
+            failures += expect(output, "gf_schema_composite.command_count offset", (long)((byte*)&value.command_count - start), 120);
+        }
+        {
             gf_schema_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_schema_table size", sizeof(gf_schema_table), 184);
+            failures += expect(output, "gf_schema_table size", sizeof(gf_schema_table), 256);
             failures += expect(output, "gf_schema_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_schema_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_schema_table.vocabulary_count offset", (long)((byte*)&value.vocabulary_count - start), 8);
@@ -510,6 +528,15 @@ public static unsafe class Layout
             failures += expect(output, "gf_schema_table.child_property_count offset", (long)((byte*)&value.child_property_count - start), 160);
             failures += expect(output, "gf_schema_table.child_property_at offset", (long)((byte*)&value.child_property_at - start), 168);
             failures += expect(output, "gf_schema_table.child_choice_at offset", (long)((byte*)&value.child_choice_at - start), 176);
+            failures += expect(output, "gf_schema_table.composite_count offset", (long)((byte*)&value.composite_count - start), 184);
+            failures += expect(output, "gf_schema_table.composite_at offset", (long)((byte*)&value.composite_at - start), 192);
+            failures += expect(output, "gf_schema_table.composite_part_at offset", (long)((byte*)&value.composite_part_at - start), 200);
+            failures += expect(output, "gf_schema_table.composite_state_at offset", (long)((byte*)&value.composite_state_at - start), 208);
+            failures += expect(output, "gf_schema_table.composite_custom_state_at offset", (long)((byte*)&value.composite_custom_state_at - start), 216);
+            failures += expect(output, "gf_schema_table.composite_property_at offset", (long)((byte*)&value.composite_property_at - start), 224);
+            failures += expect(output, "gf_schema_table.composite_choice_at offset", (long)((byte*)&value.composite_choice_at - start), 232);
+            failures += expect(output, "gf_schema_table.composite_event_at offset", (long)((byte*)&value.composite_event_at - start), 240);
+            failures += expect(output, "gf_schema_table.composite_command_at offset", (long)((byte*)&value.composite_command_at - start), 248);
         }
         {
             gf_bytes_view value = default;

@@ -1395,9 +1395,10 @@ typedef uint32_t gf_schema_primitive_list;
  * The schema's records are output records: the caller sets struct_size, at
  * least the 1.0 size, and the library writes the 1.0 fields after it. Every
  * gf_utf8_view the schema table writes lends library storage that stays
- * valid and unchanged until the process ends; it is the one exception to
- * the rule that no library storage is lent. An empty composed_from or
- * enumeration means none.
+ * valid and unchanged until the process ends, except the composite_*
+ * slots', valid while the load they describe is held (gf_schema_composite);
+ * these are the one exception to the rule that no library storage is lent.
+ * An empty composed_from or enumeration means none.
  */
 typedef struct gf_schema_type {
     uint32_t struct_size;
@@ -1553,6 +1554,44 @@ typedef struct gf_schema_effect {
 } gf_schema_effect;
 
 /*
+ * Since 1.5, provisional (numbered 1.5 while 1.5 is unreleased, else 1.6).
+ * A composite definition the process has loaded (GF_TABLE_CUSTOM_CONTROLS
+ * load_composite), as the schema table lists it: composite is the identity
+ * of that load, which the composite_* slots take; id is the registered
+ * (snake case) name, which objects.type_id gives for a control made from
+ * it; name is the type's name as the document writes it; version is
+ * "major.minor"; slot is the slot's local ID, empty without one. The counts
+ * are of its anatomy (parts, states, custom states), its declared
+ * properties (the values it registers: neither presentational nor
+ * command properties), its events and its commands.
+ *
+ * Release rules: a load is listed from load_composite until the caller's
+ * hold on the definition ends, by releasing its last reference or by
+ * disposing the object; the controls made from it keep working, but are no
+ * longer listed. Every gf_utf8_view a composite_* slot writes lends the
+ * definition's storage, valid until that hold ends (not until the process
+ * ends, as the rest of the schema's text is). An identity is never reused:
+ * once its load is released, every composite_* slot given it fails with
+ * GF_STATUS_REMOVED and writes nothing, and an identity no load had gives
+ * GF_STATUS_INVALID_ARGUMENT. UI thread only.
+ */
+typedef struct gf_schema_composite {
+    uint32_t struct_size;
+    uint32_t reserved;
+    uint64_t composite;
+    gf_utf8_view id;
+    gf_utf8_view name;
+    gf_utf8_view version;
+    gf_utf8_view slot;
+    uint64_t part_count;
+    uint64_t state_count;
+    uint64_t custom_state_count;
+    uint64_t property_count;
+    uint64_t event_count;
+    uint64_t command_count;
+} gf_schema_composite;
+
+/*
  * GF_TABLE_SCHEMA: the control schema (stage T1) and the engine it themes,
  * as manifests/control-schema.json records them. Types are numbered from
  * zero in the registry's order; every other list from zero in its own. An
@@ -1606,6 +1645,39 @@ typedef struct gf_schema_table {
     gf_status (GF_CALL* child_property_at)(uint64_t type, uint64_t property, gf_schema_property* record);
     gf_status (GF_CALL* child_choice_at)(uint64_t type, uint64_t property, uint64_t choice,
                                          gf_schema_choice* record);
+    /*
+     * The slots below are provisional additions (numbered 1.5 while 1.5 is
+     * unreleased, else 1.6); a table whose struct_size ends before one does
+     * not have it. They list the composite definitions loaded now (see
+     * gf_schema_composite for the release rules), the C counterpart of
+     * manifests/control-schema.json's composites.
+     */
+    /* How many loads are listed now, and one of them (index below the
+     * count), in load order. Indices move as loads are released; the
+     * record's composite does not. */
+    gf_status (GF_CALL* composite_count)(uint64_t* count);
+    gf_status (GF_CALL* composite_at)(uint64_t index, gf_schema_composite* record);
+    /* A part of the composite's anatomy: region, focus, then the declared
+     * parts in document order. */
+    gf_status (GF_CALL* composite_part_at)(uint64_t composite, uint64_t part, gf_schema_part* record);
+    /* A state of the composite, or (part not GF_SCHEMA_NONE) of one of its
+     * parts. */
+    gf_status (GF_CALL* composite_state_at)(uint64_t composite, uint64_t part, uint64_t state,
+                                            gf_utf8_view* name);
+    gf_status (GF_CALL* composite_custom_state_at)(uint64_t composite, uint64_t state, gf_utf8_view* name);
+    /* A declared property, as property_at gives a type's, and one choice
+     * of it. */
+    gf_status (GF_CALL* composite_property_at)(uint64_t composite, uint64_t property,
+                                               gf_schema_property* record);
+    gf_status (GF_CALL* composite_choice_at)(uint64_t composite, uint64_t property, uint64_t choice,
+                                             gf_schema_choice* record);
+    /* A declared event: its name as the document writes it, and its payload
+     * in the interaction vocabulary (gf_schema_interaction), empty for
+     * none; mutable_payload is 0. */
+    gf_status (GF_CALL* composite_event_at)(uint64_t composite, uint64_t event,
+                                            gf_schema_interaction* record);
+    /* A declared command's name, as perform_composite takes it. */
+    gf_status (GF_CALL* composite_command_at)(uint64_t composite, uint64_t command, gf_utf8_view* name);
 } gf_schema_table;
 
 /* Borrowed bytes: size bytes at data. data may be null only when size is
@@ -3020,7 +3092,8 @@ typedef struct gf_custom_control_spec {
  * objects table's rule) and gives the caller one reference; its children
  * have stable_id.<local> for each `@local` of the document. Its type id
  * (objects.type_id) is the document's name in snake case, which the
- * schema does not list; its own properties are reached through
+ * schema table lists among its composites (composite_count, since 1.5,
+ * provisional) while the definition is held; its own properties are reached through
  * GF_TABLE_PROPERTIES under their registered names, and its declared
  * events through events.subscribe under theirs, with the payload, when it
  * has one, as the field "value". perform_composite runs one of its
