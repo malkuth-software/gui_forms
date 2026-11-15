@@ -10,6 +10,7 @@
 #include <array>
 #include <bit>
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <functional>
@@ -19,9 +20,13 @@
 #include <poll.h>
 #include <span>
 #include <stdexcept>
+#include <string>
 #include <sys/wait.h>
+#include <system_error>
 #include <thread>
 #include <unistd.h>
+#include <utility>
+#include <vector>
 
 namespace {
 using namespace gui_forms;
@@ -823,6 +828,29 @@ void scroll_copy_gate(Runtime &runtime) {
   (*window).close(HostCloseReason::application, true);
   runtime.step(0);
 }
+// A directory this test made and removes when it goes, also when a check
+// throws.
+struct TemporaryDirectory final {
+    std::string path;
+    explicit TemporaryDirectory(std::string made) : path(std::move(made)) {}
+    TemporaryDirectory(const TemporaryDirectory&) = delete;
+    TemporaryDirectory& operator=(const TemporaryDirectory&) = delete;
+    ~TemporaryDirectory() {
+        std::error_code ignored{};
+        std::filesystem::remove_all(path, ignored);
+    }
+};
+
+// A new directory for the dialog checks under the system temporary
+// directory, made by mkdtemp. Throws std::runtime_error when it fails.
+TemporaryDirectory make_dialog_directory() {
+    const std::string pattern = (std::filesystem::temp_directory_path() / "gui-forms-dialog-XXXXXX").string();
+    std::vector<char> name(pattern.begin(), pattern.end());
+    name.push_back('\0');
+    if (mkdtemp(name.data()) == nullptr) throw std::runtime_error("mkdtemp failed for the dialog directory");
+    return TemporaryDirectory(std::string(name.data()));
+}
+
 struct KeepClientSize final {
   std::function<HostServiceStatus(Size)> *retained{};
   void operator()(std::function<HostServiceStatus(Size)> request) const { *retained = std::move(request); }
@@ -1102,14 +1130,15 @@ int main() {
     }
     wait_child(runtime, child);
     require((*root).dropped, "Native drop did not reach retained control");
-    const std::string directory =
-        "/tmp/gui-forms-dialog-" + std::to_string(getpid());
-    std::filesystem::create_directory(directory);
+    // A directory mkdtemp made (mode 0700, a new name), not a predictable
+    // /tmp name another user or an earlier run could have left a link or a
+    // directory at; removed on every way out (B-gf-tests-07-F4).
+    const TemporaryDirectory made = make_dialog_directory();
+    const std::string& directory = made.path;
     std::ofstream(directory + "/existing.png").put('x');
     dialog(runtime, *window, directory, false);
     dialog(runtime, *window, directory, true);
     dialog_checks(runtime, *window, directory);
-    std::filesystem::remove_all(directory);
     live_frame_sequence(runtime);
     damage_rectangles_gate(runtime);
     scroll_copy_gate(runtime);

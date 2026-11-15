@@ -3402,8 +3402,10 @@ if(GUI_FORMS_BUILD_TESTS)
             set_tests_properties(gui_forms_macos_open_files_probe_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 120)
             # Quit, logout and restart checks (Mac handoff 2026-11-09, item
             # 2e; cp29 row 14; cp33): a primary and a secondary window whose
-            # closes are refused while /tmp/gf_term_refuse and
-            # /tmp/gf_term_secondary_refuse exist; it logs to /tmp/gf_term.log.
+            # closes are refused while gf_term_refuse and
+            # gf_term_secondary_refuse exist in the user's temporary
+            # directory (getconf DARWIN_USER_TEMP_DIR); it logs to
+            # gf_term.log there.
             # The driver test types Cmd-Q inside the fixture (no permission
             # grant) and checks the order, the refusals, the saved state and
             # the run's return; logout and restart are started by hand with

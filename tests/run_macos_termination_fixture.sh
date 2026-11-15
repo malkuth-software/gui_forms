@@ -3,7 +3,7 @@
 # cp33): close requests asked in order, a refusal honoured, no lost state.
 #
 # By default Cmd-Q is typed inside the fixture: the script creates
-# /tmp/gf_term_cmd_q and the fixture posts Command-Q to its own event queue,
+# $user_temp/gf_term_cmd_q and the fixture posts Command-Q to its own event queue,
 # which goes through the Quit menu item and -[NSApplication terminate:].
 # No Automation or Accessibility grant is needed, so the instrumentation
 # host runs it with no per-application permission. With DRIVER=apple-event
@@ -11,9 +11,9 @@
 # Automation grant for the caller.
 #
 # Three quits:
-#   1. /tmp/gf_term_secondary_refuse present: the secondary window refuses,
+#   1. $user_temp/gf_term_secondary_refuse present: the secondary window refuses,
 #      the primary is not asked, the process keeps running;
-#   2. /tmp/gf_term_refuse present instead: the secondary accepts (and
+#   2. $user_temp/gf_term_refuse present instead: the secondary accepts (and
 #      saves), the primary refuses, the process keeps running;
 #   3. no flag: both accept in order, the primary closes, Application::run
 #      returns (the host cancels AppKit's termination for a plain quit), the
@@ -24,13 +24,19 @@
 # Usage: run_macos_termination_fixture.sh BUNDLE
 set -eu
 bundle=$1
+# The fixture's files live in the user's private temporary directory (one
+# per user, mode 0700), not the shared /tmp, where another user could plant
+# a link at a fixed name (B-gf-tests-07-F4). The fixture reads the same
+# directory with confstr(_CS_DARWIN_USER_TEMP_DIR).
+user_temp=$(getconf DARWIN_USER_TEMP_DIR)
+user_temp=${user_temp%/}
 driver=${DRIVER:-cmd-q}
 identifier=local.guiforms.termination-fixture
-log=/tmp/gf_term.log
+log="$user_temp/gf_term.log"
 executable="$bundle/Contents/MacOS/"
 pkill -f "$executable" 2>/dev/null || true
-rm -f "$log" /tmp/gf_term_refuse /tmp/gf_term_cmd_q
-touch /tmp/gf_term_secondary_refuse
+rm -f "$log" "$user_temp/gf_term_refuse" "$user_temp/gf_term_cmd_q"
+touch "$user_temp/gf_term_secondary_refuse"
 
 wait_for_line() {
     waited=0
@@ -66,7 +72,7 @@ quit() {
             ;;
         *)
             posted_before=$(count_lines "cmd-q posted")
-            touch /tmp/gf_term_cmd_q
+            touch "$user_temp/gf_term_cmd_q"
             waited=0
             while [ "$(count_lines "cmd-q posted")" -le "$posted_before" ]; do
                 waited=$((waited + 1))
@@ -89,14 +95,14 @@ wait_for_line "secondary refused" || fail "the secondary window did not refuse t
 sleep 1
 pgrep -f "$executable" >/dev/null 2>&1 || fail "a refused quit ended the process"
 
-rm -f /tmp/gf_term_secondary_refuse
-touch /tmp/gf_term_refuse
+rm -f "$user_temp/gf_term_secondary_refuse"
+touch "$user_temp/gf_term_refuse"
 quit
 wait_for_line "main refused" || fail "the primary window did not refuse the second quit"
 sleep 1
 pgrep -f "$executable" >/dev/null 2>&1 || fail "a quit the primary refused ended the process"
 
-rm -f /tmp/gf_term_refuse
+rm -f "$user_temp/gf_term_refuse"
 quit
 waited=0
 while pgrep -f "$executable" >/dev/null 2>&1; do

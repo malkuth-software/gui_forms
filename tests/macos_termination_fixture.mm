@@ -6,6 +6,8 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <climits>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -20,26 +22,28 @@
 
 // Two windows whose closing handlers refuse while a flag file exists, as
 // Cancel on an unsaved-changes prompt does, and accept otherwise (Mac
-// handoff 2026-11-09, item 2e; cp29 row 14; cp33): the primary window,
-// which ends the run, refuses while /tmp/gf_term_refuse exists, and a
+// handoff 2026-11-09, item 2e; cp29 row 14; cp33). Its files live in the
+// user's private temporary directory, TMP below (getconf
+// DARWIN_USER_TEMP_DIR). The primary window, which ends the run, refuses
+// while TMP/gf_term_refuse exists, and a
 // secondary window (a floating document owned by it) while
-// /tmp/gf_term_secondary_refuse exists. It is started with `open -n -a` and
+// TMP/gf_term_secondary_refuse exists. It is started with `open -n -a` and
 // ended by Cmd-Q, the quit Apple Event, a logout or a restart; it never ends
-// itself. Each event appends one line with a timestamp to /tmp/gf_term.log:
+// itself. Each event appends one line with a timestamp to TMP/gf_term.log:
 // start, each window's ready, closing asked (with its reason), refused or
 // accepted and closed, the run's return, the saved state it found, the exit
 // code and the process exit (an atexit handler, which a session end reaches
 // from inside -[NSApplication terminate:]).
 //
 // Cmd-Q without an Automation grant (cp33): while the fixture runs it polls
-// for /tmp/gf_term_cmd_q every 100 ms; on finding it, it removes it and
+// for TMP/gf_term_cmd_q every 100 ms; on finding it, it removes it and
 // posts a Command-Q key-down and key-up to its own NSApp, which goes through
 // the application menu's Quit item and -[NSApplication terminate:] as a
 // typed Cmd-Q does. An event posted to the process's own queue needs no
 // privacy grant.
 //
 // No lost state: an accepting closing handler saves its window's state, a
-// line "saved reason=<reason>", to /tmp/gf_term_<window>.state, and after
+// line "saved reason=<reason>", to TMP/gf_term_<window>.state, and after
 // the run returns the fixture logs what each state file holds. A refusing
 // handler saves nothing.
 //
@@ -61,12 +65,45 @@
 namespace {
 using namespace gui_forms;
 
-constexpr const char* log_path = "/tmp/gf_term.log";
-constexpr const char* refuse_flag = "/tmp/gf_term_refuse";
-constexpr const char* secondary_refuse_flag = "/tmp/gf_term_secondary_refuse";
-constexpr const char* cmd_q_trigger = "/tmp/gf_term_cmd_q";
-constexpr const char* main_state_path = "/tmp/gf_term_main.state";
-constexpr const char* secondary_state_path = "/tmp/gf_term_secondary.state";
+// The fixture's files, in the user's private temporary directory
+// (confstr(_CS_DARWIN_USER_TEMP_DIR): one per user, mode 0700), which the
+// driver script finds with `getconf DARWIN_USER_TEMP_DIR`. Fixed names in
+// the shared /tmp let another user plant a link or a directory there
+// (B-gf-tests-07-F4). make_fixture_paths fills them at the start of main;
+// they are plain arrays, so the atexit handler still reads them.
+struct FixturePaths final {
+    char log[PATH_MAX]{};
+    char refuse_flag[PATH_MAX]{};
+    char secondary_refuse_flag[PATH_MAX]{};
+    char cmd_q_trigger[PATH_MAX]{};
+    char main_state[PATH_MAX]{};
+    char secondary_state[PATH_MAX]{};
+};
+FixturePaths fixture_paths{};
+
+// Writes `directory`/`name` into `out`; false when it does not fit.
+bool join_path(char (&out)[PATH_MAX], const char* const directory, const char* const name) {
+    const int written = std::snprintf(out, sizeof out, "%s/%s", directory, name);
+    const bool fits = written > 0 && static_cast<std::size_t>(written) < sizeof out;
+    return fits;
+}
+
+// Fills fixture_paths from the user's temporary directory; false when it
+// cannot be read or a path does not fit.
+bool make_fixture_paths() {
+    char directory[PATH_MAX]{};
+    const std::size_t needed = confstr(_CS_DARWIN_USER_TEMP_DIR, directory, sizeof directory);
+    if (needed < 2U || needed > sizeof directory) return false;
+    // needed counts the terminating zero; the directory ends with a slash.
+    if (directory[needed - 2U] == '/') directory[needed - 2U] = '\0';
+    const bool made = join_path(fixture_paths.log, directory, "gf_term.log") &&
+                      join_path(fixture_paths.refuse_flag, directory, "gf_term_refuse") &&
+                      join_path(fixture_paths.secondary_refuse_flag, directory, "gf_term_secondary_refuse") &&
+                      join_path(fixture_paths.cmd_q_trigger, directory, "gf_term_cmd_q") &&
+                      join_path(fixture_paths.main_state, directory, "gf_term_main.state") &&
+                      join_path(fixture_paths.secondary_state, directory, "gf_term_secondary.state");
+    return made;
+}
 
 // Appends "<UTC time>.<ms> pid=<pid> <event>" to the log, opening and
 // closing it each time so every line is on disk at once. UTC, not local
@@ -80,7 +117,7 @@ void append_line(const char* const event) {
     gmtime_r(&seconds, &utc);
     char stamp[32];
     std::strftime(stamp, sizeof stamp, "%Y-%m-%d %H:%M:%SZ", &utc);
-    std::FILE* const file = std::fopen(log_path, "a");
+    std::FILE* const file = std::fopen(fixture_paths.log, "a");
     if (file == nullptr) return;
     std::fprintf(file, "%s.%03d pid=%d %s\n", stamp, static_cast<int>(now.tv_usec / 1000), static_cast<int>(getpid()),
                  event);
@@ -179,13 +216,13 @@ void post_command_q() {
 // unused.
 void poll_cmd_q_trigger(void* const context) {
     static_cast<void>(context);
-    if (unlink(cmd_q_trigger) != 0) return;
+    if (unlink(fixture_paths.cmd_q_trigger) != 0) return;
     post_command_q();
 }
 
 // One window's closing handler: `window` names it in the log, it refuses
 // while the file at `flag` exists, and on accepting it saves its state to
-// `state`. All three are string literals.
+// `state`. All three outlive the run (literals and fixture_paths).
 struct RefuseWhileFlagged final {
     const char* window{};
     const char* flag{};
@@ -245,10 +282,11 @@ ApplicationWindow make_window(const char* const stable_id, const char* const own
 } // namespace
 
 int main() {
+    if (!make_fixture_paths()) return 1;
     std::atexit(&log_process_exit);
-    unlink(main_state_path);
-    unlink(secondary_state_path);
-    unlink(cmd_q_trigger);
+    unlink(fixture_paths.main_state);
+    unlink(fixture_paths.secondary_state);
+    unlink(fixture_paths.cmd_q_trigger);
     append_line("start");
     ApplicationCreateResult created = Application::create(ApplicationConfig{});
     if (!created) {
@@ -270,18 +308,19 @@ int main() {
     dispatch_resume(poll);
     std::vector<ApplicationWindow> windows{};
     windows.reserve(2U);
-    windows.push_back(make_window("termination.fixture.main", "", "main", refuse_flag, main_state_path,
+    windows.push_back(make_window("termination.fixture.main", "", "main", fixture_paths.refuse_flag, fixture_paths.main_state,
                                   "GUI.Forms termination fixture"));
     ApplicationWindow secondary = make_window("termination.fixture.secondary", "termination.fixture.main",
-                                              "secondary", secondary_refuse_flag, secondary_state_path,
+                                              "secondary", fixture_paths.secondary_refuse_flag,
+                                              fixture_paths.secondary_state,
                                               "GUI.Forms termination fixture: secondary");
     secondary.floating = HostWindowFloating::document;
     windows.push_back(std::move(secondary));
     const ApplicationResult result = (*created.application).run(std::move(windows));
     dispatch_source_cancel(poll);
     append_line(result.accepted() ? "run returned accepted" : "run returned refused");
-    log_state("main", main_state_path);
-    log_state("secondary", secondary_state_path);
+    log_state("main", fixture_paths.main_state);
+    log_state("secondary", fixture_paths.secondary_state);
     const int exit_code = result.accepted() ? 0 : 1;
     const std::string exit_line = "exit code " + std::to_string(exit_code);
     append_line(exit_line.c_str());
