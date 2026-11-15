@@ -645,6 +645,14 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status show_business_card(gf_object window_or_root, uint32_t* shown) const noexcept {
+        if (table_.struct_size < 168u || table_.show_business_card == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.show_business_card(window_or_root, shown);
+        return called;
+    }
+
 private:
     gf_windows_table table_;
 };
@@ -1224,6 +1232,22 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status set_diagnostic_overlay(uint32_t enabled) const noexcept {
+        if (table_.struct_size < 88u || table_.set_diagnostic_overlay == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_diagnostic_overlay(enabled);
+        return called;
+    }
+
+    [[nodiscard]] gf_status toggle_diagnostic_overlay(uint32_t* enabled) const noexcept {
+        if (table_.struct_size < 96u || table_.toggle_diagnostic_overlay == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.toggle_diagnostic_overlay(enabled);
+        return called;
+    }
+
 private:
     gf_diagnostics_table table_;
 };
@@ -1358,6 +1382,48 @@ public:
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.focus_state(object, focused, contains_focus);
+        return called;
+    }
+
+    [[nodiscard]] gf_status request_relative_pointer(gf_object object, const gf_relative_pointer_request* request,
+                                                     gf_relative_pointer_grant* grant) const noexcept {
+        if (table_.struct_size < 120u || table_.request_relative_pointer == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.request_relative_pointer(object, request, grant);
+        return called;
+    }
+
+    [[nodiscard]] gf_status release_relative_pointer(gf_object object, uint32_t* released) const noexcept {
+        if (table_.struct_size < 128u || table_.release_relative_pointer == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.release_relative_pointer(object, released);
+        return called;
+    }
+
+    [[nodiscard]] gf_status relative_pointer_state(gf_object object, gf_relative_pointer_state* state) const noexcept {
+        if (table_.struct_size < 136u || table_.relative_pointer_state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.relative_pointer_state(object, state);
+        return called;
+    }
+
+    [[nodiscard]] gf_status warp_pointer(gf_object object, gf_logical_point position, uint32_t* warped) const noexcept {
+        if (table_.struct_size < 144u || table_.warp_pointer == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.warp_pointer(object, position, warped);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_pointer_release_regions(gf_object object, const gf_logical_rect* regions,
+                                                        uint32_t count) const noexcept {
+        if (table_.struct_size < 152u || table_.set_pointer_release_regions == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_pointer_release_regions(object, regions, count);
         return called;
     }
 
@@ -2096,6 +2162,14 @@ public:
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.state(state);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_program_identity(const gf_program_identity* identity) const noexcept {
+        if (table_.struct_size < 40u || table_.set_program_identity == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_program_identity(identity);
         return called;
     }
 

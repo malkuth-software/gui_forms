@@ -1282,6 +1282,31 @@
       "type": "uint64"
     },
     {
+      "name": "GF_HOST_CAPABILITY_RELATIVE_POINTER",
+      "value": 137438953472,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_RAW_POINTER_MOTION",
+      "value": 274877906944,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_POINTER_CONFINEMENT",
+      "value": 549755813888,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_POINTER_WARP",
+      "value": 1099511627776,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_OPEN_URL",
+      "value": 2199023255552,
+      "type": "uint64"
+    },
+    {
       "name": "GF_WINDOW_CORNER_SHAPE_SQUARE",
       "value": 1,
       "type": "uint32"
@@ -1629,6 +1654,91 @@
     {
       "name": "GF_SCROLL_ORIENTATION_VERTICAL",
       "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_MODE_FREE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_MODE_CONFINED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_MODE_LOCKED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_RESULT_GRANTED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_RESULT_DEGRADED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_RESULT_DETACHED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_RESULT_NOT_ACTIVE",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_RESULT_NO_PRESS",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_RESULT_INVALID_REQUEST",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_END_RELEASED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_END_ESCAPE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_END_FOCUS_LOST",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_END_DEACTIVATED",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_END_MODAL",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_END_DETACHED",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_END_PRESS_RELEASED",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RELATIVE_POINTER_END_SUPERSEDED",
+      "value": 7,
       "type": "uint32"
     },
     {
@@ -3415,6 +3525,18 @@
     },
     {
       "name": "gf_scroll_orientation",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_relative_pointer_mode",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_relative_pointer_result",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_relative_pointer_end",
       "type": "uint32_t"
     },
     {
@@ -5579,7 +5701,7 @@
     {
       "name": "gf_windows_table",
       "kind": "table",
-      "size": 160,
+      "size": 168,
       "align": 8,
       "fields": [
         {
@@ -5976,6 +6098,26 @@
               },
               {
                 "name": "inside",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "show_business_card",
+          "type": "function",
+          "offset": 160,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "shown",
                 "type": "uint32_t*"
               }
             ]
@@ -8192,7 +8334,7 @@
     {
       "name": "gf_diagnostics_table",
       "kind": "table",
-      "size": 80,
+      "size": 96,
       "align": 8,
       "fields": [
         {
@@ -8381,6 +8523,38 @@
             ]
           },
           "since": "1.4"
+        },
+        {
+          "name": "set_diagnostic_overlay",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "enabled",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "toggle_diagnostic_overlay",
+          "type": "function",
+          "offset": 88,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "enabled",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.5"
         }
       ]
     },
@@ -8571,9 +8745,219 @@
       ]
     },
     {
+      "name": "gf_relative_pointer_request",
+      "kind": "extensible",
+      "size": 24,
+      "align": 4,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "mode",
+          "type": "gf_relative_pointer_mode",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "hide_cursor",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "raw_motion",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "until_release",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_relative_pointer_grant",
+      "kind": "extensible",
+      "size": 24,
+      "align": 4,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "result",
+          "type": "gf_relative_pointer_result",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "mode",
+          "type": "gf_relative_pointer_mode",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "raw",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "cursor_hidden",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "host_relative",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_relative_pointer_state",
+      "kind": "extensible",
+      "size": 96,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "owned",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "active",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "suspended",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "mode",
+          "type": "gf_relative_pointer_mode",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "raw",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "host_relative",
+          "type": "uint32_t",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "last_end",
+          "type": "gf_relative_pointer_end",
+          "offset": 28,
+          "size": 4
+        },
+        {
+          "name": "grants",
+          "type": "uint64_t",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "samples",
+          "type": "uint64_t",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "suspensions",
+          "type": "uint64_t",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "resumptions",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        },
+        {
+          "name": "ends",
+          "type": "uint64_t",
+          "offset": 64,
+          "size": 8
+        },
+        {
+          "name": "support_relative_motion",
+          "type": "uint32_t",
+          "offset": 72,
+          "size": 4
+        },
+        {
+          "name": "support_raw_motion",
+          "type": "uint32_t",
+          "offset": 76,
+          "size": 4
+        },
+        {
+          "name": "support_lock",
+          "type": "uint32_t",
+          "offset": 80,
+          "size": 4
+        },
+        {
+          "name": "support_confine",
+          "type": "uint32_t",
+          "offset": 84,
+          "size": 4
+        },
+        {
+          "name": "support_warp",
+          "type": "uint32_t",
+          "offset": 88,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 92,
+          "size": 4
+        }
+      ]
+    },
+    {
       "name": "gf_controls_table",
       "kind": "table",
-      "size": 112,
+      "size": 152,
       "align": 8,
       "fields": [
         {
@@ -8847,6 +9231,118 @@
             ]
           },
           "since": "1.2"
+        },
+        {
+          "name": "request_relative_pointer",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "request",
+                "type": "const gf_relative_pointer_request*"
+              },
+              {
+                "name": "grant",
+                "type": "gf_relative_pointer_grant*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "release_relative_pointer",
+          "type": "function",
+          "offset": 120,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "released",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "relative_pointer_state",
+          "type": "function",
+          "offset": 128,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "state",
+                "type": "gf_relative_pointer_state*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "warp_pointer",
+          "type": "function",
+          "offset": 136,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "position",
+                "type": "gf_logical_point"
+              },
+              {
+                "name": "warped",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "set_pointer_release_regions",
+          "type": "function",
+          "offset": 144,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "regions",
+                "type": "const gf_logical_rect*"
+              },
+              {
+                "name": "count",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.5"
         }
       ]
     },
@@ -11516,9 +12012,65 @@
       ]
     },
     {
+      "name": "gf_program_identity",
+      "kind": "extensible",
+      "size": 104,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "product",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "version",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "vendor",
+          "type": "gf_utf8_view",
+          "offset": 40,
+          "size": 16
+        },
+        {
+          "name": "website",
+          "type": "gf_utf8_view",
+          "offset": 56,
+          "size": 16
+        },
+        {
+          "name": "copyright",
+          "type": "gf_utf8_view",
+          "offset": 72,
+          "size": 16
+        },
+        {
+          "name": "credits",
+          "type": "gf_utf8_view",
+          "offset": 88,
+          "size": 16
+        }
+      ]
+    },
+    {
       "name": "gf_application_table",
       "kind": "table",
-      "size": 32,
+      "size": 40,
       "align": 8,
       "fields": [
         {
@@ -11584,6 +12136,22 @@
             ]
           },
           "since": "1.1"
+        },
+        {
+          "name": "set_program_identity",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "identity",
+                "type": "const gf_program_identity*"
+              }
+            ]
+          },
+          "since": "1.5"
         }
       ]
     },

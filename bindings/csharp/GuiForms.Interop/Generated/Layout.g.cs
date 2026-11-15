@@ -331,7 +331,7 @@ public static unsafe class Layout
         {
             gf_windows_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 160);
+            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 168);
             failures += expect(output, "gf_windows_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_windows_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_windows_table.run offset", (long)((byte*)&value.run - start), 8);
@@ -353,6 +353,7 @@ public static unsafe class Layout
             failures += expect(output, "gf_windows_table.content_rect offset", (long)((byte*)&value.content_rect - start), 136);
             failures += expect(output, "gf_windows_table.shaping offset", (long)((byte*)&value.shaping - start), 144);
             failures += expect(output, "gf_windows_table.pointer_location offset", (long)((byte*)&value.pointer_location - start), 152);
+            failures += expect(output, "gf_windows_table.show_business_card offset", (long)((byte*)&value.show_business_card - start), 160);
         }
         {
             gf_schema_type value = default;
@@ -696,7 +697,7 @@ public static unsafe class Layout
         {
             gf_diagnostics_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_diagnostics_table size", sizeof(gf_diagnostics_table), 80);
+            failures += expect(output, "gf_diagnostics_table size", sizeof(gf_diagnostics_table), 96);
             failures += expect(output, "gf_diagnostics_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_diagnostics_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_diagnostics_table.shadow_frames offset", (long)((byte*)&value.shadow_frames - start), 8);
@@ -708,6 +709,8 @@ public static unsafe class Layout
             failures += expect(output, "gf_diagnostics_table.exception_reflection offset", (long)((byte*)&value.exception_reflection - start), 56);
             failures += expect(output, "gf_diagnostics_table.raise_native_exception offset", (long)((byte*)&value.raise_native_exception - start), 64);
             failures += expect(output, "gf_diagnostics_table.failure_detail offset", (long)((byte*)&value.failure_detail - start), 72);
+            failures += expect(output, "gf_diagnostics_table.set_diagnostic_overlay offset", (long)((byte*)&value.set_diagnostic_overlay - start), 80);
+            failures += expect(output, "gf_diagnostics_table.toggle_diagnostic_overlay offset", (long)((byte*)&value.toggle_diagnostic_overlay - start), 88);
         }
         {
             gf_layout_transaction value = default;
@@ -752,9 +755,55 @@ public static unsafe class Layout
             failures += expect(output, "gf_scroll_snapshot.event_new_value offset", (long)((byte*)&value.event_new_value - start), 240);
         }
         {
+            gf_relative_pointer_request value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_relative_pointer_request size", sizeof(gf_relative_pointer_request), 24);
+            failures += expect(output, "gf_relative_pointer_request.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_relative_pointer_request.mode offset", (long)((byte*)&value.mode - start), 4);
+            failures += expect(output, "gf_relative_pointer_request.hide_cursor offset", (long)((byte*)&value.hide_cursor - start), 8);
+            failures += expect(output, "gf_relative_pointer_request.raw_motion offset", (long)((byte*)&value.raw_motion - start), 12);
+            failures += expect(output, "gf_relative_pointer_request.until_release offset", (long)((byte*)&value.until_release - start), 16);
+            failures += expect(output, "gf_relative_pointer_request.reserved offset", (long)((byte*)&value.reserved - start), 20);
+        }
+        {
+            gf_relative_pointer_grant value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_relative_pointer_grant size", sizeof(gf_relative_pointer_grant), 24);
+            failures += expect(output, "gf_relative_pointer_grant.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_relative_pointer_grant.result offset", (long)((byte*)&value.result - start), 4);
+            failures += expect(output, "gf_relative_pointer_grant.mode offset", (long)((byte*)&value.mode - start), 8);
+            failures += expect(output, "gf_relative_pointer_grant.raw offset", (long)((byte*)&value.raw - start), 12);
+            failures += expect(output, "gf_relative_pointer_grant.cursor_hidden offset", (long)((byte*)&value.cursor_hidden - start), 16);
+            failures += expect(output, "gf_relative_pointer_grant.host_relative offset", (long)((byte*)&value.host_relative - start), 20);
+        }
+        {
+            gf_relative_pointer_state value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_relative_pointer_state size", sizeof(gf_relative_pointer_state), 96);
+            failures += expect(output, "gf_relative_pointer_state.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_relative_pointer_state.owned offset", (long)((byte*)&value.owned - start), 4);
+            failures += expect(output, "gf_relative_pointer_state.active offset", (long)((byte*)&value.active - start), 8);
+            failures += expect(output, "gf_relative_pointer_state.suspended offset", (long)((byte*)&value.suspended - start), 12);
+            failures += expect(output, "gf_relative_pointer_state.mode offset", (long)((byte*)&value.mode - start), 16);
+            failures += expect(output, "gf_relative_pointer_state.raw offset", (long)((byte*)&value.raw - start), 20);
+            failures += expect(output, "gf_relative_pointer_state.host_relative offset", (long)((byte*)&value.host_relative - start), 24);
+            failures += expect(output, "gf_relative_pointer_state.last_end offset", (long)((byte*)&value.last_end - start), 28);
+            failures += expect(output, "gf_relative_pointer_state.grants offset", (long)((byte*)&value.grants - start), 32);
+            failures += expect(output, "gf_relative_pointer_state.samples offset", (long)((byte*)&value.samples - start), 40);
+            failures += expect(output, "gf_relative_pointer_state.suspensions offset", (long)((byte*)&value.suspensions - start), 48);
+            failures += expect(output, "gf_relative_pointer_state.resumptions offset", (long)((byte*)&value.resumptions - start), 56);
+            failures += expect(output, "gf_relative_pointer_state.ends offset", (long)((byte*)&value.ends - start), 64);
+            failures += expect(output, "gf_relative_pointer_state.support_relative_motion offset", (long)((byte*)&value.support_relative_motion - start), 72);
+            failures += expect(output, "gf_relative_pointer_state.support_raw_motion offset", (long)((byte*)&value.support_raw_motion - start), 76);
+            failures += expect(output, "gf_relative_pointer_state.support_lock offset", (long)((byte*)&value.support_lock - start), 80);
+            failures += expect(output, "gf_relative_pointer_state.support_confine offset", (long)((byte*)&value.support_confine - start), 84);
+            failures += expect(output, "gf_relative_pointer_state.support_warp offset", (long)((byte*)&value.support_warp - start), 88);
+            failures += expect(output, "gf_relative_pointer_state.reserved offset", (long)((byte*)&value.reserved - start), 92);
+        }
+        {
             gf_controls_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_controls_table size", sizeof(gf_controls_table), 112);
+            failures += expect(output, "gf_controls_table size", sizeof(gf_controls_table), 152);
             failures += expect(output, "gf_controls_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_controls_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_controls_table.suspend_layout offset", (long)((byte*)&value.suspend_layout - start), 8);
@@ -770,6 +819,11 @@ public static unsafe class Layout
             failures += expect(output, "gf_controls_table.invalidate offset", (long)((byte*)&value.invalidate - start), 88);
             failures += expect(output, "gf_controls_table.focus offset", (long)((byte*)&value.focus - start), 96);
             failures += expect(output, "gf_controls_table.focus_state offset", (long)((byte*)&value.focus_state - start), 104);
+            failures += expect(output, "gf_controls_table.request_relative_pointer offset", (long)((byte*)&value.request_relative_pointer - start), 112);
+            failures += expect(output, "gf_controls_table.release_relative_pointer offset", (long)((byte*)&value.release_relative_pointer - start), 120);
+            failures += expect(output, "gf_controls_table.relative_pointer_state offset", (long)((byte*)&value.relative_pointer_state - start), 128);
+            failures += expect(output, "gf_controls_table.warp_pointer offset", (long)((byte*)&value.warp_pointer - start), 136);
+            failures += expect(output, "gf_controls_table.set_pointer_release_regions offset", (long)((byte*)&value.set_pointer_release_regions - start), 144);
         }
         {
             gf_text_decoration value = default;
@@ -1080,14 +1134,28 @@ public static unsafe class Layout
             failures += expect(output, "gf_application_config.reserved offset", (long)((byte*)&value.reserved - start), 28);
         }
         {
+            gf_program_identity value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_program_identity size", sizeof(gf_program_identity), 104);
+            failures += expect(output, "gf_program_identity.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_program_identity.reserved offset", (long)((byte*)&value.reserved - start), 4);
+            failures += expect(output, "gf_program_identity.product offset", (long)((byte*)&value.product - start), 8);
+            failures += expect(output, "gf_program_identity.version offset", (long)((byte*)&value.version - start), 24);
+            failures += expect(output, "gf_program_identity.vendor offset", (long)((byte*)&value.vendor - start), 40);
+            failures += expect(output, "gf_program_identity.website offset", (long)((byte*)&value.website - start), 56);
+            failures += expect(output, "gf_program_identity.copyright offset", (long)((byte*)&value.copyright - start), 72);
+            failures += expect(output, "gf_program_identity.credits offset", (long)((byte*)&value.credits - start), 88);
+        }
+        {
             gf_application_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_application_table size", sizeof(gf_application_table), 32);
+            failures += expect(output, "gf_application_table size", sizeof(gf_application_table), 40);
             failures += expect(output, "gf_application_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_application_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_application_table.create offset", (long)((byte*)&value.create - start), 8);
             failures += expect(output, "gf_application_table.close offset", (long)((byte*)&value.close - start), 16);
             failures += expect(output, "gf_application_table.state offset", (long)((byte*)&value.state - start), 24);
+            failures += expect(output, "gf_application_table.set_program_identity offset", (long)((byte*)&value.set_program_identity - start), 32);
         }
         {
             gf_rule_condition value = default;

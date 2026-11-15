@@ -348,7 +348,7 @@ public unsafe struct gf_window_shaping
     public double corner_radius;
 }
 
-/// <summary>gf_windows_table (table, 160 bytes).</summary>
+/// <summary>gf_windows_table (table, 168 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -373,6 +373,7 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, gf_status> content_rect;
     public delegate* unmanaged[Cdecl]<gf_object, gf_window_shaping*, gf_status> shaping;
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_point*, gf_logical_point*, uint*, gf_status> pointer_location;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> show_business_card;
 }
 
 /// <summary>gf_schema_type (extensible, 88 bytes).</summary>
@@ -739,7 +740,7 @@ public unsafe struct gf_failure_detail
     public uint reserved;
 }
 
-/// <summary>gf_diagnostics_table (table, 80 bytes).</summary>
+/// <summary>gf_diagnostics_table (table, 96 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_diagnostics_table
 {
@@ -754,6 +755,8 @@ public unsafe struct gf_diagnostics_table
     public delegate* unmanaged[Cdecl]<uint*, gf_status> exception_reflection;
     public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> raise_native_exception;
     public delegate* unmanaged[Cdecl]<gf_failure_detail*, gf_status> failure_detail;
+    public delegate* unmanaged[Cdecl]<uint, gf_status> set_diagnostic_overlay;
+    public delegate* unmanaged[Cdecl]<uint*, gf_status> toggle_diagnostic_overlay;
 }
 
 /// <summary>gf_layout_transaction (extensible, 32 bytes).</summary>
@@ -801,7 +804,56 @@ public unsafe struct gf_scroll_snapshot
     public double event_new_value;
 }
 
-/// <summary>gf_controls_table (table, 112 bytes).</summary>
+/// <summary>gf_relative_pointer_request (extensible, 24 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_relative_pointer_request
+{
+    public uint struct_size;
+    public gf_relative_pointer_mode mode;
+    public uint hide_cursor;
+    public uint raw_motion;
+    public uint until_release;
+    public uint reserved;
+}
+
+/// <summary>gf_relative_pointer_grant (extensible, 24 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_relative_pointer_grant
+{
+    public uint struct_size;
+    public gf_relative_pointer_result result;
+    public gf_relative_pointer_mode mode;
+    public uint raw;
+    public uint cursor_hidden;
+    public uint host_relative;
+}
+
+/// <summary>gf_relative_pointer_state (extensible, 96 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_relative_pointer_state
+{
+    public uint struct_size;
+    public uint owned;
+    public uint active;
+    public uint suspended;
+    public gf_relative_pointer_mode mode;
+    public uint raw;
+    public uint host_relative;
+    public gf_relative_pointer_end last_end;
+    public ulong grants;
+    public ulong samples;
+    public ulong suspensions;
+    public ulong resumptions;
+    public ulong ends;
+    public uint support_relative_motion;
+    public uint support_raw_motion;
+    public uint support_lock;
+    public uint support_confine;
+    public uint support_warp;
+    public uint reserved;
+}
+
+/// <summary>gf_controls_table (table, 152 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_controls_table
 {
@@ -820,6 +872,11 @@ public unsafe struct gf_controls_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, gf_status> invalidate;
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> focus;
     public delegate* unmanaged[Cdecl]<gf_object, uint*, uint*, gf_status> focus_state;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_relative_pointer_request*, gf_relative_pointer_grant*, gf_status> request_relative_pointer;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> release_relative_pointer;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_relative_pointer_state*, gf_status> relative_pointer_state;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_point, uint*, gf_status> warp_pointer;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, uint, gf_status> set_pointer_release_regions;
 }
 
 /// <summary>gf_text_decoration (record, 56 bytes).</summary>
@@ -1154,7 +1211,21 @@ public unsafe struct gf_application_config
     public uint reserved;
 }
 
-/// <summary>gf_application_table (table, 32 bytes).</summary>
+/// <summary>gf_program_identity (extensible, 104 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_program_identity
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view product;
+    public gf_utf8_view version;
+    public gf_utf8_view vendor;
+    public gf_utf8_view website;
+    public gf_utf8_view copyright;
+    public gf_utf8_view credits;
+}
+
+/// <summary>gf_application_table (table, 40 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_application_table
 {
@@ -1163,6 +1234,7 @@ public unsafe struct gf_application_table
     public delegate* unmanaged[Cdecl]<gf_application_config*, gf_theme_report*, gf_status> create;
     public delegate* unmanaged[Cdecl]<ulong*, gf_status> close;
     public delegate* unmanaged[Cdecl]<gf_application_state*, gf_status> state;
+    public delegate* unmanaged[Cdecl]<gf_program_identity*, gf_status> set_program_identity;
 }
 
 /// <summary>gf_rule_condition (extensible, 32 bytes).</summary>
