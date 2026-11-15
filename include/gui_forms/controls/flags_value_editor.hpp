@@ -108,6 +108,8 @@ private:
     std::shared_ptr<CheckedListBox> overlay_list_;
     std::vector<std::size_t> overlay_choice_indices_;
     std::uint64_t overlay_scope_{};
+    // Set while open_drop_down begins its focus scope (A-gf-controls-08-F3).
+    bool opening_drop_down_{};
     OverlayToken overlay_token_;
     SubscriptionToken overlay_check_;
     SubscriptionToken overlay_dismissal_;

@@ -399,7 +399,8 @@ struct ReopenOnBlur final {
 };
 
 // A-gf-controls-08-F3: a lost-focus handler that opens the drop-down again
-// inside the first open leaves one open drop-down, one open report, and no
+// inside the first open is served by the open in progress (a second layer
+// would repeat its stable IDs): one open drop-down, one open report, and no
 // focus scope behind once it closes.
 void test_focus_handler_reopens_the_drop_down() {
     Fixture fixture;
@@ -410,7 +411,7 @@ void test_focus_handler_reopens_the_drop_down() {
         ReopenOnBlur{fixture.picker.get(), &reopened});
     (*fixture.picker).dropped_down = true;
     require(reopened && (*fixture.picker).dropped_down.read() && events == std::vector<std::string>{"open"},
-            "the nested open is the only open, reported once");
+            "the open in progress serves the nested open, reported once");
     blurred.disconnect();
     (*fixture.picker).dropped_down = false;
     require(!(*fixture.picker).dropped_down.read() && fixture.window.focus_scope_depth() == 0U &&

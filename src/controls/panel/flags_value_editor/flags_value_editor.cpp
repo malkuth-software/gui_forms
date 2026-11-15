@@ -269,8 +269,20 @@ void FlagsValueEditor::written(const decltype(overlay_width)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
+namespace {
+// Clears an open-in-progress flag when it goes, also when the call that set
+// it throws.
+struct ClearOpeningOnExit final {
+    bool* flag{};
+    explicit ClearOpeningOnExit(bool* cleared) noexcept : flag(cleared) {}
+    ClearOpeningOnExit(const ClearOpeningOnExit&) = delete;
+    ClearOpeningOnExit& operator=(const ClearOpeningOnExit&) = delete;
+    ~ClearOpeningOnExit() { *flag = false; }
+};
+} // namespace
+
 void FlagsValueEditor::open_drop_down() {
-    if (dropped_down_ || !attached() || window() == nullptr) return;
+    if (dropped_down_ || opening_drop_down_ || !attached() || window() == nullptr) return;
     const Control::Ptr root = (*window()).root();
     if (!root) return;
     const Rect editor = absolute_bounds();
@@ -338,6 +350,12 @@ void FlagsValueEditor::open_drop_down() {
     }
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(list);
     const Control::Ptr lifetime = shared_from_this();
+    // An open is in progress until the scope has begun: a handler reached
+    // from the focus move that asks to open again is served by this open
+    // (a second layer would repeat this one's stable IDs). Cleared on every
+    // way out; lifetime keeps the control while the guard writes it.
+    opening_drop_down_ = true;
+    const ClearOpeningOnExit opening{&opening_drop_down_};
     const std::uint64_t scope = (*window()).begin_focus_scope(layer, preferred_focus).value;
     // Beginning the scope moves focus into the drop-down and runs the
     // field's lost-focus and validation handlers before it returns; one may

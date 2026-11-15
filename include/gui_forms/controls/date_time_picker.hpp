@@ -126,6 +126,8 @@ private:
     Control::Ptr overlay_calendar_;
     OverlayToken overlay_token_;
     std::uint64_t overlay_scope_{};
+    // Set while open_drop_down begins its focus scope (A-gf-controls-08-F3).
+    bool opening_drop_down_{};
     SubscriptionToken overlay_commit_;
     SubscriptionToken overlay_cancel_;
     SubscriptionToken overlay_dismiss_;
