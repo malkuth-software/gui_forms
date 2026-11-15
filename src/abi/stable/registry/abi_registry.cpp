@@ -344,16 +344,38 @@ WindowDispatcher HandleRegistry::wake_locked(ThreadDomain domain) noexcept {
 namespace {
 
 // Posts a domain's drain through the dispatcher wake_locked returned, after
-// the registry's lock is left. An empty dispatcher posts nothing; a closed
-// one cancels the work, which the domain's end then covers.
-void post_drain(const WindowDispatcher& dispatcher, ThreadDomain domain) {
-    if (!dispatcher.window_alive()) {
-        return;
+// the registry's lock is left. Returns false when no drain is now queued: the
+// window closed between the two steps (the domain's end then covers the
+// work) or the post's allocation failed.
+bool post_drain(const WindowDispatcher& dispatcher, ThreadDomain domain) noexcept {
+    try {
+        const DispatchOperation operation = dispatcher.begin_invoke(DrainDomain{domain});
+        const bool queued = operation.pending();
+        return queued;
+    } catch (const std::exception&) {
+        return false;
     }
-    static_cast<void>(dispatcher.begin_invoke(DrainDomain{domain}));
 }
 
 } // namespace
+
+// A-gf-abi-02-F6: wake_locked set drain_pending before the post; a post that
+// queued nothing clears it again, so the next wake tries anew instead of the
+// domain waiting until its thread happens to drain. An empty dispatcher
+// (wake_locked declined) posts nothing and changes nothing.
+void HandleRegistry::post_wake(const WindowDispatcher& dispatcher, ThreadDomain domain) noexcept {
+    if (!dispatcher.window_alive()) {
+        return;
+    }
+    if (post_drain(dispatcher, domain)) {
+        return;
+    }
+    const std::scoped_lock lock(mutex_);
+    SubSurfaceDomain& owner = domains_[domain.value - 1U];
+    if (owner.occupied) {
+        owner.drain_pending = false;
+    }
+}
 
 ThreadDomain HandleRegistry::begin_domain() {
     const std::scoped_lock lock(mutex_);
@@ -385,7 +407,7 @@ void HandleRegistry::set_domain_wake(ThreadDomain domain, const WindowDispatcher
             wake = wake_locked(domain);
         }
     }
-    post_drain(wake, domain);
+    post_wake(wake, domain);
 }
 
 void HandleRegistry::drain_domain(ThreadDomain domain) {
@@ -620,7 +642,7 @@ gf_status HandleRegistry::release(gf_object object, SlotIdentity slot) {
         }
     }
     if (!on_owner_thread) {
-        post_drain(wake, owner);
+        post_wake(wake, owner);
         return GF_STATUS_OK;
     }
     // On its own thread the control (and any subtree only it held) ends
@@ -875,7 +897,7 @@ gf_status HandleRegistry::post(gf_object target, std::unique_ptr<CallbackBinding
         ++(*found).references;
         wake = wake_locked(owner);
     }
-    post_drain(wake, owner);
+    post_wake(wake, owner);
     return GF_STATUS_OK;
 }
 
@@ -937,7 +959,7 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
             wake = wake_locked(domain);
         }
     }
-    post_drain(wake, domain);
+    post_wake(wake, domain);
     unbind_if_idle();
     return invoked;
 }

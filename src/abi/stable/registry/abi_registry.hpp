@@ -336,6 +336,9 @@ private:
     // which the caller posts after leaving the lock (an empty one when a
     // drain is pending or there is no dispatcher yet).
     [[nodiscard]] WindowDispatcher wake_locked(ThreadDomain domain) noexcept;
+    // Posts the drain wake_locked asked for, without the lock; clears
+    // drain_pending again when the post queued nothing.
+    void post_wake(const WindowDispatcher& dispatcher, ThreadDomain domain) noexcept;
     [[nodiscard]] ObjectSlot* object_slot_locked(gf_object object) noexcept;
     [[nodiscard]] SubscriptionSlot* subscription_slot_locked(gf_subscription subscription) noexcept;
     // find_component's search; the caller holds the lock.
