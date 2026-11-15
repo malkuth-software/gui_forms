@@ -79,12 +79,24 @@ static void fonts(gf_kit* kit) {
     gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("segoe ui"), &substituted), GF_STATUS_OK,
                   "a substituted name resolves");
     gf_kit_check(kit, substituted == family, "Segoe UI resolves to Selawik");
+    /* Since font pack stage 4 the substitution table's own families have ids
+     * too, and a substitution finds its family by name: Segoe UI Semibold is
+     * Selawik Semibold (whose regular face is Selawik's semibold), Arial is
+     * Arimo. */
     gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Segoe UI Semibold"), &substituted), GF_STATUS_OK,
-                  "a substitution's face finds its family");
-    gf_kit_check(kit, substituted == family, "Segoe UI Semibold resolves to Selawik");
+                  "a substitution finds its family by name");
+    gf_kit_check(kit, substituted != 0u && substituted != family, "Segoe UI Semibold has its own family");
+    gf_kit_status(kit, (*kit).fonts.family_name(substituted, name, sizeof(name), &required), GF_STATUS_OK,
+                  "the substituted id names its family");
+    gf_kit_check(kit, required == 16u && memcmp(name, "Selawik Semibold", 16u) == 0,
+                 "Segoe UI Semibold resolves to Selawik Semibold");
+    uint32_t arimo = 0u;
+    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Arimo"), &arimo), GF_STATUS_OK,
+                  "a substitution table family has an id");
+    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Arial"), &substituted), GF_STATUS_OK,
+                  "a metric match resolves");
+    gf_kit_check(kit, arimo != 0u && substituted == arimo, "Arial resolves to Arimo");
     uint32_t untouched = 77u;
-    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Arial"), &untouched), GF_STATUS_NOT_FOUND,
-                  "a name mapped to a face that is not bundled is unmapped");
     gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Comic Sans MS"), &untouched), GF_STATUS_NOT_FOUND,
                   "a host font has no id");
     gf_kit_check(kit, untouched == 77u, "a refused lookup leaves its output");

@@ -155,7 +155,7 @@ void test_lowering() {
         "#a { font-family: Arial }",
         "#a { font-family: \"Lucida Grande\" }",
         "#a { font-family: \"sans-serif\" }",
-        "#a { font-family: Arimo }",
+        "#a { font-family: Wingdings }",
         "#a { font-family: \"Segoe UI\" }",
         "#a { font-family: Comic Sans }",
         "#a { font-family: Arial, Selawik }",
@@ -272,6 +272,12 @@ void test_named_family() {
     const ResolvedFont cousine = (*label).resolved_text_font(own);
     require(cousine.font.family.value == 0U && cousine.font.role == FontRole::monospace,
             "a role's face name is that role");
+    // The substitution table's families are registry families (font pack
+    // stage 4): Arimo by its own name draws Arimo, with the content role.
+    window.set_theme(theme_of("label { font-family: Arimo }", "fonts-arimo"));
+    const ResolvedFont arimo = (*label).resolved_text_font(own);
+    require(arimo.font.family == arimo_font_family && arimo.font.role == FontRole::content,
+            "a substitution table family is a registry family");
     // A list compiles to the first available family and a stack of the rest;
     // a family that is not bundled is passed over (owner decisions of
     // 2026-11-13).
@@ -298,7 +304,7 @@ void test_named_family() {
     const FontFamilyStack generic_rest = font_family_stack(generics.font.stack);
     require(generics.font.family == selawik_font_family && generics.font.role == FontRole::monospace &&
                 generic_rest.count == 2U && generic_rest.families[0] == cousine_font_family &&
-                generic_rest.families[1] == carlito_font_family,
+                generic_rest.families[1] == tinos_font_family,
             "generics in a list are their families, in order, before the role");
     // The stock Windows-familiar theme writes its text in Selawik (owner, 2026-11-10).
     window.set_theme(familiar_theme(FamiliarTheme::windows_professional));

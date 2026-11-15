@@ -751,7 +751,13 @@ internal static unsafe class Program
         uint carlito = FontFamilies.resolve("carlito");
         expect(carlito != 0 && carlito != selawik && FontFamilies.name(carlito) == "Carlito",
                "a role's family has its own id and name");
-        expect(FontFamilies.resolve("Arial") == 0, "a name without a bundled family is unmapped");
+        uint arimo = FontFamilies.resolve("Arimo");
+        expect(arimo != 0 && FontFamilies.resolve("Arial") == arimo,
+               "a metric match the substitutions name resolves to its bundled family");
+        uint semibold = FontFamilies.resolve("Segoe UI Semibold");
+        expect(semibold != 0 && semibold != selawik && FontFamilies.name(semibold) == "Selawik Semibold",
+               "a substitution finds its family by name before the face it shares");
+        expect(FontFamilies.resolve("Wingdings") == 0, "a name without a bundled family is unmapped");
         expect(FontFamilies.name(0) == null && FontFamilies.name(200) == null, "no name for zero or an unknown id");
         gf_font font = default;
         font.reserved = 0x00050000u;

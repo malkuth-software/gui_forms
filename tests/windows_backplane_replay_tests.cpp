@@ -42,7 +42,8 @@ int main(int argc, char** argv) {
         std::cerr << "usage: gui_forms_windows_backplane_replay_tests <fonts directory>\n";
         return 2;
     }
-    const std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = host::load_bundled_fonts(std::filesystem::path(argv[1]));
+    const std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = host::load_bundled_fonts(
+        gui_forms::detail::BundledFontLocation{gui_forms::BundledFontSource::environment, std::filesystem::path(argv[1])});
     if (!check(fonts != nullptr, "the bundled fonts load")) return 1;
     const char* const print_value = std::getenv("GUI_FORMS_BACKPLANE_REPLAY_PRINT");
     const bool printing = print_value != nullptr && std::strcmp(print_value, "1") == 0;

@@ -3101,7 +3101,7 @@ bool MaterialReader::lower_part_shape(RecipeField length_field, RecipeField colo
 // The first available family is the font's family; the others form a
 // registered stack drawn after it; the role draws last. `monospace` last is
 // the role, elsewhere the generic. A name the registry does not have that is
-// not a generic (a host font, a face only GUI.Drawing ships) is passed over
+// not a generic (a host font, or a substitution table's request such as Arial) is passed over
 // with a warning (W113), never refused: GUI.Forms draws its bundled faces,
 // never a host font. When no named family is available and no role is
 // written, the declaration is dropped with that warning. Without a written

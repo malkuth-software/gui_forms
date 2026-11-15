@@ -39,9 +39,14 @@ the stx package until it moves to `malkuth-software/stx` unchanged.
   - Packing is deterministic: the same inputs give the same pack whatever the
     worker count.
   - It refuses to write a pack its loader would refuse.
-- `stx_fontpack` (target `stx_fontpack::tool`): `pack`, `verify` and `unpack`
-  from the command line. `pack` loads its own output and compares every font
-  with its input before it writes anything.
+- `stx_fontpack` (target `stx_fontpack::tool`): `pack`, `verify`, `unpack`
+  and `embed` from the command line. `pack` loads its own output and compares
+  every font with its input before it writes anything. `embed` writes a pack
+  as the body of a C++ array initializer, for a program that compiles its
+  pack in.
+- `stx_fontpack_objects`: the loader's objects, for a consumer that compiles
+  them into its own static library rather than linking the loader (GUI.Forms
+  Core, which embeds its pack).
 
 The container layout and stream grammar are described in
 `src/detail/format.hpp`, and the codec in `src/detail/codec.hpp`.

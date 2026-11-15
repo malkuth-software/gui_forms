@@ -39,6 +39,7 @@
 #include "gui_forms/components/error_provider/error_provider.hpp"
 #include "gui_forms/controls/stock_specimens.hpp"
 #include "gui_forms/dirty.hpp"
+#include "gui_forms/metrics/font_sources/bundled_font_sources.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/resources/image_atlas/image_atlas.hpp"
@@ -122,9 +123,17 @@ void raster_refusals() {
     require(!refused.succeeded() && refused.error() == OffscreenRasterError::fonts_not_found &&
                 !refused.detail().empty() && !refused.take_raster(),
             "a directory without the faces is refused, naming it");
-    // This test links no host: without a directory there is nowhere to look.
+    // This test links no host: without a directory the core's own lookup
+    // takes the embedded font pack (font pack stage 4), which a development
+    // build may replace with GUI_FORMS_FONT_DIR's directory.
     OffscreenRasterCreateResult hostless = OffscreenRaster::create();
-    require(hostless.error() == OffscreenRasterError::fonts_not_found, "without a host an empty directory is refused");
+    require(hostless.succeeded() && hostless.error() == OffscreenRasterError::none,
+            "without a host the embedded pack makes a raster");
+    const std::unique_ptr<OffscreenRaster> packed = hostless.take_raster();
+    require(packed != nullptr &&
+                ((*packed).font_directory().empty() ==
+                 (gui_forms::bundled_font_diagnostics().last_source == gui_forms::BundledFontSource::embedded_pack)),
+            "a raster from the pack names no directory");
 }
 
 void attachment_and_control_capture() {

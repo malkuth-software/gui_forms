@@ -68,7 +68,7 @@ public:
     // Registers the fonts and makes the window (hidden until the first
     // present); false when either fails.
     [[nodiscard]] bool open(const Size size) {
-        if (!raster_.register_bundled_fonts(load_bundled_fonts(bundled_font_directory()))) return false;
+        if (!raster_.register_bundled_fonts(load_bundled_fonts(bundled_font_location()))) return false;
         WNDCLASSEXW native_class{};
         native_class.cbSize = sizeof(native_class);
         native_class.lpfnWndProc = splashscreen_window_procedure;

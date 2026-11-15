@@ -1,13 +1,17 @@
-// The bundled font set (item 4, step 3): the compiled manifest agrees with
+// The bundled font set (item 4, step 3; font pack stage 4): the compiled manifest agrees with
 // assets/fonts/bundled-fonts.sha256; a face is read once, checked against its size and digest
 // before it is handed out, sealed, and shared; every refusal names its cause and releases its
-// pages; a face outlives the set while a borrower keeps it. With --write-sealed the program
-// writes into a sealed face and must die by the platform's protection fault
-// (cmake/expect_fault.cmake checks how it ended).
+// pages; a face outlives the set while a borrower keeps it. From the embedded pack, the first
+// request decodes only the eager group, a lazy group is decoded once on its first face, and a
+// group whose stored CRC-32 is altered, or a pack that does not open, is refused and reported.
+// The lookup takes the pack unless a development build's directory holds the faces. With
+// --write-sealed the program writes into a sealed face and must die by the platform's
+// protection fault (cmake/expect_fault.cmake checks how it ended).
 
 #include "../src/core/resources/fonts/bundled_font_set.hpp"
 #include "gui_forms/metrics/metrics/metrics.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
+#include "stx_fontpack/loader.hpp"
 #if defined(_WIN32)
 #include "../src/host/windows/fonts/sealed_pages_windows.hpp"
 #else
@@ -39,6 +43,7 @@ using gui_forms::BundledFontSource;
 using gui_forms::detail::BundledFaceRecord;
 using gui_forms::detail::BundledFontCandidate;
 using gui_forms::detail::BundledFontLocation;
+using gui_forms::detail::BundledFontLookup;
 using gui_forms::detail::BundledFontSet;
 using gui_forms::detail::FontFaceLoad;
 using gui_forms::detail::FontSetError;
@@ -111,11 +116,11 @@ void write_file(const std::filesystem::path& path, std::string_view text) {
     stream.write(text.data(), static_cast<std::streamsize>(text.size()));
 }
 
-// The compiled manifest is the 20 faces of bundled-fonts.sha256, and each record matches the
+// The compiled manifest is the 37 faces of bundled-fonts.sha256, and each record matches the
 // file in assets/fonts.
 bool compiled_manifest_matches() {
     const std::span<const BundledFaceRecord> manifest = gui_forms::detail::bundled_face_manifest();
-    if (!require(manifest.size() == 20U, "the compiled manifest does not list 20 faces")) return false;
+    if (!require(manifest.size() == 37U, "the compiled manifest does not list 37 faces")) return false;
     std::ifstream listing(std::filesystem::path(GUI_FORMS_TEST_FONT_DIRECTORY) / "bundled-fonts.sha256");
     std::string line;
     std::size_t index = 0;
@@ -162,7 +167,7 @@ bool bundled_faces_load_once() {
                          std::equal(bytes.begin(), bytes.end(), expected.begin()),
                      "the sealed bytes differ from the file"))
             return false;
-        if (!require(fails_with(set.face("Arimo-Regular.ttf"), FontSetError::unknown_face),
+        if (!require(fails_with(set.face("Wingdings.ttf"), FontSetError::unknown_face),
                      "a face outside the manifest was not refused as unknown"))
             return false;
         kept = *first.face();
@@ -271,34 +276,49 @@ bool construction_is_validated() {
     return passed;
 }
 
-// The faces of the registry's families that are not a role's (Selawik): the faces a host
-// registers as family faces.
-std::vector<gui_forms::FontFamilyFace> own_family_faces() {
-    std::vector<gui_forms::FontFamilyFace> faces{};
+// The face files of the registry's families that are not a role's (Selawik, Arimo, Tinos,
+// Portsmouth Mono, Selawik Semibold): the faces a host registers as family faces, each file
+// once although Selawik Semibold shares two of Selawik's.
+std::vector<std::string_view> own_family_faces() {
+    std::vector<std::string_view> faces{};
     for (const gui_forms::FontFamilyRecord& record : gui_forms::bundled_font_families) {
         if (record.role) continue;
-        faces.insert(faces.end(), record.faces.begin(), record.faces.end());
+        for (const gui_forms::FontFamilyFace& face : record.faces) {
+            const bool listed = std::find(faces.begin(), faces.end(), face.file_name) != faces.end();
+            if (!listed) faces.push_back(face.file_name);
+        }
     }
     return faces;
 }
 
+// The faces the pack carries in its eager group that no host registers yet: the Portsmouth
+// faces outside the control role (font pack stage 4 packs all of them).
+constexpr std::array<std::string_view, 8> pack_only_faces{{
+    "PortsmouthRapids-Italic.ttf", "PortsmouthRapids-BoldItalic.ttf", "PortsmouthRapids-Light.ttf",
+    "Portsmouth.ttf", "Portsmouth-Bold.ttf", "Portsmouth-Italic.ttf", "Portsmouth-BoldItalic.ttf",
+    "Portsmouth-Light.ttf",
+}};
+
 // Every face a host registers is in the manifest, once, as a role or fallback face or as a
-// face of a family with faces of its own; every manifest face is one of them; and exactly
-// the seven primaries a window cannot do without are required.
+// face of a family with faces of its own; every other manifest face is a pack-only face; and
+// exactly the seven primaries a window cannot do without are required.
 bool face_uses_match_the_manifest() {
     const std::span<const BundledFaceRecord> manifest = gui_forms::detail::bundled_face_manifest();
     const std::span<const gui_forms::detail::BundledFaceUse> uses = gui_forms::detail::bundled_face_uses();
-    const std::vector<gui_forms::FontFamilyFace> family_faces = own_family_faces();
-    if (!require(uses.size() + family_faces.size() == manifest.size(),
-                 "the face uses and family faces differ from the manifest in length"))
+    const std::vector<std::string_view> family_faces = own_family_faces();
+    if (!require(uses.size() + family_faces.size() + pack_only_faces.size() == manifest.size(),
+                 "the face uses, family faces and pack-only faces differ from the manifest in length"))
         return false;
     for (const BundledFaceRecord& record : manifest) {
         std::size_t registered = 0;
         for (const gui_forms::detail::BundledFaceUse& use : uses) {
             if (use.file_name == record.file_name) ++registered;
         }
-        for (const gui_forms::FontFamilyFace& family_face : family_faces) {
-            if (family_face.file_name == record.file_name) ++registered;
+        for (const std::string_view family_face : family_faces) {
+            if (family_face == record.file_name) ++registered;
+        }
+        for (const std::string_view pack_only : pack_only_faces) {
+            if (pack_only == record.file_name) ++registered;
         }
         if (!require(registered == 1U, "a manifest face is not registered exactly once")) return false;
     }
@@ -358,14 +378,19 @@ bool registry_matches_the_face_uses() {
     const bool fixed = require(gui_forms::selawik_font_family.value == 1U &&
                                    gui_forms::portsmouth_rapids_font_family.value == 2U &&
                                    gui_forms::carlito_font_family.value == 3U &&
-                                   gui_forms::cousine_font_family.value == 4U,
+                                   gui_forms::cousine_font_family.value == 4U &&
+                                   gui_forms::arimo_font_family.value == 5U &&
+                                   gui_forms::tinos_font_family.value == 6U &&
+                                   gui_forms::portsmouth_mono_font_family.value == 7U &&
+                                   gui_forms::selawik_semibold_font_family.value == 8U,
                                "a fixed family number changed");
     return fixed;
 }
 
-// Family names: every family by its own name, without regard to ASCII case; a font that is
-// not bundled with every program (a host font, or a drawing-only face such as Arimo) has no
-// name here; an unlisted number is not valid; a substitution's face file finds its family.
+// Family names: every family by its own name, without regard to ASCII case (the substitution
+// table's Arimo, Tinos, Portsmouth Mono and Selawik Semibold among them since font pack stage
+// 4); a font that is not bundled (a host font, or a substitution's request such as Arial) has
+// no name here; an unlisted number is not valid; a substitution's face file finds its family.
 bool family_names_resolve_bundled_faces_only() {
     const gui_forms::FontFamilyRecord* const selawik = gui_forms::font_family_named("selawik");
     if (!require(selawik != nullptr && !(*selawik).role && (*selawik).id == gui_forms::selawik_font_family,
@@ -376,22 +401,43 @@ bool family_names_resolve_bundled_faces_only() {
                      (*rapids).id == gui_forms::portsmouth_rapids_font_family,
                  "Portsmouth Rapids is not the control role's family"))
         return false;
-    const char* const unknown[] = {"Arial", "Segoe UI", "Arimo", "Tinos", "Selawik Semibold", "", "Selawik "};
+    const char* const unknown[] = {"Arial", "Segoe UI", "Times New Roman", "Consolas", "", "Selawik "};
     for (const char* const name : unknown) {
         if (!require(gui_forms::font_family_named(name) == nullptr, "a name outside the bundle resolved"))
             return false;
     }
+    struct Named final {
+        const char* name{};
+        gui_forms::FontFamilyId id{};
+    };
+    const Named drawing_families[] = {
+        {"arimo", gui_forms::arimo_font_family},
+        {"TINOS", gui_forms::tinos_font_family},
+        {"Portsmouth Mono", gui_forms::portsmouth_mono_font_family},
+        {"selawik semibold", gui_forms::selawik_semibold_font_family},
+    };
+    for (const Named& entry : drawing_families) {
+        const gui_forms::FontFamilyRecord* const record = gui_forms::font_family_named(entry.name);
+        if (!require(record != nullptr && (*record).id == entry.id && !(*record).role,
+                     "a substitution table family is not a family with faces of its own"))
+            return false;
+    }
     const gui_forms::FontFamilyRecord* const semibold = gui_forms::font_family_with_face("Selawik-Semibold.ttf");
-    if (!require(semibold == selawik, "a face file does not find its family")) return false;
-    if (!require(gui_forms::font_family_with_face("Arimo-Regular.ttf") == nullptr, "an unbundled face has a family"))
+    if (!require(semibold == selawik, "a shared face file does not find the lower-numbered family")) return false;
+    const gui_forms::FontFamilyRecord* const arimo = gui_forms::font_family_with_face("Arimo-Regular.ttf");
+    if (!require(arimo != nullptr && (*arimo).id == gui_forms::arimo_font_family, "Arimo's face has no family"))
+        return false;
+    if (!require(gui_forms::font_family_with_face("Wingdings.ttf") == nullptr, "an unbundled face has a family"))
         return false;
     for (const gui_forms::GenericFontFamily& generic : gui_forms::generic_font_families) {
         if (!require(gui_forms::valid_font_family(generic.family), "a generic draws an unknown family")) return false;
     }
     const gui_forms::GenericFontFamily* const sans = gui_forms::generic_font_family("Sans-Serif");
     const gui_forms::GenericFontFamily* const mono = gui_forms::generic_font_family("ui-monospace");
+    const gui_forms::GenericFontFamily* const serif = gui_forms::generic_font_family("serif");
     if (!require(sans != nullptr && (*sans).family == gui_forms::carlito_font_family && mono != nullptr &&
-                     (*mono).family == gui_forms::cousine_font_family &&
+                     (*mono).family == gui_forms::cousine_font_family && serif != nullptr &&
+                     (*serif).family == gui_forms::tinos_font_family &&
                      gui_forms::generic_font_family("Selawik") == nullptr,
                  "the generic mapping is not ours"))
         return false;
@@ -407,6 +453,10 @@ bool family_names_resolve_bundled_faces_only() {
 bool nearest_faces_are_chosen() {
     const gui_forms::FontFamilyRecord& selawik = *gui_forms::font_family_record(gui_forms::selawik_font_family);
     const gui_forms::FontFamilyRecord& carlito = *gui_forms::font_family_record(gui_forms::carlito_font_family);
+    const gui_forms::FontFamilyRecord& mono =
+        *gui_forms::font_family_record(gui_forms::portsmouth_mono_font_family);
+    const gui_forms::FontFamilyRecord& semibold =
+        *gui_forms::font_family_record(gui_forms::selawik_semibold_font_family);
     struct Case final {
         const gui_forms::FontFamilyRecord* family{};
         std::uint16_t weight{};
@@ -425,6 +475,9 @@ bool nearest_faces_are_chosen() {
         {&carlito, 700U, true, "Carlito-BoldItalic.ttf"},
         {&carlito, 550U, false, "Carlito-Bold.ttf"},
         {&carlito, 449U, false, "Carlito-Regular.ttf"},
+        {&mono, 700U, true, "PortsmouthMono.ttf"},
+        {&semibold, 400U, false, "Selawik-Semibold.ttf"},
+        {&semibold, 700U, false, "Selawik-Bold.ttf"},
     };
     for (const Case& entry : cases) {
         const std::size_t index = gui_forms::nearest_font_family_face(*entry.family, entry.weight, entry.italic);
@@ -496,11 +549,138 @@ bool shared_set_is_shared() {
     return passed;
 }
 
-// A host offers its font directories in order (environment, executable, library module):
-// the first holding every required face wins, whichever source it is, so a library loaded by
-// another process finds the fonts beside itself. With none, the lookup is counted, the refusal
-// names every directory tried, and the windows' metrics report it; a later success clears the
-// refusal.
+// The faces of the pack's eager group, as font-pack.manifest places them: every Portsmouth
+// face and Carlito.
+bool eager_face(std::string_view file_name) {
+    const bool portsmouth = file_name.substr(0U, 10U) == "Portsmouth";
+    const bool carlito = file_name.substr(0U, 8U) == "Carlito-";
+    return portsmouth || carlito;
+}
+
+// From the embedded pack: nothing is decoded before a request; the first request decodes the
+// eager group alone and answers every eager face from it; a lazy group (CJK) is decoded once,
+// on its first face; the bytes are the files' bytes; every sealed page is released.
+bool pack_faces_decode_by_group() {
+    const std::span<const std::byte> pack = gui_forms::detail::bundled_font_pack();
+    std::size_t eager_faces{};
+    for (const BundledFaceRecord& record : gui_forms::detail::bundled_face_manifest()) {
+        if (eager_face(record.file_name)) ++eager_faces;
+    }
+    bool passed = require(eager_faces == 15U, "not fifteen eager faces in the manifest");
+    ledger = PageLedger{};
+    {
+        BundledFontSet set(pack, counted_pages);
+        passed = passed && require(set.decoded_group_count() == 0U && set.loaded_face_count() == 0U,
+                                   "a pack set decoded before its first request");
+        const FontFaceLoad control = set.face("PortsmouthRapids.ttf");
+        passed = passed && require(control.accepted(), "the control face was refused from the pack");
+        passed = passed && require(set.decoded_group_count() == 1U && set.loaded_face_count() == eager_faces,
+                                   "the first request decoded more or less than the eager group");
+        if (control.accepted()) {
+            const std::vector<std::byte> expected =
+                file_bytes(std::filesystem::path(GUI_FORMS_TEST_FONT_DIRECTORY) / "PortsmouthRapids.ttf");
+            const std::span<const std::byte> bytes = (*(*control.face())).bytes();
+            passed = passed && require(bytes.size() == expected.size() &&
+                                           std::equal(bytes.begin(), bytes.end(), expected.begin()),
+                                       "a decoded face differs from its file");
+        }
+        passed = passed && require(set.face("Carlito-BoldItalic.ttf").accepted() &&
+                                       set.face("PortsmouthMono.ttf").accepted() && set.decoded_group_count() == 1U,
+                                   "an eager face was not answered from the eager decode");
+        const FontFaceLoad cjk = set.face("NotoSansCJKjp-Regular.otf");
+        if (cjk.accepted()) {
+            const FontFaceLoad again = set.face("NotoSansCJKjp-Regular.otf");
+            passed = passed && require(set.decoded_group_count() == 2U &&
+                                           (*again.face()).get() == (*cjk.face()).get(),
+                                       "the CJK group was not decoded exactly once");
+            const std::uintmax_t size = std::filesystem::file_size(
+                std::filesystem::path(GUI_FORMS_TEST_FONT_DIRECTORY) / "NotoSansCJKjp-Regular.otf");
+            passed = passed && require((*(*cjk.face())).bytes().size() == size, "the CJK face has the wrong size");
+        } else {
+            // A build without the fallback faces (GUI_FORMS_INSTALL_FALLBACK_FONTS=OFF).
+            passed = passed && require(fails_with(cjk, FontSetError::unreadable) && set.decoded_group_count() == 1U,
+                                       "a face the pack leaves out was not unreadable");
+        }
+        passed = passed && require(fails_with(set.face("Wingdings.ttf"), FontSetError::unknown_face),
+                                   "a face outside the manifest was not unknown");
+        passed = passed && require(ledger.sealed == set.loaded_face_count() && ledger.released == 0U,
+                                   "a decoded face was not sealed once");
+    }
+    passed = passed && require(ledger.released == ledger.reserved, "the pack set leaked pages");
+    return passed;
+}
+
+// The byte offset in `pack` of the stored CRC-32 of the font called `file_name`, from the
+// container layout (stx_fontpack/src/detail/format.hpp): the font's name, then its size as a
+// varint, then the CRC-32. Zero when the pack does not open or lacks the font.
+std::size_t stored_crc_offset(std::span<const std::byte> pack, std::string_view file_name) {
+    const std::unique_ptr<stx_fontpack::PackIndex> index = std::make_unique<stx_fontpack::PackIndex>();
+    if (!stx_fontpack::pack_open(pack, *index)) return 0U;
+    for (std::uint32_t font = 0U; font < (*index).font_count; ++font) {
+        const stx_fontpack::PackFont& packed = (*index).fonts[font];
+        if (std::string_view(packed.name, packed.name_length) != file_name) continue;
+        const std::uint8_t* at = reinterpret_cast<const std::uint8_t*>(packed.name) + packed.name_length;
+        while ((*at & 0x80U) != 0U) ++at;
+        ++at;
+        const std::size_t offset = static_cast<std::size_t>(at - reinterpret_cast<const std::uint8_t*>(pack.data()));
+        return offset;
+    }
+    return 0U;
+}
+
+// A pack whose stored CRC-32 for Cousine-Regular.ttf is altered: the eager faces still load;
+// the monospace group is refused once, every face of it is pack_refused, and the refusal is
+// counted and names the group, the cause and the faces. A pack that does not open refuses
+// every face and is reported too.
+bool refused_pack_is_reported() {
+    const std::span<const std::byte> embedded = gui_forms::detail::bundled_font_pack();
+    std::vector<std::byte> damaged(embedded.begin(), embedded.end());
+    const std::size_t offset = stored_crc_offset(damaged, "Cousine-Regular.ttf");
+    bool passed = require(offset != 0U && offset < damaged.size(), "the pack's Cousine-Regular CRC was not found");
+    if (!passed) return false;
+    damaged[offset] = damaged[offset] ^ std::byte{0xff};
+    const BundledFontDiagnostics before = gui_forms::bundled_font_diagnostics();
+    ledger = PageLedger{};
+    {
+        BundledFontSet set(damaged, counted_pages);
+        passed = passed && require(set.face("PortsmouthRapids.ttf").accepted(),
+                                   "a damaged lazy group refused the eager faces");
+        passed = passed && require(fails_with(set.face("Cousine-Regular.ttf"), FontSetError::pack_refused),
+                                   "a face whose CRC-32 is altered was not refused");
+        const std::size_t decoded = set.decoded_group_count();
+        passed = passed && require(fails_with(set.face("Cousine-Bold.ttf"), FontSetError::pack_refused) &&
+                                       set.decoded_group_count() == decoded,
+                                   "a refused group was decoded again or spared a face");
+    }
+    passed = passed && require(ledger.released == ledger.reserved, "a refused group leaked pages");
+    const BundledFontDiagnostics after = gui_forms::bundled_font_diagnostics();
+    const std::string refusal = gui_forms::bundled_font_pack_refusal();
+    passed = passed && require(after.pack_refusals == before.pack_refusals + 1U, "the refusal was not counted");
+    passed = passed && require(refusal.find("monospace") != std::string::npos &&
+                                   refusal.find("bad check") != std::string::npos &&
+                                   refusal.find("Cousine-Regular.ttf") != std::string::npos,
+                               "the refusal does not name the group, the cause and the faces");
+
+    const std::span<const std::byte> truncated = embedded.first(16U);
+    {
+        BundledFontSet set(truncated, counted_pages);
+        passed = passed && require(fails_with(set.face("PortsmouthRapids.ttf"), FontSetError::pack_refused) &&
+                                       set.decoded_group_count() == 0U,
+                                   "a pack that does not open did not refuse its faces");
+    }
+    passed = passed && require(gui_forms::bundled_font_diagnostics().pack_refusals == before.pack_refusals + 2U &&
+                                   gui_forms::bundled_font_pack_refusal().find("does not open") != std::string::npos,
+                               "a pack that does not open was not reported");
+    return passed;
+}
+
+// A shipped build ignores the hosts' directories and takes the embedded pack. A development
+// build offers them in order (environment, executable, library module): the first holding
+// every required face wins, whichever source it is, so a library loaded by another process
+// finds the fonts beside itself; with none, the pack serves and the notice names every
+// directory tried. Only a pack that does not open leaves no source: the lookup is counted,
+// the refusal says so and names the directories, and the windows' metrics report it; a later
+// success clears the refusal.
 bool font_directory_lookup() {
     const std::filesystem::path root =
         std::filesystem::temp_directory_path() / "gui_forms_bundled_font_lookup_tests";
@@ -533,22 +713,47 @@ bool font_directory_lookup() {
     candidates[1].directory = partial;
     candidates[2].source = BundledFontSource::library_module;
     candidates[2].directory = complete;
-    const BundledFontLocation found = gui_forms::detail::locate_bundled_fonts(candidates);
-    passed = passed && require(found.source == BundledFontSource::library_module && found.directory == complete,
-                               "the fonts beside the library module were not found");
-    const BundledFontDiagnostics after_found = gui_forms::bundled_font_diagnostics();
-    passed = passed && require(after_found.lookups == before.lookups + 1U &&
-                                   after_found.lookups_without_source == before.lookups_without_source &&
-                                   after_found.last_source == BundledFontSource::library_module,
-                               "a successful lookup was not counted as found");
-    passed = passed && require(gui_forms::bundled_font_refusal().empty(), "a successful lookup left a refusal");
-    // The fallback faces are an optional install component: a directory without them is
-    // accepted, counted and noted, never refused.
+    BundledFontLookup lookup{};
+    lookup.candidates = candidates;
+    lookup.pack = gui_forms::detail::bundled_font_pack();
+
+    // Shipped: the directories are not honoured, whatever they hold.
+    lookup.directories_honoured = false;
+    const BundledFontLocation shipped = gui_forms::detail::locate_bundled_fonts(lookup);
+    passed = passed && require(shipped.source == BundledFontSource::embedded_pack && shipped.directory.empty(),
+                               "a shipped lookup did not take the embedded pack");
     std::uint32_t fallback_total{};
     for (const gui_forms::detail::BundledFaceUse& use : gui_forms::detail::bundled_face_uses()) {
         if (!use.role && !use.required) ++fallback_total;
     }
     passed = passed && require(fallback_total == 7U, "the library does not know the seven fallback faces");
+    const BundledFontDiagnostics after_shipped = gui_forms::bundled_font_diagnostics();
+    passed = passed && require(after_shipped.fallback_faces_expected == fallback_total &&
+                                   after_shipped.fallback_faces_found <= fallback_total &&
+                                   (after_shipped.fallback_faces_found == fallback_total) ==
+                                       gui_forms::bundled_font_notice().empty(),
+                               "the pack's fallback faces were not counted, or the notice disagrees");
+    // The hosts' own lookup follows the build.
+    const BundledFontLocation hosts = gui_forms::detail::locate_bundled_fonts(std::span<const BundledFontCandidate>(candidates));
+    const BundledFontSource expected_source = gui_forms::detail::development_font_directories()
+                                                  ? BundledFontSource::library_module
+                                                  : BundledFontSource::embedded_pack;
+    passed = passed && require(hosts.source == expected_source, "the hosts' lookup does not follow the build");
+
+    // Development: the first directory with every face wins.
+    lookup.directories_honoured = true;
+    const std::uint64_t lookups_before = gui_forms::bundled_font_diagnostics().lookups;
+    const BundledFontLocation found = gui_forms::detail::locate_bundled_fonts(lookup);
+    passed = passed && require(found.source == BundledFontSource::library_module && found.directory == complete,
+                               "the fonts beside the library module were not found");
+    const BundledFontDiagnostics after_found = gui_forms::bundled_font_diagnostics();
+    passed = passed && require(after_found.lookups == lookups_before + 1U &&
+                                   after_found.lookups_without_source == before.lookups_without_source &&
+                                   after_found.last_source == BundledFontSource::library_module,
+                               "a successful lookup was not counted as found");
+    passed = passed && require(gui_forms::bundled_font_refusal().empty(), "a successful lookup left a refusal");
+    // The fallback faces are optional: a directory without them is accepted, counted and
+    // noted, never refused.
     passed = passed && require(after_found.fallback_faces_expected == fallback_total &&
                                    after_found.fallback_faces_found == 0U,
                                "a directory without the fallback faces was not counted as lacking them");
@@ -558,21 +763,32 @@ bool font_directory_lookup() {
                                    notice.find("fallback_fonts") != std::string::npos,
                                "the notice does not name the absent fallback faces and the component");
 
+    // No directory holds the faces: the pack serves, and the notice names the directories.
     candidates[2].directory = root / "nowhere";
-    const BundledFontLocation missing = gui_forms::detail::locate_bundled_fonts(candidates);
+    const BundledFontLocation fell_back = gui_forms::detail::locate_bundled_fonts(lookup);
+    const std::string development_notice = gui_forms::bundled_font_notice();
+    passed = passed && require(fell_back.source == BundledFontSource::embedded_pack &&
+                                   development_notice.find("executable (") != std::string::npos &&
+                                   development_notice.find("library_module (") != std::string::npos &&
+                                   development_notice.find("embedded font pack") != std::string::npos,
+                               "a development lookup without a directory did not fall back to the pack, noted");
+
+    // Nor does the pack open: no source, counted and refused.
+    lookup.pack = gui_forms::detail::bundled_font_pack().first(16U);
+    const BundledFontLocation missing = gui_forms::detail::locate_bundled_fonts(lookup);
     passed = passed && require(missing.source == BundledFontSource::none && missing.directory.empty(),
                                "a lookup without the faces named a source");
     const BundledFontDiagnostics after_missing = gui_forms::bundled_font_diagnostics();
-    passed = passed && require(after_missing.lookups == before.lookups + 2U &&
-                                   after_missing.lookups_without_source == before.lookups_without_source + 1U &&
+    passed = passed && require(after_missing.lookups_without_source == before.lookups_without_source + 1U &&
                                    after_missing.last_source == BundledFontSource::none,
                                "a lookup without the faces was not counted");
     const std::string refusal = gui_forms::bundled_font_refusal();
-    passed = passed && require(refusal.find("executable (") != std::string::npos &&
+    passed = passed && require(refusal.find("does not open") != std::string::npos &&
+                                   refusal.find("executable (") != std::string::npos &&
                                    refusal.find("library_module (") != std::string::npos &&
                                    refusal.find("environment") == std::string::npos &&
                                    refusal.find("GUI_FORMS_FONT_DIR") != std::string::npos,
-                               "the refusal does not name the directories tried and the remedy");
+                               "the refusal does not name the pack, the directories tried and the remedy");
     gui_forms::Metrics metrics;
     passed = passed && require(metrics.snapshot().bundled_font_lookups_without_source ==
                                    after_missing.lookups_without_source,
@@ -580,17 +796,16 @@ bool font_directory_lookup() {
     passed = passed && require(metrics.snapshot().to_json().find("\"bundled_font_lookups_without_source\":") !=
                                    std::string::npos,
                                "the metrics JSON leaves out the lookups without a source");
-
     passed = passed && require(gui_forms::bundled_font_diagnostics().fallback_faces_found == 0U &&
                                    gui_forms::bundled_font_notice().empty(),
-                               "a lookup without a directory reported fallback faces or kept the notice");
+                               "a lookup without a source reported fallback faces or kept the notice");
 
-    // With the fallback component installed, every face is counted and nothing is noted.
+    // With the fallback faces in the directory, every face is counted and nothing is noted.
     for (const gui_forms::detail::BundledFaceUse& use : gui_forms::detail::bundled_face_uses()) {
         if (!use.role && !use.required) write_file(complete / use.file_name, "face");
     }
     candidates[2].directory = complete;
-    const BundledFontLocation again = gui_forms::detail::locate_bundled_fonts(candidates);
+    const BundledFontLocation again = gui_forms::detail::locate_bundled_fonts(lookup);
     passed = passed && require(again.source == BundledFontSource::library_module &&
                                    gui_forms::bundled_font_refusal().empty(),
                                "a later successful lookup kept the old refusal");
@@ -600,9 +815,25 @@ bool font_directory_lookup() {
                                    gui_forms::bundled_font_notice().empty(),
                                "a directory with every fallback face was not counted as complete");
     passed = passed && require(gui_forms::bundled_font_source_name(BundledFontSource::library_module) ==
-                                   "library_module",
-                               "the library module source is misnamed");
+                                       "library_module" &&
+                                   gui_forms::bundled_font_source_name(BundledFontSource::embedded_pack) ==
+                                       "embedded_pack",
+                               "a source is misnamed");
     std::filesystem::remove_all(root, status);
+    return passed;
+}
+
+// The shared set for a location: the embedded pack's for embedded_pack, kept while held;
+// none for no source.
+bool shared_pack_set_is_shared() {
+    BundledFontLocation embedded{};
+    embedded.source = BundledFontSource::embedded_pack;
+    const std::shared_ptr<BundledFontSet> first = gui_forms::detail::shared_bundled_font_set(embedded, counted_pages);
+    const std::shared_ptr<BundledFontSet> second = gui_forms::detail::shared_bundled_font_set(embedded, counted_pages);
+    const BundledFontLocation nowhere{};
+    const bool passed = require(first && first == second &&
+                                    !gui_forms::detail::shared_bundled_font_set(nowhere, counted_pages),
+                                "the pack's shared set is not shared, or no source made a set");
     return passed;
 }
 
@@ -640,8 +871,12 @@ int main(int argument_count, char** arguments) {
     passed = nearest_faces_are_chosen() && passed;
     passed = family_stacks_register_and_order() && passed;
     passed = shared_set_is_shared() && passed;
+    passed = pack_faces_decode_by_group() && passed;
+    passed = refused_pack_is_reported() && passed;
+    passed = shared_pack_set_is_shared() && passed;
     passed = font_directory_lookup() && passed;
     if (!passed) return 1;
-    std::printf("bundled_font_set: manifest, loading, sharing, refusals, page release and font lookup passed\n");
+    std::printf("bundled_font_set: manifest, loading, pack decoding, sharing, refusals, page release and font "
+                "lookup passed\n");
     return 0;
 }

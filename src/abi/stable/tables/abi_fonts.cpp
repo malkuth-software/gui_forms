@@ -39,14 +39,18 @@ gf_status GF_CALL fonts_family_id(gf_utf8_view name, std::uint32_t* family) noex
             return read;
         }
         // A family by its own name (since 1.3 a role's family too: Carlito has an id), then a
-        // name the substitution table maps to a bundled face (Segoe UI to Selawik): the face's
-        // family. A family the table maps to a face that is not bundled with every program
-        // (Arial to Arimo) and a name it does not know are unmapped.
+        // name the substitution table maps to a bundled family (Segoe UI to Selawik, Arial to
+        // Arimo, Segoe UI Semibold to Selawik Semibold): that family by its name, else the
+        // family of the face the table chose. A name the table does not know is unmapped.
         const FontFamilyRecord* found = font_family_named(text);
         if (found == nullptr) {
             const gui_drawing::FontFamilyResolution resolution =
                 gui_drawing::resolve_font_family(text, gui_drawing::FontFaceStyle::regular);
-            if (resolution.source != gui_drawing::FontResolutionSource::unmapped && !resolution.face_file.empty()) {
+            if (resolution.source != gui_drawing::FontResolutionSource::unmapped && !resolution.family.empty()) {
+                found = font_family_named(resolution.family);
+            }
+            if (found == nullptr && resolution.source != gui_drawing::FontResolutionSource::unmapped &&
+                !resolution.face_file.empty()) {
                 found = font_family_with_face(resolution.face_file);
             }
         }

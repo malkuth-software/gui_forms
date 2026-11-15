@@ -906,11 +906,12 @@ std::filesystem::path gui_forms_module_directory() {
     return directory;
 }
 
-// The bundled font directory: the first of GUI_FORMS_FONT_DIR, "fonts" beside the executable
-// and "fonts" beside the GUI.Forms module that holds the required faces; empty when none does,
-// which locate_bundled_fonts counts and reports (bundled_font_diagnostics,
-// bundled_font_refusal).
-std::filesystem::path bundled_font_directory() {
+// Where the bundled faces come from: the embedded font pack, or in a development build
+// (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY) the first of GUI_FORMS_FONT_DIR, "fonts" beside the
+// executable and "fonts" beside the GUI.Forms module that holds the required faces. None only
+// when the pack does not open, which locate_bundled_fonts counts and reports
+// (bundled_font_diagnostics, bundled_font_refusal).
+gui_forms::detail::BundledFontLocation bundled_font_location() {
     std::array<gui_forms::detail::BundledFontCandidate, 3> candidates{};
     const wchar_t* override_directory = _wgetenv(L"GUI_FORMS_FONT_DIR");
     candidates[0].source = gui_forms::BundledFontSource::environment;
@@ -925,16 +926,16 @@ std::filesystem::path bundled_font_directory() {
         candidates[2].directory = library_directory / L"fonts";
     const gui_forms::detail::BundledFontLocation location =
         gui_forms::detail::locate_bundled_fonts(candidates);
-    return location.directory;
+    return location;
 }
 
 // The bundled font set in gui_forms::detail::bundled_face_uses() order, as every host
-// registers it (ADR-004), shared with every other raster given the same set. Nullptr when the
-// directory is unknown; a set missing a required face is refused when a raster registers it.
-std::shared_ptr<gui_forms::detail::BundledFontSet> load_bundled_fonts(const std::filesystem::path& directory) {
-    std::shared_ptr<gui_forms::detail::BundledFontSet> result;
-    if (directory.empty()) return result;
-    result = gui_forms::detail::shared_bundled_font_set(directory, windows_sealed_pages());
+// registers it (ADR-004), shared with every other raster given the same set. Nullptr when
+// there is no source; a set missing a required face is refused when a raster registers it.
+std::shared_ptr<gui_forms::detail::BundledFontSet> load_bundled_fonts(
+    const gui_forms::detail::BundledFontLocation& location) {
+    std::shared_ptr<gui_forms::detail::BundledFontSet> result =
+        gui_forms::detail::shared_bundled_font_set(location, windows_sealed_pages());
     return result;
 }
 
@@ -1549,8 +1550,8 @@ public:
         }
         hwnd_ = window;
         scale_ = options_.scale_override > 0.0 ? options_.scale_override : query_scale(window);
-        const std::filesystem::path font_directory = bundled_font_directory();
-        std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = load_bundled_fonts(font_directory);
+        const gui_forms::detail::BundledFontLocation font_location = bundled_font_location();
+        std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = load_bundled_fonts(font_location);
         RECT client{};
         GetClientRect(window, &client);
         const Size logical{(client.right - client.left) / scale_,
@@ -4167,10 +4168,10 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPAR
 
 } // namespace
 
-// OffscreenRaster::create's lookup (offscreen_font_lookup.hpp): the windows' own places.
-std::filesystem::path offscreen_bundled_font_directory() {
-    const std::filesystem::path directory = bundled_font_directory();
-    return directory;
+// OffscreenRaster::create's lookup (offscreen_font_lookup.hpp): the windows' own source.
+gui_forms::detail::BundledFontLocation offscreen_bundled_font_location() {
+    const gui_forms::detail::BundledFontLocation location = bundled_font_location();
+    return location;
 }
 
 #if defined(GUI_FORMS_DIB_LIFECYCLE_TEST)
@@ -4372,10 +4373,8 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
     if (windows.empty() || windows.size() > HostWindowing::maximum_windows) return 2;
     // The run holds the bundled font set, so windows opened and closed during it share one
     // copy of each face.
-    const std::filesystem::path font_directory = bundled_font_directory();
-    std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts;
-    if (!font_directory.empty())
-        run_fonts = gui_forms::detail::shared_bundled_font_set(font_directory, windows_sealed_pages());
+    const std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts =
+        load_bundled_fonts(bundled_font_location());
     // The run's Splash baker (Part S, phase 2), after the fonts it paints with and
     // before every window, so it outlives each tooltip that reads it.
     const gui_forms::render::SkiaSplashBakeRun splash_baking(run_fonts);

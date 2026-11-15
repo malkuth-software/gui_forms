@@ -48,6 +48,18 @@ target_include_directories(stx_fontpack
 target_link_libraries(stx_fontpack PRIVATE stx_zlib::stx_zlib)
 target_compile_options(stx_fontpack PRIVATE ${_stx_fontpack_warnings})
 
+# The loader's objects again, for a consumer that compiles them into its own
+# static library instead of linking (and exporting) this one: GUI.Forms Core,
+# whose embedded font pack they open.
+add_library(stx_fontpack_objects OBJECT src/runtime.cpp src/codec_decode.cpp src/loader.cpp)
+target_compile_features(stx_fontpack_objects PUBLIC cxx_std_20)
+set_target_properties(stx_fontpack_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(stx_fontpack_objects
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(stx_fontpack_objects PRIVATE stx_zlib::stx_zlib)
+target_compile_options(stx_fontpack_objects PRIVATE ${_stx_fontpack_warnings})
+
 # The packer: build-time coding, for the tool and the tests.
 add_library(stx_fontpack_packer STATIC src/codec_encode.cpp src/packer.cpp)
 add_library(stx_fontpack::packer ALIAS stx_fontpack_packer)

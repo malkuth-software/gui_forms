@@ -210,7 +210,8 @@ static void benchmark_captions() {
 int main(int argc, char** argv) {
     try {
         require_text(argc == 2 || argc == 3, "Pass fixture font directory");
-        fixture_fonts = host::load_bundled_fonts(std::filesystem::path(argv[1]));
+        fixture_fonts = host::load_bundled_fonts(
+            gui_forms::detail::BundledFontLocation{gui_forms::BundledFontSource::environment, std::filesystem::path(argv[1])});
         require_text(fixture_fonts != nullptr, "Could not load fixture fonts");
         if (argc == 3 && std::string_view(argv[2]) == "--benchmark") {
             benchmark_captions();

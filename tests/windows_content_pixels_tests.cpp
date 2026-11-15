@@ -134,7 +134,8 @@ int main(int argc, char** argv) {
         std::cerr << "pass the fixture font directory\n";
         return 1;
     }
-    const std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = host::load_bundled_fonts(std::filesystem::path(argv[1]));
+    const std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = host::load_bundled_fonts(
+        gui_forms::detail::BundledFontLocation{gui_forms::BundledFontSource::environment, std::filesystem::path(argv[1])});
     require(fonts != nullptr, "the fixture fonts load");
 
     // A 2 x 2 opaque picture, premultiplied BGRA rows.

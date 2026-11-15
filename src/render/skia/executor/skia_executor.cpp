@@ -1027,10 +1027,10 @@ public:
     // registry entry in its order, so a registry family has one identity
     // here as in interface text. Empty until its faces are registered.
     std::array<std::unique_ptr<TextFamily>, gui_forms::bundled_font_families.size()> registry_families;
-    // Families outside the registry, keyed by ASCII-lowercased name: the
-    // faces only GUI.Drawing loads (the substitution table's Arimo, Tinos,
-    // Portsmouth Mono and Selawik Semibold, which are not staged with every
-    // program) and host faces under their own names (decision 10).
+    // Families outside the registry, keyed by ASCII-lowercased name: host
+    // faces under their own names (decision 10). The substitution table's
+    // Arimo, Tinos, Portsmouth Mono and Selawik Semibold have registry slots
+    // since font pack stage 4.
     std::unordered_map<std::string, std::unique_ptr<TextFamily>> named_families;
     // Requested family to the registered family drawn for it, both
     // ASCII-lowercased (stage F substitution).

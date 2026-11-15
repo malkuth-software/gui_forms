@@ -632,7 +632,7 @@ Related types
 
    ``#include <gui_forms/typography/font_families/font_families.hpp>``
 
-   A CSS generic family name and the bundled family it draws. The mapping is GUI.Forms' choice (owner, 2026-11-13: the theme language follows CSS closely), not a CSS rule: CSS leaves a generic's face to the user agent. Until a serif, cursive or fantasy face is bundled, those generics draw the content family. ``emoji`` names no family (zero): the bundled emoji fallback face already draws emoji for every font. A generic is matched only unquoted, as CSS does (a quoted "serif" is a family name).
+   A CSS generic family name and the bundled family it draws. The mapping is GUI.Forms' choice (owner, 2026-11-13: the theme language follows CSS closely), not a CSS rule: CSS leaves a generic's face to the user agent. The serif generics draw Tinos; until a cursive or fantasy face is bundled, those generics draw the content family. ``emoji`` names no family (zero): the bundled emoji fallback face already draws emoji for every font. A generic is matched only unquoted, as CSS does (a quoted "serif" is a family name).
 
    .. cpp:member:: std::string_view name
 
@@ -3808,7 +3808,7 @@ Functions, constants and aliases
 
 .. cpp:function:: constexpr const FontFamilyRecord* font_family_with_face(std::string_view file_name) noexcept
 
-   The family one of whose faces is the bundled file ``file_name``, or null: how a substitution's answer (a face file) finds its registered family.
+   The family one of whose faces is the bundled file ``file_name``, or null: how a substitution's answer (a face file) finds its registered family. A face two families share (Selawik's semibold and bold faces, which Selawik Semibold lists too) finds the lower-numbered family; a caller that knows the substitution's family name finds it by name first.
 
 .. cpp:function:: constexpr FontFamilyId role_font_family(FontRole role) noexcept
 
@@ -3856,11 +3856,27 @@ Functions, constants and aliases
 
    Value: ``{4U}``.
 
+.. cpp:var:: constexpr FontFamilyId arimo_font_family
+
+   Value: ``{5U}``.
+
+.. cpp:var:: constexpr FontFamilyId tinos_font_family
+
+   Value: ``{6U}``.
+
+.. cpp:var:: constexpr FontFamilyId portsmouth_mono_font_family
+
+   Value: ``{7U}``.
+
+.. cpp:var:: constexpr FontFamilyId selawik_semibold_font_family
+
+   Value: ``{8U}``.
+
 .. cpp:var:: constexpr std::uint16_t maximum_bundled_font_family
 
    The largest number a bundled family may have; numbers above it are reserved for registered families. Value: ``255U``.
 
-.. cpp:var:: constexpr std::array<FontFamilyRecord, 4> bundled_font_families{
+.. cpp:var:: constexpr std::array<FontFamilyRecord, 8> bundled_font_families{
 
    The bundled families, in the order of their numbers.
 

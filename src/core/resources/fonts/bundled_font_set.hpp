@@ -16,14 +16,22 @@
 #include <variant>
 #include <vector>
 
+namespace stx_fontpack {
+struct PackIndex;
+} // namespace stx_fontpack
+
 namespace gui_forms::detail {
 
 // The application's bundled font faces, verified before any parser sees them (owner decision,
-// 2026-10-28): each face is read once from the install's font directory into pages the set
-// reserves, its size and SHA-256 are checked against the manifest compiled into the library,
-// and only then are the pages made read-only and handed out. Every window's text engine and
-// raster borrows the same bytes through a shared owner, so a process holds one copy of each
-// face, and a face is read only when something first asks for it.
+// 2026-10-28). A shipped program reads them from the font pack compiled into the library
+// (font pack stage 4, cmake/FontPack.cmake): a face's group is decoded the first time
+// something asks for one of its faces (the eager groups the first time anything asks), every
+// decoded face is checked against the CRC-32 the pack stores for it and against the size the
+// manifest records, and only then is it copied into pages the set reserves, made read-only and
+// handed out. A development build (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY) may instead read a font
+// directory, where each face is checked against its manifest size and SHA-256. Every window's
+// text engine and raster borrows the same bytes through a shared owner, so a process holds one
+// copy of each face.
 
 // One face of assets/fonts/bundled-fonts.sha256, with the size the build measured.
 struct BundledFaceRecord final {
@@ -35,6 +43,15 @@ struct BundledFaceRecord final {
 // The manifest compiled from assets/fonts/bundled-fonts.sha256, in its order. The records and
 // their strings are static.
 [[nodiscard]] std::span<const BundledFaceRecord> bundled_face_manifest() noexcept;
+
+// The font pack compiled into the library (bundled_font_pack.cpp): static bytes, valid for the
+// process. It holds every manifest face, less the fallback faces when the build leaves them out
+// (GUI_FORMS_INSTALL_FALLBACK_FONTS).
+[[nodiscard]] std::span<const std::byte> bundled_font_pack() noexcept;
+
+// Whether this build reads a font directory the hosts find before the embedded pack
+// (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY, off for every shipped build).
+[[nodiscard]] bool development_font_directories() noexcept;
 
 // How every host registers a bundled face (ADR-004): its manifest name, its role (none for a
 // fallback face, which serves any role), weight and slant, and whether the window needs it. A
@@ -115,6 +132,8 @@ enum class FontSetError : std::uint8_t {
     size_mismatch,   // the file's size is not the manifest's
     digest_mismatch, // the bytes' SHA-256 is not the manifest's
     page_failure,    // the pages could not be reserved or made read-only
+    pack_refused,    // the font pack, or the face's group in it, failed its checks
+                     // (bundled_font_pack_refusal says how)
 };
 
 // A face request's result: the shared face, or why there is none.
@@ -138,10 +157,13 @@ private:
 
 // The bundled faces of one application run, shared by all of its windows. Any thread: a
 // fallback face is read when text first needs it, on whichever thread shapes that text.
-// A face is read on its first request; the result, a failure included, is kept and returned
-// to every later request, so a damaged install is read once and reported the same way each
-// time. Faces handed out stay valid after the set is destroyed, for as long as a borrower
-// keeps its owner.
+// A face is read (from a directory) or its group decoded (from a pack) on its first request;
+// the result, a failure included, is kept and returned to every later request, so a damaged
+// install or pack is read once and reported the same way each time. A pack group is decoded
+// on the core worker pool (gui_forms::AtomicThreadPool, one per decode on the requesting
+// thread), or in turn on the requesting thread where no pool can be made (a single-threaded
+// Emscripten build, one hardware thread, or a pool that fails to start). Faces handed out stay
+// valid after the set is destroyed, for as long as a borrower keeps its owner.
 class BundledFontSet final {
 public:
     // The compiled manifest, read from `directory`.
@@ -151,6 +173,16 @@ public:
     // or above maximum_bundled_face_bytes.
     BundledFontSet(std::filesystem::path directory, std::span<const BundledFaceRecord> manifest,
                    const SealedPageFunctions& pages);
+    // The compiled manifest's faces, decoded from `pack` (bundled_font_pack(), or a test's
+    // copy). `pack` must stay valid and unchanged for the set's life; the faces handed out are
+    // copies and do not borrow it. A pack that does not open is not an exception: every face
+    // is then refused with pack_refused and the refusal is recorded (bundled_font_pack_refusal).
+    // A manifest face the pack does not hold is unreadable.
+    BundledFontSet(std::span<const std::byte> pack, const SealedPageFunctions& pages);
+    // Another manifest over `pack`, for tests; throws as the directory form does.
+    BundledFontSet(std::span<const std::byte> pack, std::span<const BundledFaceRecord> manifest,
+                   const SealedPageFunctions& pages);
+    ~BundledFontSet();
     BundledFontSet(const BundledFontSet&) = delete;
     BundledFontSet& operator=(const BundledFontSet&) = delete;
 
@@ -159,25 +191,50 @@ public:
     // Faces loaded so far and their bytes, for memory reports.
     [[nodiscard]] std::size_t loaded_face_count() const;
     [[nodiscard]] std::uint64_t loaded_bytes() const;
+    // Pack groups decoded so far, refused ones included; 0 for a directory set.
+    [[nodiscard]] std::size_t decoded_group_count() const;
 
 private:
     [[nodiscard]] FontFaceLoad load(std::size_t index) const;
+    // The pack forms of load; each needs mutex_ held.
+    [[nodiscard]] FontFaceLoad load_from_pack(std::size_t index);
+    void decode_eager_groups();
+    void decode_group(std::uint32_t group);
+    void refuse_group(std::uint32_t group, std::string_view reason);
+    [[nodiscard]] FontFaceLoad seal_copy(std::size_t index, const std::uint8_t* data,
+                                         std::size_t size_bytes) const;
+    // The manifest position of the face called `file_name`, or none.
+    [[nodiscard]] std::optional<std::size_t> manifest_position(std::string_view file_name) const noexcept;
 
     std::filesystem::path directory_;
     std::span<const BundledFaceRecord> manifest_;
     SealedPageFunctions pages_;
     // Parallel to manifest_.
     std::vector<Sha256Digest> digests_;
-    // Guards results_; held while a face is read, so each face is read once.
+    // Guards results_ and the pack state below; held while a face is read or its group
+    // decoded, so each face is read once and each group decoded once.
     mutable std::mutex mutex_;
-    // Parallel to manifest_; empty until the face is first requested.
+    // Parallel to manifest_; empty until the face is first requested (or its group decoded).
     std::vector<std::optional<FontFaceLoad>> results_;
+    // Pack sets only: the pack (borrowed), its index (which borrows the pack), whether it
+    // opened, each manifest face's position among the pack's fonts (no_pack_font when the
+    // pack lacks it), each group's state (1 once decoded or refused), and how many groups
+    // have been decoded.
+    static constexpr std::uint32_t no_pack_font = 0xffffffffU;
+    bool pack_set_{};
+    std::span<const std::byte> pack_{};
+    std::unique_ptr<stx_fontpack::PackIndex> index_{};
+    bool pack_opened_{};
+    bool eager_decoded_{};
+    std::vector<std::uint32_t> pack_fonts_{};
+    std::vector<std::uint8_t> group_decoded_{};
+    std::size_t decoded_groups_{};
 };
 
 // The process's bundled font set for `directory`. Every window that renders bundled text
 // holds it, and so does an application run for its length, so all of them share one copy of
 // each face; when the last holder lets go, the set and its pages go too, and the next request
-// makes a new one. A request for another directory makes a separate set, which then becomes
+// makes a new one. A request for another source makes a separate set, which then becomes
 // the shared one. UI thread only.
 [[nodiscard]] std::shared_ptr<BundledFontSet> shared_bundled_font_set(
     const std::filesystem::path& directory, const SealedPageFunctions& pages);
@@ -189,21 +246,43 @@ struct BundledFontCandidate final {
     std::filesystem::path directory{};
 };
 
-// Where locate_bundled_fonts found the fonts: the source and its directory, or none and an
-// empty directory.
+// Where locate_bundled_fonts found the fonts: the source and its directory (empty for the
+// embedded pack), or none and an empty directory.
 struct BundledFontLocation final {
     BundledFontSource source{BundledFontSource::none};
     std::filesystem::path directory{};
+};
+
+// The process's shared set for `location`: the embedded pack's for embedded_pack, the
+// directory's for any other source, null for none. Shared as the directory form is. UI thread
+// only.
+[[nodiscard]] std::shared_ptr<BundledFontSet> shared_bundled_font_set(
+    const BundledFontLocation& location, const SealedPageFunctions& pages);
+
+// What one lookup consults: the hosts' directories in their order, whether they are honoured
+// (development_font_directories in the hosts' lookups; either way in tests), and the pack to
+// fall back to.
+struct BundledFontLookup final {
+    std::span<const BundledFontCandidate> candidates{};
+    bool directories_honoured{};
+    std::span<const std::byte> pack{};
 };
 
 // Whether `directory` holds a regular file for every required face of bundled_face_uses. Only
 // the names are checked; the set checks each face's size and digest when it reads it.
 [[nodiscard]] bool directory_holds_required_faces(const std::filesystem::path& directory);
 
-// The first of `candidates`, in order, whose directory holds the required faces. Records the
-// lookup in bundled_font_diagnostics; when no candidate qualifies it also records the refusal
-// (bundled_font_refusal) naming every directory tried, and the process's first such lookup
-// writes that refusal to stderr. UI thread, as the hosts' window setup is.
+// Where the bundled faces come from. When directories are honoured, the first candidate, in
+// order, whose directory holds the required faces; otherwise, or when none does, the pack, if
+// it opens (embedded_pack, with a notice naming the directories tried when they were
+// honoured). Records the lookup in bundled_font_diagnostics; when the pack does not open
+// either, the answer is none, the refusal (bundled_font_refusal) says so and names every
+// directory tried, and the process's first such lookup writes it to stderr. UI thread, as the
+// hosts' window setup is.
+[[nodiscard]] BundledFontLocation locate_bundled_fonts(const BundledFontLookup& lookup);
+
+// The hosts' lookup: `candidates` honoured only when development_font_directories, then the
+// embedded pack.
 [[nodiscard]] BundledFontLocation locate_bundled_fonts(
     std::span<const BundledFontCandidate> candidates);
 

@@ -5537,6 +5537,8 @@
     _ZN9gui_forms25binding_value_to_unsignedE*;
     _ZN9gui_forms25box_shadow_visual_outsetsB*;
     _ZN9gui_forms25box_shadow_visual_outsetsE*;
+    _ZN9gui_forms25bundled_font_pack_refusalB*;
+    _ZN9gui_forms25bundled_font_pack_refusalE*;
     _ZN9gui_forms25connected_control_segmentB*;
     _ZN9gui_forms25connected_control_segmentE*;
     _ZN9gui_forms25content_worker_state_nameB*;

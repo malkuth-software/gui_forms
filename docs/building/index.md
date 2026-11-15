@@ -37,7 +37,9 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_BUILD_AUDIO` | OFF | Build `GUIForms::Audio` |
 | `GUI_FORMS_AUDIO_VORBIS_BACKEND` | `stx` | Ogg decoder: `stx` or `stb` |
 | `GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD` | OFF | Build the fixture-backed explorer consumer |
-| `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Install the seven Noto fallback faces and their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
+| `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Embed the seven Noto fallback faces in the font pack, and install them and their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
+| `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY` | OFF | Development builds only: read the bundled faces from a directory the hosts find (`GUI_FORMS_FONT_DIR` first) before the embedded pack (see [Embedded font pack](#embedded-font-pack)) |
+| `GUI_FORMS_FONTPACK_TOOL` | empty | A host-built `stx_fontpack` tool for a cross build, which cannot run the one it compiles |
 | `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
 | `GUI_FORMS_HARDENING` | ON | Stack protector, `_FORTIFY_SOURCE=2` (outside Debug and sanitized builds), CET or branch protection, Control Flow Guard on Windows, and full RELRO on Linux, for every first-party library and program |
 | `GUI_FORMS_WARNINGS` | ON | Compile first-party code with `-Wall -Wextra`; `tools/warning_baseline.py` holds the count of warning sites per directory and fails a build that raises one |
@@ -308,6 +310,24 @@ font directory under `CMAKE_INSTALL_PREFIX`. The exact contents are listed in
 then builds `examples/reference/` against it, so the installed package is
 tested on every platform, not only the build tree.
 
+### Embedded font pack
+
+The GUI.Forms runtime reads its bundled faces from one font pack compiled into
+Core, never from files beside the program. The build packs every face of
+`assets/fonts/bundled-fonts.sha256` with the `stx_fontpack` tool, in the
+groups of `assets/fonts/font-pack.manifest` (`cmake/FontPack.cmake`), and
+`ctest -R gui_forms_font_pack_round_trip` checks the built pack against the
+files. At run time the interface group (every Portsmouth face and Carlito) is
+decoded on the first request for any face, every other group on the first
+request for one of its faces, on the core worker pool. Each face is checked
+against the CRC-32 the pack stores for it; a refused group is reported once
+on stderr and by `bundled_font_pack_refusal()`, and its faces draw as missing.
+A build configured with `-DGUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=ON` reads a
+font directory the hosts find (`GUI_FORMS_FONT_DIR` first) and falls back to
+the pack; shipped builds leave it off. The installed font files serve the
+consumers that still read files: GUI.Drawing's raster C API and the installed
+FreeType and HarfBuzz consumer.
+
 ### Fallback fonts
 
 The bundled font set has two install components. `fonts` holds the faces every
@@ -328,8 +348,10 @@ Arabic, Bengali, Devanagari, Gurmukhi, Hebrew) and their OFL texts
   the faces and notices to match. A package without them also drops the copies
   the build placed in a macOS bundle's `Resources/fonts` or the Windows
   `fonts/` folder. Every in-tree program currently sets `true`.
-- **Without them.** The runtime does not need the fallback faces. They are
-  optional faces, so the font directory is accepted without them, and text that
+- **Without them.** The runtime does not need the fallback faces. With
+  `GUI_FORMS_INSTALL_FALLBACK_FONTS=OFF` the pack leaves them out too
+  (`assets/fonts/font-pack-without-fallback.manifest`). They are
+  optional faces, so a pack or directory is accepted without them, and text that
   only they cover falls back as it does for any missing face: it draws as
   missing glyphs. `bundled_font_diagnostics()` reports `fallback_faces_found`
   out of `fallback_faces_expected` for the most recent lookup, and

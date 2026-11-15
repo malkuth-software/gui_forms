@@ -1226,7 +1226,7 @@ Related types
 
    .. cpp:function:: const std::filesystem::path& font_directory() const noexcept
 
-      The directory its faces came from.
+      The directory its faces came from; empty when they came from the embedded font pack.
 
    .. cpp:function:: std::size_t attachments() const noexcept
 
@@ -1286,7 +1286,7 @@ Related types
 
    .. cpp:member:: std::filesystem::path font_directory
 
-      The bundled font directory (assets/fonts, installed as share/GUIForms/fonts); empty looks where the hosts look.
+      A directory of the bundled faces (assets/fonts) to read in place of the embedded font pack; empty takes the source the hosts' windows take (the pack, or a development build's directory).
 
 .. cpp:namespace:: gui_forms
 

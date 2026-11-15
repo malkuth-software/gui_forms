@@ -743,12 +743,13 @@ std::filesystem::path gui_forms_module_directory() {
   return module.parent_path();
 }
 
-// The bundled font directory: the first of GUI_FORMS_FONT_DIR, "fonts" beside the
-// executable, "fonts" beside the GUI.Forms module, and the installed share/GUIForms/fonts
-// next to the executable's and then the module's directory that holds the required faces;
-// empty when none does, which locate_bundled_fonts counts and reports
+// Where the bundled faces come from: the embedded font pack, or in a development build
+// (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY) the first of GUI_FORMS_FONT_DIR, "fonts" beside the
+// executable, "fonts" beside the GUI.Forms module, and the installed share/GUIForms/fonts next
+// to the executable's and then the module's directory that holds the required faces. None
+// only when the pack does not open, which locate_bundled_fonts counts and reports
 // (bundled_font_diagnostics, bundled_font_refusal).
-std::filesystem::path fonts_directory() {
+gui_forms::detail::BundledFontLocation fonts_location() {
   std::array<gui_forms::detail::BundledFontCandidate, 5> candidates{};
   const char *override_path = std::getenv("GUI_FORMS_FONT_DIR");
   candidates[0].source = gui_forms::BundledFontSource::environment;
@@ -777,20 +778,28 @@ std::filesystem::path fonts_directory() {
   }
   const gui_forms::detail::BundledFontLocation location =
       gui_forms::detail::locate_bundled_fonts(candidates);
-  return location.directory;
+  return location;
 }
-// Every window borrows the process's one bundled font set: each face is read once, checked
-// against the manifest and sealed read-only (gui_forms::detail::BundledFontSet), then shared.
-// Throws with the lookup's refusal (bundled_font_refusal) when no directory holds the faces.
+// Every window borrows the process's one bundled font set: each face is decoded (or read)
+// once, checked and sealed read-only (gui_forms::detail::BundledFontSet), then shared.
+// Throws with the lookup's refusal (bundled_font_refusal) when there is no source, and with
+// the pack's refusal when a required face was refused.
 void register_fonts(render::SkiaRaster &raster) {
-  const std::filesystem::path directory = fonts_directory();
-  if (directory.empty())
+  const gui_forms::detail::BundledFontLocation location = fonts_location();
+  if (location.source == gui_forms::BundledFontSource::none)
     throw std::runtime_error(gui_forms::bundled_font_refusal());
   const std::shared_ptr<gui_forms::detail::BundledFontSet> set =
-      gui_forms::detail::shared_bundled_font_set(directory, gui_forms::host::posix_sealed_pages());
-  if (!raster.register_bundled_fonts(set))
-    throw std::runtime_error("Cannot load the bundled GUI.Forms fonts from " +
-                             directory.string());
+      gui_forms::detail::shared_bundled_font_set(location, gui_forms::host::posix_sealed_pages());
+  if (!raster.register_bundled_fonts(set)) {
+    std::string message = "Cannot load the bundled GUI.Forms fonts from ";
+    message += gui_forms::bundled_font_source_name(location.source);
+    if (!location.directory.empty())
+      message += " (" + location.directory.string() + ")";
+    const std::string refusal = gui_forms::bundled_font_pack_refusal();
+    if (!refusal.empty())
+      message += ": " + refusal;
+    throw std::runtime_error(message);
+  }
 }
 struct Closing final {
   NativeWindow *window;
@@ -2228,10 +2237,10 @@ void NativeWindow::write_minimum_hint() {
 } // namespace gui_forms::host::linux_detail
 namespace gui_forms::host {
 
-// OffscreenRaster::create's lookup (offscreen_font_lookup.hpp): the windows' own places.
-std::filesystem::path offscreen_bundled_font_directory() {
-  const std::filesystem::path directory = linux_detail::fonts_directory();
-  return directory;
+// OffscreenRaster::create's lookup (offscreen_font_lookup.hpp): the windows' own source.
+gui_forms::detail::BundledFontLocation offscreen_bundled_font_location() {
+  const gui_forms::detail::BundledFontLocation location = linux_detail::fonts_location();
+  return location;
 }
 std::unique_ptr<gui_forms::detail::SplashscreenSurface> open_platform_splashscreen(const Size size) {
   std::unique_ptr<gui_forms::detail::SplashscreenSurface> surface = linux_detail::open_x11_splashscreen(size);
@@ -2279,7 +2288,7 @@ int run_linux_application(std::vector<LinuxApplicationWindow> windows,
     // The run holds the bundled font set, so windows opened and closed during it share one
     // copy of each face.
     const std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts =
-        gui_forms::detail::shared_bundled_font_set(linux_detail::fonts_directory(),
+        gui_forms::detail::shared_bundled_font_set(linux_detail::fonts_location(),
                                                    posix_sealed_pages());
     // The run's Splash baker (Part S, phase 2), after the fonts it paints with and
     // before every window, so it outlives each tooltip that reads it.

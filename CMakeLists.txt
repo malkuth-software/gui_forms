@@ -308,15 +308,19 @@ function(gui_forms_application_library target)
     endif()
 endfunction()
 
-# The bundled fallback faces (owner ruling 2026-11-11): the seven Noto faces and their OFL texts
-# form their own install component, fallback_fonts, installed when GUI_FORMS_INSTALL_FALLBACK_FONTS
-# is ON (the default, so the SDK carries them). An app package chooses for itself
-# ("fallback_fonts" per program in packaging/programs.json). The runtime works without them: they
-# are optional faces, so text only they cover falls back as for any missing face, and
-# bundled_font_diagnostics reports how many the font directory holds. Every other face and notice
-# is the fonts component. gui_forms_install_bundled_fonts() is the one install rule the hosts use.
+# The bundled fallback faces (owner ruling 2026-11-11): the seven Noto faces and their OFL texts.
+# With GUI_FORMS_INSTALL_FALLBACK_FONTS ON (the default) the embedded font pack carries the faces
+# (cmake/FontPack.cmake) and they and their licences form their own install component,
+# fallback_fonts; OFF leaves them out of both. The runtime works without them: they are optional
+# faces, so text only they cover falls back as for any missing face, and bundled_font_diagnostics
+# reports how many the pack holds. Every other face and notice is the fonts component.
+#
+# The GUI.Forms runtime reads its faces only from the pack compiled into Core (font pack stage 4);
+# the installed files serve the consumers that still read face files: GUI.Drawing's raster C API
+# (fonts beside its module), the installed FreeType/HarfBuzz consumer and a development build's
+# directory override. gui_forms_install_bundled_fonts() is the one install rule the hosts use.
 option(GUI_FORMS_INSTALL_FALLBACK_FONTS
-       "Install the bundled Noto fallback faces and their licences (install component fallback_fonts)" ON)
+       "Embed and install the bundled Noto fallback faces and their licences (install component fallback_fonts)" ON)
 set(GUI_FORMS_FALLBACK_FONT_FILES
     NotoSansCJKjp-Regular.otf
     NotoEmoji-Regular.ttf
@@ -338,8 +342,9 @@ function(gui_forms_install_bundled_fonts)
         list(APPEND _gf_excluded PATTERN ${_gf_name} EXCLUDE)
         list(APPEND _gf_fallback ${_gf_font_source}/${_gf_name})
     endforeach()
+    # The pack manifests are build inputs, not runtime files.
     install(DIRECTORY ${_gf_font_source}/ DESTINATION ${_gf_font_destination}
-            COMPONENT fonts ${_gf_excluded})
+            COMPONENT fonts ${_gf_excluded} PATTERN "*.manifest" EXCLUDE)
     if(GUI_FORMS_INSTALL_FALLBACK_FONTS)
         install(FILES ${_gf_fallback} DESTINATION ${_gf_font_destination} COMPONENT fallback_fonts)
     endif()
@@ -363,6 +368,7 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_bundled_font_manifest.cmake
     COMMENT "Generating the bundled font manifest records"
     VERBATIM)
+include(cmake/FontPack.cmake)
 
 # The stock icon records (src/core/resources/stock_icons/stock_icon_records.hpp):
 # gui_forms_stock_icon_generator (tools/stock_icon_generator/, C++20, standard
@@ -553,6 +559,8 @@ add_library(gui_forms_core STATIC
     src/runtime/user_themes/user_themes.cpp
     src/core/resources/integrity/sha256.cpp
     src/core/resources/fonts/bundled_font_set.cpp
+    src/core/resources/fonts/bundled_font_pack.cpp
+    ${GUI_FORMS_FONT_PACK_RECORDS}
     src/core/resources/fonts/font_family_stacks.cpp
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
     src/core/live_surface/buffer/live_surface_buffer.cpp
@@ -702,6 +710,14 @@ if(WIN32)
     target_sources(gui_forms_core PRIVATE src/host/windows/hosted/hosted_content_windows.cpp)
 else()
     target_sources(gui_forms_core PRIVATE src/host/posix/hosted/hosted_content_posix.cpp)
+endif()
+# stx_fontpack's loader (stx_fontpack/README.md), which opens the embedded font pack
+# (cmake/FontPack.cmake). Its objects are part of Core, like MD4C's, so no target joins the
+# exports; its headers stay private to the font set.
+target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:stx_fontpack_objects>)
+target_include_directories(gui_forms_core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/stx_fontpack/include)
+if(GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY)
+    target_compile_definitions(gui_forms_core PRIVATE GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=1)
 endif()
 set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
     INCLUDE_DIRECTORIES "${GUI_FORMS_STX_BUILD_PREFIX_DIR}/include/md4c")
@@ -3803,6 +3819,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_bundled_font_set_tests
         tests/bundled_font_set_tests.cpp $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
     target_link_libraries(gui_forms_bundled_font_set_tests PRIVATE gui_forms_core)
+    # The pack tests read the container's index to alter a stored CRC-32; the loader's objects
+    # are in Core.
+    target_include_directories(gui_forms_bundled_font_set_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/stx_fontpack/include)
     target_compile_definitions(gui_forms_bundled_font_set_tests PRIVATE
         GUI_FORMS_TEST_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
     add_test(NAME gui_forms_bundled_font_set_tests COMMAND gui_forms_bundled_font_set_tests)

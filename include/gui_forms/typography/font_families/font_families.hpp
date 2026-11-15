@@ -15,12 +15,15 @@ namespace gui_forms {
 // The font family registry (owner decisions of 2026-11-13). Interface text
 // draws only the families bundled with the library: an application cannot
 // register its own, since a foreign font can break the text engine. Every
-// face a family lists is in assets/fonts/bundled-fonts.sha256 and staged
-// with every program, so a family always resolves to shipped bytes.
+// face a family lists is in assets/fonts/bundled-fonts.sha256 and in the font
+// pack compiled into every program (cmake/FontPack.cmake), so a family always
+// resolves to shipped bytes.
 //
 // A family is one of the three roles' faces under its own name (Portsmouth
 // Rapids is the control role, Carlito content, Cousine monospace) or a
-// family with faces of its own (Selawik). Each has a fixed number
+// family with faces of its own (Selawik, Arimo, Tinos, Portsmouth Mono and
+// Selawik Semibold, the last four the GUI.Drawing substitution table's
+// families, font pack stage 4). Each has a fixed number
 // (FontFamilyId). The table is constant: every function here reads no state
 // and any thread may call it. The family stacks below are the one mutable
 // part.
@@ -59,6 +62,10 @@ inline constexpr FontFamilyId selawik_font_family{1U};
 inline constexpr FontFamilyId portsmouth_rapids_font_family{2U};
 inline constexpr FontFamilyId carlito_font_family{3U};
 inline constexpr FontFamilyId cousine_font_family{4U};
+inline constexpr FontFamilyId arimo_font_family{5U};
+inline constexpr FontFamilyId tinos_font_family{6U};
+inline constexpr FontFamilyId portsmouth_mono_font_family{7U};
+inline constexpr FontFamilyId selawik_semibold_font_family{8U};
 
 // The largest number a bundled family may have; numbers above it are
 // reserved for registered families.
@@ -95,15 +102,52 @@ inline constexpr std::array<FontFamilyFace, 4> cousine_faces{{
     {"Cousine-BoldItalic.ttf", 700, true},
 }};
 
+// Arimo and Tinos (Chrome OS core fonts, assets/fonts/ATTRIBUTION.md), the
+// metric matches for Arial and Times New Roman in GUI.Drawing's substitution
+// table (assets/fonts/font-substitution.json).
+inline constexpr std::array<FontFamilyFace, 4> arimo_faces{{
+    {"Arimo-Regular.ttf", 400, false},
+    {"Arimo-Bold.ttf", 700, false},
+    {"Arimo-Italic.ttf", 400, true},
+    {"Arimo-BoldItalic.ttf", 700, true},
+}};
+
+inline constexpr std::array<FontFamilyFace, 4> tinos_faces{{
+    {"Tinos-Regular.ttf", 400, false},
+    {"Tinos-Bold.ttf", 700, false},
+    {"Tinos-Italic.ttf", 400, true},
+    {"Tinos-BoldItalic.ttf", 700, true},
+}};
+
+// Portsmouth Mono, the nearest face to Consolas in the substitution table. It
+// has one face: every weight and slant draws it.
+inline constexpr std::array<FontFamilyFace, 1> portsmouth_mono_faces{{
+    {"PortsmouthMono.ttf", 400, false},
+}};
+
+// Selawik Semibold, the substitution table's family for Segoe UI Semibold:
+// Selawik's semibold face as its regular and Selawik's bold as its bold, the
+// styles the table gives them.
+inline constexpr std::array<FontFamilyFace, 2> selawik_semibold_faces{{
+    {"Selawik-Semibold.ttf", 400, false},
+    {"Selawik-Bold.ttf", 700, false},
+}};
+
 } // namespace detail
 
 // The bundled families, in the order of their numbers.
-inline constexpr std::array<FontFamilyRecord, 4> bundled_font_families{{
+inline constexpr std::array<FontFamilyRecord, 8> bundled_font_families{{
     {selawik_font_family, "Selawik", FontFamilyKind::bundled, std::nullopt, detail::selawik_faces},
     {portsmouth_rapids_font_family, "Portsmouth Rapids", FontFamilyKind::bundled, FontRole::control,
      detail::portsmouth_rapids_faces},
     {carlito_font_family, "Carlito", FontFamilyKind::bundled, FontRole::content, detail::carlito_faces},
     {cousine_font_family, "Cousine", FontFamilyKind::bundled, FontRole::monospace, detail::cousine_faces},
+    {arimo_font_family, "Arimo", FontFamilyKind::bundled, std::nullopt, detail::arimo_faces},
+    {tinos_font_family, "Tinos", FontFamilyKind::bundled, std::nullopt, detail::tinos_faces},
+    {portsmouth_mono_font_family, "Portsmouth Mono", FontFamilyKind::bundled, std::nullopt,
+     detail::portsmouth_mono_faces},
+    {selawik_semibold_font_family, "Selawik Semibold", FontFamilyKind::bundled, std::nullopt,
+     detail::selawik_semibold_faces},
 }};
 
 // Whether `left` and `right` are the same ASCII text, ignoring the case of
@@ -135,8 +179,8 @@ inline constexpr std::array<FontFamilyRecord, 4> bundled_font_families{{
 // A CSS generic family name and the bundled family it draws. The mapping
 // is GUI.Forms' choice (owner, 2026-11-13: the theme language follows CSS
 // closely), not a CSS rule: CSS leaves a generic's face to the user agent.
-// Until a serif, cursive or fantasy face is bundled, those generics draw the
-// content family. `emoji` names no family (zero): the bundled emoji
+// The serif generics draw Tinos; until a cursive or fantasy face is bundled,
+// those generics draw the content family. `emoji` names no family (zero): the bundled emoji
 // fallback face already draws emoji for every font. A generic is matched
 // only unquoted, as CSS does (a quoted "serif" is a family name).
 struct GUI_FORMS_API GenericFontFamily final {
@@ -146,13 +190,13 @@ struct GUI_FORMS_API GenericFontFamily final {
 
 inline constexpr std::array<GenericFontFamily, 13> generic_font_families{{
     {"sans-serif", carlito_font_family},
-    {"serif", carlito_font_family},
+    {"serif", tinos_font_family},
     {"monospace", cousine_font_family},
     {"cursive", carlito_font_family},
     {"fantasy", carlito_font_family},
     {"system-ui", carlito_font_family},
     {"ui-sans-serif", carlito_font_family},
-    {"ui-serif", carlito_font_family},
+    {"ui-serif", tinos_font_family},
     {"ui-monospace", cousine_font_family},
     {"ui-rounded", carlito_font_family},
     {"math", carlito_font_family},
@@ -185,7 +229,10 @@ inline constexpr std::array<GenericFontFamily, 13> generic_font_families{{
 }
 
 // The family one of whose faces is the bundled file `file_name`, or null:
-// how a substitution's answer (a face file) finds its registered family.
+// how a substitution's answer (a face file) finds its registered family. A
+// face two families share (Selawik's semibold and bold faces, which Selawik
+// Semibold lists too) finds the lower-numbered family; a caller that knows
+// the substitution's family name finds it by name first.
 [[nodiscard]] constexpr const FontFamilyRecord* font_family_with_face(std::string_view file_name) noexcept {
     for (const FontFamilyRecord& record : bundled_font_families) {
         for (const FontFamilyFace& face : record.faces) {

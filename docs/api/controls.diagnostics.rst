@@ -27,7 +27,7 @@ Related types
    :widths: 35 65
 
    * - :cpp:class:`BundledFontDiagnostics <gui_forms::BundledFontDiagnostics>`
-     - What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source).
+     - What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source), and what decoding the pack refused.
    * - :cpp:class:`ExpectationThresholds <gui_forms::ExpectationThresholds>`
      - What each expectation allows.
    * - :cpp:class:`Metrics <gui_forms::Metrics>`
@@ -67,7 +67,7 @@ Related types
 
    ``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>``
 
-   What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source). A host looks once per application run and once per window it opens. The first lookup that finds no source also writes one line to stderr, the refusal bundled_font_refusal returns; later ones are only counted. Any thread.
+   What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source), and what decoding the pack refused. A host looks once per application run and once per window it opens. The first lookup that finds no source also writes one line to stderr, the refusal bundled_font_refusal returns; later ones are only counted. The first refused pack group is written to stderr the same way (bundled_font_pack_refusal). Any thread.
 
    .. cpp:member:: std::uint64_t lookups
 
@@ -79,9 +79,13 @@ Related types
 
    .. cpp:member:: std::uint32_t fallback_faces_found
 
-      The bundled fallback faces (the Noto faces for CJK, emoji, Arabic, Hebrew, Devanagari, Bengali and Gurmukhi) that the most recent lookup's directory holds, of how many the library knows. They are optional: an install or app package may leave out their component (fallback_fonts, GUI_FORMS_INSTALL_FALLBACK_FONTS), and text only they cover then falls back as for any missing face (missing-glyph boxes). Found is 0 when the lookup found no directory; bundled_font_notice names the absent faces.
+      The bundled fallback faces (the Noto faces for CJK, emoji, Arabic, Hebrew, Devanagari, Bengali and Gurmukhi) that the most recent lookup's source holds, of how many the library knows. They are optional: a build may leave them out of the pack (GUI_FORMS_INSTALL_FALLBACK_FONTS), a development directory may lack them, and text only they cover then falls back as for any missing face (missing-glyph boxes). Found is 0 when the lookup found no source; bundled_font_notice names the absent faces.
 
    .. cpp:member:: std::uint32_t fallback_faces_expected
+
+   .. cpp:member:: std::uint64_t pack_refusals
+
+      Pack groups (or whole packs) a font set refused when it decoded them: a face that fails its CRC-32, a damaged stream, or no memory. Their faces are refused (FontSetError:: pack_refused) and draw as missing.
 
 .. cpp:namespace:: gui_forms
 
@@ -1104,6 +1108,8 @@ Enumerations
 
    .. cpp:enumerator:: application_bundle
 
+   .. cpp:enumerator:: embedded_pack
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HousekeepingExpectation
@@ -1245,7 +1251,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view bundled_font_source_name(BundledFontSource source) noexcept
 
-   The source's name in diagnostics: "none", "environment", "executable", "library_module", "install_share" or "application_bundle".
+   The source's name in diagnostics: "none", "environment", "executable", "library_module", "install_share", "application_bundle" or "embedded_pack".
 
 .. cpp:function:: BundledFontDiagnostics bundled_font_diagnostics() noexcept
 
@@ -1255,7 +1261,11 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string bundled_font_notice()
 
-   The most recent lookup's note on absent fallback faces: which of them its directory lacks and what that means for text, as one line of UTF-8. Empty when every fallback face is present, when that lookup found no directory (bundled_font_refusal says why), or before the first lookup. Only recorded, never written to stderr, since leaving the faces out is an install's or a package's choice. A copy; any thread.
+   The most recent lookup's notes, as one line of UTF-8: which fallback faces its source lacks and what that means for text, and, in a development build, that no directory held the faces so the embedded pack was used. Empty when there is nothing to note, when that lookup found no source (bundled_font_refusal says why), or before the first lookup. Only recorded, never written to stderr, since leaving the faces out is a build's choice. A copy; any thread.
+
+.. cpp:function:: std::string bundled_font_pack_refusal()
+
+   The most recent pack refusal (BundledFontDiagnostics::pack_refusals): which group was refused, why (the loader's phrase, "bad check value" for a face whose CRC-32 differs), and which faces it held, as one line of UTF-8. Empty before the first refusal. A copy; any thread.
 
 .. cpp:namespace:: gui_forms
 

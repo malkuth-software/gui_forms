@@ -19,11 +19,13 @@ static std::filesystem::path gui_forms_module_directory() {
     return module.parent_path();
 }
 
-// The bundled font directory: the first of GUI_FORMS_FONT_DIR, the main bundle's
+// Where the bundled faces come from: the embedded font pack, or in a development build
+// (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY) the first of GUI_FORMS_FONT_DIR, the main bundle's
 // Contents/Resources/fonts, "fonts" beside the GUI.Forms image and a framework's
-// Resources/fonts next to it that holds the required faces; empty when none does, which
-// locate_bundled_fonts counts and reports (bundled_font_diagnostics, bundled_font_refusal).
-static std::filesystem::path bundle_font_directory() {
+// Resources/fonts next to it that holds the required faces. None only when the pack does not
+// open, which locate_bundled_fonts counts and reports (bundled_font_diagnostics,
+// bundled_font_refusal).
+static gui_forms::detail::BundledFontLocation bundle_font_location() {
     std::array<gui_forms::detail::BundledFontCandidate, 4> candidates{};
     const char* override_path = std::getenv("GUI_FORMS_FONT_DIR");
     candidates[0].source = gui_forms::BundledFontSource::environment;
@@ -42,23 +44,22 @@ static std::filesystem::path bundle_font_directory() {
     }
     const gui_forms::detail::BundledFontLocation location =
         gui_forms::detail::locate_bundled_fonts(candidates);
-    return location.directory;
+    return location;
 }
 
 namespace gui_forms::host::macos {
 
 std::shared_ptr<gui_forms::detail::BundledFontSet> bundle_font_set() {
-    const std::filesystem::path directory = bundle_font_directory();
-    if (directory.empty()) return {};
+    const gui_forms::detail::BundledFontLocation location = bundle_font_location();
     const std::shared_ptr<gui_forms::detail::BundledFontSet> set =
-        gui_forms::detail::shared_bundled_font_set(directory, gui_forms::host::posix_sealed_pages());
+        gui_forms::detail::shared_bundled_font_set(location, gui_forms::host::posix_sealed_pages());
     return set;
 }
 
 } // namespace gui_forms::host::macos
 
-// OffscreenRaster::create's lookup (offscreen_font_lookup.hpp): the windows' own places.
-std::filesystem::path gui_forms::host::offscreen_bundled_font_directory() {
-    const std::filesystem::path directory = bundle_font_directory();
-    return directory;
+// OffscreenRaster::create's lookup (offscreen_font_lookup.hpp): the windows' own source.
+gui_forms::detail::BundledFontLocation gui_forms::host::offscreen_bundled_font_location() {
+    const gui_forms::detail::BundledFontLocation location = bundle_font_location();
+    return location;
 }
