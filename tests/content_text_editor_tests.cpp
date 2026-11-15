@@ -217,7 +217,7 @@ public:
 
 void layout_validation_refusals() {
     std::shared_ptr<ContentTextEditor> editor =
-        make_control<ContentTextEditor>(StableId("content_editor.validation"), std::string("ab\ncd"));
+        make_control<ContentTextEditor>(StableId("content-editor.validation"), std::string("ab\ncd"));
     ContentTextEditor& field = *editor;
     const std::uint64_t revision = field.text_revision();
     require(!field.layout_current(), "an editor starts without a layout");
@@ -285,7 +285,7 @@ void layout_validation_refusals() {
 
     // A grapheme boundary check: "é" is two bytes; the layout may not split it.
     std::shared_ptr<ContentTextEditor> accented =
-        make_control<ContentTextEditor>(StableId("content_editor.boundary"), std::string("\xC3\xA9x"));
+        make_control<ContentTextEditor>(StableId("content-editor.boundary"), std::string("\xC3\xA9x"));
     ContentTextLayout split;
     split.text_revision = (*accented).text_revision();
     split.lines.push_back({.range = {Utf8Offset(0U), Utf8Offset(3U)}, .bounds = Rect{0.0, 0.0, 20.0, 20.0}});
@@ -299,7 +299,7 @@ void layout_validation_refusals() {
 }
 
 void keyboard_editing_requests_layouts() {
-    Fixture fixture = make_fixture("content_editor.keys", "ab");
+    Fixture fixture = make_fixture("content-editor.keys", "ab");
     Window& window = *fixture.window;
     ContentTextEditor& editor = *fixture.editor;
     std::vector<std::uint64_t> requested;
@@ -336,7 +336,7 @@ void keyboard_editing_requests_layouts() {
 }
 
 void caret_and_line_movement_follow_the_layout() {
-    Fixture fixture = make_fixture("content_editor.lines", "ab\ncd");
+    Fixture fixture = make_fixture("content-editor.lines", "ab\ncd");
     Window& window = *fixture.window;
     ContentTextEditor& editor = *fixture.editor;
     editor.set_multiline(true);
@@ -356,7 +356,10 @@ void caret_and_line_movement_follow_the_layout() {
     caret = editor.caret_rectangle();
     require(caret && near((*caret).x, origin_x - 0.5) && near((*caret).y, origin_y + line_height),
             "the caret after the break starts the next line");
-    const std::optional<Rect> ime = editor.text_input_caret();
+    // ContentTextEditor keeps its override protected; the window reads it
+    // through Control, as here.
+    const Control& as_control = editor;
+    const std::optional<Rect> ime = as_control.text_input_caret();
     require(ime && *ime == *caret, "the input method's caret is the drawn caret");
 
     place_caret(editor, 4U);
@@ -373,7 +376,7 @@ void caret_and_line_movement_follow_the_layout() {
 }
 
 void selection_boxes_and_pointer_placement() {
-    Fixture fixture = make_fixture("content_editor.pointer", "ab\ncd");
+    Fixture fixture = make_fixture("content-editor.pointer", "ab\ncd");
     Window& window = *fixture.window;
     ContentTextEditor& editor = *fixture.editor;
     editor.set_multiline(true);
@@ -409,7 +412,7 @@ void selection_boxes_and_pointer_placement() {
 
 void clusters_ligatures_and_caret_stops() {
     std::shared_ptr<ContentTextEditor> ligature =
-        make_control<ContentTextEditor>(StableId("content_editor.ligature"), std::string("fix"));
+        make_control<ContentTextEditor>(StableId("content-editor.ligature"), std::string("fix"));
     ContentTextLayout fi;
     fi.text_revision = (*ligature).text_revision();
     fi.lines.push_back({.range = {Utf8Offset(0U), Utf8Offset(3U)}, .bounds = Rect{0.0, 0.0, 30.0, 20.0}});
@@ -426,7 +429,7 @@ void clusters_ligatures_and_caret_stops() {
     require(caret && *caret == (Rect{12.0, 0.0, 2.0, 18.0}), "a caret stop overrides the derived caret");
 
     std::shared_ptr<ContentTextEditor> rtl =
-        make_control<ContentTextEditor>(StableId("content_editor.rtl"), std::string("ab"));
+        make_control<ContentTextEditor>(StableId("content-editor.rtl"), std::string("ab"));
     ContentTextLayout mirrored;
     mirrored.text_revision = (*rtl).text_revision();
     mirrored.lines.push_back({.range = {Utf8Offset(0U), Utf8Offset(2U)}, .bounds = Rect{5.0, 0.0, 20.0, 20.0}});
@@ -444,7 +447,7 @@ void clusters_ligatures_and_caret_stops() {
 }
 
 void input_method_composition() {
-    Fixture fixture = make_fixture("content_editor.ime", "");
+    Fixture fixture = make_fixture("content-editor.ime", "");
     Window& window = *fixture.window;
     ContentTextEditor& editor = *fixture.editor;
     editor.set_multiline(true);
@@ -458,7 +461,7 @@ void input_method_composition() {
 }
 
 void accessibility_publication() {
-    Fixture fixture = make_fixture("content_editor.semantics", "ab\ncd");
+    Fixture fixture = make_fixture("content-editor.semantics", "ab\ncd");
     Window& window = *fixture.window;
     ContentTextEditor& editor = *fixture.editor;
     editor.set_multiline(true);
@@ -492,12 +495,12 @@ void accessibility_publication() {
             "assistive technology may move the selection");
 
     std::shared_ptr<ContentTextEditor> accented =
-        make_control<ContentTextEditor>(StableId("content_editor.semantics_boundary"), std::string("\xC3\xA9"));
+        make_control<ContentTextEditor>(StableId("content-editor.semantics-boundary"), std::string("\xC3\xA9"));
     require((*accented).semantic_descriptor().value == "\xC3\xA9", "the value is the text");
 }
 
 void frames_through_the_sink() {
-    Fixture fixture = make_fixture("content_editor.frames", "ab");
+    Fixture fixture = make_fixture("content-editor.frames", "ab");
     ContentTextEditor& editor = *fixture.editor;
     ContentFrameSink sink = editor.open_frames(true);
     require(!sink.revoked() && editor.live_surface(), "open_frames gives a live sink");
@@ -521,7 +524,7 @@ void frames_through_the_sink() {
 }
 
 void edit_filter_sees_edits_before_they_apply() {
-    Fixture fixture = make_fixture("content_editor.filter", "ab");
+    Fixture fixture = make_fixture("content-editor.filter", "ab");
     Window& window = *fixture.window;
     ContentTextEditor& editor = *fixture.editor;
     std::vector<ContentUserEdit> edits;
@@ -579,7 +582,7 @@ void edit_filter_sees_edits_before_they_apply() {
 }
 
 void no_frames_paint_nothing_over_the_consumer() {
-    Fixture fixture = make_fixture("content_editor.no_frames", "ab");
+    Fixture fixture = make_fixture("content-editor.no-frames", "ab");
     Window& window = *fixture.window;
     ContentTextEditor& editor = *fixture.editor;
     require(submit_fixed(editor) == ContentLayoutResult::accepted, "the layout is accepted");
@@ -643,7 +646,7 @@ struct MeasureAndSubmit final {
 };
 
 void layouts_measured_outside_paint_or_after_it() {
-    Fixture fixture = make_fixture("content_editor.measure", "ab");
+    Fixture fixture = make_fixture("content-editor.measure", "ab");
     Window& window = *fixture.window;
     ContentTextEditor& editor = *fixture.editor;
     std::size_t submitted = 0U;
@@ -665,7 +668,7 @@ void layouts_measured_outside_paint_or_after_it() {
 }
 
 void resubmitting_the_same_revision_is_silent() {
-    Fixture fixture = make_fixture("content_editor.resubmit", "abc");
+    Fixture fixture = make_fixture("content-editor.resubmit", "abc");
     Window& window = *fixture.window;
     ContentTextEditor& editor = *fixture.editor;
     require(submit_fixed(editor) == ContentLayoutResult::accepted, "the first layout is accepted");

@@ -34,7 +34,7 @@ void require(bool condition, const char* message) {
 }
 
 // One 8 by 8 frame, published by the programs below.
-ContentPublishResult publish_square(const ContentFrameSink& sink, std::uint8_t value) {
+ContentPublishResult publish_square(ContentFrameSink& sink, std::uint8_t value) {
     std::vector<std::byte> pixels(8U * 8U * 4U, static_cast<std::byte>(value));
     ContentFrame frame;
     frame.width = 8U;
