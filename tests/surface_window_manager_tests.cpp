@@ -384,6 +384,39 @@ void test_modal_begun_during_a_press() {
     require(harness.primary.clicks == 1, "afterwards the primary window takes clicks again");
 }
 
+// Runs a modal loop for a window from a click handler.
+struct RunModalOnClick final {
+    Runtime* runtime;
+    HostWindowId window;
+    HostServiceStatus* status;
+    void operator()(ButtonBase&) const { *status = (*(*runtime).windowing).run_modal(window); }
+};
+
+// A-gf-host-02-F3: records taken in one batch behind the record whose
+// handler opens a nested loop. The click on the primary window's button
+// runs a modal loop for the dialog; the click on the dialog's close box was
+// queued in the same batch. The nested loop must handle it (before, it
+// waited in the outer turn's local batch and the modal loop never ended).
+void test_nested_loop_takes_the_rest_of_the_batch() {
+    Harness harness;
+    harness.use_boxes();
+    TestWindow dialog;
+    const HostWindowId window = harness.open(dialog, "dialog");
+    HostServiceStatus modal_status{HostServiceError::unsupported};
+    const SubscriptionToken modal_on_click = (*harness.primary.button).clicked().subscribe(
+        RunModalOnClick{harness.runtime.get(), window, &modal_status});
+    harness.post_pointer(SurfacePointerAction::move, Point{50.0, 30.0}, 0.0);
+    harness.post_pointer(SurfacePointerAction::down, Point{50.0, 30.0}, 0.0);
+    harness.post_pointer(SurfacePointerAction::up, Point{50.0, 30.0}, 10.0);
+    harness.post_pointer(SurfacePointerAction::move, Point{530.0, 186.0}, 20.0);
+    harness.post_pointer(SurfacePointerAction::down, Point{530.0, 186.0}, 20.0);
+    harness.post_pointer(SurfacePointerAction::up, Point{530.0, 186.0}, 30.0);
+    harness.settle();
+    require(harness.primary.clicks == 1, "the primary window's button was clicked");
+    require(modal_status.accepted(), "its handler's modal loop ran and ended");
+    require(dialog.closed, "the nested loop handled the close box click queued behind the record that opened it");
+}
+
 // With the capsule, the owned window's capsule lies at x 468 to 544, y
 // 176.5 to 196.5: its left half to 496, the question mark to 516, then its
 // right half.
@@ -565,6 +598,7 @@ int main() {
         test_focus_order();
         test_modal_blocking();
         test_modal_begun_during_a_press();
+        test_nested_loop_takes_the_rest_of_the_batch();
         test_capsule_three_click_close();
         test_capsule_left_half();
         test_capsule_right_half_moves();

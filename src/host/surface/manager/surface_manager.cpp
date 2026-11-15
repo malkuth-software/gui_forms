@@ -1086,7 +1086,9 @@ void Runtime::step() {
     bool immediate = false;
     const std::optional<std::chrono::steady_clock::time_point> deadline = next_deadline(immediate);
     std::optional<std::chrono::steady_clock::time_point> wait = deadline;
-    if (immediate) wait = std::chrono::steady_clock::now();
+    // Records an outer turn took and has not handled yet (a nested loop
+    // began under one of them) are handled now, so nothing waits for them.
+    if (immediate || !records_.empty()) wait = std::chrono::steady_clock::now();
     static_cast<void>(queue.take(records_, wait));
     // The queued show, hide, close and full-screen requests.
     std::deque<Action> queued;
@@ -1099,14 +1101,17 @@ void Runtime::step() {
         if (target) (*target).action(queued[index].kind);
     }
     // One record is the native callback of this loop: application code runs
-    // under it, so it goes through the fail-fast boundary. Taken records
-    // are moved out first, since a nested turn (a modal loop) takes again.
-    std::deque<SurfaceInputRecord> taken;
-    taken.swap(records_);
-    for (std::size_t index = 0U; index < taken.size(); ++index)
-        gui_forms::detail::call_failing_fast("surface.input_record", &Runtime::handle, *this, taken[index]);
-    taken.clear();
-    if (records_.empty()) records_.swap(taken);
+    // under it, so it goes through the fail-fast boundary. Records are taken
+    // off the member queue one at a time: a nested turn (a modal loop, a
+    // dialog) begun under one continues with the records behind it, in
+    // order, and its newer records join behind those. Taking the batch into
+    // a local once left them waiting, a presented record among them, until
+    // the nested loop ended (A-gf-host-02-F3).
+    while (!records_.empty()) {
+        SurfaceInputRecord record = std::move(records_.front());
+        records_.pop_front();
+        gui_forms::detail::call_failing_fast("surface.input_record", &Runtime::handle, *this, record);
+    }
     advance_capsule();
     const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
     bool wanted = false;
