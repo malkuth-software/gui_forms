@@ -296,6 +296,68 @@ void host_closes_mid_drag() {
 
 } // namespace
 
+// A control that destroys its window when the pointer leaves it or a drop
+// lands on it, as a hover preview or a drop target that closes its dialog
+// does. The window is the fixture's, reached through `window`.
+class SelfClosing final : public Control {
+public:
+    explicit SelfClosing(StableId stable_id) : Control(std::move(stable_id)) {}
+
+    std::unique_ptr<Window>* window{};
+    bool close_on_leave{};
+    bool close_on_drop{};
+
+protected:
+    void on_mouse_leave() override {
+        Control::on_mouse_leave();
+        if (close_on_leave && window != nullptr) (*window).reset();
+    }
+
+    void on_drag_drop(DragEvent& event) override {
+        Control::on_drag_drop(event);
+        event.accepted_effect = DragEffect::copy;
+        event.handled = true;
+        if (close_on_drop && window != nullptr) (*window).reset();
+    }
+};
+
+// A-gf-core-17-F1: a MouseLeave override and a drop handler that destroy the
+// window end their dispatch without touching it (checked by the sanitizer
+// runs: before the fix the hover and drag routes wrote the freed window).
+void handlers_destroy_the_window() {
+    for (std::size_t round = 0U; round < 2U; ++round) {
+        std::shared_ptr<Panel> root = make_control<Panel>(StableId("closing.root"));
+        std::shared_ptr<SelfClosing> left = make_control<SelfClosing>(StableId("closing.left"));
+        std::shared_ptr<SelfClosing> right = make_control<SelfClosing>(StableId("closing.right"));
+        (*left).set_requested_bounds({0.0, 0.0, 50.0, 80.0});
+        (*right).set_requested_bounds({50.0, 0.0, 50.0, 80.0});
+        (*root).add_child(left);
+        (*root).add_child(right);
+        std::unique_ptr<Window> window = std::make_unique<Window>(root, Size{100.0, 80.0});
+        (*window).perform_layout();
+        (*left).window = &window;
+        if (round == 0U) {
+            (*left).close_on_leave = true;
+            static_cast<void>((*window).dispatch_pointer({PointerAction::move, PointerButton::none, {20.0, 20.0}}));
+            require(window != nullptr, "entering the left control keeps the window");
+            Window& shown = *window;
+            static_cast<void>(shown.dispatch_pointer({PointerAction::move, PointerButton::none, {70.0, 20.0}}));
+            require(window == nullptr, "leaving the left control destroyed the window");
+        } else {
+            (*left).close_on_drop = true;
+            (*left).allow_drop = true;
+            DragEvent drop{};
+            drop.action = DragAction::drop;
+            drop.session_id = 7U;
+            drop.position = {20.0, 20.0};
+            drop.allowed_effects = DragEffect::copy;
+            Window& shown = *window;
+            const DragDispatchResult result = shown.dispatch_drag(std::move(drop));
+            require(window == nullptr && result.handled, "the drop destroyed the window and was handled");
+        }
+    }
+}
+
 int main() {
     poster_outlives_its_destroyed_window();
     poster_survives_the_host_closing();
@@ -303,6 +365,7 @@ int main() {
     window_destroyed_mid_drag();
     released_after_shutdown_mid_drag();
     host_closes_mid_drag();
+    handlers_destroy_the_window();
     std::cout << "window teardown: posting on capture and focus loss, destroyed and host-closed windows, a DockSite "
                  "drag in progress passed\n";
     return EXIT_SUCCESS;

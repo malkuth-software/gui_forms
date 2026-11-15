@@ -133,6 +133,25 @@ bool single_allowed_effect(DragEffect effect, DragEffect allowed) noexcept {
            has_drag_effect(allowed, effect);
 }
 
+// Whether the window that `lifetime` named when `presenting` was read has
+// since been destroyed: a raiser closed it. Nothing of the SurfaceRoot may be
+// touched then (A-gf-core-17-F1).
+bool window_destroyed(const detail::WindowLifetime& lifetime, const Window* presenting) noexcept {
+    const bool destroyed = lifetime.window != presenting;
+    return destroyed;
+}
+
+// A drag route's result from its event alone, for a route whose window a
+// raiser destroyed.
+DragDispatchResult drag_result_of(const DragEvent& event) noexcept {
+    DragDispatchResult result;
+    result.handled = event.handled;
+    if (single_allowed_effect(event.accepted_effect, event.allowed_effects)) {
+        result.accepted_effect = event.accepted_effect;
+    }
+    return result;
+}
+
 double bounded_visual_outset(double value) noexcept {
     return std::isfinite(value) ? std::clamp(value, 0.0, 16384.0) : 0.0;
 }
@@ -1849,6 +1868,10 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     metrics_.record_input();
+    // A raiser below (a hover crossing, the route, the mouse events) may
+    // close and destroy this window; each stops as soon as it has.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     // An event nobody stamped carries its dispatch time
     // (PointerEvent::timestamp_nanoseconds).
     if (event.timestamp_nanoseconds == 0U) {
@@ -1887,8 +1910,10 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
                 // crossing (its override) and then the subscribers, before
                 // the observers of the raw leave.
                 (*previous_hover).on_mouse_leave();
+                if (window_destroyed(*lifetime, presenting)) return true;
                 if ((*previous_hover).is_alive()) {
                     (*previous_hover).publish_change((*previous_hover).pointer_observed_, leave);
+                    if (window_destroyed(*lifetime, presenting)) return true;
                 }
             }
             hovered_ = next_hover;
@@ -1902,8 +1927,10 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
                 metrics_.record_callback_emitted();
                 set_pointer_over(*next_hover, true);
                 (*next_hover).on_mouse_enter();
+                if (window_destroyed(*lifetime, presenting)) return true;
                 if ((*next_hover).is_alive()) {
                     (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
+                    if (window_destroyed(*lifetime, presenting)) return true;
                 }
             }
         } else {
@@ -1924,6 +1951,7 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
             set_pointer_over(*previous_hover, false);
             if (eligible(previous_hover)) {
                 (*previous_hover).on_mouse_leave();
+                if (window_destroyed(*lifetime, presenting)) return true;
             }
         }
         hovered_.reset();
@@ -1933,13 +1961,10 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
     sync_hover_wake();
     Control::Ptr pressed_for_release;
     Control::Ptr target;
-    // A raiser in the route may close and destroy this window.
-    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
-    Window* const presenting = (*lifetime).window;
     const std::uint64_t sequence_breaks = input_sequence_breaks_;
     bool click_suppressed = false;
     const bool handled = route_pointer(event, pressed_for_release, target, hit, click_suppressed);
-    if ((*lifetime).window != presenting) return true;
+    if (window_destroyed(*lifetime, presenting)) return true;
     raise_mouse_events(event, target, pressed_for_release, hit, click_suppressed, sequence_breaks);
     return handled;
 }
@@ -2672,17 +2697,28 @@ void SurfaceRoot::drain_deferred_input() {
     if (draining_deferred_input_ || deferred_inputs_.empty()) return;
 
     draining_deferred_input_ = true;
+    // A drained event's handler may close and destroy this window (a
+    // deferred click that closes its dialog): after each, the drain stops,
+    // touching nothing, when it has (A-gf-core-17-F1).
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     std::exception_ptr first_fault;
     while (!deferred_inputs_.empty()) {
         DeferredInput input = std::move(deferred_inputs_.front());
         deferred_inputs_.pop_front();
+        bool delivered = false;
         try {
             std::visit(DeferredInputVisitor{this}, std::move(input));
-            ++deferred_inputs_delivered_;
+            delivered = true;
         } catch (...) {
-            ++deferred_input_faults_;
             if (!first_fault) first_fault = std::current_exception();
         }
+        if (window_destroyed(*lifetime, presenting)) {
+            if (first_fault) std::rethrow_exception(first_fault);
+            return;
+        }
+        if (delivered) ++deferred_inputs_delivered_;
+        else ++deferred_input_faults_;
     }
     draining_deferred_input_ = false;
     ++deferred_input_drains_;
@@ -2730,6 +2766,11 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
     if (!target || !eligible(target) || !(*target).allow_drop.read()) {
         return result;
     }
+    // A raiser may close and destroy this window (a drop that closes its
+    // dialog): after each, the route returns what the event holds, touching
+    // nothing of the window (A-gf-core-17-F1).
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     const std::vector<Control::Ptr> route = route_to(target);
     event.phase = EventPhase::preview;
     for (const std::shared_ptr<gui_forms::Control>& control : route) {
@@ -2738,6 +2779,7 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
         }
         metrics_.record_callback_emitted();
         (*control).on_drag_preview(event);
+        if (window_destroyed(*lifetime, presenting)) return drag_result_of(event);
         if (event.handled) {
             break;
         }
@@ -2746,6 +2788,7 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
         (*target).on_drag(event);
+        if (window_destroyed(*lifetime, presenting)) return drag_result_of(event);
         // The per-action raiser, after the target's on_drag.
         if (eligible(target)) {
             switch (event.action) {
@@ -2765,6 +2808,7 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
                 // A future action has no raiser yet.
                 break;
             }
+            if (window_destroyed(*lifetime, presenting)) return drag_result_of(event);
         }
     }
     if (!event.handled) {
@@ -2776,15 +2820,13 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
             }
             metrics_.record_callback_emitted();
             (*(*iterator)).on_drag_bubble(event);
+            if (window_destroyed(*lifetime, presenting)) return drag_result_of(event);
             if (event.handled) {
                 break;
             }
         }
     }
-    result.handled = event.handled;
-    if (single_allowed_effect(event.accepted_effect, event.allowed_effects)) {
-        result.accepted_effect = event.accepted_effect;
-    }
+    result = drag_result_of(event);
     return result;
 }
 
@@ -2800,6 +2842,8 @@ void SurfaceRoot::merge_drag_route(DragDispatchResult& aggregate,
 
 void SurfaceRoot::leave_drag_target(const DragEvent& event,
                                DragDispatchResult& aggregate) {
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     const Control::Ptr previous = drag_target_.lock();
     if (previous) {
         DragEvent leave = event;
@@ -2807,6 +2851,8 @@ void SurfaceRoot::leave_drag_target(const DragEvent& event,
         leave.accepted_effect = DragEffect::none;
         leave.handled = false;
         merge_drag_route(aggregate, previous, std::move(leave));
+        // The leave's raisers may have destroyed the window.
+        if (window_destroyed(*lifetime, presenting)) return;
     }
     drag_target_.reset();
 }
@@ -2835,11 +2881,17 @@ DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
     }
     metrics_.record_input();
 
+    // The routes' raisers may close and destroy this window (a drop that
+    // closes its dialog): after each, the session fields are left alone
+    // when it has (A-gf-core-17-F1).
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     DragDispatchResult aggregate;
 
     if (event.action == DragAction::leave) {
         if (drag_session_id_ == event.session_id) {
             leave_drag_target(event, aggregate);
+            if (window_destroyed(*lifetime, presenting)) return aggregate;
             drag_session_id_ = 0;
             drag_last_accepted_effect_ = DragEffect::none;
         }
@@ -2848,6 +2900,7 @@ DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
 
     if (drag_session_id_ != 0 && drag_session_id_ != event.session_id) {
         leave_drag_target(event, aggregate);
+        if (window_destroyed(*lifetime, presenting)) return aggregate;
         drag_session_id_ = 0;
         drag_last_accepted_effect_ = DragEffect::none;
     }
@@ -2859,6 +2912,7 @@ DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
     Control::Ptr previous = drag_target_.lock();
     if (candidate != previous) {
         leave_drag_target(event, aggregate);
+        if (window_destroyed(*lifetime, presenting)) return aggregate;
         if (candidate) {
             drag_target_ = candidate;
             DragEvent enter = event;
@@ -2866,6 +2920,7 @@ DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
             enter.accepted_effect = DragEffect::none;
             enter.handled = false;
             merge_drag_route(aggregate, candidate, std::move(enter));
+            if (window_destroyed(*lifetime, presenting)) return aggregate;
         }
     }
 
@@ -2874,10 +2929,12 @@ DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
         event.accepted_effect = DragEffect::none;
         event.handled = false;
         merge_drag_route(aggregate, candidate, std::move(event));
+        if (window_destroyed(*lifetime, presenting)) return aggregate;
     } else if (action == DragAction::drop && candidate) {
         event.accepted_effect = DragEffect::none;
         event.handled = false;
         merge_drag_route(aggregate, candidate, std::move(event));
+        if (window_destroyed(*lifetime, presenting)) return aggregate;
         drag_target_.reset();
         drag_session_id_ = 0;
     } else if (action == DragAction::drop) {
