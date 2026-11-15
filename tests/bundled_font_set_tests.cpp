@@ -675,10 +675,9 @@ bool refused_pack_is_reported() {
 }
 
 // A shipped build ignores the hosts' directories and takes the embedded pack. A development
-// build offers them in order (environment, executable, library module): the first holding
-// every required face wins, whichever source it is, so a library loaded by another process
-// finds the fonts beside itself; with none, the pack serves and the notice names every
-// directory tried. Only a pack that does not open leaves no source: the lookup is counted,
+// build offers them in order (GUI_FORMS_FONT_DIR, then the checkout's assets/fonts; an empty
+// one is skipped): the first holding every required face wins; with none, the pack serves and
+// the notice names every directory tried. Only a pack that does not open leaves no source: the lookup is counted,
 // the refusal says so and names the directories, and the windows' metrics report it; a later
 // success clears the refusal.
 bool font_directory_lookup() {
@@ -686,8 +685,8 @@ bool font_directory_lookup() {
         std::filesystem::temp_directory_path() / "gui_forms_bundled_font_lookup_tests";
     std::error_code status;
     std::filesystem::remove_all(root, status);
-    const std::filesystem::path partial = root / "executable" / "fonts";
-    const std::filesystem::path complete = root / "library" / "fonts";
+    const std::filesystem::path partial = root / "partial";
+    const std::filesystem::path complete = root / "complete";
     std::filesystem::create_directories(partial);
     std::filesystem::create_directories(complete);
     std::size_t required{};
@@ -709,9 +708,9 @@ bool font_directory_lookup() {
     const BundledFontDiagnostics before = gui_forms::bundled_font_diagnostics();
     std::array<BundledFontCandidate, 3> candidates{};
     candidates[0].source = BundledFontSource::environment;
-    candidates[1].source = BundledFontSource::executable;
+    candidates[1].source = BundledFontSource::source_tree;
     candidates[1].directory = partial;
-    candidates[2].source = BundledFontSource::library_module;
+    candidates[2].source = BundledFontSource::source_tree;
     candidates[2].directory = complete;
     BundledFontLookup lookup{};
     lookup.candidates = candidates;
@@ -736,7 +735,7 @@ bool font_directory_lookup() {
     // The hosts' own lookup follows the build.
     const BundledFontLocation hosts = gui_forms::detail::locate_bundled_fonts(std::span<const BundledFontCandidate>(candidates));
     const BundledFontSource expected_source = gui_forms::detail::development_font_directories()
-                                                  ? BundledFontSource::library_module
+                                                  ? BundledFontSource::source_tree
                                                   : BundledFontSource::embedded_pack;
     passed = passed && require(hosts.source == expected_source, "the hosts' lookup does not follow the build");
 
@@ -744,12 +743,12 @@ bool font_directory_lookup() {
     lookup.directories_honoured = true;
     const std::uint64_t lookups_before = gui_forms::bundled_font_diagnostics().lookups;
     const BundledFontLocation found = gui_forms::detail::locate_bundled_fonts(lookup);
-    passed = passed && require(found.source == BundledFontSource::library_module && found.directory == complete,
-                               "the fonts beside the library module were not found");
+    passed = passed && require(found.source == BundledFontSource::source_tree && found.directory == complete,
+                               "the complete source-tree directory was not found");
     const BundledFontDiagnostics after_found = gui_forms::bundled_font_diagnostics();
     passed = passed && require(after_found.lookups == lookups_before + 1U &&
                                    after_found.lookups_without_source == before.lookups_without_source &&
-                                   after_found.last_source == BundledFontSource::library_module,
+                                   after_found.last_source == BundledFontSource::source_tree,
                                "a successful lookup was not counted as found");
     passed = passed && require(gui_forms::bundled_font_refusal().empty(), "a successful lookup left a refusal");
     // The fallback faces are optional: a directory without them is accepted, counted and
@@ -768,8 +767,9 @@ bool font_directory_lookup() {
     const BundledFontLocation fell_back = gui_forms::detail::locate_bundled_fonts(lookup);
     const std::string development_notice = gui_forms::bundled_font_notice();
     passed = passed && require(fell_back.source == BundledFontSource::embedded_pack &&
-                                   development_notice.find("executable (") != std::string::npos &&
-                                   development_notice.find("library_module (") != std::string::npos &&
+                                   development_notice.find("source_tree (") != std::string::npos &&
+                                   development_notice.find("partial") != std::string::npos &&
+                                   development_notice.find("nowhere") != std::string::npos &&
                                    development_notice.find("embedded font pack") != std::string::npos,
                                "a development lookup without a directory did not fall back to the pack, noted");
 
@@ -784,8 +784,9 @@ bool font_directory_lookup() {
                                "a lookup without the faces was not counted");
     const std::string refusal = gui_forms::bundled_font_refusal();
     passed = passed && require(refusal.find("does not open") != std::string::npos &&
-                                   refusal.find("executable (") != std::string::npos &&
-                                   refusal.find("library_module (") != std::string::npos &&
+                                   refusal.find("source_tree (") != std::string::npos &&
+                                   refusal.find("partial") != std::string::npos &&
+                                   refusal.find("nowhere") != std::string::npos &&
                                    refusal.find("environment") == std::string::npos &&
                                    refusal.find("GUI_FORMS_FONT_DIR") != std::string::npos,
                                "the refusal does not name the pack, the directories tried and the remedy");
@@ -806,7 +807,7 @@ bool font_directory_lookup() {
     }
     candidates[2].directory = complete;
     const BundledFontLocation again = gui_forms::detail::locate_bundled_fonts(lookup);
-    passed = passed && require(again.source == BundledFontSource::library_module &&
+    passed = passed && require(again.source == BundledFontSource::source_tree &&
                                    gui_forms::bundled_font_refusal().empty(),
                                "a later successful lookup kept the old refusal");
     const BundledFontDiagnostics after_again = gui_forms::bundled_font_diagnostics();
@@ -814,8 +815,8 @@ bool font_directory_lookup() {
                                    after_again.fallback_faces_expected == fallback_total &&
                                    gui_forms::bundled_font_notice().empty(),
                                "a directory with every fallback face was not counted as complete");
-    passed = passed && require(gui_forms::bundled_font_source_name(BundledFontSource::library_module) ==
-                                       "library_module" &&
+    passed = passed && require(gui_forms::bundled_font_source_name(BundledFontSource::source_tree) ==
+                                       "source_tree" &&
                                    gui_forms::bundled_font_source_name(BundledFontSource::embedded_pack) ==
                                        "embedded_pack",
                                "a source is misnamed");

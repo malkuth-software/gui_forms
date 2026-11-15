@@ -9,31 +9,23 @@ namespace gui_forms {
 
 // Where the bundled faces come from. A shipped program reads them from the font pack compiled
 // into the library (embedded_pack, font pack stage 4). A development build configured with
-// GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY first offers its host's directories, in the host's own
-// order, and takes the first that holds every required face (BundledFaceUse::required),
-// falling back to the pack:
+// GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY first offers two directories, in this order, and takes
+// the first that holds every required face (BundledFaceUse::required), falling back to the
+// pack. No program, bundle or install carries face files, so no directory beside one is
+// offered:
 // - environment: the directory GUI_FORMS_FONT_DIR names;
-// - executable: "fonts" beside the running executable;
-// - library_module: "fonts" beside the module that holds GUI.Forms (the shared library a .NET
-//   process or a plug-in host loaded, or the executable when GUI.Forms is linked into it);
-// - install_share: an installed "share/GUIForms/fonts" next to the executable's or the
-//   library's directory (Linux);
-// - application_bundle: the application bundle's Resources/fonts (macOS);
+// - source_tree: the checkout's assets/fonts, which the build names at configure time;
 // - embedded_pack: the font pack compiled into the library.
 // `none` means the embedded pack did not open (and no development directory held the faces):
 // the window then has no bundled text.
 enum class BundledFontSource : std::uint8_t {
     none,
     environment,
-    executable,
-    library_module,
-    install_share,
-    application_bundle,
+    source_tree,
     embedded_pack,
 };
 
-// The source's name in diagnostics: "none", "environment", "executable", "library_module",
-// "install_share", "application_bundle" or "embedded_pack".
+// The source's name in diagnostics: "none", "environment", "source_tree" or "embedded_pack".
 [[nodiscard]] GUI_FORMS_API std::string_view bundled_font_source_name(BundledFontSource source) noexcept;
 
 // What the hosts' font lookups found in this process, for diagnostics and the windows' metrics

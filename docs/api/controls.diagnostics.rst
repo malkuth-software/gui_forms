@@ -1100,13 +1100,7 @@ Enumerations
 
    .. cpp:enumerator:: environment
 
-   .. cpp:enumerator:: executable
-
-   .. cpp:enumerator:: library_module
-
-   .. cpp:enumerator:: install_share
-
-   .. cpp:enumerator:: application_bundle
+   .. cpp:enumerator:: source_tree
 
    .. cpp:enumerator:: embedded_pack
 
@@ -1251,7 +1245,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view bundled_font_source_name(BundledFontSource source) noexcept
 
-   The source's name in diagnostics: "none", "environment", "executable", "library_module", "install_share", "application_bundle" or "embedded_pack".
+   The source's name in diagnostics: "none", "environment", "source_tree" or "embedded_pack".
 
 .. cpp:function:: BundledFontDiagnostics bundled_font_diagnostics() noexcept
 

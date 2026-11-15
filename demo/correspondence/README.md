@@ -111,6 +111,8 @@ cmake --build build --target gui_forms_correspondence_linux    # X11 host
 ctest --test-dir build -R correspondence --output-on-failure
 ```
 
-Bundled fonts are copied next to the executable (Windows, Linux) or into
-`Contents/Resources/fonts` (macOS) exactly as for the Gallery; the macOS bundle
-runs the same font policy check.
+The faces come from the font pack compiled into GUI.Forms. Only their licences
+and the attribution are copied, into `fonts/` next to the executable (Windows,
+Linux) or into `Contents/Resources/fonts` (macOS), exactly as for the Gallery.
+The macOS bundle runs the same font policy check, which also fails if the
+bundle holds a face file.

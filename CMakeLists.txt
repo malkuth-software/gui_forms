@@ -334,6 +334,24 @@ set(GUI_FORMS_FALLBACK_FONT_NOTICES
     OFL-Noto.txt
     OFL-NotoSansCJKjp.txt
     OFL-NotoEmoji.txt)
+# What an in-tree program's bundle or folder carries instead of face files: the licences of the
+# faces the embedded pack holds and the attribution (macOS bundles in Contents/Resources/fonts,
+# the Windows and X11 programs in fonts/ beside them; tools/package_programs.py ships the same).
+# The program reads the faces from the pack; a development build reads the checkout's
+# assets/fonts directly (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY), never a copy.
+set(GUI_FORMS_PROGRAM_FONT_NOTICES
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/ATTRIBUTION.md
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/LICENSE-PortsmouthRapids.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Arimo.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Carlito.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Cousine.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Selawik.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Tinos.txt)
+if(GUI_FORMS_INSTALL_FALLBACK_FONTS)
+    foreach(_gf_name IN LISTS GUI_FORMS_FALLBACK_FONT_NOTICES)
+        list(APPEND GUI_FORMS_PROGRAM_FONT_NOTICES ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/${_gf_name})
+    endforeach()
+endif()
 function(gui_forms_install_bundled_fonts)
     set(_gf_font_source ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts)
     set(_gf_font_destination ${CMAKE_INSTALL_DATADIR}/GUIForms/fonts)
@@ -718,7 +736,9 @@ endif()
 target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:stx_fontpack_objects>)
 target_include_directories(gui_forms_core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/stx_fontpack/include)
 if(GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY)
-    target_compile_definitions(gui_forms_core PRIVATE GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=1)
+    # The checkout's own faces: development_source_font_directory, offered after GUI_FORMS_FONT_DIR.
+    target_compile_definitions(gui_forms_core PRIVATE
+        GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
 endif()
 set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
     INCLUDE_DIRECTORIES "${GUI_FORMS_STX_BUILD_PREFIX_DIR}/include/md4c")
@@ -1487,47 +1507,15 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
     target_link_libraries(gui_forms_file_manager_demoboard_model
         PUBLIC GUIForms::Controls GUIForms::Lab)
 
-    set(GUI_FORMS_DEMOBOARD_FONTS
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids-Bold.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Bold.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Italic.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-BoldItalic.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Cousine-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Cousine-Bold.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Cousine-Italic.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Cousine-BoldItalic.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansCJKjp-Regular.otf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoEmoji-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansArabic-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansDevanagari-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansBengali-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Semibold.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf)
-    set(GUI_FORMS_DEMOBOARD_FONT_NOTICES
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/ATTRIBUTION.md
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/LICENSE-PortsmouthRapids.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Noto.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Carlito.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Cousine.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoSansCJKjp.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Selawik.txt)
 
     if(GUI_FORMS_ENABLE_MACOS_HOST)
         set_source_files_properties(
-            ${GUI_FORMS_DEMOBOARD_FONTS}
-            ${GUI_FORMS_DEMOBOARD_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
             PROPERTIES
             MACOSX_PACKAGE_LOCATION "Resources/fonts")
         add_executable(gui_forms_file_manager_demoboard MACOSX_BUNDLE
             file_manager_demoboard/src/macos_main.mm
-            ${GUI_FORMS_DEMOBOARD_FONTS}
-            ${GUI_FORMS_DEMOBOARD_FONT_NOTICES})
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES})
         target_compile_options(gui_forms_file_manager_demoboard PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_file_manager_demoboard PRIVATE
             gui_forms_file_manager_demoboard_model gui_forms_host_macos)
@@ -2105,42 +2093,6 @@ if(TARGET gui_forms_application)
     gui_forms_application_library(gui_forms_application)
 endif()
 
-if(GUI_FORMS_BUILD_GALLERY OR (GUI_FORMS_BUILD_TESTS AND GUI_FORMS_ENABLE_MACOS_HOST))
-    set(GUI_FORMS_GALLERY_FONTS
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids-Bold.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Bold.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Italic.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-BoldItalic.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Cousine-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Cousine-Bold.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Cousine-Italic.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Cousine-BoldItalic.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansCJKjp-Regular.otf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoEmoji-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansArabic-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansDevanagari-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansBengali-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Semibold.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf
-    )
-    set(GUI_FORMS_GALLERY_FONT_NOTICES
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/ATTRIBUTION.md
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/LICENSE-PortsmouthRapids.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Noto.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Carlito.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Cousine.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoSansCJKjp.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Selawik.txt
-    )
-
-endif()
-
 if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # One demonstration program (decision F.1): the registry-driven Gallery.
     # gallery_pages.cpp holds the shell; the pages migrated from the retired
@@ -2469,8 +2421,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
     if(GUI_FORMS_ENABLE_MACOS_HOST)
         set_source_files_properties(
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
             PROPERTIES
             MACOSX_PACKAGE_LOCATION "Resources/fonts"
         )
@@ -2480,8 +2431,7 @@ if(GUI_FORMS_BUILD_GALLERY)
             src/host/macos/gallery_main.mm
             src/runtime/offscreen/offscreen_raster_create.cpp
             $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         )
         target_compile_options(gui_forms_gallery PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_gallery PRIVATE
@@ -2498,8 +2448,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
         add_executable(gui_forms_vsync_lab MACOSX_BUNDLE
             src/host/macos/vsync_lab_main.mm
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         )
         target_compile_options(gui_forms_vsync_lab PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_vsync_lab PRIVATE
@@ -2516,8 +2465,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
         add_executable(gui_forms_visual_inspector_lab MACOSX_BUNDLE
             src/host/macos/visual_inspector_lab_main.mm
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         )
         target_compile_options(gui_forms_visual_inspector_lab PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_visual_inspector_lab PRIVATE
@@ -2534,8 +2482,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
         add_executable(gui_forms_layered_material_lab MACOSX_BUNDLE
             src/host/macos/layered_material_lab_main.mm
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         )
         target_compile_options(gui_forms_layered_material_lab PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_layered_material_lab PRIVATE
@@ -2552,8 +2499,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
         add_executable(gui_forms_compositor_lab MACOSX_BUNDLE
             src/host/macos/compositor_lab_main.mm
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         )
         target_compile_options(gui_forms_compositor_lab PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_compositor_lab PRIVATE
@@ -2570,8 +2516,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
         add_executable(gui_forms_custom_chrome_lab MACOSX_BUNDLE
             src/host/macos/custom_chrome_lab_main.mm
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         )
         target_compile_options(gui_forms_custom_chrome_lab PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_custom_chrome_lab PRIVATE
@@ -2588,8 +2533,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
         add_executable(gui_forms_typography_scale_lab MACOSX_BUNDLE
             src/host/macos/typography_scale_lab_main.mm
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         )
         target_compile_options(gui_forms_typography_scale_lab PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_typography_scale_lab PRIVATE
@@ -2606,8 +2550,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
         add_executable(gui_forms_responsive_tracks_lab MACOSX_BUNDLE
             src/host/macos/responsive_tracks_lab_main.mm
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         )
         target_compile_options(gui_forms_responsive_tracks_lab PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_responsive_tracks_lab PRIVATE
@@ -2624,8 +2567,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
         add_executable(gui_forms_connected_controls_lab MACOSX_BUNDLE
             src/host/macos/connected_controls_lab_main.mm
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         )
         target_compile_options(gui_forms_connected_controls_lab PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_connected_controls_lab PRIVATE
@@ -2642,8 +2584,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
         add_executable(gui_forms_seam_proximity_lab MACOSX_BUNDLE
             src/host/macos/seam_proximity_lab_main.mm
-            ${GUI_FORMS_GALLERY_FONTS}
-            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         )
         target_compile_options(gui_forms_seam_proximity_lab PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_seam_proximity_lab PRIVATE
@@ -2786,8 +2727,8 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_seam_proximity_lab_windows PROPERTIES
             OUTPUT_NAME "GUI.Forms Physical Seam + Proximity Lab"
         )
-        # The Gallery and the labs bundle GUI_FORMS_GALLERY_FONTS beside them;
-        # the staging at the end of this file copies them.
+        # The Gallery and the labs carry GUI_FORMS_PROGRAM_FONT_NOTICES beside
+        # them; the staging at the end of this file copies them.
         find_program(GUI_FORMS_WINDOWS_OBJDUMP
             NAMES x86_64-w64-mingw32-objdump
             NO_CMAKE_FIND_ROOT_PATH
@@ -2859,9 +2800,8 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "gui-forms-compositor-lab"
         )
 
-        # The X11 host discovers bundled faces in <executable dir>/fonts (or
-        # GUI_FORMS_FONT_DIR, or ../share/GUIForms/fonts once installed);
-        # they are staged at the end of this file.
+        # The X11 host reads its faces from the embedded pack; the font
+        # licences are staged in fonts/ at the end of this file.
     endif()
 
     include(demo/correspondence/correspondence.cmake)
@@ -3257,7 +3197,7 @@ if(GUI_FORMS_BUILD_TESTS)
             foreach(handoff_probe IN ITEMS window_chrome_probe modal_probe composite_focus_probe modal_wake_probe first_click_probe)
                 set(handoff_target gui_forms_macos_${handoff_probe}_tests)
                 add_executable(${handoff_target} MACOSX_BUNDLE tests/macos_${handoff_probe}_tests.mm
-                    ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+                    ${GUI_FORMS_PROGRAM_FONT_NOTICES})
                 target_compile_options(${handoff_target} PRIVATE -fobjc-arc)
                 target_include_directories(${handoff_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
                 target_link_libraries(${handoff_target} PRIVATE gui_forms_application ${GUI_FORMS_APPKIT})
@@ -3273,7 +3213,7 @@ if(GUI_FORMS_BUILD_TESTS)
             # during the run.
             add_executable(gui_forms_macos_open_files_probe_app MACOSX_BUNDLE
                 tests/macos_open_files_probe_app.mm
-                ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+                ${GUI_FORMS_PROGRAM_FONT_NOTICES})
             target_compile_options(gui_forms_macos_open_files_probe_app PRIVATE -fobjc-arc)
             target_include_directories(gui_forms_macos_open_files_probe_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
             target_link_libraries(gui_forms_macos_open_files_probe_app PRIVATE gui_forms_application ${GUI_FORMS_APPKIT})
@@ -3292,7 +3232,7 @@ if(GUI_FORMS_BUILD_TESTS)
             # restart are started by hand with `open -n -a`.
             add_executable(gui_forms_macos_termination_fixture MACOSX_BUNDLE
                 tests/macos_termination_fixture.mm
-                ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+                ${GUI_FORMS_PROGRAM_FONT_NOTICES})
             target_compile_options(gui_forms_macos_termination_fixture PRIVATE -fobjc-arc)
             target_link_libraries(gui_forms_macos_termination_fixture PRIVATE gui_forms_application ${GUI_FORMS_APPKIT})
             set_target_properties(gui_forms_macos_termination_fixture PROPERTIES
@@ -5890,7 +5830,7 @@ if(GUI_FORMS_BUILD_TESTS)
             add_executable(gui_forms_macos_accessibility_gallery_app MACOSX_BUNDLE
                 tests/macos_accessibility_fixture_app.mm
                 tests/support/stock_control_fixture.cpp
-                ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+                ${GUI_FORMS_PROGRAM_FONT_NOTICES})
             target_compile_options(gui_forms_macos_accessibility_gallery_app PRIVATE -fobjc-arc)
             target_compile_definitions(gui_forms_macos_accessibility_gallery_app PRIVATE GUI_FORMS_AX_GALLERY=1)
             target_include_directories(gui_forms_macos_accessibility_gallery_app PRIVATE
@@ -5918,10 +5858,10 @@ if(GUI_FORMS_BUILD_TESTS)
             gui_forms_controls)
         add_test(NAME gui_forms_macos_multi_window_tests
                  COMMAND gui_forms_macos_multi_window_tests)
-        # The native host resolves its font pack through NSBundle, not an
-        # environment override. Exercise the same resource route as applications.
+        # Bundled like applications, carrying the font licences in
+        # Resources/fonts; the faces come from the embedded pack.
         set_source_files_properties(
-            ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES}
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
             PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/fonts")
         foreach(native_fixture IN ITEMS
                 gui_forms_macos_clipboard_image_tests
@@ -5934,12 +5874,12 @@ if(GUI_FORMS_BUILD_TESTS)
                 gui_forms_macos_accessibility_fixture_app)
             set_target_properties(${native_fixture} PROPERTIES MACOSX_BUNDLE TRUE)
             target_sources(${native_fixture} PRIVATE
-                ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+                ${GUI_FORMS_PROGRAM_FONT_NOTICES})
         endforeach()
         if(TARGET gui_forms_prepared_text_impl)
             add_executable(gui_forms_macos_prepared_text_host_tests MACOSX_BUNDLE
                 tests/macos_prepared_text_host_tests.mm
-                ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+                ${GUI_FORMS_PROGRAM_FONT_NOTICES})
             target_compile_options(gui_forms_macos_prepared_text_host_tests PRIVATE -fobjc-arc)
             target_link_libraries(gui_forms_macos_prepared_text_host_tests PRIVATE
                 gui_forms_host_macos gui_forms_prepared_text_impl)
@@ -6552,10 +6492,11 @@ if(WIN32 AND GUI_FORMS_ENABLE_WINDOWS_HOST AND GUI_FORMS_BUILD_TESTS)
     endif()
 endif()
 
-# Programs that bundle fonts share one output directory, so one fonts/
-# beside them (the Windows and X11 hosts look there): the Gallery and its
-# labs and the Correspondence demonstration (GUI_FORMS_GALLERY_FONTS), and the
-# File Manager demoboard (GUI_FORMS_DEMOBOARD_FONTS), largely the same faces.
+# Programs that carry the font licences share one output directory, so one
+# fonts/ beside them holds the licences and the attribution
+# (GUI_FORMS_PROGRAM_FONT_NOTICES) for the Gallery and its labs, the
+# Correspondence demonstration and the File Manager demoboard. No face file is
+# staged: the programs read the faces from the embedded pack.
 # Each program used to copy its list there after linking, so on a cold
 # parallel build several post-build steps wrote the same files at once and
 # one could fail ("Error copying file"; seen on Windows and on Linux). One
@@ -6579,13 +6520,13 @@ foreach(gallery_program IN ITEMS
         gui_forms_correspondence_linux)
     if(TARGET ${gallery_program})
         list(APPEND gui_forms_font_programs ${gallery_program})
-        list(APPEND gui_forms_font_sources ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+        list(APPEND gui_forms_font_sources ${GUI_FORMS_PROGRAM_FONT_NOTICES})
     endif()
 endforeach()
 foreach(demoboard_program IN ITEMS gui_forms_file_manager_demoboard_windows gui_forms_file_manager_demoboard_linux)
     if(TARGET ${demoboard_program})
         list(APPEND gui_forms_font_programs ${demoboard_program})
-        list(APPEND gui_forms_font_sources ${GUI_FORMS_DEMOBOARD_FONTS} ${GUI_FORMS_DEMOBOARD_FONT_NOTICES})
+        list(APPEND gui_forms_font_sources ${GUI_FORMS_PROGRAM_FONT_NOTICES})
     endif()
 endforeach()
 if(gui_forms_font_programs)

@@ -875,55 +875,17 @@ void enable_best_dpi_awareness() noexcept {
     }
 }
 
-// A byte in the module that holds GUI.Forms, whose address names that module to
-// GetModuleHandleExW.
-const char gui_forms_module_anchor{};
-
-// The longest path GetModuleFileNameW can return with long paths enabled, in UTF-16 units.
-constexpr DWORD maximum_module_path_units = 32768U;
-
-// The directory of `module`'s file (null for the executable); empty when Windows cannot say.
-std::filesystem::path module_directory(HMODULE module) {
-    std::vector<wchar_t> path(maximum_module_path_units, L'\0');
-    const DWORD count = GetModuleFileNameW(module, path.data(), maximum_module_path_units);
-    if (count == 0U || count >= maximum_module_path_units) return {};
-    const std::filesystem::path directory =
-        std::filesystem::path(std::wstring(path.data(), count)).parent_path();
-    return directory;
-}
-
-// The directory of the module holding this code: the GUI.Forms DLL when another process (a
-// .NET runtime, a plug-in host) loaded it, else the executable it is linked into; empty when
-// Windows cannot say. The handle is borrowed without a reference.
-std::filesystem::path gui_forms_module_directory() {
-    HMODULE module = nullptr;
-    const DWORD flags =
-        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
-    const BOOL found =
-        GetModuleHandleExW(flags, reinterpret_cast<LPCWSTR>(&gui_forms_module_anchor), &module);
-    if (found == FALSE || module == nullptr) return {};
-    const std::filesystem::path directory = module_directory(module);
-    return directory;
-}
-
 // Where the bundled faces come from: the embedded font pack, or in a development build
-// (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY) the first of GUI_FORMS_FONT_DIR, "fonts" beside the
-// executable and "fonts" beside the GUI.Forms module that holds the required faces. None only
-// when the pack does not open, which locate_bundled_fonts counts and reports
-// (bundled_font_diagnostics, bundled_font_refusal).
+// (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY) the first of GUI_FORMS_FONT_DIR and the checkout's
+// assets/fonts that holds the required faces. None only when the pack does not open, which
+// locate_bundled_fonts counts and reports (bundled_font_diagnostics, bundled_font_refusal).
 gui_forms::detail::BundledFontLocation bundled_font_location() {
-    std::array<gui_forms::detail::BundledFontCandidate, 3> candidates{};
+    std::array<gui_forms::detail::BundledFontCandidate, 2> candidates{};
     const wchar_t* override_directory = _wgetenv(L"GUI_FORMS_FONT_DIR");
     candidates[0].source = gui_forms::BundledFontSource::environment;
     if (override_directory != nullptr) candidates[0].directory = std::filesystem::path(override_directory);
-    const std::filesystem::path executable_directory = module_directory(nullptr);
-    candidates[1].source = gui_forms::BundledFontSource::executable;
-    if (!executable_directory.empty()) candidates[1].directory = executable_directory / L"fonts";
-    const std::filesystem::path library_directory = gui_forms_module_directory();
-    candidates[2].source = gui_forms::BundledFontSource::library_module;
-    // A GUI.Forms linked into the executable is the executable; it is not offered twice.
-    if (!library_directory.empty() && library_directory != executable_directory)
-        candidates[2].directory = library_directory / L"fonts";
+    candidates[1].source = gui_forms::BundledFontSource::source_tree;
+    candidates[1].directory = gui_forms::detail::development_source_font_directory();
     const gui_forms::detail::BundledFontLocation location =
         gui_forms::detail::locate_bundled_fonts(candidates);
     return location;

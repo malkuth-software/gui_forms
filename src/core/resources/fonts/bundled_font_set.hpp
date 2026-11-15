@@ -53,6 +53,11 @@ struct BundledFaceRecord final {
 // (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY, off for every shipped build).
 [[nodiscard]] bool development_font_directories() noexcept;
 
+// The checkout's assets/fonts that a development build reads after GUI_FORMS_FONT_DIR
+// (BundledFontSource::source_tree; the build names it at configure time); empty in every
+// shipped build. The hosts offer it as their second candidate.
+[[nodiscard]] std::filesystem::path development_source_font_directory();
+
 // How every host registers a bundled face (ADR-004): its manifest name, its role (none for a
 // fallback face, which serves any role), weight and slant, and whether the window needs it. A
 // window without a required face has no text; an optional face that fails is left out.

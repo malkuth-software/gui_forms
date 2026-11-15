@@ -45,7 +45,7 @@ CAVEATS: tuple[str, ...] = (
     "Windows executables and installers are unsigned; SmartScreen shows a warning until publisher reputation exists.",
     "Linux programs need an X11 display (XWayland works). The DEB declares the X11/ATK dependencies; "
     "the tar archive needs the same libraries.",
-    "Fonts ship with each program; no host fonts are read.",
+    "Fonts are compiled into each program; no host fonts are read.",
 )
 
 

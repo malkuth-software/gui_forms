@@ -30,7 +30,6 @@
 #include <cmath>
 #include <csignal>
 #include <cstring>
-#include <dlfcn.h>
 #include <fcntl.h>
 #include <filesystem>
 #include <fstream>
@@ -723,59 +722,18 @@ std::uint32_t key_usage(KeySym key) {
     return 0U;
   }
 }
-// A byte in the module that holds GUI.Forms, whose address names that module to dladdr.
-const char gui_forms_module_anchor{};
-
-// The directory of the shared object holding this code: libgui_forms when another process
-// (a .NET runtime, a plug-in host) loaded it, else the executable it is linked into; empty
-// when dladdr cannot say.
-std::filesystem::path gui_forms_module_directory() {
-  Dl_info information{};
-  const int found = dladdr(&gui_forms_module_anchor, &information);
-  if (found == 0 || information.dli_fname == nullptr ||
-      information.dli_fname[0] == '\0')
-    return {};
-  std::error_code error;
-  const std::filesystem::path module =
-      std::filesystem::canonical(information.dli_fname, error);
-  if (error)
-    return {};
-  return module.parent_path();
-}
-
 // Where the bundled faces come from: the embedded font pack, or in a development build
-// (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY) the first of GUI_FORMS_FONT_DIR, "fonts" beside the
-// executable, "fonts" beside the GUI.Forms module, and the installed share/GUIForms/fonts next
-// to the executable's and then the module's directory that holds the required faces. None
-// only when the pack does not open, which locate_bundled_fonts counts and reports
-// (bundled_font_diagnostics, bundled_font_refusal).
+// (GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY) the first of GUI_FORMS_FONT_DIR and the checkout's
+// assets/fonts that holds the required faces. None only when the pack does not open, which
+// locate_bundled_fonts counts and reports (bundled_font_diagnostics, bundled_font_refusal).
 gui_forms::detail::BundledFontLocation fonts_location() {
-  std::array<gui_forms::detail::BundledFontCandidate, 5> candidates{};
+  std::array<gui_forms::detail::BundledFontCandidate, 2> candidates{};
   const char *override_path = std::getenv("GUI_FORMS_FONT_DIR");
   candidates[0].source = gui_forms::BundledFontSource::environment;
   if (override_path != nullptr)
     candidates[0].directory = override_path;
-  std::error_code error;
-  const std::filesystem::path executable =
-      std::filesystem::read_symlink("/proc/self/exe", error);
-  const std::filesystem::path executable_directory =
-      error ? std::filesystem::path{} : executable.parent_path();
-  const std::filesystem::path library_directory = gui_forms_module_directory();
-  // A GUI.Forms linked into the executable is the executable; it is not offered twice.
-  const bool separate_library =
-      !library_directory.empty() && library_directory != executable_directory;
-  candidates[1].source = gui_forms::BundledFontSource::executable;
-  candidates[2].source = gui_forms::BundledFontSource::library_module;
-  candidates[3].source = gui_forms::BundledFontSource::install_share;
-  candidates[4].source = gui_forms::BundledFontSource::install_share;
-  if (!executable_directory.empty()) {
-    candidates[1].directory = executable_directory / "fonts";
-    candidates[3].directory = executable_directory / "../share/GUIForms/fonts";
-  }
-  if (separate_library) {
-    candidates[2].directory = library_directory / "fonts";
-    candidates[4].directory = library_directory / "../share/GUIForms/fonts";
-  }
+  candidates[1].source = gui_forms::BundledFontSource::source_tree;
+  candidates[1].directory = gui_forms::detail::development_source_font_directory();
   const gui_forms::detail::BundledFontLocation location =
       gui_forms::detail::locate_bundled_fonts(candidates);
   return location;

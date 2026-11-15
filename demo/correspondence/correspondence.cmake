@@ -2,7 +2,7 @@
 # (POLISH_STAGE_PLAN W5.3, Modern.Forms "Outlaw" equivalent). Included from the
 # root CMakeLists.txt inside if(GUI_FORMS_BUILD_GALLERY), after the Gallery and
 # Showcase targets, so every path below is relative to the repository root and
-# GUI_FORMS_GALLERY_FONTS / GUI_FORMS_GALLERY_FONT_NOTICES are already set.
+# GUI_FORMS_PROGRAM_FONT_NOTICES is already set.
 
 add_library(gui_forms_correspondence_model STATIC
     demo/correspondence/correspondence_model.cpp
@@ -17,15 +17,13 @@ target_link_libraries(gui_forms_correspondence_model PUBLIC gui_forms_lab)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST)
     set_source_files_properties(
-        ${GUI_FORMS_GALLERY_FONTS}
-        ${GUI_FORMS_GALLERY_FONT_NOTICES}
+        ${GUI_FORMS_PROGRAM_FONT_NOTICES}
         PROPERTIES
         MACOSX_PACKAGE_LOCATION "Resources/fonts"
     )
     add_executable(gui_forms_correspondence MACOSX_BUNDLE
         src/host/macos/correspondence_main.mm
-        ${GUI_FORMS_GALLERY_FONTS}
-        ${GUI_FORMS_GALLERY_FONT_NOTICES}
+        ${GUI_FORMS_PROGRAM_FONT_NOTICES}
     )
     target_compile_options(gui_forms_correspondence PRIVATE -fobjc-arc)
     target_link_libraries(gui_forms_correspondence PRIVATE

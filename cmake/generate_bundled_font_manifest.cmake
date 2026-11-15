@@ -2,7 +2,7 @@
 #   cmake -DMANIFEST=<bundled-fonts.sha256> -DFONT_DIRECTORY=<dir> -DOUTPUT=<inc>
 #         -P generate_bundled_font_manifest.cmake
 # The manifest (sha256sum format: 64 lowercase hex digits, two spaces, the file name) is the one
-# source of the bundled faces and their digests; cmake/check_gallery_fonts.cmake reads it too.
+# source of the bundled faces and their digests.
 # Each record adds the face's size in bytes, measured here, so the font set can refuse a file of
 # the wrong size before it allocates. Every face must exist and match its digest, and no face may
 # exceed 64 MiB (the font set's limit), so a stale manifest fails the build, not the program.

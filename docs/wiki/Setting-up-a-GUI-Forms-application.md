@@ -64,12 +64,10 @@ if(WIN32)
             $<TARGET_RUNTIME_DLLS:notes> $<TARGET_FILE_DIR:notes>
         COMMAND_EXPAND_LISTS)
 endif()
-# Windows and Linux: the bundled fonts in fonts/ beside the executable.
-if(NOT APPLE)
-    add_custom_command(TARGET notes POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${GUIForms_FONT_DIR}" "$<TARGET_FILE_DIR:notes>/fonts")
-endif()
+# The bundled fonts' licences, which the program ships (the faces are compiled in).
+add_custom_command(TARGET notes POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${GUIForms_FONT_DIR}" "$<TARGET_FILE_DIR:notes>/fonts")
 ```
 
 - `GUIForms::Application` is the native host for your platform, and it
@@ -81,8 +79,8 @@ endif()
 - `gui_forms_add_theme` embeds the theme package and generates
   `notes_theme.hpp`. The build fails when the package's hash does not match
   its sheet, or when a stable-ID selector names nothing in the listed forms.
-- GUI.Forms draws only its bundled fonts, never the system's. On macOS,
-  ship them in the app bundle's `Contents/Resources/fonts`
+- GUI.Forms draws only its bundled fonts, never the system's. They are
+  compiled into the library; ship only their licences
   ([Consume the SDK](https://gui-forms.readthedocs.io/user/consume-the-sdk.html#fonts)).
 
 ## 3. The form document

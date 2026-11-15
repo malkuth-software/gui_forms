@@ -39,6 +39,9 @@ MANIFEST_PATH: Path = ROOT / "packaging/programs.json"
 LICENSES_PATH: Path = ROOT / "packaging/licenses.json"
 PLATFORMS: tuple[str, ...] = ("macos-arm64", "windows-x64", "linux-x64", "linux-arm64")
 FONT_MODES: tuple[str, ...] = ("bundle-resources", "sibling")
+# Font face files, which no package carries: every program reads its faces from
+# the font pack compiled into GUI.Forms.
+FACE_SUFFIXES: tuple[str, ...] = (".ttf", ".otf", ".ttc")
 IDENTIFIER_PATTERN: str = r"[a-z][a-z0-9-]*"
 MACOS_MINIMUM: str = "14.0"
 RECEIPT_SCHEMA: int = 1
@@ -141,9 +144,10 @@ class Program:
     automation_flag: str | None
     smoke: dict[str, Any]
     platforms: dict[str, PlatformEntry]
-    # Whether the package carries the Noto fallback faces and their licences
-    # (fonts.fallback_files / fallback_notices): each program chooses. The
-    # runtime works without them, falling back as for any missing face.
+    # Whether the package carries the Noto licences (fonts.fallback_notices):
+    # true when the build's font pack holds the Noto fallback faces
+    # (GUI_FORMS_INSTALL_FALLBACK_FONTS). The runtime works without them,
+    # falling back as for any missing face.
     fallback_fonts: bool
 
 
@@ -159,19 +163,14 @@ class Manifest:
                 return program
         raise KeyError(identifier)
 
-    def font_files(self, program: Program) -> list[str]:
-        """The faces `program`'s package carries."""
-        fallback = self.fonts["fallback_files"] if program.fallback_fonts else []
-        return self.fonts["files"] + fallback
-
     def font_notices(self, program: Program) -> list[str]:
         """The font notices `program`'s package carries."""
         fallback = self.fonts["fallback_notices"] if program.fallback_fonts else []
         return self.fonts["notices"] + fallback
 
     def fallback_font_names(self) -> list[str]:
-        """Every fallback face and notice, which a package without them must not hold."""
-        return self.fonts["fallback_files"] + self.fonts["fallback_notices"]
+        """Every fallback notice, which a package without the fallback faces must not hold."""
+        return list(self.fonts["fallback_notices"])
 
 
 @dataclass(frozen=True)
@@ -211,13 +210,17 @@ def validate_manifest(data: dict[str, Any]) -> Manifest:
     fonts = data.get("fonts")
     _require(isinstance(fonts, dict), "manifest: 'fonts' must be an object")
     _string(fonts, "source", "fonts")
-    for key in ("files", "notices", "fallback_files", "fallback_notices"):
+    for key in ("files", "fallback_files"):
+        _require(key not in fonts,
+                 f"fonts: '{key}' is not packaged; programs read their faces from the embedded font pack")
+    for key in ("notices", "fallback_notices"):
         files = fonts.get(key)
         _require(isinstance(files, list) and files and all(isinstance(name, str) and name for name in files),
                  f"fonts: '{key}' must be a non-empty list of file names")
-    primary = set(fonts["files"]) | set(fonts["notices"])
-    _require(not primary & (set(fonts["fallback_files"]) | set(fonts["fallback_notices"])),
-             "fonts: a fallback face or notice is also listed as a primary one")
+        _require(not any(Path(name).suffix.lower() in FACE_SUFFIXES for name in files),
+                 f"fonts: '{key}' names a face file; programs read their faces from the embedded font pack")
+    _require(not set(fonts["notices"]) & set(fonts["fallback_notices"]),
+             "fonts: a fallback notice is also listed as a primary one")
     programs_data = data.get("programs")
     _require(isinstance(programs_data, list) and programs_data, "manifest: 'programs' must be a non-empty list")
     programs: list[Program] = []
@@ -282,8 +285,7 @@ def validate_manifest(data: dict[str, Any]) -> Manifest:
         programs.append(Program(identifier, display, description, bool(record["enabled"]), status,
                                 tuple(required), automation, dict(smoke), entries, bool(record["fallback_fonts"])))
     return Manifest({key: str(value) for key, value in vendor.items()},
-                    {"source": [fonts["source"]], "files": list(fonts["files"]), "notices": list(fonts["notices"]),
-                     "fallback_files": list(fonts["fallback_files"]),
+                    {"source": [fonts["source"]], "notices": list(fonts["notices"]),
                      "fallback_notices": list(fonts["fallback_notices"])},
                     tuple(programs))
 
@@ -554,29 +556,29 @@ class Packager:
         return self.out / "stage"
 
     def copy_fonts(self, destination: Path, program: Program) -> None:
-        """Stage `program`'s faces and notices in `destination`.
+        """Stage `program`'s font notices in `destination`, and no face file.
 
-        A program packaged without the fallback faces also loses any copy of
-        them the build put there (a macOS bundle's resources, the Windows
-        post-build fonts/), so the package holds exactly its choice.
+        The program reads its faces from the font pack compiled into
+        GUI.Forms, so any face file already in `destination` (a stale build
+        copy) is removed, as are the fallback notices of a program packaged
+        without the fallback faces: the package holds exactly its licences.
         """
         source = ROOT / self.manifest.fonts["source"][0]
         destination.mkdir(parents=True, exist_ok=True)
-        files = self.manifest.font_files(program)
-        for name in files + self.manifest.font_notices(program):
-            if (destination / name).is_file():
-                continue
+        notices = self.manifest.font_notices(program)
+        for name in notices:
             origin = source / name
             if not origin.is_file():
-                raise FileNotFoundError(f"font resource {name} missing from {source}")
+                raise FileNotFoundError(f"font notice {name} missing from {source}")
             shutil.copy2(origin, destination / name)
+        for path in sorted(destination.iterdir()):
+            if path.is_file() and path.suffix.lower() in FACE_SUFFIXES:
+                path.unlink()
+                self.log(f"  removed face file {path.name} (faces come from the embedded font pack)")
         if not program.fallback_fonts:
             for name in self.manifest.fallback_font_names():
                 (destination / name).unlink(missing_ok=True)
-            self.log("  fallback faces left out (fallback_fonts: false)")
-        missing = [name for name in files if not (destination / name).is_file()]
-        if missing:
-            raise RuntimeError("fonts missing after staging: " + ", ".join(missing))
+            self.log("  fallback notices left out (fallback_fonts: false)")
 
     def copy_notices(self, destination: Path) -> None:
         destination.mkdir(parents=True, exist_ok=True)
@@ -625,7 +627,7 @@ class Packager:
         (destination / "README.txt").write_text(
             f"{program.display_name} {self.version}\n\n{program.description}\n\n"
             f"Launch: {launch}\n"
-            "Fonts ship beside the program; no host fonts are read.\n"
+            "Fonts are compiled into the program; no host fonts are read. fonts/ holds their licences.\n"
             f"Source and release notes: https://github.com/{self.manifest.vendor['repository']}\n"
             "Third-party notices: licenses/THIRD_PARTY_NOTICES.md, licenses/ and the fonts' licence files.\n",
             encoding="utf-8")
@@ -737,7 +739,7 @@ class Packager:
         self.log(f"  stage {plan.built} -> {app}")
         if self.dry_run:
             for step in ("copy bundle", "bundle dylib closure into Contents/Frameworks (otool/install_name_tool)",
-                         "verify Contents/Resources/fonts, add licenses/, README.txt, package-manifest.json",
+                         "font licences in Contents/Resources/fonts (no face files), add licenses/, README.txt, package-manifest.json",
                          f"Info.plist: version {self.version}, LSMinimumSystemVersion {MACOS_MINIMUM}, display name",
                          "codesign --force --sign - each Mach-O, then --deep on the app; codesign --verify --deep --strict",
                          f"ditto -c -k --keepParent -> {names['archive']}",
@@ -898,7 +900,7 @@ class Packager:
             for step in ("copy executable; copy non-system DLL imports (objdump) from the build dir; "
                          "a compiler runtime import (GCC, libc++, libunwind, winpthreads) fails",
                          "strip --strip-unneeded when available",
-                         "fonts/ from the build's post-build copy or assets/fonts; licenses/, README.txt, package-manifest.json",
+                         "font licences in fonts/ from assets/fonts (no face files); licenses/, README.txt, package-manifest.json",
                          f"zip with top-level folder {program.display_name!r} -> {names['archive']}",
                          f"makensis packaging/windows_installer.nsi.in -> {names['installer']} "
                          f"(installs to {self.manifest.vendor['windows_install_root']}\\{program.id}, HKCU uninstall key)"):
@@ -915,9 +917,6 @@ class Packager:
             for binary in bundle.iterdir():
                 if binary.suffix.lower() in (".exe", ".dll"):
                     self.run([strip, "--strip-unneeded", str(binary)])
-        built_fonts = plan.built.parent / "fonts"
-        if built_fonts.is_dir():
-            shutil.copytree(built_fonts, bundle / "fonts", dirs_exist_ok=True)
         self.copy_fonts(bundle / "fonts", program)
         self.copy_notices(bundle / "licenses")
         self.write_readme(bundle, program, entry.executable)
@@ -980,7 +979,7 @@ class Packager:
         self.log(f"  stage {plan.built} -> {bundle}")
         if self.dry_run:
             for step in ("copy executable; follow libgui_forms_*.so imports (patchelf), rpath $ORIGIN, strip, ldd check",
-                         "fonts/ from assets/fonts; licenses/, README.txt, package-manifest.json",
+                         "font licences in fonts/ from assets/fonts (no face files); licenses/, README.txt, package-manifest.json",
                          f"tar.gz with top-level folder {program.display_name!r} -> {names['archive']}",
                          f"deb {deb_name} ({arch}) installing to {install_dir}, launcher /usr/bin/{deb_name}, .desktop entry, icon placeholder -> {names['installer']}"):
                 self.log("  would: " + step)

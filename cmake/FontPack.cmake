@@ -3,9 +3,9 @@
 # groups of assets/fonts/font-pack.manifest and compiled into Core as a byte
 # array (src/core/resources/fonts/bundled_font_pack.cpp). It is the only font
 # source the GUI.Forms runtime and GUI.Drawing's raster C API read in a
-# shipped program. A build configured
-# with GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY also reads a font directory the
-# hosts find (GUI_FORMS_FONT_DIR first), for work on the faces themselves.
+# shipped program. A build configured with GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY
+# first reads GUI_FORMS_FONT_DIR or else the checkout's assets/fonts, for work
+# on the faces themselves. No program, bundle or package carries face files.
 #
 # The pack is verified twice: the tool's pack command loads its own output and
 # compares every face with its input before it writes anything, and the test
@@ -25,7 +25,7 @@
 # initializer, and GUI_FORMS_FONT_PACK_FACES, the packed files.
 
 option(GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY
-       "Development builds only: read the bundled faces from a font directory the hosts find (GUI_FORMS_FONT_DIR first) before the embedded pack"
+       "Development builds only: read the bundled faces from GUI_FORMS_FONT_DIR or else this checkout's assets/fonts before the embedded pack"
        OFF)
 set(GUI_FORMS_FONTPACK_TOOL "" CACHE FILEPATH
     "A host-built stx_fontpack tool to run in place of the one this build compiles (cross builds)")

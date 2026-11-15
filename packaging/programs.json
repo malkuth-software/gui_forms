@@ -4,7 +4,7 @@
     "Program manifest consumed by tools/package_programs.py, tools/smoke_package.py and tools/publish_tested_release.py.",
     "Each program lists, per platform, the CMake target and the path pattern of what the build directory produces.",
     "A platform entry marked planned=true names a target another workstream still has to add; packaging logs it as skipped when the build directory lacks it and never fails on it.",
-    "Font and notice lists mirror GUI_FORMS_GALLERY_FONTS / GUI_FORMS_GALLERY_FONT_NOTICES in CMakeLists.txt; fallback_files and fallback_notices are the Noto fallback faces and their licences (GUI_FORMS_FALLBACK_FONT_FILES / GUI_FORMS_FALLBACK_FONT_NOTICES), which a program's package carries only when its fallback_fonts is true. macOS bundles embed them in Contents/Resources/fonts at build time; Windows stages them in fonts/ beside the executables (target gui_forms_program_fonts); Linux has no post-build copy yet, so packaging supplies fonts/ from assets/fonts.",
+    "Font notices: a package carries no face files, since every program reads its faces from the font pack compiled into GUI.Forms; it carries their licences and the attribution in fonts/ (macOS: Contents/Resources/fonts). notices mirror GUI_FORMS_PROGRAM_FONT_NOTICES in CMakeLists.txt; fallback_notices are the Noto licences (GUI_FORMS_FALLBACK_FONT_NOTICES), carried when a program's fallback_fonts is true, which must match the build's GUI_FORMS_INSTALL_FALLBACK_FONTS (whether its pack holds the Noto faces).",
     "Identifiers: macOS pkg identifier is <vendor.bundle_prefix>.<id>; Debian package is <vendor.deb_prefix>-<id>; Windows uninstall key is <vendor.windows_uninstall_prefix><id> under HKCU."
   ],
   "vendor": {
@@ -20,36 +20,14 @@
   },
   "fonts": {
     "source": "assets/fonts",
-    "files": [
-      "PortsmouthRapids.ttf",
-      "PortsmouthRapids-Bold.ttf",
-      "Carlito-Regular.ttf",
-      "Carlito-Bold.ttf",
-      "Carlito-Italic.ttf",
-      "Carlito-BoldItalic.ttf",
-      "Cousine-Regular.ttf",
-      "Cousine-Bold.ttf",
-      "Cousine-Italic.ttf",
-      "Cousine-BoldItalic.ttf",
-      "Selawik-Regular.ttf",
-      "Selawik-Semibold.ttf",
-      "Selawik-Bold.ttf"
-    ],
     "notices": [
       "ATTRIBUTION.md",
+      "LICENSE-PortsmouthRapids.txt",
+      "OFL-Arimo.txt",
       "OFL-Carlito.txt",
       "OFL-Cousine.txt",
       "OFL-Selawik.txt",
-      "LICENSE-PortsmouthRapids.txt"
-    ],
-    "fallback_files": [
-      "NotoSansCJKjp-Regular.otf",
-      "NotoEmoji-Regular.ttf",
-      "NotoSansArabic-Regular.ttf",
-      "NotoSansHebrew-Regular.ttf",
-      "NotoSansDevanagari-Regular.ttf",
-      "NotoSansBengali-Regular.ttf",
-      "NotoSansGurmukhi-Regular.ttf"
+      "OFL-Tinos.txt"
     ],
     "fallback_notices": [
       "OFL-Noto.txt",

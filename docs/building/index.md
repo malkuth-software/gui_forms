@@ -38,7 +38,7 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_AUDIO_VORBIS_BACKEND` | `stx` | Ogg decoder: `stx` or `stb` |
 | `GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD` | OFF | Build the fixture-backed explorer consumer |
 | `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Embed the seven Noto fallback faces in the font pack, and install their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
-| `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY` | OFF | Development builds only: read the bundled faces from a directory the hosts find (`GUI_FORMS_FONT_DIR` first) before the embedded pack (see [Embedded font pack](#embedded-font-pack)) |
+| `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY` | OFF | Development builds only: read the bundled faces from `GUI_FORMS_FONT_DIR` or else this checkout's `assets/fonts` before the embedded pack (see [Embedded font pack](#embedded-font-pack)) |
 | `GUI_FORMS_FONTPACK_TOOL` | empty | A host-built `stx_fontpack` tool for a cross build, which cannot run the one it compiles |
 | `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
 | `GUI_FORMS_HARDENING` | ON | Stack protector, `_FORTIFY_SOURCE=2` (outside Debug and sanitized builds), CET or branch protection, Control Flow Guard on Windows, and full RELRO on Linux, for every first-party library and program |
@@ -322,11 +322,12 @@ decoded on the first request for any face, every other group on the first
 request for one of its faces, on the core worker pool. Each face is checked
 against the CRC-32 the pack stores for it; a refused group is reported once
 on stderr and by `bundled_font_pack_refusal()`, and its faces draw as missing.
-A build configured with `-DGUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=ON` reads a
-font directory the hosts find (`GUI_FORMS_FONT_DIR` first) and falls back to
-the pack; shipped builds leave it off. GUI.Drawing's raster C API reads the
-same pack, so no face file is installed or copied beside a module: only the
-licences and the attribution.
+A build configured with `-DGUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=ON` reads the
+directory `GUI_FORMS_FONT_DIR` names, or else this checkout's `assets/fonts`,
+and falls back to the pack; shipped builds leave it off. GUI.Drawing's raster
+C API reads the same pack, so no face file is installed, copied beside a
+module, put in a program's bundle or folder, or packaged by
+`tools/package_programs.py`: only the licences and the attribution.
 
 ### Fallback fonts
 
@@ -345,10 +346,10 @@ attribution, `fallback_fonts` the Noto OFL texts (`OFL-Noto.txt`,
   `--component fallback_fonts`. The installed package sets
   `GUIForms_FALLBACK_FONTS` to the producer's choice.
 - **App packages.** Each program in `packaging/programs.json` sets
-  `"fallback_fonts": true` or `false`, and `tools/package_programs.py` stages
-  the faces and notices to match. A package without them also drops the copies
-  the build placed in a macOS bundle's `Resources/fonts` or the Windows
-  `fonts/` folder. Every in-tree program currently sets `true`.
+  `"fallback_fonts": true` or `false`, which must match the build's
+  `GUI_FORMS_INSTALL_FALLBACK_FONTS`, and `tools/package_programs.py` stages
+  the Noto licences to match. A package carries no face file. Every in-tree
+  program currently sets `true`.
 - **Without them.** The runtime does not need the fallback faces. With
   `GUI_FORMS_INSTALL_FALLBACK_FONTS=OFF` the pack leaves them out too
   (`assets/fonts/font-pack-without-fallback.manifest`). They are

@@ -357,6 +357,15 @@ bool development_font_directories() noexcept {
 #endif
 }
 
+std::filesystem::path development_source_font_directory() {
+#if defined(GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY)
+    const std::filesystem::path directory(GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY);
+#else
+    const std::filesystem::path directory{};
+#endif
+    return directory;
+}
+
 std::shared_ptr<BundledFontSet> shared_bundled_font_set(const std::filesystem::path& directory,
                                                         const SealedPageFunctions& pages) {
     const std::lock_guard<std::mutex> lock(shared_font_set_mutex);
@@ -746,10 +755,7 @@ std::string_view bundled_font_source_name(BundledFontSource source) noexcept {
     switch (source) {
     case BundledFontSource::none: return "none";
     case BundledFontSource::environment: return "environment";
-    case BundledFontSource::executable: return "executable";
-    case BundledFontSource::library_module: return "library_module";
-    case BundledFontSource::install_share: return "install_share";
-    case BundledFontSource::application_bundle: return "application_bundle";
+    case BundledFontSource::source_tree: return "source_tree";
     case BundledFontSource::embedded_pack: return "embedded_pack";
     }
     return "none";

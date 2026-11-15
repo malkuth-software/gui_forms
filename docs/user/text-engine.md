@@ -78,8 +78,8 @@ of every file, including hashes, is in `assets/fonts/ATTRIBUTION.md` and
 Every host, and GUI.Drawing's raster C API, reads the faces from the font
 pack compiled into the library; no font file is read at run time. A
 development build configured with `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=ON`
-reads a font directory first (`GUI_FORMS_FONT_DIR`, then the places each host
-used to look), for work on the faces themselves.
+reads a font directory first (`GUI_FORMS_FONT_DIR`, else the checkout's
+`assets/fonts`), for work on the faces themselves.
 
 The native SDK installs the faces' licences and exports their directory as
 the CMake variable `GUIForms_FONT_DIR`. Ship the licences with your program.
