@@ -824,6 +824,62 @@ void test_expandable_sections_reveal() {
     require(!(*first).visible.read(), "closing hides the body at once");
 }
 
+// Replaces the sections' items when a host is hidden, as a handler reached
+// from a host's events might.
+struct ReplaceSectionsWhenHidden final {
+    ExpandableSections* sections{};
+    std::shared_ptr<Panel> replacement;
+    void operator()(bool visible) const {
+        if (visible || !replacement) return;
+        std::vector<SectionItem> items{};
+        items.push_back(SectionItem{7, "Replacement", replacement, nullptr});
+        (*sections).set_items(std::move(items));
+    }
+};
+
+// Runs the window's frames until the sections' reveal ends, at most
+// `frames` of them.
+void run_reveal(Window& window, const ExpandableSections& sections, int frames) {
+    for (int frame = 0; frame < frames && sections.revealing(); ++frame) {
+        const std::optional<FrameTime> wake = window.next_wake();
+        if (!wake) return;
+        static_cast<void>(window.poll_frame_schedule(*wake));
+    }
+}
+
+// A host's visibility handler that replaces the items while the reveal
+// tick walks them (A-gf-controls-01-F8): the tick holds the revision it
+// walks and stops when it is no longer current.
+void test_expandable_sections_replaced_during_a_reveal() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.replaced.root"));
+    std::shared_ptr<ExpandableSections> sections = make_control<ExpandableSections>(StableId("final.replaced"));
+    (*sections).set_requested_bounds(Rect{0.0, 0.0, 300.0, 300.0});
+    (*root).add_child(sections);
+    std::shared_ptr<Panel> first = make_control<Panel>(StableId("final.replaced.first"));
+    (*first).set_requested_bounds(Rect{0.0, 0.0, 300.0, 80.0});
+    std::shared_ptr<Panel> second = make_control<Panel>(StableId("final.replaced.second"));
+    (*second).set_requested_bounds(Rect{0.0, 0.0, 300.0, 80.0});
+    std::vector<SectionItem> items{};
+    items.push_back(SectionItem{1, "First", first, nullptr});
+    items.push_back(SectionItem{2, "Second", second, nullptr});
+    (*sections).set_items(std::move(items));
+    Window window(root, Size{400.0, 400.0});
+    window.perform_layout();
+    (*sections).set_expanded(0, true);
+    run_reveal(window, *sections, 1000);
+    require(!(*sections).revealing() && near((*sections).section_reveal(0), 1.0), "the first section opens");
+    const Control::Ptr host = (*first).parent();
+    require(host != nullptr, "the first body sits in a host");
+    std::shared_ptr<Panel> replacement = make_control<Panel>(StableId("final.replaced.third"));
+    (*replacement).set_requested_bounds(Rect{0.0, 0.0, 300.0, 80.0});
+    const SubscriptionToken token =
+        (*host).visible_changed().subscribe(ReplaceSectionsWhenHidden{sections.get(), replacement});
+    (*sections).set_expanded(0, false);
+    run_reveal(window, *sections, 1000);
+    require((*sections).items().size() == 1U && (*sections).items()[0].id == 7,
+            "the handler's items replaced the sections during the reveal");
+}
+
 int main() {
     test_seven_segment_patterns();
     test_seven_segment_in_window();
@@ -840,6 +896,7 @@ int main() {
     test_dial_parts_in_the_stock_themes();
     test_high_contrast_gauge_arcs();
     test_expandable_sections_reveal();
+    test_expandable_sections_replaced_during_a_reveal();
     std::cout << "final control tests passed\n";
     return EXIT_SUCCESS;
 }

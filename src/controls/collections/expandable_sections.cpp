@@ -346,7 +346,13 @@ AnimationTickResult ExpandableSections::on_reveal_tick(FrameTime now) {
         return AnimationTickResult::damaged;
     }
     bool moving = false;
-    for (const std::shared_ptr<Entry>& held : (*revision_).entries) {
+    // Held, and checked after each visibility write: the write raises the
+    // host's events and may move focus, and a handler reached from there
+    // may call set_items, replacing (and freeing) the revision
+    // (A-gf-controls-01-F8). A replaced revision ends the walk; the new
+    // one starts its own reveals.
+    const std::shared_ptr<Revision> revision = revision_;
+    for (const std::shared_ptr<Entry>& held : (*revision).entries) {
         Entry& item = *held;
         if (!item.timeline.running()) continue;
         const AnimationSample sample = item.timeline.sample(now);
@@ -355,6 +361,7 @@ AnimationTickResult ExpandableSections::on_reveal_tick(FrameTime now) {
             item.reveal = item.reveal_to;
             item.reveal_from = item.reveal_to;
             (*item.host).visible = item.reveal_to > 0.0;
+            if (!is_alive() || revision_ != revision) return AnimationTickResult::damaged;
             continue;
         }
         const double eased = std::clamp(sample.eased_progress, 0.0, 1.0);
@@ -368,13 +375,16 @@ AnimationTickResult ExpandableSections::on_reveal_tick(FrameTime now) {
 
 void ExpandableSections::complete_reveals() {
     reveal_frames_.stop();
-    if (!revision_) return;
-    for (const std::shared_ptr<Entry>& held : (*revision_).entries) {
+    // Held and checked as in on_reveal_tick (A-gf-controls-01-F8).
+    const std::shared_ptr<Revision> revision = revision_;
+    if (!revision) return;
+    for (const std::shared_ptr<Entry>& held : (*revision).entries) {
         Entry& item = *held;
         item.timeline.stop();
         item.reveal = item.reveal_to;
         item.reveal_from = item.reveal_to;
         (*item.host).visible = item.reveal_to > 0.0;
+        if (!is_alive() || revision_ != revision) return;
     }
 }
 
