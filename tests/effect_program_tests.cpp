@@ -64,6 +64,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -718,6 +719,61 @@ void progress_bar_on_the_motion_clock() {
     require(clock.control_ambient(*bar), "with the ambient switch on the next paint enlists them again");
     (*bar).visual_style = ProgressBarVisualStyle::continuous;
     require(!clock.control_ambient(*bar) && !window.next_wake().has_value(), "a style without an effect withdraws");
+}
+
+// A control whose ambient frame changes the clock's records
+// (A-gf-core-05-F1): it enlists another control, which may take its freed
+// record's place or grow the records, and withdraws itself. The clock acts
+// on its own record only if it is still that control's, so the count is
+// taken down once and the newly enlisted control keeps its frames.
+class FrameHook final : public Control {
+public:
+    explicit FrameHook(StableId stable_id) : Control(std::move(stable_id)) {}
+    bool on_ambient_frame(FrameTime now) override {
+        static_cast<void>(now);
+        frames = frames + 1U;
+        SurfaceRoot* const root = attached_surface_root();
+        if (root == nullptr) return false;
+        MotionClock& clock = (*root).motion_clock();
+        if (withdraw_self) clock.withdraw_control_ambient(*this);
+        if (enlist_on_frame != nullptr) {
+            static_cast<void>(clock.enlist_control_ambient(*enlist_on_frame, std::chrono::milliseconds(4)));
+            enlist_on_frame = nullptr;
+        }
+        return !withdraw_self;
+    }
+
+    Control* enlist_on_frame{};
+    bool withdraw_self{};
+    std::uint32_t frames{};
+};
+
+void ambient_frame_changes_the_records() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("effects.hooks"));
+    std::shared_ptr<FrameHook> leaving = make_control<FrameHook>(StableId("effects.hooks.leaving"));
+    std::shared_ptr<FrameHook> arriving = make_control<FrameHook>(StableId("effects.hooks.arriving"));
+    (*leaving).set_requested_bounds({0.0, 0.0, 50.0, 20.0});
+    (*arriving).set_requested_bounds({0.0, 20.0, 50.0, 20.0});
+    (*root).add_child(leaving);
+    (*root).add_child(arriving);
+    Window window(root, {100.0, 60.0});
+    window.perform_layout();
+    MotionClock& clock = window.motion_clock();
+    require(clock.enlist_control_ambient(*leaving, std::chrono::milliseconds(4)), "the first control is enlisted");
+    (*leaving).withdraw_self = true;
+    (*leaving).enlist_on_frame = arriving.get();
+    require(window.next_wake().has_value(), "an enlisted control arms the clock");
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require((*leaving).frames == 1U, "the first control has its frame");
+    require(!clock.control_ambient(*leaving), "the control that withdrew itself is off the clock");
+    require(clock.control_ambient(*arriving) && clock.ambient_count() == 1U,
+            "the control enlisted in the frame stays, and the count is taken down once");
+    require(window.next_wake().has_value(), "the enlisted control keeps the clock armed");
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require((*arriving).frames == 1U && clock.control_ambient(*arriving) && clock.ambient_count() == 1U,
+            "the control enlisted in the frame has its own frames");
+    clock.withdraw_control_ambient(*arriving);
+    require(clock.ambient_count() == 0U && !window.next_wake().has_value(), "withdrawn, the window rests");
 }
 
 // The effect properties set what the methods set, and a granted pointer
@@ -1576,6 +1632,7 @@ int main() {
     bubbles_and_steam();
     progress_bar_hosting();
     progress_bar_on_the_motion_clock();
+    ambient_frame_changes_the_records();
     effect_properties_and_input();
     themes_select_effects();
     effects_take_colour_roles();
@@ -1587,6 +1644,7 @@ int main() {
     interaction_cues();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
+                 "ambient frames changing the records, "
                  "properties and input, themes selecting effects, colour roles, right to left, pointer record, "
                  "part shape clip, "
                  "backdrop, vocabulary version 2, interaction cues\n";

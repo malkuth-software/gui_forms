@@ -143,8 +143,8 @@ void MotionClock::repaint_parked() {
     }
 }
 
-bool MotionClock::control_ambient_frame(AmbientRecord& effect, FrameTime now) {
-    const std::shared_ptr<Control> control = effect.control.lock();
+bool MotionClock::control_ambient_frame(const std::weak_ptr<Control>& observed, FrameTime now) {
+    const std::shared_ptr<Control> control = observed.lock();
     if (!control || !(*control).is_alive() || (*control).attached_surface_root() != window_) return false;
     const bool shown = (*control).on_ambient_frame(now);
     if (shown) (*window_).metrics().record_effect_ambient_frame();
@@ -180,18 +180,34 @@ void MotionClock::stop_ambient(bool repaint) {
 }
 
 void MotionClock::advance_ambient(FrameTime now) {
-    // By index: a repaint never enlists or withdraws an effect.
+    // By index, and with no reference held across a frame: a control's
+    // on_ambient_frame is a public virtual that may enlist another effect
+    // (growing, perhaps moving, the records) or withdraw its own
+    // (A-gf-core-05-F1). The frame works on copies; afterwards the record
+    // is taken again and acted on only if it is still live and still this
+    // effect. A record a frame withdrew was already counted down there.
     for (std::size_t index = 0; index < ambient_.size(); ++index) {
+        const AmbientRecord& due = ambient_[index];
+        if (!due.live || due.next > now) continue;
+        const Control* const address = due.control_address;
+        const std::uint32_t part_slot = due.part_slot;
+        const std::uint32_t part_generation = due.part_generation;
+        const std::weak_ptr<Control> observed = due.control;
+        std::uint64_t seen = due.seen;
+        const bool shown = address != nullptr
+            ? control_ambient_frame(observed, now)
+            : detail::SurfaceEngineAccess::ambient_frame(*window_, part_slot, part_generation, seen);
+        if (index >= ambient_.size()) continue;
         AmbientRecord& effect = ambient_[index];
-        if (!effect.live || effect.next > now) continue;
-        const bool shown = effect.control_address != nullptr
-            ? control_ambient_frame(effect, now)
-            : detail::SurfaceEngineAccess::ambient_frame(*window_, effect.part_slot, effect.part_generation, effect.seen);
+        const bool same = effect.live && effect.control_address == address && effect.part_slot == part_slot &&
+                          effect.part_generation == part_generation;
+        if (!same) continue;
         if (!shown) {
             effect = AmbientRecord{};
             ambient_live_ = ambient_live_ - 1U;
             continue;
         }
+        effect.seen = seen;
         // At least one interval from this frame: the cap holds however late
         // the frame came.
         effect.next = now + effect.interval;
