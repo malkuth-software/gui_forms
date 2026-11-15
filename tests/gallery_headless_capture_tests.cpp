@@ -9,6 +9,7 @@
 #include "demo/gallery_staging.hpp"
 #include "demo/program_options.hpp"
 #include "gui_forms/window/window.hpp"
+#include "support/unique_temporary_directory.hpp"
 
 #include <array>
 #include <cstddef>
@@ -81,16 +82,17 @@ void test_options() {
 }
 
 void test_capture() {
-    const std::filesystem::path directory = std::filesystem::temp_directory_path() / "gui_forms_gallery_headless";
-    std::error_code ignored{};
-    std::filesystem::create_directories(directory, ignored);
+    const std::filesystem::path directory =
+        test_support::make_unique_temporary_directory("gui_forms_gallery_headless");
     const std::filesystem::path png = directory / "industrial-surfaces.png";
-    std::filesystem::remove(png, ignored);
     std::vector<std::string> arguments{"gallery", "--page", "industrial-surfaces", "--capture", png.string(),
                                        "--headless", "--size", "640x400", "--scale", "2"};
     const std::optional<demo::ProgramOptions> options = parsed(arguments);
     require(options.has_value(), "the options parse");
-    if (!options) return;
+    if (!options) {
+        test_support::remove_temporary_directory(directory);
+        return;
+    }
     std::unique_ptr<Window> window = gallery::make_gallery();
     require(gallery::apply_gallery_staging(*options, *window), "the page is staged");
     const int code = gallery::run_headless_gallery_capture(*options, *window, GUI_FORMS_TEST_FONT_DIR);
@@ -107,16 +109,16 @@ void test_capture() {
                 "at the requested size and scale: 640 x 400 at 2");
     }
     require(window.get() != nullptr && (*window).client_size().width == 640.0, "the window took the --size");
-    std::filesystem::remove(png, ignored);
+    test_support::remove_temporary_directory(directory);
 }
 
 // GAPS H5: the help-book page captures, in both schemes at scales 1 and 2,
 // written where tools/capture_help_book.sh writes the committed previews
 // (here a temporary directory). Each is a PNG of the requested size.
 void test_help_book_captures() {
-    const std::filesystem::path directory = std::filesystem::temp_directory_path() / "gui_forms_gallery_headless";
+    const std::filesystem::path directory =
+        test_support::make_unique_temporary_directory("gui_forms_gallery_headless");
     std::error_code ignored{};
-    std::filesystem::create_directories(directory, ignored);
     const std::array<std::string_view, 2> schemes{"light", "dark"};
     const std::array<std::string_view, 2> scales{"1", "2"};
     for (const std::string_view scheme : schemes) {
@@ -142,6 +144,7 @@ void test_help_book_captures() {
             std::filesystem::remove(png, ignored);
         }
     }
+    test_support::remove_temporary_directory(directory);
 }
 
 void test_refusals() {

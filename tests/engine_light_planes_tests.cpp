@@ -28,6 +28,7 @@
 
 #include "gui_forms/engine/light_planes/light_planes.hpp"
 #include "../src/core/engine/primitives/finish/finish_kernel.hpp"
+#include "support/unique_temporary_directory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -373,10 +374,7 @@ void write_file(const std::filesystem::path& path, const std::vector<std::byte>&
 
 void cache_reads_on_first_use() {
     const std::filesystem::path directory =
-        std::filesystem::temp_directory_path() / "gui_forms_engine_light_planes_tests";
-    std::error_code ignored{};
-    std::filesystem::remove_all(directory, ignored);
-    std::filesystem::create_directories(directory);
+        test_support::make_unique_temporary_directory("gui_forms_engine_light_planes_tests");
     write_file(directory / "dialog_ok_up.f32", bake_bytes(varied_planes()));
     std::vector<std::byte> broken = bake_bytes(varied_planes());
     broken.pop_back();
@@ -396,7 +394,7 @@ void cache_reads_on_first_use() {
             "a missing bake is refused");
     require(cache.lend("../dialog_ok_up") == nullptr && cache.lend("Dialog") == nullptr && cache.reads() == 3U,
             "a name that is not a bake's reads nothing");
-    std::filesystem::remove_all(directory, ignored);
+    test_support::remove_temporary_directory(directory);
 }
 
 // -- previewing ---------------------------------------------------------------------
