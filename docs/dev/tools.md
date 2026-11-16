@@ -187,6 +187,13 @@ the change that needs it.
   `manifests/paint_census.json` may only fall.
   `python3 -B tools/paint_census.py check`
 
+`tools/host_trig_check.py`
+: Refuses the host's `sin`, `cos`, `tan`, `atan2` and `hypot` (and their C
+  forms) in `src/core`, `src/controls` and `src/render`, which call the
+  deterministic functions of `engine_math.hpp` instead; the allowance in
+  `manifests/host_trig_allowance.json` may only shrink.
+  `python3 -B tools/host_trig_check.py check`
+
 `tools/check_test_registration.py`, `tools/check_test_asserts.py`
 : Refuse test programs the build never runs, and checks in test code that
   `NDEBUG` would remove.
