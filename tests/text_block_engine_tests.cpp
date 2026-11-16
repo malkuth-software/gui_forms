@@ -131,9 +131,13 @@ void test_break_opportunities() {
     // Where stxlib::textlayout follows UAX #14 (Unicode 18.0.0) and
     // libunibreak 8.0 did not (docs/TEXTLAYOUT.md in STXlib): BA x GL is no
     // break since rule LB12a stopped excepting BA, and "++" (PR PR) may
-    // break, libunibreak's own tailoring kept it whole.
-    const std::vector<LineBreakOpportunity> glued = engine_breaks("a\xE2\x80\x90\xC2\xA0" "b");
-    require(glued[3] == LineBreakOpportunity::prohibited, "no break between U+2010 and a no-break space");
+    // break, libunibreak's own tailoring kept it whole. The BA character is
+    // U+2013 EN DASH: U+2010 HYPHEN is class HH, which LB12a still excepts
+    // ([^SP HY HH] x GL), so a break after it stays allowed.
+    const std::vector<LineBreakOpportunity> glued = engine_breaks("a\xE2\x80\x93\xC2\xA0" "b");
+    require(glued[3] == LineBreakOpportunity::prohibited, "no break between U+2013 and a no-break space");
+    const std::vector<LineBreakOpportunity> hyphened = engine_breaks("a\xE2\x80\x90\xC2\xA0" "b");
+    require(hyphened[3] == LineBreakOpportunity::allowed, "a break between U+2010 (HH) and a no-break space");
     const std::vector<LineBreakOpportunity> pluses = engine_breaks("a++b");
     require(pluses[0] == LineBreakOpportunity::prohibited && pluses[1] == LineBreakOpportunity::allowed &&
                 pluses[2] == LineBreakOpportunity::prohibited,
