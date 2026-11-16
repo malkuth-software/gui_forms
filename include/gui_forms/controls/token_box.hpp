@@ -13,6 +13,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // A token's identity in its TokenBox: assigned when the token is added and
@@ -63,12 +65,19 @@ public:
     // (or no longer) in the box.
     bool remove_token(TokenId id);
     void clear_tokens();
-    [[nodiscard]] std::optional<std::size_t> token_index(TokenId id) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> token_index(TokenId id) const noexcept;
     // The token the keyboard or pointer selected, or none. A selected token
     // is removed by Backspace or Delete.
-    [[nodiscard]] std::optional<TokenId> selected_token() const noexcept { return selected_; }
+    [[nodiscard]] stxlib::Optional<TokenId> selected_token() const noexcept { return selected_; }
     // Throws std::invalid_argument for an identity not in the box.
-    void select_token(std::optional<TokenId> id);
+    void select_token(stxlib::Optional<TokenId> id);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<TokenId>")]]
+    void select_token(std::optional<TokenId> id) {
+        stxlib::Optional<TokenId> owned{};
+        if (id.has_value()) owned.set(*id);
+        select_token(owned);
+    }
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
     // Focus on the field goes to its edit part (null without one).
     [[nodiscard]] Ptr focus_target() const override { return editor_; }
@@ -77,7 +86,7 @@ public:
     [[nodiscard]] Event<const Token&>& token_added() noexcept { return token_added_; }
     // Raised after a token is removed, with the token as it was.
     [[nodiscard]] Event<const Token&>& token_removed() noexcept { return token_removed_; }
-    [[nodiscard]] Event<std::optional<TokenId>>& selected_token_changed() noexcept {
+    [[nodiscard]] Event<stxlib::Optional<TokenId>>& selected_token_changed() noexcept {
         return selected_token_changed_;
     }
 
@@ -171,7 +180,7 @@ private:
     // Where a point in window coordinates falls: a token, and whether on its
     // close glyph.
     struct TokenHit final {
-        std::optional<std::size_t> index{};
+        stxlib::Optional<std::size_t> index{};
         bool close{};
     };
     [[nodiscard]] TokenHit hit_token(Point window_point) const;
@@ -180,7 +189,7 @@ private:
     // Splits text holding a delimiter into tokens, leaving the rest typed.
     void split_delimited(const std::string& text);
     void remove_at(std::size_t index);
-    void set_selected(std::optional<TokenId> id);
+    void set_selected(stxlib::Optional<TokenId> id);
     void editor_committed(const std::string& text);
     void editor_text_changed(const std::string& text);
     void editor_completion_accepted(const std::string& text);
@@ -193,15 +202,15 @@ private:
     SubscriptionToken editor_focus_;
     std::vector<Token> tokens_;
     std::uint64_t next_id_{1U};
-    std::optional<TokenId> selected_{};
-    std::optional<TokenId> hot_{};
+    stxlib::Optional<TokenId> selected_{};
+    stxlib::Optional<TokenId> hot_{};
     bool hot_close_{};
-    std::optional<TokenId> pressed_close_{};
+    stxlib::Optional<TokenId> pressed_close_{};
     bool editor_focused_{};
     bool synchronizing_{};
     Event<const Token&> token_added_;
     Event<const Token&> token_removed_;
-    Event<std::optional<TokenId>> selected_token_changed_;
+    Event<stxlib::Optional<TokenId>> selected_token_changed_;
     // property_codemod begin TokenBox (tools/property_families/token_box.json; generated, do not edit)
 protected:
     // on_<property>_changed runs after a changed write's store and touch and

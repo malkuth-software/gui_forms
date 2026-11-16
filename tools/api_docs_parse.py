@@ -166,6 +166,8 @@ def normalize_signature(value: str) -> str:
 
 
 def method_name(signature: str, owner: str) -> str | None:
+    # An attribute with an argument, [[deprecated("...")]], is not the name.
+    signature = re.sub(r"\[\[.*?\]\]\s*", "", signature)
     function_pointer = re.search(
         r"\(\s*\*\s*([A-Za-z_]\w*)\s*\)", signature)
     if function_pointer:

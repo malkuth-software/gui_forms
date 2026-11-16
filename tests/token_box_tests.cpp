@@ -48,13 +48,14 @@ struct TraceRemoved final {
 struct TraceSelected final {
     std::vector<std::string>* trace{};
     const TokenBox* box{};
-    void operator()(std::optional<TokenId> id) const {
-        if (!id) {
+    void operator()(stxlib::Optional<TokenId> id) const {
+        if (id.absent()) {
             (*trace).push_back("selected none");
             return;
         }
-        const std::optional<std::size_t> index = (*box).token_index(*id);
-        (*trace).push_back("selected " + (index ? (*box).tokens()[*index].text : std::string("?")));
+        const stxlib::Optional<std::size_t> found = (*box).token_index(*id.value());
+        const std::size_t* const index = found.value();
+        (*trace).push_back("selected " + (index != nullptr ? (*box).tokens()[*index].text : std::string("?")));
     }
 };
 
@@ -111,7 +112,8 @@ void tokens_and_identity() {
     const TokenId second = (*box).add_token("beta");
     require(texts_are(*box, {"alpha", "beta"}) && first != second && second.value > first.value,
             "add_token trims the text and gives each token a new identity");
-    require((*box).token_index(second) == 1U && trace.size() == 2U && trace[0] == "added alpha",
+    require((*box).token_index(second) == stxlib::Optional<std::size_t>::of(1U) && trace.size() == 2U &&
+            trace[0] == "added alpha",
             "token_index finds a token by identity and token_added reports each addition");
     bool threw = false;
     try {
@@ -128,17 +130,25 @@ void tokens_and_identity() {
     }
     require(threw && (*box).tokens().size() == 2U, "invalid UTF-8 is refused");
     require((*box).remove_token(first) && !(*box).remove_token(first) && texts_are(*box, {"beta"}) &&
-                !(*box).token_index(first) && (*box).token_index(second) == 0U,
+                (*box).token_index(first).absent() &&
+                    (*box).token_index(second) == stxlib::Optional<std::size_t>::of(0U),
             "removing by identity works once; the identity is then stale and the other keeps its own");
     const TokenId third = (*box).add_token("gamma");
     require(third.value > second.value, "identities are never reused");
     threw = false;
     try {
-        (*box).select_token(first);
+        (*box).select_token(stxlib::Optional<TokenId>::of(first));
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && !(*box).selected_token(), "a stale identity cannot be selected");
+    require(threw && (*box).selected_token().absent(), "a stale identity cannot be selected");
+    // The standard form, kept for one stage (D15 Q3), still selects.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    (*box).select_token(std::optional<TokenId>(second));
+#pragma GCC diagnostic pop
+    require((*box).selected_token() == stxlib::Optional<TokenId>::of(second),
+            "the deprecated std::optional select_token still selects");
     (*box).clear_tokens();
     require((*box).tokens().empty() && trace.back() == "removed beta", "clear removes the last token last");
     threw = false;
@@ -230,38 +240,45 @@ void keyboard_over_tokens() {
     std::vector<std::string> trace;
     SubscriptionToken removed = box.token_removed().subscribe(TraceRemoved{&trace});
     SubscriptionToken selected = box.selected_token_changed().subscribe(TraceSelected{&trace, &box});
-    require(press(window, PhysicalKey::backspace) && box.selected_token() == box.tokens()[2].id &&
+    require(press(window, PhysicalKey::backspace) &&
+            box.selected_token() == stxlib::Optional<TokenId>::of(box.tokens()[2].id) &&
                 box.tokens().size() == 3U,
             "Backspace at the start of an empty editor selects the last token");
-    require(press(window, PhysicalKey::backspace) && texts_are(box, {"alpha", "beta"}) && !box.selected_token(),
+    require(press(window, PhysicalKey::backspace) && texts_are(box, {"alpha", "beta"}) && box.selected_token().absent(),
             "a second Backspace removes it");
     require(trace.size() == 3U && trace[0] == "selected gamma" && trace[1] == "selected none" &&
                 trace[2] == "removed gamma",
             "removing a selected token clears the selection, then reports the removal");
-    require(press(window, PhysicalKey::left) && box.selected_token() == box.tokens()[1].id,
+    require(press(window, PhysicalKey::left) &&
+            box.selected_token() == stxlib::Optional<TokenId>::of(box.tokens()[1].id),
             "Left at the start selects the last token");
-    require(press(window, PhysicalKey::left) && box.selected_token() == box.tokens()[0].id &&
-                press(window, PhysicalKey::left) && box.selected_token() == box.tokens()[0].id,
+    require(press(window, PhysicalKey::left) &&
+            box.selected_token() == stxlib::Optional<TokenId>::of(box.tokens()[0].id) &&
+                press(window, PhysicalKey::left) &&
+                    box.selected_token() == stxlib::Optional<TokenId>::of(box.tokens()[0].id),
             "Left moves to the previous token and stops at the first");
-    require(press(window, PhysicalKey::right) && box.selected_token() == box.tokens()[1].id &&
-                press(window, PhysicalKey::right) && !box.selected_token(),
+    require(press(window, PhysicalKey::right) &&
+            box.selected_token() == stxlib::Optional<TokenId>::of(box.tokens()[1].id) &&
+                press(window, PhysicalKey::right) && box.selected_token().absent(),
             "Right moves to the next token, and past the last back to the editor");
     require(press(window, PhysicalKey::left) && press(window, PhysicalKey::home) &&
-                box.selected_token() == box.tokens()[0].id && press(window, PhysicalKey::end) &&
-                !box.selected_token(),
+                box.selected_token() == stxlib::Optional<TokenId>::of(box.tokens()[0].id) &&
+                    press(window, PhysicalKey::end) &&
+                box.selected_token().absent(),
             "Home selects the first token and End returns to the editor");
-    require(press(window, PhysicalKey::left) && press(window, PhysicalKey::escape) && !box.selected_token(),
+    require(press(window, PhysicalKey::left) && press(window, PhysicalKey::escape) && box.selected_token().absent(),
             "Escape returns to the editor");
     require(press(window, PhysicalKey::left) && press(window, PhysicalKey::delete_forward) &&
                 texts_are(box, {"alpha"}),
             "Delete removes the selected token");
-    require(press(window, PhysicalKey::left) && type(window, "x") && !box.selected_token() && editor.text.read() == "x",
+    require(press(window, PhysicalKey::left) && type(window, "x") && box.selected_token().absent() &&
+            editor.text.read() == "x",
             "typing returns to the editor");
     require(press(window, PhysicalKey::backspace) && editor.text.read().empty() && box.tokens().size() == 1U &&
-                !box.selected_token(),
+                box.selected_token().absent(),
             "Backspace with text before the caret edits the text");
-    require(press(window, PhysicalKey::left) && box.selected_token() && window.request_focus(fixture.other) &&
-                !box.selected_token(),
+    require(press(window, PhysicalKey::left) && box.selected_token().present() && window.request_focus(fixture.other) &&
+                box.selected_token().absent(),
             "losing the focus clears the token selection");
 }
 
@@ -292,7 +309,7 @@ void pointer_and_parts() {
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, on_face}));
     require(box.realized_items()[1].states.hot, "the token under the pointer is hot");
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, on_face}) &&
-                box.selected_token() == beta && window.focused_control() == box.editor(),
+                box.selected_token() == stxlib::Optional<TokenId>::of(beta) && window.focused_control() == box.editor(),
             "pressing a token selects it and keeps the focus in the editor");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, on_face}));
     const TokenBox::Item selected_item = box.realized_items()[1];
@@ -341,7 +358,7 @@ void press_after_focus_handlers() {
     require(window.request_focus(fixture.other), "the other field takes the focus");
     SubscriptionToken watch = (*fixture.other).focus_observed().subscribe(RemoveOnFocusLoss{&box, beta});
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, on_beta}) &&
-                texts_are(box, {"alpha"}) && !box.selected_token() && window.focused_control() == box.editor(),
+                texts_are(box, {"alpha"}) && box.selected_token().absent() && window.focused_control() == box.editor(),
             "a press whose token goes in a focus handler selects nothing");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, on_beta}));
     watch.disconnect();
@@ -384,7 +401,8 @@ void semantics() {
     require(nodes[0].children.size() == 1U && nodes[0].children[0].role == SemanticRole::button &&
                 nodes[0].children[0].name == "Remove alpha",
             "each token offers a remove button");
-    require(window.perform_semantic_action(beta_id, SemanticAction::select) && box.selected_token() == beta &&
+    require(window.perform_semantic_action(beta_id, SemanticAction::select) &&
+            box.selected_token() == stxlib::Optional<TokenId>::of(beta) &&
                 has_semantic_state(box.semantic_virtual_children()[1].states, SemanticState::selected),
             "a semantic select selects the token");
     const std::string remove_alpha = "tokens.semantics.token." + std::to_string(alpha.value) + ".remove";

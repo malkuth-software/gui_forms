@@ -1129,7 +1129,7 @@
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
         {"name": "token_added", "payload": "Token", "mutable_payload": false},
         {"name": "token_removed", "payload": "Token", "mutable_payload": false},
-        {"name": "selected_token_changed", "payload": "std::optional<TokenId>", "mutable_payload": false}
+        {"name": "selected_token_changed", "payload": "stxlib::Optional<TokenId>", "mutable_payload": false}
       ]
     },
     {

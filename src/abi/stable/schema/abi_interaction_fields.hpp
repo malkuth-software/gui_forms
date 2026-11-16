@@ -202,7 +202,6 @@ inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
     {"std::int64_t", "value: signed_integer"},
     {"std::optional<Color>", "value: color optional"},
     {"std::optional<DataGridViewCellAddress>", "row: unsigned_integer optional, column: unsigned_integer optional"},
-    {"std::optional<TokenId>", "value: unsigned_integer optional"},
     {"std::optional<bool>", "value: boolean optional"},
     {"std::optional<std::size_t>", "value: unsigned_integer optional"},
     {"std::optional<std::string>", "value: text optional"},
@@ -213,6 +212,7 @@ inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
     {"std::uint32_t", "value: unsigned_integer"},
     {"std::uint64_t", "value: unsigned_integer"},
     {"std::vector<std::string>", "value: collection"},
+    {"stxlib::Optional<TokenId>", "value: unsigned_integer optional"},
 }};
 
 } // namespace gui_forms::abi1

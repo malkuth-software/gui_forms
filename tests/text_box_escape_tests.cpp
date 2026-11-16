@@ -282,9 +282,9 @@ void composites_pass_escape_on() {
     static_cast<void>((*tokens).add_token("one"));
     Fixture token_fixture = make_fixture("esc.tokens", tokens);
     require((*token_fixture.window).request_focus((*tokens).editor()), "the token editor takes focus");
-    require(press(*token_fixture.window, PhysicalKey::left) && (*tokens).selected_token(),
+    require(press(*token_fixture.window, PhysicalKey::left) && (*tokens).selected_token().present(),
             "Left at the start selects the last token");
-    require(press(*token_fixture.window, PhysicalKey::escape) && !(*tokens).selected_token() &&
+    require(press(*token_fixture.window, PhysicalKey::escape) && (*tokens).selected_token().absent() &&
                 (*token_fixture.watcher).seen.empty(),
             "Escape with a token selected clears the selection and is consumed");
     require(press(*token_fixture.window, PhysicalKey::escape) && (*token_fixture.watcher).seen.size() == 1U,

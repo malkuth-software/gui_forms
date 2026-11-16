@@ -275,7 +275,7 @@ Properties beyond every control's: none.
 |---|---|
 | `token_added` | `Token` |
 | `token_removed` | `Token` |
-| `selected_token_changed` | `std::optional<TokenId>` |
+| `selected_token_changed` | `stxlib::Optional<TokenId>` |
 
 ## `search_field` (SearchField, control)
 
