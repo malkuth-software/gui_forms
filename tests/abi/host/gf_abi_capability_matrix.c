@@ -69,6 +69,9 @@ static const capability_name capability_names[] = {
     {"direct_buffers", GF_HOST_CAPABILITY_DIRECT_BUFFERS},
     {"host_scroll", GF_HOST_CAPABILITY_HOST_SCROLL},
     {"reference_presentation", GF_HOST_CAPABILITY_REFERENCE_PRESENTATION},
+    {"metal_drawables", GF_HOST_CAPABILITY_METAL_DRAWABLES},
+    {"dri3_pixmaps", GF_HOST_CAPABILITY_DRI3_PIXMAPS},
+    {"linux_dmabuf", GF_HOST_CAPABILITY_LINUX_DMABUF},
 };
 
 enum { capability_name_count = (int)(sizeof(capability_names) / sizeof(capability_names[0])) };

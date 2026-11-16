@@ -761,7 +761,17 @@ void test_policy_from_environment() {
     if (std::getenv("GUI_FORMS_PRESENT") == nullptr) {
         const PresentPolicy policy = present_policy_from_environment();
         require(!policy.direct && !policy.host_scroll, "copy only by default");
+        require(!present_policy_names("metal"), "no route named by default");
     }
+}
+
+void test_policy_list_words() {
+    require(present_list_names("direct,metal", "metal"), "a later word");
+    require(present_list_names("direct", "direct"), "a single word");
+    require(!present_list_names("direct,metals", "metal"), "whole words only");
+    require(!present_list_names("", "direct"), "an empty list names nothing");
+    require(present_list_names(",scroll,", "scroll"), "empty words are skipped");
+    require(!present_list_names("dri3", ""), "the empty word is not named by a word");
 }
 
 } // namespace
@@ -788,6 +798,7 @@ int main() {
         test_failed_copy_keeps_scroll_off();
         test_producer_mode();
         test_policy_from_environment();
+        test_policy_list_words();
     } catch (const std::exception& error) {
         std::cerr << "presentation shim tests failed: " << error.what() << '\n';
         return EXIT_FAILURE;

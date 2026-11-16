@@ -144,6 +144,21 @@ enum class HostCapability : std::uint64_t {
     // (src/host/surface/), whose presentation is the reference behaviour
     // the platform paths' traces are compared against.
     reference_presentation = 1ULL << 45U,
+    // The direct path's buffer routes that use a platform graphics API to
+    // obtain and present a buffer, never to draw (owner, 2026-11-16: "we
+    // enumerate host capabilities"). Each is reported, besides
+    // direct_buffers, only where the adapter is built with the route and
+    // its presentation policy names it; its library is linked inside the
+    // host adapter only. Additive flags; no protocol version change.
+    // metal_drawables: macOS CAMetalLayer drawables, written through their
+    // IOSurface.
+    metal_drawables = 1ULL << 46U,
+    // dri3_pixmaps: X11 DRI3 pixmaps over GBM buffers (dmabuf), mapped for
+    // writing and presented with the Present extension.
+    dri3_pixmaps = 1ULL << 47U,
+    // linux_dmabuf: Wayland linux-dmabuf buffers over GBM buffers, mapped
+    // for writing (reserved: GUI.Forms has no Wayland host yet).
+    linux_dmabuf = 1ULL << 48U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

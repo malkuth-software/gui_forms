@@ -84,8 +84,8 @@ extern "C" {
  * slots marked since 1.5 and the host capabilities RELATIVE_POINTER to
  * POINTER_WARP), application font families (gf_app_font_face and the
  * fonts table's load_family and unload_family) and the presentation shim's
- * host capabilities (DIRECT_BUFFERS, HOST_SCROLL and
- * REFERENCE_PRESENTATION), additions only. */
+ * host capabilities (DIRECT_BUFFERS, HOST_SCROLL, REFERENCE_PRESENTATION,
+ * METAL_DRAWABLES, DRI3_PIXMAPS and LINUX_DMABUF), additions only. */
 #define GF_ABI_MAJOR 1u
 #define GF_ABI_MINOR 5u
 
@@ -1966,6 +1966,15 @@ typedef uint64_t gf_host_capability;
 #define GF_HOST_CAPABILITY_DIRECT_BUFFERS 8796093022208ull
 #define GF_HOST_CAPABILITY_HOST_SCROLL 17592186044416ull
 #define GF_HOST_CAPABILITY_REFERENCE_PRESENTATION 35184372088832ull
+/* Since 1.5: the direct path's buffer routes that use a platform graphics
+ * API only to obtain and present a buffer, never to draw. Each is reported
+ * with DIRECT_BUFFERS where the host is built with the route and its
+ * presentation policy names it. METAL_DRAWABLES: macOS CAMetalLayer
+ * drawables. DRI3_PIXMAPS: X11 DRI3 pixmaps over dmabuf buffers.
+ * LINUX_DMABUF: Wayland linux-dmabuf buffers (reserved). */
+#define GF_HOST_CAPABILITY_METAL_DRAWABLES 70368744177664ull
+#define GF_HOST_CAPABILITY_DRI3_PIXMAPS 140737488355328ull
+#define GF_HOST_CAPABILITY_LINUX_DMABUF 281474976710656ull
 
 /* gf_window_corner_shape (since 1.1): the corner shapes a host may give a
  * window, one bit each. A window's corners at a given moment follow its

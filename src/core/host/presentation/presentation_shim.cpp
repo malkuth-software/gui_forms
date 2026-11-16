@@ -80,21 +80,29 @@ std::optional<DirectRefusal> DirectAcquire::refusal() const noexcept {
 PresentationCopyPath::~PresentationCopyPath() = default;
 PresentationDirectPath::~PresentationDirectPath() = default;
 
-PresentPolicy present_policy_from_environment() noexcept {
-    PresentPolicy policy{};
-    const char* const value = std::getenv("GUI_FORMS_PRESENT");
-    if (value == nullptr) return policy;
+bool present_list_names(std::string_view list, std::string_view word) noexcept {
     // Each word runs to the next comma or the end.
-    const std::string_view list(value);
     std::size_t start = 0U;
     while (start <= list.size()) {
         const std::size_t comma = list.find(',', start);
         const std::size_t end = comma == std::string_view::npos ? list.size() : comma;
-        const std::string_view word = list.substr(start, end - start);
-        if (word == "direct") policy.direct = true;
-        if (word == "scroll") policy.host_scroll = true;
+        if (list.substr(start, end - start) == word) return true;
         start = end + 1U;
     }
+    return false;
+}
+
+bool present_policy_names(std::string_view word) noexcept {
+    const char* const value = std::getenv("GUI_FORMS_PRESENT");
+    if (value == nullptr) return false;
+    const bool named = present_list_names(std::string_view(value), word);
+    return named;
+}
+
+PresentPolicy present_policy_from_environment() noexcept {
+    PresentPolicy policy{};
+    policy.direct = present_policy_names("direct");
+    policy.host_scroll = present_policy_names("scroll");
     return policy;
 }
 
