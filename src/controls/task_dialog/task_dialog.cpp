@@ -533,12 +533,23 @@ bool TaskDialog::show(const Control::Ptr& owner) {
     if (Event<>* revoked = overlay_.closed_event()) {
         overlay_revoked_ = (*revoked).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
     }
+    // begin_focus_scope moves the focus, running the previous control's
+    // focus and validation handlers; one may close the dialog, and then the
+    // scope it opened is ended here, since finish found none to end
+    // (A-gf-controls-13-F4). `lifetime` holds the dialog across them.
+    const Control::Ptr lifetime = shared_from_this();
+    FocusScopeId started{};
     if (surface_ == DialogSurface::native_popup && open_native(host, owner)) {
         // The empty layer keeps the owner's keys from its controls.
-        scope_ = host.begin_focus_scope(layer);
+        started = host.begin_focus_scope(layer);
     } else {
-        scope_ = host.begin_focus_scope(layer, button(default_button_id()));
+        started = host.begin_focus_scope(layer, button(default_button_id()));
     }
+    if (!is_alive() || !shown_) {
+        if (started) static_cast<void>(host.end_focus_scope(started));
+        return true;
+    }
+    scope_ = started;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
     return true;
 }
