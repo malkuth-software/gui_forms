@@ -273,6 +273,13 @@ void extended_vocabulary_snapshots_resources() {
     CHECK(path.is_visible({0.0, 0.0}));
     CHECK(!path.is_visible({100.0, 100.0}));
     CHECK(path.path_points().size() == 23U);
+    // A-gf-core-05-F3: an arc of two turns is tested as the one turn it
+    // draws, so the alternate fill still holds its inside point.
+    GraphicsPath twice(FillMode::alternate);
+    twice.add_arc({0.0, 0.0, 20.0, 20.0}, 0.0, 720.0);
+    twice.close_figure();
+    CHECK(twice.is_visible({10.0, 10.0}));
+    CHECK(!twice.is_visible({30.0, 10.0}));
     std::unique_ptr<GraphicsPath> copied_path = path.clone();
     (*copied_path).transform(Matrix::translation(4.0, 5.0));
     CHECK((*copied_path).bounds() == (RectF{3.0, 3.0, 29.0, 27.0}));
