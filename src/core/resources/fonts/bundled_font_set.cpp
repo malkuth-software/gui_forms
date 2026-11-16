@@ -38,12 +38,19 @@ constexpr BundledFaceUse face_uses[] = {
     {"Cousine-Bold.ttf", FontRole::monospace, 700, false, false},
     {"Cousine-Italic.ttf", FontRole::monospace, 400, true, false},
     {"Cousine-BoldItalic.ttf", FontRole::monospace, 700, true, false},
-    {"NotoSansCJKjp-Regular.otf", std::nullopt, 400, false, false},
-    {"NotoSansArabic-Regular.ttf", std::nullopt, 400, false, false},
+    // The fallback faces, in the order fallback selection tries them (tools/fallback_font_subsets.py,
+    // FALLBACK_ORDER): the Japanese and Korean faces, then the minimal Chinese face (only the
+    // GB 2312 level 1 hanzi those two lack), Arabic, Hebrew and the minimal Indic faces, then
+    // emoji. A character both CJK faces hold draws from the Japanese face: the text engine has
+    // no text language to choose by yet.
+    {"NotoSansCJKjp-Subset.otf", std::nullopt, 400, false, false},
+    {"NotoSansCJKkr-Subset.otf", std::nullopt, 400, false, false},
+    {"NotoSansCJKsc-Minimal.otf", std::nullopt, 400, false, false},
+    {"NotoSansArabic-Minimal.ttf", std::nullopt, 400, false, false},
     {"NotoSansHebrew-Regular.ttf", std::nullopt, 400, false, false},
-    {"NotoSansDevanagari-Regular.ttf", std::nullopt, 400, false, false},
-    {"NotoSansBengali-Regular.ttf", std::nullopt, 400, false, false},
-    {"NotoSansGurmukhi-Regular.ttf", std::nullopt, 400, false, false},
+    {"NotoSansDevanagari-Minimal.ttf", std::nullopt, 400, false, false},
+    {"NotoSansBengali-Minimal.ttf", std::nullopt, 400, false, false},
+    {"NotoSansGurmukhi-Minimal.ttf", std::nullopt, 400, false, false},
     {"NotoEmoji-Regular.ttf", std::nullopt, 400, false, false},
 };
 

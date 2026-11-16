@@ -607,7 +607,7 @@ int main(const int argc, char** argv) {
         require(argc == 2, "font directory required");
         const std::filesystem::path directory(argv[1]);
         const std::vector<std::byte> font = prepared_test::read_font(directory);
-        const std::filesystem::path arabic_path = directory / "NotoSansArabic-Regular.ttf";
+        const std::filesystem::path arabic_path = directory / "NotoSansArabic-Minimal.ttf";
         const std::filesystem::path hebrew_path = directory / "NotoSansHebrew-Regular.ttf";
         const std::vector<std::byte> arabic = read_fallback(arabic_path);
         const std::vector<std::byte> hebrew = read_fallback(hebrew_path);

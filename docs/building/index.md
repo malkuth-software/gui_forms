@@ -59,7 +59,7 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_BUILD_AUDIO` | OFF | Build `GUIForms::Audio` |
 | `GUI_FORMS_AUDIO_VORBIS_BACKEND` | `stx` | Ogg decoder: `stx` or `stb` |
 | `GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD` | OFF | Build the fixture-backed explorer consumer |
-| `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Embed the seven Noto fallback faces in the font pack, and install their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
+| `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Embed the nine Noto fallback faces in the font pack, and install their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
 | `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY` | OFF | Development builds only: read the bundled faces from `GUI_FORMS_FONT_DIR` or else this checkout's `assets/fonts` before the embedded pack (see [Embedded font pack](#embedded-font-pack)) |
 | `GUI_FORMS_FONTPACK_TOOL` | empty | A host-built `stx_fontpack` tool for a cross build, which cannot run the one it compiles |
 | `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
@@ -405,8 +405,10 @@ module, put in a program's bundle or folder, or packaged by
 
 ### Fallback fonts
 
-The seven Noto fallback faces (CJK Japanese, Emoji, Arabic, Bengali,
-Devanagari, Gurmukhi, Hebrew) are about 18 MB of the pack. The install has two
+The nine Noto fallback faces (Japanese and Korean CJK subsets, a minimal
+Chinese face, minimal Arabic, Bengali, Devanagari and Gurmukhi faces, Hebrew
+and Emoji) are about 5.7 MB of font bytes. `tools/fallback_font_subsets.py`
+cuts the subsets from the upstream files and documents each character set. The install has two
 licence components: `fonts` holds the other faces' licences and the
 attribution, `fallback_fonts` the Noto OFL texts (`OFL-Noto.txt`,
 `OFL-NotoSansCJKjp.txt`, `OFL-NotoEmoji.txt`).

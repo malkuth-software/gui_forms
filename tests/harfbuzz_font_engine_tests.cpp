@@ -459,7 +459,7 @@ void test_lazy_fallback_matches_eager_and_loads_once() {
     const std::vector<std::byte> cousine = read_file(GUI_FORMS_TEST_COUSINE_REGULAR);
     const std::array<const char*, 4> paths{GUI_FORMS_TEST_NOTO_CJK_REGULAR, GUI_FORMS_TEST_NOTO_ARABIC_REGULAR,
                                            GUI_FORMS_TEST_NOTO_HEBREW_REGULAR, GUI_FORMS_TEST_NOTO_EMOJI};
-    const std::array<const char*, 4> names{"NotoSansCJKjp-Regular.otf", "NotoSansArabic-Regular.ttf",
+    const std::array<const char*, 4> names{"NotoSansCJKjp-Subset.otf", "NotoSansArabic-Minimal.ttf",
                                            "NotoSansHebrew-Regular.ttf", "NotoEmoji-Regular.ttf"};
     HarfBuzzFontEngine eager;
     HarfBuzzFontEngine lazy;

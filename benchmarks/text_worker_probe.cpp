@@ -21,7 +21,7 @@ void require(bool condition, const char* message) {
 
 std::shared_ptr<const FontSet> load_fonts(const std::filesystem::path& root) {
     constexpr std::array<const char*, 4> names{
-        "Carlito-Regular.ttf", "NotoSansArabic-Regular.ttf",
+        "Carlito-Regular.ttf", "NotoSansArabic-Minimal.ttf",
         "NotoSansHebrew-Regular.ttf", "NotoEmoji-Regular.ttf"};
     FontSet set{};
     const std::size_t face_count = names.size();

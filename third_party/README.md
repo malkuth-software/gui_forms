@@ -22,8 +22,10 @@ moved files were blob-for-blob equal to this repository's at 06a78004.
 
 What stays here:
 
-- `fetch_showcase_fallback_fonts.sh`, which refreshes the Noto fallback fonts
-  bundled in `assets/fonts/` from their pinned upstream files;
+- `fetch_showcase_fallback_fonts.sh`, which downloads the pinned upstream
+  Noto files the bundled fallback subsets are cut from (into
+  `build/fallback-font-sources/`, for `tools/fallback_font_subsets.py`), and
+  Noto Emoji and the Noto licences into `assets/fonts/`;
 - `SKIA_BUILD_EVIDENCE.md`, GUI.Forms' record of how its Skia builds were made;
 - miniaudio, which `cmake/Audio.cmake` fetches at its pin into
   `third_party/miniaudio/` (ignored), for audio builds.

@@ -587,14 +587,14 @@ bool pack_faces_decode_by_group() {
         passed = passed && require(set.face("Carlito-BoldItalic.ttf").accepted() &&
                                        set.face("PortsmouthMono.ttf").accepted() && set.decoded_group_count() == 1U,
                                    "an eager face was not answered from the eager decode");
-        const FontFaceLoad cjk = set.face("NotoSansCJKjp-Regular.otf");
+        const FontFaceLoad cjk = set.face("NotoSansCJKjp-Subset.otf");
         if (cjk.accepted()) {
-            const FontFaceLoad again = set.face("NotoSansCJKjp-Regular.otf");
+            const FontFaceLoad again = set.face("NotoSansCJKjp-Subset.otf");
             passed = passed && require(set.decoded_group_count() == 2U &&
                                            (*again.face()).get() == (*cjk.face()).get(),
                                        "the CJK group was not decoded exactly once");
             const std::uintmax_t size = std::filesystem::file_size(
-                std::filesystem::path(GUI_FORMS_TEST_FONT_DIRECTORY) / "NotoSansCJKjp-Regular.otf");
+                std::filesystem::path(GUI_FORMS_TEST_FONT_DIRECTORY) / "NotoSansCJKjp-Subset.otf");
             passed = passed && require((*(*cjk.face())).bytes().size() == size, "the CJK face has the wrong size");
         } else {
             // A build without the fallback faces (GUI_FORMS_INSTALL_FALLBACK_FONTS=OFF).
@@ -724,7 +724,7 @@ bool font_directory_lookup() {
     for (const gui_forms::detail::BundledFaceUse& use : gui_forms::detail::bundled_face_uses()) {
         if (!use.role && !use.required) ++fallback_total;
     }
-    passed = passed && require(fallback_total == 7U, "the library does not know the seven fallback faces");
+    passed = passed && require(fallback_total == 9U, "the library does not know the nine fallback faces");
     const BundledFontDiagnostics after_shipped = gui_forms::bundled_font_diagnostics();
     passed = passed && require(after_shipped.fallback_faces_expected == fallback_total &&
                                    after_shipped.fallback_faces_found <= fallback_total &&
@@ -756,7 +756,7 @@ bool font_directory_lookup() {
                                    after_found.fallback_faces_found == 0U,
                                "a directory without the fallback faces was not counted as lacking them");
     const std::string notice = gui_forms::bundled_font_notice();
-    passed = passed && require(notice.find("0 of 7") != std::string::npos &&
+    passed = passed && require(notice.find("0 of 9") != std::string::npos &&
                                    notice.find("NotoEmoji-Regular.ttf") != std::string::npos &&
                                    notice.find("fallback_fonts") != std::string::npos,
                                "the notice does not name the absent fallback faces and the component");

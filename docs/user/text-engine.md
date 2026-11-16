@@ -69,14 +69,19 @@ pixel on one platform fails that test.
 | Cousine (four styles) | `FontRole::monospace` | SIL OFL |
 | Selawik (regular, semibold, bold) | A bundled family a theme names with `font-family: Selawik` (the Segoe UI-like face of `windows-professional`); read the first time text asks for it. It has no italic | SIL OFL |
 | Arimo, Tinos (four styles each) | Metric-compatible substitutes for Arial and Times New Roman in the font substitution table | SIL OFL |
-| Noto Sans CJK JP | Fallback: Han, kana, Hangul | SIL OFL |
-| Noto Sans Arabic, Bengali, Devanagari, Gurmukhi, Hebrew | Fallback by script | SIL OFL |
+| Noto Sans CJK JP (subset) | Fallback: kana and the JIS X 0208 kanji, Japanese forms | SIL OFL |
+| Noto Sans CJK KR (subset) | Fallback: every Hangul syllable, the jamo and the KS X 1001 hanja, Korean forms | SIL OFL |
+| Noto Sans CJK SC (minimal) | Fallback: the common simplified hanzi the two faces above lack | SIL OFL |
+| Noto Sans Arabic, Bengali, Devanagari, Gurmukhi (minimal) | Fallback by script: basic letters, digits and punctuation, drawn without contextual shaping | SIL OFL |
+| Noto Sans Hebrew | Fallback by script | SIL OFL |
 | Noto Emoji (monochrome) | Fallback: emoji and symbols | SIL OFL |
 
 Controls ask for a `FontRole`, not a family name; the theme maps roles to
 faces, and may name a bundled family in place of a role's faces
 ([The theme language](theme-language)), never a host font. Fallback is resolved per grapheme cluster, so a Japanese word
-inside a Latin label takes the CJK face for exactly that run. The provenance
+inside a Latin label takes the CJK face for exactly that run. A Han
+character both CJK faces hold draws in its Japanese form: fallback does not
+yet choose by text language. The provenance
 of every file, including hashes, is in `assets/fonts/ATTRIBUTION.md` and
 `assets/fonts/language-font-provenance.json`.
 
