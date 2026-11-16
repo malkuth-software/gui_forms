@@ -549,10 +549,12 @@ Properties beyond every control's: `effect` (text), `effect_input` (enumeration)
 | `track` | track |  |  |
 | `fill` | fill |  |  |
 | `activity` | activity |  |  |
+| `arc_track` | arc |  |  |
+| `value_arc` | arc |  |  |
 
 States: `normal`, `indeterminate`, `enabled`, `disabled`, `reduced_motion`.
 
-Properties beyond every control's: `indeterminate` (boolean), `maximum` (number), `value` (number).
+Properties beyond every control's: `indeterminate` (boolean), `maximum` (number), `ring_style` (enumeration), `value` (number).
 
 Interactions beyond every control's: none.
 
