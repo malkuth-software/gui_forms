@@ -240,7 +240,7 @@ bool ToolStripContainer::panel_shown(ToolStripPanelEdge edge) const noexcept {
     }
 }
 
-std::optional<ToolStripContainer::StripPlace> ToolStripContainer::place_of(const ToolStrip& strip) const {
+stxlib::Optional<ToolStripContainer::StripPlace> ToolStripContainer::place_of(const ToolStrip& strip) const {
     for (const ToolStripPanelEdge edge : panel_edges) {
         const std::shared_ptr<ToolStripPanel>& panel = panel_on(edge);
         if (!panel) continue;
@@ -249,11 +249,11 @@ std::optional<ToolStripContainer::StripPlace> ToolStripContainer::place_of(const
             for (std::size_t position = 0U; position < joined[row].size(); ++position) {
                 if (joined[row][position].get() != &strip) continue;
                 const StripPlace place{edge, row, position, joined[row].size() == 1U};
-                return place;
+                return stxlib::Optional<StripPlace>::of(place);
             }
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<StripPlace>::none();
 }
 
 std::vector<std::vector<std::shared_ptr<ToolStrip>>> ToolStripContainer::rows_without(ToolStripPanelEdge edge,
@@ -293,8 +293,9 @@ bool ToolStripContainer::same_place(StripPlace place, const ToolStripDropTarget&
 
 bool ToolStripContainer::move_checked(const ToolStrip& strip, const ToolStripDropTarget& target) {
     require_mutable();
-    const std::optional<StripPlace> place = place_of(strip);
-    if (!place || !admits(strip, target)) return false;
+    const stxlib::Optional<StripPlace> found = place_of(strip);
+    const StripPlace* const place = found.value();
+    if (place == nullptr || !admits(strip, target)) return false;
     // The strip, owned: the panel's own pointer to it.
     const std::shared_ptr<ToolStrip> held =
         (*panel_on((*place).edge)).rows()[(*place).row][(*place).position];
@@ -332,15 +333,16 @@ void ToolStripContainer::move_to(const std::shared_ptr<ToolStrip>& strip, StripP
     if (to.joins_row) panel.join_row(std::move(removed), to.row, to.position);
     else panel.insert(std::move(removed), to.row);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    const std::optional<StripPlace> now = place_of(*strip);
+    const stxlib::Optional<StripPlace> found_now = place_of(*strip);
+    const StripPlace* const now = found_now.value();
     ToolStripMove moved{};
     moved.strip_id = std::string((*strip).stable_id().value());
     moved.from = from.edge;
     moved.from_row = from.row;
     moved.from_position = from.position;
     moved.to = to.edge;
-    moved.to_row = now ? (*now).row : to.row;
-    moved.to_position = now ? (*now).position : to.position;
+    moved.to_row = now != nullptr ? (*now).row : to.row;
+    moved.to_position = now != nullptr ? (*now).position : to.position;
     strip_moved_.emit(moved);
 }
 
@@ -383,9 +385,9 @@ std::shared_ptr<ToolStrip> ToolStripContainer::grip_strip_at(Point window_point)
 // the point is not past. Rows with no shown strip count as passed while the
 // point is past the row before them. Without shown rows the line lies on
 // the band's container edge.
-std::optional<ToolStripDropTarget> ToolStripContainer::target_at(Point local) const {
+stxlib::Optional<ToolStripDropTarget> ToolStripContainer::target_at(Point local) const {
     const std::shared_ptr<ToolStrip> dragged = drag_.strip.lock();
-    if (!dragged) return std::nullopt;
+    if (!dragged) return stxlib::Optional<ToolStripDropTarget>::none();
     const bool status = is_status_strip(*dragged);
     for (const ToolStripPanelEdge edge : panel_edges) {
         const std::shared_ptr<ToolStripPanel>& panel = panel_on(edge);
@@ -456,9 +458,9 @@ std::optional<ToolStripDropTarget> ToolStripContainer::target_at(Point local) co
         }
         target.row = row;
         target.marker = marker_at(vertical, band, line);
-        return target;
+        return stxlib::Optional<ToolStripDropTarget>::of(target);
     }
-    return std::nullopt;
+    return stxlib::Optional<ToolStripDropTarget>::none();
 }
 
 Rect ToolStripContainer::drag_stamp() const noexcept {
@@ -475,15 +477,17 @@ Rect ToolStripContainer::stamp_now() const {
 void ToolStripContainer::invalidate_drag_paint() {
     if (!drag_layer_) return;
     if (!drag_.stamp.empty()) (*drag_layer_).invalidate(drag_.stamp);
-    if (drag_.target) (*drag_layer_).invalidate((*drag_.target).marker);
+    const ToolStripDropTarget* const target = drag_.target.value();
+    if (target != nullptr) (*drag_layer_).invalidate((*target).marker);
 }
 
 // A press on a grip arms the drag and captures the pointer, so the moves
 // and the release come here.
 void ToolStripContainer::arm_drag(const std::shared_ptr<ToolStrip>& strip, Point local, std::uint64_t pointer_id) {
     Window* const host = attached_window();
-    const std::optional<StripPlace> place = place_of(*strip);
-    if (host == nullptr || !place) return;
+    const stxlib::Optional<StripPlace> found = place_of(*strip);
+    const StripPlace* const place = found.value();
+    if (host == nullptr || place == nullptr) return;
     reset_drag();
     DragSession session{};
     session.phase = ToolStripDragPhase::armed;
@@ -584,7 +588,8 @@ void ToolStripContainer::end_drag(bool drop) {
     const Control::Ptr keep = shared_from_this();
     static_cast<void>(capture_check_.cancel());
     const std::shared_ptr<ToolStrip> strip = drag_.strip.lock();
-    const std::optional<ToolStripDropTarget> target = drop ? drag_.target : std::nullopt;
+    const stxlib::Optional<ToolStripDropTarget> dropped = drop ? drag_.target : stxlib::Optional<ToolStripDropTarget>::none();
+    const ToolStripDropTarget* const target = dropped.value();
     invalidate_drag_paint();
     drag_.target.reset();
     drag_.phase = ToolStripDragPhase::settling;
@@ -594,9 +599,10 @@ void ToolStripContainer::end_drag(bool drop) {
     if (host != nullptr && (*host).captured_control().get() == this) (*host).release_pointer();
     // The target is checked again: the program may have moved the strip,
     // or hidden a panel, while it was dragged.
-    if (target && strip) {
-        const std::optional<StripPlace> place = place_of(*strip);
-        const bool admitted = place && panel_shown((*target).edge) && admits(*strip, *target);
+    if (target != nullptr && strip) {
+        const stxlib::Optional<StripPlace> found = place_of(*strip);
+        const StripPlace* const place = found.value();
+        const bool admitted = place != nullptr && panel_shown((*target).edge) && admits(*strip, *target);
         if (admitted && !same_place(*place, *target)) move_to(strip, *place, *target);
         if (!is_alive()) return;
     }
@@ -819,7 +825,7 @@ std::shared_ptr<ToolStrip> ToolStripContainer::focused_strip() const {
     Control::Ptr control = (*host).focused_control();
     while (control) {
         std::shared_ptr<ToolStrip> strip = std::dynamic_pointer_cast<ToolStrip>(control);
-        if (strip && place_of(*strip)) return strip;
+        if (strip && place_of(*strip).present()) return strip;
         control = (*control).parent();
     }
     return nullptr;
@@ -828,8 +834,9 @@ std::shared_ptr<ToolStrip> ToolStripContainer::focused_strip() const {
 bool ToolStripContainer::begin_keyboard_move(const ToolStrip& strip) {
     require_mutable();
     if (drag_.phase != ToolStripDragPhase::idle) return false;
-    const std::optional<StripPlace> place = place_of(strip);
-    if (attached_window() == nullptr || !place || !panel_shown((*place).edge)) return false;
+    const stxlib::Optional<StripPlace> found = place_of(strip);
+    const StripPlace* const place = found.value();
+    if (attached_window() == nullptr || place == nullptr || !panel_shown((*place).edge)) return false;
     const std::shared_ptr<ToolStrip> held =
         (*panel_on((*place).edge)).rows()[(*place).row][(*place).position];
     reset_drag();
@@ -855,16 +862,17 @@ bool ToolStripContainer::begin_keyboard_move(const ToolStrip& strip) {
     return true;
 }
 
-std::optional<ToolStripContainer::RowSpan> ToolStripContainer::row_span(
+stxlib::Optional<ToolStripContainer::RowSpan> ToolStripContainer::row_span(
     const std::vector<std::shared_ptr<ToolStrip>>& row, bool vertical) const {
-    std::optional<RowSpan> span{};
+    stxlib::Optional<RowSpan> span{};
     for (const std::shared_ptr<ToolStrip>& member : row) {
         if (!(*member).visible.read()) continue;
         const Rect bounds = local_bounds_of(*member);
         const double start = vertical ? bounds.x : bounds.y;
         const double end = start + (vertical ? bounds.width : bounds.height);
-        if (!span) span = RowSpan{start, end};
-        else span = RowSpan{std::min((*span).start, start), std::max((*span).end, end)};
+        const RowSpan* const held = span.value();
+        if (held == nullptr) span.set(RowSpan{start, end});
+        else span.set(RowSpan{std::min((*held).start, start), std::max((*held).end, end)});
     }
     return span;
 }
@@ -881,18 +889,21 @@ Rect ToolStripContainer::marker_for(const ToolStripDropTarget& target) const {
     if (target.edge == ToolStripPanelEdge::bottom) line = band.y + band.height;
     if (target.edge == ToolStripPanelEdge::right) line = band.x + band.width;
     if (!target.joins_row) {
-        std::optional<RowSpan> span{};
-        if (target.row < rows.size()) span = row_span(rows[target.row], vertical);
-        if (span) line = (*span).start;
+        stxlib::Optional<RowSpan> found{};
+        if (target.row < rows.size()) found = row_span(rows[target.row], vertical);
+        const RowSpan* const span = found.value();
+        if (span != nullptr) line = (*span).start;
         else if (target.row > 0U && target.row <= rows.size()) {
-            const std::optional<RowSpan> before = row_span(rows[target.row - 1U], vertical);
-            if (before) line = (*before).end;
+            const stxlib::Optional<RowSpan> found_before = row_span(rows[target.row - 1U], vertical);
+            const RowSpan* const before = found_before.value();
+            if (before != nullptr) line = (*before).end;
         }
         return marker_at(vertical, band, line);
     }
     if (target.row >= rows.size()) return marker_at(vertical, band, line);
-    const std::optional<RowSpan> span = row_span(rows[target.row], vertical);
-    if (!span) return marker_at(vertical, band, line);
+    const stxlib::Optional<RowSpan> found = row_span(rows[target.row], vertical);
+    const RowSpan* const span = found.value();
+    if (span == nullptr) return marker_at(vertical, band, line);
     // Between the strip before the position and the one at it.
     const std::vector<std::shared_ptr<ToolStrip>>& members = rows[target.row];
     double between = vertical ? band.y : band.x;
@@ -910,25 +921,26 @@ Rect ToolStripContainer::marker_for(const ToolStripDropTarget& target) const {
     return marker;
 }
 
-std::optional<ToolStripDropTarget> ToolStripContainer::keyboard_target() const {
+stxlib::Optional<ToolStripDropTarget> ToolStripContainer::keyboard_target() const {
     const std::shared_ptr<ToolStrip> dragged = drag_.strip.lock();
-    if (!dragged) return std::nullopt;
+    if (!dragged) return stxlib::Optional<ToolStripDropTarget>::none();
     ToolStripDropTarget target{};
     target.edge = drag_.key_edge;
     target.row = drag_.key_stop / 2U;
     target.joins_row = drag_.key_stop % 2U == 1U;
     target.position = target.joins_row ? drag_.key_position : 0U;
-    if (!panel_shown(target.edge) || !admits(*dragged, target)) return std::nullopt;
+    if (!panel_shown(target.edge) || !admits(*dragged, target)) return stxlib::Optional<ToolStripDropTarget>::none();
     target.marker = marker_for(target);
-    return target;
+    return stxlib::Optional<ToolStripDropTarget>::of(target);
 }
 
 // The stamp stands over the chosen place's line.
 void ToolStripContainer::show_keyboard_target() {
     invalidate_drag_paint();
     drag_.target = keyboard_target();
-    if (drag_.target) {
-        const Rect marker = (*drag_.target).marker;
+    const ToolStripDropTarget* const target = drag_.target.value();
+    if (target != nullptr) {
+        const Rect marker = (*target).marker;
         drag_.pointer = {marker.x + marker.width * 0.5, marker.y + marker.height * 0.5};
     }
     drag_.stamp = stamp_now();
@@ -1000,10 +1012,11 @@ void ToolStripContainer::drag_key(KeyEventArgs& arguments, KeyAction action) {
 void ToolStripContainer::paint_drag_layer(Painter& painter) {
     if (drag_.phase != ToolStripDragPhase::dragging && drag_.phase != ToolStripDragPhase::settling) return;
     PartPaint part{};
-    if (drag_.target) {
+    const ToolStripDropTarget* const target = drag_.target.value();
+    if (target != nullptr) {
         part.family = ControlVisualRole::panel;
         part.role = PartRole::drop;
-        part.bounds = (*drag_.target).marker;
+        part.bounds = (*target).marker;
         part.states.insert(AnatomyState::drop_accepted);
         part.accent.set(AccentIndex{0U});
         paint_part(painter, *this, part);
@@ -1116,7 +1129,8 @@ void ToolStripContainer::publish_part_geometry(std::span<PartGeometry> geometry)
         record.drag_stamp = PartGeometry::from_bounds(stamp);
         if (drag_.picture.present()) record.drag_stamp_image = PartGeometry::from_bounds(stamp);
     }
-    if (drag_.target) record.drop_marker = PartGeometry::from_bounds((*drag_.target).marker);
+    const ToolStripDropTarget* const target = drag_.target.value();
+    if (target != nullptr) record.drop_marker = PartGeometry::from_bounds((*target).marker);
     write_parts(anatomy(), tool_strip_container_part_fields, record, geometry);
 }
 

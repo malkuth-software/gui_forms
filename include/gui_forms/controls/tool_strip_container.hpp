@@ -113,7 +113,7 @@ public:
     // The strip being dragged (armed, dragging or settling), or null.
     [[nodiscard]] std::shared_ptr<ToolStrip> dragged_strip() const { return drag_.strip.lock(); }
     // Where a release would put the strip now, or none.
-    [[nodiscard]] std::optional<ToolStripDropTarget> drag_target() const { return drag_.target; }
+    [[nodiscard]] stxlib::Optional<ToolStripDropTarget> drag_target() const { return drag_.target; }
     // The stamp's rectangle in the container's coordinates while dragging
     // or settling; empty otherwise.
     [[nodiscard]] Rect drag_stamp() const noexcept;
@@ -191,7 +191,7 @@ private:
         Point grab{};
         Rect source{};
         bool suppressed{};
-        std::optional<ToolStripDropTarget> target{};
+        stxlib::Optional<ToolStripDropTarget> target{};
         Rect stamp{};
         Rect settle_from{};
         stxlib::Optional<ControlSnapshot> picture{};
@@ -230,13 +230,13 @@ private:
     [[nodiscard]] Layout layout_for(Size client);
     [[nodiscard]] const std::shared_ptr<ToolStripPanel>& panel_on(ToolStripPanelEdge edge) const noexcept;
     [[nodiscard]] bool panel_shown(ToolStripPanelEdge edge) const noexcept;
-    [[nodiscard]] std::optional<StripPlace> place_of(const ToolStrip& strip) const;
+    [[nodiscard]] stxlib::Optional<StripPlace> place_of(const ToolStrip& strip) const;
     // A rectangle of a descendant, in this container's coordinates.
     [[nodiscard]] Rect local_bounds_of(const Control& control) const noexcept;
     [[nodiscard]] Point local_point(Point window_point) const noexcept;
     // The strip whose grip is under a window point, or null.
     [[nodiscard]] std::shared_ptr<ToolStrip> grip_strip_at(Point window_point) const;
-    [[nodiscard]] std::optional<ToolStripDropTarget> target_at(Point local) const;
+    [[nodiscard]] stxlib::Optional<ToolStripDropTarget> target_at(Point local) const;
     // The rows of the panel on `edge` as they are without `strip` (rows it
     // would leave empty dropped).
     [[nodiscard]] std::vector<std::vector<std::shared_ptr<ToolStrip>>> rows_without(ToolStripPanelEdge edge,
@@ -265,12 +265,12 @@ private:
     bool handle_drag_key(KeyEvent& event);
     struct FocusReturn;
     void return_focus() noexcept;
-    [[nodiscard]] std::optional<RowSpan> row_span(const std::vector<std::shared_ptr<ToolStrip>>& row,
+    [[nodiscard]] stxlib::Optional<RowSpan> row_span(const std::vector<std::shared_ptr<ToolStrip>>& row,
                                                   bool vertical) const;
     // The insertion line of a target for the dragged strip.
     [[nodiscard]] Rect marker_for(const ToolStripDropTarget& target) const;
     // The keyboard move's chosen target, or none when it admits nothing.
-    [[nodiscard]] std::optional<ToolStripDropTarget> keyboard_target() const;
+    [[nodiscard]] stxlib::Optional<ToolStripDropTarget> keyboard_target() const;
     void show_keyboard_target();
     void step_keyboard(int across, int along);
     void step_keyboard_panel(int step);

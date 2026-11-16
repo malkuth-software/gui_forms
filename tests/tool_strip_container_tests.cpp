@@ -29,10 +29,11 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace {
 using namespace gui_forms;
@@ -264,12 +265,13 @@ void dragging() {
     pointer(window, PointerAction::move, {6.0, 200.0});
     require((*frame).drag_phase() == ToolStripDragPhase::dragging && !(*frame).drag_stamp().empty(),
             "past the threshold the strip drags and shows its stamp");
-    std::optional<ToolStripDropTarget> target = (*frame).drag_target();
-    require(target && (*target).edge == ToolStripPanelEdge::left && (*target).row == 0U &&
+    stxlib::Optional<ToolStripDropTarget> held = (*frame).drag_target();
+    const ToolStripDropTarget* target = held.value();
+    require(target != nullptr && (*target).edge == ToolStripPanelEdge::left && (*target).row == 0U &&
                 (*frame).parts().drop_marker.present,
             "the empty left panel's band takes the strip, marked by its line");
     pointer(window, PointerAction::move, {6.0, 200.0}, Modifier::control);
-    require((*frame).drag_suppressed() && !(*frame).drag_target(), "Ctrl suppresses the targets");
+    require((*frame).drag_suppressed() && (*frame).drag_target().absent(), "Ctrl suppresses the targets");
     pointer(window, PointerAction::move, {6.0, 200.0});
     pointer(window, PointerAction::up, {6.0, 200.0});
     require((*frame).drag_phase() == ToolStripDragPhase::settling, "after the drop the stamp settles");
@@ -287,8 +289,9 @@ void dragging() {
     pointer(window, PointerAction::move, again);
     pointer(window, PointerAction::down, again);
     pointer(window, PointerAction::move, {300.0, 396.0});
-    target = (*frame).drag_target();
-    require((*frame).drag_phase() == ToolStripDragPhase::dragging && target &&
+    held = (*frame).drag_target();
+    target = held.value();
+    require((*frame).drag_phase() == ToolStripDragPhase::dragging && target != nullptr &&
                 (*target).edge == ToolStripPanelEdge::bottom,
             "the bottom panel, holding a status strip, is a target");
     KeyEvent escape{KeyAction::down, PhysicalKey::escape};
@@ -302,7 +305,7 @@ void dragging() {
     // A release outside every band leaves the strip too (no floating).
     pointer(window, PointerAction::down, grip_point(*second));
     pointer(window, PointerAction::move, {300.0, 200.0});
-    require(!(*frame).drag_target(), "the content area is no target");
+    require((*frame).drag_target().absent(), "the content area is no target");
     pointer(window, PointerAction::up, {300.0, 200.0});
     settle(window);
     require((*second).parent() == (*frame).top_panel() && moves.size() == 1U,
@@ -311,8 +314,9 @@ void dragging() {
     // The right panel's band takes an ordinary strip.
     pointer(window, PointerAction::down, grip_point(*second));
     pointer(window, PointerAction::move, {594.0, 200.0});
-    target = (*frame).drag_target();
-    require(target && (*target).edge == ToolStripPanelEdge::right, "the empty right panel's band is a target");
+    held = (*frame).drag_target();
+    target = held.value();
+    require(target != nullptr && (*target).edge == ToolStripPanelEdge::right, "the empty right panel's band is a target");
     require((*frame).cancel_drag() && (*second).parent() == (*frame).top_panel(), "cancel_drag moves nothing");
     settle(window);
 
@@ -333,8 +337,9 @@ void dragging() {
     const Rect behind = (*first).absolute_bounds();
     pointer(window, PointerAction::down, grip_point(*second));
     pointer(window, PointerAction::move, {behind.x + behind.width * 0.9, 200.0});
-    target = (*frame).drag_target();
-    require(target && (*target).edge == ToolStripPanelEdge::left && (*target).row == 1U,
+    held = (*frame).drag_target();
+    target = held.value();
+    require(target != nullptr && (*target).edge == ToolStripPanelEdge::left && (*target).row == 1U,
             "past the middle of the other strip the target is after it");
     pointer(window, PointerAction::up, {behind.x + behind.width * 0.9, 200.0});
     settle(window);
@@ -410,8 +415,9 @@ void shared_rows() {
     pointer(window, PointerAction::move, grip_point(*view));
     pointer(window, PointerAction::down, grip_point(*view));
     pointer(window, PointerAction::move, onto);
-    std::optional<ToolStripDropTarget> target = (*frame).drag_target();
-    require(target && (*target).edge == ToolStripPanelEdge::top && (*target).joins_row && (*target).row == 0U &&
+    stxlib::Optional<ToolStripDropTarget> held = (*frame).drag_target();
+    const ToolStripDropTarget* target = held.value();
+    require(target != nullptr && (*target).edge == ToolStripPanelEdge::top && (*target).joins_row && (*target).row == 0U &&
                 (*target).position == 1U && (*target).marker.height > (*target).marker.width,
             "the middle of a row joins it, marked across the row between its strips");
     pointer(window, PointerAction::up, onto);
@@ -438,8 +444,9 @@ void shared_rows() {
     const Rect row = (*view).absolute_bounds();
     pointer(window, PointerAction::down, grip_point(*edit));
     pointer(window, PointerAction::move, {300.0, row.bottom() - 1.0});
-    target = (*frame).drag_target();
-    require(target && !(*target).joins_row && (*target).row == 1U, "near a row's far edge the strip takes a new row after it");
+    held = (*frame).drag_target();
+    target = held.value();
+    require(target != nullptr && !(*target).joins_row && (*target).row == 1U, "near a row's far edge the strip takes a new row after it");
     static_cast<void>((*frame).cancel_drag());
     settle(window);
 }
@@ -473,22 +480,28 @@ void keyboard_move() {
     const Modifier chord = Modifier::control | Modifier::alt | Modifier::shift;
     require(press_key(window, PhysicalKey::m, chord) && (*frame).keyboard_moving() && (*frame).dragged_strip() == edit,
             "Ctrl+Alt+Shift+M in a strip starts its keyboard move");
-    std::optional<ToolStripDropTarget> target = (*frame).drag_target();
-    require(target && (*target).edge == ToolStripPanelEdge::top && (*target).joins_row && (*target).row == 0U &&
+    stxlib::Optional<ToolStripDropTarget> held = (*frame).drag_target();
+    const ToolStripDropTarget* target = held.value();
+    require(target != nullptr && (*target).edge == ToolStripPanelEdge::top && (*target).joins_row && (*target).row == 0U &&
                 (*target).position == 1U && !(*frame).drag_stamp().empty(),
             "the move starts at the strip's own place");
     require(press_key(window, PhysicalKey::down), "Down is the move's");
-    target = (*frame).drag_target();
-    require(target && !(*target).joins_row && (*target).row == 1U, "Down steps to a new row after the first");
+    held = (*frame).drag_target();
+    target = held.value();
+    require(target != nullptr && !(*target).joins_row && (*target).row == 1U, "Down steps to a new row after the first");
     press_key(window, PhysicalKey::down);
-    target = (*frame).drag_target();
-    require(target && (*target).joins_row && (*target).row == 1U && (*target).position == 1U,
+    held = (*frame).drag_target();
+    target = held.value();
+    require(target != nullptr && (*target).joins_row && (*target).row == 1U && (*target).position == 1U,
             "Down again joins the next row, at the position kept");
     press_key(window, PhysicalKey::left);
-    target = (*frame).drag_target();
-    require(target && (*target).position == 0U, "Left steps to the position before");
+    held = (*frame).drag_target();
+    target = held.value();
+    require(target != nullptr && (*target).position == 0U, "Left steps to the position before");
     press_key(window, PhysicalKey::left);
-    require((*(*frame).drag_target()).position == 0U, "the steps stop at the row's start");
+    held = (*frame).drag_target();
+    target = held.value();
+    require(target != nullptr && (*target).position == 0U, "the steps stop at the row's start");
     press_key(window, PhysicalKey::enter);
     settle(window);
     // The moved strip takes the focus back on the dispatcher's next turn.
@@ -501,15 +514,19 @@ void keyboard_move() {
     // Tab moves to the next shown panel; Escape cancels.
     press_key(window, PhysicalKey::m, chord);
     press_key(window, PhysicalKey::tab);
-    target = (*frame).drag_target();
-    require(target && (*target).edge == ToolStripPanelEdge::bottom && (*target).row == 0U && !(*target).joins_row,
+    held = (*frame).drag_target();
+    target = held.value();
+    require(target != nullptr && (*target).edge == ToolStripPanelEdge::bottom && (*target).row == 0U && !(*target).joins_row,
             "Tab moves to the empty bottom panel's first row");
     press_key(window, PhysicalKey::tab, Modifier::shift);
-    require((*(*frame).drag_target()).edge == ToolStripPanelEdge::top, "Shift+Tab moves back");
+    held = (*frame).drag_target();
+    target = held.value();
+    require(target != nullptr && (*target).edge == ToolStripPanelEdge::top, "Shift+Tab moves back");
     press_key(window, PhysicalKey::tab);
     press_key(window, PhysicalKey::tab);
-    target = (*frame).drag_target();
-    require(target && (*target).edge == ToolStripPanelEdge::left, "Tab reaches the left panel");
+    held = (*frame).drag_target();
+    target = held.value();
+    require(target != nullptr && (*target).edge == ToolStripPanelEdge::left, "Tab reaches the left panel");
     press_key(window, PhysicalKey::escape);
     settle(window);
     static_cast<void>(window.drain_posted_work());

@@ -82,7 +82,7 @@ gui_forms::ToolStripContainer
       **dragged_strip** : ``std::shared_ptr<ToolStrip>``, read-only
          The strip being dragged, or null.
 
-      **drag_target** : ``std::optional<ToolStripDropTarget>``, read-only
+      **drag_target** : ``stxlib::Optional<ToolStripDropTarget>``, read-only
          Where a release would put the strip: a :cpp:class:`ToolStripDropTarget <gui_forms::ToolStripDropTarget>` with the
          panel's edge, the row (rows counted without the dragged strip), whether
          it joins that row and at which position, and the insertion line; none
@@ -233,7 +233,7 @@ gui_forms::ToolStripContainer
 
       The strip being dragged, or null.
 
-   .. cpp:function:: std::optional<ToolStripDropTarget> drag_target() const
+   .. cpp:function:: stxlib::Optional<ToolStripDropTarget> drag_target() const
 
       Where a release would put the strip: a :cpp:class:`ToolStripDropTarget <gui_forms::ToolStripDropTarget>` with the
       panel's edge, the row (rows counted without the dragged strip), whether
