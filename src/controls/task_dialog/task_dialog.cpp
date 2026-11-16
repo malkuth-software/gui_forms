@@ -460,6 +460,9 @@ bool TaskDialog::click(std::string_view button_id) {
     const stxlib::Optional<std::size_t> index = button_index(button_id);
     if (index.absent() || !page_.buttons[(*index.value())].enabled) return false;
     TaskDialogButtonClick request{std::string(button_id), !page_.buttons[(*index.value())].allow_close};
+    // A handler may drop the dialog's last other reference; it stays alive
+    // for the checks below (A-gf-controls-13-F6).
+    const Control::Ptr lifetime = weak_from_this().lock();
     button_clicked_.emit(request);
     // A handler may have navigated to another page or closed the dialog.
     if (!is_alive() || request.keep_open || !shown_) return true;
