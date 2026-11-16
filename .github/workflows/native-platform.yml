@@ -359,6 +359,15 @@ jobs:
           else
             python gui_forms/tools/ci_build.py --jobs 4 $SCOPE
           fi
+      # The hostile-macro conformance of the consumer surface, both paths
+      # (cmake/HostileMacroConformance.cmake): built in this one job, allowed
+      # to fail, so the full list of failures is in the log until it has
+      # passed on every host. Then GUI_FORMS_HOSTILE_MACRO_TESTS turns on in
+      # every native job and this step goes.
+      - name: Hostile-macro conformance (allowed to fail)
+        if: inputs.platform == 'macos-arm64' && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
+        continue-on-error: true
+        run: cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_hostile_macro_conformance -- -k 0
       # Where the build's time went (tools/ninja_phases.py): evidence on the
       # run's summary page, never a gate.
       - name: Report the build's phases

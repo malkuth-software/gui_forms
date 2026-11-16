@@ -197,6 +197,77 @@ points of its allowlist (`share/GUIForms/abi/gf_abi_exports.txt`) and
 `gd_get_api_v0`; there is no `gdr_*` export
 and keeps libc++, STXlib, Skia and the text stack hidden inside it.
 
+## Your macros and GUI.Forms' names
+
+Your program may define any macro before it uses GUI.Forms, whether it is
+your own or one from `<windows.h>`, Xlib, Qt or a predefined `linux`, with
+one exception. These names are reserved to GUI.Forms; a program that
+defines or undefines a macro with one of them, before or after using
+GUI.Forms, has undefined results:
+
+- identifiers that begin with `gf_`, `GF_`, `gd_`, `GD_`, `gui_forms`,
+  `GUI_FORMS`, `gui_drawing`, `GUI_DRAWING`, `stxlib`, `STXLIB`, `stx_` or
+  `STX_`;
+- the names the C and C++ standard libraries declare, as the standard already
+  rules for any program that includes a standard header. `min`, `max`, `emit`
+  and `index` are the exceptions: GUI.Forms survives macros of those names.
+
+Any other macro cannot change what GUI.Forms means. A test
+(`tests/hostile_macros/`) defines every other identifier GUI.Forms' headers
+use as a macro that fails the compile, then uses GUI.Forms, and must compile.
+
+GUI.Forms' headers do not remove or change your macros. Your own code still
+reads them: if `<windows.h>` has made `near` an empty macro, your code cannot
+spell `HorizontalAlignment::near` either.
+
+### `import gui_forms;`
+
+With an SDK built with `GUI_FORMS_BUILD_MODULE=ON`, a C++20 program imports
+GUI.Forms as a named module. The module's interface unit is compiled on its
+own, with your compiler and your build's flags, so no macro of your source
+files reaches it, and it exports no macro to you:
+
+```cmake
+cmake_minimum_required(VERSION 3.28)
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application)
+add_executable(my_forms main.cpp)
+target_link_libraries(my_forms PRIVATE GUIForms::Module)
+```
+
+```cpp
+#include <memory>   // the standard library from its own headers (or import std;)
+import gui_forms;
+```
+
+It needs CMake 3.28 or later with Ninja or Visual Studio, and Clang 17+, GCC
+14+ or MSVC 17.4+. The `GF_` macros of the C ABI are not exported: include
+`gui_forms/c/gf_abi.h` for them.
+
+### Without modules: the shield
+
+A C program, or a C++ program built without modules, includes the headers.
+`gui_forms/c/gf_abi.h`, `gui_forms/c/gf_abi.hpp` and
+`gui_forms/drawing_c_api.h` protect themselves. Wrap other GUI.Forms
+includes in the shield's two headers:
+
+```cpp
+#include <windows.h>
+#include "gui_forms/gf_shield_begin.h"
+#include "gui_forms/application.hpp"
+#include "gui_forms/basic_controls.hpp"
+#include "gui_forms/gf_shield_end.h"
+```
+
+`gf_shield_begin.h` saves and removes your macros for every name GUI.Forms'
+headers use, and `gf_shield_end.h` restores them exactly. Nested and repeated
+includes are handled: only the outermost begin and end act.
+
+The two shield headers are generated when the SDK is built, from the headers
+it installs, and installed with them; installing fails if they are out of
+date. The C ABI headers carry a smaller shield of their own
+(`gui_forms/c/gf_c_shield_begin.h`), covering only the names they use; inside
+your shield it does nothing.
+
 ## Checked builds
 
 An SDK built with checked borrowed views (`GUI_FORMS_CHECKED_BORROWS`, the

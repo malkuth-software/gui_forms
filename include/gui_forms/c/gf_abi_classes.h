@@ -2,6 +2,7 @@
 
 #ifndef GUI_FORMS_C_GF_ABI_CLASSES_H
 #define GUI_FORMS_C_GF_ABI_CLASSES_H
+#include "gui_forms/c/gf_c_shield_begin.h"
 
 /*
  * GUI.Forms C ABI class tables (since 1.3): Windows Forms' protected On*
@@ -605,4 +606,5 @@ typedef struct gf_classes_table {
     gf_status (GF_CALL* base_raiser)(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser);
 } gf_classes_table;
 
+#include "gui_forms/c/gf_c_shield_end.h"
 #endif
