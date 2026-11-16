@@ -451,6 +451,7 @@ presentation::PresentationShim& window_presenter(NativeWindow& window) {
   if (window.presenter) return *window.presenter;
   const presentation::PresentPolicy policy = presentation::present_policy_from_environment();
   window.copy_path.scroll_enabled = policy.host_scroll;
+  window.host_scroll_policy = policy.host_scroll;
   std::unique_ptr<presentation::PresentationDirectPath> direct{};
   window.direct_path = nullptr;
   if (policy.direct) {
@@ -461,6 +462,29 @@ presentation::PresentationShim& window_presenter(NativeWindow& window) {
   }
   window.presenter = std::make_unique<presentation::PresentationShim>(&window.copy_path, std::move(direct), nullptr);
   return *window.presenter;
+}
+
+// One scroll copy in device pixels at `scale`, rounded as the raster's
+// scroll_copy rounds it. False, leaving `scroll` as it was, when the clip or
+// offset is not on whole device pixels (request_scroll_copy admits only
+// those; the raster refuses the rest).
+bool device_scroll(const ScrollCopy& copy, double scale, presentation::PresentScroll& scroll) {
+  const std::array<double, 6> values{copy.clip.x * scale, copy.clip.y * scale, copy.clip.right() * scale,
+                                     copy.clip.bottom() * scale, copy.offset.x * scale, copy.offset.y * scale};
+  const double limit = static_cast<double>(presentation::maximum_present_side);
+  for (const double value : values) {
+    if (!std::isfinite(value) || std::abs(value - std::round(value)) > 1.0e-6) return false;
+    if (std::abs(value) > limit) return false;
+  }
+  presentation::PresentScroll made{};
+  made.area.left = std::max(static_cast<std::int32_t>(std::lround(values[0])), 0);
+  made.area.top = std::max(static_cast<std::int32_t>(std::lround(values[1])), 0);
+  made.area.right = std::max(static_cast<std::int32_t>(std::lround(values[2])), made.area.left);
+  made.area.bottom = std::max(static_cast<std::int32_t>(std::lround(values[3])), made.area.top);
+  made.dx = static_cast<std::int32_t>(std::lround(values[4]));
+  made.dy = static_cast<std::int32_t>(std::lround(values[5]));
+  scroll = made;
+  return true;
 }
 
 } // namespace
@@ -1856,6 +1880,15 @@ void NativeWindow::update() {
   for (std::size_t index = 0; index < live_regions.size(); ++index) {
     if (!live_regions[index].empty()) screen.add(live_regions[index]);
   }
+  // Host scroll: the screen moves the copies' pixels itself, so the
+  // present names the screen without their clips (the shim adds back the
+  // area of any scroll it cannot move, and the exposed bands).
+  bool host_scrolling = visible && !pending_copies.empty();
+  // The shim is made here if this is the window's first present, which
+  // sets the policy.
+  if (host_scrolling) static_cast<void>(window_presenter(*this));
+  if (host_scrolling) host_scrolling = host_scroll_policy;
+  if (host_scrolling) screen_moved = screen;
   for (const ScrollCopy &copy : pending_copies) screen.add(copy.clip);
   if (visible && screen.empty() && invalidation_overlay_fading(*this)) {
     // The invalidation overlay's fade: nothing owed, so the outlines alone
@@ -1894,10 +1927,14 @@ void NativeWindow::update() {
   // the raster refuses damages every clip: earlier copies may have moved
   // pixels in it, and the repaint covers each clip (the frame admits them).
   applied_copy_clips.clear();
+  present_scrolls.clear();
   bool copies_applied = true;
   for (const ScrollCopy &copy : pending_copies) {
     if (copies_applied) copies_applied = raster.scroll_copy(copy.clip, copy.offset);
     applied_copy_clips.push_back(copy.clip);
+    presentation::PresentScroll scroll{};
+    if (host_scrolling) host_scrolling = device_scroll(copy, scale, scroll);
+    if (host_scrolling) present_scrolls.push_back(scroll);
   }
   pending_copies.clear();
   if (copies_applied) {
@@ -1912,6 +1949,9 @@ void NativeWindow::update() {
     // A fragment that fell back to retained painting is in `damage`.
     const std::span<const Rect> painted = damage.rectangles();
     for (std::size_t index = 0; index < painted.size(); ++index) screen.add(painted[index]);
+    if (host_scrolling) {
+      for (std::size_t index = 0; index < painted.size(); ++index) screen_moved.add(painted[index]);
+    }
   }
   raster.end_frame();
   live_frames.clear();
@@ -1923,7 +1963,14 @@ void NativeWindow::update() {
   }
   // Present: the rectangle set, once.
   PresentedArea copied;
-  if (!present_raster_rectangles(*this, screen.rectangles(), copied)) {
+  // Host scroll only where the raster moved every copy: otherwise the
+  // clips are repainted and presented as damage.
+  const bool scrolled = host_scrolling && copies_applied;
+  const std::span<const Rect> presented_rectangles = scrolled ? screen_moved.rectangles() : screen.rectangles();
+  const std::span<const presentation::PresentScroll> presented_scrolls =
+      scrolled ? std::span<const presentation::PresentScroll>(present_scrolls)
+               : std::span<const presentation::PresentScroll>{};
+  if (!present_raster_rectangles(*this, presented_rectangles, copied, presented_scrolls)) {
     for (const Rect clip : applied_copy_clips) damage.add(clip);
     return;
   }

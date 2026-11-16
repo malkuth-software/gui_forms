@@ -443,6 +443,12 @@ public:
   std::vector<ScrollCopy> taken_copies;
   std::vector<Rect> applied_copy_clips;
   std::uint64_t scroll_copies_applied{};
+  // Host scroll (docs/user/presentation.md), while the presentation
+  // policy turns it on: the copies applied this tick in device pixels,
+  // which the shim moves on screen, and the screen rectangles without the
+  // copies' clips. Reused.
+  std::vector<presentation::PresentScroll> present_scrolls;
+  DamageRegion screen_moved;
   SubscriptionToken closing_token;
   std::uint64_t sequence{};
   // The last press, for the computed click count (linux_input_rules.hpp).
@@ -464,6 +470,8 @@ public:
   // null while the presentation policy leaves it off. Receives the
   // window's PresentIdleNotify events (Runtime::dispatch).
   X11PresentPath *direct_path{};
+  // The presentation policy turned host scroll on (set with the shim).
+  bool host_scroll_policy{};
   std::vector<presentation::PresentRect> present_rects;
   // The invalidation overlay's present-time storage (gui_forms/diagnostics/
   // invalidation_overlay), reused: the scratch frame the outlines are

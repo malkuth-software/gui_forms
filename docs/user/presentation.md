@@ -124,8 +124,9 @@ always correct, because the raster holds the whole frame.
 | Host | Host scroll |
 |---|---|
 | Linux X11, copy path | `XCopyArea` within the window, while a compositing manager keeps the window's contents |
-| macOS | not on the copy path (AppKit's backing store is not moved); in place on the direct path when the buffer's age is 1 |
-| X11 Present and Wayland | in place when the buffer's age is 1 |
+| Linux X11, Present path | in place when the buffer's age is 1 |
+| macOS | none yet: AppKit's backing store is not moved, and the view names AppKit's drawn rectangles as the damage, which already include the copies' clips, so it passes no scrolls |
+| Wayland | in place when the buffer's age is 1, once a host passes its scrolls |
 | The window manager | moves its surface's pixels for a window whose layer is opaque and uncovered over the scroll |
 
 ### Event order
@@ -184,6 +185,25 @@ before. They are turned on per process with the environment variable
 ```sh
 GUI_FORMS_PRESENT=direct,scroll ./my_program
 ```
+
+The X11 host passes its scroll copies, in device pixels, only while every
+copy moved the raster; its present then names the screen without the
+copies' clips, and the shim adds back the area of any scroll it refuses.
+
+## Platform paths
+
+| Path | Buffers | Refusals |
+|---|---|---|
+| macOS IOSurface (`src/host/macos/view/macos_iosurface_present.mm`) | up to three BGRA IOSurfaces, `IOSurfaceLock` for writing, set as the contents of a layer beneath the compositor's sublayers | busy while every surface is in use (`IOSurfaceIsInUse`) or shown; resources when one cannot be made; lost when one cannot be locked |
+| X11 Present (`src/host/linux/application/x11_present_direct.cpp`) | up to three MIT-SHM pixmaps, presented with `XPresentPixmap` and an update region; reused after `PresentIdleNotify` | unsupported without libXpresent, MIT-SHM pixmaps or Present, on a remote display, on a visual not in the raster's layout, and on a 32-bit window presenting opaque; busy while every pixmap is read; resources when a segment cannot be made |
+| Wayland `wl_shm` (`src/host/linux/wayland/wayland_shm_present.cpp`, built with `GUI_FORMS_ENABLE_WAYLAND_PRESENT`) | up to three memfd buffers, ARGB8888 or XRGB8888, attached with `wl_surface_damage_buffer`; reused after `wl_buffer.release` | busy while every buffer is held; resources when one cannot be made; lost when the display is in error or a flush fails |
+
+Routes that would need a GPU API symbol to obtain a buffer are not
+written, and wait for the owner's decision: `CAMetalLayer` drawables on
+macOS (Metal), DRI3 dmabuf pixmaps on X11 (GBM or libdrm),
+`linux-dmabuf` buffers on Wayland (GBM or EGL), and DXGI flip-model swap
+chains or DirectComposition on Windows (Direct3D/DXGI). IOSurface, MIT-SHM
+with Present, and `wl_shm` need none.
 
 ## What a new platform backend provides
 
