@@ -538,7 +538,12 @@ void TreeView::handle_pointer(PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::down && event.button == PointerButton::primary) {
-        if (window()) static_cast<void>((*window()).request_focus(shared_from_this()));
+        // The focus, expansion and selection handlers may drop the tree:
+        // `lifetime` keeps it alive through the press, and the row is hit
+        // after the focus handlers ran.
+        const Control::Ptr lifetime = shared_from_this();
+        if (window()) static_cast<void>((*window()).request_focus(lifetime));
+        if (!is_alive()) return;
         pressed_row_ = visible_row_at(event.position);
         pressed_click_count_ = event.click_count;
         pressed_expander_ = false;
@@ -575,6 +580,8 @@ void TreeView::handle_pointer(PointerEvent& event) {
 // The mouse raisers hand the target phase to handle_pointer, whose
 // handling predates the raisers and reads the routed form.
 void TreeView::on_mouse_down(MouseEventArgs& arguments) {
+    // handle_pointer's handlers may drop the tree; is_alive() below reads it.
+    const Control::Ptr lifetime = shared_from_this();
     PointerEvent event = pointer_event_of(arguments);
     handle_pointer(event);
     arguments.handled = event.handled;
