@@ -100,6 +100,7 @@ Ribbon::Ribbon(StableId ribbon_id) : Control(std::move(ribbon_id)) {
 Ribbon::~Ribbon() {
     if (overlay_) (*overlay_).close();
     if (group_overlay_) (*group_overlay_).detach();
+    if (plane_popup_) (*plane_popup_).detach();  // A-gf-controls-11-F6
     if (application_overlay_) (*application_overlay_).detach();
     if (application_panel_) (*application_panel_).detach();
 }

@@ -513,6 +513,26 @@ void minimized_popup() {
     require(!(*ribbon).show_plane_popup(), "an unminimized ribbon has no popup");
 }
 
+// A ribbon destroyed without dispose() leaves its kept plane popup inert
+// instead of pointing at the freed ribbon (A-gf-controls-11-F6).
+void destroyed_ribbon_detaches_its_plane_popup() {
+    const Commands commands;
+    Control::Ptr kept;
+    {
+        std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+        (*ribbon).minimized = true;
+        Window window(ribbon, {900.0, 320.0}, commands.resources);
+        window.perform_layout();
+        require((*ribbon).show_plane_popup(), "the minimized ribbon's popup opens");
+        kept = (*ribbon).plane_popup();
+        (*ribbon).close_plane_popup();
+    }
+    require(kept != nullptr, "the popup's content is kept");
+    (*kept).arrange({0.0, 0.0, 900.0, 80.0});
+    const Size measured = (*kept).measure({900.0, 80.0});
+    require(measured.width == 900.0, "the kept popup still measures after its ribbon is gone");
+}
+
 void hosted_controls() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
@@ -930,6 +950,7 @@ int main() {
     help_button();
     quick_access_on_tab_row();
     minimized_popup();
+    destroyed_ribbon_detaches_its_plane_popup();
     std::cout << "Ribbon: geometry, one command path, item repaint, minimizing, hosted controls, menus, launchers, "
                  "semantics, F6 region and refusals passed\n";
     return 0;
