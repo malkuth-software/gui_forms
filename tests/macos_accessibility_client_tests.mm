@@ -20,11 +20,13 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <optional>
 #include <spawn.h>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <sys/wait.h>
 #include <thread>
 #include <utility>
@@ -1021,9 +1023,36 @@ bool parse_options(int argc, char** argv, Options& options) {
     return !options.app.empty() && !options.dump.empty();
 }
 
-bool launch_app(const Options& options) {
-    std::remove(options.dump.c_str());
-    std::vector<std::string> arguments{"/usr/bin/open", "-n", options.app, "--args", "--semantic-dump", options.dump};
+// The launched app may not write to a build tree on a removable volume
+// (macOS asks a per-app privacy approval there), so it writes its dump and
+// reads its requests in a fresh directory under the temporary directory,
+// as the probe runners do, and run() copies the last dump to --dump at the
+// end. Empty when the directory cannot be made.
+std::string make_scratch_directory() {
+    const char* const temporary = std::getenv("TMPDIR");
+    std::string pattern = temporary != nullptr && temporary[0] != '\0' ? std::string(temporary) : std::string("/tmp");
+    if (pattern.back() != '/') pattern.push_back('/');
+    pattern += "gui_forms_ax_client.XXXXXX";
+    std::vector<char> buffer(pattern.begin(), pattern.end());
+    buffer.push_back('\0');
+    if (mkdtemp(buffer.data()) == nullptr) return std::string();
+    const std::string made(buffer.data());
+    return made;
+}
+
+// Copies the working dump to the build tree's --dump path and removes the
+// scratch directory; a failed copy is reported, not fatal.
+void keep_dump(const std::string& working, const std::string& kept, const std::string& scratch) {
+    std::error_code copied;
+    std::filesystem::copy_file(working, kept, std::filesystem::copy_options::overwrite_existing, copied);
+    if (copied) std::cerr << "note: the semantic dump was not copied to " << kept << '\n';
+    std::error_code removed;
+    std::filesystem::remove_all(scratch, removed);
+}
+
+bool launch_app(const Options& options, const std::string& dump_path) {
+    std::remove(dump_path.c_str());
+    std::vector<std::string> arguments{"/usr/bin/open", "-n", options.app, "--args", "--semantic-dump", dump_path};
     std::vector<char*> argv_pointers;
     for (std::string& argument : arguments) argv_pointers.push_back(argument.data());
     argv_pointers.push_back(nullptr);
@@ -1084,17 +1113,26 @@ int run(const Options& options) {
                      "(System Settings > Privacy & Security > Accessibility); the AX client test did not run\n";
         return unsupported_exit;
     }
-    if (!launch_app(options)) {
+    const std::string scratch = make_scratch_directory();
+    if (scratch.empty()) {
+        std::cerr << "could not make a directory under the temporary directory for the app's dump\n";
+        return 1;
+    }
+    const std::string working = scratch + "/semantic_dump.json";
+    std::remove(options.dump.c_str());
+    if (!launch_app(options, working)) {
         std::cerr << "could not launch " << options.app << '\n';
+        keep_dump(working, options.dump, scratch);
         return 1;
     }
     Dump dump;
     for (int waited = 0; waited < 15000 && !dump.valid; waited += 50) {
-        dump = read_dump(options.dump);
+        dump = read_dump(working);
         if (!dump.valid) sleep_milliseconds(50);
     }
     if (!dump.valid) {
         std::cerr << "the app wrote no semantic dump\n";
+        keep_dump(working, options.dump, scratch);
         return 1;
     }
     AxElement application(AXUIElementCreateApplication(dump.pid));
@@ -1105,26 +1143,27 @@ int run(const Options& options) {
         if (surface.get() == nullptr) sleep_milliseconds(100);
     }
     Report report;
-    dump = settled_dump(options.dump, report, "initial");
+    dump = settled_dump(working, report, "initial");
     if (report.settle_failed) {
         // Named by settled_dump; nothing later could be compared.
     } else if (surface.get() == nullptr) {
         report.failures.push_back("the app's retained surface is not published through AX");
     } else if (options.gallery) {
         compare_surface(dump, surface.get(), report, "initial");
-        dump = compare_gallery_pages(options.dump, application.get(), dump, report);
+        dump = compare_gallery_pages(working, application.get(), dump, report);
     } else {
         compare_surface(dump, surface.get(), report, "initial");
-        dump = perform_default_actions(options.dump, application.get(), dump, report);
-        dump = settled_dump(options.dump, report, "after-actions");
+        dump = perform_default_actions(working, application.get(), dump, report);
+        dump = settled_dump(working, report, "after-actions");
         if (!report.settle_failed) {
             AxElement after_surface = find_surface(application.get());
             compare_surface(dump, after_surface.get(), report, "after-actions");
-            dump = check_stale_element(options.dump, application.get(), dump, report);
-            dump = check_text_ranges(options.dump, application.get(), dump, report);
+            dump = check_stale_element(working, application.get(), dump, report);
+            dump = check_text_ranges(working, application.get(), dump, report);
         }
     }
     close_app(application.get(), dump.pid);
+    keep_dump(working, options.dump, scratch);
     print_report(report);
     return report.mismatches.empty() && report.failures.empty() ? 0 : 1;
 }
