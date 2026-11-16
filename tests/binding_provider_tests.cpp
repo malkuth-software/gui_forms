@@ -436,6 +436,13 @@ void test_binding_table_checks_whole_and_keeps_errors_by_id() {
     require((*source).count() == 3U && (*source).find_stable_id("b") == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{2U}) &&
                 (*source).find("name", std::string("Zeta")) == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{0U}),
             "the source shows the table's rows in its order");
+    // A-gf-core-01-F4: a removed row's errors go with it, and a later row
+    // given the same stable ID starts without them.
+    require(table.remove(2U, 1U) == 1U && table.count() == 2U, "the row with errors is removed");
+    static_cast<void>(table.append(BindingRow{"b", {std::string("Beta again")}}));
+    require(table.error(2U, name).empty() && table.error(2U, binding_whole_row).empty() &&
+                (*source).error(2U, name).empty(),
+            "a removed row's errors do not reach a new row of the same stable ID");
 }
 
 // ---------------------------------------------------------------------------

@@ -91,6 +91,17 @@ void BindingTable::erase_rows(std::size_t row, std::size_t count) {
                       stable_ids_.begin() + static_cast<std::ptrdiff_t>(row + count));
     editable_.erase(editable_.begin() + static_cast<std::ptrdiff_t>(row),
                     editable_.begin() + static_cast<std::ptrdiff_t>(row + count));
+    // Errors are kept by stable ID, so a removed row's errors go with it
+    // (A-gf-core-01-F4): a later row given the same ID starts without them,
+    // and errors_ holds only live rows' entries. The removed IDs are out of
+    // identities_ by now; the kept entries close up in order.
+    std::vector<CellError>::iterator kept = errors_.begin();
+    for (std::vector<CellError>::iterator entry = errors_.begin(); entry != errors_.end(); ++entry) {
+        if (!identities_.contains((*entry).stable_id)) continue;
+        if (kept != entry) *kept = std::move(*entry);
+        ++kept;
+    }
+    errors_.erase(kept, errors_.end());
 }
 
 std::size_t BindingTable::append(BindingRow row) {
