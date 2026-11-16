@@ -4477,7 +4477,7 @@ Related types
 
    .. cpp:member:: std::size_t selected_count
 
-   .. cpp:member:: std::optional<std::size_t> focused_index
+   .. cpp:member:: stxlib::Optional<std::size_t> focused_index
 
 .. cpp:namespace:: gui_forms
 
@@ -4490,7 +4490,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<std::size_t> apply(std::optional<std::size_t> index) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> apply(stxlib::Optional<std::size_t> index) const noexcept
 
    .. cpp:member:: std::size_t first
 

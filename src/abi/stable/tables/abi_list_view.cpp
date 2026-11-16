@@ -12,7 +12,6 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -487,11 +486,11 @@ gf_status list_view_index_of_body(gf_object view, gf_utf8_view item_id, std::uin
     if (entered != GF_STATUS_OK) {
         return entered;
     }
-    const std::optional<std::size_t> found = (*typed).index_of(text);
-    if (!found) {
+    const stxlib::Optional<std::size_t> found = (*typed).index_of(text);
+    if (found.absent()) {
         return fail(GF_STATUS_NOT_FOUND, index_of_slot, "no item of the view has that stable id");
     }
-    *index = *found;
+    *index = *found.value();
     return GF_STATUS_OK;
 }
 
@@ -691,8 +690,8 @@ gf_status list_view_focused_item_body(gf_object view, std::int64_t* index) {
     }
     // An index is below ListView::maximum_items, so it fits a signed
     // 64-bit value.
-    const std::optional<std::size_t> focused = (*typed).focused_index();
-    *index = focused ? static_cast<std::int64_t>(*focused) : std::int64_t{-1};
+    const stxlib::Optional<std::size_t> focused = (*typed).focused_index();
+    *index = focused.present() ? static_cast<std::int64_t>(*focused.value()) : std::int64_t{-1};
     return GF_STATUS_OK;
 }
 
@@ -710,7 +709,7 @@ gf_status list_view_set_focused_item_body(gf_object view, std::int64_t index) {
         return entered;
     }
     if (index == -1) {
-        (*typed).set_focused_index(std::nullopt);
+        (*typed).set_focused_index(stxlib::Optional<std::size_t>::none());
         return GF_STATUS_OK;
     }
     const std::uint64_t position = static_cast<std::uint64_t>(index);
@@ -718,7 +717,7 @@ gf_status list_view_set_focused_item_body(gf_object view, std::int64_t index) {
     if (present != GF_STATUS_OK) {
         return present;
     }
-    (*typed).set_focused_index(static_cast<std::size_t>(position));
+    (*typed).set_focused_index(stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(position)));
     return GF_STATUS_OK;
 }
 
@@ -759,7 +758,7 @@ gf_status list_view_set_sort_indicator_body(gf_object view, std::int64_t column,
         return entered;
     }
     if (column == -1) {
-        (*typed).set_sort_indicator(std::nullopt, ListViewSortOrder::none);
+        (*typed).set_sort_indicator(stxlib::Optional<std::size_t>::none(), ListViewSortOrder::none);
         return GF_STATUS_OK;
     }
     const std::uint64_t position = static_cast<std::uint64_t>(column);
@@ -767,7 +766,7 @@ gf_status list_view_set_sort_indicator_body(gf_object view, std::int64_t column,
     if (present != GF_STATUS_OK) {
         return present;
     }
-    (*typed).set_sort_indicator(static_cast<std::size_t>(position), static_cast<ListViewSortOrder>(order));
+    (*typed).set_sort_indicator(stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(position)), static_cast<ListViewSortOrder>(order));
     return GF_STATUS_OK;
 }
 

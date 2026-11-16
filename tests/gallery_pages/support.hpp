@@ -232,10 +232,10 @@ inline std::shared_ptr<ListView> navigation_list(Window& window) {
 inline void select_page(Window& window, std::string_view page_id) {
     const std::shared_ptr<ListView> list = navigation_list(window);
     const std::string row_id = std::string(gallery::navigation_id_prefix) + std::string(page_id);
-    const std::optional<std::size_t> index = (*list).index_of(row_id);
-    require(index.has_value(), "gallery navigation stable ID must resolve");
+    const stxlib::Optional<std::size_t> index = (*list).index_of(row_id);
+    require(index.present(), "gallery navigation stable ID must resolve");
     // The list scrolls; bring the row into view as a user would.
-    (*list).ensure_visible(*index);
+    (*list).ensure_visible(*index.value());
     window.perform_layout();
     Rect row{};
     bool found = false;

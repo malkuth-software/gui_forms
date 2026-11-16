@@ -113,7 +113,7 @@ void test_shell_keyboard_order() {
     require((*list).is_selected(0U) && (*first_page).effectively_visible(), "the first page is open and selected");
 
     require(window.request_focus(list), "the navigation takes focus");
-    require(press_key(window, PhysicalKey::down) && (*list).focused_index() == std::optional<std::size_t>(1U),
+    require(press_key(window, PhysicalKey::down) && (*list).focused_index() == stxlib::Optional<std::size_t>::of(1U),
             "Down moves to the next page");
     require((*first_page).effectively_visible() && !(*second_page).effectively_visible(),
             "moving between rows opens no page");

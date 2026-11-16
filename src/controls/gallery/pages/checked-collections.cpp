@@ -118,7 +118,7 @@ private:
     // The insertion mark an application shows while an item is dragged:
     // here before the third row, until the toggle clears it.
     void on_mark_toggled(ButtonBase&) {
-        if ((*list_view_).insertion_mark().has_value()) {
+        if ((*list_view_).insertion_mark().present()) {
             (*list_view_).clear_insertion_mark();
             (*mark_toggle_).text = "Show insertion mark";
             (*status_).text = "ListView insertion mark cleared";
@@ -131,7 +131,7 @@ private:
     }
 
     void on_column_click(const ListViewColumnClick& click) {
-        const bool ascending = (*list_view_).sort_column() == click.column &&
+        const bool ascending = (*list_view_).sort_column() == stxlib::Optional<std::size_t>::of(click.column) &&
                                (*list_view_).sort_order() == ListViewSortOrder::ascending;
         (*list_view_).sort_items(click.column, ascending ? ListViewSortOrder::descending
                                                          : ListViewSortOrder::ascending);

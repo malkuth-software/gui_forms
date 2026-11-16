@@ -176,7 +176,7 @@ struct PageContext final {
         // The open page's row is the list's selection, focused and in view.
         if (navigation && index < (*navigation).item_count()) {
             (*navigation).set_selected(index, true);
-            (*navigation).set_focused_index(index);
+            (*navigation).set_focused_index(stxlib::Optional<std::size_t>::of(index));
             (*navigation).ensure_visible(index);
         }
         if (ui_timer) {

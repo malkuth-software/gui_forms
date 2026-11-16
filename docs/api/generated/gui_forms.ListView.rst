@@ -136,7 +136,7 @@ gui_forms::ListView
       **selected_indices** : ``std::vector<std::size_t>``, read-only
          The selected items' indices, ascending.
 
-      **focused_index** : ``std::optional<std::size_t>``
+      **focused_index** : ``stxlib::Optional<std::size_t>``
          The item with the focus cue and the keyboard's position, or none.
          :cpp:func:`set_focused_index <gui_forms::ListView::set_focused_index>` moves it and scrolls the item into view.
 
@@ -146,17 +146,17 @@ gui_forms::ListView
       **horizontal_offset** : ``double``
          The details view's sideways scroll, in logical units.
 
-      **sort_column** : ``std::optional<std::size_t>``, read-only
+      **sort_column** : ``stxlib::Optional<std::size_t>``, read-only
          The column showing the sort glyph, or none.
 
       **sort_order** : ``ListViewSortOrder``, default ``ListViewSortOrder::none``, read-only
          The order the sort glyph shows.
 
-      **insertion_mark** : ``std::optional<ListViewInsertionMark>``, default none, read-only
+      **insertion_mark** : ``stxlib::Optional<ListViewInsertionMark>``, default none, read-only
          Where the insertion mark stands, as an item's index and whether the mark
          is after it, or none. See :cpp:func:`show_insertion_mark <gui_forms::ListView::show_insertion_mark>`.
 
-      **label_edit_index** : ``std::optional<std::size_t>``, read-only
+      **label_edit_index** : ``stxlib::Optional<std::size_t>``, read-only
          The item in edit, or none.
 
       **label_editor** : ``std::shared_ptr<TextBox>``, read-only
@@ -547,10 +547,14 @@ gui_forms::ListView
 
       The selected items' indices, ascending.
 
-   .. cpp:function:: std::optional<std::size_t> focused_index() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> focused_index() const noexcept
 
       The item with the focus cue and the keyboard's position, or none.
       :cpp:func:`set_focused_index <gui_forms::ListView::set_focused_index>` moves it and scrolls the item into view.
+
+   .. cpp:function:: void set_focused_index(stxlib::Optional<std::size_t> index)
+
+      Sets :cpp:func:`focused_index <gui_forms::ListView::focused_index>`; see the property's description above.
 
    .. cpp:function:: void set_focused_index(std::optional<std::size_t> index)
 
@@ -568,7 +572,7 @@ gui_forms::ListView
 
       Sets :cpp:func:`horizontal_offset <gui_forms::ListView::horizontal_offset>`; see the property's description above.
 
-   .. cpp:function:: std::optional<std::size_t> sort_column() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> sort_column() const noexcept
 
       The column showing the sort glyph, or none.
 
@@ -576,12 +580,12 @@ gui_forms::ListView
 
       The order the sort glyph shows.
 
-   .. cpp:function:: std::optional<ListViewInsertionMark> insertion_mark() const noexcept
+   .. cpp:function:: stxlib::Optional<ListViewInsertionMark> insertion_mark() const noexcept
 
       Where the insertion mark stands, as an item's index and whether the mark
       is after it, or none. See :cpp:func:`show_insertion_mark <gui_forms::ListView::show_insertion_mark>`.
 
-   .. cpp:function:: std::optional<std::size_t> label_edit_index() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> label_edit_index() const noexcept
 
       The item in edit, or none.
 
@@ -674,7 +678,7 @@ gui_forms::ListView
 
    .. cpp:function:: void initialize_control_tree()
 
-   .. cpp:function:: std::optional<std::size_t> index_of(std::string_view item_id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> index_of(std::string_view item_id) const
 
       The index of the item with an ID in an ordinary view; none in virtual
       mode.
@@ -719,7 +723,7 @@ gui_forms::ListView
       the sort glyph. The selection and focus follow their items. Throws
       ``std::logic_error`` in virtual mode.
 
-   .. cpp:function:: std::optional<std::size_t> item_index_at(Point window_point) const
+   .. cpp:function:: stxlib::Optional<std::size_t> item_index_at(Point window_point) const
 
       The item under a point in window coordinates, or none.
 
@@ -736,7 +740,7 @@ gui_forms::ListView
 
       Removes the insertion mark.
 
-   .. cpp:function:: std::optional<ListViewInsertionMark> insertion_mark_at(Point window_point) const
+   .. cpp:function:: stxlib::Optional<ListViewInsertionMark> insertion_mark_at(Point window_point) const
 
       The mark nearest a point in window coordinates (Windows Forms'
       ``InsertionMark.NearestIndex``), with the point clamped into the item
@@ -775,6 +779,10 @@ gui_forms::ListView
    .. cpp:function:: void set_selected(std::size_t index, bool selected)
 
       Selects or deselects one item, keeping the others (in single-selection mode selecting an item deselects the rest). Throws std::out_of_range.
+
+   .. cpp:function:: void set_sort_indicator(stxlib::Optional<std::size_t> column, ListViewSortOrder order)
+
+      Shows the sort glyph on one column, or on none. It never reorders items.
 
    .. cpp:function:: void set_sort_indicator(std::optional<std::size_t> column, ListViewSortOrder order)
 
