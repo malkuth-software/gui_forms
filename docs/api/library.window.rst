@@ -1840,9 +1840,9 @@ Related types
 
    The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour. Each is empty where the host reports none, and a theme then reads its fallback. They are hints: a theme may use, override or ignore them, and GUI.Forms' own theme reads neither.
 
-   .. cpp:member:: std::optional<Color> accent
+   .. cpp:member:: stxlib::Optional<Color> accent
 
-   .. cpp:member:: std::optional<Color> highlight
+   .. cpp:member:: stxlib::Optional<Color> highlight
 
 .. cpp:namespace:: gui_forms
 

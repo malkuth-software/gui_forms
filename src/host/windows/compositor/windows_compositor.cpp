@@ -187,8 +187,9 @@ CompositorState read_windows_compositor_state(HWND window, CompositorGeneration 
     // T4 theme variants. Windows' own high-contrast palette is not taken:
     // GUI.Forms' high contrast uses its own (a recorded divergence).
     state.dark_scheme = dark_applications();
-    state.system_colours.accent = accent_colour();
-    state.system_colours.highlight = highlight_colour();
+    const std::optional<Color> accent = accent_colour();
+    if (accent.has_value()) state.system_colours.accent.set(*accent);
+    state.system_colours.highlight.set(highlight_colour());
     return state;
 }
 

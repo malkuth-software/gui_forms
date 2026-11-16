@@ -1068,11 +1068,11 @@ bool ValuePass::colour_from_env(std::uint32_t function) {
         report(DiagnosticCode::keyword_unknown, named.token, clipped_theme_detail(named.text));
         return false;
     }
-    std::optional<Color> hint{};
+    stxlib::Optional<Color> hint{};
     if (context_.system_colours != nullptr) {
         hint = accent ? (*context_.system_colours).accent : (*context_.system_colours).highlight;
     }
-    const Color colour = hint ? *hint : *fallback;
+    const Color colour = hint.present() ? *hint.value() : *fallback;
     replace_with_colour(function, colour);
     return true;
 }

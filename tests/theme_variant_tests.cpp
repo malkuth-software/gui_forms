@@ -522,7 +522,7 @@ void test_system_colour_hints() {
     }
     require(plain.outcome == CompileOutcome::compiled && only_unremappable, "env() compiles, warning as a literal");
     SystemColourHints hints{};
-    hints.accent = Color::rgba(1, 2, 3);
+    hints.accent.set(Color::rgba(1, 2, 3));
     const Compilation hinted = compile(sheet, hints);
     require(hinted.outcome == CompileOutcome::compiled && !(hinted.sheet == plain.sheet),
             "a hint changes what env() reads");
