@@ -1,36 +1,22 @@
 #include "paint_probe.hpp"
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
+#include <stxlib/glyph_face.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <new>
 #include <stdexcept>
+#include <span>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::render::paint_probe {
 namespace {
 using namespace worker_probe;
-
-struct Library final {
-    FT_Library value{};
-    Library() {
-        const FT_Error error = FT_Init_FreeType(&value);
-        if (error != 0) { throw std::runtime_error("Paint FreeType initialization"); }
-    }
-    ~Library() { if (value != nullptr) { FT_Done_FreeType(value); } }
-    Library(const Library&) = delete;
-    Library& operator=(const Library&) = delete;
-};
-struct Face final {
-    FT_Face value{};
-    Face() = default;
-    ~Face() { if (value != nullptr) { FT_Done_Face(value); } }
-    Face(const Face&) = delete;
-    Face& operator=(const Face&) = delete;
-};
 
 Status validate_font_table(const Prepared& prepared, const FontSet& pinned) {
     if (!prepared.fonts) { return Status::missing_font; }
@@ -62,43 +48,63 @@ std::size_t find_face(const Prepared& prepared, FontFaceId id) noexcept {
     return count;
 }
 
-Status rasterize(const Prepared& prepared, std::vector<std::uint8_t>& pixels) {
-    const FontSet& fonts = *prepared.fonts;
-    Library library{};
-    // Faces are destroyed before their library, on this paint executor.
-    std::array<Face, 4> faces{};
-    const std::size_t face_count = faces.size();
-    const double bounded_size = std::clamp(prepared.identity.font.size, 1.0, 4096.0);
-    const long long rounded_size = std::llround(bounded_size * 64.0);
-    const FT_F26Dot6 size = static_cast<FT_F26Dot6>(rounded_size);
-    for (std::size_t index = 0; index < face_count; ++index) {
-        const FontBytes& source = fonts.faces[index];
+using PainterFaces = std::array<gui_forms::detail::ExecutorFace, 4>;
+
+// Opens the executor's faces over the program's typefaces of the pinned
+// fonts, once; a face already open is kept.
+Status open_faces(const FontSet& pinned, PainterFaces& faces) {
+    for (std::size_t index = 0; index < faces.size(); ++index) {
+        if (faces[index].is_open()) continue;
+        const FontBytes& source = pinned.faces[index];
         const std::vector<std::byte>& bytes = *source.encoded;
         if (bytes.size() > 64U * 1024U * 1024U || source.face_index > 255U) { return Status::incompatible_face; }
-        const FT_Long length = static_cast<FT_Long>(bytes.size());
-        const FT_Long face_index = static_cast<FT_Long>(source.face_index);
-        const FT_Byte* data = reinterpret_cast<const FT_Byte*>(bytes.data());
-        const FT_Error opened = FT_New_Memory_Face(library.value, data, length, face_index, &faces[index].value);
-        if (opened != 0 || faces[index].value == nullptr) { return Status::native_failure; }
-        FT_Face face = faces[index].value;
-        const FT_Error charmap = FT_Select_Charmap(face, FT_ENCODING_UNICODE);
-        const FT_Error sized = FT_Set_Char_Size(face, 0, size, 72U, 72U);
-        if (charmap != 0 || sized != 0 || (*face).num_glyphs <= 0) { return Status::native_failure; }
+        const std::shared_ptr<const gui_forms::detail::ProgramTypeface> typeface =
+            gui_forms::detail::program_typeface(std::span<const std::byte>(bytes.data(), bytes.size()), source.encoded,
+                                                source.face_index);
+        if (!typeface) { return Status::native_failure; }
+        const gui_forms::detail::FaceByteLimits limits{};
+        if (!faces[index].open(typeface, limits)) { return Status::resource_failure; }
+        const stxlib::glyphs::Font* const font = faces[index].font();
+        if ((*font).glyph_count == 0U || (*font).character_map.length == 0U) { return Status::native_failure; }
     }
+    return Status::success;
+}
+
+// Composites one run's coverage into the surface, clipped to it, by
+// c + p * (255 - c) / 255.
+void composite_run(const stxlib::glyphs::RunCoverage& coverage, std::vector<std::uint8_t>& pixels) {
+    const stxlib::View<stxlib::u8> source = coverage.pixels.view();
+    for (std::uint32_t row = 0; row < coverage.height; ++row) {
+        const long target_y = static_cast<long>(coverage.top) + static_cast<long>(row);
+        if (target_y < 0 || target_y >= static_cast<long>(Painter::height)) { continue; }
+        const std::size_t source_row = static_cast<std::size_t>(row) * coverage.width;
+        const std::size_t target_row = static_cast<std::size_t>(target_y) * Painter::width;
+        for (std::uint32_t column = 0; column < coverage.width; ++column) {
+            const long target_x = static_cast<long>(coverage.left) + static_cast<long>(column);
+            if (target_x < 0 || target_x >= static_cast<long>(Painter::width)) { continue; }
+            const std::size_t destination = target_row + static_cast<std::size_t>(target_x);
+            const unsigned value = source[source_row + column];
+            const unsigned prior = pixels[destination];
+            const unsigned composite = value + prior * (255U - value) / 255U;
+            pixels[destination] = static_cast<std::uint8_t>(composite);
+        }
+    }
+}
+
+Status rasterize(const Prepared& prepared, const FontSet& pinned, PainterFaces& faces, std::vector<std::uint8_t>& pixels) {
+    const std::size_t face_count = faces.size();
+    const Status opened = open_faces(pinned, faces);
+    if (opened != Status::success) { return opened; }
     // Validate every run and glyph before producing any staged pixel.
     const std::size_t source_bytes = prepared.display_utf8.size();
     for (const text::ShapedFontRun& run : prepared.geometry.runs) {
         const std::size_t index = find_face(prepared, run.face);
         if (index == face_count) { return Status::incompatible_face; }
-        FT_Face face = faces[index].value;
         if (run.source_range.start.value() > run.source_range.end.value() ||
             run.source_range.end.value() > source_bytes) { return Status::invalid_geometry; }
-        const std::uint64_t glyph_limit = static_cast<std::uint64_t>((*face).num_glyphs);
+        const std::uint64_t glyph_limit = static_cast<std::uint64_t>((*faces[index].font()).glyph_count);
         for (const text::ShapedGlyph& glyph : run.glyphs) {
-            if (glyph.glyph.value == 0 || glyph.glyph.value >= glyph_limit ||
-                glyph.glyph.value > std::numeric_limits<FT_UInt>::max()) {
-                return Status::incompatible_glyph;
-            }
+            if (glyph.glyph.value == 0 || glyph.glyph.value >= glyph_limit) { return Status::incompatible_glyph; }
             if (!std::isfinite(glyph.x) || !std::isfinite(glyph.y) ||
                 !std::isfinite(glyph.advance_x) || !std::isfinite(glyph.advance_y) ||
                 std::abs(glyph.x) > 1'000'000.0F || std::abs(glyph.y) > 1'000'000.0F ||
@@ -106,62 +112,37 @@ Status rasterize(const Prepared& prepared, std::vector<std::uint8_t>& pixels) {
                 glyph.cluster.value() >= run.source_range.end.value()) { return Status::invalid_geometry; }
         }
     }
+    // ADR-004's profile (light auto-hinting along y, grey), at the font's
+    // size; only glyphs that can show on the surface are drawn.
+    const double bounded_size = std::clamp(prepared.identity.font.size, 1.0, 4096.0);
+    stxlib::glyphs::DrawStyle style{};
+    style.size = static_cast<stxlib::i64>(std::llround(bounded_size * 64.0));
+    style.fit = stxlib::glyphs::Fit::light;
+    style.windowed = true;
+    style.window_right = static_cast<std::int32_t>(Painter::width);
+    style.window_bottom = static_cast<std::int32_t>(Painter::height);
     pixels.assign(Painter::width * Painter::height, 0);
+    std::vector<stxlib::glyphs::RunGlyph> placed{};
+    stxlib::glyphs::RunCoverage coverage{};
     for (const text::ShapedFontRun& run : prepared.geometry.runs) {
         const std::size_t index = find_face(prepared, run.face);
-        FT_Face face = faces[index].value;
+        placed.clear();
         for (const text::ShapedGlyph& glyph : run.glyphs) {
+            // The run's origin is pixel (8, 64); positions are bounded to a
+            // million pixels above, so 26.6 fits 32 bits.
             const double x = 8.0 + static_cast<double>(glyph.x);
             const double y = 64.0 + static_cast<double>(glyph.y);
-            const double integral_x = std::floor(x);
-            const double integral_y = std::floor(y);
-            const long left_origin = static_cast<long>(integral_x);
-            const long top_origin = static_cast<long>(integral_y);
-            const long fractional_x = std::lround((x - integral_x) * 64.0);
-            const long fractional_y = std::lround(-(y - integral_y) * 64.0);
-            FT_Vector delta{fractional_x, fractional_y};
-            FT_Set_Transform(face, nullptr, &delta);
-            const FT_UInt id = static_cast<FT_UInt>(glyph.glyph.value);
-            const FT_Error loaded = FT_Load_Glyph(face, id, FT_LOAD_DEFAULT | FT_LOAD_NO_BITMAP);
-            if (loaded != 0) { return Status::native_failure; }
-            FT_GlyphSlot slot = (*face).glyph;
-            if (slot == nullptr || (*slot).format != FT_GLYPH_FORMAT_OUTLINE) { return Status::unsupported_raster; }
-            const FT_Error rendered = FT_Render_Glyph(slot, FT_RENDER_MODE_NORMAL);
-            if (rendered != 0) { return Status::native_failure; }
-            const FT_Bitmap& bitmap = (*slot).bitmap;
-            if (bitmap.width == 0 || bitmap.rows == 0) { continue; }
-            if (bitmap.pixel_mode != FT_PIXEL_MODE_GRAY || bitmap.num_grays != 256 ||
-                bitmap.pitch <= 0 || bitmap.buffer == nullptr ||
-                bitmap.width > static_cast<unsigned>(bitmap.pitch)) { return Status::unsupported_raster; }
-            // This fixture accepts only bounded positive-pitch gray bitmaps.
-            // Native allocation already happened inside FT and remains opaque.
-            constexpr std::size_t bitmap_byte_limit = 64U * 1024U * 1024U;
-            if (bitmap.width > 8192U || bitmap.rows > 8192U || bitmap.pitch > 16384 ||
-                (*slot).bitmap_left < -1'000'000 || (*slot).bitmap_left > 1'000'000 ||
-                (*slot).bitmap_top < -1'000'000 || (*slot).bitmap_top > 1'000'000) {
-                return Status::unsupported_raster;
-            }
-            const std::size_t pitch = static_cast<std::size_t>(bitmap.pitch);
-            const std::size_t rows = static_cast<std::size_t>(bitmap.rows);
-            if (rows > bitmap_byte_limit / pitch) { return Status::unsupported_raster; }
-            const long bitmap_left = left_origin + (*slot).bitmap_left;
-            const long bitmap_top = top_origin - (*slot).bitmap_top;
-            for (unsigned row = 0; row < bitmap.rows; ++row) {
-                const long target_y = bitmap_top + static_cast<long>(row);
-                if (target_y < 0 || target_y >= static_cast<long>(Painter::height)) { continue; }
-                const std::size_t source_row = static_cast<std::size_t>(row) * pitch;
-                const std::size_t target_row = static_cast<std::size_t>(target_y) * Painter::width;
-                for (unsigned column = 0; column < bitmap.width; ++column) {
-                    const long target_x = bitmap_left + static_cast<long>(column);
-                    if (target_x < 0 || target_x >= static_cast<long>(Painter::width)) { continue; }
-                    const std::size_t destination = target_row + static_cast<std::size_t>(target_x);
-                    const unsigned coverage = bitmap.buffer[source_row + column];
-                    const unsigned prior = pixels[destination];
-                    const unsigned composite = coverage + prior * (255U - coverage) / 255U;
-                    pixels[destination] = static_cast<std::uint8_t>(composite);
-                }
-            }
+            stxlib::glyphs::RunGlyph entry{};
+            entry.glyph = glyph.glyph.value;
+            entry.x = static_cast<std::int32_t>(std::llround(x * 64.0));
+            entry.y = static_cast<std::int32_t>(std::llround(y * 64.0));
+            placed.push_back(entry);
         }
+        const stxlib::View<stxlib::glyphs::RunGlyph> glyphs(placed.data(), placed.size());
+        const stxlib::Status drawn = faces[index].draw_run(glyphs, style, coverage);
+        if (drawn.failed() || coverage.missing_glyphs != 0U) { return Status::native_failure; }
+        if (coverage.oversized) { return Status::unsupported_raster; }
+        composite_run(coverage, pixels);
     }
     return Status::success;
 }
@@ -199,7 +180,7 @@ Status Painter::paint(const worker_probe::Prepared& prepared, const worker_probe
     }
     try {
         std::vector<std::uint8_t> staged{};
-        const Status painted = rasterize(prepared, staged);
+        const Status painted = rasterize(prepared, *pinned_fonts_, faces_, staged);
         if (painted != Status::success) { return painted; }
         pixels_ = std::move(staged);
         painted_identity_ = prepared.identity;
