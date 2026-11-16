@@ -30,9 +30,13 @@
 namespace gui_forms::abi1 {
 namespace {
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 constexpr SlotIdentity load_slot{GF_TABLE_THEMES, 0U};
+#endif
 constexpr SlotIdentity reset_slot{GF_TABLE_THEMES, 1U};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 constexpr SlotIdentity install_slot{GF_TABLE_THEMES, 2U};
+#endif
 constexpr SlotIdentity remove_slot{GF_TABLE_THEMES, 3U};
 constexpr SlotIdentity diagnostic_at_slot{GF_TABLE_THEMES, 4U};
 constexpr SlotIdentity diagnostic_text_slot{GF_TABLE_THEMES, 5U};
@@ -43,7 +47,9 @@ constexpr SlotIdentity published_value_slot{GF_TABLE_THEMES, 9U};
 constexpr SlotIdentity load_image_slot{GF_TABLE_THEMES, 10U};
 constexpr SlotIdentity remove_image_slot{GF_TABLE_THEMES, 11U};
 constexpr SlotIdentity load_pixels_slot{GF_TABLE_THEMES, 12U};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 constexpr SlotIdentity load_sheet_slot{GF_TABLE_THEMES, 13U};
+#endif
 constexpr SlotIdentity set_user_theme_policy_slot{GF_TABLE_THEMES, 14U};
 constexpr SlotIdentity theme_request_slot{GF_TABLE_THEMES, 15U};
 
@@ -133,6 +139,7 @@ void write_theme_report(gf_theme_outcome outcome, std::size_t findings, gf_theme
 
 namespace {
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // Whether any finding is an error (the outcome of an install).
 bool has_error(std::span<const ThemeCompileDiagnostic> findings) noexcept {
     for (const ThemeCompileDiagnostic& finding : findings) {
@@ -142,6 +149,7 @@ bool has_error(std::span<const ThemeCompileDiagnostic> findings) noexcept {
     }
     return false;
 }
+#endif
 
 // Validates a published name as Window::publish_value does.
 gf_status read_published_name(gf_utf8_view view, SlotIdentity slot, std::string_view& name) noexcept {
@@ -157,6 +165,10 @@ gf_status read_published_name(gf_utf8_view view, SlotIdentity slot, std::string_
     return GF_STATUS_OK;
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// load, load_sheet and install: not compiled in a high-integrity build
+// (cmake/HighIntegrity.cmake), whose table has null slots there; a program
+// has the themes it embedded.
 // Compiles `made` and, when it compiles, makes it the theme: load's and
 // load_sheet's common path, entered on the UI thread by the caller's slot.
 gf_status load_made_package(const ThemePackage& made, SlotIdentity slot, gf_theme_report* report) {
@@ -228,6 +240,7 @@ gf_status themes_load_sheet_body(gf_utf8_view sheet, gf_utf8_view name, gf_theme
 gf_status GF_CALL themes_load_sheet(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report) noexcept {
     return call_slot(load_sheet_slot, themes_load_sheet_body, sheet, name, report);
 }
+#endif
 
 gf_status themes_reset_body() {
     const gf_status entered = registry().enter_ui(reset_slot, true);
@@ -248,6 +261,7 @@ gf_status GF_CALL themes_reset() noexcept {
     return call_slot(reset_slot, themes_reset_body);
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 gf_status themes_install_body(const gf_theme_package* package, gf_theme_report* report) {
     const gf_status checked = check_record(report, install_slot);
     if (checked != GF_STATUS_OK) {
@@ -274,6 +288,7 @@ gf_status themes_install_body(const gf_theme_package* package, gf_theme_report* 
 gf_status GF_CALL themes_install(const gf_theme_package* package, gf_theme_report* report) noexcept {
     return call_slot(install_slot, themes_install_body, package, report);
 }
+#endif
 
 gf_status themes_remove_body(gf_utf8_view name, std::uint32_t* removed) {
     if (removed == nullptr) {
@@ -684,9 +699,15 @@ gf_status GF_CALL themes_theme_request(gf_theme_request_outcome* outcome) noexce
 constexpr gf_themes_table table{
     .struct_size = sizeof(gf_themes_table),
     .abi_minor = GF_ABI_MINOR,
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    .load = nullptr,
+    .reset = &themes_reset,
+    .install = nullptr,
+#else
     .load = &themes_load,
     .reset = &themes_reset,
     .install = &themes_install,
+#endif
     .remove = &themes_remove,
     .diagnostic_at = &themes_diagnostic_at,
     .diagnostic_text = &themes_diagnostic_text,
@@ -697,7 +718,11 @@ constexpr gf_themes_table table{
     .load_image = &themes_load_image,
     .remove_image = &themes_remove_image,
     .load_pixels = &themes_load_pixels,
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    .load_sheet = nullptr,
+#else
     .load_sheet = &themes_load_sheet,
+#endif
     .set_user_theme_policy = &themes_set_user_theme_policy,
     .theme_request = &themes_theme_request,
 };

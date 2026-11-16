@@ -1,0 +1,7 @@
+{
+  "format": "gui-forms-theme/1",
+  "name": "high-integrity-example",
+  "version": "1.0.0",
+  "engine": ">=0.3",
+  "sheet": {"path": "high_integrity_example.theme.css", "sha256": "b98f90067ad1fc1866c39c03be2435d3584b0b1604a7e560dd7e01ccf2702ca4"}
+}

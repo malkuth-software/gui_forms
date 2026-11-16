@@ -375,6 +375,11 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
         }
         (*resources).set_theme(compiled.theme());
     }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build (cmake/HighIntegrity.cmake) reads no theme
+    // from its arguments or environment: the program's embedded themes are
+    // the only ones it starts with.
+
     // The theme the process was started with (--theme,
     // GUI_FORMS_THEME_SHEET), held for the first window, which settles it
     // once the program has chosen its policy and its own user theme. The
@@ -394,6 +399,7 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
         request_context.controls = std::move(storage);
     }
     hold_process_theme_request(*resources, std::move(request_context));
+#endif
     const PresentationSettings presentation = config.presentation.value_or(PresentationSettings{});
     std::unique_ptr<Application> application(new Application(std::move(resources), presentation));
     Application* expected = nullptr;

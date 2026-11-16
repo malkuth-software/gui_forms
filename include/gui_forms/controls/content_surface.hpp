@@ -2,10 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/content/frame_sink/content_frame_sink.hpp"
-#include "gui_forms/build_profile/build_profile.hpp"
-#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 #include "gui_forms/content/hosted/hosted_content.hpp"
-#endif
 #include "gui_forms/content/operation/content_operation.hpp"
 #include "gui_forms/content/types/content_types.hpp"
 #include "gui_forms/content/watchdog/content_watchdog.hpp"
@@ -111,11 +108,6 @@ public:
     // first. Null program is std::invalid_argument; a thread the system
     // refuses is std::system_error (the channel is closed again).
     void start_program(std::unique_ptr<ContentProgram> program, bool opaque);
-    // Hosted content is not compiled in a high-integrity build
-    // (GUI_FORMS_HIGH_INTEGRITY, cmake/HighIntegrity.cmake): the surface runs
-    // in-process programs only and forwards no input.
-#if !defined(GUI_FORMS_HIGH_INTEGRITY)
-
     // Makes a hosted program (make_hosted_content), starts it as
     // start_program does, and forwards the surface's input to its process
     // (the class comment). Returns the input channel, which the surface also
@@ -125,7 +117,6 @@ public:
     // dropped) without hosted content.
     [[nodiscard]] const HostedInput& hosted_input() const& noexcept { return hosted_input_; }
     const HostedInput& hosted_input() const&& = delete;
-#endif
     // Whether a program the surface started has not yet been reaped
     // (finished, failed or abandoned).
     [[nodiscard]] bool program_running() const noexcept { return worker_ != nullptr; }
@@ -269,12 +260,10 @@ private:
     // Registers the surface (or, without one, an empty placeholder) with the
     // window's live-surface presenter.
     void register_presentation();
-#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // Forwards a pointer event the surface's raisers left unhandled.
     void forward_pointer(MouseEventArgs& arguments);
     // Forwards a key the surface's raisers left unhandled.
     void forward_key(KeyEventArgs& arguments, KeyAction action);
-#endif
     // Whether the veil is drawn for the current status.
     [[nodiscard]] bool veiled() const noexcept;
     // Where the status caption is written in `font`: inset from the top
@@ -303,11 +292,9 @@ private:
     // Indexed by ContentSurfaceStatus.
     std::array<std::string, 8> captions_{};
     bool opaque_{};
-#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // The hosted program's input channel while the surface forwards to one.
     HostedInput hosted_input_{};
     bool forwarding_{};
-#endif
     Event<ContentSurfaceStatus> status_changed_;
 };
 
