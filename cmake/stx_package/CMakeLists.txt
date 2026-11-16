@@ -51,8 +51,9 @@ find_package(Threads REQUIRED)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 # As in GUI.Forms' CMakeLists.txt: Windows executables link their runtimes
-# statically (the package builds none today).
-if(WIN32 AND NOT MSVC)
+# statically (the package builds none today). The MSVC target links its
+# runtimes as DLLs.
+if(MINGW)
     add_link_options(-static)
 endif()
 
