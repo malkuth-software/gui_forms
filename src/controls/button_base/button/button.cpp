@@ -156,7 +156,7 @@ AnatomyStateSet Button::anatomy_states() const {
 ButtonBase::FaceLayer Button::face_layer() const noexcept {
     FaceLayer layer{};
     if (!danger.read()) return layer;
-    layer.state = danger_state;
+    layer.state.set(danger_state);
     layer.level = danger_level_;
     layer.leading_mark = PartMark::warning;
     return layer;

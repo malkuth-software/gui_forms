@@ -16,6 +16,8 @@
 #include <string>
 #include <string_view>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class Command;
@@ -138,8 +140,8 @@ protected:
     // applied only when painting.
     struct GUI_FORMS_API ContentLayout final {
         // None when the button shows no text, or no image.
-        std::optional<Rect> text{};
-        std::optional<Rect> image{};
+        stxlib::Optional<Rect> text{};
+        stxlib::Optional<Rect> image{};
         double line_height{};
     };
 
@@ -198,7 +200,7 @@ protected:
     //   and content_box make room for it. It is the state's cue that does
     //   not rest on colour.
     struct GUI_FORMS_API FaceLayer final {
-        std::optional<CustomStateIndex> state{};
+        stxlib::Optional<CustomStateIndex> state{};
         double level{1.0};
         PartMark leading_mark{PartMark::none};
     };

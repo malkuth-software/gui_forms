@@ -599,26 +599,26 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
                                                : group.x + text_size.width + gap;
             const double text_x = image_first ? group.x + image_size.width + gap
                                               : group.x;
-            layout.image = Rect{image_x,
-                                group.y + (group.height - image_size.height) * 0.5,
-                                image_size.width, image_size.height};
-            layout.text = Rect{text_x,
-                               group.y + (group.height - text_size.height) * 0.5,
-                               text_size.width, text_size.height};
+            layout.image.set(Rect{image_x,
+                                   group.y + (group.height - image_size.height) * 0.5,
+                                   image_size.width, image_size.height});
+            layout.text.set(Rect{text_x,
+                                  group.y + (group.height - text_size.height) * 0.5,
+                                  text_size.width, text_size.height});
         } else {
             const bool image_first = relation == TextImageRelation::image_above_text;
             const double image_y = image_first ? group.y
                                                : group.y + text_size.height + gap;
             const double text_y = image_first ? group.y + image_size.height + gap
                                               : group.y;
-            layout.image = Rect{group.x + (group.width - image_size.width) * 0.5,
-                                image_y, image_size.width, image_size.height};
-            layout.text = Rect{group.x + (group.width - text_size.width) * 0.5,
-                               text_y, text_size.width, text_size.height};
+            layout.image.set(Rect{group.x + (group.width - image_size.width) * 0.5,
+                                   image_y, image_size.width, image_size.height});
+            layout.text.set(Rect{group.x + (group.width - text_size.width) * 0.5,
+                                  text_y, text_size.width, text_size.height});
         }
     } else {
-        if (has_image) layout.image = aligned_rect(content, image_size, placed_image_alignment);
-        if (has_text) layout.text = aligned_text_block(content, text_size, group_alignment);
+        if (has_image) layout.image.set(aligned_rect(content, image_size, placed_image_alignment));
+        if (has_text) layout.text.set(aligned_text_block(content, text_size, group_alignment));
     }
     return layout;
 }
@@ -665,7 +665,7 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
     const Rect text_rect = layout.text.value_or(Rect{});
     const double line_height = layout.line_height;
 
-    if (layout.image.has_value() && !image_rect.empty()) {
+    if (layout.image.present() && !image_rect.empty()) {
         const ImageListResolution image = resolved_button_image(selected);
         // The icon role dims a disabled button's image; an image list's own
         // disabled image is already the disabled look, so it is drawn as
@@ -679,7 +679,7 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
         if (!effectively_enabled()) icon.states.insert(AnatomyState::disabled);
         paint_part(painter, *this, icon);
     }
-    if (layout.text.has_value() && !text_rect.empty()) {
+    if (layout.text.present() && !text_rect.empty()) {
         // Each line within the block, aligned as layout_content placed the
         // block (mirrored under RightToLeft).
         const ContentAlignment authored_alignment = text_alignment.read();
@@ -776,11 +776,11 @@ ButtonBase::Parts ButtonBase::push_button_parts(bool selected,
     Parts record;
     record.region = PartGeometry::from_bounds(bounds);
     record.face = PartGeometry::from_bounds(bounds);
-    if (layout.image.has_value()) {
-        record.icon = PartGeometry::from_bounds(*layout.image);
+    if (layout.image.present()) {
+        record.icon = PartGeometry::from_bounds(*layout.image.value());
     }
-    if (layout.text.has_value()) {
-        record.label = PartGeometry::from_bounds(*layout.text);
+    if (layout.text.present()) {
+        record.label = PartGeometry::from_bounds(*layout.text.value());
     }
     // A cue part publishes the face it marks. Where the ring is stroked
     // relative to it is a theme recipe parameter until the engine (T2)
@@ -860,7 +860,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     const FaceLayer layer = face_layer();
     // Drawn by the program's own recipes or joined, the face takes no
     // layer, but the cues and content still take its state.
-    if (!engine_drawn && layer.state) states.insert(*layer.state);
+    if (!engine_drawn && layer.state.present()) states.insert(*layer.state.value());
     if (engine_drawn) {
         PartPaint face;
         face.family = role;
@@ -873,11 +873,11 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
             face.authored_foreground.set((*authored).text);
         }
         paint_part(painter, *this, face);
-        if (layer.state) {
+        if (layer.state.present()) {
             // The face in the layer's state over the plain face, at the
             // layer's level, bounded by the face; it keeps its own record
             // so that the plain face's transitions stay.
-            states.insert(*layer.state);
+            states.insert(*layer.state.value());
             PartPaint lit = face;
             lit.states = states;
             lit.key.set(PartKey{"face", "layer", {}});
@@ -988,7 +988,7 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     // A flat button draws no face to light; its content and mark still
     // take the layer's state.
     const FaceLayer layer = face_layer();
-    if (layer.state) content_ink.states.insert(*layer.state);
+    if (layer.state.present()) content_ink.states.insert(*layer.state.value());
     paint_leading_mark(painter, bounds, layer.leading_mark, false, ControlVisualRole::button, content_ink.states,
                        Point{});
     const std::string display = display_text();
