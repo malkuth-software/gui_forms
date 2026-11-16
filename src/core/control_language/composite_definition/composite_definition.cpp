@@ -158,26 +158,32 @@ BindingValueKind binding_kind_of(const ControlPropertyKind kind) noexcept {
     }
 }
 
-// `#rrggbb` or `#rrggbbaa`; none otherwise.
+// A hex digit's value, or 16 when character is not one.
+std::uint32_t hex_nibble(const char character) noexcept {
+    if (character >= '0' && character <= '9') return static_cast<std::uint32_t>(character - '0');
+    if (character >= 'a' && character <= 'f') return static_cast<std::uint32_t>(character - 'a') + 10U;
+    if (character >= 'A' && character <= 'F') return static_cast<std::uint32_t>(character - 'A') + 10U;
+    return 16U;
+}
+
+// `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa`, the forms the model's checker
+// admits (A-gf-core-03-F3); none otherwise. A short form's digit d stands
+// for the channel dd, as in CSS.
 std::optional<Color> color_of(const std::string_view text) noexcept {
-    if ((text.size() != 7U && text.size() != 9U) || text.front() != '#') return std::nullopt;
+    if (text.empty() || text.front() != '#') return std::nullopt;
+    const std::size_t digits = text.size() - 1U;
+    if (digits != 3U && digits != 4U && digits != 6U && digits != 8U) return std::nullopt;
+    const std::size_t per_channel = digits <= 4U ? 1U : 2U;
+    const std::size_t channel_count = digits / per_channel;
     std::array<std::uint8_t, 4> channels{0U, 0U, 0U, 255U};
-    for (std::size_t channel = 0U; channel * 2U + 1U < text.size(); ++channel) {
+    for (std::size_t channel = 0U; channel < channel_count; ++channel) {
         std::uint32_t value = 0U;
-        for (std::size_t digit = 0U; digit < 2U; ++digit) {
-            const char character = text[1U + channel * 2U + digit];
-            std::uint32_t nibble = 0U;
-            if (character >= '0' && character <= '9') {
-                nibble = static_cast<std::uint32_t>(character - '0');
-            } else if (character >= 'a' && character <= 'f') {
-                nibble = static_cast<std::uint32_t>(character - 'a') + 10U;
-            } else if (character >= 'A' && character <= 'F') {
-                nibble = static_cast<std::uint32_t>(character - 'A') + 10U;
-            } else {
-                return std::nullopt;
-            }
+        for (std::size_t digit = 0U; digit < per_channel; ++digit) {
+            const std::uint32_t nibble = hex_nibble(text[1U + channel * per_channel + digit]);
+            if (nibble > 15U) return std::nullopt;
             value = value * 16U + nibble;
         }
+        if (per_channel == 1U) value = value * 17U;
         channels[channel] = static_cast<std::uint8_t>(value);
     }
     const Color color{channels[0], channels[1], channels[2], channels[3]};
@@ -260,6 +266,15 @@ BindingValue initial_value(const ControlProperty& property, const ControlPropert
         if (numbers.size() == 1U) {
             const double all = number_of(numbers[0]);
             insets = Insets{all, all, all, all};
+        } else if (numbers.size() == 2U) {
+            // Two numbers are vertical then horizontal, as CSS writes them
+            // (A-gf-core-03-F3: the model's checker admits this form).
+            const double vertical = number_of(numbers[0]);
+            const double horizontal = number_of(numbers[1]);
+            insets.top = vertical;
+            insets.bottom = vertical;
+            insets.left = horizontal;
+            insets.right = horizontal;
         } else if (numbers.size() == 4U) {
             // A form writes insets top right bottom left, as CSS does.
             insets.top = number_of(numbers[0]);
