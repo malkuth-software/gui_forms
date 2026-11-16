@@ -35,6 +35,7 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -868,6 +869,20 @@ void test_text_compares_ignoring_case_by_code_point() {
                 compare_binding_keys(std::uint64_t{18446744073709551615ULL}, std::int64_t{-1}) > 0 &&
                 compare_binding_keys(BindingValue{}, std::int64_t{0}) < 0,
             "keys compare text ignoring case and numbers across their kinds");
+    // A-gf-core-01-F7: an integer against a double is exact above 2^53, so
+    // equivalence stays transitive (the sort's strict weak order).
+    const std::int64_t above = 9007199254740993LL;
+    const double near = 9007199254740992.0;
+    require(compare_binding_keys(above, near) > 0 && compare_binding_keys(near, above) < 0 &&
+                compare_binding_keys(std::int64_t{9007199254740992LL}, near) == 0 &&
+                compare_binding_keys(std::uint64_t{18446744073709551615ULL}, 18446744073709551616.0) < 0 &&
+                compare_binding_keys(std::int64_t{-9223372036854775807LL - 1LL}, -9223372036854775808.0) == 0 &&
+                compare_binding_keys(std::int64_t{-9223372036854775807LL - 1LL}, -9223372036854777856.0) > 0 &&
+                compare_binding_keys(std::int64_t{-1}, -0.5) < 0 && compare_binding_keys(std::int64_t{0}, -0.5) > 0 &&
+                compare_binding_keys(std::int64_t{0}, -0.0) == 0 &&
+                compare_binding_keys(std::int64_t{0}, std::numeric_limits<double>::infinity()) < 0 &&
+                compare_binding_keys(std::int64_t{0}, -std::numeric_limits<double>::infinity()) > 0,
+            "integers and doubles compare exactly at every magnitude");
 }
 
 // ---------------------------------------------------------------------------
