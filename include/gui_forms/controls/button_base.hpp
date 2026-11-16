@@ -38,7 +38,7 @@ public:
 
     [[nodiscard]] const BasicControlStyle& style() const noexcept;
     [[nodiscard]] bool has_style_override() const noexcept {
-        return style_override_.has_value();
+        return style_override_.present();
     }
     void set_style(BasicControlStyle style);
     void clear_style();
@@ -216,7 +216,7 @@ protected:
                              ControlVisualRole role, bool default_cue,
                              bool command_alignment = false,
                              bool selected = false,
-                             std::optional<AuthoredButtonColours> authored = {}) const;
+                             stxlib::Optional<AuthoredButtonColours> authored = {}) const;
     // A flat button (WinForms FlatStyle.Flat): the style override's face
     // (else none: the parent shows), a light veil while hot or pressed, a
     // border `border_width` logical pixels wide in the override's text
@@ -248,7 +248,7 @@ private:
     void paint_leading_mark(Painter& painter, Rect face, PartMark mark, bool command_alignment,
                             ControlVisualRole family, AnatomyStateSet states, Point offset) const;
 
-    std::optional<BasicControlStyle> style_override_;
+    stxlib::Optional<BasicControlStyle> style_override_;
     std::optional<ControlStateRecipes> visual_recipes_override_;
     std::optional<ConnectedControlTopology> connection_topology_;
     ImageId image_{};

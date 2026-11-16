@@ -231,20 +231,23 @@ bool ButtonBase::should_serialize_image() const noexcept {
 
 void ButtonBase::set_style(BasicControlStyle style) {
     require_mutable();
-    if (style_override_ && *style_override_ == style) {
+    const BasicControlStyle* const current = style_override_.value();
+    if (current != nullptr && *current == style) {
         return;
     }
-    style_override_ = std::move(style);
+    style_override_.set(style);
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
 const BasicControlStyle& ButtonBase::style() const noexcept {
-    return style_override_ ? *style_override_ : effective_theme().basic_style();
+    const BasicControlStyle* const own = style_override_.value();
+    if (own != nullptr) return *own;
+    return effective_theme().basic_style();
 }
 
 void ButtonBase::clear_style() {
     require_mutable();
-    if (!style_override_) return;
+    if (style_override_.absent()) return;
     style_override_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -834,7 +837,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
                                      bool default_cue,
                                      bool command_alignment,
                                      bool selected,
-                                     std::optional<AuthoredButtonColours> authored) const {
+                                     stxlib::Optional<AuthoredButtonColours> authored) const {
     const ControlVisualContext context = visual_context({.hovered = hovered_, .pressed = pressed_visual(), .selected = selected, .focused = focus_cue_visible(), .defaulted = default_cue});
     const ControlVisualRecipe& recipe = resolve_visual_recipe(role, context);
     const Rect visual_bounds{
@@ -843,8 +846,9 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         bounds.width,
         bounds.height,
     };
-    if (style_override_ && !authored) {
-        authored = AuthoredButtonColours{(*style_override_).face, (*style_override_).text};
+    const BasicControlStyle* const own = style_override_.value();
+    if (own != nullptr && authored.absent()) {
+        authored.set(AuthoredButtonColours{(*own).face, (*own).text});
     }
     const bool engine_drawn = !visual_recipes_override_ && !connection_topology_;
     // The face, the cues and the content are parts the theme's engine draws,
@@ -868,9 +872,10 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         face.bounds = visual_bounds;
         face.states = states;
         face.key.set(PartKey{"face", {}, {}});
-        if (authored) {
-            face.authored_background.set((*authored).face);
-            face.authored_foreground.set((*authored).text);
+        const AuthoredButtonColours* const colours = authored.value();
+        if (colours != nullptr) {
+            face.authored_background.set((*colours).face);
+            face.authored_foreground.set((*colours).text);
         }
         paint_part(painter, *this, face);
         if (layer.state.present()) {
@@ -929,8 +934,9 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     ButtonContentInk ink;
     ink.family = role;
     ink.states = states;
-    if (authored) {
-        ink.authored.set((*authored).text);
+    const AuthoredButtonColours* const authored_colours = authored.value();
+    if (authored_colours != nullptr) {
+        ink.authored.set((*authored_colours).text);
     } else if (!engine_drawn) {
         ink.authored.set(recipe.text);
     }
@@ -944,16 +950,17 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     // The face: the control's own back colour, else the style override's
     // light face, else none. The ink: its fore colour, else the override's
     // text, else the theme's.
-    const bool authored = style_override_.has_value();
+    const BasicControlStyle* const override_style = style_override_.value();
+    const bool authored = override_style != nullptr;
     const BasicControlStyle& colours = style();
     const Color* own_face = back_color.read().value();
     const Color* own_ink = fore_color.read().value();
     if (own_face != nullptr) {
         painter.fill_rect(bounds, *own_face);
-    } else if (authored && (*style_override_).face_light.alpha != 0U) {
-        painter.fill_rect(bounds, (*style_override_).face_light);
+    } else if (authored && (*override_style).face_light.alpha != 0U) {
+        painter.fill_rect(bounds, (*override_style).face_light);
     }
-    const Color ink = own_ink != nullptr ? *own_ink : authored ? (*style_override_).text : colours.text;
+    const Color ink = own_ink != nullptr ? *own_ink : authored ? (*override_style).text : colours.text;
     // WinForms derives the hover and pressed faces from the face; a veil of
     // the ink stands for both (12% hot, 24% pressed).
     if (effectively_enabled() && (hovered_ || pressed_visual())) {

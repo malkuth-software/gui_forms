@@ -591,7 +591,7 @@ gui_forms::ButtonBase
 
       *Protected.*
 
-   .. cpp:function:: void paint_themed_button(Painter& painter, Rect bounds, ControlVisualRole role, bool default_cue, bool command_alignment = false, bool selected = false, std::optional<AuthoredButtonColours> authored = {}) const
+   .. cpp:function:: void paint_themed_button(Painter& painter, Rect bounds, ControlVisualRole role, bool default_cue, bool command_alignment = false, bool selected = false, stxlib::Optional<AuthoredButtonColours> authored = {}) const
 
       *Protected.*
 

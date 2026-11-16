@@ -275,14 +275,14 @@ void Button::on_paint(Painter& painter, Rect) {
     // the theme's disabled accent plate does (sweep defect D11: a disabled
     // accent kept its fill). The other styles take the override's face and
     // text.
-    std::optional<AuthoredButtonColours> authored{};
+    stxlib::Optional<AuthoredButtonColours> authored{};
     if (has_style_override()) {
         const BasicControlStyle& colours = style();
         const bool accent = visual_style.read() == ButtonVisualStyle::accent && effectively_enabled();
         const bool flat = visual_style.read() == ButtonVisualStyle::flat;
         const Color face = accent ? colours.accent : flat ? colours.face_light : colours.face;
         const Color text = accent ? colours.paper : colours.text;
-        authored = AuthoredButtonColours{face, text};
+        authored.set(AuthoredButtonColours{face, text});
     }
     paint_themed_button(painter, bounds, role, default_button.read(),
                         visual_style.read() == ButtonVisualStyle::command,
