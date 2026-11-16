@@ -3848,6 +3848,12 @@ Enumerations
 
    .. cpp:enumerator:: open_url
 
+   .. cpp:enumerator:: direct_buffers
+
+   .. cpp:enumerator:: host_scroll
+
+   .. cpp:enumerator:: reference_presentation
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostCloseReason
@@ -4636,6 +4642,10 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms::host
 
 ``#include <gui_forms/platform/windows_host.hpp>``
+
+.. cpp:function:: void accept_automation_environment() noexcept
+
+   Development opt-in, Windows only: after this call, a later run_windows_application (and so Application::run) honours GUI_FORMS_WINDOWS_AUTOMATION=1 in the process environment by turning on the automation channel (automation_enabled) in every window. Without the call the variable is ignored, and a build configured without GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT ignores it even after the call. It is for test probes that run through the portable Application API, whose options cannot ask for automation; a shipped program does not call it. Process-wide, callable from any thread, and never withdrawn.
 
 .. cpp:function:: HostCapabilities windows_capabilities()
 

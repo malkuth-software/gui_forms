@@ -57,6 +57,9 @@ whole record for logs.
 | `raw_pointer_motion` | unaccelerated deltas where asked (C: `GF_HOST_CAPABILITY_RAW_POINTER_MOTION`) | no (AppKit's deltas are accelerated) | not yet | yes, with XI 2 |
 | `pointer_confinement` | the pointer kept inside a rectangle, or held still and hidden (C: `GF_HOST_CAPABILITY_POINTER_CONFINEMENT`) | yes (warped back; locked disassociates) | not yet | yes (a confined grab) |
 | `pointer_warp` | the pointer moved by request (`HostServices::warp_pointer`; C: `GF_HOST_CAPABILITY_POINTER_WARP`) | yes | not yet | yes |
+| `direct_buffers` | frames written with CPU pixels into buffers the window system gives, possibly GPU-backed and treated as a blind interface, with the copy path as the fallback on any refusal or loss ([Presentation](presentation.md); C: `GF_HOST_CAPABILITY_DIRECT_BUFFERS`) | with `GUI_FORMS_PRESENT=direct` (IOSurface) | not yet | with `GUI_FORMS_PRESENT=direct` and libXpresent (Present with MIT-SHM pixmaps) |
+| `host_scroll` | a scroll copy moves the pixels already presented and only the exposed band is copied (C: `GF_HOST_CAPABILITY_HOST_SCROLL`) | no | not yet | with `GUI_FORMS_PRESENT=scroll` (`XCopyArea`, while a compositing manager runs) |
+| `reference_presentation` | the host is GUI.Forms' own window manager, the reference behaviour for the others (C: `GF_HOST_CAPABILITY_REFERENCE_PRESENTATION`) | no | no | no |
 
 The table reflects the bits each adapter currently advertises; read
 `Application::capabilities()` rather than this page in code.

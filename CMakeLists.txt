@@ -723,6 +723,9 @@ add_library(gui_forms_core STATIC
     src/core/host/types/host_services_snapshot/host_services_snapshot.cpp
     src/core/host/types/host_session_snapshot/host_session_snapshot.cpp
     src/core/host/services/host_services.cpp
+    src/core/host/presentation/presentation_geometry.cpp
+    src/core/host/presentation/presentation_trace.cpp
+    src/core/host/presentation/presentation_shim.cpp
     src/core/host/cursor_interaction/cursor_interaction.cpp
     src/core/types/cursor_image/cursor_image.cpp
     src/core/host/session/host_session.cpp
@@ -4932,6 +4935,13 @@ if(GUI_FORMS_BUILD_TESTS)
     target_include_directories(gui_forms_surface_desk_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(gui_forms_surface_desk_tests PRIVATE gui_forms_core Threads::Threads)
     add_test(NAME gui_forms_surface_desk_tests COMMAND gui_forms_surface_desk_tests)
+    # The presentation shim (docs/user/presentation.md): geometry, the
+    # normative trace order, and both paths with fallback over in-memory
+    # fakes. Plain C++, tested on every platform.
+    add_executable(gui_forms_presentation_shim_tests tests/presentation_shim_tests.cpp)
+    target_include_directories(gui_forms_presentation_shim_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(gui_forms_presentation_shim_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_presentation_shim_tests COMMAND gui_forms_presentation_shim_tests)
     add_executable(gui_forms_web_host_rules_tests
         tests/web_host_rules_tests.cpp
         src/host/web/application/web_dialog_rules.cpp

@@ -82,8 +82,10 @@ extern "C" {
  * windows.show_business_card, diagnostics.set_diagnostic_overlay and
  * toggle_diagnostic_overlay), relative pointer mode (the gf_controls_table
  * slots marked since 1.5 and the host capabilities RELATIVE_POINTER to
- * POINTER_WARP) and application font families (gf_app_font_face and the
- * fonts table's load_family and unload_family), additions only. */
+ * POINTER_WARP), application font families (gf_app_font_face and the
+ * fonts table's load_family and unload_family) and the presentation shim's
+ * host capabilities (DIRECT_BUFFERS, HOST_SCROLL and
+ * REFERENCE_PRESENTATION), additions only. */
 #define GF_ABI_MAJOR 1u
 #define GF_ABI_MINOR 5u
 
@@ -1953,6 +1955,17 @@ typedef uint64_t gf_host_capability;
  * in the user's own browser or mail program; the business card's website
  * opens through it. Windows, macOS and X11. */
 #define GF_HOST_CAPABILITY_OPEN_URL 2199023255552ull
+/* Since 1.5: the presentation shim, reserved before the seal.
+ * DIRECT_BUFFERS: frames are written with CPU pixels into buffers the
+ * window system gives (possibly GPU-backed, treated as a blind interface),
+ * falling back to the host's copy on any refusal or loss. HOST_SCROLL: a
+ * scroll moves the pixels already presented and only the exposed band is
+ * copied. REFERENCE_PRESENTATION: the host is GUI.Forms' own window
+ * manager, the reference behaviour for the others. Each is reported only
+ * where the host implements it and its presentation policy selects it. */
+#define GF_HOST_CAPABILITY_DIRECT_BUFFERS 8796093022208ull
+#define GF_HOST_CAPABILITY_HOST_SCROLL 17592186044416ull
+#define GF_HOST_CAPABILITY_REFERENCE_PRESENTATION 35184372088832ull
 
 /* gf_window_corner_shape (since 1.1): the corner shapes a host may give a
  * window, one bit each. A window's corners at a given moment follow its

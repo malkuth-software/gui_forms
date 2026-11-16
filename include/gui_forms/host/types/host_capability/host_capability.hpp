@@ -125,6 +125,25 @@ enum class HostCapability : std::uint64_t {
     // (ShellExecuteW), macOS (NSWorkspace) and X11 (xdg-open, found when
     // the address is opened). Additive flag; no protocol version change.
     open_url = 1ULL << 42U,
+    // The presentation shim (owner, 2026-11-16; docs/user/presentation.md),
+    // reserved in fold order before the C ABI seal. Each is reported only
+    // where the adapter implements it and its presentation policy selects
+    // it (GUI_FORMS_PRESENT=direct while the direct paths are verified).
+    // Additive flags; no protocol version change.
+    // direct_buffers: frames are written blind, with CPU pixels, into
+    // buffers the window system gives (possibly GPU-backed: an IOSurface,
+    // an X11 Present pixmap, a wl_shm buffer), never through a GPU API of
+    // the program's own; any refusal or loss falls back to the copy path
+    // with the same pixels.
+    direct_buffers = 1ULL << 43U,
+    // host_scroll: a scroll copy (SurfaceRoot::request_scroll_copy) moves
+    // the pixels already presented in the window system's storage, and only
+    // the band it exposed is copied.
+    host_scroll = 1ULL << 44U,
+    // reference_presentation: the host is GUI.Forms' own window manager
+    // (src/host/surface/), whose presentation is the reference behaviour
+    // the platform paths' traces are compared against.
+    reference_presentation = 1ULL << 45U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

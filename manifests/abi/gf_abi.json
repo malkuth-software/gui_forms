@@ -1307,6 +1307,21 @@
       "type": "uint64"
     },
     {
+      "name": "GF_HOST_CAPABILITY_DIRECT_BUFFERS",
+      "value": 8796093022208,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_HOST_SCROLL",
+      "value": 17592186044416,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_REFERENCE_PRESENTATION",
+      "value": 35184372088832,
+      "type": "uint64"
+    },
+    {
       "name": "GF_WINDOW_CORNER_SHAPE_SQUARE",
       "value": 1,
       "type": "uint32"
