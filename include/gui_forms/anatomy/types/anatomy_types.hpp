@@ -4,6 +4,8 @@
 #include "gui_forms/schema/types/schema_types.hpp"
 #include "gui_forms/types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -376,12 +378,12 @@ struct GUI_FORMS_API PartGeometry final {
     std::optional<AccentIndex> accent{};
     // The colour the part shows as its content, or none: a colour swatch's
     // sample (PartPaint::content_color; owner decision W-7).
-    std::optional<Color> content_color{};
+    stxlib::Optional<Color> content_color{};
     // The colours the application authored for the part, or none
     // (PartPaint::authored_background and authored_foreground; owner
     // decision T4-1).
-    std::optional<Color> authored_background{};
-    std::optional<Color> authored_foreground{};
+    stxlib::Optional<Color> authored_background{};
+    stxlib::Optional<Color> authored_foreground{};
 
     // A part that is present exactly when `bounds` is not empty.
     [[nodiscard]] static constexpr PartGeometry from_bounds(Rect bounds) noexcept {

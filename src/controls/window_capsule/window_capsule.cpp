@@ -186,7 +186,7 @@ void WindowCapsule::on_paint(Painter& painter, Rect local_damage) {
     face.family = ControlVisualRole::button;
     face.bounds = whole;
     face.corner_radius = radius;
-    face.authored_background = colors_.face;
+    face.authored_background.set(colors_.face);
     if (look_.hovered != WindowCapsuleSection::none) face.states.insert(AnatomyState::hot);
     if (look_.pressed != WindowCapsuleSection::none) face.states.insert(AnatomyState::pressed);
     paint_part(painter, *this, face);
@@ -197,7 +197,7 @@ void WindowCapsule::on_paint(Painter& painter, Rect local_damage) {
     fill.corner_radius = radius;
     if (whole_x) {
         fill.bounds = whole;
-        fill.content_color = mixed_color(colors_.ready, colors_.close, morph, 1.0);
+        fill.content_color.set(mixed_color(colors_.ready, colors_.close, morph, 1.0));
         paint_part(painter, *this, fill);
     } else {
         const Rect left_fill{0.0, 0.0, left.width + radius, whole.height};
@@ -207,14 +207,14 @@ void WindowCapsule::on_paint(Painter& painter, Rect local_damage) {
         // left half as it nears its distance.
         if (left_armed || right_armed) {
             fill.bounds = left_armed ? left_fill : right_fill;
-            fill.content_color = mixed_color(colors_.face, colors_.close, 0.6, invite);
+            fill.content_color.set(mixed_color(colors_.face, colors_.close, 0.6, invite));
             paint_part(painter, *this, fill);
             fill.bounds = left_armed ? right_fill : left_fill;
-            fill.content_color = mixed_color(colors_.ready, colors_.ready, 0.0, invite);
+            fill.content_color.set(mixed_color(colors_.ready, colors_.ready, 0.0, invite));
             paint_part(painter, *this, fill);
         } else if (look_.minimize_offset > 0.0 && minimize_distance > 0.0) {
             fill.bounds = left_fill;
-            fill.content_color = mixed_color(colors_.ready, colors_.ready, 0.0, look_.minimize_offset / minimize_distance);
+            fill.content_color.set(mixed_color(colors_.ready, colors_.ready, 0.0, look_.minimize_offset / minimize_distance));
             paint_part(painter, *this, fill);
         }
         PartPaint question;
@@ -223,7 +223,7 @@ void WindowCapsule::on_paint(Painter& painter, Rect local_damage) {
         question.bounds = middle;
         question.corner_radius = 0.0;
         question.frame = PartFrame::none;
-        question.authored_background = colors_.face;
+        question.authored_background.set(colors_.face);
         if (look_.hovered == WindowCapsuleSection::help) question.states.insert(AnatomyState::hot);
         paint_part(painter, *this, question);
         PartPaint mark_text;
@@ -233,14 +233,14 @@ void WindowCapsule::on_paint(Painter& painter, Rect local_damage) {
         mark_text.text = lend_paint_text("?");
         mark_text.font = FontSpec{FontRole::control, 13, 700, false};
         mark_text.alignment = PartTextAlignment::center;
-        mark_text.authored_foreground = colors_.glyph;
+        mark_text.authored_foreground.set(colors_.glyph);
         paint_part(painter, *this, mark_text);
     }
 
     PartPaint glyph;
     glyph.role = PartRole::glyph;
     glyph.family = ControlVisualRole::button;
-    glyph.authored_foreground = colors_.glyph;
+    glyph.authored_foreground.set(colors_.glyph);
     if (whole_x) {
         glyph.bounds = mark_box(whole, 0.6);
         glyph.mark = PartMark::close;

@@ -466,7 +466,7 @@ void VisualInspectorOverlay::paint_outline(Painter& painter, Rect bounds, Color 
     PartPaint side;
     side.family = ControlVisualRole::panel;
     side.role = PartRole::fill;
-    side.content_color = colour;
+    side.content_color.set(colour);
     for (const Rect& edge : sides) {
         side.bounds = edge;
         paint_part(painter, *this, side);

@@ -869,8 +869,8 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         face.states = states;
         face.key = PartKey{"face", {}, {}};
         if (authored) {
-            face.authored_background = (*authored).face;
-            face.authored_foreground = (*authored).text;
+            face.authored_background.set((*authored).face);
+            face.authored_foreground.set((*authored).text);
         }
         paint_part(painter, *this, face);
         if (layer.state) {
@@ -930,9 +930,9 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     ink.family = role;
     ink.states = states;
     if (authored) {
-        ink.authored = (*authored).text;
+        ink.authored.set((*authored).text);
     } else if (!engine_drawn) {
-        ink.authored = recipe.text;
+        ink.authored.set(recipe.text);
     }
     paint_leading_mark(painter, visual_bounds, layer.leading_mark, command_alignment, role, states, offset);
     const std::string display = display_text();
@@ -984,7 +984,7 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     ButtonContentInk content_ink;
     content_ink.family = ControlVisualRole::button;
     content_ink.states = states;
-    if (own_ink || authored) content_ink.authored = ink;
+    if (own_ink || authored) content_ink.authored.set(ink);
     // A flat button draws no face to light; its content and mark still
     // take the layer's state.
     const FaceLayer layer = face_layer();

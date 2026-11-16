@@ -166,7 +166,7 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
     label.text = lend_paint_text(display);
     label.font = text_font;
     label.bounds = {2.0, baseline - box_ascent, std::max(measured.width, bounds.width - 2.0), box_height};
-    label.authored_foreground = foreground;
+    label.authored_foreground.set(foreground);
     paint_part(painter, *this, label);
     PartPaint underline;
     underline.role = PartRole::glyph;
@@ -174,7 +174,7 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
     underline.mark = PartMark::underline;
     underline.states = states;
     underline.bounds = {2.0, baseline + 1.5, underline_width(), 1.0};
-    underline.authored_foreground = foreground;
+    underline.authored_foreground.set(foreground);
     paint_part(painter, *this, underline);
     if (focus_cue_visible()) {
         PartPaint ring;

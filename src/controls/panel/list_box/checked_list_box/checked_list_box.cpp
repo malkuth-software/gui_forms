@@ -201,7 +201,7 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
     const ControlVisualContext context = part_visual_context(*this, states);
     const double theme_radius = effective_theme().resolve(ControlVisualRole::choice, context).material.corner_radius;
     well.corner_radius = std::min(2.0, theme_radius);
-    if (has_style_override()) well.authored_background = selected && focused ? style().highlight : style().paper;
+    if (has_style_override()) well.authored_background.set(selected && focused ? style().highlight : style().paper);
     paint_part(painter, *this, well);
     const CheckState state = check_states_[index];
     if (state == CheckState::unchecked) return;
@@ -209,7 +209,7 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
     mark.family = ControlVisualRole::choice;
     mark.role = PartRole::indicator;
     mark.states = states;
-    if (has_style_override()) mark.authored_foreground = style().accent;
+    if (has_style_override()) mark.authored_foreground.set(style().accent);
     if (state == CheckState::checked) {
         mark.mark = PartMark::check;
         mark.states.insert(AnatomyState::checked);

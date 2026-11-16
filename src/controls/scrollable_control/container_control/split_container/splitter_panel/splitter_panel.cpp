@@ -27,7 +27,7 @@ void SplitterPanel::on_paint(Painter& painter, Rect) {
     ground.role = PartRole::fill;
     ground.bounds = {0.0, 0.0, bounds.width, bounds.height};
     ground.corner_radius = 0.0;
-    ground.authored_background = background.read();
+    ground.authored_background.set(background.read());
     paint_part(painter, *this, ground);
 }
 

@@ -1150,7 +1150,7 @@ DataGridView::Parts DataGridView::grid_parts(const GridLayout& layout) const {
     record.well = PartGeometry::from_bounds(layout.client);
     // The background colour stands where no cell is; on_paint keeps the
     // theme's ground under the cells.
-    record.well.authored_background = platform::standard_optional(background_color.read());
+    record.well.authored_background = background_color.read();
     if (border_style.read() != BorderStyle::none) record.edge = PartGeometry::from_bounds(layout.client);
     record.column_header_band = PartGeometry::from_bounds(layout.column_header_band);
     record.row_header_band = PartGeometry::from_bounds(layout.row_header_band);
@@ -1371,8 +1371,8 @@ DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, 
     record.cell_selection.authored_background = colours.background;
     if (kind != DataGridViewColumnKind::link) record.cell_content.authored_foreground = colours.foreground;
     record.cell_button_label.authored_foreground = colours.foreground;
-    record.cell_vertical_rule.authored_foreground = platform::standard_optional(grid_color.read());
-    record.cell_horizontal_rule.authored_foreground = platform::standard_optional(grid_color.read());
+    record.cell_vertical_rule.authored_foreground = grid_color.read();
+    record.cell_horizontal_rule.authored_foreground = grid_color.read();
     return result;
 }
 
@@ -1490,11 +1490,11 @@ DataGridView::AuthoredColours DataGridView::authored_colours(const DataGridViewC
     // leaves the theme's selection look, not the unselected colour.
     AuthoredColours result;
     if (selected) {
-        result.background = style.selection_back_color;
-        result.foreground = style.selection_fore_color;
+        result.background = platform::stxlib_optional(style.selection_back_color);
+        result.foreground = platform::stxlib_optional(style.selection_fore_color);
     } else {
-        result.background = style.back_color;
-        result.foreground = style.fore_color;
+        result.background = platform::stxlib_optional(style.back_color);
+        result.foreground = platform::stxlib_optional(style.fore_color);
     }
     return result;
 }
@@ -1877,7 +1877,7 @@ void DataGridView::apply_row_paint(const DataGridViewRowPrePaintEvent& answer, D
     if (!answer.parts.background) {
         parts.selection.authored_background.reset();
     } else if (answer.background) {
-        parts.selection.authored_background = *answer.background;
+        parts.selection.authored_background.set(*answer.background);
     }
     if (!answer.parts.focus) {
         parts.focus = PartGeometry{};
@@ -2040,7 +2040,7 @@ void DataGridView::on_paint(Painter& painter, Rect) {
     // The rows' pre-paint hooks, before any row is drawn; a handler that
     // changed the grid invalidated it, and the next paint draws it whole.
     if (!prepare_row_paints(layout)) return;
-    if (grid.well.authored_background && rows.count() != 0U && displays.count() != 0U) {
+    if (grid.well.authored_background.present() && rows.count() != 0U && displays.count() != 0U) {
         // Under the cells the well keeps the theme's ground, as Windows
         // Forms' cells keep their own back colour over BackgroundColor: the
         // same well painted again, cut to the cells' extent, so that its

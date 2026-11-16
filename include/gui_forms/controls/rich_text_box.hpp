@@ -331,8 +331,8 @@ private:
     struct RowInks final {
         Point origin{};
         AnatomyStateSet states{};
-        std::optional<Color> authored_text{};
-        std::optional<Color> authored_selected_text{};
+        stxlib::Optional<Color> authored_text{};
+        stxlib::Optional<Color> authored_selected_text{};
     };
     using SourceChange = detail::RichTextSourceChange;
     // The first and last source lines a selection touches.

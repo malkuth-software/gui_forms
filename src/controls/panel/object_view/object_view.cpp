@@ -942,33 +942,33 @@ void ObjectView::paint_glyph(Painter& painter, Rect b, ObjectGlyph glyph,
     fill.states = states;
     if (glyph == ObjectGlyph::folder) {
         well.bounds = {b.x + 3.0, b.y + 9.0, b.width - 6.0, b.height - 12.0};
-        well.authored_background = base;
+        well.authored_background.set(base);
         paint_shown(painter, well);
         fill.bounds = {b.x + 7.0, b.y + 4.0, b.width * .42, 5.0};
-        fill.content_color = with_alpha(style().highlight, 180);
+        fill.content_color.set(with_alpha(style().highlight, 180));
         paint_shown(painter, fill);
         fill.bounds = {b.x + 5.0, b.y + 12.0, b.width - 10.0, 3.0};
-        fill.content_color = with_alpha(style().highlight, 130);
+        fill.content_color.set(with_alpha(style().highlight, 130));
         paint_shown(painter, fill);
         return;
     }
     well.bounds = {b.x + 7.0, b.y + 2.0, b.width - 14.0, b.height - 4.0};
-    well.authored_background = style().paper;
+    well.authored_background.set(style().paper);
     paint_shown(painter, well);
     fill.bounds = {b.x + 8.0, b.y + 3.0, b.width - 16.0, 6.0};
-    fill.content_color = base;
+    fill.content_color.set(base);
     paint_shown(painter, fill);
     if (glyph == ObjectGlyph::image) {
         fill.bounds = {b.x + 12.0, b.y + 14.0, b.width - 24.0, b.height - 22.0};
-        fill.content_color = with_alpha(base, 120);
+        fill.content_color.set(with_alpha(base, 120));
         paint_shown(painter, fill);
     } else if (glyph == ObjectGlyph::audio) {
         // A sound bar across the page where the stroke rose.
         fill.bounds = {b.x + 15.0, b.y + b.height * .5 - 1.5, b.width - 29.0, 3.0};
-        fill.content_color = base;
+        fill.content_color.set(base);
         paint_shown(painter, fill);
     } else {
-        fill.content_color = style().border;
+        fill.content_color.set(style().border);
         fill.bounds = {b.x + 12.0, b.y + 16.0, b.width - 24.0, 2.0};
         paint_shown(painter, fill);
         fill.bounds = {b.x + 12.0, b.y + 22.0, b.width - 29.0, 2.0};
@@ -1024,7 +1024,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
             plate.bounds = {cell.x + 1.0, cell.y + 1.0, std::max(0.0, cell.width - 2.0),
                             std::max(0.0, cell.height - 2.0)};
             plate.states = item_states;
-            if (overridden) plate.authored_background = selected ? selected_fill : style().face_light;
+            if (overridden) plate.authored_background.set(selected ? selected_fill : style().face_light);
             paint_shown(painter, plate);
         }
         PartPaint text;
@@ -2020,7 +2020,7 @@ void ObjectView::paint_details(Painter& painter) {
             plate.role = PartRole::selection;
             plate.bounds = row;
             plate.states = row_states;
-            if (overridden) plate.authored_background = selected ? selected_row_fill : style().face_light;
+            if (overridden) plate.authored_background.set(selected ? selected_row_fill : style().face_light);
             paint_shown(painter, plate);
         }
         for (std::size_t visible = 0U; visible < visible_count; ++visible) {

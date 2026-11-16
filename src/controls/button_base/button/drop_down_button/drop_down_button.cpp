@@ -230,8 +230,8 @@ void DropDownButton::on_paint(Painter& painter, const Rect local_damage) {
     // engine draws in the button's anatomy states; a style override inks the
     // arrow (T4-1).
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ink{};
-    if (has_style_override()) ink = style().text;
+    stxlib::Optional<Color> ink{};
+    if (has_style_override()) ink.set(style().text);
     if (drop_down_mode.read() == DropDownButtonMode::split && start > 0.0 &&
         (hovered_visual() || pressed_visual() || drop_down_open_)) {
         PartPaint divider;

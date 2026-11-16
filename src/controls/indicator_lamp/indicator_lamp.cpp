@@ -257,7 +257,7 @@ void IndicatorLamp::paint_theme_lens(Painter& painter, const Placement& placed, 
         // The application's lamp colour fills the lit lens (on only: an
         // error keeps the theme's error colour).
         const Color* chosen = lamp_color.read().value();
-        if (chosen != nullptr && lit_state_ == IndicatorLampState::on) lit_lens.authored_background = *chosen;
+        if (chosen != nullptr && lit_state_ == IndicatorLampState::on) lit_lens.authored_background.set(*chosen);
         painter.begin_group(PaintGroup{.bounds = placed.lens, .opacity = std::min(1.0, power_)});
         painter.save();
         painter.clip_rounded_rect(placed.lens, radius);

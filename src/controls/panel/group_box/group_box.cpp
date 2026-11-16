@@ -38,7 +38,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
         ground.role = PartRole::fill;
         ground.bounds = {0.0, rule_y, bounds.width, std::max(0.0, bounds.height - rule_y)};
         ground.corner_radius = 0.0;
-        ground.authored_background = background();
+        ground.authored_background.set(background());
         paint_part(painter, *this, ground);
     } else if (face_selected_by_rule()) {
         // A theme rule that selects the face (G3) draws it over the frame,
@@ -76,7 +76,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     PartPaint rule;
     rule.family = ControlVisualRole::panel;
     rule.role = PartRole::keyline;
-    if (etched) rule.authored_foreground = (*edges.top.value()).color;
+    if (etched) rule.authored_foreground.set((*edges.top.value()).color);
     for (const Rect& side : sides) {
         rule.bounds = side;
         paint_part(painter, *this, rule);
@@ -84,7 +84,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     if (etched) {
         // The light lines: each rule moved one pixel down (a horizontal
         // rule) or right (a vertical one).
-        rule.authored_foreground = (*edges.bottom.value()).color;
+        rule.authored_foreground.set((*edges.bottom.value()).color);
         const std::array<Rect, 5> lights{{
             {1.0, top + 1.0, std::max(0.0, gap.x - 1.0), 1.0},
             {gap_right, top + 1.0, std::max(0.0, right - gap_right), 1.0},

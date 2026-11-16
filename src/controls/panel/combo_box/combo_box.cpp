@@ -802,10 +802,10 @@ void ComboBox::commit_overlay_selection(std::size_t row) {
 void ComboBox::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ground{};
-    std::optional<Color> ink{};
-    if (has_background_override() || has_style_override()) ground = background();
-    if (has_style_override()) ink = style().text;
+    stxlib::Optional<Color> ground{};
+    stxlib::Optional<Color> ink{};
+    if (has_background_override() || has_style_override()) ground.set(background());
+    if (has_style_override()) ink.set(style().text);
     PartPaint well;
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
@@ -857,9 +857,9 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     if (!editor_) field_text = selected_index_ ? selected_text() : std::string_view(placeholder_text.read());
     const ControlVisualContext context = part_visual_context(*this, states);
     const ControlVisualRecipe& editor_recipe = effective_theme().resolve(ControlVisualRole::editor, context);
-    std::optional<Color> text_ink{};
-    if (!selected_index_) text_ink = editor_recipe.muted_text;
-    else if (ink && effectively_enabled()) text_ink = *ink;
+    stxlib::Optional<Color> text_ink{};
+    if (!selected_index_) text_ink.set(editor_recipe.muted_text);
+    else if (ink.present() && effectively_enabled()) text_ink = ink;
     // The content part centres its line box on its bounds, so the bounds are
     // that box on the field's baseline, ending left of the button.
     const FontSpec field_font = text_font(font.read());

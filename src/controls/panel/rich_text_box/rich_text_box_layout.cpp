@@ -603,7 +603,7 @@ void RichTextBox::paint_piece(Painter& painter, const Row& row, const Piece& pie
         text.tone = PartTextTone::secondary;
         text.authored_foreground.reset();
     } else if (set.style.colour) {
-        text.authored_foreground = rgb_color(*set.style.colour);
+        text.authored_foreground.set(rgb_color(*set.style.colour));
     } else if (set.link) {
         text.family = ControlVisualRole::link;
         text.authored_foreground.reset();
@@ -640,8 +640,8 @@ Rect RichTextBox::paint_rows(Painter& painter) {
     states.erase(AnatomyState::hot);
     RowInks inks{.origin = {text_left_ - offset.x, viewport.y - offset.y}, .states = states};
     if (!themed) {
-        inks.authored_text = style().text;
-        inks.authored_selected_text = style().highlight;
+        inks.authored_text.set(style().text);
+        inks.authored_selected_text.set(style().highlight);
     }
     painter.save();
     painter.clip_rect(viewport);
@@ -673,7 +673,7 @@ Rect RichTextBox::paint_rows(Painter& painter) {
                 ground.bounds = fill;
                 ground.states = states;
                 ground.corner_radius = 0.0;
-                ground.authored_background = rgb_color(*set.style.background);
+                ground.authored_background.set(rgb_color(*set.style.background));
                 paint_part(painter, *this, ground);
             } else if (set.style.code && !row.code_block) {
                 shade.bounds = fill;
@@ -689,7 +689,7 @@ Rect RichTextBox::paint_rows(Painter& painter) {
             plate.bounds = {inks.origin.x + (*band).x, inks.origin.y + (*band).y, (*band).width, (*band).height};
             plate.states = states;
             plate.states.insert(AnatomyState::selected);
-            if (!themed) plate.authored_background = style().accent;
+            if (!themed) plate.authored_background.set(style().accent);
             paint_part(painter, *this, plate);
         }
         if (!band) {

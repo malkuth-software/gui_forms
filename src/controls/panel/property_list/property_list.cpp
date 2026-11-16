@@ -965,7 +965,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
     face.role = PartRole::face;
     face.bounds = bounds;
     face.states = states;
-    if (has_background_override()) face.authored_background = background();
+    if (has_background_override()) face.authored_background.set(background());
     face.key = PartKey{"face", {}, {}};
     paint_part(painter, *this, face);
     double y = (*impl_).header_height - (*impl_).scroll_offset;

@@ -259,7 +259,7 @@ RibbonColorPicker::Parts RibbonColorPicker::own_parts() const {
     const stxlib::Optional<Color> shown = value.read();
     if (shown.present()) {
         record.color_sample = PartGeometry::from_bounds(placed.sample);
-        record.color_sample.content_color = platform::standard_optional(shown);
+        record.color_sample.content_color = shown;
     }
     record.arrow = PartGeometry::from_bounds(placed.arrow);
     record.arrow.states = arrow;
@@ -343,7 +343,7 @@ RibbonColorPicker::PaletteEntryParts RibbonColorPicker::entry_parts(const std::v
     // Automatic shows an empty well; a colour shows its sample inside it.
     if (cell.color.present()) {
         parts.entry_sample = PartGeometry::from_bounds(inset_by(parts.entry_well.bounds, sample_frame * scale));
-        parts.entry_sample.content_color = platform::standard_optional(cell.color);
+        parts.entry_sample.content_color = cell.color;
     }
     parts.entry_focus = parts.entry_face;
     const AnatomyStateSet states = entry_states(all, entry);

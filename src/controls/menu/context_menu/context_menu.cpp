@@ -501,7 +501,7 @@ struct ContextMenu::Impl final {
             label.font = font;
             // A destructive command's red ink, provisionally an authored
             // colour until the theme has a text tone for it (asked).
-            if (item_.command_state.destructive) label.authored_foreground = menu_ink(item_, style);
+            if (item_.command_state.destructive) label.authored_foreground.set(menu_ink(item_, style));
             const double label_width = std::max(0.0, bounds.width - label_left);
             if (impl_.right_to_left) {
                 // Right-aligned against the gutter, which is on the right.

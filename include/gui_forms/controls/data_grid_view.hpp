@@ -1678,8 +1678,8 @@ private:
     // A style's colours for a part, selected or not; none where the theme's
     // stand.
     struct AuthoredColours final {
-        std::optional<Color> background{};
-        std::optional<Color> foreground{};
+        stxlib::Optional<Color> background{};
+        stxlib::Optional<Color> foreground{};
     };
     [[nodiscard]] static AuthoredColours authored_colours(const DataGridViewCellStyle& style, bool selected);
     [[nodiscard]] CellLayout cell_layout(DataGridViewRowPosition row, std::size_t column,

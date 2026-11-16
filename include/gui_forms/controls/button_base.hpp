@@ -171,7 +171,7 @@ protected:
     struct GUI_FORMS_API ButtonContentInk final {
         ControlVisualRole family{ControlVisualRole::button};
         AnatomyStateSet states{};
-        std::optional<Color> authored{};
+        stxlib::Optional<Color> authored{};
     };
     // The image and the text lines laid out in `bounds`, drawn as the icon
     // part and one label part per line through the theme's engine,

@@ -247,11 +247,11 @@ void InfoBanner::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, face);
     PartPaint keyline{.role = PartRole::keyline, .bounds = placed.keyline, .states = states,
                       .family = ControlVisualRole::notice};
-    keyline.authored_foreground = tone;
+    keyline.authored_foreground.set(tone);
     paint_part(painter, *this, keyline);
     PartPaint icon{.role = PartRole::glyph, .bounds = placed.icon, .states = states, .family = ControlVisualRole::notice};
     icon.mark = severity_mark(level);
-    icon.authored_foreground = tone;
+    icon.authored_foreground.set(tone);
     paint_part(painter, *this, icon);
     const std::string& heading = title.read();
     if (!heading.empty()) {

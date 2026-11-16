@@ -1,4 +1,5 @@
 #include "data_grid_view_cells_control.hpp"
+#include "../../platform/stxlib_bridge.hpp"
 
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
@@ -74,7 +75,7 @@ void paint_data_grid_view_row_overlay(Painter& painter, const Control& owner, co
     part.role = overlay.role;
     part.mark = overlay.mark;
     part.bounds = overlay.bounds;
-    part.authored_background = overlay.background;
+    part.authored_background = platform::stxlib_optional(overlay.background);
     paint_part(painter, owner, part);
 }
 
@@ -265,7 +266,7 @@ void DataGridViewCells::on_paint(Painter& painter, Rect) {
     well.bounds = snapshot_.well.bounds;
     well.authored_background = snapshot_.well.authored_background;
     paint_part(painter, *this, well);
-    if (well.authored_background && !snapshot_.cells_extent.empty()) {
+    if (well.authored_background.present() && !snapshot_.cells_extent.empty()) {
         // Under the cells the well keeps the theme's ground: the same well
         // painted again without the authored colour, cut to the cells.
         well.authored_background.reset();

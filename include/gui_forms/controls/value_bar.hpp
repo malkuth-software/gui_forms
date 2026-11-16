@@ -217,7 +217,7 @@ private:
     [[nodiscard]] double scrub_rate_in_force() const noexcept;
     // The label and value text; `over_fill` is the colour of the half drawn
     // over the fill, none for the half over the track.
-    void paint_texts(Painter& painter, AnatomyStateSet states, std::optional<Color> over_fill) const;
+    void paint_texts(Painter& painter, AnatomyStateSet states, stxlib::Optional<Color> over_fill) const;
     // The text colour over the fill: the label part's fill-text-color, else
     // the fill's selected text colour.
     [[nodiscard]] Color over_fill_text_colour(AnatomyStateSet states) const;

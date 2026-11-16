@@ -312,12 +312,12 @@ void CheckBox::on_paint(Painter& painter, Rect) {
     const Rect laid_box = check_box_well(bounds, indicator_style.read());
     const Rect box = mirrored ? horizontally_mirrored(laid_box, bounds) : laid_box;
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ground{};
-    std::optional<Color> ink{};
+    stxlib::Optional<Color> ground{};
+    stxlib::Optional<Color> ink{};
     if (has_style_override()) {
         const BasicControlStyle& colors = style();
-        ground = colors.paper;
-        ink = colors.text;
+        ground.set(colors.paper);
+        ink.set(colors.text);
     }
     PartPaint well;
     well.family = ControlVisualRole::choice;

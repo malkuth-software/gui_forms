@@ -189,7 +189,7 @@ PartPaint TextBox::decorated_text_part(const PartPaint& base, const TextDecorati
             break;
         }
     }
-    if (style.foreground.has_value()) part.authored_foreground = *style.foreground;
+    if (style.foreground.has_value()) part.authored_foreground.set(*style.foreground);
     return part;
 }
 
@@ -198,7 +198,7 @@ Color TextBox::decoration_underline_color(const PartPaint& part, const TextDecor
     // Authored colours stand outside high contrast only (T4-1).
     if (!context.high_contrast) {
         if (style.underline_color.has_value()) return *style.underline_color;
-        if (part.authored_foreground.has_value()) return *part.authored_foreground;
+        if (part.authored_foreground.present()) return *part.authored_foreground.value();
     }
     const ResolvedControlRecipe resolved = effective_theme().resolve(*this, part.family, context, part.states);
     const ControlVisualRecipe& recipe = resolved.recipe();

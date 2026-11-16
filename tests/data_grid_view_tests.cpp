@@ -2255,9 +2255,9 @@ void authored_colours() {
     const Color header_fore{240, 240, 240, 255};
     const Color empty{200, 200, 220, 255};
     std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
-    require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background &&
-                !(*find_cell(cells, 1U, 0U)).parts.cell_content.authored_foreground &&
-                !(*grid).parts().well.authored_background,
+    require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background.present() &&
+                !(*find_cell(cells, 1U, 0U)).parts.cell_content.authored_foreground.present() &&
+                !(*grid).parts().well.authored_background.present(),
             "an unstyled grid authors no colours");
 
     (*grid).default_cell_style = {.back_color = back, .fore_color = fore};
@@ -2265,12 +2265,12 @@ void authored_colours() {
     window.perform_layout();
     cells = (*grid).realized_cells();
     const DataGridView::Cell text = *find_cell(cells, 1U, 0U);
-    require(text.parts.cell_selection.authored_background == back &&
-                text.parts.cell_content.authored_foreground == fore &&
-                text.parts.cell_vertical_rule.authored_foreground == line &&
-                text.parts.cell_horizontal_rule.authored_foreground == line,
+    require(text.parts.cell_selection.authored_background == stxlib::Optional<Color>::of(back) &&
+                text.parts.cell_content.authored_foreground == stxlib::Optional<Color>::of(fore) &&
+                text.parts.cell_vertical_rule.authored_foreground == stxlib::Optional<Color>::of(line) &&
+                text.parts.cell_horizontal_rule.authored_foreground == stxlib::Optional<Color>::of(line),
             "a cell's background, text and lines take the inherited style's and the grid's colours");
-    require((*find_cell(cells, 1U, 3U)).parts.cell_button_label.authored_foreground == fore,
+    require((*find_cell(cells, 1U, 3U)).parts.cell_button_label.authored_foreground == stxlib::Optional<Color>::of(fore),
             "a button cell's label takes the fore colour");
     ColourPainter painter;
     (*grid).on_paint(painter, (*grid).client_rectangle());
@@ -2281,34 +2281,34 @@ void authored_colours() {
     (*grid).set_cell_selected(row_at(1U), 0U, true);
     window.perform_layout();
     cells = (*grid).realized_cells();
-    require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background,
+    require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background.present(),
             "a selected cell with no selection colour keeps the theme's selection look");
     (*grid).default_cell_style = {.back_color = back, .fore_color = fore, .selection_back_color = highlight};
     window.perform_layout();
     cells = (*grid).realized_cells();
-    require((*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background == highlight,
+    require((*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background == stxlib::Optional<Color>::of(highlight),
             "a selected cell shows the selection back colour");
 
     (*grid).column_headers_default_cell_style = {.back_color = header_back, .fore_color = header_fore};
     (*grid).row_headers_default_cell_style = {.back_color = header_back, .fore_color = header_fore};
     window.perform_layout();
-    require(!(*grid).realized_columns()[0].parts.column_header.authored_background &&
-                !(*grid).realized_rows()[0].parts.row_header.authored_background,
+    require(!(*grid).realized_columns()[0].parts.column_header.authored_background.present() &&
+                !(*grid).realized_rows()[0].parts.row_header.authored_background.present(),
             "with header visual styles the theme draws the headers");
     (*grid).enable_headers_visual_styles = false;
     window.perform_layout();
     const std::vector<DataGridView::Column> columns = (*grid).realized_columns();
     const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
-    require(columns[0].parts.column_header.authored_background == header_back &&
-                columns[0].parts.column_label.authored_foreground == header_fore &&
-                rows[0].parts.row_header.authored_background == header_back,
+    require(columns[0].parts.column_header.authored_background == stxlib::Optional<Color>::of(header_back) &&
+                columns[0].parts.column_label.authored_foreground == stxlib::Optional<Color>::of(header_fore) &&
+                rows[0].parts.row_header.authored_background == stxlib::Optional<Color>::of(header_back),
             "without them the header styles' colours stand on the headers");
 
     (*grid).background_color = stxlib::Optional<Color>::of(empty);
     window.perform_layout();
     ColourPainter background;
     (*grid).on_paint(background, (*grid).client_rectangle());
-    require((*grid).parts().well.authored_background == empty && contains_colour(background.fills, empty),
+    require((*grid).parts().well.authored_background == stxlib::Optional<Color>::of(empty) && contains_colour(background.fills, empty),
             "the background colour fills the area no cell covers");
 }
 

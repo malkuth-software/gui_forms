@@ -422,7 +422,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
             plate.states = row_states;
             if (overridden) {
                 const Color selected_fill = focused_ ? style().accent : style().accent_light;
-                plate.authored_background = selected ? selected_fill : style().face_light;
+                plate.authored_background.set(selected ? selected_fill : style().face_light);
             }
             paint_part(painter, *this, plate);
         }
@@ -478,7 +478,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
         label.states = row_states;
         label.text = lend_paint_text(item.text);
         label.font = row_font;
-        if (overridden) label.authored_foreground = selected && focused_ ? style().highlight : style().text;
+        if (overridden) label.authored_foreground.set(selected && focused_ ? style().highlight : style().text);
         const double label_baseline = y + std::max(row_font.size, row_height * 0.5 + 4.0);
         const double label_room = std::max(0.0, plate_bounds.x + plate_bounds.width - content_x);
         if (mirrored) {

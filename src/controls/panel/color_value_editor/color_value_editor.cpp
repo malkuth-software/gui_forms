@@ -319,11 +319,11 @@ void ColorValueEditor::on_paint(Painter& painter, Rect) {
     fill.states = states;
     for (std::size_t index = 0U; index < squares.size(); ++index) {
         fill.bounds = squares[index];
-        fill.content_color = shades[index];
+        fill.content_color.set(shades[index]);
         paint_part(painter, *this, fill);
     }
     fill.bounds = inside;
-    fill.content_color = value_;
+    fill.content_color.set(value_);
     paint_part(painter, *this, fill);
 }
 

@@ -394,14 +394,14 @@ void ColorPicker::on_paint(Painter& painter, Rect) {
     well.bounds = layout.field;
     well.key = PartKey{"field", {}, {}};
     const Color pure_hue = color_of(ColorPickerHsv{hsv_.hue, 1.0, 1.0}, 255U);
-    well.content_color = pure_hue;
+    well.content_color.set(pure_hue);
     paint_part(painter, *this, well);
     // The spectrum is content as well (its rule names its colours and reads
     // no currentcolor): marked so, forced high contrast frames it rather
     // than replacing it, and a derived dark variant does not darken it.
     well.bounds = layout.hue_track;
     well.key = PartKey{"hue_track", {}, {}};
-    well.content_color = pure_hue;
+    well.content_color.set(pure_hue);
     paint_part(painter, *this, well);
     const Color shown = value.read();
     if (alpha_enabled.read()) {
@@ -409,12 +409,12 @@ void ColorPicker::on_paint(Painter& painter, Rect) {
         well.key = PartKey{"alpha_track", {}, {}};
         Color opaque = shown;
         opaque.alpha = 255U;
-        well.content_color = opaque;
+        well.content_color.set(opaque);
         paint_part(painter, *this, well);
     }
     well.bounds = layout.swatch;
     well.key = PartKey{"swatch", {}, {}};
-    well.content_color = shown;
+    well.content_color.set(shown);
     paint_part(painter, *this, well);
 
     PartPaint thumb;

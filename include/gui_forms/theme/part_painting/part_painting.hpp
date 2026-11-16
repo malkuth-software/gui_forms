@@ -296,7 +296,7 @@ struct GUI_FORMS_API PartPaint final {
     // are dropped. Without the theme engine (no window, or a theme whose
     // rules write no fills for the part), the part draws its recipe and the
     // colour is not shown.
-    std::optional<Color> content_color{};
+    stxlib::Optional<Color> content_color{};
     // The colours an application authored for this part (design language
     // 8.5; owner decision T4-1), or none, such as a DataGridView cell
     // style's BackColor and ForeColor. They stand where an inline style's
@@ -318,8 +318,8 @@ struct GUI_FORMS_API PartPaint final {
     // stands over both; a primitive that draws a theme material takes the
     // background in its material's fills, and a primitive's own colour
     // parameters do not read them.
-    std::optional<Color> authored_background{};
-    std::optional<Color> authored_foreground{};
+    stxlib::Optional<Color> authored_background{};
+    stxlib::Optional<Color> authored_foreground{};
     // The part's identity across frames (T2 GIVEN H3-1), or none. A part
     // with a key has a record in its window's engine part table; one without
     // is drawn statically, with no transitions and no cached raster. It is

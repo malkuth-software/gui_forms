@@ -219,7 +219,7 @@ void Toast::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, face);
     PartPaint icon{.role = PartRole::glyph, .bounds = placed.icon, .states = states, .family = ControlVisualRole::notice};
     icon.mark = severity_mark(content_.severity);
-    icon.authored_foreground = notice_severity_colour(content_.severity);
+    icon.authored_foreground.set(notice_severity_colour(content_.severity));
     paint_part(painter, *this, icon);
     PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                     .family = ControlVisualRole::notice};

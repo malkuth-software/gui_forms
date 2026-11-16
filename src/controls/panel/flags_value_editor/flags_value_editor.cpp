@@ -488,8 +488,8 @@ void FlagsValueEditor::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
     const Rect bounds = local_bounds();
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ink{};
-    if (has_style_override()) ink = style().text;
+    stxlib::Optional<Color> ink{};
+    if (has_style_override()) ink.set(style().text);
     const double button_width = std::min(24.0, bounds.width);
     const double divider_x = std::max(0.0, bounds.width - button_width);
     PartPaint drop_down;

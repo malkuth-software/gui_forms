@@ -695,7 +695,7 @@ PartPaint TextBox::text_part_template(FontSpec part_font, bool selected) const {
     part.states = text_states();
     if (selected) part.states.insert(AnatomyState::selected);
     part.font = part_font;
-    if (!themed) part.authored_foreground = selected ? style().highlight : style().text;
+    if (!themed) part.authored_foreground.set(selected ? style().highlight : style().text);
     return part;
 }
 
@@ -710,7 +710,7 @@ void TextBox::paint_selection_band(Painter& painter, Rect band) const {
     plate.states = text_states();
     plate.states.insert(AnatomyState::selected);
     plate.states.insert(AnatomyState::focused);
-    if (!themed) plate.authored_background = style().accent;
+    if (!themed) plate.authored_background.set(style().accent);
     paint_part(painter, *this, plate);
 }
 
@@ -720,7 +720,7 @@ void TextBox::paint_caret(Painter& painter, Rect caret) const {
     part.role = PartRole::caret;
     part.bounds = caret;
     part.states = text_states();
-    if (has_background_override() || has_style_override()) part.authored_foreground = style().text;
+    if (has_background_override() || has_style_override()) part.authored_foreground.set(style().text);
     paint_part(painter, *this, part);
 }
 

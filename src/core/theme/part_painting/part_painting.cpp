@@ -10,7 +10,6 @@
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/types/painter/painter.hpp"
-#include "../../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
@@ -993,11 +992,11 @@ bool ground_role(const PartPaint& part) noexcept {
 // (`important_glyph`, for the marks) keep their places.
 void apply_authored_colours(const PartPaint& part, bool disabled, bool important_text, bool important_glyph,
                             ControlVisualRecipe& recipe) {
-    if (part.authored_background && ground_role(part)) {
-        recipe.material.fills.assign(1U, MaterialFillLayer::solid(*part.authored_background));
+    if (part.authored_background.present() && ground_role(part)) {
+        recipe.material.fills.assign(1U, MaterialFillLayer::solid(*part.authored_background.value()));
     }
-    if (!part.authored_foreground || disabled) return;
-    const Color ink = *part.authored_foreground;
+    if (!part.authored_foreground.present() || disabled) return;
+    const Color ink = *part.authored_foreground.value();
     switch (part.role) {
     case PartRole::caption:
     case PartRole::label:
@@ -1055,7 +1054,7 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
 } // namespace
 
 bool authored_background_applies(const PartPaint& part) noexcept {
-    const bool applies = part.authored_background.has_value() && ground_role(part);
+    const bool applies = part.authored_background.present() && ground_role(part);
     return applies;
 }
 
@@ -1334,7 +1333,7 @@ namespace {
 // and the material opaque (surface_material_opaque).
 bool opaque_surface_part(const PartPaint& part, const SurfaceMaterial& material) noexcept {
     // A fill with a content colour paints that colour, not the material.
-    const bool content = part.role == PartRole::fill && part.content_color;
+    const bool content = part.role == PartRole::fill && part.content_color.present();
     if (!surface_role(part.role) || content || part.point) return false;
     if (part.corner_radius && *part.corner_radius != 0.0) return false;
     const bool opaque = surface_material_opaque(material);
@@ -1499,7 +1498,7 @@ void paint_part_clipped(Painter& painter, const Control& control, const PartPain
     // theme variants): colours chosen against the other theme are not
     // applied, the part's own included.
     const bool suspended = control.application_colours_suspended();
-    if (suspended && (part.authored_background || part.authored_foreground)) {
+    if (suspended && (part.authored_background.present() || part.authored_foreground.present())) {
         PartPaint plain = part;
         plain.authored_background.reset();
         plain.authored_foreground.reset();
@@ -1537,13 +1536,13 @@ void paint_part_clipped(Painter& painter, const Control& control, const PartPain
     // The control's authored colours (Control::set_back_color and
     // set_fore_color) under the part's own: its own background fills every
     // ground, an inherited one every ground but a well.
-    std::optional<Color> background = part.authored_background;
-    if (!background && !suspended) background = platform::standard_optional(control.back_color.read());
-    if (!background && !suspended && part.role != PartRole::well) {
-        background = platform::standard_optional(control.ambient_back_color());
+    stxlib::Optional<Color> background = part.authored_background;
+    if (background.absent() && !suspended) background = control.back_color.read();
+    if (background.absent() && !suspended && part.role != PartRole::well) {
+        background = control.ambient_back_color();
     }
-    std::optional<Color> foreground = part.authored_foreground;
-    if (!foreground && !suspended) foreground = platform::standard_optional(control.ambient_fore_color());
+    stxlib::Optional<Color> foreground = part.authored_foreground;
+    if (foreground.absent() && !suspended) foreground = control.ambient_fore_color();
     const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
     if (unchanged) {
         theme.engine().paint_clipped(painter, control, part, clips);
@@ -1616,7 +1615,7 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
     // made only for a part that carries them, and never in high contrast;
     // so does the engine's resolved material, made only for a part that has
     // one.
-    const bool authored = (part.authored_background || part.authored_foreground) && !context.high_contrast;
+    const bool authored = (part.authored_background.present() || part.authored_foreground.present()) && !context.high_contrast;
     const bool resolved_ground = resolved_material != nullptr;
     bool opaque_face = false;
     if (authored || resolved_ground) {
@@ -1664,8 +1663,8 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
         // painted by paint_part_with_built_in_recipe; count is no role).
         return;
     case PartRole::fill:
-        if (part.content_color) {
-            paint_content_color(painter, part, *part.content_color);
+        if (part.content_color.present()) {
+            paint_content_color(painter, part, *part.content_color.value());
             return;
         }
         paint_surface(painter, part, recipe);

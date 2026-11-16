@@ -331,7 +331,7 @@ void TextBlock::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::label;
     part.font = face;
-    part.authored_foreground = platform::standard_optional(fore_color.read());
+    part.authored_foreground = fore_color.read();
     for (std::size_t index = 0U; index < workspace_.lines.size(); ++index) {
         const TextLine& line = workspace_.lines[index];
         const double top = inset.top + static_cast<double>(index) * metrics.height;

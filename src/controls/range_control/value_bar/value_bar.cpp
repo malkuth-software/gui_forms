@@ -535,7 +535,7 @@ Color ValueBar::over_fill_text_colour(AnatomyStateSet states) const {
 // centred without a label. The half over the track is keyed (the theme's
 // `::part(label)` and `::part(value)` rules style it); the half over the
 // fill is drawn unkeyed in `over_fill`, as an authored foreground.
-void ValueBar::paint_texts(Painter& painter, AnatomyStateSet states, std::optional<Color> over_fill) const {
+void ValueBar::paint_texts(Painter& painter, AnatomyStateSet states, stxlib::Optional<Color> over_fill) const {
     const FontSpec font = text_font(effective_theme().structure().typography.field);
     const std::string shown = formatted_value();
     const Rect content = content_bounds();
@@ -550,13 +550,13 @@ void ValueBar::paint_texts(Painter& painter, AnatomyStateSet states, std::option
     if (!name.empty()) {
         text.text = lend_paint_text(name);
         text.alignment = PartTextAlignment::start;
-        if (!over_fill) text.key = PartKey{"label", {}, {}};
+        if (over_fill.absent()) text.key = PartKey{"label", {}, {}};
         paint_part(painter, *this, text);
     }
     text.text = lend_paint_text(shown);
     text.alignment = name.empty() ? PartTextAlignment::center : PartTextAlignment::end;
     text.key = std::nullopt;
-    if (!over_fill) text.key = PartKey{"value", {}, {}};
+    if (over_fill.absent()) text.key = PartKey{"value", {}, {}};
     paint_part(painter, *this, text);
 }
 
@@ -600,12 +600,12 @@ void ValueBar::on_paint(Painter& painter, Rect) {
         const double split = field ? track.x : fill.right();
         painter.save();
         painter.clip_rect(Rect{split, track.y, std::max(0.0, track.right() - split), track.height});
-        paint_texts(painter, states, std::nullopt);
+        paint_texts(painter, states, stxlib::Optional<Color>::none());
         painter.restore();
         if (!field && !fill.empty()) {
             painter.save();
             painter.clip_rect(fill);
-            paint_texts(painter, states, over_fill_text_colour(states));
+            paint_texts(painter, states, stxlib::Optional<Color>::of(over_fill_text_colour(states)));
             painter.restore();
         }
     }

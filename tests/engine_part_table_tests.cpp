@@ -428,8 +428,8 @@ void test_instrument_roles_draw_as_their_stand_ins() {
         require(inked(*root, part, pair.role) == inked(*root, part, pair.stand_in),
                 "and so when disabled");
         part.states = {};
-        part.authored_foreground = Color{200, 30, 40, 255};
-        part.authored_background = Color{10, 20, 30, 255};
+        part.authored_foreground.set(Color{200, 30, 40, 255});
+        part.authored_background.set(Color{10, 20, 30, 255});
         require(inked(*root, part, pair.role) == inked(*root, part, pair.stand_in),
                 "and with authored colours");
     }
@@ -480,8 +480,8 @@ void test_plot_roles_draw_as_their_stand_ins() {
         part.states.insert(AnatomyState::disabled);
         require(inked(*root, part, pair.role) == inked(*root, part, pair.stand_in), "and so when disabled");
         part.states = {};
-        part.authored_foreground = Color{200, 30, 40, 255};
-        part.authored_background = Color{10, 20, 30, 255};
+        part.authored_foreground.set(Color{200, 30, 40, 255});
+        part.authored_background.set(Color{10, 20, 30, 255});
         require(inked(*root, part, pair.role) == inked(*root, part, pair.stand_in), "and with authored colours");
     }
     const ThemeEngine& engine = window.theme().engine();

@@ -287,7 +287,7 @@ public:
         part.role = role;
         part.bounds = local_bounds();
         part.family = ControlVisualRole::panel;
-        part.authored_background = colour;
+        part.authored_background.set(colour);
         part.corner_radius = 0.0;
         paint_part(painter, *this, part);
     }

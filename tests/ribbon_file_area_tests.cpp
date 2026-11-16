@@ -247,7 +247,7 @@ void color_picker() {
             "the palette holds Automatic (selected while no colour is set) and the ten standard colours");
     require(entries[0].parts.entry_well.present && !entries[0].parts.entry_sample.present &&
                 entries[3].parts.entry_well.present &&
-                entries[3].parts.entry_sample.content_color == Color::rgba(255, 192, 0),
+                entries[3].parts.entry_sample.content_color == stxlib::Optional<Color>::of(Color::rgba(255, 192, 0)),
             "Automatic shows an empty well; each colour a fill with its content colour inside its well");
     FillRecorder palette;
     static_cast<void>(window.paint(palette, {0.0, 0.0, 300.0, 300.0}));
@@ -261,8 +261,8 @@ void color_picker() {
     // Owner decision W-7: the samples are fills carrying content colours,
     // painted by role.
     const RibbonColorPicker::Parts own = (*picker).parts();
-    require(own.color_sample.present && own.color_sample.content_color == Color::rgba(255, 0, 0) &&
-                own.color_bar.present && !own.color_bar.content_color,
+    require(own.color_sample.present && own.color_sample.content_color == stxlib::Optional<Color>::of(Color::rgba(255, 0, 0)) &&
+                own.color_bar.present && !own.color_bar.content_color.present(),
             "the colour bar is a well holding a fill whose content colour is the value");
     FillRecorder bar;
     static_cast<void>(window.paint(bar, {0.0, 0.0, 300.0, 300.0}));

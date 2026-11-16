@@ -199,8 +199,8 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     // at the left and the check box at the right (Windows Forms).
     const LayoutDirection direction = effective_layout_direction();
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ink{};
-    if (style_authored_) ink = style_.text;
+    stxlib::Optional<Color> ink{};
+    if (style_authored_) ink.set(style_.text);
     const FontSpec field_font = text_font(font.read());
     const double button_width = std::min(24.0, bounds.width);
     const double button_x = std::max(0.0, bounds.width - button_width);

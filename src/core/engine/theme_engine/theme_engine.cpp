@@ -891,7 +891,7 @@ namespace {
 bool show_content_in_high_contrast(const Control& control, const PartPaint& part,
                                    const ThemeEngine::PartPlan& plan, std::uint64_t rules_serial,
                                    UnkeptAssemblies& unkept, SurfaceMaterial& framed) {
-    if (!part.content_color || !plan.content_materials_authored) return false;
+    if (!part.content_color.present() || !plan.content_materials_authored) return false;
     const bool fills = plan.content_materials[static_cast<std::size_t>(MaterialField::fills)] != nullptr ||
                        plan.content_materials[static_cast<std::size_t>(MaterialField::background_colour)] != nullptr;
     if (!fills) return false;
@@ -911,7 +911,7 @@ bool show_content_in_high_contrast(const Control& control, const PartPaint& part
     if (material_fields_read_em(resolution.materials)) {
         relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
     }
-    relative.current_colour = *part.content_color;
+    relative.current_colour = *part.content_color.value();
     const SurfaceMaterial& content = unkept_assembly(unkept, rules_serial, recipe.recipe().material, part.bounds,
                                                      relative, resolution, std::nullopt);
     framed.fills = content.fills;
@@ -1480,7 +1480,7 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
     if (context.high_contrast) {
         // High contrast keeps the built-in recipe's own records, except
         // that a content part shows its colours (W-7, ruling 9).
-        if (!part.content_color) return nullptr;
+        if (!part.content_color.present()) return nullptr;
         const Theme& contrast_theme = control.effective_theme();
         const std::string_view contrast_part = part.key ? (*part.key).part : std::string_view{};
         const ResolvedControlRecipe contrast =
@@ -1498,7 +1498,7 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
     const Theme& theme = control.effective_theme();
     // A part showing a content colour (W-7) draws its gradients as written:
     // the dark variant's rule does not darken data.
-    const bool darkened = context.dark && derives_dark(theme) && !part.content_color;
+    const bool darkened = context.dark && derives_dark(theme) && !part.content_color.present();
     ControlVisualContext floor_context = context;
     if (darkened) floor_context.dark = false;
     const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
@@ -1509,7 +1509,7 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
         relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
     }
     if (material_fields_read_current_colour(resolution.materials)) {
-        relative.current_colour = part.content_color ? *part.content_color : floor.recipe().text;
+        relative.current_colour = part.content_color.present() ? *part.content_color.value() : floor.recipe().text;
     }
     UnkeptAssemblies unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window), detail::SurfaceEngineAccess::unkept_next(*window),
                             (*window).metrics()};
@@ -1649,7 +1649,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         const ControlVisualRecipe& recipe = control.effective_theme().resolve(*material_role, context);
         request.target.material = &recipe.material;
         bool content_shown = false;
-        if ((resolution.materials_authored || part.content_color) && context.high_contrast) {
+        if ((resolution.materials_authored || part.content_color.present()) && context.high_contrast) {
             // Forced high contrast's material fields, for this paint only.
             detail::ForcedMaterialFields forced{};
             detail::forced_material_fields(resolution.materials, context.surface, context.selected, forced);
@@ -1669,7 +1669,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
                                                           contrast_unkept, *run.unkept_material);
             request.target.material = run.unkept_material;
         } else if (resolution.materials_authored && context.dark && derives_dark(control.effective_theme()) &&
-                   !part.content_color) {
+                   !part.content_color.present()) {
             // The dark variant (T4 phase 5): the rules' fields in place on
             // the light recipe's material, then the whole darkened by rule,
             // for this paint only.
@@ -1696,8 +1696,8 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
                 relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
             }
             // A content colour (W-7) is what currentcolor names in its part.
-            if (material_fields_read_current_colour(resolution.materials) && part.content_color) {
-                relative.current_colour = *part.content_color;
+            if (material_fields_read_current_colour(resolution.materials) && part.content_color.present()) {
+                relative.current_colour = *part.content_color.value();
             } else if (material_fields_read_current_colour(resolution.materials)) {
                 const Theme& theme = control.effective_theme();
                 const ResolvedControlRecipe text = theme.resolve(control, part.family, context, part.states);
@@ -1714,7 +1714,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         const bool important = resolution.level >= CascadeLevel::important_user_theme;
         if (authored_background_applies(part) && !important && !context.high_contrast) {
             run.authored_ground.emplace(*request.target.material);
-            (*run.authored_ground).fills.assign(1U, MaterialFillLayer::solid(*part.authored_background));
+            (*run.authored_ground).fills.assign(1U, MaterialFillLayer::solid(*part.authored_background.value()));
             request.target.material = &*run.authored_ground;
         }
         // A reflection is omitted under high contrast and under reduced

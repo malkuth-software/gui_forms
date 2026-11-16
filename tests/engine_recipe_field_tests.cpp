@@ -469,7 +469,7 @@ void test_authored_colours() {
     const Labelled& first = *(*fixture).first;
     const Labelled& second = *(*fixture).second;
     PartPaint label = first.label();
-    label.authored_foreground = green;
+    label.authored_foreground.set(green);
     TextWatch over{};
     paint_part(over, first, label);
     TextWatch under{};

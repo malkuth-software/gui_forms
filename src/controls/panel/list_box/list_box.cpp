@@ -380,7 +380,7 @@ void ListBox::on_paint(Painter& painter, Rect) {
     well.role = PartRole::well;
     well.bounds = bounds;
     well.states = states;
-    if (has_background_override() || overridden) well.authored_background = background();
+    if (has_background_override() || overridden) well.authored_background.set(background());
     well.key = PartKey{"well", {}, {}};
     paint_part(painter, *this, well);
     const FontSpec row_font = text_font(font.read());
@@ -407,7 +407,7 @@ void ListBox::on_paint(Painter& painter, Rect) {
             plate.states = row_states;
             if (overridden) {
                 const Color selected_fill = focused_ ? style().accent : style().accent_light;
-                plate.authored_background = selected ? selected_fill : style().face_light;
+                plate.authored_background.set(selected ? selected_fill : style().face_light);
             }
             paint_part(painter, *this, plate);
         }
@@ -418,7 +418,7 @@ void ListBox::on_paint(Painter& painter, Rect) {
         text.states = row_states;
         text.text = lend_paint_text(items.read()[index]);
         text.font = row_font;
-        if (overridden) text.authored_foreground = selected && focused_ ? style().highlight : style().text;
+        if (overridden) text.authored_foreground.set(selected && focused_ ? style().highlight : style().text);
         const double left = row_text_left();
         const double baseline = y + std::max(row_font.size, row_height * 0.5 + baseline_below_middle);
         const double room = std::max(0.0, row.x + row.width - left);

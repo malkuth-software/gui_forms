@@ -652,13 +652,13 @@ void themed_background() {
     std::shared_ptr<VirtualRowsView> view = make_view(rows, 100U);
     Window window(view, {400.0, 300.0});
     window.perform_layout();
-    require(!(*view).parts().well.authored_background, "without back_color the theme's ground stands");
+    require(!(*view).parts().well.authored_background.present(), "without back_color the theme's ground stands");
     const Color override_colour = Color::rgba(12, 34, 56);
     (*view).back_color = stxlib::Optional<Color>::of(override_colour);
     window.perform_layout();
     RecordingPainter painter;
     (*view).on_paint(painter, (*view).client_rectangle());
-    require((*view).parts().well.authored_background == std::optional<Color>(override_colour) &&
+    require((*view).parts().well.authored_background == stxlib::Optional<Color>::of(override_colour) &&
                 contains_colour(painter.fills, override_colour),
             "back_color overrides the well's ground and is painted through it");
 }

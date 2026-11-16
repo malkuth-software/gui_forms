@@ -182,8 +182,8 @@ void Panel::paint_panel(Painter& painter, Rect bounds) const {
     // The panel's own colour (face_colour) or a style override supplies the
     // face's ground.
     const std::optional<Color> face_ground = face_colour();
-    if (face_ground) face.authored_background = *face_ground;
-    if (!face_ground && style_override_) face.authored_background = background();
+    if (face_ground) face.authored_background.set(*face_ground);
+    if (!face_ground && style_override_) face.authored_background.set(background());
     paint_part(painter, *this, face);
     if (border_style.read() != BorderStyle::line) return;
     PartPaint rule;
