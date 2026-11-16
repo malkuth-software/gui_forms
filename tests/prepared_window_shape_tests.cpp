@@ -312,7 +312,7 @@ void test_exact_primary_metrics(const std::span<const std::byte> font) {
 // Consolas have one) reaches the one line-height rule. The table directory
 // is read in place: a 12-byte header, then 16-byte records of tag,
 // checksum, offset and length; the line gap is hhea's signed 16-bit field
-// at byte 8. The stale checksum is not read by FreeType.
+// at byte 8. The stale checksum is not read by the font reader.
 std::vector<std::byte> with_line_gap(const std::span<const std::byte> font, const std::int16_t gap) {
     std::vector<std::byte> result(font.begin(), font.end());
     require(result.size() >= 12U, "font table directory header");

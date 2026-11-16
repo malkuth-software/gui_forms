@@ -16,8 +16,8 @@ open the same controls to other languages.
   [release notes](https://gui-forms.readthedocs.io/en/latest/release/index.html)
   and the [roadmap](https://gui-forms.readthedocs.io/en/latest/dev/roadmap.html).
 - **Rendering:** CPU only, by design, with no GPU backend. One
-  HarfBuzz/FreeType text engine with bundled fonts draws the same string
-  identically on every platform.
+  text engine (STXlib's font reader, shaper, hinter and text layout) with
+  bundled fonts draws the same string identically on every platform.
 - **Controls:** more than 140 stock controls (the Windows Forms set, a
   ribbon, docking, data grids, plots and more), themes written in a
   CSS-syntax theme language, form documents that generate typed window

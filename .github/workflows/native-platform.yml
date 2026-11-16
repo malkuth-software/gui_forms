@@ -323,7 +323,7 @@ jobs:
         if: steps.seed.outputs.seeded == 'true'
         run: python template_harness/harness/ci_promote.py restore-seed
       # The stx package (cmake/Stx.cmake, cmake/stx_package/): stx_skia, the
-      # stx libraries and the third-party sources (FreeType, HarfBuzz),
+      # stx libraries and STXlib (no third-party sources since 2026-11-16),
       # built once per stx commit, recipe,
       # platform and compiler and otherwise only linked. The key holds what the
       # package's stamp holds; when a restored package's stamp still differs,
@@ -393,7 +393,7 @@ jobs:
         if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
         run: |
           # Every static archive the toolkit links, the stx package's (stx_skia,
-          # FreeType, HarfBuzz) among them: no C zlib, FreeType gzip or libpng
+          # the stx libraries, STXlib) among them: no C zlib, FreeType gzip or libpng
           # may remain (Z-stage I5, decision 3A).
           build=.build/native-${{ inputs.platform }}
           archives=$(find "$build/gui-forms" .ci/stx-package -name '*.a' -not -path '*/_deps/*' -not -name '*.dll.a')

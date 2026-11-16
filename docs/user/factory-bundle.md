@@ -169,9 +169,10 @@ Linux hosts, or for a window's first text with the faces already decoded.
 Those are the next measurements. Until they exist, this page claims no speed
 beyond the tables above.
 
-**Glyph start-up, a candidate rasterizer.** STXlib's glyph face is not yet
-used by GUI.Forms. On 2026-11-16 it was measured on the same machine beside
-FreeType 2.14.2, taking the least of 15 runs:
+**Glyph start-up, STXlib's glyph face.** GUI.Forms draws with STXlib's glyph
+face since 2026-11-16. That day, before the switch, it was measured on the
+same machine beside FreeType 2.14.2, the engine it replaced, taking the least
+of 15 runs:
 
 - Opening a face takes 0.2 to 0.6 µs, against FreeType's 2 to 7 µs.
 - From font bytes to the first hinted glyph's mask takes 43 to 68 µs for

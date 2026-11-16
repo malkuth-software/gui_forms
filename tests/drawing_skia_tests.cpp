@@ -576,8 +576,8 @@ std::uint64_t draw_ink(SkiaExecutor& executor, const Font& font, const Matrix& t
     return ink(target);
 }
 
-// ADR-004 phase 5: draw_string and measure_string use the shared HarfBuzz/
-// FreeType engine and compositor, so their pixels are the same on every host.
+// ADR-004 phase 5: draw_string and measure_string use the shared text engine
+// (over STXlib's glyphs) and compositor, so their pixels are the same on every host.
 void text_uses_the_shared_engine() {
     SkiaExecutor executor;
     const std::vector<std::byte> regular = read_file(GUI_DRAWING_TEST_FONT);

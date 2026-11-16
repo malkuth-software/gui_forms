@@ -313,7 +313,7 @@ void write_snapshot(std::ostream& output, const MetricSnapshot& snapshot) {
     text.append("# GUI.Forms font metric snapshot (stage F; brief decision 18).\n");
     text.append("# Measurements only: this file holds no outlines, tables or other font data.\n");
     text.append("# tools/font_metrics_differential measured the reference file named below,\n");
-    text.append("# identified by its SHA-256, with the bundled FreeType and HarfBuzz engine\n");
+    text.append("# identified by its SHA-256, with the bundled STXlib text engine\n");
     text.append("# (ADR-004): advances in font units, then line metrics, corpus string widths\n");
     text.append("# and line starts per size. The gate measures the bundled candidate on every\n");
     text.append("# host; its measurement digest below must be reproduced exactly.\n");

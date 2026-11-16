@@ -157,8 +157,8 @@ Content boundary
 : A content surface on its own execution context, with stale frames, a
   watchdog and termination; a content editing mode, where the program lays
   out and draws the text and GUI.Forms provides the caret, input, undo and
-  accessibility; symbol isolation so a program's own HarfBuzz and FreeType
-  link beside GUI.Forms'; and a hosted mode in which the content program
+  accessibility; a program's own HarfBuzz and FreeType
+  link beside GUI.Forms, which contains neither since 2026-11-16; and a hosted mode in which the content program
   runs in its own process (macOS and Linux first).
 
 Engine and controls
@@ -210,7 +210,8 @@ The owner recorded these choices on 2026-11-13:
   GUI.Forms bundles, and programs cannot register fonts with its engine.
   Content may use any font, drawn by the program's own text engine into its
   own sub-surfaces. Registered families through themes wait for a formally
-  verified FreeType, after 1.0.
+  verified FreeType, after 1.0 (decided while GUI.Forms read fonts with
+  FreeType; since 2026-11-16 STXlib's glyph library reads them).
 - **The content boundary is an integrity boundary,** not a security
   boundary: failing content cannot crash or corrupt the interface, which
   stays responsive. Plan Paint's text tool is the first user of the content
@@ -263,7 +264,8 @@ signed packaging lead to **1.0 Stable**.
 After 1.0:
 - HTML import (converting static web pages into GUI.Forms documents);
 - a light FreeType fork, and registered font families through themes once
-  FreeType is formally verified;
+  FreeType is formally verified (planned while GUI.Forms read fonts with
+  FreeType; since 2026-11-16 STXlib's glyph library reads them);
 - identical floating-point results on every architecture;
 - a proposal, timing open: once STXlib runs on FreeBSD, build and test the
   X11 host there so that GUI.Forms can claim BSD support.
@@ -309,7 +311,7 @@ gates as their own rows. "Done" means the deliverable exists and a test in
 | Retained kernel and headless reference host | Component ownership apart from the visual tree, stable identity, transactional attach and detach, tokenized events, UI-thread enforcement, typed dirtiness, and a deterministic headless host whose trace is the ordering reference | done |
 | Display chunks, damage and the CPU renderer | Retained display chunks, bounded multi-rectangle damage per paint plane, a bounded PNG registry with a fuzz target, the renderer-free drawing core (paths, gradients, transforms, clips, images), and the private CPU-only Skia adapter behind symbol audits | done |
 | Portable host protocol and the macOS host | A versioned, capability-reported protocol; on AppKit: lifecycle and close cancellation, monitors, occlusion, capture, cursors, clipboard text and images, inbound typed drops, the five common dialogs, sound cues and IME composition | done; outbound drag and native menus are open |
-| Unicode text, shaping and editing | A strict UTF-8 text store with distinct position types, Unicode grapheme boundaries, HarfBuzz/FreeType shaping over bundled faces with script fallback, bidirectional analysis, and single and multiline editing with selection, clipboard and undo | in progress: preedit on X11 remains |
+| Unicode text, shaping and editing | A strict UTF-8 text store with distinct position types, Unicode grapheme boundaries, STXlib's shaping over bundled faces with script fallback, bidirectional analysis, and single and multiline editing with selection, clipboard and undo | in progress: preedit on X11 remains |
 | Layout, scrolling and virtualization | Measure and arrange with Dock/Anchor, flow, table, split and responsive-track containers; scrollable containers with real scrollbars; read barriers and bounded passes; lists and trees that realize only visible rows | in progress: FlexPanel, GridPanel and BlockPanel pass a box and text gate against a browser layout oracle (211 fixtures); VirtualRowsView and TreeListView index row heights with `stx_btree` (fixed-point heights); DataGridView virtual mode is tested with a million rows; DataGridView on the same row engine is in checkpoint 33 |
 | Basic Forms controls | Panel, GroupBox, Label, LinkLabel, Button, CheckBox, RadioButton, TextBox, ListBox, ComboBox, NumericUpDown, scroll bars, TrackBar, ProgressBar, PictureBox, ContainerControl, UserControl, Timer, ToolTip, ErrorProvider, HelpProvider, ImageList and commands, with initialization scopes, mnemonics and accept/cancel targets | done |
 | Collection, command and data controls | TreeView, ObjectView, CheckedListBox, TabControl, SplitContainer, MasterDetailView, MenuStrip, ContextMenu, CommandBar, DateTimePicker and a metadata-driven PropertyGrid; `Value<T>` and `Command` bindings with record currency and validation | in progress: DataGridView (with link and sparkline columns), ListView, StatusStrip and MessageBox are implemented; menu first-letter jumps and the DataGridView breadth (frozen columns and rows, click events, cell tooltips, hit testing) are in checkpoint 32; MDI (with docking) is open |
@@ -335,14 +337,15 @@ gates as their own rows. "Done" means the deliverable exists and a test in
 - Typed dirtiness, nested update scopes, bounded flushes, read barriers.
 - Damage-limited CPU painting with coherent paint leases, exact presentation
   receipts, paint planes, live surfaces and per-frame counters.
-- One text engine (HarfBuzz shaping, FreeType light auto-hinting, shared
-  sRGB blending) with identical output on macOS, Windows and Linux, enforced
+- One text engine (STXlib's shaper and light auto-hinter, shared sRGB
+  blending) with identical output on macOS, Windows and Linux, enforced
   by a hash-compared identity test. Skia is built without any font backend.
 - Owned compression and image codecs on every host: one zlib (`stx_zlib`),
   an owned PNG codec (`stx_png`), the only image codec, and CONV
   interpolation (`stx_conv`). CNG (`stx_cng`), taken in for 0.2, was removed
   on 2026-10-26 (the owner's decision: our own PNG and zlib suffice). WIC
-  decoding is removed and FreeType is built without zlib.
+  decoding is removed, and FreeType, built without zlib while it was
+  used, left on 2026-11-16.
 - The theme engine: a cascade of rules over named parts, layered materials,
   effect primitives with declared cost bounds, transitions and settling
   motion, idle-time bakes, and procedural materials, with identical pixels on

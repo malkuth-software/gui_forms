@@ -115,7 +115,8 @@ an `AllocationSubsystem`:
 
 The library does not replace or hook the global `operator new`, so the
 program's own allocations, the standard library's elsewhere in GUI.Forms,
-and those of Skia, FreeType, HarfBuzz and the host toolkits are not counted.
+and those of Skia, of STXlib's own allocator (apart from the glyph faces'
+bytes, under `text_layout`) and of the host toolkits are not counted.
 A figure here is never the process total; read that from the platform.
 
 ```cpp

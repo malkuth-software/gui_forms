@@ -85,7 +85,7 @@ struct GlyphRunTransform final {
     double yy{1.0};
 };
 
-// Rasterizes HarfBuzz-shaped runs through STXlib's glyph face. For each face
+// Rasterizes the engine's shaped runs through STXlib's glyph face. For each face
 // the engine registered it opens one face of its own, on first use, over the
 // program's typeface of the same bytes (program_typefaces.hpp: the
 // registry's for a bundled or application face), so the glyphs read for one

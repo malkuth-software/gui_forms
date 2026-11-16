@@ -11,8 +11,10 @@ describes the result.
 ## The profile
 
 Shaping
-: HarfBuzz over FreeType with unhinted advances at the logical size. Kerning
-  and GPOS positioning are HarfBuzz's. Line widths therefore match the font's
+: STXlib's shaper (stxlib::glyphs) with unhinted advances at the logical
+  size. Kerning and GPOS positioning are the shaper's; it matches HarfBuzz's
+  results for the scripts it shapes, and Arabic and the Indic scripts are
+  drawn unshaped. Line widths therefore match the font's
   designed outlines within a tenth of a pixel instead of drifting with the
   hinter.
 
@@ -21,7 +23,8 @@ Placement
   horizontal subpixel phase is kept, so proportional text does not jitter.
 
 Rasterization
-: FreeType light auto-hinting, grayscale anti-aliasing, no stem darkening and
+: STXlib's light auto-hinting (a conversion of part of the FreeType
+  Project's auto-hinter), grayscale anti-aliasing, no stem darkening and
   no outline widening. Light hinting keeps vertical stems crisp without
   deforming glyphs in fonts that have no meaningful bytecode instructions.
 

@@ -49,7 +49,7 @@ before changing a row.
 | criteria rack | measured partial | public frontend-neutral `InstrumentRack` reconciles stable modules and genuine field controls, exposes typed consumer-owned change/toggle/remove/move events, wraps and scrolls under constraint, and presents live/staged/pending/invalid states without color-only meaning; the demoboard owns fixture evaluation and deterministic Apply semantics |
 | outbound drag/external peer | open | FM-D IDs; inbound proof is not outbound proof |
 | native accessibility | open | FM-A IDs and physical publisher results |
-| HarfBuzz/FreeType/bundled body fonts | measured partial | the refreshed 349-codepoint Portsmouth Rapids regular/bold faces contain `U+2190 U+2191 U+2192 U+25BC`; HarfBuzz tests prove the full navigation string shapes in one Rapids run at regular and bold weights; Carlito/Noto remain explicit resilience and mixed-script fallback; revised-face scale/raster acceptance remains open |
+| bundled text engine/body fonts (HarfBuzz/FreeType when measured; STXlib since 2026-11-16) | measured partial | the refreshed 349-codepoint Portsmouth Rapids regular/bold faces contain `U+2190 U+2191 U+2192 U+25BC`; HarfBuzz tests prove the full navigation string shapes in one Rapids run at regular and bold weights; Carlito/Noto remain explicit resilience and mixed-script fallback; revised-face scale/raster acceptance remains open |
 | motion/sounds | measured partial | public `SemanticFeedback` records deterministic location/pane/option/operation events through an injected monotonic clock; sound-off preserves the semantic trace with zero host gain; Window reduced motion keeps progress/easing activity live at calmer cadence; physical host cue assets/coalescing remain open |
 
 ## Evidence locations to create

@@ -15,7 +15,7 @@ The installed CMake package exposes six main components (`Threading`,
 `Core`, `Drawing`, `Controls`, `Application` and `Audio`), the C ABI
 (`CAbi`, with `CAbiConformance` for its conformance kit) in a build with a
 native host, and optional components that a build must enable (`TextMasks`,
-`AudioLoopTransport`, `FreeType`, `HarfBuzz`, `GalleryModel`, `Lab`,
+`AudioLoopTransport`, `GalleryModel`, `Lab`,
 `DemoControls`). Their link-time use and the one linking rule are in
 [Consume the SDK](../user/consume-the-sdk); this is how the main ones stack:
 
@@ -29,7 +29,8 @@ your C++ application         one executable: everything below is linked into it
          host adapter       src/host/macos | windows | linux
          CPU renderer       src/render/skia on every host (Windows presents its
                             frames from DIB sections, src/host/windows/raster)
-         text engine        HarfBuzz, FreeType, stxlib::textlayout
+         text engine        STXlib: stxlib::glyphs (fonts, shaping, hinting),
+                            stxlib::textlayout (bidi, line breaks, scripts)
 
 renderer-free code (tests, models, automation)
   └─ GUIForms::Controls ── Core, Drawing

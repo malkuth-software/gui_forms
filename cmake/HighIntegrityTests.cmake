@@ -84,8 +84,9 @@ set_tests_properties(gui_forms_high_integrity_damaged_pack_fails_fast PROPERTIES
 # manifests/high_integrity/absent_symbols.txt (cmake/CheckSystemImports.cmake
 # with FORBIDDEN): an environment read, a user-locale read, a theme request
 # from the arguments, or an entry the configuration compiles out. The text
-# stack and the C++ runtime are inside the program too, so a getenv they make
-# (HarfBuzz's HB_OPTIONS, FreeType's FREETYPE_PROPERTIES) fails it as well.
+# stack (STXlib's) and the C++ runtime are inside the program too, so a getenv
+# they make fails it as well (as HarfBuzz's HB_OPTIONS and FreeType's
+# FREETYPE_PROPERTIES did, until they left on 2026-11-16).
 # The same proof, as a component file for template_harness's
 # check_object_surface.py, is manifests/high_integrity/object_surface/gui_forms.toml.
 set(_gf_high_integrity_binaries "")

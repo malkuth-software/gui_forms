@@ -126,10 +126,12 @@ tools/std_surface_census.py update` lowers it in the same change (update
 refuses to raise a count). Conversions between the two vocabularies inside
 GUI.Forms go through the private bridge, `src/platform/stxlib_bridge.hpp`.
 
-`stx_skia/` and every third-party source (FreeType, HarfBuzz, the Unicode
-data) live in the stx repository since
-2026-11-08; this repository pins that checkout in `stx.lock` and carries no
-third-party sources. `stx_skia/`'s own style check, with its shrink-only
+`stx_skia/` and what remains of the third-party data (the Unicode data) live
+in the stx repository since 2026-11-08; this repository pins that checkout in
+`stx.lock` and carries no third-party sources. Fonts, shaping, hinting, bidi,
+line breaking, script runs and Markdown are STXlib's since 2026-11-16
+(stxlib::glyphs, stxlib::textlayout, stxlib::markdown); FreeType, HarfBuzz,
+SheenBidi, libunibreak and MD4C are no longer built. `stx_skia/`'s own style check, with its shrink-only
 allowance, runs there (`stx_skia/AGENTS.md` in stx).
 
 The second checks two rules of sections 5 and 9: a function returning a
@@ -243,8 +245,9 @@ directory.
   default semantic adapters; File Manager requires native accessibility
   publication and does not treat it as a user-disabled product mode.
 - Portsmouth Rapids 1.0 faces are supplied for the Gallery.
-  **GIVEN forward direction:** M4/M9 use HarfBuzz, FreeType, bundled
-  Portsmouth control faces, a selected bundled Tahoma/Calibri-like body face,
+  **GIVEN forward direction:** M4/M9 use STXlib's glyph library (font
+  reader, shaper and hinter, in place of FreeType and HarfBuzz since
+  2026-11-16), bundled Portsmouth control faces, a selected bundled Tahoma/Calibri-like body face,
   and bounded bundled fallback packs. Portsmouth is the repository owner's own
   typeface, bundled under MIT (`assets/fonts/LICENSE-PortsmouthRapids.txt`);
   body-face coverage assets remain a gate; do not silently use arbitrary host

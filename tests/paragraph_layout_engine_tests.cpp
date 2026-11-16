@@ -1,4 +1,4 @@
-// Paragraph layout over the bundled text engine (HarfBuzz, FreeType and
+// Paragraph layout over the bundled text engine (stxlib::glyphs and
 // stxlib::textlayout, as the hosts' painters use them): the engine's
 // cluster advances sum to its shaped width; collapsed, verified layout
 // paints the lines TextBlock paints for Latin, Hebrew, Arabic and emoji

@@ -999,7 +999,8 @@ struct FaceRecord final {
 };
 
 // A family's faces, indexed by the bold (1) and italic (2) bits of a font
-// style, with a private HarfBuzz engine that shapes them and a rasterizer
+// style, with a private text engine that shapes them (HarfBuzzFontEngine,
+// over STXlib's shaper) and a rasterizer
 // over the same bytes (ADR-004). Declared in that order so the rasterizer is
 // destroyed before the engine it borrows.
 struct TextFamily final {
