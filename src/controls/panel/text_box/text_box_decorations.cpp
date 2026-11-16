@@ -143,15 +143,15 @@ TextBox::RunFont TextBox::run_font_at(std::size_t offset, std::size_t limit, Fon
         std::lower_bound(styled_scratch_.cbegin(), styled_scratch_.cend(), offset, EndsAtOrBefore{});
     if (holding == styled_scratch_.cend()) return result;
     FontSpec font = content_font;
-    if ((*holding).style.weight.has_value()) font.weight = *(*holding).style.weight;
-    if ((*holding).style.italic.has_value()) font.italic = *(*holding).style.italic;
+    if ((*holding).style.weight.present()) font.weight = *(*holding).style.weight.value();
+    if ((*holding).style.italic.present()) font.italic = *(*holding).style.italic.value();
     // Neighbouring runs that differ only in colour share the shaping run.
     std::vector<StyledTextRun>::const_iterator next = holding;
     std::size_t end = (*holding).range.end.value();
     for (++next; next != styled_scratch_.cend(); ++next) {
         FontSpec following = content_font;
-        if ((*next).style.weight.has_value()) following.weight = *(*next).style.weight;
-        if ((*next).style.italic.has_value()) following.italic = *(*next).style.italic;
+        if ((*next).style.weight.present()) following.weight = *(*next).style.weight.value();
+        if ((*next).style.italic.present()) following.italic = *(*next).style.italic.value();
         if (!(following == font)) break;
         end = (*next).range.end.value();
     }
@@ -162,11 +162,11 @@ TextBox::RunFont TextBox::run_font_at(std::size_t offset, std::size_t limit, Fon
 
 PartPaint TextBox::decorated_text_part(const PartPaint& base, const TextDecorationStyle& style) const {
     PartPaint part = base;
-    if (style.ink.has_value()) {
+    if (style.ink.present()) {
         // A theme ink replaces an overridden field's authored text colour.
         part.authored_foreground.reset();
         part.tone = PartTextTone::ordinary;
-        switch (*style.ink) {
+        switch (*style.ink.value()) {
         case TextInkRole::text:
             part.family = ControlVisualRole::editor;
             break;
@@ -189,7 +189,7 @@ PartPaint TextBox::decorated_text_part(const PartPaint& base, const TextDecorati
             break;
         }
     }
-    if (style.foreground.has_value()) part.authored_foreground.set(*style.foreground);
+    if (style.foreground.present()) part.authored_foreground.set(*style.foreground.value());
     return part;
 }
 
@@ -197,7 +197,7 @@ Color TextBox::decoration_underline_color(const PartPaint& part, const TextDecor
     const ControlVisualContext context = part_visual_context(*this, part.states);
     // Authored colours stand outside high contrast only (T4-1).
     if (!context.high_contrast) {
-        if (style.underline_color.has_value()) return *style.underline_color;
+        if (style.underline_color.present()) return *style.underline_color.value();
         if (part.authored_foreground.present()) return *part.authored_foreground.value();
     }
     const ResolvedControlRecipe resolved = effective_theme().resolve(*this, part.family, context, part.states);
@@ -219,11 +219,11 @@ void TextBox::paint_decorated_row(Painter& painter, const DecoratedRow& decorate
     // out, as it does every authored colour.
     if (!high_contrast) {
         for (const StyledTextRun& styled : styled_scratch_) {
-            if (!styled.style.background.has_value()) continue;
+            if (styled.style.background.absent()) continue;
             const double left = decorated.origin + multiline_boundary_x(line, styled.range.start);
             const double right = decorated.origin + multiline_boundary_x(line, styled.range.end);
             if (right <= left) continue;
-            painter.fill_rect({left, y, right - left, line_height_}, *styled.style.background);
+            painter.fill_rect({left, y, right - left, line_height_}, *styled.style.background.value());
         }
     }
     if (decorated.selected) paint_selection_band(painter, decorated.band);
@@ -279,13 +279,13 @@ void TextBox::paint_decorated_row(Painter& painter, const DecoratedRow& decorate
     // stays visible on selected text.
     const double baseline = y + line_ascent_;
     for (const StyledTextRun& styled : styled_scratch_) {
-        if (!styled.style.underline.has_value() || *styled.style.underline == TextUnderline::none) continue;
+        if (styled.style.underline.absent() || *styled.style.underline.value() == TextUnderline::none) continue;
         const double left = decorated.origin + multiline_boundary_x(line, styled.range.start);
         const double right = decorated.origin + multiline_boundary_x(line, styled.range.end);
         if (right <= left) continue;
         const PartPaint ink = decorated_text_part(text_part, styled.style);
         const Color colour = decoration_underline_color(ink, styled.style);
-        if (*styled.style.underline == TextUnderline::single) {
+        if (*styled.style.underline.value() == TextUnderline::single) {
             const double under = std::min(baseline + 2.0, y + line_height_ - 1.0);
             painter.draw_line({left, under}, {right, under}, colour, 1.0);
             continue;

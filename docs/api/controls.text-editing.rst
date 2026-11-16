@@ -1548,19 +1548,19 @@ Related types
 
    .. cpp:function:: bool empty() const noexcept
 
-   .. cpp:member:: std::optional<TextInkRole> ink
+   .. cpp:member:: stxlib::Optional<TextInkRole> ink
 
-   .. cpp:member:: std::optional<Color> foreground
+   .. cpp:member:: stxlib::Optional<Color> foreground
 
-   .. cpp:member:: std::optional<std::uint16_t> weight
+   .. cpp:member:: stxlib::Optional<std::uint16_t> weight
 
-   .. cpp:member:: std::optional<bool> italic
+   .. cpp:member:: stxlib::Optional<bool> italic
 
-   .. cpp:member:: std::optional<TextUnderline> underline
+   .. cpp:member:: stxlib::Optional<TextUnderline> underline
 
-   .. cpp:member:: std::optional<Color> underline_color
+   .. cpp:member:: stxlib::Optional<Color> underline_color
 
-   .. cpp:member:: std::optional<Color> background
+   .. cpp:member:: stxlib::Optional<Color> background
 
 .. cpp:namespace:: gui_forms
 

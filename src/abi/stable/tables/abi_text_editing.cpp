@@ -88,25 +88,25 @@ bool decoration_from_record(const gf_text_decoration& record, std::size_t text_s
     TextDecorationStyle& style = decoration.style;
     if ((record.fields & GF_TEXT_DECORATION_INK) != 0U) {
         if (record.ink >= ink_roles.size()) return false;
-        style.ink = ink_roles[record.ink];
+        style.ink.set(ink_roles[record.ink]);
     }
-    if ((record.fields & GF_TEXT_DECORATION_FOREGROUND) != 0U) style.foreground = unpacked_color(record.foreground);
+    if ((record.fields & GF_TEXT_DECORATION_FOREGROUND) != 0U) style.foreground.set(unpacked_color(record.foreground));
     if ((record.fields & GF_TEXT_DECORATION_WEIGHT) != 0U) {
         if (record.weight < 1U || record.weight > 1000U) return false;
-        style.weight = static_cast<std::uint16_t>(record.weight);
+        style.weight.set(static_cast<std::uint16_t>(record.weight));
     }
     if ((record.fields & GF_TEXT_DECORATION_ITALIC) != 0U) {
         if (record.italic > 1U) return false;
-        style.italic = record.italic == 1U;
+        style.italic.set(record.italic == 1U);
     }
     if ((record.fields & GF_TEXT_DECORATION_UNDERLINE) != 0U) {
         if (record.underline >= underlines.size()) return false;
-        style.underline = underlines[record.underline];
+        style.underline.set(underlines[record.underline]);
     }
     if ((record.fields & GF_TEXT_DECORATION_UNDERLINE_COLOR) != 0U) {
-        style.underline_color = unpacked_color(record.underline_color);
+        style.underline_color.set(unpacked_color(record.underline_color));
     }
-    if ((record.fields & GF_TEXT_DECORATION_BACKGROUND) != 0U) style.background = unpacked_color(record.background);
+    if ((record.fields & GF_TEXT_DECORATION_BACKGROUND) != 0U) style.background.set(unpacked_color(record.background));
     return true;
 }
 
@@ -127,33 +127,33 @@ gf_text_decoration record_from_decoration(const TextDecoration& decoration) noex
     record.end = decoration.range.end.value();
     record.tag = decoration.tag;
     const TextDecorationStyle& style = decoration.style;
-    if (style.ink.has_value()) {
+    if (style.ink.present()) {
         record.fields |= GF_TEXT_DECORATION_INK;
-        record.ink = vocabulary_index(ink_roles, *style.ink);
+        record.ink = vocabulary_index(ink_roles, *style.ink.value());
     }
-    if (style.foreground.has_value()) {
+    if (style.foreground.present()) {
         record.fields |= GF_TEXT_DECORATION_FOREGROUND;
-        record.foreground = packed_color(*style.foreground);
+        record.foreground = packed_color(*style.foreground.value());
     }
-    if (style.weight.has_value()) {
+    if (style.weight.present()) {
         record.fields |= GF_TEXT_DECORATION_WEIGHT;
-        record.weight = *style.weight;
+        record.weight = *style.weight.value();
     }
-    if (style.italic.has_value()) {
+    if (style.italic.present()) {
         record.fields |= GF_TEXT_DECORATION_ITALIC;
-        record.italic = *style.italic ? 1U : 0U;
+        record.italic = *style.italic.value() ? 1U : 0U;
     }
-    if (style.underline.has_value()) {
+    if (style.underline.present()) {
         record.fields |= GF_TEXT_DECORATION_UNDERLINE;
-        record.underline = vocabulary_index(underlines, *style.underline);
+        record.underline = vocabulary_index(underlines, *style.underline.value());
     }
-    if (style.underline_color.has_value()) {
+    if (style.underline_color.present()) {
         record.fields |= GF_TEXT_DECORATION_UNDERLINE_COLOR;
-        record.underline_color = packed_color(*style.underline_color);
+        record.underline_color = packed_color(*style.underline_color.value());
     }
-    if (style.background.has_value()) {
+    if (style.background.present()) {
         record.fields |= GF_TEXT_DECORATION_BACKGROUND;
-        record.background = packed_color(*style.background);
+        record.background = packed_color(*style.background.value());
     }
     return record;
 }
