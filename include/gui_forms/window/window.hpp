@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <memory>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // Native popups (gui_forms/window/native_popup/native_popup.hpp).
@@ -227,7 +229,7 @@ public:
     // reason: the user, the program, the session ending, a quit), once it
     // has; empty until then. Readable from the window's closed callback
     // (ApplicationWindowOptions::closed). Set only by HostSession.
-    [[nodiscard]] std::optional<HostCloseReason> host_close_reason() const noexcept;
+    [[nodiscard]] stxlib::Optional<HostCloseReason> host_close_reason() const noexcept;
     // The slot drop-downs and pickers lift their lists and panels into
     // (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the
     // slots below it, one per depth.
@@ -237,13 +239,19 @@ public:
     // that leaves it unhandled; none ends the forwarding. The control whose
     // Popup has the keyboard sets it (PopupLift does) and clears it when the
     // Popup hides. std::out_of_range for a slot out of range. UI thread.
-    void forward_input_to_popup_window(std::optional<std::size_t> slot);
+    void forward_input_to_popup_window(stxlib::Optional<std::size_t> slot);
+    [[deprecated("pass stxlib::Optional<std::size_t>")]] void forward_input_to_popup_window(std::optional<std::size_t> slot) {
+        stxlib::Optional<std::size_t> owned{};
+        if (slot.has_value()) owned.set(*slot);
+        forward_input_to_popup_window(owned);
+    }
+    void forward_input_to_popup_window(std::size_t slot) = delete;
     // The work area of the monitor under `client_point` (this window's
     // client coordinates), in client coordinates: the region a Popup window
     // may cover, which reaches past the client area onto the desktop. None
     // when the run cannot say (no run, no frame, no monitors). Reads the
     // monitor table into storage the window keeps. UI thread.
-    [[nodiscard]] std::optional<Rect> popup_work_area(Point client_point);
+    [[nodiscard]] stxlib::Optional<Rect> popup_work_area(Point client_point);
 
     // The application this window joined, or null (none was current, or it
     // was destroyed first).
@@ -366,7 +374,7 @@ private:
     std::shared_ptr<detail::PopupStandby> popup_standby_{};
     // host_close_reason(): written by HostSession when it accepts the
     // closed event.
-    std::optional<HostCloseReason> host_close_reason_{};
+    stxlib::Optional<HostCloseReason> host_close_reason_{};
     [[nodiscard]] detail::PopupStandby& popup_standby();
     // Sends the corner preference to the attached host, if any, and takes
     // its report; changed corners repaint the band's strips. Called by

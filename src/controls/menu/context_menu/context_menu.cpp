@@ -984,7 +984,7 @@ struct ContextMenu::Impl final {
         const Size client = (*window).client_size();
         const Rect client_area{0.0, 0.0, client.width, client.height};
         if (!popup_mode) return client_area;
-        const std::optional<Rect> work_area = (*window).popup_work_area(at);
+        const stxlib::Optional<Rect> work_area = (*window).popup_work_area(at);
         const Rect area = work_area.value_or(client_area);
         return area;
     }

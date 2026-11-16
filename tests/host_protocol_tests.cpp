@@ -43,6 +43,8 @@
 #include <string>
 #include <thread>
 
+#include <stxlib/optional.hpp>
+
 using gui_forms::test_support::wake_at;
 
 namespace {
@@ -1394,7 +1396,7 @@ void test_session_end_close_stays_attached_until_closed() {
     const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
     Fixture& fixture = *held_fixture;
     static_cast<void>(fixture.host.dispatch(HostAttachEvent{{320.0, 180.0}, 1.0}, 1));
-    require(!fixture.window.host_close_reason().has_value(),
+    require(fixture.window.host_close_reason().absent(),
             "an open window must report no close reason");
     SubscriptionToken cancellation =
         fixture.host.session().closing().subscribe(cancel_close);
@@ -1415,7 +1417,7 @@ void test_session_end_close_stays_attached_until_closed() {
     require(fixture.host.dispatch(HostClosedEvent{HostCloseReason::session_end}, 5).accepted() &&
                 fixture.host.session().snapshot().phase == HostLifecyclePhase::closed,
             "the host's closed event must close a session-ending window");
-    require(fixture.window.host_close_reason() == HostCloseReason::session_end,
+    require(fixture.window.host_close_reason() == stxlib::Optional<HostCloseReason>::of(HostCloseReason::session_end),
             "the window must record the closed event's reason");
 }
 

@@ -358,7 +358,7 @@ void HostSession::DispatchVisitor::operator()(
         }
     } else if constexpr (std::is_same_v<Payload, HostClosedEvent>) {
         (*session).snapshot_.phase = HostLifecyclePhase::closed;
-        (*window).host_close_reason_ = payload.reason;
+        (*window).host_close_reason_.set(payload.reason);
         (*session).snapshot_.attached = false;
         (*session).snapshot_.closed = true;
         (*session).snapshot_.active = false;
