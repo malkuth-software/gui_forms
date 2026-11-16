@@ -349,6 +349,8 @@ void ScrollBar::on_mouse_wheel(MouseEventArgs& arguments) {
 }
 
 void ScrollBar::on_mouse_down(MouseEventArgs& arguments) {
+    // press_part's handlers may drop the bar; the raise below still uses it.
+    const Control::Ptr lifetime = shared_from_this();
     if (eligible_for_input() && arguments.button == PointerButton::primary) press_part(arguments);
     RangeControl::on_mouse_down(arguments);
 }
@@ -387,7 +389,11 @@ void ScrollBar::on_mouse_up(MouseEventArgs& arguments) {
 // A primary press focuses the bar and presses the part under the pointer:
 // the thumb starts a drag, any other part applies at once and repeats.
 void ScrollBar::press_part(MouseEventArgs& arguments) {
-    if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
+    // The focus and value handlers may drop the bar: `lifetime` keeps it
+    // alive through the press, and the part is hit after the focus handlers.
+    const Control::Ptr lifetime = shared_from_this();
+    if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
+    if (!is_alive()) return;
     const Point local = arguments.location;
     pressed_part_ = part_at(local);
     if (pressed_part_ == ScrollBarPart::none) return;
