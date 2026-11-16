@@ -458,11 +458,15 @@ void ListBox::paint_row_adornment(Painter&, std::size_t, Rect, bool,
 // Control: ScrollableControl's bar handling does not see the list's
 // pointer events, as before the raisers.
 void ListBox::on_mouse_down(MouseEventArgs& arguments) {
+    // list_pointer's handlers may drop the list; the raise below still uses it.
+    const Ptr self = shared_from_this();
     list_pointer(arguments);
     Control::on_mouse_down(arguments);
 }
 
 void ListBox::on_mouse_up(MouseEventArgs& arguments) {
+    // item_activated's handlers may drop the list; the raise below uses it.
+    const Ptr self = shared_from_this();
     list_pointer(arguments);
     Control::on_mouse_up(arguments);
 }
@@ -507,7 +511,11 @@ void ListBox::list_pointer(MouseEventArgs& arguments) {
         return;
     }
     if (arguments.action == PointerAction::down && arguments.button == PointerButton::primary) {
-        if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
+        // The focus handlers may drop the list: `self` keeps it alive, and
+        // the press is hit-tested after them.
+        const Ptr self = shared_from_this();
+        if (window() != nullptr) static_cast<void>((*window()).request_focus(self));
+        if (!is_alive()) return;
         const stxlib::Optional<std::size_t> index = index_at(arguments.window_position);
         if (index.present()) {
             select_index(*index.value(), includes(arguments.modifiers, Modifier::shift),
@@ -628,33 +636,47 @@ std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
     return nodes;
 }
 
-bool ListBox::on_semantic_child_action(std::string_view child_stable_id,
-                                       SemanticAction action,
-                                       std::string_view) {
-    std::size_t index{};
+bool ListBox::semantic_child_index(std::string_view child_stable_id, std::size_t& index) {
     if (!item_stable_ids_.empty()) {
         const stxlib::Optional<std::size_t> found = index_of_item_stable_id(child_stable_id);
         if (found.absent()) return false;
         index = *found.value();
-    } else {
-        const std::string prefix = std::string(stable_id().value()) + ".item.";
-        if (!child_stable_id.starts_with(prefix)) return false;
-        const std::string_view suffix = child_stable_id.substr(prefix.size());
-        const std::from_chars_result parsed = std::from_chars(
-            suffix.data(), suffix.data() + suffix.size(), index);
-        if (parsed.ec != std::errc{} ||
-            parsed.ptr != suffix.data() + suffix.size() ||
-            index >= items.read().size()) return false;
+        return true;
     }
+    const std::string prefix = std::string(stable_id().value()) + ".item.";
+    if (!child_stable_id.starts_with(prefix)) return false;
+    const std::string_view suffix = child_stable_id.substr(prefix.size());
+    std::size_t parsed_index{};
+    const std::from_chars_result parsed = std::from_chars(
+        suffix.data(), suffix.data() + suffix.size(), parsed_index);
+    if (parsed.ec != std::errc{} ||
+        parsed.ptr != suffix.data() + suffix.size() ||
+        parsed_index >= items.read().size()) return false;
+    index = parsed_index;
+    return true;
+}
+
+// Commit, then notify (house style 5): the focus request runs the focus
+// handlers, which may edit the items or drop the list, so the row is found
+// again after it, and `self` keeps the list alive across them. The
+// selection's own handlers may edit the items too: the press is reported
+// only for a row that is still there.
+bool ListBox::on_semantic_child_action(std::string_view child_stable_id,
+                                       SemanticAction action,
+                                       std::string_view) {
     if (action != SemanticAction::focus && action != SemanticAction::select &&
         action != SemanticAction::press) return false;
+    std::size_t index{};
+    if (!semantic_child_index(child_stable_id, index)) return false;
+    const Ptr self = shared_from_this();
     if (window() != nullptr) {
-        static_cast<void>((*window()).request_focus(shared_from_this()));
+        static_cast<void>((*window()).request_focus(self));
     }
+    if (!is_alive() || !semantic_child_index(child_stable_id, index)) return true;
     select_index(index, false, false);
-    if (action == SemanticAction::press && is_alive()) {
-        item_activated_.emit(index);
-    }
+    if (action != SemanticAction::press || !is_alive()) return true;
+    if (!semantic_child_index(child_stable_id, index)) return true;
+    item_activated_.emit(index);
     return true;
 }
 
