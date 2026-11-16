@@ -662,16 +662,26 @@ public:
     // The control border (active_border.hpp; the active border study's
     // phase 2): set, validated first (an invalid border throws
     // std::invalid_argument and changes nothing), or cleared with
-    // std::nullopt. It paints after the control's content and its owned
+    // none. It paints after the control's content and its owned
     // decorations, and its reach (active_border_reach) widens the visual
     // outsets. A change repaints the control; a moving border repaints on
     // a paint-gated timer (ADR-016) only while its pose moves, and its
     // motion restarts lit whenever the timer starts. UI thread.
-    void set_active_border(std::optional<ActiveBorder> border);
-    [[nodiscard]] std::optional<ActiveBorder> active_border() const;
+    void set_active_border(stxlib::Optional<ActiveBorder> border);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<ActiveBorder>")]]
+    void set_active_border(std::optional<ActiveBorder> border) {
+        stxlib::Optional<ActiveBorder> owned{};
+        if (border.has_value()) owned.set(*border);
+        set_active_border(owned);
+    }
+    // A plain border is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<ActiveBorder>::of(border).
+    void set_active_border(ActiveBorder border) = delete;
+    [[nodiscard]] stxlib::Optional<ActiveBorder> active_border() const;
     // The pose the border last painted with (resolve_active_border), empty
     // before its first paint or with no border; and whether its timer runs.
-    [[nodiscard]] std::optional<ActiveBorderPose> active_border_pose() const noexcept;
+    [[nodiscard]] stxlib::Optional<ActiveBorderPose> active_border_pose() const noexcept;
     [[nodiscard]] bool active_border_animating() const noexcept;
     [[nodiscard]] ControlVisualStatus visual_status() const noexcept {
         return visual_status_;

@@ -498,16 +498,16 @@ std::shared_ptr<const PropertyEnumDescriptor> Control::active_border_motion_prop
 }
 
 BindingValue Control::active_border_property_value(RegisteredProperty property) const {
-    const std::optional<ActiveBorder> current = active_border();
+    const stxlib::Optional<ActiveBorder> current = active_border();
     const ActiveBorder border = current.value_or(ActiveBorder{});
     switch (property) {
-    case RegisteredProperty::active_border: return BindingValue{current.has_value()};
+    case RegisteredProperty::active_border: return BindingValue{current.present()};
     case RegisteredProperty::active_border_color:
-        if (!border.colour) return BindingValue{};
-        return BindingValue{*border.colour};
+        if (border.colour.absent()) return BindingValue{};
+        return BindingValue{*border.colour.value()};
     case RegisteredProperty::active_border_alternate_color:
-        if (!border.alternate) return BindingValue{};
-        return BindingValue{*border.alternate};
+        if (border.alternate.absent()) return BindingValue{};
+        return BindingValue{*border.alternate.value()};
     case RegisteredProperty::active_border_width: return BindingValue{border.width};
     case RegisteredProperty::active_border_offset: return BindingValue{border.offset};
     case RegisteredProperty::active_border_corner_radius: return BindingValue{border.corner_radius};
@@ -524,20 +524,20 @@ void Control::set_active_border_property_value(RegisteredProperty property, cons
     if (property == RegisteredProperty::active_border) {
         const bool shown = std::get<bool>(value);
         if (!shown) {
-            set_active_border(std::nullopt);
+            set_active_border(stxlib::Optional<ActiveBorder>::none());
             return;
         }
-        set_active_border(active_border().value_or(ActiveBorder{}));
+        set_active_border(stxlib::Optional<ActiveBorder>::of(active_border().value_or(ActiveBorder{})));
         return;
     }
     ActiveBorder border = active_border().value_or(ActiveBorder{});
     const bool cleared = std::holds_alternative<std::monostate>(value);
     switch (property) {
     case RegisteredProperty::active_border_color:
-        border.colour = cleared ? std::optional<Color>{} : std::optional<Color>{std::get<Color>(value)};
+        border.colour = cleared ? stxlib::Optional<Color>::none() : stxlib::Optional<Color>::of(std::get<Color>(value));
         break;
     case RegisteredProperty::active_border_alternate_color:
-        border.alternate = cleared ? std::optional<Color>{} : std::optional<Color>{std::get<Color>(value)};
+        border.alternate = cleared ? stxlib::Optional<Color>::none() : stxlib::Optional<Color>::of(std::get<Color>(value));
         break;
     case RegisteredProperty::active_border_width: border.width = std::get<double>(value); break;
     case RegisteredProperty::active_border_offset: border.offset = std::get<double>(value); break;
@@ -555,7 +555,7 @@ void Control::set_active_border_property_value(RegisteredProperty property, cons
     }
     // set_active_border validates the whole border before it changes
     // anything.
-    set_active_border(border);
+    set_active_border(stxlib::Optional<ActiveBorder>::of(border));
 }
 
 BindingValue Control::fore_color_property_value() const {
@@ -1300,26 +1300,26 @@ PropertyValueOrigin name_origin(const Component& owner) {
 template <Control::RegisteredProperty Property>
 bool Control::active_border_serialized(const Component& owner) {
     const Control& control = static_cast<const Control&>(owner);
-    const std::optional<ActiveBorder> border = control.active_border();
-    if (!border) return false;
+    const stxlib::Optional<ActiveBorder> border = control.active_border();
+    if (border.absent()) return false;
     const ActiveBorder defaults{};
     if constexpr (Property == RegisteredProperty::active_border) {
         return true;
     } else if constexpr (Property == RegisteredProperty::active_border_color) {
-        return (*border).colour != defaults.colour;
+        return (*border.value()).colour != defaults.colour;
     } else if constexpr (Property == RegisteredProperty::active_border_alternate_color) {
-        return (*border).alternate != defaults.alternate;
+        return (*border.value()).alternate != defaults.alternate;
     } else if constexpr (Property == RegisteredProperty::active_border_width) {
-        return (*border).width != defaults.width;
+        return (*border.value()).width != defaults.width;
     } else if constexpr (Property == RegisteredProperty::active_border_offset) {
-        return (*border).offset != defaults.offset;
+        return (*border.value()).offset != defaults.offset;
     } else if constexpr (Property == RegisteredProperty::active_border_corner_radius) {
-        return (*border).corner_radius != defaults.corner_radius;
+        return (*border.value()).corner_radius != defaults.corner_radius;
     } else if constexpr (Property == RegisteredProperty::active_border_motion) {
-        return (*border).motion != defaults.motion;
+        return (*border.value()).motion != defaults.motion;
     } else {
         static_assert(Property == RegisteredProperty::active_border_frequency);
-        return (*border).frequency != defaults.frequency;
+        return (*border.value()).frequency != defaults.frequency;
     }
 }
 

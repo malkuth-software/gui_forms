@@ -421,9 +421,9 @@ Related types
 
    What the program asks for. Lengths are logical units. ``colour`` empty is the theme's accent; ``alternate`` empty is the lit colour fully transparent, so a flash blinks the border off. ``offset`` is the gap between the control's box and the stroke's inner edge: negative draws inside the box. ``frequency`` is in cycles a second, for flashing and cycling only.
 
-   .. cpp:member:: std::optional<Color> colour
+   .. cpp:member:: stxlib::Optional<Color> colour
 
-   .. cpp:member:: std::optional<Color> alternate
+   .. cpp:member:: stxlib::Optional<Color> alternate
 
    .. cpp:member:: double width
 

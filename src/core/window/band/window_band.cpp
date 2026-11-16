@@ -137,8 +137,8 @@ Color role_colour(WindowBandColourRole role, const BandDeclaration& themed, cons
 ActiveBorderPose limited_band_motion(Color lit, Color rest, ActiveBorderMotion motion, double frequency,
                                      bool suppressed) noexcept {
     ActiveBorder asked{};
-    asked.colour = lit;
-    asked.alternate = rest;
+    asked.colour.set(lit);
+    asked.alternate.set(rest);
     asked.motion = motion;
     asked.frequency = frequency;
     ActiveBorderConditions conditions{};

@@ -26,6 +26,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -45,6 +46,32 @@ bool near(double left, double right) {
     const bool result = std::abs(left - right) < 1e-9;
     return result;
 }
+
+// The border a test expects shown, and the pose it expects painted; an
+// absent one fails the test with `message` instead of reading it.
+ActiveBorder shown_border(const Control& control, const char* message) {
+    const stxlib::Optional<ActiveBorder> border = control.active_border();
+    require(border.present(), message);
+    const ActiveBorder shown = *border.value();
+    return shown;
+}
+
+ActiveBorderPose shown_pose(const Control& control, const char* message) {
+    const stxlib::Optional<ActiveBorderPose> pose = control.active_border_pose();
+    require(pose.present(), message);
+    const ActiveBorderPose shown = *pose.value();
+    return shown;
+}
+
+// set_active_border takes stxlib::Optional<ActiveBorder>: a plain border
+// and a bare {} are refused at compile time instead of reaching the
+// deprecated std::optional form (D15 Q3).
+template <typename Target>
+concept takes_plain_border = requires(Target& target) { target.set_active_border(ActiveBorder{}); };
+template <typename Target>
+concept takes_empty_border = requires(Target& target) { target.set_active_border({}); };
+static_assert(!takes_plain_border<Control> && !takes_empty_border<Control>,
+              "set_active_border refuses a plain border and a bare {}");
 
 // One rounded stroke the painter received.
 struct RoundedStroke final {
@@ -127,12 +154,12 @@ void limiter_and_rest_poses() {
             "the theme's accent, blinking off");
 
     ActiveBorder red_flash = flashing;
-    red_flash.colour = red;
+    red_flash.colour.set(red);
     const ActiveBorderPose refused = resolve_active_border(red_flash, plain_conditions());
     require(refused.motion == ActiveBorderMotion::steady && refused.lit == red && near(refused.frequency, 0.0),
             "a saturated red does not flash");
     ActiveBorder red_alternate = flashing;
-    red_alternate.alternate = red;
+    red_alternate.alternate.set(red);
     require(resolve_active_border(red_alternate, plain_conditions()).motion == ActiveBorderMotion::steady,
             "nor does a flash to saturated red");
     ActiveBorder red_cycle = red_flash;
@@ -150,7 +177,7 @@ void limiter_and_rest_poses() {
     contrast.high_contrast = true;
     ActiveBorder thin = flashing;
     thin.width = 1.0;
-    thin.colour = red;
+    thin.colour.set(red);
     const ActiveBorderPose forced = resolve_active_border(thin, contrast);
     require(forced.motion == ActiveBorderMotion::steady && forced.lit == white &&
                 near(forced.width, minimum_high_contrast_active_border_width),
@@ -224,33 +251,33 @@ void control_carries_a_border() {
     bad.width = -1.0;
     bool refused = false;
     try {
-        (*card).set_active_border(bad);
+        (*card).set_active_border(stxlib::Optional<ActiveBorder>::of(bad));
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && !(*card).active_border().has_value(), "an invalid border throws and changes nothing");
+    require(refused && (*card).active_border().absent(), "an invalid border throws and changes nothing");
 
     ActiveBorder steady{};
-    steady.colour = blue;
+    steady.colour.set(blue);
     steady.corner_radius = 4.0;
-    (*card).set_active_border(steady);
-    require((*card).active_border() == std::optional<ActiveBorder>{steady}, "the border is set");
+    (*card).set_active_border(stxlib::Optional<ActiveBorder>::of(steady));
+    require((*card).active_border() == stxlib::Optional<ActiveBorder>::of(steady), "the border is set");
     StrokePainter first{};
     static_cast<void>(window.paint(first, Rect{0.0, 0.0, 300.0, 200.0}));
     require(first.stroked(blue), "the border paints in its colour");
-    require((*card).active_border_pose().has_value() &&
-                (*(*card).active_border_pose()).motion == ActiveBorderMotion::steady && !(*card).active_border_animating(),
+    require(shown_pose(*card, "the paint resolves a pose").motion == ActiveBorderMotion::steady &&
+                !(*card).active_border_animating(),
             "a steady border runs no timer");
 
     ActiveBorder flashing = steady;
     flashing.motion = ActiveBorderMotion::flashing;
     flashing.frequency = 6.0;
-    (*card).set_active_border(flashing);
+    (*card).set_active_border(stxlib::Optional<ActiveBorder>::of(flashing));
     StrokePainter second{};
     static_cast<void>(window.paint(second, Rect{0.0, 0.0, 300.0, 200.0}));
     require(second.stroked(blue), "a flash starts lit");
     require((*card).active_border_animating() &&
-                near((*(*card).active_border_pose()).frequency, maximum_active_border_frequency),
+                near(shown_pose(*card, "the flash has a pose").frequency, maximum_active_border_frequency),
             "a flashing border runs its timer at the limited frequency");
 
     PresentationSettings settings = window.presentation_settings();
@@ -260,7 +287,7 @@ void control_carries_a_border() {
     StrokePainter calm{};
     static_cast<void>(window.paint(calm, Rect{0.0, 0.0, 300.0, 200.0}));
     require(calm.stroked(blue) && !(*card).active_border_animating() &&
-                (*(*card).active_border_pose()).motion == ActiveBorderMotion::steady,
+                shown_pose(*card, "the calm border has a pose").motion == ActiveBorderMotion::steady,
             "under reduced motion the border rests lit and its timer stops");
     settings.reduced_motion = false;
     settings.ambient_motion = false;
@@ -278,9 +305,9 @@ void control_carries_a_border() {
     require(!(*card).active_border_animating() && !forced.stroked(blue),
             "in high contrast it is still and takes the system colour");
 
-    (*card).set_active_border(std::nullopt);
-    require(!(*card).active_border().has_value() && !(*card).active_border_animating() &&
-                !(*card).active_border_pose().has_value(),
+    (*card).set_active_border(stxlib::Optional<ActiveBorder>::none());
+    require((*card).active_border().absent() && !(*card).active_border_animating() &&
+                (*card).active_border_pose().absent(),
             "clearing the border ends it");
 }
 
@@ -311,7 +338,7 @@ void border_properties() {
     require((*card).property_value("active_border_color") == BindingValue{}, "no colour reads null");
 
     (*card).set_property_value("active_border_width", BindingValue{3.0});
-    require((*card).active_border().has_value() && near((*(*card).active_border()).width, 3.0),
+    require(near(shown_border(*card, "writing a field shows the border").width, 3.0),
             "writing a field shows the border with that field");
     require((*card).property_value("active_border") == BindingValue{true}, "and active_border reads true");
     require((*card).should_serialize_property("active_border") &&
@@ -324,15 +351,15 @@ void border_properties() {
     (*card).set_property_value("active_border_motion",
                                BindingValue{PropertyEnumValue{"active_border_motion", "cycling", 2}});
     (*card).set_property_value("active_border_frequency", BindingValue{0.5});
-    const ActiveBorder written = *(*card).active_border();
-    require(written.colour == teal && written.motion == ActiveBorderMotion::cycling && near(written.frequency, 0.5) &&
+    const ActiveBorder written = shown_border(*card, "the border stays shown");
+    require(written.colour == stxlib::Optional<Color>::of(teal) && written.motion == ActiveBorderMotion::cycling && near(written.frequency, 0.5) &&
                 near(written.width, 3.0),
             "each write keeps the other fields");
     require((*card).property_value("active_border_color") == BindingValue{teal}, "the colour reads back");
     const std::optional<BindingValue> read_motion = (*card).property_value("active_border_motion");
     require(read_motion && std::get<PropertyEnumValue>(*read_motion).name == "cycling", "the motion reads back");
     (*card).set_property_value("active_border_color", BindingValue{});
-    require(!(*(*card).active_border()).colour.has_value(), "null clears the colour to the theme's");
+    require(shown_border(*card, "the border stays shown").colour.absent(), "null clears the colour to the theme's");
 
     bool refused = false;
     try {
@@ -340,12 +367,12 @@ void border_properties() {
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && near((*(*card).active_border()).width, 3.0), "a width past 8 is refused, nothing changed");
+    require(refused && near(shown_border(*card, "the refused write keeps the border").width, 3.0), "a width past 8 is refused, nothing changed");
 
     (*card).set_property_value("active_border", BindingValue{false});
-    require(!(*card).active_border().has_value(), "active_border false clears the border");
+    require((*card).active_border().absent(), "active_border false clears the border");
     (*card).set_property_value("active_border", BindingValue{true});
-    require((*card).active_border() == std::optional<ActiveBorder>{ActiveBorder{}},
+    require((*card).active_border() == stxlib::Optional<ActiveBorder>::of(ActiveBorder{}),
             "active_border true shows the default border");
 }
 

@@ -23,7 +23,7 @@
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstdint>
-#include <optional>
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -55,8 +55,8 @@ inline constexpr double active_border_cycling_frames_per_second = 30.0;
 // inside the box. `frequency` is in cycles a second, for flashing and
 // cycling only.
 struct GUI_FORMS_API ActiveBorder final {
-    std::optional<Color> colour{};
-    std::optional<Color> alternate{};
+    stxlib::Optional<Color> colour{};
+    stxlib::Optional<Color> alternate{};
     double width{2.0};
     double offset{1.0};
     double corner_radius{};
