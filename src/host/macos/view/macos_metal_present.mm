@@ -23,6 +23,9 @@ constexpr std::size_t remembered_surfaces = 4U;
 // The presents tracked until they are replaced on screen: more than the
 // pool, so that a full pool is seen before the table is.
 constexpr std::size_t tracked_presents = 8U;
+// The largest drawable asked for: the other paths' limit (64 MiB; a larger
+// frame refuses extent, A-gf-present-01-F4).
+constexpr std::size_t maximum_drawable_bytes = 64U * 1024U * 1024U;
 
 } // namespace
 
@@ -174,6 +177,9 @@ MacMetalPath::~MacMetalPath() {
 presentation::DirectAcquire MacMetalPath::acquire(presentation::PresentExtent extent) {
     State& state = *state_;
     if (state.unsupported) return presentation::DirectAcquire::refused(presentation::DirectRefusal::unsupported);
+    const std::size_t bytes = static_cast<std::size_t>(extent.width) * 4U * static_cast<std::size_t>(extent.height);
+    if (bytes == 0U || bytes > maximum_drawable_bytes)
+        return presentation::DirectAcquire::refused(presentation::DirectRefusal::extent);
     if (state.drawable != nil) return presentation::DirectAcquire::refused(presentation::DirectRefusal::busy);
     if (state.device == nil) state.device = MTLCreateSystemDefaultDevice();
     if (state.device == nil) {

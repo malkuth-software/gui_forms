@@ -12,7 +12,8 @@
 // (IOSurfaceIsInUse), and the one the layer shows, are never written: a
 // free one is taken, a new one made while fewer than three exist, and the
 // path refuses as busy when all are in use. A surface that cannot be made
-// refuses as resources; one that cannot be locked is lost.
+// refuses as resources; one that cannot be locked is lost; a frame above
+// 64 MiB refuses as extent, as the other platforms' paths cap it.
 //
 // Main thread only, as every message to the view. AppKit, QuartzCore and
 // IOSurface types stay in the .mm (State).

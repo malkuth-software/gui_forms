@@ -19,6 +19,11 @@ namespace {
 // reading, one to write.
 constexpr std::size_t maximum_surfaces = 3U;
 
+// The largest surface made: the other platforms' presentation limit
+// (64 MiB a buffer; A-gf-present-01-F4). A larger frame refuses extent, so
+// the shim presents on the copy path until the size changes.
+constexpr std::size_t maximum_surface_bytes = 64U * 1024U * 1024U;
+
 // 'BGRA': 32-bit pixels, bytes B, G, R, A in memory, the raster's layout.
 constexpr OSType bgra_pixel_format = 0x42475241U;
 
@@ -120,6 +125,9 @@ MacIOSurfacePath::~MacIOSurfacePath() {
 
 presentation::DirectAcquire MacIOSurfacePath::acquire(presentation::PresentExtent extent) {
     State& state = *state_;
+    const std::size_t bytes = static_cast<std::size_t>(extent.width) * 4U * static_cast<std::size_t>(extent.height);
+    if (bytes == 0U || bytes > maximum_surface_bytes)
+        return presentation::DirectAcquire::refused(presentation::DirectRefusal::extent);
     if (state.holding) return presentation::DirectAcquire::refused(presentation::DirectRefusal::busy);
     // A new size makes new surfaces; the layer shows the old one until the
     // first present at the new size.
