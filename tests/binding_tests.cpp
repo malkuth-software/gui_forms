@@ -380,6 +380,19 @@ void test_value_conversion_is_strict_and_invariant() {
                         std::numeric_limits<double>::quiet_NaN(), 0.0}},
                     BindingValueKind::point),
             "property values must retain typed geometry, color, font, image, and finite-value validation");
+    // A-gf-core-02-F1: 2^63 and 2^64 are out of range (the maxima are not
+    // doubles); the largest doubles below them and -2^63 convert.
+    require(binding_value_to_signed(BindingValue{9223372036854775808.0}).absent() &&
+                binding_value_to_signed(BindingValue{-9223372036854775808.0}) ==
+                    stxlib::Optional<std::int64_t>::of(std::numeric_limits<std::int64_t>::min()) &&
+                binding_value_to_signed(BindingValue{9223372036854774784.0}) ==
+                    stxlib::Optional<std::int64_t>::of(9223372036854774784LL) &&
+                binding_value_to_unsigned(BindingValue{18446744073709551616.0}).absent() &&
+                binding_value_to_unsigned(BindingValue{18446744073709549568.0}) ==
+                    stxlib::Optional<std::uint64_t>::of(18446744073709549568ULL) &&
+                !convert_binding_value(BindingValue{9223372036854775808.0}, BindingValueKind::signed_integer) &&
+                !convert_binding_value(BindingValue{18446744073709551616.0}, BindingValueKind::unsigned_integer),
+            "a double at 2^63 or 2^64 is refused, not converted out of range");
 }
 
 void test_nested_property_values_are_bounded_immutable_and_structural() {
