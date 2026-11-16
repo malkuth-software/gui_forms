@@ -437,16 +437,127 @@ const unsigned char* compose_invalidation_overlay(NativeWindow& window, Invalida
   return composed;
 }
 
-// Copies each rectangle of the raster's pixels to the window (stage DP partial
-// present): one native image for the raster, converted and submitted rectangle
-// by rectangle. `requested` is in logical units; each rectangle is taken to
-// device pixels at the window's scale (the boundary conversion), clipped to
-// the window and widened to whole pixels. Returns false, copying nothing, when the raster or the native image
-// cannot be used; `copied` then stays empty. Source and native conversion
-// storage are disjoint, and both borrows end before the renderer can begin
-// another frame.
+// The window's presentation shim, made at its first present: the copy path
+// always, with host scroll as the process's policy (GUI_FORMS_PRESENT)
+// turns it on.
+presentation::PresentationShim& window_presenter(NativeWindow& window) {
+  if (window.presenter) return *window.presenter;
+  const presentation::PresentPolicy policy = presentation::present_policy_from_environment();
+  window.copy_path.scroll_enabled = policy.host_scroll;
+  std::unique_ptr<presentation::PresentationDirectPath> direct{};
+  window.presenter = std::make_unique<presentation::PresentationShim>(&window.copy_path, std::move(direct), nullptr);
+  return *window.presenter;
+}
+
+} // namespace
+
+bool X11CopyPath::scrolls() const noexcept {
+  // XCopyArea reads the window's own pixels, which are kept only while a
+  // compositing manager redirects it; without one, obscured parts would
+  // move as garbage.
+  const bool kept = scroll_enabled && window_.compositor_running;
+  return kept;
+}
+
+bool X11CopyPath::scroll(const presentation::PresentScrollPlan& plan) {
+  if (!scrolls() || !plan.moves()) return false;
+  const presentation::PresentRect from = plan.source;
+  const presentation::PresentRect to = plan.destination;
+  XCopyArea(window_.runtime.display, window_.xid, window_.xid, window_.gc, from.left, from.top,
+            static_cast<unsigned>(from.right - from.left), static_cast<unsigned>(from.bottom - from.top), to.left,
+            to.top);
+  return true;
+}
+
+// Copies each rectangle of the source to the window (stage DP partial
+// present): one native image for the raster, converted and submitted
+// rectangle by rectangle. Returns failed, copying nothing, when the native
+// image cannot be made or its layout is not one the conversion writes; a
+// mask wider than 32 bits fails before the first rectangle. Source and
+// native conversion storage are disjoint, and both borrows end before the
+// renderer can begin another frame.
+presentation::PresentOutcome X11CopyPath::copy(const presentation::PresentSourcePixels& source,
+                                               std::span<const presentation::PresentRect> rects) {
+  NativeWindow& window = window_;
+  render::SkiaRaster& raster = window.raster;
+  const std::uint32_t width = raster.pixel_width();
+  const std::uint32_t height = raster.pixel_height();
+  NativePresentSource present{};
+  present.pixels = reinterpret_cast<const unsigned char*>(source.pixels);
+  present.row_bytes = source.row_bytes;
+  present.alpha_mask = alpha_mask;
+  present.present_alpha = present_alpha;
+  PresentationImage owner{};
+  Display* const display = window.runtime.display;
+  // The shared-memory image where MIT-SHM works (audit G4/N67): the server
+  // reads the converted pixels from the segment instead of the socket.
+  // Otherwise a client image over window.presentation, sent by XPutImage.
+  const bool shared = window.shared_image.prepare(display, window.visual, window.depth, width, height);
+  if (!shared) {
+    // The window's own visual and depth: the ARGB visual's for a window
+    // made with it (stage T5, C4).
+    owner.value = XCreateImage(display, window.visual, static_cast<unsigned>(window.depth), ZPixmap, 0,
+        nullptr, width, height, 32, 0);
+    if (owner.value == nullptr) return presentation::PresentOutcome::failed;
+  }
+  XImage& image = shared ? *window.shared_image.image() : *owner.value;
+  const std::size_t maximum_row = static_cast<std::size_t>(width) * 4U;
+  if (image.bytes_per_line <= 0 || image.bits_per_pixel <= 0 || image.bits_per_pixel > 32 ||
+      static_cast<std::size_t>(image.bytes_per_line) > maximum_row || present.row_bytes < maximum_row)
+    return presentation::PresentOutcome::failed;
+  const std::size_t bytes = static_cast<std::size_t>(image.bytes_per_line) * static_cast<std::size_t>(height);
+  if (bytes > 64U * 1024U * 1024U) return presentation::PresentOutcome::failed;
+  if (!shared) {
+    window.presentation.resize(bytes);
+    image.data = window.presentation.data();
+  }
+  // The copy alone is timed: conversion, XPutImage and the flush.
+  const std::chrono::steady_clock::time_point copy_started = std::chrono::steady_clock::now();
+  for (std::size_t index = 0; index < rects.size(); ++index) {
+    const presentation::PresentRect rectangle = rects[index];
+    if (rectangle.empty()) continue;
+    const int left = rectangle.left;
+    const int top = rectangle.top;
+    const int right = rectangle.right;
+    const int bottom = rectangle.bottom;
+    // Fails only for masks wider than 32 bits, so before any rectangle.
+    if (!convert_present_rectangle(image, present, left, top, right, bottom))
+      return presentation::PresentOutcome::failed;
+    const unsigned columns = static_cast<unsigned>(right - left);
+    const unsigned rows = static_cast<unsigned>(bottom - top);
+    if (shared) window.shared_image.put(window.xid, window.gc, left, top, columns, rows);
+    else XPutImage(display, window.xid, window.gc, &image, left, top, left, top, columns, rows);
+    if (copied != nullptr) {
+      (*copied).device_pixels += static_cast<std::uint64_t>(columns) * static_cast<std::uint64_t>(rows);
+      ++(*copied).rectangles;
+    }
+  }
+  // The shared segment is written again by the next present, so the server
+  // must have read it first.
+  if (shared) window.shared_image.finish();
+  else XFlush(display);
+  if (copied != nullptr) {
+    (*copied).copy_nanoseconds += static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now() - copy_started).count());
+  }
+  // Xlib submission is not a server-error/physical-display atomicity guarantee.
+  return presentation::PresentOutcome::presented;
+}
+
+namespace {
+
+// Presents the raster's rectangles through the window's presentation shim.
+// `requested` is in logical units; each rectangle is taken to device pixels
+// at the window's scale (the boundary conversion), clipped to the window
+// and widened to whole pixels, as before the shim. Returns false, copying
+// nothing, when the raster or the native image cannot be used; `copied`
+// then stays empty. `scrolls` are the host scrolls the raster's pixels
+// took since the last present (device pixels), applied before the damage
+// where the path can move presented pixels.
 bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect> requested,
-                               PresentedArea& copied) {
+                               PresentedArea& copied,
+                               std::span<const presentation::PresentScroll> scrolls = {}) {
   render::SkiaRaster& raster = window.raster;
   const std::uint32_t width = raster.pixel_width();
   const std::uint32_t height = raster.pixel_height();
@@ -482,60 +593,40 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
       rectangles = window.overlay_present;
     }
   }
-  present.alpha_mask = window.alpha_mask;
-  present.present_alpha = window.present_alpha;
-  PresentationImage owner{};
-  Display* const display = window.runtime.display;
-  // The shared-memory image where MIT-SHM works (audit G4/N67): the server
-  // reads the converted pixels from the segment instead of the socket.
-  // Otherwise a client image over window.presentation, sent by XPutImage.
-  const bool shared = window.shared_image.prepare(display, window.visual, window.depth, width, height);
-  if (!shared) {
-    // The window's own visual and depth: the ARGB visual's for a window
-    // made with it (stage T5, C4).
-    owner.value = XCreateImage(display, window.visual, static_cast<unsigned>(window.depth), ZPixmap, 0,
-        nullptr, width, height, 32, 0);
-    if (owner.value == nullptr) return false;
-  }
-  XImage& image = shared ? *window.shared_image.image() : *owner.value;
-  const std::size_t maximum_row = static_cast<std::size_t>(width) * 4U;
-  if (image.bytes_per_line <= 0 || image.bits_per_pixel <= 0 || image.bits_per_pixel > 32 ||
-      static_cast<std::size_t>(image.bytes_per_line) > maximum_row || present.row_bytes < maximum_row) return false;
-  const std::size_t bytes = static_cast<std::size_t>(image.bytes_per_line) * static_cast<std::size_t>(height);
-  if (bytes > 64U * 1024U * 1024U) return false;
-  if (!shared) {
-    window.presentation.resize(bytes);
-    image.data = window.presentation.data();
-  }
-  // The copy alone is timed: conversion, XPutImage and the flush.
-  const std::chrono::steady_clock::time_point copy_started = std::chrono::steady_clock::now();
+  // Each rectangle clipped to the window and widened to whole device
+  // pixels; rectangles that are not finite or are empty are dropped.
+  window.present_rects.clear();
+  window.present_rects.reserve(rectangles.size());
   for (std::size_t index = 0; index < rectangles.size(); ++index) {
     const Rect rectangle = rectangles[index];
     if (!rectangle.finite()) continue;
     const Rect clipped = Rect::intersection(rectangle, extent);
     if (clipped.empty()) continue;
-    const int left = static_cast<int>(std::floor(clipped.x));
-    const int top = static_cast<int>(std::floor(clipped.y));
-    const int right = static_cast<int>(std::ceil(clipped.right()));
-    const int bottom = static_cast<int>(std::ceil(clipped.bottom()));
-    // Fails only for masks wider than 32 bits, so before any rectangle.
-    if (!convert_present_rectangle(image, present, left, top, right, bottom)) return false;
-    const unsigned columns = static_cast<unsigned>(right - left);
-    const unsigned rows = static_cast<unsigned>(bottom - top);
-    if (shared) window.shared_image.put(window.xid, window.gc, left, top, columns, rows);
-    else XPutImage(display, window.xid, window.gc, &image, left, top, left, top, columns, rows);
-    copied.device_pixels += static_cast<std::uint64_t>(columns) * static_cast<std::uint64_t>(rows);
-    ++copied.rectangles;
+    const presentation::PresentRect device{static_cast<std::int32_t>(std::floor(clipped.x)),
+                                           static_cast<std::int32_t>(std::floor(clipped.y)),
+                                           static_cast<std::int32_t>(std::ceil(clipped.right())),
+                                           static_cast<std::int32_t>(std::ceil(clipped.bottom()))};
+    window.present_rects.push_back(device);
   }
-  // The shared segment is written again by the next present, so the server
-  // must have read it first.
-  if (shared) window.shared_image.finish();
-  else XFlush(display);
-  copied.copy_nanoseconds += static_cast<std::uint64_t>(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(
-          std::chrono::steady_clock::now() - copy_started).count());
-  // Xlib submission is not a server-error/physical-display atomicity guarantee.
-  return true;
+  presentation::PresentationShim& presenter = window_presenter(window);
+  presentation::PresentFrame frame{};
+  frame.source.pixels = reinterpret_cast<const std::byte*>(present.pixels);
+  frame.source.row_bytes = present.row_bytes;
+  frame.source.extent = presentation::PresentExtent{static_cast<std::uint32_t>(visible_width),
+                                                    static_cast<std::uint32_t>(visible_height)};
+  frame.damage = window.present_rects;
+  frame.scrolls = scrolls;
+  window.copy_path.alpha_mask = window.alpha_mask;
+  window.copy_path.present_alpha = window.present_alpha;
+  window.copy_path.copied = &copied;
+  const presentation::PresentReport report = presenter.present(frame);
+  window.copy_path.copied = nullptr;
+  if (report.path == presentation::PresentPath::direct) {
+    copied.device_pixels += report.pixels;
+    copied.rectangles += report.rects;
+  }
+  const bool presented = report.outcome == presentation::PresentOutcome::presented;
+  return presented;
 }
 
 #if defined(GUI_FORMS_PREPARED_TEXT)
@@ -1224,6 +1315,9 @@ void NativeWindow::mark_transient(const HostPopupPlacement &popup) {
 }
 
 NativeWindow::~NativeWindow() {
+  // The shim first: its direct path's server resources go before the
+  // display closes.
+  presenter.reset();
   shared_image.release();
   (*entry.model).set_dispatch_wake_handler({});
   (*entry.model).set_live_surface_idle_wake_handler({});
@@ -1250,6 +1344,8 @@ void NativeWindow::report_compositor_state() {
     return;
   const CompositorGeneration next{compositor_generation.value + 1U};
   const bool present = (*runtime.compositor).compositor_present();
+  // Read by the copy path's host scroll (X11CopyPath::scrolls).
+  compositor_running = present;
   const CompositorState state = x11_compositor_state(present, argb, next);
   CompositorState unchanged = state;
   unchanged.generation = (*entry.model).compositor_state().generation;
@@ -1466,6 +1562,9 @@ void NativeWindow::event(XEvent &event) {
   if (closed)
     return;
   if (event.type == Expose) {
+    // What the window shows is no longer the frame before: the next
+    // present copies the scrolls' areas instead of moving them.
+    if (presenter) (*presenter).notify_copy_contents_lost();
     // Device pixels to logical units, here at the boundary.
     damage.add({static_cast<double>(event.xexpose.x) / scale,
                 static_cast<double>(event.xexpose.y) / scale,
