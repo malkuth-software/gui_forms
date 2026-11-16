@@ -40,10 +40,15 @@ surface_detail::SurfaceInputQueue& web_input_queue() noexcept {
 }
 
 std::filesystem::path web_fonts_directory() {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake).
+    std::filesystem::path directory("/gui_forms/fonts");
+#else
     const char* override_path = std::getenv("GUI_FORMS_FONT_DIR");
     std::filesystem::path directory =
         override_path != nullptr && override_path[0] != '\0' ? std::filesystem::path(override_path)
                                                              : std::filesystem::path("/gui_forms/fonts");
+#endif
     std::error_code error;
     if (!std::filesystem::is_directory(directory, error)) directory.clear();
     return directory;
@@ -175,7 +180,7 @@ std::filesystem::path offscreen_bundled_font_directory() {
 // The key map is the PC convention's in every browser (an open decision for
 // Apple keyboards, which a page cannot tell apart reliably).
 HostCapabilities web_capabilities() {
-    return {HostCapabilities::current_protocol_version, "web-emscripten",
+    HostCapabilities capabilities{HostCapabilities::current_protocol_version, "web-emscripten",
             HostCapability::lifecycle | HostCapability::scale_notifications | HostCapability::monitor_geometry |
                 HostCapability::occlusion | HostCapability::scheduled_wake | HostCapability::pointer_input |
                 HostCapability::keyboard_input | HostCapability::text_composition |
@@ -186,6 +191,12 @@ HostCapabilities web_capabilities() {
                 HostCapability::window_ordering | HostCapability::transparent_windows |
                 HostCapability::compositor_notifications | HostCapability::transient_surfaces,
             pc_key_map()};
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    capabilities.available = without_capability(capabilities.available,
+                                                high_integrity_compiled_out_capabilities);
+#endif
+    return capabilities;
 }
 
 int run_web_application(std::vector<WebApplicationWindow> windows, WebApplicationOptions application) {

@@ -150,6 +150,21 @@ AnimationSample AnimationTimeline::sample(FrameTime now) const noexcept {
     if (!running_) {
         return result;
     }
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build has no motion (cmake/HighIntegrity.cmake): a
+    // running timeline is complete whatever the time. A finite one shows its
+    // last iteration's end, an infinite one its start, at rest; the delay and
+    // the duration are not read.
+    static_cast<void>(now);
+    const double last_position =
+        specification_.infinite ? 0.0 : std::max(0.0, specification_.iterations - 1.0);
+    const double local = specification_.infinite ? 0.0 : 1.0;
+    result.iteration = static_cast<std::uint64_t>(std::floor(last_position));
+    result.progress = directed_progress(specification_.direction, result.iteration, local);
+    result.eased_progress = apply_easing(specification_.easing, result.progress);
+    result.finished = true;
+    return result;
+#else
     const FrameTime sample_time = paused_ ? pause_time_ : now;
     const FrameInterval elapsed = sample_time - start_time_;
     if (elapsed < specification_.delay) {
@@ -182,6 +197,7 @@ AnimationSample AnimationTimeline::sample(FrameTime now) const noexcept {
     result.eased_progress = apply_easing(specification_.easing, result.progress);
     result.active = true;
     return result;
+#endif
 }
 
 } // namespace gui_forms

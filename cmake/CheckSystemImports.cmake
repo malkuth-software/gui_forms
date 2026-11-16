@@ -17,6 +17,14 @@
 # packages against the platforms' system libraries as well. The binaries are
 # separated by '|', since a CMake list's ';' does not survive a -D argument
 # on every generator.
+#
+# With FORBIDDEN (and TOOL_NM), the binaries' symbols are checked as well:
+# none may define or import a symbol matching a pattern of that file
+# (cmake/CheckObjectSurface.cmake, which this file then includes). Archives
+# and objects (.a, .lib, .o, .obj) import no library and are given for that
+# check only. The high-integrity configuration runs it
+# (cmake/HighIntegrityTests.cmake) until GUI.Forms' harness pin carries
+# template_harness's check_object_surface.py.
 
 cmake_minimum_required(VERSION 3.25)
 
@@ -33,6 +41,10 @@ foreach(binary IN LISTS binaries)
         message(FATAL_ERROR "CheckSystemImports: ${binary} does not exist")
     endif()
     set(imports "")
+    if(binary MATCHES "\\.(a|lib|o|obj)$")
+        # An archive or object names no library it imports; its symbols are FORBIDDEN's.
+        continue()
+    endif()
     if(APPLE AND NOT binary MATCHES "\\.[dD][lL][lL]$|\\.exe$")
         execute_process(COMMAND otool -L "${binary}"
             OUTPUT_VARIABLE listing ERROR_VARIABLE listing_error RESULT_VARIABLE listed)
@@ -92,3 +104,6 @@ if(failures)
     message(FATAL_ERROR "CheckSystemImports: imports that are not the system's:\n  ${failure_text}")
 endif()
 message(STATUS "CheckSystemImports: only system libraries imported")
+if(DEFINED FORBIDDEN AND NOT FORBIDDEN STREQUAL "")
+    include("${CMAKE_CURRENT_LIST_DIR}/CheckObjectSurface.cmake")
+endif()

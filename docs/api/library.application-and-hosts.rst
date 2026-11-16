@@ -51,6 +51,8 @@ Related types
      -  
    * - :cpp:class:`ApplicationWindowOpenResult <gui_forms::ApplicationWindowOpenResult>`
      -  
+   * - :cpp:class:`BuildProfileRecord <gui_forms::BuildProfileRecord>`
+     - What the library was built with: the profile and the allowances of the high-integrity configuration.
    * - :cpp:class:`CompositorGeneration <gui_forms::CompositorGeneration>`
      - The order of compositor state reports within one host run.
    * - :cpp:class:`CompositorState <gui_forms::CompositorState>`
@@ -446,6 +448,22 @@ Related types
    .. cpp:member:: ApplicationWindowHandle window
 
       Active once the window is ready; inactive when the open was refused.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BuildProfileRecord final
+
+   ``#include <gui_forms/build_profile/build_profile.hpp>``
+
+   What the library was built with: the profile and the allowances of the high-integrity configuration. In a standard build every allowance is true, since nothing is compiled out.
+
+   .. cpp:member:: BuildProfile profile
+
+      Default: ``{BuildProfile::standard}``.
+
+   .. cpp:member:: bool clipboard_text
+
+      HostServices::read_clipboard_text and write_clipboard_text are compiled (GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT in high integrity). Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3684,6 +3702,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BuildProfile
+
+   ``#include <gui_forms/build_profile/build_profile.hpp>``
+
+   .. cpp:enumerator:: standard
+
+   .. cpp:enumerator:: high_integrity
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: CompositorPresence
 
    ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
@@ -4423,6 +4451,22 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/build_profile/build_profile.hpp>``
+
+.. cpp:function:: BuildProfileRecord build_profile() noexcept
+
+   The library's build profile and allowances. Constant for the process; any thread.
+
+.. cpp:var:: constexpr BuildProfile compiled_build_profile
+
+   The profile the including unit is compiled with. build_profile() reports the library's; the link markers above keep the two equal. Value: ``BuildProfile::high_integrity``.
+
+.. cpp:var:: constexpr BuildProfile compiled_build_profile
+
+   Value: ``BuildProfile::standard``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
 
 .. cpp:function:: const char* window_backdrop_name(WindowBackdrop backdrop) noexcept
@@ -4475,7 +4519,15 @@ Functions, constants and aliases
 
 ``#include <gui_forms/host/types/host_capability/host_capability.hpp>``
 
+.. cpp:function:: constexpr HostCapability without_capability(HostCapability available, HostCapability removed) noexcept
+
+   ``available`` without the flags of ``removed``.
+
 .. cpp:function:: constexpr bool has_capability(HostCapability available, HostCapability requested) noexcept
+
+.. cpp:var:: constexpr HostCapability high_integrity_compiled_out_capabilities
+
+   The host services a high-integrity build does not compile (cmake/HighIntegrity.cmake): opening addresses, clipboard images and clipboard file references, frame capture to a file, drag and drop with other programs, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from its own, so their requests are refused as unsupported. Value: ``HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture | HostCapability::typed_drag_source | HostCapability::typed_drag_destination``.
 
 .. cpp:namespace:: gui_forms
 

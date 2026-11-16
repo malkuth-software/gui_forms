@@ -44,17 +44,27 @@ namespace {
 // mark asked. Read once: a layout mark is a hot path, and getenv walks the
 // environment on every call. The trace is a diagnostic switch for a whole
 // run, so a variable set later in the process is not seen.
+// A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake):
+// neither trace is ever on.
 bool layout_invalidation_traced() noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    return false;
+#else
     static const bool traced = std::getenv("GUI_FORMS_TRACE_LAYOUT_INVALIDATION") != nullptr;
     return traced;
+#endif
 }
 
 // Whether GUI_FORMS_TRACE_PRESS was set when the first press was traced:
 // then every primary press's trace (SurfaceRoot::last_press_trace) is also
 // written to stderr, one line. Read once, as above.
 bool press_traced() noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    return false;
+#else
     static const bool traced = std::getenv("GUI_FORMS_TRACE_PRESS") != nullptr;
     return traced;
+#endif
 }
 
 const char* press_outcome_name(PressOutcome outcome) noexcept {

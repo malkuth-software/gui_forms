@@ -62,6 +62,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# The high-integrity configuration settles the options below before they are
+# declared, and refuses a configure that contradicts it (cmake/HighIntegrity.cmake).
+include(cmake/HighIntegrity.cmake)
+
 option(GUI_FORMS_BUILD_GALLERY "Build the native control gallery" ${PROJECT_IS_TOP_LEVEL})
 option(GUI_FORMS_BUILD_TESTS "Build automated proving-slice tests" ${PROJECT_IS_TOP_LEVEL})
 # The Gallery model (the control specimen catalogue: gui_forms_gallery_model)
@@ -509,6 +513,7 @@ add_custom_command(
 
 add_library(gui_forms_core STATIC
     src/core/application/application.cpp
+    src/core/build_profile/build_profile.cpp
     src/core/application/native_popup.cpp
     src/core/application/transient_window.cpp
     src/core/application/splashscreen.cpp
@@ -662,7 +667,6 @@ add_library(gui_forms_core STATIC
     src/core/resources/fonts/bundled_font_pack.cpp
     ${GUI_FORMS_FONT_PACK_RECORDS}
     src/core/resources/fonts/app_font_registry.cpp
-    src/core/resources/fonts/app_font_validation.cpp
     src/core/resources/fonts/font_family_stacks.cpp
     src/core/resources/fonts/program_typefaces.cpp
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
@@ -675,7 +679,6 @@ add_library(gui_forms_core STATIC
     src/core/content/channel/content_channel.cpp
     src/core/content/frame_sink/content_frame_sink.cpp
     src/core/content/editing/content_text_layout.cpp
-    src/core/content/hosted/hosted_protocol.cpp
     src/core/content/operation/content_worker.cpp
     src/core/content/types/content_types.cpp
     src/core/content/watchdog/content_watchdog.cpp
@@ -733,7 +736,8 @@ add_library(gui_forms_core STATIC
     src/core/image/png_color.cpp
     src/core/image/color_conversion.cpp
     src/core/interpolation/interpolation.cpp
-    src/core/host/frame_capture/frame_capture.cpp
+    # Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/core/host/frame_capture/frame_capture.cpp>
     src/core/host/compositor/window_backdrop.cpp
     src/core/host/types/host_types.cpp
     src/core/host/types/host_capabilities/host_capabilities.cpp
@@ -821,11 +825,16 @@ target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
 target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:stx_text::md4c>)
 # Hosted content's parent end (include/gui_forms/content/hosted): POSIX
 # processes, shared memory and a socket pair on macOS and Linux; on Windows
-# an implementation that reports itself absent (the hand-back writes it).
-if(WIN32)
-    target_sources(gui_forms_core PRIVATE src/host/windows/hosted/hosted_content_windows.cpp)
+# an implementation that reports itself absent (the hand-back writes it). A
+# high-integrity build compiles none of it, nor the wire protocol
+# (cmake/HighIntegrity.cmake).
+if(GUI_FORMS_HIGH_INTEGRITY)
+elseif(WIN32)
+    target_sources(gui_forms_core PRIVATE src/core/content/hosted/hosted_protocol.cpp
+                                          src/host/windows/hosted/hosted_content_windows.cpp)
 else()
-    target_sources(gui_forms_core PRIVATE src/host/posix/hosted/hosted_content_posix.cpp)
+    target_sources(gui_forms_core PRIVATE src/core/content/hosted/hosted_protocol.cpp
+                                          src/host/posix/hosted/hosted_content_posix.cpp)
 endif()
 # stx_fontpack's loader (stx_fontpack/README.md), which opens the embedded font pack
 # (cmake/FontPack.cmake). Its objects are part of Core, like MD4C's, so no target joins the
@@ -846,6 +855,20 @@ set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
 # Application, was retired with the shared library (one module, 2026-11-15).
 if(GUI_FORMS_CHECKED_BORROWS)
     target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_CHECKED_BORROWS=1)
+endif()
+# The high-integrity configuration changes the declarations of the public
+# headers (entries are compiled out), so a consumer compiles them the same way
+# (cmake/HighIntegrity.cmake).
+# Application fonts' table checks (validate_app_font), which a high-integrity
+# build does not compile: no application font is loaded there.
+if(NOT GUI_FORMS_HIGH_INTEGRITY)
+    target_sources(gui_forms_core PRIVATE src/core/resources/fonts/app_font_validation.cpp)
+endif()
+if(GUI_FORMS_HIGH_INTEGRITY)
+    target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_HIGH_INTEGRITY=1)
+    if(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
+        target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT=1)
+    endif()
 endif()
 # The shadow frames, failure snapshots and the fail-fast boundary are
 # STXlib's gates and frames (src/core/diagnostics/shadow_frames,
@@ -897,8 +920,9 @@ endif()
 target_link_libraries(gui_forms_sealed_pages_objects PRIVATE gui_forms_core)
 set_target_properties(gui_forms_sealed_pages_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # The hosted program's end (include/gui_forms/content/hosted/hosted_client.hpp):
-# what a program started by make_hosted_content links. macOS and Linux.
-if(NOT WIN32)
+# what a program started by make_hosted_content links. macOS and Linux; not
+# in a high-integrity build.
+if(NOT WIN32 AND NOT GUI_FORMS_HIGH_INTEGRITY)
     add_library(gui_forms_hosted_client STATIC src/host/posix/hosted/hosted_client_posix.cpp)
     target_link_libraries(gui_forms_hosted_client PUBLIC gui_forms_core)
     set_target_properties(gui_forms_hosted_client PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -1519,13 +1543,16 @@ if(GUI_FORMS_BUILD_FORM_COMPILER)
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
     # The Gallery's form compiler (audit F9): the installed compiler's
     # program with the lab and demonstration controls as extension types
-    # (form_lab_catalog.cpp), for the pages that name them. Never installed.
+    # (form_lab_catalog.cpp), for the pages that name them. Never installed,
+    # and not built in a high-integrity build, which has no Gallery.
+    if(NOT GUI_FORMS_HIGH_INTEGRITY)
     add_executable(gui_forms_form_compiler_lab
         tools/form_compiler/form_compiler.cpp
         tools/form_compiler/form_catalog.cpp
         tools/form_compiler/form_lab_catalog.cpp
     )
     target_link_libraries(gui_forms_form_compiler_lab PRIVATE gui_forms_lab gui_forms_demo_controls)
+    endif()
     # The theme check (owner request 2026-11-09): a program's theme packages
     # compiled at build time (gui_forms_add_theme_check), so a bad sheet
     # fails the build, not Application::create. Built and installed with
@@ -1729,7 +1756,10 @@ if(GUI_FORMS_ENABLE_SKIA)
         src/render/skia/executor/drawing_raster_state.cpp
         src/render/skia/executor/recorder_raster.cpp
     )
-    if(APPLE)
+    # The installed-face probes are not compiled in a high-integrity build
+    # (cmake/HighIntegrity.cmake), whose faces all come from the font pack.
+    if(GUI_FORMS_HIGH_INTEGRITY)
+    elseif(APPLE)
         # Finds installed families nobody registered (ADR-004 phase 7).
         target_sources(gui_drawing_skia PRIVATE
             src/render/skia/executor/core_text_font_bytes.cpp)
@@ -1859,9 +1889,13 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         src/host/macos/services/appkit_status_items.mm
         src/host/macos/compositor/macos_compositor.mm
         src/host/macos/locale/icu_date_pattern.cpp
-        src/host/macos/locale/macos_locale.cpp
         $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
     )
+    # The user's locale (CoreFoundation), which a high-integrity build does
+    # not read (cmake/HighIntegrity.cmake).
+    if(NOT GUI_FORMS_HIGH_INTEGRITY)
+        target_sources(gui_forms_host_macos PRIVATE src/host/macos/locale/macos_locale.cpp)
+    endif()
     target_include_directories(gui_forms_host_macos PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/host/macos
     )
@@ -1942,16 +1976,21 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/linux/application/x11_present_direct.cpp
         src/host/linux/settings/xsettings_parse.cpp
         src/host/linux/locale/strftime_date_pattern.cpp
-        src/host/linux/locale/posix_locale.cpp
         src/host/linux/application/linux_input_rules.cpp
         src/host/linux/settings/xsettings_watch.cpp
         src/host/linux/accessibility/linux_accessibility.cpp
         src/host/linux/services/linux_services.cpp
         src/host/linux/services/x11_foreign_window.cpp
         src/host/linux/services/x11_tray_icons.cpp
-        src/host/linux/services/linux_drag_drop.cpp
+        # XDND drops: not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+        $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/host/linux/services/linux_drag_drop.cpp>
         src/host/linux/services/linux_dialogs.cpp
         src/host/linux/compositor/x11_compositor.cpp)
+    # The environment's POSIX locale (LC_ALL, LC_TIME, LANG), which a
+    # high-integrity build does not read (cmake/HighIntegrity.cmake).
+    if(NOT GUI_FORMS_HIGH_INTEGRITY)
+        target_sources(gui_forms_host_linux PRIVATE src/host/linux/locale/posix_locale.cpp)
+    endif()
     set_target_properties(gui_forms_host_linux PROPERTIES POSITION_INDEPENDENT_CODE ON)
     target_link_libraries(gui_forms_host_linux PUBLIC gui_forms_core gui_forms_controls gui_forms_skia
         PRIVATE X11::X11 X11::Xfixes X11::Xrender PkgConfig::GUI_FORMS_ATK
@@ -2263,18 +2302,21 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         )
         add_test(NAME gui_forms_windows_live_surface_endpoint_tests
                  COMMAND gui_forms_windows_live_surface_endpoint_tests)
-        add_executable(gui_forms_windows_gdi_compat_shim_tests
-            tests/windows_gdi_compat_shim_tests.cpp
-        )
-        target_compile_definitions(
-            gui_forms_windows_gdi_compat_shim_tests PRIVATE
-            ${GUI_FORMS_WINDOWS_DEFINITIONS}
-        )
-        target_link_libraries(gui_forms_windows_gdi_compat_shim_tests PRIVATE
-            gui_forms_abi gdi32 user32
-        )
-        add_test(NAME gui_forms_windows_gdi_compat_shim_tests
-                 COMMAND gui_forms_windows_gdi_compat_shim_tests)
+        # The shim is part of the C ABI library (cmake/CAbi.cmake).
+        if(GUI_FORMS_BUILD_C_ABI)
+            add_executable(gui_forms_windows_gdi_compat_shim_tests
+                tests/windows_gdi_compat_shim_tests.cpp
+            )
+            target_compile_definitions(
+                gui_forms_windows_gdi_compat_shim_tests PRIVATE
+                ${GUI_FORMS_WINDOWS_DEFINITIONS}
+            )
+            target_link_libraries(gui_forms_windows_gdi_compat_shim_tests PRIVATE
+                gui_forms_abi gdi32 user32
+            )
+            add_test(NAME gui_forms_windows_gdi_compat_shim_tests
+                     COMMAND gui_forms_windows_gdi_compat_shim_tests)
+        endif()
     endif()
 endif()
 
@@ -6876,6 +6918,7 @@ include(cmake/ApplicationPackage.cmake)
 
 include(cmake/TextStackExport.cmake)
 include(cmake/CAbi.cmake)
+include(cmake/HighIntegrityTests.cmake)
 
 install(FILES cmake/llvm22.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 install(FILES src/core/threading/atomic_pool/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME threadpool_atomic_fast-LICENSE.txt)

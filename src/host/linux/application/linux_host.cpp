@@ -888,10 +888,13 @@ std::uint32_t key_usage(KeySym key) {
 // locate_bundled_fonts counts and reports (bundled_font_diagnostics, bundled_font_refusal).
 gui_forms::detail::BundledFontLocation fonts_location() {
   std::array<gui_forms::detail::BundledFontCandidate, 2> candidates{};
-  const char *override_path = std::getenv("GUI_FORMS_FONT_DIR");
   candidates[0].source = gui_forms::BundledFontSource::environment;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake).
+  const char *override_path = std::getenv("GUI_FORMS_FONT_DIR");
   if (override_path != nullptr)
     candidates[0].directory = override_path;
+#endif
   candidates[1].source = gui_forms::BundledFontSource::source_tree;
   candidates[1].directory = gui_forms::detail::development_source_font_directory();
   const gui_forms::detail::BundledFontLocation location =
@@ -1283,10 +1286,14 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
       static_cast<int>(entry.options.title.size()));
   Atom protocols[] = {runtime.atom("WM_DELETE_WINDOW")};
   XSetWMProtocols(runtime.display, xid, protocols, 1);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // Not announced in a high-integrity build (cmake/HighIntegrity.cmake):
+  // nothing is dropped from another program.
   const unsigned long xdnd_version = 5;
   XChangeProperty(runtime.display, xid, runtime.atom("XdndAware"), XA_ATOM, 32,
                   PropModeReplace,
                   reinterpret_cast<const unsigned char *>(&xdnd_version), 1);
+#endif
   XSizeHints hints{};
   hints.flags = PMinSize | PPosition;
   hints.x = 60;
@@ -1693,8 +1700,10 @@ void NativeWindow::event(XEvent &event) {
     static_cast<void>(dispatch(HostActivationEvent{event.type == FocusIn}));
     return;
   }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
   if (event.type == ClientMessage && drag_message(event.xclient))
     return;
+#endif
   if (modal)
     return;
   // A confined or locked relative pointer moves by raw motion only.
@@ -2147,6 +2156,10 @@ bool NativeWindow::report_presented(const std::optional<PaintReceipt>& receipt,
 }
 
 void NativeWindow::frame_capture_if_due(bool covers_window) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+  // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+  static_cast<void>(covers_window);
+#else
   if (closed || frame_capture_completed || !covers_window ||
       entry.options.capture_path.empty())
     return;
@@ -2157,6 +2170,7 @@ void NativeWindow::frame_capture_if_due(bool covers_window) {
   frame_capture_saved = gui_forms::host::detail::complete_frame_capture(
       entry.options.capture_path, encoded);
   close(HostCloseReason::application);
+#endif
 }
 void Runtime::report_displays() {
   HostMonitorResult monitors;
@@ -2572,7 +2586,10 @@ HostCapabilities linux_capabilities() {
               HostCapability::transient_surfaces |
               HostCapability::opaque_transient_surfaces |
               HostCapability::window_state_reports |
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+              // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
               HostCapability::hosted_content |
+#endif
               // Relative pointer mode (Services): confinement and warps
               // are core X; the deltas need XI 2 raw motion, which
               // Services drops from its report where the server lacks it.
@@ -2586,7 +2603,11 @@ HostCapabilities linux_capabilities() {
           // X11 desktops follow the PC keyboard convention.
           pc_key_map()};
   // locale: the environment's POSIX locale (read_posix_locale); none for
-  // the C and POSIX locales.
+  // the C and POSIX locales. A high-integrity build reads no environment
+  // variable (cmake/HighIntegrity.cmake): the host reports no locale, the
+  // controls start from portable_host_locale(), and the program sets its own
+  // formats.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
   const std::optional<HostLocale> locale = read_posix_locale();
   if (locale.has_value()) {
     capabilities.locale = *locale;
@@ -2606,6 +2627,12 @@ HostCapabilities linux_capabilities() {
     capabilities.available = capabilities.available | HostCapability::dri3_pixmaps;
 #endif
   if (policy.host_scroll) capabilities.available = capabilities.available | HostCapability::host_scroll;
+#endif
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+  // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+  capabilities.available = without_capability(capabilities.available,
+                                              high_integrity_compiled_out_capabilities);
+#endif
   return capabilities;
 }
 int run_linux_application(std::vector<LinuxApplicationWindow> windows,
@@ -2670,6 +2697,7 @@ int run_linux_application(std::vector<LinuxApplicationWindow> windows,
           primary_open = true;
       }
     }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // Portable contract: a requested capture that was never saved fails the
     // process even when the window closed normally.
     for (std::size_t i = 0; i < runtime.windows.size(); ++i) {
@@ -2678,6 +2706,7 @@ int run_linux_application(std::vector<LinuxApplicationWindow> windows,
           !window.frame_capture_saved)
         return 6;
     }
+#endif
     return 0;
   } catch (const std::exception &error) {
     std::cerr << "GUI.Forms Linux host: " << error.what() << '\n';

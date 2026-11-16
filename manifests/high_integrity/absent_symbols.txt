@@ -1,0 +1,66 @@
+# Symbols no first-party object of a high-integrity build defines or imports
+# (cmake/HighIntegrity.cmake). Checked by gui_forms_high_integrity_surface
+# (cmake/HighIntegrityTests.cmake, cmake/CheckObjectSurface.cmake): one CMake
+# regular expression per line, matched unanchored against each line of the
+# demangled `nm -C` listing; a final $ ends the line. Grouped by the area that
+# compiles them out; each group names its commit's subject.
+
+# Environment variables: no unit reads one.
+getenv
+GetEnvironmentVariable
+GetEnvironmentStrings
+ExpandEnvironmentStrings
+_dupenv_s
+_?environ$
+# The user's locale settings: the host reports no locale; the program sets
+# its formats.
+CFLocaleCopyCurrent
+newlocale
+GetUserDefaultLocaleName
+GetLocaleInfoEx
+gui_forms::host::read_posix_locale\(
+gui_forms::host::read_macos_locale\(
+# Application fonts: no application font reaches the font reader.
+gui_forms::load_app_font_family\(
+gui_forms::validate_app_font\(
+gui_forms::AppFontFamily::
+fonts_load_family
+fonts_unload_family
+# GUI.Drawing's installed-face probes: every face comes from the font pack.
+core_text_font_bytes\(
+gdi_font_bytes\(
+CTFontDescriptorCreate
+CTFontCopyTable
+GetFontData
+# Hosted content: no other process is started or spoken to.
+gui_forms::make_hosted_content\(
+gui_forms::hosted_content_support\(
+gui_forms::HostedInput::
+gui_forms::ContentSurface::start_hosted_content\(
+content_start_hosted
+content_hosted_input
+shm_open
+socketpair
+# Desktop services: no address is opened, and no clipboard image or file
+# reference is read or written (clipboard text: absent_clipboard_text.txt).
+open_url_impl\(
+read_clipboard_image_impl\(
+write_clipboard_image_impl\(
+read_clipboard_files_impl\(
+query_auto_complete_impl\(
+read_appkit_clipboard_image\(
+write_appkit_clipboard_image\(
+read_windows_clipboard_image\(
+write_windows_clipboard_image\(
+ShellExecute
+posix_spawn$
+# Frame capture to a file (the hosts' capture_path).
+complete_frame_capture\(
+frame_capture_report_json\(
+# Drag and drop with other programs.
+NativeWindow::drag_message\(
+linux_detail::local_files\(
+Runtime::handle_drop\(
+gf_web_post_drop
+answerPerformDragOperation
+draggingEntered

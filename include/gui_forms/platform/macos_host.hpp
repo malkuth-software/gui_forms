@@ -25,6 +25,9 @@ struct GUI_FORMS_API MacHostOptions {
     // The smallest client size; a side of 0 (the default) sets no minimum
     // there beyond the host's own (ApplicationWindowOptions::minimum_size).
     Size minimum_size{};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+
     // Portable frame capture (identical on every host). When capture_path is
     // non-empty, after the first presented frame that covers the whole window
     // the host encodes the presented framebuffer as PNG to that path, prints
@@ -33,6 +36,7 @@ struct GUI_FORMS_API MacHostOptions {
     // was saved and non-zero otherwise. Only how the adapter obtains its
     // framebuffer differs between hosts.
     std::string capture_path{};
+#endif
     // When set, the window is created at this logical size instead of
     // initial_size.
     std::optional<Size> capture_size{};

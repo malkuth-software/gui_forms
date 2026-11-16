@@ -55,8 +55,9 @@ HostCapabilities headless_capabilities() {
                 // The reference host records each address it is asked to
                 // open (HeadlessHostServices::opened_urls) and opens none.
                 HostCapability::open_url
-#if !defined(_WIN32)
-                // Hosted content is real where it exists (POSIX).
+#if !defined(_WIN32) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+                // Hosted content is real where it exists (POSIX); a
+                // high-integrity build does not compile it.
                 | HostCapability::hosted_content
 #endif
                 ,
@@ -64,6 +65,11 @@ HostCapabilities headless_capabilities() {
             pc_key_map()};
     // The simulated platform may report either corner shape.
     capabilities.window_corner_shapes = WindowCornerShapes{true, true};
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    capabilities.available = without_capability(capabilities.available,
+                                                high_integrity_compiled_out_capabilities);
+#endif
     return capabilities;
 }
 } // namespace gui_forms::host

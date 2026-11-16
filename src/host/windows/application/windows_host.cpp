@@ -203,9 +203,16 @@ void CALLBACK modal_live_clock_signalled(PTP_CALLBACK_INSTANCE, PVOID context, P
 }
 constexpr std::size_t maximum_automation_command = 4096;
 
+// Whether the variable `name` is "1". A high-integrity build reads no
+// environment variable (cmake/HighIntegrity.cmake): every flag is off.
 bool environment_flag(const char* name) noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    static_cast<void>(name);
+    return false;
+#else
     const char* value = std::getenv(name);
     return value != nullptr && std::strcmp(value, "1") == 0;
+#endif
 }
 
 // Set once by accept_automation_environment and never cleared: the program's
@@ -772,12 +779,17 @@ double& run_scale_override() noexcept {
 // none, so that a program run through Application::run can be captured at
 // one scale whatever the display; 0 when unset or out of range.
 double development_scale_override() noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake).
+    return 0.0;
+#else
     const char* const value = std::getenv("GUI_FORMS_WINDOWS_SCALE");
     if (value == nullptr) return 0.0;
     char* end = nullptr;
     const double scale = std::strtod(value, &end);
     const bool valid = end != value && *end == '\0' && std::isfinite(scale) && scale >= 1.0 && scale <= 4.0;
     return valid ? scale : 0.0;
+#endif
 }
 
 double native_monitor_scale(HMONITOR monitor) noexcept {
@@ -884,9 +896,12 @@ void enable_best_dpi_awareness() noexcept {
 // locate_bundled_fonts counts and reports (bundled_font_diagnostics, bundled_font_refusal).
 gui_forms::detail::BundledFontLocation bundled_font_location() {
     std::array<gui_forms::detail::BundledFontCandidate, 2> candidates{};
-    const wchar_t* override_directory = _wgetenv(L"GUI_FORMS_FONT_DIR");
     candidates[0].source = gui_forms::BundledFontSource::environment;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake).
+    const wchar_t* override_directory = _wgetenv(L"GUI_FORMS_FONT_DIR");
     if (override_directory != nullptr) candidates[0].directory = std::filesystem::path(override_directory);
+#endif
     candidates[1].source = gui_forms::BundledFontSource::source_tree;
     candidates[1].directory = gui_forms::detail::development_source_font_directory();
     const gui_forms::detail::BundledFontLocation location =
@@ -2439,6 +2454,10 @@ private:
     // first presented frame whose update rectangle covers the whole client
     // area, then requests close through the ordinary WM_CLOSE path.
     void complete_frame_capture_if_due(const RECT& painted) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+        // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+        static_cast<void>(painted);
+#else
         if (frame_capture_completed_ || options_.capture_path.empty() || hwnd_ == nullptr) return;
         RECT client{};
         if (!GetClientRect(hwnd_, &client) || client.right <= client.left ||
@@ -2450,6 +2469,7 @@ private:
         if (!raster_.encode_png(encoded)) encoded.clear();
         frame_capture_saved_ = detail::complete_frame_capture(options_.capture_path, encoded);
         PostMessageW(hwnd_, WM_CLOSE, 0, 0);
+#endif
     }
 public:
     // Read by run_windows after the message loop: the portable contract fails
@@ -4221,11 +4241,20 @@ HostCapabilities windows_capabilities() {
     capabilities.window_corner_shapes = WindowCornerShapes{true, true};
     // locale: not yet reported (read_windows_locale is the hand-back's
     // interface and gives nothing until GetLocaleInfoEx is read).
+    // A high-integrity build reads none of the user's settings
+    // (cmake/HighIntegrity.cmake): no locale is reported.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     const std::optional<HostLocale> locale = read_windows_locale();
     if (locale.has_value()) {
         capabilities.locale = *locale;
         capabilities.available = capabilities.available | HostCapability::locale;
     }
+#endif
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    capabilities.available = without_capability(capabilities.available,
+                                                high_integrity_compiled_out_capabilities);
+#endif
     return capabilities;
 }
 
@@ -4357,9 +4386,12 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
     }
     if (options.final_snapshot) options.final_snapshot(metrics, host);
     if (SUCCEEDED(com_status)) CoUninitialize();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     // Portable contract: a requested capture that was never saved fails the
     // process even when the window closed normally.
     if (!options.capture_path.empty() && !state.frame_capture_saved()) return 6;
+#endif
     return static_cast<int>(message.wParam);
 }
 

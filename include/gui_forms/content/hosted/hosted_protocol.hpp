@@ -1,5 +1,11 @@
 #pragma once
 
+// A high-integrity build (GUI_FORMS_HIGH_INTEGRITY, cmake/HighIntegrity.cmake)
+// does not compile hosted content: no other process is started or spoken to.
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+#error "hosted content is not compiled in a high-integrity build (GUI_FORMS_HIGH_INTEGRITY)"
+#endif
+
 // The hosted-content wire protocol (owner decisions 2026-11-13, "The two
 // topologies" and "What this asks of GUI.Forms", item 3): a sub-surface
 // program runs in its own process; its pixels arrive through shared memory

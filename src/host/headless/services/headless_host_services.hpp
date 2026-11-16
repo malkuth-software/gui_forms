@@ -93,12 +93,19 @@ protected:
         bool captured, std::uint64_t pointer_id) override;
     [[nodiscard]] HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest& request) override;
     [[nodiscard]] HostServiceStatus warp_pointer_impl(Point position) override;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     [[nodiscard]] HostServiceStatus open_url_impl(std::string_view url_utf8) override;
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     [[nodiscard]] HostClipboardTextResult read_clipboard_text_impl() override;
     [[nodiscard]] HostServiceStatus write_clipboard_text_impl(
         std::string_view text_utf8) override;
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     [[nodiscard]] HostClipboardImageResult read_clipboard_image_impl() override;
     [[nodiscard]] HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
+#endif
     [[nodiscard]] HostDialogResult show_dialog_impl(
         const HostDialogRequest& request) override;
     [[nodiscard]] HostServiceStatus play_sound_cue_impl(

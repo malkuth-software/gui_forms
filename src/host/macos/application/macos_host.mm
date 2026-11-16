@@ -64,7 +64,10 @@ HostCapabilities macos_capabilities() {
                 // (apply_window_corners_impl in appkit_host_services.mm).
                 HostCapability::window_corners |
                 HostCapability::window_state_reports |
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+                // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
                 HostCapability::hosted_content |
+#endif
                 // Relative pointer mode (services/appkit_relative_pointer.hpp);
                 // no raw_pointer_motion: AppKit's deltas are accelerated.
                 HostCapability::relative_pointer |
@@ -76,6 +79,10 @@ HostCapabilities macos_capabilities() {
     capabilities.window_corner_shapes = WindowCornerShapes{true, false};
     // locale: the user's locale and calendar from CoreFoundation, the
     // formats chosen in System Settings included (read_macos_locale).
+    // A high-integrity build reads none of the user's settings
+    // (cmake/HighIntegrity.cmake): the host reports no locale, the controls
+    // start from portable_host_locale(), and the program sets its own formats.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     const std::optional<HostLocale> locale = read_macos_locale();
     if (locale.has_value()) {
         capabilities.locale = *locale;
@@ -92,6 +99,12 @@ HostCapabilities macos_capabilities() {
     // and the policy names it.
     if (policy.direct && gui_forms::host::presentation::present_policy_names("metal"))
         capabilities.available = capabilities.available | HostCapability::metal_drawables;
+#endif
+#endif
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    capabilities.available = without_capability(capabilities.available,
+                                                high_integrity_compiled_out_capabilities);
 #endif
     return capabilities;
 }
@@ -136,12 +149,15 @@ void end_single_window_run(void* context) {
     if (options.final_snapshot) {
         options.final_snapshot(metrics, host);
     }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     // Portable contract: a requested capture that was never saved (no
     // covering frame before close, or an encode/write failure) fails the
     // process.
     if (!options.capture_path.empty() && [end.view frameCaptureSaved] == NO) {
         *end.exit_code = 6;
     }
+#endif
     [end.view prepareForShutdown];
     [end.window setDelegate:nil];
     [end.window setContentView:nil];
@@ -198,9 +214,12 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
             transparentFullSizeContent:transparentFullSizeContent
             windowDragRegionIds:std::move(windowDragRegionIds)];
         [view installCloseRequestHandler:std::move(options.close_request)];
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
         if (!options.capture_path.empty()) {
             [view installFrameCapturePath:options.capture_path];
         }
+#endif
         GUIFormsWindowDelegate* delegate =
             [[GUIFormsWindowDelegate alloc] initWithView:view
                                  stopsApplicationOnClose:YES

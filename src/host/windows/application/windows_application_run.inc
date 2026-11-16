@@ -402,7 +402,10 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     window_slot.floating = floating;
     window_slot.print_metrics_on_close = entry.options.print_metrics_on_close;
     window_slot.final_snapshot = entry.options.final_snapshot;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     window_slot.capture_path = entry.options.capture_path;
+#endif
 
     WindowsHostOptions host_options = entry.options;
     host_options.quit_thread_on_close = kind == HostWindowKind::primary;

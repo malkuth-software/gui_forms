@@ -204,17 +204,28 @@ protected:
     // it reports a failure. The defaults refuse as unsupported.
     [[nodiscard]] virtual HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest& request);
     [[nodiscard]] virtual HostServiceStatus warp_pointer_impl(Point position);
+    // A high-integrity build (cmake/HighIntegrity.cmake) has none of the
+    // hooks below up to show_dialog_impl, so no adapter compiles them: the
+    // public entries refuse as unsupported (the capabilities are not
+    // reported). Clipboard text stays with its allowance.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+
     // Called with an address open_url validated, on a host that advertises
     // open_url. The default refuses as unsupported.
     [[nodiscard]] virtual HostServiceStatus open_url_impl(std::string_view url_utf8);
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     [[nodiscard]] virtual HostClipboardTextResult read_clipboard_text_impl() = 0;
     [[nodiscard]] virtual HostServiceStatus write_clipboard_text_impl(
         std::string_view text_utf8) = 0;
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     [[nodiscard]] virtual HostClipboardImageResult read_clipboard_image_impl();
     [[nodiscard]] virtual HostClipboardFilesResult read_clipboard_files_impl();
     [[nodiscard]] virtual HostAutoCompleteResult query_auto_complete_impl(
         const HostAutoCompleteRequest& request);
     [[nodiscard]] virtual HostServiceStatus write_clipboard_image_impl(HostImageView image);
+#endif
     [[nodiscard]] virtual HostDialogResult show_dialog_impl(
         const HostDialogRequest& request) = 0;
     [[nodiscard]] virtual HostServiceStatus play_sound_cue_impl(

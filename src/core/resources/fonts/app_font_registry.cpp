@@ -121,6 +121,10 @@ constinit AppFontCounters app_font_counters_storage{};
     return name;
 }
 
+// Loading and unloading are not compiled in a high-integrity build
+// (cmake/HighIntegrity.cmake): no application font reaches the font reader, so
+// the table stays empty and the queries below answer for no family.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // Whether `name` may name a family: 1 to maximum_app_font_name_bytes bytes, none a control
 // character, quote, comma or semicolon.
 [[nodiscard]] bool admissible_name(std::string_view name) noexcept {
@@ -142,6 +146,7 @@ constinit AppFontCounters app_font_counters_storage{};
     result.face_index = face_index;
     return result;
 }
+#endif
 
 [[nodiscard]] const char* quarantine_name(AppFontQuarantine reason) noexcept {
     switch (reason) {
@@ -153,6 +158,7 @@ constinit AppFontCounters app_font_counters_storage{};
     return "unknown";
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // Unloads the family numbered `family`; what AppFontFamily::unload and its destructor do.
 AppFontUnload unload_app_font_family(FontFamilyId family) noexcept {
     const std::size_t index = given_index(family);
@@ -179,6 +185,7 @@ AppFontUnload unload_app_font_family(FontFamilyId family) noexcept {
     if (result == AppFontUnload::released) counters.unloads_released.fetch_add(1U, std::memory_order_relaxed);
     return result;
 }
+#endif
 
 // Logs the first refusal of `family` in the interface context.
 void log_refused_use(FontFamilyId family) noexcept {
@@ -195,6 +202,7 @@ void log_refused_use(FontFamilyId family) noexcept {
 
 } // namespace
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 AppFontLoad load_app_font_family(std::string_view name, std::span<const AppFontFace> faces) {
     if (faces.empty()) return refused_load(AppFontStatus::no_faces);
     if (faces.size() > maximum_app_font_faces) return refused_load(AppFontStatus::too_many_faces);
@@ -276,6 +284,7 @@ AppFontUnload AppFontFamily::unload() noexcept {
     const AppFontUnload result = unload_app_font_family(family);
     return result;
 }
+#endif
 
 AppFontState app_font_family_state(FontFamilyId family) noexcept {
     const std::size_t index = given_index(family);

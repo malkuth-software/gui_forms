@@ -30,6 +30,10 @@
 #   share/GUIForms/abi/gf_abi.json         the audited manifest
 #   share/GUIForms/abi/gf_abi_exports.txt  the export allowlist
 
+if(NOT GUI_FORMS_BUILD_C_ABI)
+    message(STATUS "GUI.Forms C ABI: not built (GUI_FORMS_BUILD_C_ABI is OFF)")
+    return()
+endif()
 if(NOT TARGET gui_forms_application)
     message(STATUS "GUI.Forms C ABI: not built (this build has no Application library)")
     return()

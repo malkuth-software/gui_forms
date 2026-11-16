@@ -163,6 +163,9 @@ void run_view_update_tracking_areas(GUIFormsView* object) {
 void run_view_invalidation_overlay_tick(GUIFormsView* object) {
     [object answerInvalidationOverlayTick];
 }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Drag and drop with other programs: not compiled in a high-integrity build
+// (cmake/HighIntegrity.cmake).
 NSDragOperation run_view_dragging_entered(GUIFormsView* object, id<NSDraggingInfo> sender) {
     return [object answerDraggingEntered:sender];
 }
@@ -178,6 +181,7 @@ BOOL run_view_prepare_for_drag_operation(GUIFormsView* object, id<NSDraggingInfo
 BOOL run_view_perform_drag_operation(GUIFormsView* object, id<NSDraggingInfo> sender) {
     return [object answerPerformDragOperation:sender];
 }
+#endif
 void run_view_cursor_update(GUIFormsView* object, NSEvent* event) {
     [object answerCursorUpdate:event];
 }
@@ -353,8 +357,12 @@ void link_view_categories() noexcept {
         (*_model).set_scroll_copies_supported(true);
         (*_model).set_live_surface_idle_wake_handler(CollectDamageWake(self));
         [self setWantsLayer:NO];
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        // Not registered in a high-integrity build (cmake/HighIntegrity.cmake):
+        // nothing is dropped from another program.
         [self registerForDraggedTypes:@[
             NSPasteboardTypeString, NSPasteboardTypeFileURL, @"public.data"]];
+#endif
         const bool fonts_ready = _raster.register_bundled_fonts(bundle_font_set());
         (*_model).set_text_metrics_provider(fonts_ready ? &_raster : nullptr);
         (*_model).set_framebuffer_painter(fonts_ready ? &_raster : nullptr);
@@ -884,6 +892,9 @@ void link_view_categories() noexcept {
     if (_model) (*_model).shutdown_dispatcher();
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Drag and drop with other programs: not compiled in a high-integrity build
+// (cmake/HighIntegrity.cmake).
 - (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
     return gui_forms::detail::call_failing_fast(
         "macos.view.draggingEntered:", &run_view_dragging_entered, self, sender);
@@ -907,6 +918,7 @@ void link_view_categories() noexcept {
     return gui_forms::detail::call_failing_fast(
         "macos.view.performDragOperation:", &run_view_perform_drag_operation, self, sender);
 }
+#endif
 
 - (void)drawRect:(NSRect)dirtyRect {
     ++_nativeDrawCount;

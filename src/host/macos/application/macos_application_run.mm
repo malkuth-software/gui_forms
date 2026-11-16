@@ -304,9 +304,12 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
                                   transparentFullSizeContent:transparentFullSizeContent
                                          windowDragRegionIds:std::move(windowDragRegionIds)];
     [view installCloseRequestHandler:std::move(entry.options.close_request)];
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     if (!entry.options.capture_path.empty()) {
         [view installFrameCapturePath:entry.options.capture_path];
     }
+#endif
     const BOOL primary = kind == gui_forms::HostWindowKind::primary ? YES : NO;
     GUIFormsWindowDelegate* delegate =
         [[GUIFormsWindowDelegate alloc] initWithView:view
@@ -338,7 +341,10 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     (*created).delegate = delegate;
     (*created).print_metrics_on_close = entry.options.print_metrics_on_close;
     (*created).final_snapshot = entry.options.final_snapshot;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     (*created).capture_requested = !entry.options.capture_path.empty();
+#endif
     // Published before initialization: the ready callback may already ask
     // for this window's frame.
     slots_.push_back(std::move(created));

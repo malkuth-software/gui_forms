@@ -5,6 +5,9 @@
 #include <cstring>
 
 namespace gui_forms::host::detail {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+
 namespace {
 // The private format written: GFIM version 2, premultiplied BGRA8.
 UINT raw_format() { return RegisterClipboardFormatW(L"GUI.Forms.BGRA8.v2"); }
@@ -102,4 +105,5 @@ HostServiceStatus write_windows_clipboard_image(HWND owner, HostImageView image)
     }
     return {};
 }
+#endif
 } // namespace gui_forms::host::detail

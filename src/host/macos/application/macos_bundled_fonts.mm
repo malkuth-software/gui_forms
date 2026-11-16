@@ -9,9 +9,12 @@
 // locate_bundled_fonts counts and reports (bundled_font_diagnostics, bundled_font_refusal).
 static gui_forms::detail::BundledFontLocation bundle_font_location() {
     std::array<gui_forms::detail::BundledFontCandidate, 2> candidates{};
-    const char* override_path = std::getenv("GUI_FORMS_FONT_DIR");
     candidates[0].source = gui_forms::BundledFontSource::environment;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake).
+    const char* override_path = std::getenv("GUI_FORMS_FONT_DIR");
     if (override_path != nullptr) candidates[0].directory = override_path;
+#endif
     candidates[1].source = gui_forms::BundledFontSource::source_tree;
     candidates[1].directory = gui_forms::detail::development_source_font_directory();
     const gui_forms::detail::BundledFontLocation location =

@@ -1,5 +1,11 @@
 #pragma once
 
+// A high-integrity build (GUI_FORMS_HIGH_INTEGRITY, cmake/HighIntegrity.cmake)
+// does not compile hosted content: no other process is started or spoken to.
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+#error "hosted content is not compiled in a high-integrity build (GUI_FORMS_HIGH_INTEGRITY)"
+#endif
+
 // Hosted content (owner decisions 2026-11-13, "The two topologies": GUI.Forms
 // as host around a sub-surface program). The program runs in a process of
 // its own; its frames arrive through shared memory and its input goes back

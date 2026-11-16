@@ -1,0 +1,56 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 25, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "toolchainFile": "${sourceDir}/cmake/llvm22.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_LIBDIR": "lib",
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON"
+      }
+    },
+    {
+      "name": "high-integrity",
+      "inherits": "base",
+      "displayName": "High integrity",
+      "description": "GUI_FORMS_HIGH_INTEGRITY: entries that take outside bytes or reach outside the program are not compiled (cmake/HighIntegrity.cmake)",
+      "binaryDir": "${sourceDir}/.build/high-integrity",
+      "cacheVariables": {
+        "GUI_FORMS_HIGH_INTEGRITY": "ON",
+        "GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS": "ON"
+      }
+    },
+    {
+      "name": "high-integrity-without-c-abi",
+      "inherits": "high-integrity",
+      "displayName": "High integrity, without the C ABI",
+      "description": "The high-integrity configuration for a C++ program: the C ABI library is not built",
+      "binaryDir": "${sourceDir}/.build/high-integrity-without-c-abi",
+      "cacheVariables": {
+        "GUI_FORMS_BUILD_C_ABI": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {"name": "high-integrity", "configurePreset": "high-integrity"},
+    {"name": "high-integrity-without-c-abi", "configurePreset": "high-integrity-without-c-abi"}
+  ],
+  "testPresets": [
+    {
+      "name": "high-integrity",
+      "configurePreset": "high-integrity",
+      "output": {"outputOnFailure": true},
+      "filter": {"include": {"label": "high_integrity"}}
+    },
+    {
+      "name": "high-integrity-without-c-abi",
+      "configurePreset": "high-integrity-without-c-abi",
+      "output": {"outputOnFailure": true},
+      "filter": {"include": {"label": "high_integrity"}}
+    }
+  ]
+}

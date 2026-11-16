@@ -166,6 +166,9 @@ static std::uint32_t physical_key_for(unsigned short key_code) {
     }
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Drag and drop with other programs: not compiled in a high-integrity build
+// (cmake/HighIntegrity.cmake).
 static DragEffect drag_effects_for(NSDragOperation operations) {
     DragEffect result = DragEffect::none;
     if ((operations & NSDragOperationCopy) != 0) {
@@ -251,9 +254,13 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
     }
     return result;
 }
+#endif
 
 @implementation GUIFormsView (Input)
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Drag and drop with other programs: not compiled in a high-integrity build
+// (cmake/HighIntegrity.cmake).
 - (DragEvent)dragEventFor:(id<NSDraggingInfo>)sender action:(DragAction)action {
     DragEvent event;
     event.action = action;
@@ -302,6 +309,7 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
     [self collectDamage];
     return result.accepted() && result.handled;
 }
+#endif
 
 - (GFPoint)modelPointForEvent:(NSEvent*)event {
     const NSPoint point = [self convertPoint:event.locationInWindow fromView:nil];

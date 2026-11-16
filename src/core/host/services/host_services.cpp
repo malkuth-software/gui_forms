@@ -361,6 +361,12 @@ bool valid_dialog_result(const HostDialogRequest& request,
 HostServices::HostServices(HostCapabilities capabilities)
     : ui_thread_(std::this_thread::get_id()) {
     snapshot_.capabilities = std::move(capabilities);
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The services this build does not compile are never reported, whatever
+    // the adapter passed (cmake/HighIntegrity.cmake).
+    snapshot_.capabilities.available = without_capability(snapshot_.capabilities.available,
+                                                          high_integrity_compiled_out_capabilities);
+#endif
 }
 
 HostServiceStatus HostServices::apply_window_backdrop(WindowBackdrop backdrop) {
@@ -630,6 +636,7 @@ HostServiceStatus HostServices::warp_pointer(Point position) {
     return status;
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 namespace {
 
 // Whether `url` is an address open_url hands on: a web address with
@@ -651,8 +658,16 @@ bool openable_url(std::string_view url) noexcept {
 }
 
 } // namespace
+#endif
 
 HostServiceStatus HostServices::open_url(std::string_view url_utf8) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled (cmake/HighIntegrity.cmake): the capability is never
+    // reported, so this refuses as unsupported.
+    static_cast<void>(url_utf8);
+    const HostServiceStatus refused = validate_request(HostCapability::open_url);
+    return refused;
+#else
     HostServiceStatus status = validate_request(HostCapability::open_url);
     if (!status.accepted()) {
         return status;
@@ -667,11 +682,14 @@ HostServiceStatus HostServices::open_url(std::string_view url_utf8) {
         ++snapshot_.rejected_requests;
     }
     return status;
+#endif
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 HostServiceStatus HostServices::open_url_impl(std::string_view) {
     return {HostServiceError::unsupported};
 }
+#endif
 
 HostServiceStatus HostServices::set_relative_pointer_impl(const HostRelativePointerRequest&) {
     return {HostServiceError::unsupported};
@@ -682,6 +700,13 @@ HostServiceStatus HostServices::warp_pointer_impl(Point) {
 }
 
 HostClipboardTextResult HostServices::read_clipboard_text() {
+#if defined(GUI_FORMS_HIGH_INTEGRITY) && !defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
+    // Not compiled (cmake/HighIntegrity.cmake): the capability is never
+    // reported, so this refuses as unsupported.
+    HostClipboardTextResult refused;
+    refused.status = validate_request(HostCapability::clipboard);
+    return refused;
+#else
     HostClipboardTextResult result;
     result.status = validate_request(HostCapability::clipboard);
     if (!result.status.accepted()) {
@@ -704,9 +729,17 @@ HostClipboardTextResult HostServices::read_clipboard_text() {
         ++snapshot_.rejected_requests;
     }
     return result;
+#endif
 }
 
 HostServiceStatus HostServices::write_clipboard_text(std::string_view text_utf8) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY) && !defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
+    // Not compiled (cmake/HighIntegrity.cmake): the capability is never
+    // reported, so this refuses as unsupported.
+    static_cast<void>(text_utf8);
+    const HostServiceStatus refused = validate_request(HostCapability::clipboard);
+    return refused;
+#else
     HostServiceStatus status = validate_request(HostCapability::clipboard);
     if (!status.accepted()) {
         return status;
@@ -728,9 +761,16 @@ HostServiceStatus HostServices::write_clipboard_text(std::string_view text_utf8)
         ++snapshot_.rejected_requests;
     }
     return status;
+#endif
 }
 
 HostClipboardImageResult HostServices::read_clipboard_image() {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled (cmake/HighIntegrity.cmake): the capability is never
+    // reported, so this refuses as unsupported.
+    const HostServiceStatus refused = validate_request(HostCapability::clipboard_images);
+    return HostClipboardImageResult::failed(refused.error);
+#else
     const HostServiceStatus request = validate_request(HostCapability::clipboard_images);
     if (!request.accepted()) return HostClipboardImageResult::failed(request.error);
     ++snapshot_.clipboard_reads;
@@ -757,9 +797,21 @@ HostClipboardImageResult HostServices::read_clipboard_image() {
     }
     ++snapshot_.rejected_requests;
     return HostClipboardImageResult::failed(error);
+#endif
 }
 
 HostClipboardFilesResult HostServices::read_clipboard_files() {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled (cmake/HighIntegrity.cmake): no adapter reads file
+    // references, so this refuses as unsupported.
+    HostClipboardFilesResult refused;
+    refused.status = validate_request(HostCapability::none);
+    if (refused.status.accepted()) {
+        refused.status.error = HostServiceError::unsupported;
+        ++snapshot_.rejected_requests;
+    }
+    return refused;
+#else
     HostClipboardFilesResult result;
     result.status = validate_request(HostCapability::clipboard);
     if (!result.status.accepted()) return result;
@@ -794,12 +846,16 @@ HostClipboardFilesResult HostServices::read_clipboard_files() {
         snapshot_.clipboard_generation = result.generation;
     }
     return result;
+#endif
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 HostClipboardFilesResult HostServices::read_clipboard_files_impl() {
     return {};
 }
+#endif
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 namespace {
 // Whether an adapter's accepted candidates keep the contract: at most
 // `maximum` of them, each non-empty UTF-8 without NUL.
@@ -813,8 +869,20 @@ bool valid_auto_complete_candidates(const std::vector<std::string>& candidates, 
     return true;
 }
 } // namespace
+#endif
 
 HostAutoCompleteResult HostServices::query_auto_complete(const HostAutoCompleteRequest& request) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled (cmake/HighIntegrity.cmake): no host source is asked.
+    static_cast<void>(request);
+    HostAutoCompleteResult refused;
+    refused.status = validate_request(HostCapability::none);
+    if (refused.status.accepted()) {
+        refused.status.error = HostServiceError::unsupported;
+        ++snapshot_.rejected_requests;
+    }
+    return refused;
+#else
     HostAutoCompleteResult result;
     // No capability flag names these sources yet; the adapter's own answer
     // (unsupported by default) is the capability report.
@@ -843,15 +911,25 @@ HostAutoCompleteResult HostServices::query_auto_complete(const HostAutoCompleteR
         ++snapshot_.rejected_requests;
     }
     return result;
+#endif
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 HostAutoCompleteResult HostServices::query_auto_complete_impl(const HostAutoCompleteRequest&) {
     HostAutoCompleteResult result;
     result.status.error = HostServiceError::unsupported;
     return result;
 }
+#endif
 
 HostServiceStatus HostServices::write_clipboard_image(HostImageView image) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled (cmake/HighIntegrity.cmake): the capability is never
+    // reported, so this refuses as unsupported.
+    static_cast<void>(image);
+    const HostServiceStatus refused = validate_request(HostCapability::clipboard_images);
+    return refused;
+#else
     HostServiceStatus status = validate_request(HostCapability::clipboard_images);
     if (!status.accepted()) return status;
     const HostImageError error = validate_host_image(image);
@@ -872,8 +950,10 @@ HostServiceStatus HostServices::write_clipboard_image(HostImageView image) {
         ++snapshot_.rejected_requests;
     }
     return status;
+#endif
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 HostClipboardImageResult HostServices::read_clipboard_image_impl() {
     return HostClipboardImageResult::failed(HostServiceError::unsupported);
 }
@@ -881,6 +961,7 @@ HostClipboardImageResult HostServices::read_clipboard_image_impl() {
 HostServiceStatus HostServices::write_clipboard_image_impl(HostImageView) {
     return {HostServiceError::unsupported};
 }
+#endif
 
 HostDialogResult HostServices::show_dialog(const HostDialogRequest& request) {
     HostDialogResult result;

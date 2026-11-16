@@ -93,10 +93,18 @@ bool present_list_names(std::string_view list, std::string_view word) noexcept {
 }
 
 bool present_policy_names(std::string_view word) noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build reads no environment variable
+    // (cmake/HighIntegrity.cmake): the policy names nothing, so every window
+    // presents on the copy path.
+    static_cast<void>(word);
+    return false;
+#else
     const char* const value = std::getenv("GUI_FORMS_PRESENT");
     if (value == nullptr) return false;
     const bool named = present_list_names(std::string_view(value), word);
     return named;
+#endif
 }
 
 PresentPolicy present_policy_from_environment() noexcept {

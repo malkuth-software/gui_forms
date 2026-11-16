@@ -6,6 +6,9 @@
 #include <vector>
 
 namespace gui_forms::host::detail {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+
 namespace {
 // The private type written: GFIM version 2, premultiplied BGRA8.
 NSString* const raw_type = @"org.guiforms.bgra8";
@@ -58,6 +61,8 @@ HostServiceStatus write_appkit_clipboard_image(NSPasteboard* pasteboard, HostIma
     return [pasteboard writeObjects:@[item]] ? HostServiceStatus{} :
         HostServiceStatus{HostServiceError::backend_failure};
 }
+#endif
+
 NSBitmapImageRep* host_image_representation(HostImageView image) {
     if (validate_host_image(image) != HostImageError::none) return nil;
     // A CGImage reads premultiplied BGRA8 as it is (32-bit little-endian,

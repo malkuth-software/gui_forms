@@ -53,9 +53,14 @@ struct EntryPathOrder final {
     }
 };
 
-// The variable `name`'s value as UTF-8, or empty.
+// The variable `name`'s value as UTF-8, or empty. A high-integrity build
+// reads no environment variable (cmake/HighIntegrity.cmake): always empty, so
+// there is no configuration folder and no GUI_FORMS_THEME_SHEET request.
 std::string environment(const char* name) {
-#if defined(_WIN32)
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    static_cast<void>(name);
+    return std::string{};
+#elif defined(_WIN32)
     std::wstring wide{};
     for (const char* cursor = name; *cursor != '\0'; ++cursor) wide.push_back(static_cast<wchar_t>(*cursor));
     const wchar_t* const value = _wgetenv(wide.c_str());

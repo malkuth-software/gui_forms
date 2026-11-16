@@ -170,7 +170,10 @@ GF_WEB_EXPORT void gf_web_post_dialog(double request, int outcome, const char* p
     post(std::move(record));
 }
 
-// Files dropped at x, y, already written to the program's file system.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Files dropped at x, y, already written to the program's file system. Not
+// compiled in a high-integrity build (cmake/HighIntegrity.cmake); the page
+// then installs no drop listener (web_host.js).
 GF_WEB_EXPORT void gf_web_post_drop(double x, double y, const char* paths, unsigned int modifiers) {
     SurfaceInputRecord record;
     record.kind = SurfaceInputKind::drop;
@@ -179,6 +182,7 @@ GF_WEB_EXPORT void gf_web_post_drop(double x, double y, const char* paths, unsig
     split_lines(paths, record.paths);
     post(std::move(record));
 }
+#endif
 
 GF_WEB_EXPORT void gf_web_post_fonts(const char* group) {
     SurfaceInputRecord record;

@@ -41,12 +41,14 @@ namespace {
 
 constexpr SlotIdentity family_id_slot{GF_TABLE_FONTS, 0U};
 constexpr SlotIdentity family_name_slot{GF_TABLE_FONTS, 1U};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 constexpr SlotIdentity load_family_slot{GF_TABLE_FONTS, 2U};
 constexpr SlotIdentity unload_family_slot{GF_TABLE_FONTS, 3U};
 
 // The 1.5 size of gf_app_font_face: every field through bytes.
 constexpr std::uint32_t app_font_face_size_1_5 = 32U;
 static_assert(sizeof(gf_app_font_face) == app_font_face_size_1_5);
+#endif
 static_assert(GF_APP_FONT_MAXIMUM_FACES == maximum_app_font_faces);
 static_assert(GF_APP_FONT_MAXIMUM_BYTES == maximum_app_font_bytes);
 
@@ -104,6 +106,10 @@ gf_status GF_CALL fonts_family_name(std::uint32_t family, char* buffer, std::uin
     return call_slot(family_name_slot, fonts_family_name_body, family, buffer, capacity, required);
 }
 
+// load_family and unload_family are not compiled in a high-integrity build
+// (cmake/HighIntegrity.cmake): their slots are null, and no application font
+// reaches the font reader.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // The application families load_family gave and unload_family has not taken back.
 struct HeldAppFonts final {
     std::mutex lock{};
@@ -258,14 +264,20 @@ gf_status fonts_unload_family_body(std::uint32_t family, std::uint32_t* deferred
 gf_status GF_CALL fonts_unload_family(std::uint32_t family, std::uint32_t* deferred) noexcept {
     return call_slot(unload_family_slot, fonts_unload_family_body, family, deferred);
 }
+#endif
 
 constexpr gf_fonts_table table{
     .struct_size = sizeof(gf_fonts_table),
     .abi_minor = GF_ABI_MINOR,
     .family_id = &fonts_family_id,
     .family_name = &fonts_family_name,
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    .load_family = nullptr,
+    .unload_family = nullptr,
+#else
     .load_family = &fonts_load_family,
     .unload_family = &fonts_unload_family,
+#endif
 };
 
 } // namespace

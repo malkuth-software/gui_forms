@@ -884,6 +884,7 @@ __ZGVZN9gui_forms18BindingWriteResult*
 __ZGVZN9gui_forms18BlendFrameCounters*
 __ZGVZN9gui_forms18BlendStudySnapshot*
 __ZGVZN9gui_forms18BlockFlowItemInput*
+__ZGVZN9gui_forms18BuildProfileRecord*
 __ZGVZN9gui_forms18CalendarDimensions*
 __ZGVZN9gui_forms18CanvasTextureLayer*
 __ZGVZN9gui_forms18ChildPropertyEntry*
@@ -2557,6 +2558,7 @@ __ZGVZNK9gui_forms18BindingWriteResult*
 __ZGVZNK9gui_forms18BlendFrameCounters*
 __ZGVZNK9gui_forms18BlendStudySnapshot*
 __ZGVZNK9gui_forms18BlockFlowItemInput*
+__ZGVZNK9gui_forms18BuildProfileRecord*
 __ZGVZNK9gui_forms18CalendarDimensions*
 __ZGVZNK9gui_forms18CanvasTextureLayer*
 __ZGVZNK9gui_forms18ChildPropertyEntry*
@@ -3894,6 +3896,8 @@ __ZN9gui_forms13WindowCapture*
 __ZN9gui_forms13XmlReadResult*
 __ZN9gui_forms13add_recipe_emB*
 __ZN9gui_forms13add_recipe_emE*
+__ZN9gui_forms13build_profileB*
+__ZN9gui_forms13build_profileE*
 __ZN9gui_forms13days_in_monthB*
 __ZN9gui_forms13days_in_monthE*
 __ZN9gui_forms13default_themeB*
@@ -4638,6 +4642,7 @@ __ZN9gui_forms18BindingWriteResult*
 __ZN9gui_forms18BlendFrameCounters*
 __ZN9gui_forms18BlendStudySnapshot*
 __ZN9gui_forms18BlockFlowItemInput*
+__ZN9gui_forms18BuildProfileRecord*
 __ZN9gui_forms18CalendarDimensions*
 __ZN9gui_forms18CanvasTextureLayer*
 __ZN9gui_forms18ChildPropertyEntry*
@@ -7583,6 +7588,7 @@ __ZNK[RO]9gui_forms18BindingWriteResult*
 __ZNK[RO]9gui_forms18BlendFrameCounters*
 __ZNK[RO]9gui_forms18BlendStudySnapshot*
 __ZNK[RO]9gui_forms18BlockFlowItemInput*
+__ZNK[RO]9gui_forms18BuildProfileRecord*
 __ZNK[RO]9gui_forms18CalendarDimensions*
 __ZNK[RO]9gui_forms18CanvasTextureLayer*
 __ZNK[RO]9gui_forms18ChildPropertyEntry*
@@ -9256,6 +9262,7 @@ __ZN[KRO]9gui_forms18BindingWriteResult*
 __ZN[KRO]9gui_forms18BlendFrameCounters*
 __ZN[KRO]9gui_forms18BlendStudySnapshot*
 __ZN[KRO]9gui_forms18BlockFlowItemInput*
+__ZN[KRO]9gui_forms18BuildProfileRecord*
 __ZN[KRO]9gui_forms18CalendarDimensions*
 __ZN[KRO]9gui_forms18CanvasTextureLayer*
 __ZN[KRO]9gui_forms18ChildPropertyEntry*
@@ -10929,6 +10936,7 @@ __ZT[VIST]N9gui_forms18BindingWriteResult*E
 __ZT[VIST]N9gui_forms18BlendFrameCounters*E
 __ZT[VIST]N9gui_forms18BlendStudySnapshot*E
 __ZT[VIST]N9gui_forms18BlockFlowItemInput*E
+__ZT[VIST]N9gui_forms18BuildProfileRecord*E
 __ZT[VIST]N9gui_forms18CalendarDimensions*E
 __ZT[VIST]N9gui_forms18CanvasTextureLayer*E
 __ZT[VIST]N9gui_forms18ChildPropertyEntry*E
@@ -12602,6 +12610,7 @@ __ZT[hvc]*9gui_forms18BindingWriteResult*
 __ZT[hvc]*9gui_forms18BlendFrameCounters*
 __ZT[hvc]*9gui_forms18BlendStudySnapshot*
 __ZT[hvc]*9gui_forms18BlockFlowItemInput*
+__ZT[hvc]*9gui_forms18BuildProfileRecord*
 __ZT[hvc]*9gui_forms18CalendarDimensions*
 __ZT[hvc]*9gui_forms18CanvasTextureLayer*
 __ZT[hvc]*9gui_forms18ChildPropertyEntry*
@@ -14275,6 +14284,7 @@ __ZZN9gui_forms18BindingWriteResult*
 __ZZN9gui_forms18BlendFrameCounters*
 __ZZN9gui_forms18BlendStudySnapshot*
 __ZZN9gui_forms18BlockFlowItemInput*
+__ZZN9gui_forms18BuildProfileRecord*
 __ZZN9gui_forms18CalendarDimensions*
 __ZZN9gui_forms18CanvasTextureLayer*
 __ZZN9gui_forms18ChildPropertyEntry*
@@ -15948,6 +15958,7 @@ __ZZNK9gui_forms18BindingWriteResult*
 __ZZNK9gui_forms18BlendFrameCounters*
 __ZZNK9gui_forms18BlendStudySnapshot*
 __ZZNK9gui_forms18BlockFlowItemInput*
+__ZZNK9gui_forms18BuildProfileRecord*
 __ZZNK9gui_forms18CalendarDimensions*
 __ZZNK9gui_forms18CanvasTextureLayer*
 __ZZNK9gui_forms18ChildPropertyEntry*
@@ -16736,4 +16747,6 @@ __ZZNK9gui_forms9ToolStrip*
 __ZZNK9gui_forms9WindowRef*
 __ZZNK9gui_forms9WorldRect*
 __ZZNK9gui_forms9XmlLimits*
+_gui_forms_build_profile_high_integrity_v[1]
+_gui_forms_build_profile_standard_v[1]
 _gui_forms_checked_borrows_v[1]

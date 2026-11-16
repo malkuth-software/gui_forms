@@ -113,7 +113,10 @@ private:
   // Owner of this object (observing).
   Runtime &runtime_;
 };
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
 DragFileListData local_files(const std::vector<std::byte>& data);
+#endif
 // A present's source: the raster's premultiplied BGRA8 pixels, row_bytes
 // apart, and the window's alpha mask, presented when present_alpha (a
 // non-opaque backdrop is granted) and otherwise set opaque.
@@ -210,12 +213,19 @@ protected:
                                              std::uint64_t) override;
   HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest &request) override;
   HostServiceStatus warp_pointer_impl(Point position) override;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
   HostServiceStatus open_url_impl(std::string_view url_utf8) override;
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
   HostClipboardTextResult read_clipboard_text_impl() override;
   HostServiceStatus write_clipboard_text_impl(std::string_view text) override;
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
   HostClipboardImageResult read_clipboard_image_impl() override;
   HostClipboardFilesResult read_clipboard_files_impl() override;
   HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
+#endif
   HostDialogResult show_dialog_impl(const HostDialogRequest &request) override;
   HostServiceStatus play_sound_cue_impl(const HostSoundCueRequest &) override;
   HostServiceStatus add_tray_icon_impl(HostTrayIconId icon_id,
@@ -292,7 +302,10 @@ public:
   void ready();
   void event(XEvent &event);
   void update();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // XDND drops (linux_drag_drop.cpp): not compiled in a high-integrity build.
   bool drag_message(const XClientMessageEvent &message);
+#endif
   void action(ActionKind kind);
   void close(HostCloseReason reason, bool force = false);
   // Portable frame capture (capture_path host option): runs once after the

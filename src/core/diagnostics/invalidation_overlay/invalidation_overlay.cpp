@@ -376,11 +376,16 @@ std::string_view invalidation_cause_name(InvalidationCause cause) noexcept {
 }
 
 bool invalidation_overlay_requested_by_environment() noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake).
+    return false;
+#else
     const char* const value = std::getenv("GUI_FORMS_DEBUG_INVALIDATION");
     if (value == nullptr) return false;
     const std::string_view text(value);
     const bool requested = !text.empty() && text != "0";
     return requested;
+#endif
 }
 
 void set_invalidation_overlay_default(bool enabled) noexcept {

@@ -167,6 +167,29 @@ enum class HostCapability : std::uint64_t {
                                        static_cast<std::uint64_t>(right));
 }
 
+// `available` without the flags of `removed`.
+[[nodiscard]] constexpr HostCapability without_capability(HostCapability available,
+                                                          HostCapability removed) noexcept {
+    return static_cast<HostCapability>(static_cast<std::uint64_t>(available) &
+                                       ~static_cast<std::uint64_t>(removed));
+}
+
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+// The host services a high-integrity build does not compile
+// (cmake/HighIntegrity.cmake): opening addresses, clipboard images and
+// clipboard file references, frame capture to a file, drag and drop with
+// other programs, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from
+// its own, so their requests are refused as unsupported.
+inline constexpr HostCapability high_integrity_compiled_out_capabilities =
+#if defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
+    HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture |
+    HostCapability::typed_drag_source | HostCapability::typed_drag_destination;
+#else
+    HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture |
+    HostCapability::typed_drag_source | HostCapability::typed_drag_destination | HostCapability::clipboard;
+#endif
+#endif
+
 [[nodiscard]] constexpr bool has_capability(HostCapability available,
                                             HostCapability requested) noexcept {
     return (static_cast<std::uint64_t>(available) &

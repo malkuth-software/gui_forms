@@ -392,6 +392,17 @@ bool try_dib32_srccopy(HDC destination, int destination_x, int destination_y,
 void trace(const char* operation, const void* first,
            const void* second = nullptr, long result = 0,
            int width = 0, int height = 0) noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake),
+    // so the shim never traces.
+    static_cast<void>(operation);
+    static_cast<void>(first);
+    static_cast<void>(second);
+    static_cast<void>(result);
+    static_cast<void>(width);
+    static_cast<void>(height);
+    return;
+#else
     const DWORD error = GetLastError();
     static LONG count{};
     char enabled[2]{};
@@ -407,6 +418,7 @@ void trace(const char* operation, const void* first,
                  operation, count, first, second, result, width, height,
                  GetCurrentThreadId(), error);
     SetLastError(error);
+#endif
 }
 
 } // namespace
