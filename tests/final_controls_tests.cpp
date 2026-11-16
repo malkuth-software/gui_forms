@@ -632,7 +632,7 @@ void test_lookup_combo_box() {
     open.modifiers = Modifier::alt;
     require(window.dispatch_key(open) && (*lookup).is_dropped_down() && recorder.seen.back() == "open",
             "Alt+Down opens the list");
-    require((*lookup).filtered_rows().size() == 3U && (*lookup).highlighted() == std::optional<std::size_t>{2U},
+    require((*lookup).filtered_rows().size() == 3U && (*lookup).highlighted() == stxlib::Optional<std::size_t>::of(2U),
             "the open list highlights the chosen row");
     TextInputEvent typed{};
     typed.text_utf8 = "an";
@@ -642,7 +642,7 @@ void test_lookup_combo_box() {
     require(window.dispatch_key({KeyAction::down, PhysicalKey::backspace}) && (*lookup).filter() == "a",
             "Backspace removes the last typed character");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::home}) &&
-                (*lookup).highlighted() == std::optional<std::size_t>{0U},
+                (*lookup).highlighted() == stxlib::Optional<std::size_t>::of(0U),
             "Home highlights the first row");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}) && !(*lookup).is_dropped_down() &&
                 (*lookup).selected_key.read() == "de" && recorder.seen.back() == "closed",
@@ -650,10 +650,11 @@ void test_lookup_combo_box() {
     require(window.dispatch_key({KeyAction::down, PhysicalKey::f4}) && (*lookup).is_dropped_down(), "F4 opens the list");
     // A-gf-controls-06-F6: whether or not a row fits the open list yet, Page Down moves the
     // highlight down, never up (a page of 0 - 1 rows wrapped to -1).
-    const std::optional<std::size_t> before_page = (*lookup).highlighted();
-    require(before_page.has_value() && window.dispatch_key({KeyAction::down, PhysicalKey::page_down}) &&
-                (*lookup).highlighted().has_value() && *(*lookup).highlighted() > *before_page,
-            "Page Down moves the highlight down");
+    const stxlib::Optional<std::size_t> before_page = (*lookup).highlighted();
+    require(before_page.present(), "the open list has a highlight before Page Down");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::page_down}), "Page Down is handled");
+    const stxlib::Optional<std::size_t> after_page = (*lookup).highlighted();
+    require(after_page.present() && *after_page.value() > *before_page.value(), "Page Down moves the highlight down");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && !(*lookup).is_dropped_down() &&
                 (*lookup).selected_key.read() == "de",
             "Escape closes without choosing");
