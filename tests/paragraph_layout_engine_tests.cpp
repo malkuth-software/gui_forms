@@ -116,7 +116,7 @@ void register_faces(HarfBuzzFontEngine& engine, const std::filesystem::path& fon
     require(engine.register_fallback_typeface(400, false, read_face(fonts / "NotoSansHebrew-Regular.ttf"))
                 .has_value(),
             "Noto Sans Hebrew registers");
-    require(engine.register_fallback_typeface(400, false, read_face(fonts / "NotoSansArabic-Regular.ttf"))
+    require(engine.register_fallback_typeface(400, false, read_face(fonts / "NotoSansArabic-Minimal.ttf"))
                 .has_value(),
             "Noto Sans Arabic registers");
 }

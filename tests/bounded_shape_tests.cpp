@@ -19,7 +19,7 @@ void require(bool condition, const char* message) {
 }
 
 void load_fonts(HarfBuzzFontEngine& engine, const std::filesystem::path& directory) {
-    const std::array<const char*, 4> names{"Carlito-Regular.ttf", "NotoSansArabic-Regular.ttf",
+    const std::array<const char*, 4> names{"Carlito-Regular.ttf", "NotoSansArabic-Minimal.ttf",
         "NotoSansHebrew-Regular.ttf", "NotoEmoji-Regular.ttf"};
     for (std::size_t index = 0; index < names.size(); ++index) {
         const std::filesystem::path path = directory / names[index];

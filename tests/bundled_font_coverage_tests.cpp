@@ -7,13 +7,20 @@
 // the manifest digest of the face it describes.
 //
 // `gui_forms_bundled_font_coverage_tests --write <bundled_font_coverage.inc>` regenerates the
-// tables from the faces in assets/fonts.
+// tables from the faces in assets/fonts (as does `tools/fallback_font_subsets.py coverage`).
+//
+// The tables are also checked against the slim fallback layout (owner, 2026-11-16;
+// tools/fallback_font_subsets.py): the fallback order, a proper Japanese face (kana and JIS X
+// 0208 kanji, no Hangul), a proper Korean face (every Hangul syllable and the conjoining jamo),
+// a minimal Chinese face holding only hanzi neither of those holds, and minimal Arabic and
+// Indic faces with no presentation forms and nothing outside their scripts.
 
 #include "../src/core/resources/fonts/bundled_font_set.hpp"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -203,6 +210,114 @@ bool check_tables(FT_Library library, const std::vector<FaceCoverage>& coverages
     return primaries_absent;
 }
 
+// The fallback faces in the order bundled_face_uses registers them (FALLBACK_ORDER in
+// tools/fallback_font_subsets.py).
+constexpr std::array<std::string_view, 9> fallback_order{
+    "NotoSansCJKjp-Subset.otf",       "NotoSansCJKkr-Subset.otf",   "NotoSansCJKsc-Minimal.otf",
+    "NotoSansArabic-Minimal.ttf",     "NotoSansHebrew-Regular.ttf", "NotoSansDevanagari-Minimal.ttf",
+    "NotoSansBengali-Minimal.ttf",    "NotoSansGurmukhi-Minimal.ttf", "NotoEmoji-Regular.ttf"};
+
+// The separators every minimal face keeps beside its script: space, no-break space, ZWNJ, ZWJ.
+constexpr std::array<CodepointRange, 3> separators{{
+    {0x20U, 0x20U}, {0xA0U, 0xA0U}, {0x200CU, 0x200DU}}};
+
+std::span<const CodepointRange> table_of(std::string_view file_name) {
+    const std::optional<std::span<const CodepointRange>> table = gui_forms::detail::bundled_face_coverage(file_name);
+    if (!table) return {};
+    return *table;
+}
+
+bool report(bool passed, const char* what) {
+    if (!passed) std::printf("bundled_font_coverage: %s\n", what);
+    return passed;
+}
+
+// Whether every scalar of first..last is in `table`.
+bool covers_all(std::span<const CodepointRange> table, char32_t first, char32_t last) {
+    for (char32_t scalar = first; scalar <= last; ++scalar) {
+        if (!gui_forms::detail::coverage_contains(table, scalar)) return false;
+    }
+    return true;
+}
+
+// Whether no scalar of first..last is in `table`.
+bool covers_none(std::span<const CodepointRange> table, char32_t first, char32_t last) {
+    for (char32_t scalar = first; scalar <= last; ++scalar) {
+        if (gui_forms::detail::coverage_contains(table, scalar)) return false;
+    }
+    return true;
+}
+
+// Whether every scalar of `table` lies in `script` (first..last) or is a separator.
+bool covers_only(std::span<const CodepointRange> table, char32_t first, char32_t last) {
+    const std::span<const CodepointRange> kept(separators);
+    for (const CodepointRange& range : table) {
+        for (char32_t scalar = range.first; scalar <= range.last; ++scalar) {
+            const bool in_script = scalar >= first && scalar <= last;
+            if (!in_script && !gui_forms::detail::coverage_contains(kept, scalar)) return false;
+        }
+    }
+    return true;
+}
+
+// Whether no scalar of `table` is in `other`.
+bool disjoint(std::span<const CodepointRange> table, std::span<const CodepointRange> other) {
+    for (const CodepointRange& range : table) {
+        for (char32_t scalar = range.first; scalar <= range.last; ++scalar) {
+            if (gui_forms::detail::coverage_contains(other, scalar)) return false;
+        }
+    }
+    return true;
+}
+
+bool check_slim_layout() {
+    std::size_t position = 0;
+    bool passed = true;
+    for (const BundledFaceUse& use : gui_forms::detail::bundled_face_uses()) {
+        if (use.role) continue;
+        const bool expected = position < fallback_order.size() && use.file_name == fallback_order[position];
+        passed = report(expected, "the fallback faces are not registered in the slim layout's order") && passed;
+        ++position;
+    }
+    passed = report(position == fallback_order.size(), "not nine fallback faces") && passed;
+
+    const std::span<const CodepointRange> japanese = table_of("NotoSansCJKjp-Subset.otf");
+    const std::span<const CodepointRange> korean = table_of("NotoSansCJKkr-Subset.otf");
+    const std::span<const CodepointRange> chinese = table_of("NotoSansCJKsc-Minimal.otf");
+    passed = report(covers_all(japanese, 0x3041U, 0x3096U) && covers_all(japanese, 0x30A1U, 0x30FAU),
+                    "the Japanese face lacks kana") && passed;
+    passed = report(covers_all(japanese, 0x65E5U, 0x65E5U) && covers_all(japanese, 0x672CU, 0x672CU) &&
+                        covers_all(japanese, 0x8A9EU, 0x8A9EU) && covers_all(japanese, 0x6F22U, 0x6F22U),
+                    "the Japanese face lacks a JIS X 0208 level 1 kanji") && passed;
+    passed = report(covers_none(japanese, 0xAC00U, 0xD7A3U), "the Japanese face holds Hangul") && passed;
+    passed = report(covers_all(korean, 0xAC00U, 0xD7A3U), "the Korean face lacks a Hangul syllable") && passed;
+    passed = report(covers_all(korean, 0x1100U, 0x11FFU) && covers_all(korean, 0x3131U, 0x318EU),
+                    "the Korean face lacks a jamo") && passed;
+    passed = report(covers_all(korean, 0x97D3U, 0x97D3U), "the Korean face lacks the KS X 1001 hanja for Han") &&
+             passed;
+    passed = report(covers_all(chinese, 0x4EECU, 0x4EECU) && covers_all(chinese, 0x8FD9U, 0x8FD9U),
+                    "the Chinese face lacks a common simplified hanzi") && passed;
+    passed = report(!chinese.empty() && disjoint(chinese, japanese) && disjoint(chinese, korean),
+                    "the Chinese face repeats a character the Japanese or Korean face holds") && passed;
+
+    const std::span<const CodepointRange> arabic = table_of("NotoSansArabic-Minimal.ttf");
+    passed = report(covers_all(arabic, 0x0621U, 0x063AU) && covers_all(arabic, 0x0641U, 0x064AU) &&
+                        covers_all(arabic, 0x0660U, 0x0669U),
+                    "the Arabic face lacks a basic letter or digit") && passed;
+    passed = report(covers_only(arabic, 0x0600U, 0x06FFU), "the Arabic face holds presentation forms or another script") &&
+             passed;
+    passed = report(covers_all(table_of("NotoSansDevanagari-Minimal.ttf"), 0x0915U, 0x0939U) &&
+                        covers_only(table_of("NotoSansDevanagari-Minimal.ttf"), 0x0900U, 0x097FU),
+                    "the Devanagari face is not its basic block") && passed;
+    passed = report(covers_all(table_of("NotoSansBengali-Minimal.ttf"), 0x0995U, 0x09A8U) &&
+                        covers_only(table_of("NotoSansBengali-Minimal.ttf"), 0x0964U, 0x09FFU),
+                    "the Bengali face is not its basic block") && passed;
+    passed = report(covers_all(table_of("NotoSansGurmukhi-Minimal.ttf"), 0x0A15U, 0x0A28U) &&
+                        covers_only(table_of("NotoSansGurmukhi-Minimal.ttf"), 0x0964U, 0x0A7FU),
+                    "the Gurmukhi face is not its basic block") && passed;
+    return passed;
+}
+
 } // namespace
 
 int main(int argument_count, char** arguments) {
@@ -215,6 +330,7 @@ int main(int argument_count, char** arguments) {
         return written ? 0 : 1;
     }
     if (!check_tables(library.get(), coverages)) return 1;
+    if (!check_slim_layout()) return 1;
     std::printf("bundled_font_coverage: %zu fallback tables match FreeType\n", coverages.size());
     return 0;
 }

@@ -108,7 +108,7 @@ void register_faces(render::SkiaRaster& raster, const std::filesystem::path& fon
     const std::string carlito = (fonts / "Carlito-Regular.ttf").string();
     const std::string emoji = (fonts / "NotoEmoji-Regular.ttf").string();
     const std::string hebrew_face = (fonts / "NotoSansHebrew-Regular.ttf").string();
-    const std::string arabic_face = (fonts / "NotoSansArabic-Regular.ttf").string();
+    const std::string arabic_face = (fonts / "NotoSansArabic-Minimal.ttf").string();
     require(raster.register_typeface_file(FontRole::content, 400, false, carlito.c_str()), "Carlito registers");
     require(raster.register_fallback_typeface_file(400, false, emoji.c_str()), "Noto Emoji registers");
     require(raster.register_fallback_typeface_file(400, false, hebrew_face.c_str()), "Noto Sans Hebrew registers");

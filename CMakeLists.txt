@@ -372,7 +372,10 @@ function(gui_forms_application_add_archives target)
     set_property(TARGET ${target} APPEND PROPERTY GUI_FORMS_APPLICATION_ARCHIVES ${ARGN})
 endfunction()
 
-# The bundled fallback faces (owner ruling 2026-11-11): the seven Noto faces and their OFL texts.
+# The bundled fallback faces (owner ruling 2026-11-11; slimmed 2026-11-16): the nine Noto faces
+# and their OFL texts. Japanese and Korean are proper CJK subsets; Chinese, Arabic and the Indic
+# scripts are minimal; Hebrew and emoji are the upstream files. tools/fallback_font_subsets.py
+# cuts the subsets from the upstream files and documents each character set.
 # With GUI_FORMS_INSTALL_FALLBACK_FONTS ON (the default) the embedded font pack carries the faces
 # (cmake/FontPack.cmake) and their licences form their own install component, fallback_fonts;
 # OFF leaves out both. The runtime works without them: they are optional faces, so text only
@@ -387,13 +390,15 @@ endfunction()
 option(GUI_FORMS_INSTALL_FALLBACK_FONTS
        "Embed the bundled Noto fallback faces in the font pack and install their licences (install component fallback_fonts)" ON)
 set(GUI_FORMS_FALLBACK_FONT_FILES
-    NotoSansCJKjp-Regular.otf
+    NotoSansCJKjp-Subset.otf
+    NotoSansCJKkr-Subset.otf
+    NotoSansCJKsc-Minimal.otf
     NotoEmoji-Regular.ttf
-    NotoSansArabic-Regular.ttf
+    NotoSansArabic-Minimal.ttf
     NotoSansHebrew-Regular.ttf
-    NotoSansDevanagari-Regular.ttf
-    NotoSansBengali-Regular.ttf
-    NotoSansGurmukhi-Regular.ttf)
+    NotoSansDevanagari-Minimal.ttf
+    NotoSansBengali-Minimal.ttf
+    NotoSansGurmukhi-Minimal.ttf)
 set(GUI_FORMS_FALLBACK_FONT_NOTICES
     OFL-Noto.txt
     OFL-NotoSansCJKjp.txt
@@ -4674,9 +4679,9 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_CARLITO_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Regular.ttf"
             GUI_FORMS_TEST_CARLITO_BOLD="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Bold.ttf"
             GUI_FORMS_TEST_COUSINE_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Cousine-Regular.ttf"
-            GUI_FORMS_TEST_NOTO_ARABIC_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansArabic-Regular.ttf"
+            GUI_FORMS_TEST_NOTO_ARABIC_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansArabic-Minimal.ttf"
             GUI_FORMS_TEST_NOTO_HEBREW_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Regular.ttf"
-            GUI_FORMS_TEST_NOTO_CJK_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansCJKjp-Regular.otf"
+            GUI_FORMS_TEST_NOTO_CJK_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansCJKjp-Subset.otf"
             GUI_FORMS_TEST_NOTO_EMOJI="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoEmoji-Regular.ttf"
             GUI_FORMS_TEST_SELAWIK_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf"
             GUI_FORMS_TEST_SELAWIK_BOLD="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf"
@@ -6391,7 +6396,7 @@ if(GUI_FORMS_BUILD_TESTS)
             $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
         target_compile_definitions(gui_forms_skia_smoke PRIVATE
             GUI_FORMS_TEST_CONTROL_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf"
-            GUI_FORMS_TEST_CJK_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansCJKjp-Regular.otf"
+            GUI_FORMS_TEST_CJK_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansCJKjp-Subset.otf"
             GUI_FORMS_TEST_EMOJI_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoEmoji-Regular.ttf"
         )
         target_link_libraries(gui_forms_skia_smoke PRIVATE gui_forms_skia)

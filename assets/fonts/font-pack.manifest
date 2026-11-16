@@ -21,8 +21,15 @@ Selawik-*.ttf
 Arimo-*.ttf
 Tinos-*.ttf
 # The fallback faces (GUI_FORMS_INSTALL_FALLBACK_FONTS), each group decoded
-# when text first needs a character only it covers.
-group scripts lazy
+# when text first needs a character only it covers (tools/fallback_font_subsets.py
+# cuts the subsets). Japanese and Korean are proper CJK faces with a group each;
+# the minimal Chinese, Arabic and Indic faces and Hebrew share one small group.
+group japanese lazy
+NotoSansCJKjp-*.otf
+group korean lazy
+NotoSansCJKkr-*.otf
+group minimal lazy
+NotoSansCJKsc-*.otf
 NotoSansArabic-*.ttf
 NotoSansHebrew-*.ttf
 NotoSansDevanagari-*.ttf
@@ -30,5 +37,3 @@ NotoSansBengali-*.ttf
 NotoSansGurmukhi-*.ttf
 group emoji lazy
 NotoEmoji-*.ttf
-group cjk lazy
-NotoSansCJK*
