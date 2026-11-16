@@ -10,9 +10,10 @@
 #include <array>
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -123,7 +124,7 @@ private:
     IndicatorLampState lit_state_{IndicatorLampState::off};
     // The change's first frame, taken from the timer's clock, and the power
     // a cool-down starts from.
-    std::optional<FrameTime> changed_at_{};
+    stxlib::Optional<FrameTime> changed_at_{};
     double cooling_from_{};
     AnimationTimer change_timer_;
     // The baked lens's last composite, kept between paints; released when

@@ -8,7 +8,8 @@
 
 #include <cstdint>
 #include <memory>
-#include <optional>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -97,7 +98,7 @@ private:
     void update_danger_glow();
     AnimationTickResult advance_danger_glow(FrameTime now);
     double danger_level_{1.0};
-    std::optional<FrameTime> danger_since_{};
+    stxlib::Optional<FrameTime> danger_since_{};
     AnimationTimer danger_timer_;
 
     Event<bool> selected_changed_{};
