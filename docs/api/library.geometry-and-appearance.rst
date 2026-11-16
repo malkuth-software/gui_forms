@@ -7193,7 +7193,7 @@ Types
 
    .. cpp:member:: std::string part
 
-   .. cpp:member:: std::optional<AnatomyState> state
+   .. cpp:member:: stxlib::Optional<AnatomyState> state
 
 .. cpp:namespace:: gui_forms
 

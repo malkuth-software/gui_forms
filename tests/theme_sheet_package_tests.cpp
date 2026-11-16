@@ -143,7 +143,7 @@ void test_typed_overrides_check_names_and_write_a_sheet() {
     require(overrides.set_colour(face, ThemeOverrideProperty::background_colour, Color::rgba(51, 102, 204)) ==
                 ThemeOverrideCheck::accepted,
             "a stock control's part takes a colour");
-    face.state = AnatomyState::hot;
+    face.state.set(AnatomyState::hot);
     require(overrides.set_colour(face, ThemeOverrideProperty::background_colour, Color::rgba(68, 119, 221, 128)) ==
                 ThemeOverrideCheck::accepted,
             "a state the control takes is accepted");

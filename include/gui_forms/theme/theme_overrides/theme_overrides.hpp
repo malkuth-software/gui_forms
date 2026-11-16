@@ -72,7 +72,7 @@ enum class ThemeOverrideCheck : std::uint8_t {
 struct GUI_FORMS_API ThemeOverrideTarget final {
     std::string control{};
     std::string part{};
-    std::optional<AnatomyState> state{};
+    stxlib::Optional<AnatomyState> state{};
 
     friend bool operator==(const ThemeOverrideTarget& left, const ThemeOverrideTarget& right) noexcept {
         return left.control == right.control && left.part == right.part && left.state == right.state;
