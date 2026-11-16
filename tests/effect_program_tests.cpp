@@ -391,6 +391,11 @@ void verification() {
         require(record.setup_bound <= declaration.setup_cost, "setup's bound fits its setup budget");
         require((entry.setup != nullptr) == (record.setup_bound > 0U), "setup is bounded when there is one");
         require(record.state_size == entry.size, "the record's state size is sizeof the effect");
+        // A-gf-core-05-F2: a record of another size does not verify the effect.
+        const void* const thunk = reinterpret_cast<const void*>(entry.run);
+        require(effect_verification_recorded(declaration.name, entry.size, thunk) &&
+                    !effect_verification_recorded(declaration.name, entry.size + 1U, thunk),
+                "the verification record counts only for the effect's own state size");
         if (printing) {
             std::cout << declaration.name << ": run bound " << record.bound << " of " << declaration.cost.fixed
                       << ", setup bound " << record.setup_bound << " of " << declaration.setup_cost << ", state "
