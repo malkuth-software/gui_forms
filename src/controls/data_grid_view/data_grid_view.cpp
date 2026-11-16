@@ -65,7 +65,9 @@ int value_rank(const BindingValue& value) noexcept {
 }
 
 // Orders two cell values: by rank, then booleans false first, numbers as
-// doubles, text and other kinds by their text in byte order.
+// doubles with NaN before every other number (so the order stays a strict
+// weak order for std::stable_sort, A-gf-controls-02-F8), text and other
+// kinds by their text in byte order.
 bool value_less(const BindingValue& left, const BindingValue& right) {
     const int left_rank = value_rank(left);
     const int right_rank = value_rank(right);
@@ -79,6 +81,9 @@ bool value_less(const BindingValue& left, const BindingValue& right) {
     if (left_rank == 2) {
         const double left_value = binding_value_to_number(left).value_or(0.0);
         const double right_value = binding_value_to_number(right).value_or(0.0);
+        const bool left_nan = std::isnan(left_value);
+        const bool right_nan = std::isnan(right_value);
+        if (left_nan || right_nan) return left_nan && !right_nan;
         return left_value < right_value;
     }
     if (left_rank == 3) return std::get<std::string>(left) < std::get<std::string>(right);
