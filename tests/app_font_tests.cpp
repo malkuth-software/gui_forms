@@ -11,6 +11,7 @@
 // The process registry is shared by every case: each case loads families under its own names.
 
 #include "../src/core/theme_language/compiler/theme_compiler.hpp"
+#include "../src/core/resources/fonts/program_typefaces.hpp"
 #include "../src/render/text/harfbuzz/harfbuzz_font_engine.hpp"
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
@@ -23,6 +24,9 @@
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 #include "gui_forms/window/window.hpp"
+
+#include <stxlib/glyph_face.hpp>
+#include <stxlib/view.hpp>
 
 #include <array>
 #include <cstddef>
@@ -498,6 +502,62 @@ void malformed_face_is_quarantined() {
             "a quarantined family is not tried again");
 }
 
+// A loaded family's faces each have one typeface, opened and registered at
+// load (program_typefaces.hpp), which every executor drawing the family
+// borrows. Unloading retires them at once, even while an engine defers the
+// bytes' release: a face open over one is rejected and released on its next
+// draw, and none opens again, so no executor draws an unloaded family.
+void unloaded_family_faces_are_rejected() {
+    const std::shared_ptr<const std::vector<std::byte>> carlito = read_font(GUI_FORMS_TEST_CARLITO_REGULAR);
+    const std::array<AppFontFace, 1> faces{face_of(carlito)};
+    AppFontLoad loaded = load_app_font_family("Retire Face", faces);
+    const FontFamilyId family = loaded.family.id();
+    require(family.value != 0U, "the retirement case's family loads");
+    FontSpec font{};
+    font.role = FontRole::content;
+    font.family = family;
+    HarfBuzzFontEngine engine;
+    require(engine.register_shared_typeface(FontRole::content, 400U, false, carlito).has_value(),
+            "the content role registers");
+    const ShapedText shaped = engine.shape("Retire", font);
+    std::optional<FontFaceSource> source{};
+    std::uint32_t glyph = 0U;
+    for (const ShapedFontRun& run : shaped.runs) {
+        const std::optional<FontFaceSource> candidate = engine.face_source(run.face);
+        if (!candidate || !((*candidate).family == family) || run.glyphs.empty()) continue;
+        source = candidate;
+        glyph = run.glyphs.front().glyph.value;
+        break;
+    }
+    require(source.has_value() && glyph != 0U, "the engine draws with the application family");
+    if (!source) return;
+    const std::size_t typefaces = gui_forms::detail::program_typeface_count();
+    const gui_forms::detail::TypefaceBorrow borrow =
+        gui_forms::detail::program_typeface((*source).bytes, (*source).owner, 0U);
+    require(borrow.typeface != nullptr && !(*borrow.typeface).retired() &&
+                gui_forms::detail::program_typeface_count() == typefaces,
+            "executors borrow the typeface the registry opened at load");
+
+    gui_forms::detail::ExecutorFace face;
+    require(face.open(borrow, gui_forms::detail::FaceByteLimits{}), "a face opens over the family's typeface");
+    const std::array<stxlib::glyphs::RunGlyph, 1> placed{{{glyph, 0, 832}}};
+    const stxlib::View<stxlib::glyphs::RunGlyph> run(placed.data(), placed.size());
+    stxlib::glyphs::DrawStyle style{};
+    style.size = 13 * 64;
+    style.fit = stxlib::glyphs::Fit::light;
+    stxlib::glyphs::RunCoverage drawn{};
+    require(!face.draw_run(run, style, drawn).failed(), "the face draws while the family is loaded");
+
+    require(loaded.family.unload() == AppFontUnload::deferred, "the engine defers the bytes' release");
+    require((*borrow.typeface).retired(), "unloading retires the family's typeface at once");
+    require(face.draw_run(run, style, drawn).failed() && !face.is_open(),
+            "the face over it is rejected and released on its next draw");
+    gui_forms::detail::ExecutorFace late;
+    require(!late.open(gui_forms::detail::program_typeface((*source).bytes, (*source).owner, 0U),
+                       gui_forms::detail::FaceByteLimits{}),
+            "no face opens over an unloaded family's typeface");
+}
+
 void unload_while_in_use_is_deferred() {
     const std::shared_ptr<const std::vector<std::byte>> carlito = read_font(GUI_FORMS_TEST_CARLITO_REGULAR);
     const std::array<AppFontFace, 1> faces{face_of(carlito)};
@@ -568,6 +628,7 @@ int main() {
     theme_does_not_resolve_family();
     malformed_face_is_quarantined();
     unload_while_in_use_is_deferred();
+    unloaded_family_faces_are_rejected();
     if (failures != 0) {
         std::cerr << failures << " app font check(s) failed\n";
         return 1;

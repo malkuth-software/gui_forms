@@ -1,5 +1,6 @@
 #include "prepared_storage.hpp"
 #include "../../resources/fonts/program_typefaces.hpp"
+#include "prepared_face_pool.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
@@ -7,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <new>
 #include <stdexcept>
 #include <utility>
 
@@ -407,23 +409,72 @@ constexpr std::uint32_t maximum_bank_glyphs = 1'000'000U;
 
 } // namespace
 
+namespace {
+
+// Empties the bank's pool and typefaces, the pool first (its faces read the
+// typefaces).
+void clear_bank_typefaces(PreparedFontBank& bank) noexcept {
+    bank.face_pool.reset();
+    for (std::shared_ptr<const ProgramTypeface>& opened : bank.typefaces) opened.reset();
+}
+
+} // namespace
+
 bool open_bank_typefaces(PreparedFontBank& bank) {
     TypefaceByteLimits limits{};
     limits.recent_glyph_bytes = PreparedTextLimits::glyph_store_bytes;
-    for (std::size_t index = 0; index < bank.face_count; ++index) {
-        const PreparedFontFace& source = bank.faces[index];
-        const std::span<const std::byte> bytes(source.bytes.get(), source.size);
-        // No owner: the bank owns the bytes and holds the typeface, and every
-        // other holder holds the bank (prepared storage, a mask key).
-        std::shared_ptr<const ProgramTypeface> typeface = program_typeface(bytes, nullptr, source.index, limits);
-        const stxlib::glyphs::Font* const font = typeface ? (*(*typeface).typeface()).font() : nullptr;
-        if (font == nullptr || !drawable_bank_font(*font)) {
-            for (std::shared_ptr<const ProgramTypeface>& opened : bank.typefaces) opened.reset();
-            return false;
+    try {
+        for (std::size_t index = 0; index < bank.face_count; ++index) {
+            const PreparedFontFace& source = bank.faces[index];
+            const std::span<const std::byte> bytes(source.bytes.get(), source.size);
+            // The bank's own: it owns the bytes, and every other holder of
+            // the typeface holds the bank (prepared storage, a mask key).
+            std::shared_ptr<const ProgramTypeface> typeface = open_program_typeface(bytes, source.index, limits);
+            const stxlib::glyphs::Font* const font = typeface ? (*(*typeface).typeface()).font() : nullptr;
+            if (font == nullptr || !drawable_bank_font(*font)) {
+                clear_bank_typefaces(bank);
+                return false;
+            }
+            bank.typefaces[index] = std::move(typeface);
         }
-        bank.typefaces[index] = std::move(typeface);
+        bank.face_pool = std::make_shared<PreparedFacePool>();
+    } catch (const std::bad_alloc&) {
+        clear_bank_typefaces(bank);
+        throw;
     }
     return true;
+}
+
+std::unique_ptr<PreparedRasterFaces> PreparedFacePool::lease() {
+    std::unique_ptr<PreparedRasterFaces> result{};
+    {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        if (!idle_.empty()) {
+            result = std::move(idle_.back());
+            idle_.pop_back();
+            return result;
+        }
+        idle_.reserve(kept_sets);
+    }
+    result = std::make_unique<PreparedRasterFaces>();
+    return result;
+}
+
+void PreparedFacePool::restore(std::unique_ptr<PreparedRasterFaces> faces) noexcept {
+    if (!faces) return;
+    const std::lock_guard<std::mutex> lock(mutex_);
+    // lease reserved kept_sets before any set existed, so this never
+    // allocates; a set beyond them is released as `faces` goes.
+    if (idle_.size() < kept_sets && idle_.capacity() >= kept_sets) idle_.push_back(std::move(faces));
+}
+
+std::size_t PreparedFacePool::idle_face_bytes() const noexcept {
+    std::size_t held = 0U;
+    const std::lock_guard<std::mutex> lock(mutex_);
+    for (const std::unique_ptr<PreparedRasterFaces>& set : idle_) {
+        for (const ExecutorFace& face : (*set).faces) held += face.face_bytes_held();
+    }
+    return held;
 }
 
 } // namespace gui_forms::detail

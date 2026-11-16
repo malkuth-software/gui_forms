@@ -2,22 +2,41 @@
 
 // The program's typefaces, part of the font family registry: one STXlib
 // Typeface per registered face for the whole program (owner, 2026-11-16:
-// "the store should be program, not window"), opened from the font bytes the
-// text engine already holds, and one Face per executor over it (an
-// ExecutorFace), since a Face is used by one thread at a time
+// "the store should be program, not window"), and one Face per executor over
+// it (an ExecutorFace), since a Face is used by one thread at a time
 // (stxlib/glyph_face.hpp). The four text rasterizers draw through them:
 // the glyph-run rasterizer (interface text and the C drawing API), prepared
 // text, text masks and the paint probe.
 //
-// What is kept. The registry observes each typeface and the faces own it: a
-// typeface lives while an executor's face, a prepared font bank or a text
-// mask's fonts hold it, and every holder of the same face's bytes finds the
-// same typeface (the glyphs one executor caused to be read are there for
-// the others). When the last holder lets go it is released, as the bundled
-// font set's pages are (bundled_font_set.hpp), and the next request opens a
-// new one. A face is identified by the address and length of its bytes and
-// its index in a collection: while a typeface lives its holders keep those
-// bytes alive, so no other font can be at that address.
+// Who holds a typeface. A typeface reads its font's bytes in place, so it is
+// held by the object that holds those bytes, beside them, and lives exactly
+// as long as they do; nothing else owns one.
+// - A registered face. The registry opens the typeface when it first holds
+//   the face's bytes and keeps it with them: the bundled font set in each
+//   sealed face (SealedFontFace, bundled_font_set.hpp), the application font
+//   registry in each loaded family's byte block (app_font_registry.cpp). It
+//   then registers the pair here, so every executor and window that draws
+//   those bytes finds the same typeface. The bundled set is the process's,
+//   shared by every window and executor and held by the application run for
+//   its length, so its typefaces are the program's; nothing is released for
+//   termination (rule 1) and the table below has no static destructor.
+// - A face no registry holds (a font a GUI.Drawing executor registers under
+//   its own name, a test's bytes, the paint probe's sources): the first
+//   executor to draw it opens a typeface that the executors drawing it share
+//   and that goes with the last of them (program_typeface).
+// - A prepared font bank's face: the bank owns its bytes and a typeface for
+//   each (prepared_storage.hpp); no other object can hold those bytes.
+//
+// What an executor gets is a borrow (TypefaceBorrow): the typeface and a
+// keeper, the shared owner that holds it and its bytes, so a Face opened over
+// it can never outlive either.
+//
+// Unloading. An application family can be unloaded and loaded again
+// (app_fonts.hpp). Unloading retires each of its typefaces at once: a face
+// still open over one is rejected on its next draw (released, and the draw
+// fails as revoked) and none opens over it again. Its bytes go, as before,
+// with the last engine or face that keeps them. A reload is a new family with
+// new typefaces.
 //
 // Memory, in bytes (owner, 2026-11-16: text memory limits are in bytes). A
 // typeface's glyph store is bounded by TypefaceByteLimits and a face's
@@ -27,7 +46,7 @@
 // release, and what is left as a release when the object goes. bytes_peak
 // is each one's most since it was opened or its peak was last reset.
 //
-// Threads. program_typeface and everything on ProgramTypeface: any thread.
+// Threads. Everything on ProgramTypeface and the free functions: any thread.
 // An ExecutorFace: one thread at a time (its executor's).
 
 #include "../../../platform/stxlib_bridge.hpp"
@@ -62,8 +81,9 @@ struct FaceByteLimits final {
 // One face of a font as the program holds it.
 class ProgramTypeface final {
 public:
-    // `owner` keeps the bytes `typeface` was opened from alive; it may be
-    // empty when the caller's own object owns both (a prepared font bank).
+    // `owner` keeps the bytes `typeface` was opened from alive; it is empty
+    // when the object that owns this typeface owns the bytes too (a sealed
+    // face, an application family's block, a prepared font bank).
     ProgramTypeface(std::shared_ptr<const void> owner, stxlib::Shared<stxlib::glyphs::Typeface> typeface) noexcept;
     ~ProgramTypeface();
     ProgramTypeface(const ProgramTypeface&) = delete;
@@ -80,6 +100,12 @@ public:
     [[nodiscard]] std::size_t bytes_held() const noexcept;
     [[nodiscard]] std::size_t bytes_peak() const noexcept;
 
+    // Marks the typeface's family unloaded: faces over it are rejected from
+    // now on. Const and any thread: retiring changes no glyph, only whether
+    // executors may draw them.
+    void retire() const noexcept;
+    [[nodiscard]] bool retired() const noexcept;
+
 private:
     // Declared first, destroyed last: the typeface borrows the bytes.
     std::shared_ptr<const void> owner_;
@@ -87,22 +113,49 @@ private:
     // The bytes counted under text_layout so far. Mutable: counting is not a
     // change to the typeface, and any thread may count.
     mutable std::atomic<std::size_t> counted_{0U};
+    mutable std::atomic<bool> retired_{false};
 };
 
-// The program's typeface for face `face_index` of the font in `bytes`,
-// opened now if no holder holds one; `owner` keeps `bytes` alive (it may be
-// empty when the caller's object owns the bytes and outlives every holder
-// of the result). `limits` apply when the typeface is opened here; a
-// typeface already held keeps the limits it was opened with. Null when
-// STXlib refuses the face (not a font it reads, a needed table missing or
-// cut short) or its storage runs out; std::bad_alloc when the registry's
-// own does. Nothing is registered on either.
-[[nodiscard]] std::shared_ptr<const ProgramTypeface> program_typeface(std::span<const std::byte> bytes,
-                                                                      std::shared_ptr<const void> owner,
-                                                                      std::uint32_t face_index,
-                                                                      const TypefaceByteLimits& limits = TypefaceByteLimits{});
+// A typeface as an executor borrows it: `typeface` stays valid, with the
+// bytes it reads, while `keeper` is held. `keeper` is empty only for a
+// prepared font bank's typeface, which the bank keeps and which outlives
+// every face over it (prepared_storage.hpp). Null `typeface`: none.
+struct TypefaceBorrow final {
+    std::shared_ptr<const void> keeper{};
+    const ProgramTypeface* typeface{};
+};
 
-// How many typefaces the registry observes that are still held. For tests.
+// Opens face `face_index` of the font in `bytes` as a typeface the caller
+// owns beside the bytes (a registry or a prepared font bank). Null when
+// STXlib refuses the face (not a font it reads, a needed table missing or
+// cut short) or its storage runs out; std::bad_alloc when ours does.
+[[nodiscard]] std::unique_ptr<ProgramTypeface> open_program_typeface(std::span<const std::byte> bytes,
+                                                                     std::uint32_t face_index,
+                                                                     const TypefaceByteLimits& limits = TypefaceByteLimits{});
+
+// Registers `typeface`, opened over face `face_index` of `bytes`, as the
+// program's typeface of those bytes for as long as `owner` lives; `owner`
+// holds both (the sealed face or the family's byte block). Executors find it
+// through program_typeface with the same owner. False when the table's
+// storage runs out: executors then open their own typeface of those bytes
+// (program_typeface's unregistered path), which draws the same.
+[[nodiscard]] bool register_program_typeface(std::span<const std::byte> bytes, std::uint32_t face_index,
+                                             const std::shared_ptr<const void>& owner,
+                                             const ProgramTypeface& typeface) noexcept;
+
+// The typeface an executor draws face `face_index` of `bytes` with. `owner`
+// keeps the bytes alive (as an engine's face source gives it). The
+// typeface that owner registered for these bytes when there is one, retired
+// or not (ExecutorFace refuses a retired one); else the shared unregistered
+// typeface of these bytes, opened now with `limits` if no executor holds
+// one. An empty borrow when STXlib refuses the face or its storage runs out;
+// std::bad_alloc when the table's does.
+[[nodiscard]] TypefaceBorrow program_typeface(std::span<const std::byte> bytes, std::shared_ptr<const void> owner,
+                                              std::uint32_t face_index,
+                                              const TypefaceByteLimits& limits = TypefaceByteLimits{});
+
+// How many typefaces the table knows of whose holders still hold them,
+// registered and unregistered. For tests.
 [[nodiscard]] std::size_t program_typeface_count();
 
 // One executor's face over a program typeface: STXlib's Face, which keeps
@@ -116,17 +169,20 @@ public:
     ExecutorFace(const ExecutorFace&) = delete;
     ExecutorFace& operator=(const ExecutorFace&) = delete;
 
-    // Opens over `typeface` (not null). False, with the face left closed,
-    // when STXlib refuses the limits or memory runs out. A face already open
-    // is released first.
-    [[nodiscard]] bool open(std::shared_ptr<const ProgramTypeface> typeface, const FaceByteLimits& limits);
+    // Opens over `borrow`, keeping its keeper. False, with the face left
+    // closed, for an empty borrow or a retired typeface, or when STXlib
+    // refuses the limits or memory runs out. A face already open is released
+    // first.
+    [[nodiscard]] bool open(TypefaceBorrow borrow, const FaceByteLimits& limits);
 
     [[nodiscard]] bool is_open() const noexcept;
 
-    // The font opened, or null for a face not opened.
+    // The font opened, or null for a face not open.
     [[nodiscard]] const stxlib::glyphs::Font* font() const noexcept;
 
-    // stxlib::glyphs::Face's measure_run and draw_run, then the counts.
+    // stxlib::glyphs::Face's measure_run and draw_run, then the counts. A
+    // face not open fails as disposed; a face whose typeface was retired
+    // since it opened is released and fails as revoked.
     [[nodiscard]] stxlib::Status measure_run(stxlib::View<stxlib::glyphs::RunGlyph> glyphs,
                                              const stxlib::glyphs::DrawStyle& style, stxlib::glyphs::RunBox& box);
     [[nodiscard]] stxlib::Status draw_run(stxlib::View<stxlib::glyphs::RunGlyph> glyphs,
@@ -138,15 +194,22 @@ public:
     [[nodiscard]] std::size_t bytes_held() const noexcept;
     [[nodiscard]] std::size_t bytes_peak() const noexcept;
 
+    // The face's own bytes held (its fitted outlines), without its
+    // typeface's.
+    [[nodiscard]] std::size_t face_bytes_held() const noexcept;
+
     // Frees the face and uncounts its bytes; the face is as before open.
     void release() noexcept;
 
 private:
+    // Fails as disposed, or as revoked after releasing a retired face, or
+    // succeeds.
+    [[nodiscard]] stxlib::Status admit() noexcept;
     void account() noexcept;
 
-    // Declared before face_, destroyed after it: the face holds the
-    // typeface, whose bytes the program typeface keeps.
-    std::shared_ptr<const ProgramTypeface> typeface_{};
+    // Declared first, destroyed last: it keeps the typeface and its bytes.
+    std::shared_ptr<const void> keeper_{};
+    const ProgramTypeface* typeface_{};
     stxlib::glyphs::Face face_{};
     // The face's bytes counted under text_layout so far.
     std::size_t counted_{0U};

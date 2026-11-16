@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../core/resources/fonts/program_typefaces.hpp"
+#include "../../../core/text/prepared/prepared_face_pool.hpp"
 #include "../../../core/text/text_mask/text_mask_state.hpp"
 #include "../../../core/text/unicode/unicode_grapheme.hpp"
 
@@ -38,17 +39,21 @@ struct NativeFace final {
 
 // One job's faces. Shaping, coverage and line metrics use FreeType and
 // HarfBuzz faces of the key's bank (until STXlib's shaper replaces them);
-// the raster draws with STXlib faces over the bank's program typefaces
-// (PreparedFontBank::typefaces), one per bank face, on the job's thread.
+// the raster draws with STXlib faces over the bank's typefaces
+// (PreparedFontBank::typefaces), one per bank face, on the job's thread,
+// leased from the bank's face pool (prepared_face_pool.hpp): opened by the
+// first job that draws them and reused by the jobs after it.
 struct NativeFonts final {
     // Destruction reverses declaration: HB/FT faces before their library;
-    // the raster faces first of all (they borrow the bank, which the key
-    // keeps alive for the job).
+    // the raster lease first of all (its faces borrow the bank, which the
+    // key keeps alive for the job, and it returns them to the bank's pool).
     NativeLibrary library{};
     std::array<NativeFace, 8> faces{};
     std::size_t count{0};
     std::uint32_t primary{0};
-    std::array<ExecutorFace, 8> raster_faces{};
+    PreparedFaceLease raster;
+    // The leased set's faces, in bank order.
+    std::array<ExecutorFace, PreparedTextLimits::font_faces>& raster_faces;
     explicit NativeFonts(const MaskKey& key);
     [[nodiscard]] std::uint32_t select_face(const std::string_view cluster) const;
 };

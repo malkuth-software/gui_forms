@@ -12,6 +12,7 @@
 #include <limits>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace gui_forms::render::text {
@@ -101,16 +102,19 @@ public:
         }
         const std::optional<FontFaceSource> source = engine_.face_source(id);
         if (!source) return nullptr;
-        const std::shared_ptr<const detail::ProgramTypeface> typeface =
+        // The registry's typeface of the face (a bundled or application face's, registered
+        // with the bytes' owner), else the one the executors drawing these bytes share.
+        detail::TypefaceBorrow typeface =
             detail::program_typeface((*source).bytes, (*source).owner, (*source).face_index);
         std::unique_ptr<detail::ExecutorFace> opened = std::make_unique<detail::ExecutorFace>();
         detail::FaceByteLimits limits{};
         limits.mask_width = static_cast<std::uint32_t>(maximum_extent);
         limits.mask_height = static_cast<std::uint32_t>(maximum_extent);
-        const bool usable = typeface && (*opened).open(typeface, limits);
+        const bool usable = (*opened).open(std::move(typeface), limits);
         if (!usable) {
-            // An application family's face that will not open draws nothing from now on (its
-            // glyphs count as missing); a bundled face's failure is the renderer's.
+            // An application family's face that will not open (refused, or its family unloaded
+            // and its typeface retired) draws nothing from now on: its glyphs count as missing.
+            // A bundled face's failure is the renderer's.
             if (!app_font_family_number((*source).family)) throw std::runtime_error("Glyph run face open failed");
             quarantine_app_font_family((*source).family, AppFontQuarantine::rasterising_failed);
             return nullptr;

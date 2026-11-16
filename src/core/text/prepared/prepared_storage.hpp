@@ -15,6 +15,7 @@
 namespace gui_forms::detail {
 
 class ProgramTypeface;
+class PreparedFacePool;
 
 // Private monotonic identity sources. Zero and the terminal maximum are never
 // issued; refusal preserves output. The counter helper admits a local source
@@ -108,23 +109,30 @@ struct PreparedFontBank final {
     std::array<PreparedFontFace, PreparedTextLimits::font_faces> faces{};
     std::size_t face_count{};
     std::size_t encoded_bytes{};
-    // The program's typeface of each face (program_typefaces.hpp), opened
-    // over `faces`' bytes by open_bank_typefaces before the bank is shared,
-    // then read only. Declared after `faces`, destroyed before them: the
-    // typefaces borrow those bytes. Each rasterization opens its faces over
-    // these, so the glyphs read for one serve the next.
+    // The STXlib typeface of each face (program_typefaces.hpp), opened over
+    // `faces`' bytes by open_bank_typefaces before the bank is shared, then
+    // read only. The bank is their only holder (shared pointers only so that
+    // this header needs no STXlib type); every face over them borrows them
+    // with no keeper, and the bank outlives those faces: its own pool's are
+    // destroyed first, and a text mask's belong to a job that holds the bank.
+    // Declared after `faces`, destroyed before them: the typefaces read those
+    // bytes.
     std::array<std::shared_ptr<const ProgramTypeface>, PreparedTextLimits::font_faces> typefaces{};
+    // The faces prepared rasterizations draw these typefaces with, opened on
+    // first use and reused (prepared_face_pool.hpp); made with the
+    // typefaces. Declared after them, destroyed before them.
+    std::shared_ptr<PreparedFacePool> face_pool{};
     // Mutable: charging the typefaces' bytes is accounting, not a change to
     // the bank, and is made under the ledger's mutex.
     mutable PreparedFaceCharge face_charge{};
 };
 
-// Opens the program's typeface of each of the bank's faces
-// (PreparedTextLimits::glyph_store_bytes each) into bank.typefaces, and
-// checks what every rasterizer needs of a face: outlines STXlib reads, one
-// to 1,000,000 glyphs and a Unicode character map. False, with
-// bank.typefaces emptied, when a face fails any of them; std::bad_alloc when
-// the registry's storage runs out.
+// Opens the STXlib typeface of each of the bank's faces
+// (PreparedTextLimits::glyph_store_bytes each) into bank.typefaces, makes
+// the bank's face pool, and checks what every rasterizer needs of a face:
+// outlines STXlib reads, one to 1,000,000 glyphs and a Unicode character
+// map. False, with bank.typefaces and the pool emptied, when a face fails
+// any of them; std::bad_alloc, leaving them emptied, when memory runs out.
 [[nodiscard]] bool open_bank_typefaces(PreparedFontBank& bank);
 
 struct PreparedInputStorage final {

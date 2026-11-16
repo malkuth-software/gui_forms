@@ -2,12 +2,17 @@
 #include "../src/core/resources/fonts/program_typefaces.hpp"
 #include "gui_forms/allocation/statistics/allocation_statistics.hpp"
 
+#include <stxlib/glyph_face.hpp>
+#include <stxlib/view.hpp>
+
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -336,6 +341,70 @@ void typefaces_are_shared_and_counted(const char* font_path) {
             "every counted byte is uncounted when the faces go");
 }
 
+// A registered typeface (program_typefaces.hpp) is the one every executor
+// drawing its owner's bytes draws: two engines registering the bytes with
+// the registering owner open no typeface of their own. It goes with its
+// owner, not with the executors. Retiring it (an unloaded application
+// family) rejects a face open over it on its next draw, which releases the
+// face, and refuses new faces.
+struct RegisteredFont final {
+    // Declared first, destroyed last: the typeface reads the bytes.
+    std::vector<std::byte> bytes{};
+    std::unique_ptr<gui_forms::detail::ProgramTypeface> typeface{};
+};
+
+void registered_typefaces_serve_every_executor(const char* font_path) {
+    const std::size_t before = gui_forms::detail::program_typeface_count();
+    {
+        std::shared_ptr<RegisteredFont> font = std::make_shared<RegisteredFont>();
+        (*font).bytes = read_file(font_path);
+        const std::span<const std::byte> bytes((*font).bytes.data(), (*font).bytes.size());
+        (*font).typeface = gui_forms::detail::open_program_typeface(bytes, 0U);
+        require((*font).typeface != nullptr, "the registry opens the face's typeface");
+        const std::shared_ptr<const void> owner = font;
+        require(gui_forms::detail::register_program_typeface(bytes, 0U, owner, *(*font).typeface),
+                "the typeface registers");
+        require(gui_forms::detail::program_typeface_count() == before + 1U, "one registered typeface");
+        const gui_forms::detail::TypefaceBorrow found = gui_forms::detail::program_typeface(bytes, owner, 0U);
+        require(found.typeface == (*font).typeface.get() && found.keeper.get() == owner.get(),
+                "executors borrow the registered typeface, kept by its owner");
+        {
+            HarfBuzzFontEngine first_engine;
+            HarfBuzzFontEngine second_engine;
+            require(first_engine.register_owned_typeface(FontRole::control, 400, false, bytes, owner).has_value() &&
+                        second_engine.register_owned_typeface(FontRole::control, 400, false, bytes, owner).has_value(),
+                    "the owned bytes register in both engines");
+            const FontSpec spec{FontRole::control, 13.0, 400, false};
+            GlyphRunRasterizer first(first_engine);
+            GlyphRunRasterizer second(second_engine);
+            const GlyphRunCoverage a = first.rasterize(first_engine.shape(corpus, spec), spec, 1.0, 5);
+            const GlyphRunCoverage b = second.rasterize(second_engine.shape(corpus, spec), spec, 1.0, 5);
+            require(gui_forms::detail::program_typeface_count() == before + 1U,
+                    "both rasterizers draw the registered typeface and open none");
+            require(!a.pixels.empty() && same_coverage(a, b), "both draw the same coverage");
+        }
+        require(gui_forms::detail::program_typeface_count() == before + 1U,
+                "the registered typeface outlives the executors");
+
+        gui_forms::detail::ExecutorFace face;
+        require(face.open(found, gui_forms::detail::FaceByteLimits{}), "a face opens over the registered typeface");
+        const std::array<stxlib::glyphs::RunGlyph, 1> glyph{{{36U, 0, 832}}};
+        const stxlib::View<stxlib::glyphs::RunGlyph> run(glyph.data(), glyph.size());
+        stxlib::glyphs::DrawStyle style{};
+        style.size = 13 * 64;
+        style.fit = stxlib::glyphs::Fit::light;
+        stxlib::glyphs::RunCoverage drawn{};
+        require(!face.draw_run(run, style, drawn).failed(), "the face draws before retirement");
+        (*(*font).typeface).retire();
+        require(face.draw_run(run, style, drawn).failed() && !face.is_open(),
+                "a retired typeface's face is rejected and released on its next draw");
+        gui_forms::detail::ExecutorFace late;
+        require(!late.open(gui_forms::detail::program_typeface(bytes, owner, 0U), gui_forms::detail::FaceByteLimits{}),
+                "no face opens over a retired typeface");
+    }
+    require(gui_forms::detail::program_typeface_count() == before, "the registered typeface goes with its owner");
+}
+
 void unknown_faces_are_reported() {
     HarfBuzzFontEngine engine;
     GlyphRunRasterizer rasterizer(engine);
@@ -403,6 +472,7 @@ int main() {
     large_transformed_glyphs_draw(GUI_FORMS_TEST_CARLITO_REGULAR);
     coverage_carries_the_face_profile(GUI_FORMS_TEST_RAPIDS_REGULAR);
     typefaces_are_shared_and_counted(GUI_FORMS_TEST_CARLITO_REGULAR);
+    registered_typefaces_serve_every_executor(GUI_FORMS_TEST_CARLITO_REGULAR);
     long_lines_fail_soft_and_window_limits_glyphs(GUI_FORMS_TEST_RAPIDS_REGULAR);
     synthesis_and_transforms(GUI_FORMS_TEST_RAPIDS_REGULAR, {0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL});
     synthesis_and_transforms(GUI_FORMS_TEST_CARLITO_REGULAR, {0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL});

@@ -22,6 +22,8 @@ struct PackIndex;
 
 namespace gui_forms::detail {
 
+class ProgramTypeface;
+
 // The application's bundled font faces, verified before any parser sees them (owner decision,
 // 2026-10-28). A shipped program reads them from the font pack compiled into the library
 // (font pack stage 4, cmake/FontPack.cmake): a face's group is decoded the first time
@@ -109,8 +111,11 @@ struct SealedPageFunctions final {
     void (*release)(std::byte* pages, std::size_t bytes) noexcept {};
 };
 
-// The verified bytes of one face, in sealed pages this object owns. Writing through `bytes()`
-// faults. The pages are released when the last shared owner goes.
+// The verified bytes of one face, in sealed pages this object owns, and the program's STXlib
+// typeface over them (program_typefaces.hpp), opened when the face is sealed and registered for
+// as long as this object lives, so every window and executor drawing the face draws the same
+// typeface. Writing through `bytes()` faults. The typeface goes, then the pages, when the last
+// shared owner goes.
 class SealedFontFace final {
 public:
     // Adopts `storage`, `size_bytes` long, from `pages.reserve`, already sealed.
@@ -124,10 +129,17 @@ public:
 
     [[nodiscard]] std::span<const std::byte> bytes() const noexcept;
 
+    // Takes the typeface opened over bytes(); before the face is shared, once.
+    void adopt_typeface(std::unique_ptr<ProgramTypeface> typeface) noexcept;
+    // The typeface, or null when STXlib refused the face. Borrowed while this lives.
+    [[nodiscard]] const ProgramTypeface* typeface() const noexcept;
+
 private:
     void (*release_)(std::byte* pages, std::size_t bytes) noexcept;
     std::byte* storage_;
     std::size_t size_bytes_;
+    // Reads the pages: released first, in the destructor's body, before them.
+    std::unique_ptr<ProgramTypeface> typeface_{};
 };
 
 // Why a face is not available.

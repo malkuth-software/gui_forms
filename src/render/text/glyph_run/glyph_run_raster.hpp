@@ -86,10 +86,12 @@ struct GlyphRunTransform final {
 };
 
 // Rasterizes HarfBuzz-shaped runs through STXlib's glyph face. For each face
-// the engine registered it opens one face of its own over the program's
-// typeface of the same bytes (program_typefaces.hpp), so the glyphs read for
-// one executor serve every other; the engine's shaping faces are never
-// resized. Its faces' bytes are counted under AllocationSubsystem::text_layout.
+// the engine registered it opens one face of its own, on first use, over the
+// program's typeface of the same bytes (program_typefaces.hpp: the
+// registry's for a bundled or application face), so the glyphs read for one
+// executor serve every other; the engine's shaping faces are never resized.
+// A face over an unloaded application family's typeface is rejected and
+// draws nothing. Its faces' bytes are counted under AllocationSubsystem::text_layout.
 // Not thread-safe: one rasterizer per executor.
 class GlyphRunRasterizer final {
 public:

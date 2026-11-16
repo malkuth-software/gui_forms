@@ -45,7 +45,19 @@ NativeFace::~NativeFace() {
     if (shaping != nullptr) hb_font_destroy(shaping);
     if (value != nullptr) FT_Done_Face(value);
 }
-NativeFonts::NativeFonts(const MaskKey& key) {
+namespace {
+
+// The pool of the key's bank; NativeFailure(unsupported_profile) when the
+// bank has none (STXlib refused one of its faces, text_mask_service).
+PreparedFacePool& mask_face_pool(const MaskKey& key) {
+    const std::shared_ptr<PreparedFacePool>& pool = (*key.fonts).bank.face_pool;
+    if (!pool) throw NativeFailure(TextMaskStatus::unsupported_profile);
+    return *pool;
+}
+
+} // namespace
+
+NativeFonts::NativeFonts(const MaskKey& key) : raster(mask_face_pool(key)), raster_faces(raster.set().faces) {
     const PreparedFontBank& bank = (*key.fonts).bank;
     count = bank.face_count;
     primary = key.options.primary_face;
@@ -73,13 +85,18 @@ NativeFonts::NativeFonts(const MaskKey& key) {
             throw std::bad_alloc{};
         }
         hb_ft_font_set_load_flags(face.shaping, FT_LOAD_NO_HINTING | FT_LOAD_NO_AUTOHINT | FT_LOAD_NO_BITMAP);
-        // The raster's face over the bank's typeface (opened with the bank, text_mask_service).
+        // The raster's face over the bank's typeface (opened with the bank, text_mask_service),
+        // unless an earlier job opened it in this leased set. No keeper: the bank holds the
+        // typeface and the key holds the bank for the job.
         const std::shared_ptr<const ProgramTypeface>& typeface = bank.typefaces[index];
         if (!typeface) throw NativeFailure(TextMaskStatus::unsupported_profile);
+        if (raster_faces[index].is_open()) continue;
         FaceByteLimits limits{};
         limits.mask_width = 4096U;
         limits.mask_height = 4096U;
-        if (!raster_faces[index].open(typeface, limits)) throw std::bad_alloc{};
+        TypefaceBorrow borrow{};
+        borrow.typeface = typeface.get();
+        if (!raster_faces[index].open(std::move(borrow), limits)) throw std::bad_alloc{};
     }
 }
 std::uint32_t NativeFonts::select_face(const std::string_view cluster) const {

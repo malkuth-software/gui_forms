@@ -58,12 +58,12 @@ Status open_faces(const FontSet& pinned, PainterFaces& faces) {
         const FontBytes& source = pinned.faces[index];
         const std::vector<std::byte>& bytes = *source.encoded;
         if (bytes.size() > 64U * 1024U * 1024U || source.face_index > 255U) { return Status::incompatible_face; }
-        const std::shared_ptr<const gui_forms::detail::ProgramTypeface> typeface =
+        gui_forms::detail::TypefaceBorrow typeface =
             gui_forms::detail::program_typeface(std::span<const std::byte>(bytes.data(), bytes.size()), source.encoded,
                                                 source.face_index);
-        if (!typeface) { return Status::native_failure; }
+        if (typeface.typeface == nullptr) { return Status::native_failure; }
         const gui_forms::detail::FaceByteLimits limits{};
-        if (!faces[index].open(typeface, limits)) { return Status::resource_failure; }
+        if (!faces[index].open(std::move(typeface), limits)) { return Status::resource_failure; }
         const stxlib::glyphs::Font* const font = faces[index].font();
         if ((*font).glyph_count == 0U || (*font).character_map.length == 0U) { return Status::native_failure; }
     }

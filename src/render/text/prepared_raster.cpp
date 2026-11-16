@@ -1,5 +1,6 @@
 #include "../../core/text/prepared/prepared_storage.hpp"
 #include "../../core/resources/fonts/program_typefaces.hpp"
+#include "../../core/text/prepared/prepared_face_pool.hpp"
 
 #include <stxlib/glyph_face.hpp>
 #include <stxlib/result.hpp>
@@ -9,15 +10,17 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace gui_forms {
 namespace {
 
 // The faces one rasterization draws with: one ExecutorFace per bank face,
-// opened over the bank's typefaces (detail::PreparedFontBank::typefaces).
-// Faces close before the storage that holds the bank.
+// leased from the bank's pool and opened over its typefaces on first use
+// (prepared_face_pool.hpp).
 using RasterFaces = std::array<detail::ExecutorFace, PreparedTextLimits::font_faces>;
 
 struct InkBounds final {
@@ -58,7 +61,12 @@ PreparedTextStatus open_faces(const detail::PreparedTextStorage& storage, Raster
         }
         const std::shared_ptr<const detail::ProgramTypeface>& typeface = bank.typefaces[index];
         if (!typeface) return PreparedTextStatus::incompatible_font;
-        if (!faces[index].open(typeface, limits)) return PreparedTextStatus::resource_failure;
+        // A face this set opened before is kept, with what it has fitted.
+        if (faces[index].is_open()) continue;
+        // No keeper: the bank holds the typeface and outlives its pool.
+        detail::TypefaceBorrow borrow{};
+        borrow.typeface = typeface.get();
+        if (!faces[index].open(std::move(borrow), limits)) return PreparedTextStatus::resource_failure;
     }
     if (storage.metrics.device_size_26_6 <= 0 || storage.metrics.device_size_26_6 > (std::int64_t{1} << 30)) {
         return PreparedTextStatus::unsupported_profile;
@@ -144,10 +152,10 @@ PreparedTextStatus measure_ink(const detail::PreparedTextStorage& storage, Raste
 }
 
 PreparedTextStatus fill_mask(const detail::PreparedTextStorage& storage, RasterFaces& faces,
-    std::vector<stxlib::glyphs::RunGlyph>& placed, detail::PreparedMaskStorage& mask) {
+    std::vector<stxlib::glyphs::RunGlyph>& placed, stxlib::glyphs::RunCoverage& coverage,
+    detail::PreparedMaskStorage& mask) {
     const render::text::BoundedShapedText& geometry = *storage.geometry;
     const stxlib::glyphs::DrawStyle style = raster_style(storage);
-    stxlib::glyphs::RunCoverage coverage{};
     for (std::size_t run_index = 0; run_index < geometry.run_count; ++run_index) {
         const render::text::BoundedFontRun& run = geometry.runs[run_index];
         const std::size_t face_index = raster_face_index(storage, run.face);
@@ -178,14 +186,17 @@ PreparedTextStatus fill_mask(const detail::PreparedTextStorage& storage, RasterF
     return PreparedTextStatus::success;
 }
 
-// Charges the bank's typefaces' bytes to its ledger, and the most this
-// rasterization's faces and typefaces held together.
+// Charges to the bank's ledger what its typefaces, its pool's idle faces and
+// this rasterization's faces hold (faces leased by other rasterizations at
+// the time are charged when they next charge), and the most this
+// rasterization's faces and their typefaces held together.
 void charge_faces(const detail::PreparedTextStorage& storage, const RasterFaces& faces) noexcept {
     const detail::PreparedFontBank& bank = *storage.fonts;
-    std::size_t held = 0;
+    std::size_t held = (*bank.face_pool).idle_face_bytes();
     std::size_t peak = 0;
     for (std::size_t index = 0; index < bank.face_count; ++index) {
         if (bank.typefaces[index]) held += (*bank.typefaces[index]).bytes_held();
+        held += faces[index].face_bytes_held();
         peak += faces[index].bytes_peak();
     }
     bank.face_charge.charge(bank.ledger, held, peak);
@@ -205,13 +216,16 @@ PreparedTextStatus rasterize_prepared_text(const PreparedTextLayout& layout, con
     if (!storage) return PreparedTextStatus::invalid_input;
     if (!detail::prepared_authority_current(*storage, expected)) return PreparedTextStatus::stale;
     try {
-        // Faces close before `storage`, which holds the bank and its typefaces.
-        RasterFaces faces{};
+        if (!(*(*storage).fonts).face_pool) return PreparedTextStatus::incompatible_font;
+        // Returned to the bank's pool before `storage`, which holds the bank.
+        detail::PreparedFaceLease lease(*(*(*storage).fonts).face_pool);
+        detail::PreparedRasterFaces& set = lease.set();
+        RasterFaces& faces = set.faces;
         const PreparedTextStatus opened = open_faces(*storage, faces);
         if (opened != PreparedTextStatus::success) return opened;
         const PreparedTextStatus validated = validate_geometry(*storage, faces);
         if (validated != PreparedTextStatus::success) return validated;
-        std::vector<stxlib::glyphs::RunGlyph> placed{};
+        std::vector<stxlib::glyphs::RunGlyph>& placed = set.placed;
         placed.reserve((*(*storage).geometry).glyph_count);
         InkBounds bounds{};
         const PreparedTextStatus measured = measure_ink(*storage, faces, placed, bounds);
@@ -234,7 +248,7 @@ PreparedTextStatus rasterize_prepared_text(const PreparedTextLayout& layout, con
         mask.top = static_cast<std::int32_t>(bounds.top);
         mask.pixel_count = bytes;
         if (bytes != 0) mask.pixels = std::make_unique<std::uint8_t[]>(bytes);
-        const PreparedTextStatus painted = fill_mask(*storage, faces, placed, mask);
+        const PreparedTextStatus painted = fill_mask(*storage, faces, placed, set.coverage, mask);
         charge_faces(*storage, faces);
         if (painted != PreparedTextStatus::success) return painted;
         detail::PreparedAuthorityState& authority = *(*storage).authority_state;
