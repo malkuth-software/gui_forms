@@ -42,6 +42,14 @@ bool valid_gradient_stops(std::span<const GradientStop> stops) noexcept {
     return true;
 }
 
+bool focus_inside_ellipse(Point center, Size radii, Point focus) noexcept {
+    if (!(radii.width > 0.0) || !(radii.height > 0.0)) return false;
+    const double across = (focus.x - center.x) / radii.width;
+    const double down = (focus.y - center.y) / radii.height;
+    const double reach = across * across + down * down;
+    return std::isfinite(reach) && reach < 1.0;
+}
+
 void Painter::clip_rounded_rect(Rect rect, double) {
     clip_rect(rect);
 }
@@ -118,6 +126,34 @@ void Painter::fill_radial_gradient_spread(Rect rect, Point center, Size radii,
                               spread == GradientSpreadMode::reflect;
     if (!known_spread) return;
     fill_radial_gradient(rect, center, radii, stops);
+}
+
+void Painter::fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                         std::span<const GradientStop> stops, GradientSpreadMode spread) {
+    const bool known_spread = spread == GradientSpreadMode::pad || spread == GradientSpreadMode::repeat ||
+                              spread == GradientSpreadMode::reflect;
+    if (!known_spread || rect.empty() || !(radii.width > 0.0) || !(radii.height > 0.0) ||
+        !std::isfinite(radii.width) || !std::isfinite(radii.height) || !std::isfinite(center.x) ||
+        !std::isfinite(center.y) || !valid_gradient_stops(stops) ||
+        !focus_inside_ellipse(center, radii, focus)) {
+        return;
+    }
+    // As fill_radial_gradient's rings, each on its own centre: the ring at
+    // offset t is centred t of the way from the focus to the centre. The
+    // rectangle first takes the last stop, the padded colour outside.
+    save();
+    clip_rect(rect);
+    fill_rect(rect, stops.back().color);
+    constexpr unsigned rings = 40U;
+    for (unsigned ring = rings; ring > 0U; --ring) {
+        const double amount = static_cast<double>(ring) / rings;
+        const double width = radii.width * 2.0 * amount;
+        const double height = radii.height * 2.0 * amount;
+        const Point ring_centre{focus.x + (center.x - focus.x) * amount, focus.y + (center.y - focus.y) * amount};
+        fill_rounded_rect({ring_centre.x - width * 0.5, ring_centre.y - height * 0.5, width, height},
+                          std::min(width, height) * 0.5, detail::sample_gradient(stops, amount));
+    }
+    restore();
 }
 
 void Painter::fill_radial_gradient(Rect rect, Point center, Size radii,

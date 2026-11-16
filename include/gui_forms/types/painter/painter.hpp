@@ -90,6 +90,13 @@ inline constexpr std::size_t maximum_paint_group_depth = 4;
 
 // The most cells Painter::fill_checker draws one by one.
 inline constexpr std::size_t maximum_checker_cells = 65536U;
+// The most marked squares the base Painter::fill_hatch fills one by one.
+inline constexpr std::size_t maximum_hatch_squares = 65536U;
+
+// Whether `focus` lies strictly inside the ellipse of `radii` (both
+// positive) about `center`, as Painter::fill_focal_radial_gradient
+// requires; false for radii that are not positive or a non-finite result.
+[[nodiscard]] GUI_FORMS_API bool focus_inside_ellipse(Point center, Size radii, Point focus) noexcept;
 
 // How draw_text_utf8_fitted shortens text that does not fit: cut it at
 // the last code point that fits, or cut it so U+2026 fits after it.
@@ -197,6 +204,19 @@ public:
     virtual void fill_radial_gradient_spread(
         Rect rect, Point center, Size radii,
         std::span<const GradientStop> stops, GradientSpreadMode spread);
+    // A radial gradient whose stops start at `focus` instead of the centre
+    // (SVG's fx, fy; a highlight off the middle of a sphere): offset t lies
+    // on the ellipse of radii t * `radii` centred at
+    // focus + t * (center - focus), so 0 is the focus itself and 1 the
+    // ellipse of `radii` about `center` (the HTML two-circle gradient from
+    // a point to the ellipse), with `spread` beyond. `focus` must lie strictly inside
+    // the ellipse; a focus on or outside it, an empty rectangle, radii that
+    // are not positive, invalid stops or an unknown spread draw nothing.
+    // The base implementation draws rings, each centred on its point along
+    // the focus-to-centre line, padded as fill_radial_gradient's are.
+    virtual void fill_focal_radial_gradient(
+        Rect rect, Point center, Size radii, Point focus,
+        std::span<const GradientStop> stops, GradientSpreadMode spread);
     // Drawn before the owning surface fill.  The shape body may therefore be
     // included by a fallback without changing the final composited result.
     virtual void draw_box_shadow(Rect rect, double corner_radius, Point offset,
@@ -280,6 +300,13 @@ public:
     // The grid lines of `pattern` that cross `rect`, clipped to it (piece
     // C17). Refused patterns (valid_grid_pattern) draw nothing.
     virtual void fill_grid_pattern(Rect rect, const GridPattern& pattern);
+    // `rect` filled with a hatch (paint_marks.hpp HatchPattern): `back`,
+    // then the marked squares in `fore`. Refused patterns
+    // (valid_hatch_pattern) draw nothing. The base implementation fills
+    // the squares as rectangles (every edge snapped as fill_rect's are);
+    // past maximum_hatch_squares marked squares it fills the rectangle
+    // with the average of the two colours, as fill_checker does.
+    virtual void fill_hatch(Rect rect, const HatchPattern& pattern);
     // A rounded rectangle with each corner rounded by its own radius
     // (piece C1; joined segments round only a row's outer ends). The base
     // implementation fills under clip_rounded_rect_corners; the stroke's

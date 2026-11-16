@@ -357,6 +357,47 @@ void Painter::fill_checker(Rect rect, const CheckerPattern& pattern) {
     }
 }
 
+void Painter::fill_hatch(Rect rect, const HatchPattern& pattern) {
+    if (rect.empty() || !rect.finite() || !valid_hatch_pattern(pattern)) return;
+    std::size_t marked_per_cell = 0U;
+    for (std::uint32_t row = 0U; row < hatch_cell_squares; ++row) {
+        for (std::uint32_t column = 0U; column < hatch_cell_squares; ++column) {
+            if (hatch_square_marked(pattern.style, column, row)) ++marked_per_cell;
+        }
+    }
+    const double first_column = std::floor((rect.x - pattern.anchor.x) / pattern.cell);
+    const double last_column = std::ceil((rect.right() - pattern.anchor.x) / pattern.cell);
+    const double first_row = std::floor((rect.y - pattern.anchor.y) / pattern.cell);
+    const double last_row = std::ceil((rect.bottom() - pattern.anchor.y) / pattern.cell);
+    const double squares = (last_column - first_column) * (last_row - first_row) *
+                           static_cast<double>(marked_per_cell);
+    if (!std::isfinite(squares) || squares > static_cast<double>(maximum_hatch_squares)) {
+        fill_rect(rect, average_colour(pattern.fore, pattern.back));
+        return;
+    }
+    fill_rect(rect, pattern.back);
+    const double square = pattern.cell / static_cast<double>(hatch_cell_squares);
+    const std::int64_t column_begin = static_cast<std::int64_t>(first_column);
+    const std::int64_t column_end = static_cast<std::int64_t>(last_column);
+    const std::int64_t row_begin = static_cast<std::int64_t>(first_row);
+    const std::int64_t row_end = static_cast<std::int64_t>(last_row);
+    for (std::int64_t cell_row = row_begin; cell_row < row_end; ++cell_row) {
+        const double cell_top = pattern.anchor.y + static_cast<double>(cell_row) * pattern.cell;
+        for (std::int64_t cell_column = column_begin; cell_column < column_end; ++cell_column) {
+            const double cell_left = pattern.anchor.x + static_cast<double>(cell_column) * pattern.cell;
+            for (std::uint32_t row = 0U; row < hatch_cell_squares; ++row) {
+                for (std::uint32_t column = 0U; column < hatch_cell_squares; ++column) {
+                    if (!hatch_square_marked(pattern.style, column, row)) continue;
+                    const Rect placed{cell_left + static_cast<double>(column) * square,
+                                      cell_top + static_cast<double>(row) * square, square, square};
+                    const Rect shown = Rect::intersection(placed, rect);
+                    if (!shown.empty()) fill_rect(shown, pattern.fore);
+                }
+            }
+        }
+    }
+}
+
 void Painter::fill_grid_pattern(Rect rect, const GridPattern& pattern) {
     if (rect.empty() || !rect.finite() || !valid_grid_pattern(pattern)) return;
     const double half = pattern.line_width * 0.5;

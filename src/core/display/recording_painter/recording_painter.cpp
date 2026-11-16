@@ -264,6 +264,27 @@ void RecordingPainter::fill_radial_gradient_spread(
     commands_.push_back(std::move(command));
 }
 
+void RecordingPainter::fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                                  std::span<const GradientStop> stops,
+                                                  GradientSpreadMode spread) {
+    if (!valid_gradient_stops(stops) ||
+        (spread != GradientSpreadMode::pad &&
+         spread != GradientSpreadMode::repeat &&
+         spread != GradientSpreadMode::reflect)) {
+        throw std::invalid_argument("display gradient spread is invalid");
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::fill_focal_radial_gradient;
+    command.rect = rect;
+    command.first = center;
+    command.second = {radii.width, radii.height};
+    command.scalar = focus.x;
+    command.secondary_scalar = focus.y;
+    command.gradient_stops.assign(stops.begin(), stops.end());
+    command.gradient_spread = spread;
+    commands_.push_back(std::move(command));
+}
+
 void RecordingPainter::draw_box_shadow(Rect rect, double corner_radius,
                                        Point offset, double blur_radius,
                                        double spread, Color color) {
@@ -468,6 +489,15 @@ void RecordingPainter::fill_grid_pattern(Rect rect, const GridPattern& pattern) 
     DisplayCommand command = marks_command(DisplayOperation::fill_grid_pattern, marks);
     (*marks).grid = pattern;
     command.rect = rect;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::fill_hatch(Rect rect, const HatchPattern& pattern) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::fill_hatch, marks);
+    command.rect = rect;
+    (*marks).hatch = pattern;
     command.marks = std::move(marks);
     commands_.push_back(std::move(command));
 }

@@ -46,6 +46,10 @@ public:
     void fill_radial_gradient_spread(Rect rect, Point center, Size radii,
                                      std::span<const GradientStop> stops,
                                      GradientSpreadMode spread) override;
+    // Throws std::invalid_argument as fill_radial_gradient_spread does; the
+    // focus and geometry are validated where it is drawn.
+    void fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                    std::span<const GradientStop> stops, GradientSpreadMode spread) override;
     void draw_box_shadow(Rect rect, double corner_radius, Point offset,
                          double blur_radius, double spread,
                          Color color) override;
@@ -73,6 +77,7 @@ public:
                              std::span<const GradientStop> stops) override;
     void fill_checker(Rect rect, const CheckerPattern& pattern) override;
     void fill_grid_pattern(Rect rect, const GridPattern& pattern) override;
+    void fill_hatch(Rect rect, const HatchPattern& pattern) override;
     void fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) override;
     void stroke_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color, double width) override;
     void draw_text_utf8(Point origin, std::string_view text,

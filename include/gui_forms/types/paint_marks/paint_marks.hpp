@@ -144,6 +144,52 @@ struct GUI_FORMS_API CheckerPattern final {
     }
 };
 
+// The line patterns of a hatch (Painter::fill_hatch), in the compatibility
+// order GUI.Drawing's HatchBrush uses.
+enum class HatchStyle : std::uint8_t {
+    horizontal,
+    vertical,
+    forward_diagonal,
+    backward_diagonal,
+    cross,
+    diagonal_cross,
+};
+
+// The squares across and down one hatch cell.
+inline constexpr std::uint32_t hatch_cell_squares = 8U;
+
+// A hatch: square cells `cell` units wide, each divided into
+// hatch_cell_squares by hatch_cell_squares squares, with the corner of a
+// cell at `anchor` (so the pattern stays put while the filled rectangle
+// moves). The squares hatch_square_marked names are `fore`, the others
+// `back`. A cell of 8 units at scale 1 is GUI.Drawing's HatchBrush, square
+// for square: lines one unit wide.
+struct GUI_FORMS_API HatchPattern final {
+    HatchStyle style{HatchStyle::horizontal};
+    double cell{8.0};
+    Color fore{};
+    Color back{};
+    Point anchor{};
+
+    friend constexpr bool operator==(const HatchPattern& left, const HatchPattern& right) noexcept {
+        return left.style == right.style && left.cell == right.cell && left.fore == right.fore &&
+               left.back == right.back && left.anchor == right.anchor;
+    }
+};
+
+// Whether the square `column` across and `row` down (each below
+// hatch_cell_squares) of a cell is `fore` in `style`: horizontal marks row
+// 3, vertical column 3, forward_diagonal the squares where column + row is
+// 7 (a line rising to the right, y down), backward_diagonal those where
+// column equals row, cross and diagonal_cross the two lines of each pair.
+// False for a square outside the cell or a style outside the enumeration.
+[[nodiscard]] GUI_FORMS_API bool hatch_square_marked(HatchStyle style, std::uint32_t column,
+                                                     std::uint32_t row) noexcept;
+
+// Whether `pattern` can be drawn: a known style, a finite cell of at least
+// one unit, and a finite anchor.
+[[nodiscard]] GUI_FORMS_API bool valid_hatch_pattern(const HatchPattern& pattern) noexcept;
+
 // A world-aligned grid (piece C17; the node canvas's blueprint background):
 // lines `spacing` units apart through `origin`, the point where world
 // (0, 0) lies in the painter's current coordinates, so the lines move with

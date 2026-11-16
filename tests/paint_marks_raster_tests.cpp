@@ -518,6 +518,59 @@ void test_image_pattern_wraps() {
     }
 }
 
+void hatch_scene(Painter& painter) {
+    HatchPattern cross{};
+    cross.style = HatchStyle::cross;
+    cross.fore = black;
+    cross.back = white;
+    painter.fill_hatch(Rect{0.0, 0.0, 16.0, 16.0}, cross);
+    HatchPattern diagonal{};
+    diagonal.style = HatchStyle::backward_diagonal;
+    diagonal.fore = red;
+    diagonal.back = white;
+    diagonal.anchor = Point{32.0, 0.0};
+    painter.fill_hatch(Rect{32.0, 0.0, 16.0, 16.0}, diagonal);
+}
+
+void test_hatch() {
+    // Cells of 8 units at scale 1: each square is one device pixel.
+    SkiaRaster raster;
+    paint(raster, &hatch_scene);
+    require(is_exactly(pixel_at(raster, 3U, 0U), black) && is_exactly(pixel_at(raster, 0U, 3U), black) &&
+                is_exactly(pixel_at(raster, 11U, 5U), black) && is_exactly(pixel_at(raster, 13U, 11U), black),
+            "a cross hatch marks column 3 and row 3 of every cell");
+    require(is_exactly(pixel_at(raster, 0U, 0U), white) && is_exactly(pixel_at(raster, 5U, 5U), white) &&
+                is_exactly(pixel_at(raster, 12U, 9U), white),
+            "a cross hatch leaves the other squares in the back colour");
+    require(is_exactly(pixel_at(raster, 37U, 5U), red) && is_exactly(pixel_at(raster, 45U, 13U), red) &&
+                is_exactly(pixel_at(raster, 37U, 6U), white) && is_exactly(pixel_at(raster, 48U, 0U), white),
+            "a backward diagonal marks the squares where column equals row, inside its rectangle");
+}
+
+void test_focal_radial() {
+    // Red at the focus, 8 units left of the centre, to blue on a circle of
+    // 16 units: the stops crowd towards the near edge.
+    SkiaRaster raster;
+    require(raster.resize(scene_size, 1.0) || raster.pixel_width() != 0U, "the raster must have a surface");
+    DamageRegion damage;
+    damage.add(Rect{0.0, 0.0, scene_size.width, scene_size.height});
+    raster.begin_frame(damage);
+    raster.fill_rect(Rect{0.0, 0.0, scene_size.width, scene_size.height}, white);
+    const std::array<GradientStop, 2> stops{{GradientStop{0.0, red}, GradientStop{1.0, blue}}};
+    raster.fill_focal_radial_gradient(Rect{0.0, 0.0, scene_size.width, scene_size.height}, Point{48.5, 32.5},
+                                      Size{16.0, 16.0}, Point{40.5, 32.5}, stops, GradientSpreadMode::pad);
+    raster.fill_focal_radial_gradient(Rect{0.0, 0.0, 8.0, 8.0}, Point{4.0, 4.0}, Size{2.0, 2.0}, Point{7.0, 4.0},
+                                      stops, GradientSpreadMode::pad);
+    raster.end_frame();
+    const Pixel at_focus = pixel_at(raster, 40U, 32U);
+    const Pixel right_of_focus = pixel_at(raster, 44U, 32U);
+    const Pixel left_of_focus = pixel_at(raster, 36U, 32U);
+    require(at_focus.red >= 250U && at_focus.blue <= 5U, "the focus takes the first stop");
+    require(static_cast<int>(right_of_focus.red) > static_cast<int>(left_of_focus.red) + 40,
+            "offsets grow faster towards the edge nearer the focus");
+    require(is_exactly(pixel_at(raster, 2U, 2U), white), "a focus outside the ellipse draws nothing");
+}
+
 // Every new call in one scene, so a recording's replay can be compared with
 // drawing directly.
 void all_marks_scene(Painter& painter) {
@@ -529,6 +582,7 @@ void all_marks_scene(Painter& painter) {
     pattern_scene(painter);
     path_scene(painter);
     clip_scene(painter);
+    hatch_scene(painter);
 }
 
 void replayed_scene(Painter& painter) {
@@ -568,6 +622,8 @@ int main() {
         test_part_raster_under_path_clip();
         test_radial_spreads();
         test_image_pattern_wraps();
+        test_hatch();
+        test_focal_radial();
         test_replay_draws_the_same_bytes();
         std::cout << "gui_forms_paint_marks_raster_tests: all tests passed\n";
         return EXIT_SUCCESS;

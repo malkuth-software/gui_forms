@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -84,6 +85,44 @@ public:
         calls.push_back("grid");
         last_rect = rect;
     }
+    void clip_path(PaintPathView path, PolygonFillRule rule) override {
+        calls.push_back("clip_path");
+        last_verbs.assign(path.verbs.begin(), path.verbs.end());
+        last_points.assign(path.points.begin(), path.points.end());
+        last_rule = rule;
+    }
+    void fill_path(PaintPathView path, Color color, PolygonFillRule rule) override {
+        calls.push_back("fill_path");
+        last_verbs.assign(path.verbs.begin(), path.verbs.end());
+        last_points.assign(path.points.begin(), path.points.end());
+        last_color = color;
+        last_rule = rule;
+    }
+    void stroke_path(PaintPathView path, const StrokeStyle& style) override {
+        calls.push_back("stroke_path");
+        last_verbs.assign(path.verbs.begin(), path.verbs.end());
+        last_points.assign(path.points.begin(), path.points.end());
+        last_style = style;
+    }
+    void fill_linear_gradient_spread(Rect rect, Point start, Point end, std::span<const GradientStop> stops,
+                                     GradientSpreadMode spread) override {
+        calls.push_back("linear");
+        last_rect = rect;
+        last_start = start;
+        last_end = end;
+        last_count = stops.size();
+        last_spread = spread;
+    }
+    void fill_hatch(Rect rect, const HatchPattern& pattern) override {
+        calls.push_back("hatch");
+        last_rect = rect;
+        last_hatch = pattern;
+    }
+    void fill_checker(Rect rect, const CheckerPattern& pattern) override {
+        calls.push_back("checker");
+        last_rect = rect;
+        last_checker = pattern;
+    }
 
     std::vector<std::string> calls;
     int depth{};
@@ -97,6 +136,12 @@ public:
     PolygonFillRule last_rule{PolygonFillRule::nonzero};
     std::size_t last_count{};
     MarkerStyle last_marker{};
+    std::vector<PaintPathVerb> last_verbs;
+    Point last_start{};
+    Point last_end{};
+    GradientSpreadMode last_spread{GradientSpreadMode::pad};
+    HatchPattern last_hatch{};
+    CheckerPattern last_checker{};
 };
 
 [[nodiscard]] std::size_t count_calls(const CallPainter& painter, std::string_view name) {
@@ -189,16 +234,95 @@ void gapped_marks_and_dashes_replay() {
     CHECK(count_calls(painter, "fill_rects") == 2U);
 }
 
+// Paths and ellipses replay as curved paths, figure by figure as the
+// executor builds them; non-solid brushes fill under the shape's clip.
+void paths_ellipses_and_brushes_replay() {
+    gui_drawing::GraphicsRecorder recorder;
+    gui_drawing::Pen pen(gui_drawing::Color::from_argb(0xff000000U), 1.0);
+    gui_drawing::SolidBrush brush(gui_drawing::Color::from_argb(0xff00ff00U));
+    recorder.fill_ellipse(brush, {0, 0, 20, 10});
+
+    // Two lines joined at (10, 0), then one starting elsewhere (a new
+    // figure), closed.
+    gui_drawing::GraphicsPath path(gui_drawing::FillMode::winding);
+    path.add_line({0, 0}, {10, 0});
+    path.add_line({10, 0}, {10, 10});
+    path.add_line({20, 20}, {30, 20});
+    path.close_figure();
+    recorder.draw_path(pen, path);
+
+    gui_drawing::LinearGradientBrush linear({0, 0, 40, 20}, gui_drawing::Color::from_argb(0xffff0000U),
+                                            gui_drawing::Color::from_argb(0xff0000ffU), 0.0,
+                                            gui_drawing::WrapMode::tile_flip_x);
+    recorder.fill_path(linear, path);
+
+    gui_drawing::HatchBrush hatch(gui_drawing::HatchStyle::cross, gui_drawing::Color::from_argb(0xff000000U),
+                                  gui_drawing::Color::from_argb(0xffffffffU));
+    recorder.fill_rectangle(hatch, {2, 4, 6, 8});
+
+    CallPainter painter;
+    const DrawingReplayReport report = replay_drawing_commands(recorder.commands(), painter);
+    CHECK(report.drawn == 4U && report.unsupported == 0U);
+    CHECK(painter.depth == 0);
+    // The solid ellipse fills as a path; the pen draws the path's stroke.
+    CHECK(count_calls(painter, "fill_path") == 1U);
+    CHECK(count_calls(painter, "stroke_path") == 1U);
+    // The path's verbs, as the last path call (the clip of the gradient
+    // fill) saw them: M L L M L Z.
+    const std::vector<PaintPathVerb> verbs{PaintPathVerb::move_to, PaintPathVerb::line_to, PaintPathVerb::line_to,
+                                           PaintPathVerb::move_to, PaintPathVerb::line_to, PaintPathVerb::close};
+    CHECK(count_calls(painter, "clip_path") == 1U);
+    CHECK(painter.last_verbs == verbs);
+    CHECK(painter.last_rule == PolygonFillRule::nonzero);
+    // The gradient: along x through the bounds' centre (angle 0), the flip
+    // wrap reflecting, filled over the path's bounds.
+    CHECK(count_calls(painter, "linear") == 1U);
+    CHECK(painter.last_start == (Point{0.0, 10.0}) && painter.last_end == (Point{40.0, 10.0}));
+    CHECK(painter.last_spread == GradientSpreadMode::reflect && painter.last_count == 2U);
+    // The hatch: over the rectangle, anchored at the recording's origin.
+    CHECK(count_calls(painter, "hatch") == 1U);
+    CHECK(painter.last_rect == (Rect{2, 4, 6, 8}));
+    CHECK(painter.last_hatch.style == HatchStyle::cross && painter.last_hatch.cell == 8.0 &&
+          painter.last_hatch.anchor == (Point{0.0, 0.0}) &&
+          painter.last_hatch.fore == Color::rgba(0U, 0U, 0U, 255U) &&
+          painter.last_hatch.back == Color::rgba(255U, 255U, 255U, 255U));
+}
+
+// The path's verbs reach the painter in order.
+void path_verbs_follow_the_executor() {
+    gui_drawing::GraphicsRecorder recorder;
+    gui_drawing::Pen pen(gui_drawing::Color::from_argb(0xff000000U), 1.0);
+    gui_drawing::GraphicsPath path(gui_drawing::FillMode::alternate);
+    path.add_line({0, 0}, {10, 0});
+    path.add_line({10, 0}, {10, 10});
+    path.add_line({20, 20}, {30, 20});
+    path.close_figure();
+    path.add_ellipse({0, 0, 4, 2});
+    recorder.draw_path(pen, path);
+    CallPainter painter;
+    const DrawingReplayReport report = replay_drawing_commands(recorder.commands(), painter);
+    CHECK(report.drawn == 1U);
+    const std::vector<PaintPathVerb> verbs{PaintPathVerb::move_to, PaintPathVerb::line_to, PaintPathVerb::line_to,
+                                           PaintPathVerb::move_to, PaintPathVerb::line_to, PaintPathVerb::close,
+                                           PaintPathVerb::move_to, PaintPathVerb::arc_to,  PaintPathVerb::close};
+    CHECK(painter.last_verbs == verbs);
+    // The ellipse's move lands on its rightmost point, its arc about (2, 1)
+    // with radii (2, 1) through a full turn from 0.
+    CHECK(painter.last_points.size() == 9U);
+    CHECK(painter.last_points[5] == (Point{4.0, 1.0}));
+    CHECK(painter.last_points[6] == (Point{2.0, 1.0}) && painter.last_points[7] == (Point{2.0, 1.0}) &&
+          painter.last_points[8] == (Point{0.0, 360.0}));
+}
+
 // Unsupported kinds and transforms are counted and draw nothing.
 void unsupported_commands_are_counted() {
     gui_drawing::GraphicsRecorder recorder;
     gui_drawing::Pen pen(gui_drawing::Color::from_argb(0xff000000U), 1.0);
-    gui_drawing::SolidBrush brush(gui_drawing::Color::from_argb(0xff000000U));
     recorder.clear(gui_drawing::Color::from_argb(0xffffffffU));
-    recorder.fill_ellipse(brush, {0, 0, 4, 4});
-    gui_drawing::HatchBrush hatch(gui_drawing::HatchStyle::cross, gui_drawing::Color::from_argb(0xff000000U),
-                                  gui_drawing::Color::from_argb(0xffffffffU));
-    recorder.fill_rectangle(hatch, {0, 0, 4, 4});
+    const gui_drawing::Bitmap tile(2U, 2U);
+    gui_drawing::TextureBrush texture(tile);
+    recorder.fill_ellipse(texture, {0, 0, 4, 4});
+    recorder.fill_rectangle(texture, {0, 0, 4, 4});
     recorder.set_transform(gui_drawing::Matrix(2.0, 0.0, 0.0, 2.0, 0.0, 0.0));
     recorder.draw_line(pen, {0, 0}, {1, 1});
 
@@ -216,6 +340,8 @@ void unsupported_commands_are_counted() {
 int main() {
     batched_marks_replay_under_their_state();
     gapped_marks_and_dashes_replay();
+    paths_ellipses_and_brushes_replay();
+    path_verbs_follow_the_executor();
     unsupported_commands_are_counted();
     return 0;
 }

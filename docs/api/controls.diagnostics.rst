@@ -1208,6 +1208,10 @@ Enumerations
 
    .. cpp:enumerator:: fill_radial_gradient_spread
 
+   .. cpp:enumerator:: fill_hatch
+
+   .. cpp:enumerator:: fill_focal_radial_gradient
+
 Functions, constants and aliases
 --------------------------------
 

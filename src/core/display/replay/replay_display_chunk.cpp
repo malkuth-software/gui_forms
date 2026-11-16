@@ -55,6 +55,7 @@ void replay_marks(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::fill_path: painter.fill_path(marks.path(), command.color, marks.fill_rule); return;
     case DisplayOperation::stroke_path: painter.stroke_path(marks.path(), marks.stroke); return;
     case DisplayOperation::clip_path: painter.clip_path(marks.path(), marks.fill_rule); return;
+    case DisplayOperation::fill_hatch: painter.fill_hatch(command.rect, marks.hatch); return;
     default:
         // Not a batched operation: replay_command handles it.
         return;
@@ -101,6 +102,7 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::fill_path:
     case DisplayOperation::stroke_path:
     case DisplayOperation::clip_path:
+    case DisplayOperation::fill_hatch:
         replay_marks(command, painter);
         return;
     case DisplayOperation::fill_rect:
@@ -136,6 +138,11 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::fill_radial_gradient_spread:
         painter.fill_radial_gradient_spread(command.rect, command.first, Size{command.second.x, command.second.y},
                                             command.gradient_stops, command.gradient_spread);
+        return;
+    case DisplayOperation::fill_focal_radial_gradient:
+        painter.fill_focal_radial_gradient(command.rect, command.first, Size{command.second.x, command.second.y},
+                                           Point{command.scalar, command.secondary_scalar}, command.gradient_stops,
+                                           command.gradient_spread);
         return;
     case DisplayOperation::draw_box_shadow:
         if (command.retained_cache) {

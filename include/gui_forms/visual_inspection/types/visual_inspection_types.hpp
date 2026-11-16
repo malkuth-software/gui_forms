@@ -66,6 +66,11 @@ enum class VisualPaintOperation : std::uint8_t {
     clip_path,
     // A radial gradient with its spread in `gradient_spread`.
     fill_radial_gradient_spread,
+    // A hatch over `rect`.
+    fill_hatch,
+    // A focal radial gradient: the focus in `scalar` and
+    // `secondary_scalar`.
+    fill_focal_radial_gradient,
 };
 
 [[nodiscard]] GUI_FORMS_API const char* visual_paint_operation_name(

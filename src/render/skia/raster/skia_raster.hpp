@@ -169,6 +169,15 @@ public:
     // snapped rectangle.
     void fill_conic_gradient(Rect rect, Point center, double start_degrees,
                              std::span<const GradientStop> stops) override;
+    // One hatch cell as an 8 x 8 tile (hatch_square_marked), repeated by a
+    // nearest-sampled shader scaled to the cell and anchored at the
+    // pattern's anchor, over the snapped rectangle.
+    void fill_hatch(Rect rect, const HatchPattern& pattern) override;
+    // A two-point conical shader from the focus (radius 0) to the unit
+    // circle, drawn in the ellipse's own coordinates (the centre at the
+    // origin, the radii scaled to 1) under a clip to the rectangle.
+    void fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                    std::span<const GradientStop> stops, GradientSpreadMode spread) override;
     // As fill_rounded_rect and stroke_rounded_rect, with each corner's
     // radius; a corner of radius 0 stays square on both sides of a stroke.
     void fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) override;

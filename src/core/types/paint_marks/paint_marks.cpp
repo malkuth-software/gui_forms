@@ -120,6 +120,37 @@ std::size_t marker_lines(MarkerShape shape, Point center, double size,
     return 0U;
 }
 
+bool hatch_square_marked(HatchStyle style, std::uint32_t column, std::uint32_t row) noexcept {
+    if (column >= hatch_cell_squares || row >= hatch_cell_squares) return false;
+    constexpr std::uint32_t line = 3U;
+    const std::uint32_t last = hatch_cell_squares - 1U;
+    const bool horizontal = row == line;
+    const bool vertical = column == line;
+    const bool forward = column + row == last;
+    const bool backward = column == row;
+    switch (style) {
+    case HatchStyle::horizontal: return horizontal;
+    case HatchStyle::vertical: return vertical;
+    case HatchStyle::forward_diagonal: return forward;
+    case HatchStyle::backward_diagonal: return backward;
+    case HatchStyle::cross: return horizontal || vertical;
+    case HatchStyle::diagonal_cross: return forward || backward;
+    default:
+        // A style outside the enumeration marks nothing.
+        break;
+    }
+    return false;
+}
+
+bool valid_hatch_pattern(const HatchPattern& pattern) noexcept {
+    const bool known_style = pattern.style == HatchStyle::horizontal || pattern.style == HatchStyle::vertical ||
+                             pattern.style == HatchStyle::forward_diagonal ||
+                             pattern.style == HatchStyle::backward_diagonal || pattern.style == HatchStyle::cross ||
+                             pattern.style == HatchStyle::diagonal_cross;
+    return known_style && std::isfinite(pattern.cell) && pattern.cell >= 1.0 && std::isfinite(pattern.anchor.x) &&
+           std::isfinite(pattern.anchor.y);
+}
+
 bool valid_grid_pattern(const GridPattern& pattern) noexcept {
     return std::isfinite(pattern.origin.x) && std::isfinite(pattern.origin.y) && std::isfinite(pattern.spacing) &&
            pattern.spacing >= minimum_grid_spacing && pattern.major_every >= 1U &&

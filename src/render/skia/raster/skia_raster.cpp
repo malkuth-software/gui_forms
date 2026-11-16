@@ -3293,6 +3293,83 @@ void SkiaRaster::fill_conic_gradient(Rect rect, Point center, double start_degre
     (*canvas).drawRect(box, paint);
 }
 
+namespace {
+
+// One premultiplied BGRA pixel of `color`, rounded to the nearest level.
+void write_premultiplied(Color color, std::uint8_t* pixel) noexcept {
+    const unsigned alpha = color.alpha;
+    pixel[0] = static_cast<std::uint8_t>((static_cast<unsigned>(color.blue) * alpha + 127U) / 255U);
+    pixel[1] = static_cast<std::uint8_t>((static_cast<unsigned>(color.green) * alpha + 127U) / 255U);
+    pixel[2] = static_cast<std::uint8_t>((static_cast<unsigned>(color.red) * alpha + 127U) / 255U);
+    pixel[3] = static_cast<std::uint8_t>(alpha);
+}
+
+} // namespace
+
+void SkiaRaster::fill_hatch(Rect rect, const HatchPattern& pattern) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || rect.empty() || !rect.finite() || !valid_hatch_pattern(pattern)) return;
+    constexpr std::size_t side = hatch_cell_squares;
+    constexpr std::size_t row_bytes = side * 4U;
+    sk_sp<SkData> data = SkData::MakeUninitialized(row_bytes * side);
+    std::uint8_t* const bytes = static_cast<std::uint8_t*>((*data).writable_data());
+    for (std::uint32_t row = 0U; row < side; ++row) {
+        for (std::uint32_t column = 0U; column < side; ++column) {
+            const Color color = hatch_square_marked(pattern.style, column, row) ? pattern.fore : pattern.back;
+            write_premultiplied(color, bytes + row * row_bytes + column * 4U);
+        }
+    }
+    const SkImageInfo info = SkImageInfo::Make(static_cast<int>(side), static_cast<int>(side), kBGRA_8888_SkColorType,
+                                               kPremul_SkAlphaType, SkColorSpace::MakeSRGB());
+    const sk_sp<SkImage> tile = SkImages::RasterFromData(info, std::move(data), row_bytes);
+    if (!tile) return;
+    const SkScalar scale = static_cast<SkScalar>(pattern.cell / static_cast<double>(side));
+    SkMatrix local;
+    local.setScaleTranslate(scale, scale, static_cast<SkScalar>(pattern.anchor.x),
+                            static_cast<SkScalar>(pattern.anchor.y));
+    SkPaint paint;
+    paint.setAntiAlias(false);
+    paint.setShader((*tile).makeShader(SkTileMode::kRepeat, SkTileMode::kRepeat,
+                                       SkSamplingOptions(SkFilterMode::kNearest), local));
+    const SkRect box = snapped_box((*impl_).snap_transform_of(*canvas), rect, paint);
+    (*canvas).drawRect(box, paint);
+}
+
+void SkiaRaster::fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                            std::span<const GradientStop> stops, GradientSpreadMode spread) {
+    SkCanvas* canvas = (*impl_).canvas();
+    const bool known_spread = spread == GradientSpreadMode::pad || spread == GradientSpreadMode::repeat ||
+                              spread == GradientSpreadMode::reflect;
+    if (canvas == nullptr || rect.empty() || !rect.finite() || !finite_mark_point(center) || !known_spread ||
+        !valid_gradient_stops(stops) || !focus_inside_ellipse(center, radii, focus)) {
+        return;
+    }
+    // The focus in the ellipse's own coordinates, inside the unit circle.
+    const SkPoint start = SkPoint::Make(static_cast<SkScalar>((focus.x - center.x) / radii.width),
+                                        static_cast<SkScalar>((focus.y - center.y) / radii.height));
+    const SkGradientData data = to_sk_gradient(stops);
+    SkGradientShaderResult made = SkShaders::TwoPointConicalGradient(start, 0.0F, SkPoint::Make(0.0F, 0.0F), 1.0F,
+                                                                     make_sk_gradient(data, spread));
+    if (made.rejection != SkGradientRejection::kNone) return;
+    SkPaint paint;
+    paint.setAntiAlias(true);
+    paint.setShader(std::move(made.shader));
+    // As fill_radial_gradient_spread: clipped to the rectangle, then drawn
+    // in the ellipse's coordinates over the clip.
+    (*canvas).save();
+    SkRect box = to_sk_rect(rect);
+    const bool snapped = snapped_local_rect((*impl_).snap_transform_of(*canvas), rect, box);
+    (*canvas).clipRect(box, SkClipOp::kIntersect, !snapped);
+    (*canvas).translate(static_cast<SkScalar>(center.x), static_cast<SkScalar>(center.y));
+    (*canvas).scale(static_cast<SkScalar>(radii.width), static_cast<SkScalar>(radii.height));
+    (*canvas).drawRect(SkRect::MakeLTRB(static_cast<SkScalar>((rect.x - center.x) / radii.width),
+                                        static_cast<SkScalar>((rect.y - center.y) / radii.height),
+                                        static_cast<SkScalar>((rect.x + rect.width - center.x) / radii.width),
+                                        static_cast<SkScalar>((rect.y + rect.height - center.y) / radii.height)),
+                       paint);
+    (*canvas).restore();
+}
+
 void SkiaRaster::fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) {
     SkCanvas* canvas = (*impl_).canvas();
     if (canvas == nullptr || rect.empty()) return;

@@ -83,6 +83,11 @@ enum class DisplayOperation : std::uint8_t {
     // `first` the centre, `second` the radii, `gradient_stops`) with
     // `gradient_spread`.
     fill_radial_gradient_spread = 42,
+    // A hatch: `rect`, with the pattern in `marks`.
+    fill_hatch = 43,
+    // A focal radial gradient: as fill_radial_gradient_spread, with the
+    // focus in `scalar` (x) and `secondary_scalar` (y).
+    fill_focal_radial_gradient = 44,
 };
 
 // The payload of a batched mark or pattern command: the caller's spans,
@@ -96,7 +101,7 @@ enum class DisplayOperation : std::uint8_t {
 // - fill_rects_each: `rects`, `colors`;
 // - stroke_segments: `segments`, `stroke`;
 // - draw_markers: `points`, `marker`;
-// - fill_checker: `checker`; fill_grid_pattern: `grid`;
+// - fill_checker: `checker`; fill_grid_pattern: `grid`; fill_hatch: `hatch`;
 // - fill_path: `path_verbs`, `points`, `color` on the command, `fill_rule`;
 // - stroke_path: `path_verbs`, `points`, `stroke`;
 // - clip_path: `path_verbs`, `points`, `fill_rule`.
@@ -110,6 +115,7 @@ struct DisplayMarks final {
     MarkerStyle marker{};
     CheckerPattern checker{};
     GridPattern grid{};
+    HatchPattern hatch{};
     PolygonFillRule fill_rule{PolygonFillRule::nonzero};
     std::vector<PaintPathVerb> path_verbs;
 

@@ -655,6 +655,8 @@ const char* visual_paint_operation_name(VisualPaintOperation operation) noexcept
     case VisualPaintOperation::stroke_path: return "stroke_path";
     case VisualPaintOperation::clip_path: return "clip_path";
     case VisualPaintOperation::fill_radial_gradient_spread: return "fill_radial_gradient_spread";
+    case VisualPaintOperation::fill_hatch: return "fill_hatch";
+    case VisualPaintOperation::fill_focal_radial_gradient: return "fill_focal_radial_gradient";
     }
     return "unknown";
 }

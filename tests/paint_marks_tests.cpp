@@ -148,6 +148,19 @@ public:
         out << '\n';
     }
 
+    void fill_hatch(Rect rect, const HatchPattern& pattern) override {
+        out << "fill_hatch " << box(rect) << " style=" << static_cast<unsigned>(pattern.style)
+            << " cell=" << pattern.cell << ' ' << colour(pattern.fore) << ' ' << colour(pattern.back)
+            << " anchor=" << point(pattern.anchor) << '\n';
+    }
+    void fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                    std::span<const GradientStop> stops, GradientSpreadMode spread) override {
+        out << "fill_focal_radial_gradient " << box(rect) << ' ' << point(center) << ' ' << radii.width << ','
+            << radii.height << " focus=" << point(focus) << " spread=" << static_cast<unsigned>(spread);
+        for (const GradientStop stop : stops) out << ' ' << stop.offset << ':' << colour(stop.color);
+        out << '\n';
+    }
+
     std::ostringstream out;
 
 private:
@@ -1027,6 +1040,83 @@ void test_image_pattern_clamp_fallback() {
             "a minimal painter tiles a mirrored pattern unflipped and refuses an unknown wrap");
 }
 
+void test_hatch_squares() {
+    // Squares marked per cell in each style.
+    const std::array<HatchStyle, 6> styles{{HatchStyle::horizontal, HatchStyle::vertical,
+                                            HatchStyle::forward_diagonal, HatchStyle::backward_diagonal,
+                                            HatchStyle::cross, HatchStyle::diagonal_cross}};
+    const std::array<std::size_t, 6> counts{{8U, 8U, 8U, 8U, 15U, 16U}};
+    for (std::size_t index = 0U; index < styles.size(); ++index) {
+        std::size_t marked = 0U;
+        for (std::uint32_t row = 0U; row < hatch_cell_squares; ++row) {
+            for (std::uint32_t column = 0U; column < hatch_cell_squares; ++column) {
+                if (hatch_square_marked(styles[index], column, row)) ++marked;
+            }
+        }
+        require(marked == counts[index], "each hatch style marks its squares per cell");
+    }
+    require(hatch_square_marked(HatchStyle::horizontal, 5U, 3U) && !hatch_square_marked(HatchStyle::horizontal, 3U, 5U) &&
+                hatch_square_marked(HatchStyle::forward_diagonal, 0U, 7U) &&
+                hatch_square_marked(HatchStyle::backward_diagonal, 6U, 6U) &&
+                !hatch_square_marked(HatchStyle::horizontal, 8U, 3U) &&
+                !hatch_square_marked(static_cast<HatchStyle>(9), 3U, 3U),
+            "hatch squares follow the documented lines");
+    HatchPattern pattern{};
+    require(valid_hatch_pattern(pattern), "the default hatch is valid");
+    pattern.cell = 0.5;
+    require(!valid_hatch_pattern(pattern), "a cell under one unit is refused");
+}
+
+void test_hatch_and_focal_recording_and_fallback() {
+    HatchPattern hatch{};
+    hatch.style = HatchStyle::cross;
+    hatch.fore = ink;
+    hatch.back = paper;
+    hatch.anchor = Point{2.0, 3.0};
+    const std::array<GradientStop, 2> stops{{GradientStop{0.0, ink}, GradientStop{1.0, paper}}};
+    detail::RecordingPainter recorder;
+    recorder.fill_hatch(Rect{0.0, 0.0, 16.0, 8.0}, hatch);
+    recorder.fill_focal_radial_gradient(Rect{0.0, 0.0, 20.0, 10.0}, Point{10.0, 5.0}, Size{8.0, 4.0},
+                                        Point{8.0, 5.0}, stops, GradientSpreadMode::repeat);
+    const std::shared_ptr<const detail::DisplayChunk> chunk =
+        recorder.finish(1U, PaintPlane::control, Rect{0.0, 0.0, 64.0, 32.0});
+    TracePainter trace;
+    require(detail::replay_display_chunk(*chunk, trace) == 2U, "both commands replay");
+    const std::string expected =
+        "fill_hatch 0,0,16,8 style=4 cell=8 #10.20.30.255 #240.240.240.255 anchor=2,3\n"
+        "fill_focal_radial_gradient 0,0,20,10 10,5 8,4 focus=8,5 spread=1 0:#10.20.30.255 1:#240.240.240.255\n";
+    const std::string observed = trace.out.str();
+    if (observed != expected) std::cerr << "observed trace:\n" << observed;
+    require(observed == expected, "the hatch and the focal gradient replay what was recorded");
+
+    // The fallback hatch: the back colour, then row 3's eight unit squares.
+    MinimalPainter minimal;
+    HatchPattern rows{};
+    rows.fore = ink;
+    rows.back = paper;
+    minimal.fill_hatch(Rect{0.0, 0.0, 8.0, 8.0}, rows);
+    require(minimal.fills.size() == 9U && minimal.fills[0] == Rect{0.0, 0.0, 8.0, 8.0} &&
+                minimal.fill_colours[0] == paper && minimal.fills[1] == Rect{0.0, 3.0, 1.0, 1.0} &&
+                minimal.fills[8] == Rect{7.0, 3.0, 1.0, 1.0} && minimal.fill_colours[8] == ink,
+            "the fallback hatch fills the back colour and its marked squares");
+    MinimalPainter vast;
+    vast.fill_hatch(Rect{0.0, 0.0, 4096.0, 4096.0}, rows);
+    require(vast.fills.size() == 1U, "a hatch past the square bound fills one averaged colour");
+
+    MinimalPainter outside;
+    outside.fill_focal_radial_gradient(Rect{0.0, 0.0, 20.0, 10.0}, Point{10.0, 5.0}, Size{8.0, 4.0},
+                                       Point{18.0, 5.0}, stops, GradientSpreadMode::pad);
+    MinimalPainter inside;
+    inside.fill_focal_radial_gradient(Rect{0.0, 0.0, 20.0, 10.0}, Point{10.0, 5.0}, Size{8.0, 4.0},
+                                      Point{8.0, 5.0}, stops, GradientSpreadMode::pad);
+    require(outside.fills.empty() && !inside.fills.empty() && inside.fill_colours[0] == paper,
+            "a focus on or outside the ellipse draws nothing; inside, the fallback pads and draws rings");
+    require(focus_inside_ellipse(Point{0.0, 0.0}, Size{2.0, 1.0}, Point{1.9, 0.0}) &&
+                !focus_inside_ellipse(Point{0.0, 0.0}, Size{2.0, 1.0}, Point{0.0, 1.0}) &&
+                !focus_inside_ellipse(Point{0.0, 0.0}, Size{0.0, 1.0}, Point{0.0, 0.0}),
+            "the focus must lie strictly inside the ellipse");
+}
+
 void test_operation_names() {
     require(std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_polyline)) == "stroke_polyline" &&
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_grid_pattern)) ==
@@ -1035,7 +1125,10 @@ void test_operation_names() {
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_path)) == "stroke_path" &&
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::clip_path)) == "clip_path" &&
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_radial_gradient_spread)) ==
-                    "fill_radial_gradient_spread",
+                    "fill_radial_gradient_spread" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_hatch)) == "fill_hatch" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_focal_radial_gradient)) ==
+                    "fill_focal_radial_gradient",
             "the batched operations must have inspection names");
 }
 
@@ -1060,6 +1153,8 @@ int main() {
         test_path_recording_and_fallbacks();
         test_path_clip_recording_and_fallback();
         test_image_pattern_clamp_fallback();
+        test_hatch_squares();
+        test_hatch_and_focal_recording_and_fallback();
         test_operation_names();
         test_radial_layout_places_and_picks();
         test_direction_ring_trace();

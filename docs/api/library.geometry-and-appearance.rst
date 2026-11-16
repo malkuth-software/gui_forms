@@ -222,6 +222,8 @@ Types
      - A world-aligned grid (piece C17; the node canvas's blueprint background): lines ``spacing`` units apart through ``origin``, the point where world (0, 0) lies in the painter's current coordinates, so the lines move with a pan; every ``major_every``-th line counted from the origin (1: every line) is a major line in ``major``, the others are minor lines in ``minor``.
    * - :cpp:class:`GuiFormsThemeBuild <gui_forms::GuiFormsThemeBuild>`
      - The built theme and what building it measured.
+   * - :cpp:class:`HatchPattern <gui_forms::HatchPattern>`
+     - A hatch: square cells ``cell`` units wide, each divided into hatch_cell_squares by hatch_cell_squares squares, with the corner of a cell at ``anchor`` (so the pattern stays put while the filled rectangle moves).
    * - :cpp:class:`ImageId <gui_forms::ImageId>`
      - ImageId is the nonzero renderer-neutral identity returned by a Window image registry.
    * - :cpp:class:`ImageVariantRequest <gui_forms::ImageVariantRequest>`
@@ -3296,6 +3298,28 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HatchPattern final
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   A hatch: square cells ``cell`` units wide, each divided into hatch_cell_squares by hatch_cell_squares squares, with the corner of a cell at ``anchor`` (so the pattern stays put while the filled rectangle moves). The squares hatch_square_marked names are ``fore``, the others ``back``. A cell of 8 units at scale 1 is GUI.Drawing's HatchBrush, square for square: lines one unit wide.
+
+   .. cpp:member:: HatchStyle style
+
+      Default: ``{HatchStyle::horizontal}``.
+
+   .. cpp:member:: double cell
+
+      Default: ``{8.0}``.
+
+   .. cpp:member:: Color fore
+
+   .. cpp:member:: Color back
+
+   .. cpp:member:: Point anchor
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ImageId
 
    ``#include <gui_forms/types/paint_types/paint_types.hpp>``
@@ -4536,6 +4560,10 @@ Types
 
       fill_radial_gradient with ``spread`` outside the ellipse: ``pad`` keeps the last stop's colour, ``repeat`` starts the stops again at each further radius (concentric rings, CSS repeating-radial-gradient), and ``reflect`` runs them back and forth so the rings join without a seam. A spread outside the enumeration draws nothing. The base implementation draws as fill_radial_gradient (padded), as fill_linear_gradient_spread's does.
 
+   .. cpp:function:: virtual void fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus, std::span<const GradientStop> stops, GradientSpreadMode spread)
+
+      A radial gradient whose stops start at ``focus`` instead of the centre (SVG's fx, fy; a highlight off the middle of a sphere): offset t lies on the ellipse of radii t * ``radii`` centred at focus + t * (center - focus), so 0 is the focus itself and 1 the ellipse of ``radii`` about ``center`` (the HTML two-circle gradient from a point to the ellipse), with ``spread`` beyond. ``focus`` must lie strictly inside the ellipse; a focus on or outside it, an empty rectangle, radii that are not positive, invalid stops or an unknown spread draw nothing. The base implementation draws rings, each centred on its point along the focus-to-centre line, padded as fill_radial_gradient's are.
+
    .. cpp:function:: virtual void draw_box_shadow(Rect rect, double corner_radius, Point offset, double blur_radius, double spread, Color color)
 
       Drawn before the owning surface fill. The shape body may therefore be included by a fallback without changing the final composited result.
@@ -4597,6 +4625,10 @@ Types
    .. cpp:function:: virtual void fill_grid_pattern(Rect rect, const GridPattern& pattern)
 
       The grid lines of ``pattern`` that cross ``rect``, clipped to it (piece C17). Refused patterns (valid_grid_pattern) draw nothing.
+
+   .. cpp:function:: virtual void fill_hatch(Rect rect, const HatchPattern& pattern)
+
+      ``rect`` filled with a hatch (paint_marks.hpp HatchPattern): ``back``, then the marked squares in ``fore``. Refused patterns (valid_hatch_pattern) draw nothing. The base implementation fills the squares as rectangles (every edge snapped as fill_rect's are); past maximum_hatch_squares marked squares it fills the rectangle with the average of the two colours, as fill_checker does.
 
    .. cpp:function:: virtual void fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color)
 
@@ -7800,6 +7832,24 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: HatchStyle
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   .. cpp:enumerator:: horizontal
+
+   .. cpp:enumerator:: vertical
+
+   .. cpp:enumerator:: forward_diagonal
+
+   .. cpp:enumerator:: backward_diagonal
+
+   .. cpp:enumerator:: cross
+
+   .. cpp:enumerator:: diagonal_cross
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ImagePatternWrap
 
    ``#include <gui_forms/types/paint_types/paint_types.hpp>``
@@ -10627,6 +10677,14 @@ Functions, constants and aliases
 
    Fills ``lines`` with the strokes of a stroked marker (cross, plus, asterisk) and returns how many it wrote; 0 for the filled shapes.
 
+.. cpp:function:: bool hatch_square_marked(HatchStyle style, std::uint32_t column, std::uint32_t row) noexcept
+
+   Whether the square ``column`` across and ``row`` down (each below hatch_cell_squares) of a cell is ``fore`` in ``style``: horizontal marks row 3, vertical column 3, forward_diagonal the squares where column + row is 7 (a line rising to the right, y down), backward_diagonal those where column equals row, cross and diagonal_cross the two lines of each pair. False for a square outside the cell or a style outside the enumeration.
+
+.. cpp:function:: bool valid_hatch_pattern(const HatchPattern& pattern) noexcept
+
+   Whether ``pattern`` can be drawn: a known style, a finite cell of at least one unit, and a finite anchor.
+
 .. cpp:function:: bool valid_grid_pattern(const GridPattern& pattern) noexcept
 
 .. cpp:function:: GridLevel select_grid_level(double world_spacing, double zoom, GridLevelBand band) noexcept
@@ -10648,6 +10706,10 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_marker_lines
 
    The most lines a stroked marker draws (the asterisk's three). Value: ``3U``.
+
+.. cpp:var:: constexpr std::uint32_t hatch_cell_squares
+
+   The squares across and down one hatch cell. Value: ``8U``.
 
 .. cpp:var:: constexpr double minimum_grid_spacing
 
@@ -10759,6 +10821,10 @@ Functions, constants and aliases
 
 ``#include <gui_forms/types/painter/painter.hpp>``
 
+.. cpp:function:: bool focus_inside_ellipse(Point center, Size radii, Point focus) noexcept
+
+   Whether ``focus`` lies strictly inside the ellipse of ``radii`` (both positive) about ``center``, as Painter::fill_focal_radial_gradient requires; false for radii that are not positive or a non-finite result.
+
 .. cpp:function:: Rect rotated_text_bounds(Point anchor, const RotatedTextBox& box) noexcept
 
    The rectangle bounding the turned box placed at ``anchor``: the area a control keeps inside its bounds (or its visual outsets) for the run, so its damage covers every pixel the run inks. Negative or non-finite extents, or a non-finite angle or anchor, give an empty rectangle at the anchor.
@@ -10774,6 +10840,10 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_checker_cells
 
    The most cells Painter::fill_checker draws one by one. Value: ``65536U``.
+
+.. cpp:var:: constexpr std::size_t maximum_hatch_squares
+
+   The most marked squares the base Painter::fill_hatch fills one by one. Value: ``65536U``.
 
 .. cpp:namespace:: gui_forms
 
