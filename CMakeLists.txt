@@ -1716,7 +1716,10 @@ if(GUI_FORMS_ENABLE_SKIA)
         src/render/skia/executor/drawing_raster_state.cpp
         src/render/skia/executor/recorder_raster.cpp
     )
-    if(APPLE)
+    # The installed-face probes are not compiled in a high-integrity build
+    # (cmake/HighIntegrity.cmake), whose faces all come from the font pack.
+    if(GUI_FORMS_HIGH_INTEGRITY)
+    elseif(APPLE)
         # Finds installed families nobody registered (ADR-004 phase 7).
         target_sources(gui_drawing_skia PRIVATE
             src/render/skia/executor/core_text_font_bytes.cpp)

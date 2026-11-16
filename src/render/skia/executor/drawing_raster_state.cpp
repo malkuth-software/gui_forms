@@ -5,9 +5,19 @@
 #include "drawing_raster_state.hpp"
 
 #include "gui_forms/drawing/font_substitution/font_substitution.hpp"
-#if defined(__APPLE__)
+
+// Whether an unmapped family may take an installed face from the platform
+// (CoreText, or GDI and the registry; ADR-004 phase 7). A high-integrity build
+// does not ask (cmake/HighIntegrity.cmake): no face from outside the program
+// reaches the font reader, and an unmapped family takes the content family.
+#if (defined(__APPLE__) || defined(_WIN32)) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+#define GUI_DRAWING_HOST_FACE_PROBE 1
+#else
+#define GUI_DRAWING_HOST_FACE_PROBE 0
+#endif
+#if GUI_DRAWING_HOST_FACE_PROBE && defined(__APPLE__)
 #include "core_text_font_bytes.hpp"
-#elif defined(_WIN32)
+#elif GUI_DRAWING_HOST_FACE_PROBE && defined(_WIN32)
 #include "gdi_font_bytes.hpp"
 #endif
 
@@ -96,7 +106,7 @@ SkiaExecutor& thread_executor() {
     return *record.executor;
 }
 
-#if defined(_WIN32) || defined(__APPLE__)
+#if GUI_DRAWING_HOST_FACE_PROBE
 // The largest font file read or accepted from a host.
 constexpr std::size_t maximum_font_bytes = 64U * 1024U * 1024U;
 #endif
@@ -153,7 +163,7 @@ struct HostFace final {
     std::string selected;
 };
 
-#if defined(_WIN32) || defined(__APPLE__)
+#if GUI_DRAWING_HOST_FACE_PROBE
 [[nodiscard]] std::uint32_t big_endian(const std::vector<std::byte>& bytes, const std::size_t offset,
                                        const std::size_t count) {
     std::uint32_t result = 0U;
@@ -192,7 +202,7 @@ struct HostFace final {
 }
 #endif
 
-#if defined(_WIN32)
+#if GUI_DRAWING_HOST_FACE_PROBE && defined(_WIN32)
 // The Windows host's face for the request (src/host/windows/fonts/
 // gdi_font_bytes.hpp: GDI's face when it names the family, else the
 // registry's file), filed by its own OS/2 bits.
@@ -204,7 +214,7 @@ HostFace host_face(std::string_view family, std::uint32_t style) {
     result.slot = host_face_slot(result.bytes, style & 3U);
     return result;
 }
-#elif defined(__APPLE__)
+#elif GUI_DRAWING_HOST_FACE_PROBE && defined(__APPLE__)
 // CoreText's face for the family, matched with the family name mandatory so
 // CoreText cannot substitute another family. It is upright, so an italic
 // request is sheared; CoreText may answer another weight than requested (a
