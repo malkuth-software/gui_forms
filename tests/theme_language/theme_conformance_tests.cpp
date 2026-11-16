@@ -295,7 +295,7 @@ std::string transition_text(const PropertyTransition& transition) {
     std::string text = "  transition " + transition.property + " " + curve_text(transition.curve) + "\n";
     for (const PresentationState& state : transition.states) {
         text += "    state when=" + states_text(state.when) + " target=" + number_text(state.target);
-        if (state.enter_from) text += " from=" + number_text(*state.enter_from);
+        if (state.enter_from.present()) text += " from=" + number_text(*state.enter_from.value());
         if (state.target_em != 0.0) text += " target-em=" + number_text(state.target_em);
         if (state.enter_from_em != 0.0) text += " from-em=" + number_text(state.enter_from_em);
         for (const MotionStop& stop : state.stops) {

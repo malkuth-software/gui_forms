@@ -372,7 +372,7 @@ PresentedProperties run_transitions(const CompiledThemeRules::Resolution& resolu
         std::span<const MotionStop> stops{};
         if (state) {
             const CompiledThemeRules::CompiledPresentationState& held = transition.states[*state];
-            if (held.enter_from) entry = *held.enter_from + sources.em * held.enter_from_em;
+            if (held.enter_from.present()) entry = *held.enter_from.value() + sources.em * held.enter_from_em;
             const std::size_t count = std::min(held.stops.size(), maximum_motion_stops);
             for (std::size_t stop = 0; stop < count; ++stop) {
                 taken[stop] = held.stops[stop];

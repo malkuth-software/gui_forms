@@ -1433,12 +1433,14 @@ RuleDeclaration RuleDeclaration::expression_value(std::string_view parameter,
     return result;
 }
 
-std::optional<ExpressionInputIndex> CompiledThemeRules::published_value_input(std::string_view name) const noexcept {
-    if (name.empty()) return std::nullopt;
+stxlib::Optional<ExpressionInputIndex> CompiledThemeRules::published_value_input(std::string_view name) const noexcept {
+    if (name.empty()) return stxlib::Optional<ExpressionInputIndex>::none();
     for (std::size_t index = 0; index < published_values_.size(); ++index) {
-        if (published_values_[index] == name) return published_value_position(index);
+        if (published_values_[index] == name) {
+            return stxlib::Optional<ExpressionInputIndex>::of(published_value_position(index));
+        }
     }
-    return std::nullopt;
+    return stxlib::Optional<ExpressionInputIndex>::none();
 }
 
 // -- compiling -----------------------------------------------------------------
@@ -1820,12 +1822,12 @@ void CompiledThemeRules::add_font(std::vector<RuleDiagnostic>& diagnostics, std:
         compiled.font.set(font);
         return;
     }
-    const std::optional<TextRole> role = text_role_from_name(declaration.name);
-    if (!role) {
+    const stxlib::Optional<TextRole> role = text_role_from_name(declaration.name);
+    if (role.absent()) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::font_invalid, index, rule, declaration.property));
         return;
     }
-    font.role = *role;
+    font.role = *role.value();
     compiled.font.set(font);
 }
 
@@ -2272,7 +2274,7 @@ bool usable_states(const PropertyTransition& transition, double minimum, double 
             if (static_cast<std::size_t>(when) >= anatomy_state_count) return false;
         }
         if (!in_range(state.target, minimum, maximum)) return false;
-        if (state.enter_from && !in_range(*state.enter_from, minimum, maximum)) return false;
+        if (state.enter_from.present() && !in_range(*state.enter_from.value(), minimum, maximum)) return false;
         if (!usable_stops(state, transition.curve, minimum, maximum)) return false;
     }
     return true;
@@ -2573,8 +2575,8 @@ void CompiledThemeRules::raise_user_opacity(std::vector<RuleDiagnostic>& diagnos
                 state.target = user_theme_minimum_opacity;
                 raised = true;
             }
-            if (state.enter_from && *state.enter_from < user_theme_minimum_opacity) {
-                state.enter_from = user_theme_minimum_opacity;
+            if (state.enter_from.present() && *state.enter_from.value() < user_theme_minimum_opacity) {
+                state.enter_from.set(user_theme_minimum_opacity);
                 raised = true;
             }
             for (MotionStop& stop : state.stops) {

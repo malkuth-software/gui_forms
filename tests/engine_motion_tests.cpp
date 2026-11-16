@@ -291,7 +291,7 @@ void machines_are_rule_data() {
     loose.transitions.push_back(transition_on("amplitude", 1.0));
     PresentationState entering{};
     entering.target = 1.0;
-    entering.enter_from = -0.5;
+    entering.enter_from.set(-0.5);
     PropertyTransition fade = transition_on("opacity", 1.0);
     fade.states.push_back(entering);
     loose.transitions.push_back(fade);

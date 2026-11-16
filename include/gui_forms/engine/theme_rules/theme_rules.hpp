@@ -283,7 +283,7 @@ inline constexpr std::size_t colour_role_count = static_cast<std::size_t>(Colour
 // The role's name in kebab case, such as `ink-on-paper`; empty for count.
 [[nodiscard]] GUI_FORMS_API std::string_view colour_role_name(ColourRole role) noexcept;
 // The role `name` (kebab case, exact) names, or none.
-[[nodiscard]] GUI_FORMS_API std::optional<ColourRole> colour_role_from_name(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<ColourRole> colour_role_from_name(std::string_view name) noexcept;
 // Whether the role is a pair (a foreground on a background) rather than a
 // single colour.
 [[nodiscard]] GUI_FORMS_API bool colour_role_paired(ColourRole role) noexcept;
@@ -596,7 +596,7 @@ inline constexpr std::size_t text_role_count = static_cast<std::size_t>(TextRole
 // `title`, `monospace`.
 [[nodiscard]] GUI_FORMS_API std::string_view text_role_name(TextRole role) noexcept;
 // The role `name` names exactly, if any.
-[[nodiscard]] GUI_FORMS_API std::optional<TextRole> text_role_from_name(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<TextRole> text_role_from_name(std::string_view name) noexcept;
 
 // The engine's font property (T3 P8c, D6): a declaration of this name,
 // whose value is a name (a text role's, or font_inherit_name), sets the
@@ -670,7 +670,7 @@ inline constexpr std::size_t maximum_part_transitions = 6;
 struct GUI_FORMS_API PresentationState final {
     std::vector<AnatomyState> when{};
     double target{};
-    std::optional<double> enter_from{};
+    stxlib::Optional<double> enter_from{};
     std::vector<MotionStop> stops{};
     double target_em{};
     double enter_from_em{};
@@ -1826,7 +1826,7 @@ public:
     const std::vector<std::string>& published_values() const&& = delete;
     // The position of the published value `name`, or none when the sheet
     // does not read it.
-    [[nodiscard]] std::optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept;
+    [[nodiscard]] stxlib::Optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept;
     // How many inputs the sheet's expressions are evaluated with: the
     // engine inputs and the sheet's published values.
     [[nodiscard]] std::size_t input_count() const noexcept {
@@ -1900,7 +1900,7 @@ public:
     struct GUI_FORMS_API CompiledPresentationState final {
         AnatomyStateSet when{};
         double target{};
-        std::optional<double> enter_from{};
+        stxlib::Optional<double> enter_from{};
         std::vector<MotionStop> stops{};
         double target_em{};
         double enter_from_em{};

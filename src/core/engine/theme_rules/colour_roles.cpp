@@ -7,6 +7,7 @@
 #include <array>
 #include <cstddef>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string_view>
 
 namespace gui_forms {
@@ -57,11 +58,11 @@ std::string_view colour_role_name(ColourRole role) noexcept {
     return colour_role_names[position];
 }
 
-std::optional<ColourRole> colour_role_from_name(std::string_view name) noexcept {
+stxlib::Optional<ColourRole> colour_role_from_name(std::string_view name) noexcept {
     for (std::size_t position = 0U; position < colour_role_count; ++position) {
-        if (colour_role_names[position] == name) return static_cast<ColourRole>(position);
+        if (colour_role_names[position] == name) return stxlib::Optional<ColourRole>::of(static_cast<ColourRole>(position));
     }
-    return std::nullopt;
+    return stxlib::Optional<ColourRole>::none();
 }
 
 bool application_colour_role_name_valid(std::string_view name) noexcept {
@@ -72,7 +73,7 @@ bool application_colour_role_name_valid(std::string_view name) noexcept {
         const bool digit = character >= '0' && character <= '9';
         if (!letter && !digit && character != '-') return false;
     }
-    const bool built_in = colour_role_from_name(name).has_value();
+    const bool built_in = colour_role_from_name(name).present();
     return !built_in;
 }
 
@@ -87,11 +88,11 @@ std::string_view text_role_name(TextRole role) noexcept {
     return text_role_names[position];
 }
 
-std::optional<TextRole> text_role_from_name(std::string_view name) noexcept {
+stxlib::Optional<TextRole> text_role_from_name(std::string_view name) noexcept {
     for (std::size_t position = 0U; position < text_role_count; ++position) {
-        if (text_role_names[position] == name) return static_cast<TextRole>(position);
+        if (text_role_names[position] == name) return stxlib::Optional<TextRole>::of(static_cast<TextRole>(position));
     }
-    return std::nullopt;
+    return stxlib::Optional<TextRole>::none();
 }
 
 } // namespace gui_forms

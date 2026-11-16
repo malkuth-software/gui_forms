@@ -33,6 +33,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -131,7 +132,8 @@ std::optional<std::string> font_of(const ThemeRule& rule) {
 void test_font_lowering() {
     require(text_role_count == 6U && text_role_name(TextRole::ui) == "ui" &&
                 text_role_name(TextRole::monospace) == "monospace" &&
-                text_role_from_name("heading") == TextRole::heading && !text_role_from_name("Heading"),
+                text_role_from_name("heading") == stxlib::Optional<TextRole>::of(TextRole::heading) &&
+                text_role_from_name("Heading").absent(),
             "the six text roles are named");
     require(font_of(only_rule("#a { font: heading }")) == "heading", "font names a text role");
     require(font_of(only_rule("#a { font: TITLE }")) == "title", "in any case");

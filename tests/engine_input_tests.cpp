@@ -25,6 +25,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -490,8 +491,9 @@ void vocabulary_and_rules() {
     require(matched == 7U && checked.diagnostics().size() == 7U,
             "two unusable published names, and each faulty expression dropped with its own diagnostic");
     require(checked.published_values().size() == 3U && checked.published_values()[1].empty() &&
-                checked.published_value_input("level") == published_value_position(0U) &&
-                !checked.published_value_input("Level"),
+                checked.published_value_input("level") ==
+                    stxlib::Optional<ExpressionInputIndex>::of(published_value_position(0U)) &&
+                checked.published_value_input("Level").absent(),
             "an unusable name keeps its position, empty");
 }
 

@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <stdexcept>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace gui_forms {
@@ -206,8 +207,9 @@ void SurfaceRoot::damage_published_readers(std::string_view name) {
         const Control::Ptr owner = find((*record).control);
         if (!owner) continue;
         const CompiledThemeRules& rules = (*owner).effective_theme().engine().rules();
-        const std::optional<ExpressionInputIndex> input = rules.published_value_input(name);
-        if (!input || ((*record).inputs_read & expression_input_bit(*input)) == 0U) continue;
+        const stxlib::Optional<ExpressionInputIndex> input = rules.published_value_input(name);
+        const ExpressionInputIndex* const index = input.value();
+        if (index == nullptr || ((*record).inputs_read & expression_input_bit(*index)) == 0U) continue;
         static_cast<void>(damage_engine_part(*record, damage));
     }
     if (damage.parts > 0U) metrics_.record_engine_input_damage(damage.parts, damage.area);

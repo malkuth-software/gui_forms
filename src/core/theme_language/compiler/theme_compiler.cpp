@@ -9,6 +9,7 @@
 #include "theme_compiler.hpp"
 
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "../../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1905,8 +1906,8 @@ bool CompilePass::read_application_roles(const SyntaxNode& node) {
             return false;
         }
         fold_ascii(fallback_name, folded_);
-        const std::optional<ColourRole> fallback = colour_role_from_name(folded_);
-        if (!fallback) {
+        const stxlib::Optional<ColourRole> fallback = colour_role_from_name(folded_);
+        if (fallback.absent()) {
             report(DiagnosticCode::keyword_unknown, words[2], clipped_theme_detail(fallback_name));
             return false;
         }
@@ -1921,7 +1922,7 @@ bool CompilePass::read_application_roles(const SyntaxNode& node) {
             return false;
         }
         palette_.application_roles.push_back(
-            ApplicationRoleName{.name = name, .fallback = *fallback, .paired = colour_role_paired(*fallback)});
+            ApplicationRoleName{.name = name, .fallback = *fallback.value(), .paired = colour_role_paired(*fallback.value())});
         any = true;
         count = 0U;
     }
@@ -1933,10 +1934,10 @@ bool CompilePass::read_application_roles(const SyntaxNode& node) {
 }
 
 std::optional<std::size_t> CompilePass::palette_slot(std::string_view name, bool& paired) const noexcept {
-    const std::optional<ColourRole> role = colour_role_from_name(name);
-    if (role) {
-        paired = colour_role_paired(*role);
-        return static_cast<std::size_t>(*role);
+    const stxlib::Optional<ColourRole> role = colour_role_from_name(name);
+    if (role.present()) {
+        paired = colour_role_paired(*role.value());
+        return static_cast<std::size_t>(*role.value());
     }
     for (std::size_t index = 0U; index < palette_.application_roles.size(); ++index) {
         if (palette_.application_roles[index].name != name) continue;
@@ -2613,14 +2614,14 @@ bool CompilePass::lower_font(const SyntaxNode& node) {
         }
         if (!keyword_of(first, "a text role")) return false;
         fold_ascii(first.text, folded_);
-        const std::optional<TextRole> role = text_role_from_name(folded_);
-        if (!role) {
+        const stxlib::Optional<TextRole> role = text_role_from_name(folded_);
+        if (role.absent()) {
             const DiagnosticCode code =
                 newer_engine_ ? DiagnosticCode::keyword_from_newer_engine : DiagnosticCode::keyword_unknown;
             report(code, first.token, clipped_theme_detail(first.text));
             return newer_engine_;
         }
-        name = text_role_name(*role);
+        name = text_role_name(*role.value());
     }
     LoweredDeclaration lowered{};
     lowered.kind = LoweredKind::font;
@@ -3352,7 +3353,7 @@ bool CompilePass::apply_animations(const PrimitiveSelection& selection, ThemeRul
             return false;
         }
         PresentationState state{};
-        state.enter_from = move.from;
+        state.enter_from = platform::stxlib_optional(move.from);
         state.stops = move.stops;
         if (move.to) {
             state.target = *move.to;

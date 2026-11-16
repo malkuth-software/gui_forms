@@ -29,6 +29,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -141,7 +142,7 @@ void test_role_names() {
     for (std::size_t index = 0U; index < colour_role_count; ++index) {
         const ColourRole role = static_cast<ColourRole>(index);
         const std::string_view name = colour_role_name(role);
-        require(colour_role_from_name(name) == role, std::string("the name round-trips: ") + std::string(name));
+        require(colour_role_from_name(name) == stxlib::Optional<ColourRole>::of(role), std::string("the name round-trips: ") + std::string(name));
         if (colour_role_paired(role)) paired = paired + 1U;
     }
     require(paired == 17U, "the pairs are the design language's");
@@ -149,8 +150,8 @@ void test_role_names() {
                 colour_role_name(ColourRole::command_link_ink_on_paper) == "command-link-ink-on-paper" &&
                 colour_role_name(ColourRole::selection_line) == "selection-line",
             "roles are named in kebab case");
-    require(!colour_role_from_name("Ink-On-Paper") && !colour_role_from_name("ink_on_paper") &&
-                !colour_role_from_name(""),
+    require(colour_role_from_name("Ink-On-Paper").absent() && colour_role_from_name("ink_on_paper").absent() &&
+                colour_role_from_name("").absent(),
             "a name matches exactly");
     require(!colour_role_paired(ColourRole::focus) && !colour_role_paired(ColourRole::chrome),
             "focus and the relief ramp are single colours");
