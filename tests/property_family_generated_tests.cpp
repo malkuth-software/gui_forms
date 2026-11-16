@@ -367,7 +367,7 @@ void test_button_base_properties() {
         expect((*control).use_mnemonic.read() == sample, "ButtonBase.use_mnemonic: a write stores");
     }
     {
-        const std::optional<bool> sample = std::optional<bool>{true};
+        const stxlib::Optional<bool> sample = stxlib::Optional<bool>::of(true);
         int raises = 0;
         const SubscriptionToken token = (*control).expanded_changed().subscribe(RaiseCounter{&raises});
         (*control).expanded_state = sample;

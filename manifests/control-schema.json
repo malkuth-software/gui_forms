@@ -358,7 +358,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
-        {"name": "expanded_changed", "payload": "std::optional<bool>", "mutable_payload": false},
+        {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
       ]
@@ -465,7 +465,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
-        {"name": "expanded_changed", "payload": "std::optional<bool>", "mutable_payload": false},
+        {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
         {"name": "dialog_result_changed", "payload": "DialogResult", "mutable_payload": false},
@@ -576,7 +576,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
-        {"name": "expanded_changed", "payload": "std::optional<bool>", "mutable_payload": false},
+        {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
         {"name": "dialog_result_changed", "payload": "DialogResult", "mutable_payload": false},
@@ -682,7 +682,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
-        {"name": "expanded_changed", "payload": "std::optional<bool>", "mutable_payload": false},
+        {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
       ]
@@ -4932,7 +4932,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
-        {"name": "expanded_changed", "payload": "std::optional<bool>", "mutable_payload": false},
+        {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
         {"name": "check_state_changed", "payload": "CheckState", "mutable_payload": false},
@@ -5041,7 +5041,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
-        {"name": "expanded_changed", "payload": "std::optional<bool>", "mutable_payload": false},
+        {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
         {"name": "checked_changed", "payload": "bool", "mutable_payload": false}
@@ -5149,7 +5149,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
-        {"name": "expanded_changed", "payload": "std::optional<bool>", "mutable_payload": false},
+        {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
         {"name": "checked_changed", "payload": "bool", "mutable_payload": false}

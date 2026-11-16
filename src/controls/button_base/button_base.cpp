@@ -801,8 +801,9 @@ AnatomyStateSet ButtonBase::button_anatomy_states() const {
         states.erase(AnatomyState::normal);
         states.insert(AnatomyState::hot);
     }
-    if (expanded_state.read().has_value()) {
-        if (*expanded_state.read()) {
+    const bool* expanded = expanded_state.read().value();
+    if (expanded != nullptr) {
+        if (*expanded) {
             states.insert(AnatomyState::open);
         } else {
             states.insert(AnatomyState::closed);
@@ -1151,10 +1152,10 @@ SemanticDescriptor ButtonBase::semantic_descriptor() const {
     } else {
         // A normal status publishes no state.
     }
-    if (expanded_state.read()) {
-        if (*expanded_state.read()) descriptor.states |= SemanticState::expanded;
-        descriptor.actions.push_back(*expanded_state.read() ? SemanticAction::collapse
-                                                      : SemanticAction::expand);
+    const bool* expanded = expanded_state.read().value();
+    if (expanded != nullptr) {
+        if (*expanded) descriptor.states |= SemanticState::expanded;
+        descriptor.actions.push_back(*expanded ? SemanticAction::collapse : SemanticAction::expand);
     }
     descriptor.exposed = true;
     return descriptor;
@@ -1164,9 +1165,9 @@ bool ButtonBase::on_semantic_action(SemanticAction action, std::string_view valu
     if (action == SemanticAction::press) {
         return perform_click();
     }
-    if (expanded_state.read() &&
-        ((action == SemanticAction::expand && !*expanded_state.read()) ||
-         (action == SemanticAction::collapse && *expanded_state.read()))) {
+    const bool* expanded = expanded_state.read().value();
+    if (expanded != nullptr &&
+        ((action == SemanticAction::expand && !*expanded) || (action == SemanticAction::collapse && *expanded))) {
         on_activate();
         return true;
     }
@@ -1177,7 +1178,7 @@ namespace {
 
 // The events ButtonBase adds to those of Control, in declaration order.
 constexpr std::array<InteractionDeclaration, 3> button_base_interactions{{
-    {.name = "expanded_changed", .payload = "std::optional<bool>", .mutable_payload = false},
+    {.name = "expanded_changed", .payload = "stxlib::Optional<bool>", .mutable_payload = false},
     {.name = "clicked", .payload = "ButtonBase", .mutable_payload = true},
     {.name = "text_changed", .payload = "std::string", .mutable_payload = false},
 }};
@@ -1444,7 +1445,7 @@ void ButtonBase::written(const decltype(use_mnemonic)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
-void ButtonBase::prepare_write(const decltype(expanded_state)&, std::optional<bool>&) {
+void ButtonBase::prepare_write(const decltype(expanded_state)&, stxlib::Optional<bool>&) {
     require_mutable();
 }
 

@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <span>
@@ -1732,7 +1733,7 @@ void test_public_drawing_metrics_and_control_tag() {
 
 void test_button_disclosure_semantics() {
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.disclosure"), "Options");
-    (*button).expanded_state = false;
+    (*button).expanded_state = stxlib::Optional<bool>::of(false);
     SemanticDescriptor collapsed = (*button).semantic_descriptor();
     require(!has_semantic_state(collapsed.states, SemanticState::expanded) &&
                 std::find(collapsed.actions.begin(), collapsed.actions.end(),
@@ -1745,7 +1746,7 @@ void test_button_disclosure_semantics() {
     require(operation_check_46, "semantic expand must route through the button's shared activation");
     const bool operation_check_47 = activations == 1U;
     require(operation_check_47, "semantic expand must route through the button's shared activation");
-    (*button).expanded_state = true;
+    (*button).expanded_state = stxlib::Optional<bool>::of(true);
     const SemanticDescriptor expanded = (*button).semantic_descriptor();
     require(has_semantic_state(expanded.states, SemanticState::expanded) &&
                 std::find(expanded.actions.begin(), expanded.actions.end(),

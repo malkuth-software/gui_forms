@@ -330,7 +330,7 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
     (*refs.path_terminal).accessible_name = "Open complete path matrix";
     (*refs.path_terminal).accessible_description =
         "Browse full fixture paths or edit a path directly";
-    (*refs.path_terminal).expanded_state = false;
+    (*refs.path_terminal).expanded_state = stxlib::Optional<bool>::of(false);
     (*panel).add_at(refs.path_terminal, {936, 7, 35, 26});
     std::shared_ptr<gui_forms::TextBox> search = std::make_shared<TextBox>(StableId("fm.search.editor"));
     (*search).set_requested_bounds({980, 6, 463, 28});
@@ -1400,7 +1400,7 @@ private:
                     *this, &PathMatrixController::on_overlay_revoked));
         }
         focus_scope_ = (*window).begin_focus_scope(layer_, current_tail_);
-        (*refs_.path_terminal).expanded_state = true;
+        (*refs_.path_terminal).expanded_state = stxlib::Optional<bool>::of(true);
         (*refs_.path_terminal).accessible_description =
             "Complete path matrix open · activate to close";
         status_("Path matrix open · full current stack · five recent locations");
@@ -1703,7 +1703,7 @@ private:
         overlay_token_.disconnect();
         overlay_revocation_.disconnect();
         reset_overlay();
-        (*refs_.path_terminal).expanded_state = false;
+        (*refs_.path_terminal).expanded_state = stxlib::Optional<bool>::of(false);
         (*refs_.path_terminal).accessible_description =
             "Browse full fixture paths or edit a path directly";
         closing_ = false;
@@ -1721,7 +1721,7 @@ private:
         overlay_dismissal_.disconnect();
         overlay_revocation_.disconnect();
         reset_overlay();
-        (*refs_.path_terminal).expanded_state = false;
+        (*refs_.path_terminal).expanded_state = stxlib::Optional<bool>::of(false);
         closing_ = false;
     }
 

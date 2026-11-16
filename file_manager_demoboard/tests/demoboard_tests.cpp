@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string_view>
 
 namespace {
@@ -257,7 +258,7 @@ int main() {
     const gui_forms::Control::Ptr matrix = (*product).find("fm.path.matrix");
     const std::shared_ptr<gui_forms::AnchoredOverlayLayer> matrix_layer = std::dynamic_pointer_cast<gui_forms::AnchoredOverlayLayer>(
         (*product).find("fm.path.matrix.layer"));
-    require(matrix && matrix_layer && (*terminal).expanded_state.read() == true &&
+    require(matrix && matrix_layer && (*terminal).expanded_state.read() == stxlib::Optional<bool>::of(true) &&
                 (*matrix).absolute_bounds() == gui_forms::Rect{111,169,860,424} &&
                 (*product).focused_control() ==
                     (*product).find("fm.path.matrix.current.tail"),
@@ -315,7 +316,7 @@ int main() {
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::enter}) &&
                 !(*product).find("fm.path.matrix") &&
-                (*terminal).expanded_state.read() == false &&
+                (*terminal).expanded_state.read() == stxlib::Optional<bool>::of(false) &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.title.text"))).text.read().find("North Shore") !=
                     std::string::npos,

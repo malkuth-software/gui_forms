@@ -5,6 +5,8 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/label.hpp"
 
+#include <stxlib/optional.hpp>
+
 namespace gallery_pages_tests {
 namespace {
 
@@ -39,7 +41,7 @@ void test_anchored_overlays(gui_forms::Window& window) {
     std::shared_ptr<AnchoredOverlayLayer> layer = open_layer(window);
     require(layer && window.focus_scope_depth() == 1U &&
                 window.focused_control() == window.find("gallery.overlays.field") &&
-                (*top_left).expanded_state.read() == std::optional<bool>(true) &&
+                (*top_left).expanded_state.read() == stxlib::Optional<bool>::of(true) &&
                 !(*layer).resolved_placement().placed_above &&
                 (*status).text.read().find("Overlay open from gallery.overlays.anchor.0") == 0U,
             "an anchor click must open the layer as a focus-contained overlay placed below");
@@ -65,7 +67,7 @@ void test_anchored_overlays(gui_forms::Window& window) {
             "a press outside the overlay must be consumed by the layer");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, away}));
     require(window.find("gallery.overlays.layer") == nullptr && window.focus_scope_depth() == 0U &&
-                (*top_left).expanded_state.read() == std::optional<bool>(false) &&
+                (*top_left).expanded_state.read() == stxlib::Optional<bool>::of(false) &&
                 (*status).text.read().find("Dismissed by click-away") == 0U,
             "click-away must close the overlay through the owner and restore the page");
 

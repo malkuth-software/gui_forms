@@ -76,7 +76,7 @@ public:
     [[nodiscard]] bool focused_visual() const noexcept { return focused_; }
     [[nodiscard]] bool focus_cue_visible() const noexcept;
     [[nodiscard]] bool hovered_visual() const noexcept { return hovered_; }
-    [[nodiscard]] Event<std::optional<bool>>& expanded_changed() noexcept {
+    [[nodiscard]] Event<stxlib::Optional<bool>>& expanded_changed() noexcept {
         return expanded_changed_;
     }
     [[nodiscard]] Event<ButtonBase&>& clicked() noexcept { return clicked_; }
@@ -262,7 +262,7 @@ private:
     bool keyboard_pressed_{};
     bool focused_{};
     bool hovered_{};
-    Event<std::optional<bool>> expanded_changed_{};
+    Event<stxlib::Optional<bool>> expanded_changed_{};
     // property_codemod begin ButtonBase (tools/property_families/button_base.json; generated, do not edit)
 public:
     // ButtonBase's property table: Control's entries, then its own.
@@ -308,7 +308,7 @@ private:
     void written(const decltype(image_gap)& cell);
     void prepare_write(const decltype(use_mnemonic)& cell, bool& incoming);
     void written(const decltype(use_mnemonic)& cell);
-    void prepare_write(const decltype(expanded_state)& cell, std::optional<bool>& incoming);
+    void prepare_write(const decltype(expanded_state)& cell, stxlib::Optional<bool>& incoming);
     void written(const decltype(expanded_state)& cell);
     void write_view(const decltype(image)& cell, ImageId incoming);
     [[nodiscard]] ImageId read_view(const decltype(image)& cell) const;

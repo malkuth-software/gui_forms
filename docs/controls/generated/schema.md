@@ -88,7 +88,7 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 
@@ -109,7 +109,7 @@ Properties beyond every control's: `content_padding` (insets), `danger` (boolean
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 | `dialog_result_changed` | `DialogResult` |
@@ -134,7 +134,7 @@ Properties beyond every control's: `content_padding` (insets), `danger` (boolean
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 | `dialog_result_changed` | `DialogResult` |
@@ -157,7 +157,7 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 
@@ -1314,7 +1314,7 @@ Properties beyond every control's: `check_state` (enumeration), `checked` (boole
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 | `check_state_changed` | `CheckState` |
@@ -1337,7 +1337,7 @@ Properties beyond every control's: `checked` (boolean), `content_padding` (inset
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 | `checked_changed` | `bool` |
@@ -1359,7 +1359,7 @@ Properties beyond every control's: `checked` (boolean), `content_padding` (inset
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 | `checked_changed` | `bool` |
