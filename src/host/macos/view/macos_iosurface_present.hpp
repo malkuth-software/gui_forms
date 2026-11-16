@@ -17,7 +17,7 @@
 // Main thread only, as every message to the view. AppKit, QuartzCore and
 // IOSurface types stay in the .mm (State).
 
-#include "../../../core/host/presentation/presentation_shim.hpp"
+#include "macos_presentation.hpp"
 
 #include <CoreGraphics/CoreGraphics.h>
 
@@ -28,7 +28,7 @@
 
 namespace gui_forms::host::macos {
 
-class MacIOSurfacePath final : public presentation::PresentationDirectPath {
+class MacIOSurfacePath final : public MacDirectPath {
 public:
     // `view` (observing) owns the shim that owns this path; `colorSpace` is
     // the view's present colour space, retained here.
@@ -39,15 +39,7 @@ public:
     presentation::PresentOutcome present(std::span<const presentation::PresentRect> damage) override;
     void release() noexcept override;
 
-    // Forgets the view (its dealloc): the layer is still removed and the
-    // surfaces freed, and no message is sent to the view after this.
-    void detach_view() noexcept;
-
-    // Whether the layer shows the window's pixels opaquely (set from the
-    // window before each present).
-    bool opaque{true};
-    // Points per device pixel's reciprocal: the view's backing scale.
-    double scale{1.0};
+    void detach_view() noexcept override;
 
 private:
     struct State;

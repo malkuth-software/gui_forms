@@ -81,12 +81,18 @@ HostCapabilities macos_capabilities() {
         capabilities.locale = *locale;
         capabilities.available = capabilities.available | HostCapability::locale;
     }
-    // Presentation (docs/user/presentation.md): the IOSurface direct path
-    // where the policy turns it on. No host scroll: the view passes no
+    // Presentation (docs/user/presentation.md): the direct path where the
+    // policy turns it on. No host scroll: the view passes no
     // scrolls yet.
     const gui_forms::host::presentation::PresentPolicy policy =
         gui_forms::host::presentation::present_policy_from_environment();
     if (policy.direct) capabilities.available = capabilities.available | HostCapability::direct_buffers;
+#if defined(GUI_FORMS_HAVE_METAL_PRESENT)
+    // The Metal buffer route (macos_metal_present.hpp), where it is built
+    // and the policy names it.
+    if (policy.direct && gui_forms::host::presentation::present_policy_names("metal"))
+        capabilities.available = capabilities.available | HostCapability::metal_drawables;
+#endif
     return capabilities;
 }
 

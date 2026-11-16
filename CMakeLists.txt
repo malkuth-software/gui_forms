@@ -145,6 +145,12 @@ option(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT
        "Let a Windows program that opts in (host::accept_automation_environment) turn on automation from GUI_FORMS_WINDOWS_AUTOMATION=1" ON)
 option(GUI_FORMS_ENABLE_LINUX_HOST "Build the native X11 host with the private CPU renderer" OFF)
 option(GUI_FORMS_ENABLE_WAYLAND_PRESENT "Build the Wayland wl_shm presentation path (no Wayland host yet)" OFF)
+# The presentation shim's buffer routes that use a platform graphics API
+# only to obtain and present a buffer (docs/user/presentation.md; owner,
+# 2026-11-16). Each is linked inside its host adapter only.
+option(GUI_FORMS_ENABLE_METAL_PRESENT "Build the macOS CAMetalLayer buffer route" OFF)
+option(GUI_FORMS_ENABLE_X11_DRI3_PRESENT "Build the X11 DRI3 (GBM dmabuf) buffer route" OFF)
+option(GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT "Build the Wayland linux-dmabuf (GBM) buffer route (no Wayland host yet)" OFF)
 # The browser host (owner decisions, 2026-11-15): Emscripten only, through
 # cmake/emscripten.cmake; WebGL2 is its present backend and nothing else.
 option(GUI_FORMS_ENABLE_WEB_HOST "Build the browser host (Emscripten) with the private CPU renderer" ${EMSCRIPTEN})
@@ -1877,6 +1883,15 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     endif()
     set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE} ${GUI_FORMS_IOSURFACE}
         ${GUI_FORMS_COREGRAPHICS} ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS} ${GUI_FORMS_COREFOUNDATION})
+    # The Metal buffer route (macos_metal_present.hpp): Metal is linked into
+    # the macOS host adapter only, and only with this option.
+    if(GUI_FORMS_ENABLE_METAL_PRESENT)
+        find_library(GUI_FORMS_METAL Metal REQUIRED)
+        target_sources(gui_forms_host_macos PRIVATE src/host/macos/view/macos_metal_present.mm)
+        target_link_libraries(gui_forms_host_macos PRIVATE ${GUI_FORMS_METAL})
+        target_compile_definitions(gui_forms_host_macos PRIVATE GUI_FORMS_HAVE_METAL_PRESENT=1)
+        list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_METAL})
+    endif()
     gui_forms_application_library(gui_forms_application
         ARCHIVES ${_gf_application_archives}
         LIBRARIES ${_gf_application_libraries} ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})

@@ -43,4 +43,20 @@ private:
     __unsafe_unretained GUIFormsView* view_;
 };
 
+// The view's direct paths (IOSurface, and the CAMetalLayer route where it
+// is built): the per-present settings the view gives them and the
+// dealloc notice. Owned by the shim; the view observes it.
+class MacDirectPath : public presentation::PresentationDirectPath {
+public:
+    // Forgets the view (its dealloc): the layer is still removed and the
+    // buffers freed, and no message is sent to the view after this.
+    virtual void detach_view() noexcept = 0;
+
+    // Whether the layer shows the window's pixels opaquely (set from the
+    // window before each present).
+    bool opaque{true};
+    // Device pixels per point: the view's backing scale.
+    double scale{1.0};
+};
+
 } // namespace gui_forms::host::macos
