@@ -4,6 +4,7 @@
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/window.hpp"
 #include "../basic/number_text.hpp"
@@ -21,7 +22,19 @@ namespace {
 
 constexpr double natural_side = 32.0;
 
-constexpr std::array<PartField<ProgressRing::Parts>, 4> progress_ring_part_fields{{
+// The ProgressRingStyle enumeration, numbered as declared. Static storage;
+// any thread may read it.
+std::shared_ptr<const PropertyEnumDescriptor> progress_ring_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "progress_ring_style", {{"theme", 0}, {"dots", 1}, {"arc", 2}}, false});
+    return value;
+}
+
+// A whole turn in radians (PartArc's angles).
+constexpr double whole_turn = 6.283185307179586476925;
+
+constexpr std::array<PartField<ProgressRing::Parts>, 6> progress_ring_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ProgressRing::Parts::region},
     {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}, .states = {}},
@@ -30,9 +43,13 @@ constexpr std::array<PartField<ProgressRing::Parts>, 4> progress_ring_part_field
      .member = &ProgressRing::Parts::fill},
     {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}, .states = {}},
      .member = &ProgressRing::Parts::activity},
+    {.declaration = {.name = "arc_track", .role = PartRole::arc, .composed_from = {}, .states = {}},
+     .member = &ProgressRing::Parts::arc_track},
+    {.declaration = {.name = "value_arc", .role = PartRole::arc, .composed_from = {}, .states = {}},
+     .member = &ProgressRing::Parts::value_arc},
 }};
 
-constexpr std::array<PartDeclaration, 4> progress_ring_parts = part_declarations(progress_ring_part_fields);
+constexpr std::array<PartDeclaration, 6> progress_ring_parts = part_declarations(progress_ring_part_fields);
 
 // "indeterminate" (AnatomyState::indeterminate, as on ProgressBar) names the
 // turning ring for a theme's selectors (`:state(indeterminate)`).
@@ -122,6 +139,47 @@ void ProgressRing::on_detached_from_window() noexcept {
     Control::on_detached_from_window();
 }
 
+bool ProgressRing::draws_arc() const {
+    const ProgressRingStyle style = ring_style.read();
+    if (style == ProgressRingStyle::arc) return true;
+    if (style != ProgressRingStyle::theme) return false;
+    const AnatomyStateSet states = anatomy_states();
+    const ControlVisualContext context = part_visual_context(*this, states);
+    const ResolvedControlRecipe resolved =
+        effective_theme().resolve(*this, ControlVisualRole::progress, context, states);
+    const bool arc = resolved.recipe().ring_style == RingStyle::arc;
+    return arc;
+}
+
+// The track, then the value arc over it. Determinate, the value arc's
+// sweep is the fraction's share of the turn from twelve o'clock (none for
+// an empty ring); indeterminate, run_count / dot_count of the turn starting
+// at the phase's step.
+void ProgressRing::paint_arc_ring(Painter& painter, Rect square) const {
+    const AnatomyStateSet states = anatomy_states();
+    PartPaint track{};
+    track.role = PartRole::arc;
+    track.family = ControlVisualRole::progress;
+    track.bounds = square;
+    track.key = PartKey{"arc_track", {}, {}};
+    track.states = states;
+    track.arc = PartArc{.start = 0.0, .sweep = whole_turn};
+    paint_part(painter, *this, track);
+    double start = 0.0;
+    double sweep = whole_turn * fraction();
+    if (indeterminate.read()) {
+        const double steps = static_cast<double>(dot_count);
+        start = whole_turn * static_cast<double>(phase_) / steps;
+        sweep = whole_turn * static_cast<double>(run_count) / steps;
+    }
+    if (!(sweep > 0.0)) return;
+    PartPaint lit = track;
+    lit.key = PartKey{"value_arc", {}, {}};
+    lit.states.insert(AnatomyState::selected);
+    lit.arc = PartArc{.start = start, .sweep = sweep};
+    paint_part(painter, *this, lit);
+}
+
 Rect ProgressRing::ring_square() const noexcept {
     const Rect client = client_rectangle();
     const double side = std::min(client.width, client.height);
@@ -142,6 +200,10 @@ void ProgressRing::on_paint(Painter& painter, Rect) {
     if (indeterminate.read()) {
         ++paints_;
         update_motion(true);
+    }
+    if (draws_arc()) {
+        paint_arc_ring(painter, ring_square());
+        return;
     }
     const detail::RingPlacement ring = detail::place_ring(ring_square(), dot_count);
     detail::RingLighting lighting{};
@@ -207,6 +269,12 @@ void ProgressRing::publish_part_geometry(std::span<PartGeometry> geometry) const
     Parts record;
     const Rect square = ring_square();
     record.region = PartGeometry::from_bounds(client_rectangle());
+    if (draws_arc()) {
+        record.arc_track = PartGeometry::from_bounds(square);
+        if (indeterminate.read() || fraction() > 0.0) record.value_arc = PartGeometry::from_bounds(square);
+        write_parts(anatomy(), progress_ring_part_fields, record, geometry);
+        return;
+    }
     record.track = PartGeometry::from_bounds(square);
     if (indeterminate.read()) {
         record.activity = PartGeometry::from_bounds(square);
@@ -293,10 +361,49 @@ const PropertyDescriptor& describe_progress_ring_indeterminate() {
     return descriptor;
 }
 
+PropertyDescriptor progress_ring_ring_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "ring_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "How the ring is drawn: as the theme says, as dots or as one continuous arc.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"progress_ring_style", "theme", 0}};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.bindable = false;
+    descriptor.enumeration = progress_ring_style_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_progress_ring_ring_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        progress_ring_ring_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
+PropertyType PropertyValueTraits<ProgressRingStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, progress_ring_style_enum()};
+}
+
+BindingValue PropertyValueTraits<ProgressRingStyle>::to_binding(ProgressRingStyle value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = progress_ring_style_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ProgressRingStyle PropertyValueTraits<ProgressRingStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ProgressRingStyle>(choice.value);
+}
+
 const std::array<PropertyEntry, ProgressRing::progress_ring_property_count>& ProgressRing::progress_ring_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 3U> own{{
+    static constexpr std::array<PropertyEntry, 4U> own{{
         {"value", &describe_progress_ring_value,
          &read_cell_entry<ProgressRing, decltype(&ProgressRing::value), &ProgressRing::value>,
          &write_cell_entry<ProgressRing, decltype(&ProgressRing::value), &ProgressRing::value>,
@@ -310,6 +417,11 @@ const std::array<PropertyEntry, ProgressRing::progress_ring_property_count>& Pro
         {"indeterminate", &describe_progress_ring_indeterminate,
          &read_cell_entry<ProgressRing, decltype(&ProgressRing::indeterminate), &ProgressRing::indeterminate>,
          &write_cell_entry<ProgressRing, decltype(&ProgressRing::indeterminate), &ProgressRing::indeterminate>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"ring_style", &describe_progress_ring_ring_style,
+         &read_cell_entry<ProgressRing, decltype(&ProgressRing::ring_style), &ProgressRing::ring_style>,
+         &write_cell_entry<ProgressRing, decltype(&ProgressRing::ring_style), &ProgressRing::ring_style>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};
@@ -342,6 +454,14 @@ void ProgressRing::prepare_write(const decltype(maximum)&, double& incoming) {
 
 void ProgressRing::written(const decltype(maximum)&) {
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void ProgressRing::prepare_write(const decltype(ring_style)&, ProgressRingStyle&) {
+    require_mutable();
+}
+
+void ProgressRing::written(const decltype(ring_style)&) {
+    invalidate(Dirty::paint);
 }
 
 // property_codemod end ProgressRing

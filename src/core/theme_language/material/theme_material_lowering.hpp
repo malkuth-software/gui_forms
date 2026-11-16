@@ -121,6 +121,9 @@ enum class MaterialProperty : std::uint8_t {
     needle_shape,
     scrim_color,
     stroke_width,
+    // How ProgressRing draws its ring (`ring-style: dots | arc`), on the
+    // control (RecipeField::ring_style).
+    ring_style,
     // A progress fill's stripe pattern (the barber pole, owner rulings of
     // 2026-11-11): recipe fields of a named part (RecipeField::stripe_pitch
     // on), read by the stripe effect.

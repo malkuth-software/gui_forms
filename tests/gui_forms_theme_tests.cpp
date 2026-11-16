@@ -560,6 +560,7 @@ void print_difference(ControlVisualRole role, std::size_t state, bool selected, 
     if (evaluated.fill_text != expected.fill_text) std::cerr << " fill_text";
     if (evaluated.stroke_width != expected.stroke_width) std::cerr << " stroke_width";
     if (evaluated.needle_shape != expected.needle_shape) std::cerr << " needle_shape";
+    if (evaluated.ring_style != expected.ring_style) std::cerr << " ring_style";
     if (evaluated.scrim != expected.scrim) std::cerr << " scrim";
     if (!(evaluated.canvas == expected.canvas)) {
         std::cerr << " canvas";

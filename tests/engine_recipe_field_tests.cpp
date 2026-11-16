@@ -10,6 +10,7 @@
 #include "gui_forms/control.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/progress_ring.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
@@ -97,7 +98,7 @@ void test_field_names() {
         "stripe_pitch", "stripe_ratio", "stripe_angle", "stripe_lean", "stripe_direction", "stripe_speed",
         "stripe_colour", "stripe_ground_colour", "stripe_gloss", "stripe_reduced_motion",
         "fill_colour", "stroke_colour", "stroke_dash", "stroke_gap", "halo_width", "halo_colour", "corner_radius",
-        "grid_spacing", "grid_band", "texture_layers", "flow_style", "flow_speed", "flow_spacing",
+        "grid_spacing", "grid_band", "texture_layers", "flow_style", "flow_speed", "flow_spacing", "ring_style",
     };
     require(names.size() == recipe_field_count, "every recipe field is named");
     for (std::size_t index = 0U; index < names.size(); ++index) {
@@ -540,6 +541,51 @@ void test_kept_recipes() {
     require(after.authored() && after.recipe().text == blue, "a parent's class written after a resolve is inherited");
 }
 
+// RecipeField::ring_style (claude/geometry-1): a rule naming a ring sets its
+// style; a ProgressRing whose ring_style is `theme` follows it, its own
+// style stands over it, and a value outside the enumeration is dropped.
+void test_ring_style() {
+    ThemeRuleSheet sheet{};
+    ThemeRule wrong = control_rule("wrong", "ring");
+    RecipeDeclaration outside{};
+    outside.field = RecipeField::ring_style;
+    outside.ring_style = static_cast<RingStyle>(7);
+    wrong.recipe_fields.push_back(outside);
+    sheet.rules.push_back(wrong);
+    const CompiledThemeRules refused = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(has_diagnostic(refused, RuleDiagnosticKind::recipe_field_invalid, "wrong", "ring_style"),
+            "a ring style outside the enumeration is dropped");
+
+    std::vector<ThemeRule> rules{};
+    ThemeRule arc = control_rule("ring", "ring");
+    RecipeDeclaration style{};
+    style.field = RecipeField::ring_style;
+    style.ring_style = RingStyle::arc;
+    arc.recipe_fields.push_back(style);
+    rules.push_back(arc);
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
+    std::shared_ptr<ProgressRing> ring = make_control<ProgressRing>(StableId("ring"));
+    std::shared_ptr<ProgressRing> plain = make_control<ProgressRing>(StableId("plain"));
+    (*ring).set_requested_bounds(Rect{0.0, 0.0, 40.0, 40.0});
+    (*plain).set_requested_bounds(Rect{40.0, 0.0, 40.0, 40.0});
+    (*root).add_child(ring);
+    (*root).add_child(plain);
+    Window window(root, Size{100.0, 100.0});
+    const std::unique_ptr<ThemeDefinition> held_definition = test_support::professional_definition();
+    ThemeDefinition& definition = *held_definition;
+    definition.id = "engine-recipe-field-ring-test";
+    definition.rules.rules = rules;
+    window.set_theme(Theme::create(definition));
+    require(window.theme().engine().rules().diagnostics().empty(), "the ring theme compiles cleanly");
+    window.perform_layout();
+    require((*ring).draws_arc() && !(*plain).draws_arc(), "the theme's ring-style reaches the ring it names");
+    require((*ring).parts().arc_track.present && !(*ring).parts().track.present,
+            "an arc ring publishes its arc track, not its dots");
+    (*ring).ring_style = ProgressRingStyle::dots;
+    (*plain).ring_style = ProgressRingStyle::arc;
+    require(!(*ring).draws_arc() && (*plain).draws_arc(), "the ring's own style stands over the theme's");
+}
+
 int main() {
     test_field_names();
     test_compile();
@@ -552,6 +598,7 @@ int main() {
     test_label_part();
     test_authored_colours();
     test_kept_recipes();
+    test_ring_style();
     std::cout << "gui_forms_engine_recipe_field_tests: passed\n";
     return 0;
 }

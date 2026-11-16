@@ -1856,6 +1856,10 @@ Types
 
       Default: ``{NeedleShape::tapered}``.
 
+   .. cpp:member:: RingStyle ring_style
+
+      How a ring of progress is drawn (RecipeField::ring_style): every built-in recipe draws dots. Default: ``{RingStyle::dots}``.
+
    .. cpp:member:: Color scrim
 
       Default: ``{Color::rgba(16, 24, 32, 96)}``.
@@ -5805,7 +5809,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, ``font_family`` (FontSpec::family, zero for the role's faces alone) and ``font_stack`` (FontSpec::stack, the families listed after the first; zero for none); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``; - the canvas fields: fill_colour, stroke_colour and halo_colour ``colour``; stroke_dash, stroke_gap, halo_width, corner_radius, grid_spacing, grid_band and flow_spacing (logical units, em admitted), and flow_speed (world units a second) ``number``; flow_style ``flow_style``; texture_layers ``texture``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, ``font_family`` (FontSpec::family, zero for the role's faces alone) and ``font_stack`` (FontSpec::stack, the families listed after the first; zero for none); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``; - the canvas fields: fill_colour, stroke_colour and halo_colour ``colour``; stroke_dash, stroke_gap, halo_width, corner_radius, grid_spacing, grid_band and flow_spacing (logical units, em admitted), and flow_speed (world units a second) ``number``; flow_style ``flow_style``; texture_layers ``texture``; - ring_style: ``ring_style``.
 
    .. cpp:member:: RecipeField field
 
@@ -5824,6 +5828,10 @@ Types
    .. cpp:member:: NeedleShape needle_shape
 
       Default: ``{NeedleShape::tapered}``.
+
+   .. cpp:member:: RingStyle ring_style
+
+      Default: ``{RingStyle::dots}``.
 
    .. cpp:member:: StripeSense stripe_sense
 
@@ -8997,6 +9005,8 @@ Enumerations
 
    .. cpp:enumerator:: flow_spacing
 
+   .. cpp:enumerator:: ring_style
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -9050,6 +9060,16 @@ Enumerations
    .. cpp:enumerator:: input_out_of_range
 
    .. cpp:enumerator:: choices_invalid
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RingStyle
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: dots
+
+   .. cpp:enumerator:: arc
 
 .. cpp:namespace:: gui_forms
 

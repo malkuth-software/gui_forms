@@ -2401,7 +2401,9 @@
         {"name": "region", "role": "region", "composed_from": null, "states": []},
         {"name": "track", "role": "track", "composed_from": null, "states": []},
         {"name": "fill", "role": "fill", "composed_from": null, "states": []},
-        {"name": "activity", "role": "activity", "composed_from": null, "states": []}
+        {"name": "activity", "role": "activity", "composed_from": null, "states": []},
+        {"name": "arc_track", "role": "arc", "composed_from": null, "states": []},
+        {"name": "value_arc", "role": "arc", "composed_from": null, "states": []}
       ],
       "states": ["normal", "indeterminate", "enabled", "disabled", "reduced_motion"],
       "custom_states": [],
@@ -2446,6 +2448,7 @@
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "padding", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "right_to_left", "kind": "enumeration", "category": "Appearance", "enumeration": "right_to_left", "choices": ["no", "yes", "inherit"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "ring_style", "kind": "enumeration", "category": "Appearance", "enumeration": "progress_ring_style", "choices": ["theme", "dots", "arc"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},

@@ -2316,6 +2316,14 @@ void test_progress_ring_properties() {
         expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
                "ProgressRing.indeterminate: the table reads the cell");
     }
+    {
+        const ProgressRingStyle sample = ProgressRingStyle::arc;
+        (*control).ring_style = sample;
+        expect((*control).ring_style.read() == sample, "ProgressRing.ring_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("ring_style");
+        expect(by_name && *by_name == PropertyValueTraits<ProgressRingStyle>::to_binding(sample),
+               "ProgressRing.ring_style: the table reads the cell");
+    }
 }
 
 void test_property_grid_properties() {

@@ -757,6 +757,9 @@ void test_dial_parts_in_the_stock_themes() {
     const ControlVisualRecipe& thin = (*professional).resolve(ControlVisualRole::progress, resting);
     require(near(thin.stroke_width, 3.0) && thin.needle_shape == NeedleShape::line && thin.scrim.alpha == 77U,
             "windows-professional draws thin arcs, a line needle and a light scrim");
+    require(gauge.ring_style == RingStyle::dots && forced.ring_style == RingStyle::dots &&
+                thin.ring_style == RingStyle::dots,
+            "every stock theme keeps the progress ring's dots");
 }
 
 // GAPS T1: in forced high contrast the track is the band's outline (one-unit

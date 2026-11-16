@@ -1288,6 +1288,81 @@ void test_progress_ring() {
     require(!clock.control_ambient(*ring) && (*ring).parts().fill.present, "turning determinate again leaves the clock");
 }
 
+// Keeps each stroked path's trim and width (the arc ring's parts reach the
+// painter as trimmed circles, claude/geometry-1).
+class TrimWatch final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    void stroke_path(PaintPathView, const StrokeStyle& style) override { trims.push_back(style.trim); }
+
+    std::vector<StrokeTrim> trims;
+};
+
+bool near_trim(const StrokeTrim& trim, double start, double end, double offset) {
+    const bool close = std::abs(trim.start - start) < 1e-12 && std::abs(trim.end - end) < 1e-12 &&
+                       std::abs(trim.offset - offset) < 1e-12;
+    return close;
+}
+
+// ProgressRing's continuous arc (claude/geometry-1): the default (theme)
+// style under the built-in theme draws dots; `arc` draws the full track and
+// a value arc trimmed to the fraction, or a quarter-turn run from the phase
+// while indeterminate; the parts follow the style.
+void test_progress_ring_arc() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.arc.root"));
+    const std::shared_ptr<ProgressRing> ring = make_control<ProgressRing>(StableId("display.arc"));
+    (*ring).set_requested_bounds(Rect{0.0, 0.0, 64.0, 64.0});
+    (*ring).value = 40.0;
+    (*root).add_child(ring);
+    ManualTime time;
+    Window window(root, Size{100.0, 100.0});
+    window.motion_clock().set_time_source(&time);
+    window.perform_layout();
+    require((*ring).ring_style.read() == ProgressRingStyle::theme && !(*ring).draws_arc(),
+            "by default the ring follows the theme, and the built-in theme draws dots");
+    TrimWatch dotted;
+    (*ring).on_paint(dotted, Rect{0.0, 0.0, 64.0, 64.0});
+    require(dotted.trims.empty(), "a dotted ring strokes no arc");
+
+    (*ring).ring_style = ProgressRingStyle::arc;
+    window.perform_layout();
+    require((*ring).draws_arc(), "the arc style draws the arc");
+    const ProgressRing::Parts arc_parts = (*ring).parts();
+    require(arc_parts.arc_track.present && arc_parts.value_arc.present && !arc_parts.track.present &&
+                !arc_parts.fill.present,
+            "an arc ring publishes its arc track and value arc");
+    TrimWatch determinate;
+    (*ring).on_paint(determinate, Rect{0.0, 0.0, 64.0, 64.0});
+    require(determinate.trims.size() == 2U && near_trim(determinate.trims[0], 0.0, 1.0, 0.0) &&
+                near_trim(determinate.trims[1], 0.0, 0.4, 0.0),
+            "the track is the whole circle and the value arc 40 % of it from twelve o'clock");
+    (*ring).value = 0.0;
+    TrimWatch empty;
+    (*ring).on_paint(empty, Rect{0.0, 0.0, 64.0, 64.0});
+    require(empty.trims.size() == 1U && !(*ring).parts().value_arc.present, "an empty ring draws its track alone");
+
+    (*ring).indeterminate = true;
+    window.perform_layout();
+    TrimWatch turning;
+    (*ring).on_paint(turning, Rect{0.0, 0.0, 64.0, 64.0});
+    require(turning.trims.size() == 2U && near_trim(turning.trims[1], 0.0, 0.25, 0.0) &&
+                (*ring).parts().value_arc.present,
+            "indeterminate, a quarter-turn run starts at twelve o'clock");
+    advance(window, time, std::chrono::milliseconds(90));
+    TrimWatch moved;
+    (*ring).on_paint(moved, Rect{0.0, 0.0, 64.0, 64.0});
+    require((*ring).phase() == 3U && moved.trims.size() == 2U && near_trim(moved.trims[1], 0.0, 0.25, 0.075),
+            "the run turns a fortieth of the ring per step");
+}
+
 } // namespace
 
 int main() {
@@ -1309,6 +1384,7 @@ int main() {
     test_search_field_busy_motion();
     test_spinner();
     test_progress_ring();
+    test_progress_ring_arc();
     std::cout << "display control tests passed\n";
     return EXIT_SUCCESS;
 }

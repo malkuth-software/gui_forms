@@ -186,6 +186,9 @@ struct GUI_FORMS_API ControlVisualRecipe final {
     // its alpha the opacity, a scrim covers what lies behind with.
     double stroke_width{4.0};
     NeedleShape needle_shape{NeedleShape::tapered};
+    // How a ring of progress is drawn (RecipeField::ring_style): every
+    // built-in recipe draws dots.
+    RingStyle ring_style{RingStyle::dots};
     Color scrim{Color::rgba(16, 24, 32, 96)};
     // A node canvas part's paint, where a rule naming the part sets it.
     ControlCanvasPaint canvas{};
@@ -204,7 +207,8 @@ struct GUI_FORMS_API ControlVisualRecipe final {
         left.pressed_content_offset == right.pressed_content_offset &&
         left.text_shadow == right.text_shadow && left.part_metrics == right.part_metrics &&
         left.fill_text == right.fill_text && left.stroke_width == right.stroke_width &&
-        left.needle_shape == right.needle_shape && left.scrim == right.scrim && left.canvas == right.canvas)) {
+        left.needle_shape == right.needle_shape && left.ring_style == right.ring_style &&
+        left.scrim == right.scrim && left.canvas == right.canvas)) {
         return left.material == right.material && left.text == right.text &&
                left.muted_text == right.muted_text &&
                left.glyph == right.glyph &&
@@ -219,7 +223,8 @@ struct GUI_FORMS_API ControlVisualRecipe final {
                left.pressed_content_offset == right.pressed_content_offset &&
                left.text_shadow == right.text_shadow && left.part_metrics == right.part_metrics &&
                left.fill_text == right.fill_text && left.stroke_width == right.stroke_width &&
-               left.needle_shape == right.needle_shape && left.scrim == right.scrim && left.canvas == right.canvas;
+               left.needle_shape == right.needle_shape && left.ring_style == right.ring_style &&
+               left.scrim == right.scrim && left.canvas == right.canvas;
     }
 };
 

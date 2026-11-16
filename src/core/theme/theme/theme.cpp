@@ -878,7 +878,8 @@ bool valid_recipe(const ControlVisualRecipe& value) noexcept {
            std::abs(value.pressed_content_offset.y) <= 32.0 && std::isfinite(value.stroke_width) &&
            value.stroke_width >= 0.0 && value.stroke_width <= maximum_recipe_stroke_width &&
            (value.needle_shape == NeedleShape::line || value.needle_shape == NeedleShape::tapered ||
-            value.needle_shape == NeedleShape::dot);
+            value.needle_shape == NeedleShape::dot) &&
+           (value.ring_style == RingStyle::dots || value.ring_style == RingStyle::arc);
 }
 
 // An image fill layer in its mode.
@@ -2322,6 +2323,8 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     if (stroke != nullptr) recipe.stroke_width = (*stroke).number;
     const RecipeDeclaration* const needle = set_recipe_field(fields, RecipeField::needle_shape);
     if (needle != nullptr) recipe.needle_shape = (*needle).needle_shape;
+    const RecipeDeclaration* const ring = set_recipe_field(fields, RecipeField::ring_style);
+    if (ring != nullptr) recipe.ring_style = (*ring).ring_style;
     const RecipeDeclaration* const scrim = set_recipe_field(fields, RecipeField::scrim_colour);
     if (scrim != nullptr) recipe.scrim = (*scrim).colour;
     const RecipeDeclaration* const style = set_recipe_field(fields, RecipeField::outline_style);

@@ -1186,6 +1186,13 @@ enum class RecipeField : std::uint8_t {
     flow_style,
     flow_speed,
     flow_spacing,
+    // How a ring of progress is drawn (`ring-style: dots | arc`;
+    // claude/geometry-1, owner decision 3 of the 2026-11-16 capability
+    // review, spelling to confirm): ProgressRing's ring of dots or its
+    // continuous arc (RingStyle). Read from the control's own recipe
+    // (Theme::resolve with no part), where the control's style property is
+    // `theme`.
+    ring_style,
     count,
 };
 
@@ -1210,6 +1217,12 @@ enum class RecipeOutlineStyle : std::uint8_t { ring, solid, none, dotted };
 // at the tip alone, with no hub (`dot`). A line and a blade have a round
 // hub one and a half stroke widths across.
 enum class NeedleShape : std::uint8_t { line, tapered, dot };
+
+// How a ring of progress is drawn (CSS-like `ring-style`): a ring of
+// separate dots, each a part (`dots`, the built-in look), or one
+// continuous arc over a full-circle track (`arc`), stroked with a trim
+// (StrokeTrim) through the arc part role.
+enum class RingStyle : std::uint8_t { dots, arc };
 
 // A stripe's sense along its bar (`stripe-lean`, `stripe-direction`): toward
 // the leading edge, where the fill grows (`forward`), or away from it
@@ -1354,7 +1367,8 @@ struct GUI_FORMS_API CanvasTextureLayers final {
 //   `colour`; stroke_dash, stroke_gap, halo_width, corner_radius,
 //   grid_spacing, grid_band and flow_spacing (logical units, em admitted),
 //   and flow_speed (world units a second) `number`; flow_style
-//   `flow_style`; texture_layers `texture`.
+//   `flow_style`; texture_layers `texture`;
+// - ring_style: `ring_style`.
 struct GUI_FORMS_API RecipeDeclaration final {
     RecipeField field{RecipeField::text};
     bool initial{};
@@ -1362,6 +1376,7 @@ struct GUI_FORMS_API RecipeDeclaration final {
     double number{};
     RecipeOutlineStyle outline_style{RecipeOutlineStyle::ring};
     NeedleShape needle_shape{NeedleShape::tapered};
+    RingStyle ring_style{RingStyle::dots};
     // The stripe pattern's keywords (stripe_lean and stripe_direction,
     // stripe_gloss, stripe_reduced_motion).
     StripeSense stripe_sense{StripeSense::forward};
@@ -1394,8 +1409,8 @@ struct GUI_FORMS_API RecipeDeclaration final {
                left.font_role == right.font_role && left.font_family == right.font_family &&
                left.font_stack == right.font_stack && left.italic == right.italic &&
                left.number == right.number && left.outline_style == right.outline_style &&
-               left.needle_shape == right.needle_shape && left.stripe_sense == right.stripe_sense &&
-               left.stripe_gloss == right.stripe_gloss &&
+               left.needle_shape == right.needle_shape && left.ring_style == right.ring_style &&
+               left.stripe_sense == right.stripe_sense && left.stripe_gloss == right.stripe_gloss &&
                left.stripe_reduced_motion == right.stripe_reduced_motion &&
                left.flow_style == right.flow_style && left.texture == right.texture &&
                left.shadowed == right.shadowed && left.shadow_offset == right.shadow_offset &&
