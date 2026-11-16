@@ -28,6 +28,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -65,7 +66,7 @@ void add_at(const std::shared_ptr<Parent>& parent,
 std::shared_ptr<Label> make_label(std::string id, std::string text,
                                   FontSpec font, Color color = ink) {
     std::shared_ptr<Label> result = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*result).font = font;
+    (*result).font = stxlib::Optional<FontSpec>::of(font);
     (*result).fore_color = color;
     return result;
 }

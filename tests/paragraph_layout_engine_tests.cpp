@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -174,7 +175,7 @@ void test_matches_text_block(HarfBuzzFontEngine& engine) {
             for (const LayoutDirection direction : directions) {
                 const std::string what = text + " at " + std::to_string(width);
                 std::shared_ptr<TextBlock> block = make_control<TextBlock>(StableId("engine.paragraph"), text);
-                (*block).font = content(13.0);
+                (*block).font = stxlib::Optional<FontSpec>::of(content(13.0));
                 (*block).margin = {0.0, 0.0, 0.0, 0.0};
                 (*block).padding = {0.0, 0.0, 0.0, 0.0};
                 (*block).layout_direction = direction;

@@ -33,6 +33,7 @@
 #include <cstdio>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -235,7 +236,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     (*context).compiled = std::move(compiled);
     // Pages capture the status line while they are built; the form made it.
     (*context).status = window.gallery_status_text;
-    (*(*context).status).font = FontSpec{FontRole::content, 11.0, 600, false};
+    (*(*context).status).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 11.0, 600, false});
     static_cast<void>((*(*context).status).add_class("heading"));
     // The form lays the shell out (demo/gallery.form): nothing scales with
     // the window, so a resize moves or resizes only the docked parts it
@@ -356,7 +357,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         (*viewport).add_child(page);
         std::shared_ptr<Label> title = label(surface_id + ".title", std::string(spec.title),
                                              15.0, 700, "heading");
-        (*title).font = FontSpec{FontRole::control, 15.0, 700, false};
+        (*title).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 15.0, 700, false});
         (*page).add_at(title, {0.0, 4.0, 1000.0, 22.0});
         if (demonstrated.empty()) {
             std::shared_ptr<Label> summary = label(surface_id + ".summary",

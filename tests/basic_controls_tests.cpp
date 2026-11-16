@@ -1354,7 +1354,7 @@ void test_label_line_limit_bounds_hidden_wrapping_work() {
     for (std::size_t index = 0U; index < 4096U; ++index) source.append("one two three x ");
     const std::shared_ptr<Label> label = make_control<Label>(StableId("label.preview-cost"), source);
     (*label).set_requested_bounds({0.0, 0.0, 190.0, 108.0});
-    (*label).font = FontSpec{FontRole::content, 13.0, 400, false};
+    (*label).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 13.0, 400, false});
     (*label).text_wrapping = TextWrapping::word;
     (*label).maximum_lines = 7U;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{190.0, 108.0});
@@ -1537,7 +1537,7 @@ void test_label_inherits_theme_typography_until_explicitly_overridden() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.theme"), "Heading");
     (*label).set_theme_override(Theme::create(definition));
     (*label).text_style_role = TextStyleRole::heading;
-    require(!(*label).font.read().has_value() &&
+    require((*label).font.read().absent() &&
                 (*label).resolved_font() == FontSpec{FontRole::control, 17.0, 650, false,
                                           0.31} &&
                 !(*label).fore_color.read().has_value() &&
@@ -1545,12 +1545,12 @@ void test_label_inherits_theme_typography_until_explicitly_overridden() {
             "Label must resolve typography and text color from inherited theme roles");
 
     const FontSpec explicit_font{FontRole::content, 11.0, 500, true};
-    (*label).font = explicit_font;
+    (*label).font = stxlib::Optional<FontSpec>::of(explicit_font);
     (*label).text_style_role = TextStyleRole::title;
-    require((*label).font.read().has_value() && (*label).resolved_font() == explicit_font,
+    require((*label).font.read().present() && (*label).resolved_font() == explicit_font,
             "explicit Label font must remain authoritative across role changes");
-    (*label).font = std::nullopt;
-    require(!(*label).font.read().has_value() &&
+    (*label).font = stxlib::Optional<FontSpec>::none();
+    require((*label).font.read().absent() &&
                 (*label).resolved_font() == FontSpec{FontRole::control, 23.0, 700, false,
                                           0.19},
             "clearing Label font must restore inherited role typography");

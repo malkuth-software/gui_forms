@@ -81,8 +81,8 @@ TextBlock::TextBlock(StableId stable_id, std::string initial_text)
 }
 
 FontSpec TextBlock::resolved_font() const noexcept {
-    const std::optional<FontSpec>& own = font.read();
-    if (own) return *own;
+    const FontSpec* own = font.read().value();
+    if (own != nullptr) return *own;
     return effective_theme().structure().typography.field;
 }
 
@@ -98,16 +98,16 @@ BindingValue TextBlock::font_property_value() const {
 }
 
 void TextBlock::reset_font() {
-    font = std::nullopt;
+    font = stxlib::Optional<FontSpec>::none();
 }
 
 bool TextBlock::font_serialized() const {
-    const bool own = font.read().has_value();
+    const bool own = font.read().present();
     return own;
 }
 
 PropertyValueOrigin TextBlock::font_property_origin() const noexcept {
-    return font.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+    return font.read().present() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
 }
 
 BindingValue TextBlock::fore_color_property_value() const {
@@ -148,12 +148,13 @@ void TextBlock::write_line_height_property(const BindingValue& value) {
 
 // A present font must be valid; writing one records that code chose it,
 // and clearing it lets the theme's typography return.
-void TextBlock::prepare_write(const decltype(font)&, std::optional<FontSpec>& incoming) {
+void TextBlock::prepare_write(const decltype(font)&, stxlib::Optional<FontSpec>& incoming) {
     require_mutable();
-    if (incoming && !valid_font_spec(*incoming)) {
+    const FontSpec* face = incoming.value();
+    if (face != nullptr && !valid_font_spec(*face)) {
         throw std::invalid_argument("TextBlock font is invalid");
     }
-    set_font_from_code(incoming.has_value());
+    set_font_from_code(face != nullptr);
 }
 
 void TextBlock::written(const decltype(font)&) {

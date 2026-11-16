@@ -51,7 +51,7 @@
     {
       "name": "font",
       "capability": "TextBlockFont",
-      "value": "std::optional<FontSpec>",
+      "value": "stxlib::Optional<FontSpec>",
       "initial": null,
       "comment": "The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).",
       "getter": "font",
@@ -85,7 +85,7 @@
       "hand": [
         "prepare validates a present font and records set_font_from_code; the table reads the resolved font"
       ],
-      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+      "sample": "stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false})"
     },
     {
       "name": "text_align",

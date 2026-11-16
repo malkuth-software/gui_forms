@@ -146,7 +146,7 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(text)& cell, std::string& incoming);
     void written(const decltype(text)& cell);
-    void prepare_write(const decltype(font)& cell, std::optional<FontSpec>& incoming);
+    void prepare_write(const decltype(font)& cell, stxlib::Optional<FontSpec>& incoming);
     void written(const decltype(font)& cell);
     void prepare_write(const decltype(text_align)& cell, TextAlignment& incoming);
     void written(const decltype(text_align)& cell);

@@ -53,7 +53,7 @@
     {
       "name": "font",
       "capability": "LabelFont",
-      "value": "std::optional<FontSpec>",
+      "value": "stxlib::Optional<FontSpec>",
       "initial": null,
       "comment": "The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).",
       "getter": "font",
@@ -87,7 +87,7 @@
       "hand": [
         "prepare validates a present font and records set_font_from_code; the table reads the resolved font"
       ],
-      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+      "sample": "stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false})"
     },
     {
       "name": "alignment",

@@ -214,9 +214,9 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(text_align)& cell, TextAlignment& incoming);
     void written(const decltype(text_align)& cell);
-    void prepare_write(const decltype(line_strut)& cell, std::optional<LineStrut>& incoming);
+    void prepare_write(const decltype(line_strut)& cell, stxlib::Optional<LineStrut>& incoming);
     void written(const decltype(line_strut)& cell);
-    void prepare_write(const decltype(font)& cell, std::optional<FontSpec>& incoming);
+    void prepare_write(const decltype(font)& cell, stxlib::Optional<FontSpec>& incoming);
     void written(const decltype(font)& cell);
     // property_codemod end BlockPanel
 };

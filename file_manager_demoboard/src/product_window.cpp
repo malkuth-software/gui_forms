@@ -124,7 +124,7 @@ std::shared_ptr<Label> label(std::string id, std::string text, Rect bounds,
                              FontSpec font = {FontRole::content, 11.0, 400, false}) {
     std::shared_ptr<gui_forms::Label> result = std::make_shared<Label>(StableId(std::move(id)), std::move(text));
     (*result).set_requested_bounds(bounds);
-    (*result).font = font;
+    (*result).font = stxlib::Optional<FontSpec>::of(font);
     (*result).fore_color = ink;
     return result;
 }
@@ -134,7 +134,7 @@ std::shared_ptr<Button> button(std::string id, std::string text, Rect bounds,
     std::shared_ptr<gui_forms::Button> result = std::make_shared<Button>(StableId(std::move(id)), std::move(text));
     (*result).set_requested_bounds(bounds);
     (*result).set_style(house_style());
-    (*result).font = FontSpec{FontRole::control, 10.0, 600, false, 0.18};
+    (*result).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 10.0, 600, false, 0.18});
     (*result).visual_style = visual;
     return result;
 }

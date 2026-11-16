@@ -32,6 +32,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -66,7 +67,7 @@ std::shared_ptr<Label> label(std::string id, std::string text, FontSpec font,
                              const Color color) {
     std::shared_ptr<Label> result = make_control<Label>(
         StableId(std::move(id)), std::move(text));
-    (*result).font = font;
+    (*result).font = stxlib::Optional<FontSpec>::of(font);
     (*result).fore_color = color;
     return result;
 }
@@ -191,7 +192,7 @@ std::shared_ptr<ButtonType> segment(std::string id, std::string text,
                                     const std::shared_ptr<LabRoot>& root) {
     std::shared_ptr<ButtonType> result = make_control<ButtonType>(
         StableId(std::move(id)), std::move(text));
-    (*result).font = {FontRole::control, 10.0, 600, false, 0.08};
+    (*result).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 10.0, 600, false, 0.08});
     (*result).margin = Insets{};
     add_at(root, result, bounds);
     return result;

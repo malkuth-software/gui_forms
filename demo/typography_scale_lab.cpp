@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -147,7 +148,7 @@ std::unique_ptr<Window> make_typography_scale_lab() {
     std::shared_ptr<Label> title = make_control<Label>(
         StableId("typography-scale.heading"),
         "Deterministic Typography + Scale");
-    (*title).font = FontSpec{FontRole::control, 20.0, 700, false, 0.20};
+    (*title).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 20.0, 700, false, 0.20});
     (*title).fore_color = Color::rgba(24, 54, 78);
     (*root).add_child(title);
     (*root).set_title(title);
@@ -155,7 +156,7 @@ std::unique_ptr<Window> make_typography_scale_lab() {
     std::shared_ptr<Label> status = make_control<Label>(
         StableId("typography-scale.status"),
         "Text scale 100% · display host-bound · effective FontSpec, exact face runs, logical metrics, and snapped baseline remain distinct");
-    (*status).font = FontSpec{FontRole::content, 10.0, 400, false};
+    (*status).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 10.0, 400, false});
     (*status).fore_color = Color::rgba(65, 83, 96);
     (*root).add_child(status);
     (*root).set_status(status);

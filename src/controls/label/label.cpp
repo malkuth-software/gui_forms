@@ -93,8 +93,8 @@ Label::Label(StableId stable_id, std::string initial_text) : Control(std::move(s
 }
 
 FontSpec Label::resolved_font() const noexcept {
-    const std::optional<FontSpec>& own = font.read();
-    if (own) return *own;
+    const FontSpec* own = font.read().value();
+    if (own != nullptr) return *own;
     const ThemeTypographyTokens& typography = effective_theme().structure().typography;
     switch (text_style_role.read()) {
     case TextStyleRole::body: return typography.field;
@@ -125,16 +125,16 @@ BindingValue Label::font_property_value() const {
 }
 
 void Label::reset_font() {
-    font = std::nullopt;
+    font = stxlib::Optional<FontSpec>::none();
 }
 
 bool Label::font_serialized() const {
-    const bool own = font.read().has_value();
+    const bool own = font.read().present();
     return own;
 }
 
 PropertyValueOrigin Label::font_property_origin() const noexcept {
-    return font.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+    return font.read().present() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
 }
 
 BindingValue Label::fore_color_property_value() const {
@@ -178,12 +178,13 @@ void Label::written(const decltype(text)&) {
 
 // A present font must be valid; writing one records that code chose it,
 // and clearing it lets the theme's typography return.
-void Label::prepare_write(const decltype(font)&, std::optional<FontSpec>& incoming) {
+void Label::prepare_write(const decltype(font)&, stxlib::Optional<FontSpec>& incoming) {
     require_mutable();
-    if (incoming && !valid_font_spec(*incoming)) {
+    const FontSpec* face = incoming.value();
+    if (face != nullptr && !valid_font_spec(*face)) {
         throw std::invalid_argument("Label font specification is invalid");
     }
-    set_font_from_code(incoming.has_value());
+    set_font_from_code(face != nullptr);
 }
 
 void Label::written(const decltype(font)&) {
@@ -208,7 +209,7 @@ void Label::prepare_write(const decltype(text_style_role)&, TextStyleRole& incom
 
 // The role chooses the font only while the label has none of its own.
 void Label::written(const decltype(text_style_role)&) {
-    if (!font.read().has_value()) {
+    if (font.read().absent()) {
         invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
     } else {
         invalidate(Dirty::semantics);

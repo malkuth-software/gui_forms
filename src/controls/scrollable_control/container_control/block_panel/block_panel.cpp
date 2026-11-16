@@ -224,8 +224,8 @@ void BlockPanel::set_style_property(const BindingValue& value) {
 }
 
 LineStrut BlockPanel::used_line_strut() const {
-    const std::optional<LineStrut>& own = line_strut.read();
-    if (own) return *own;
+    const LineStrut* own = line_strut.read().value();
+    if (own != nullptr) return *own;
     const FontSpec used = text_font(resolved_font());
     const ResolvedTextLayout primary = resolve_text_layout_utf8(" ", used);
     const LineBoxMetrics line = line_box_metrics(primary, std::nullopt);
@@ -234,20 +234,21 @@ LineStrut BlockPanel::used_line_strut() const {
 }
 
 FontSpec BlockPanel::resolved_font() const noexcept {
-    const std::optional<FontSpec>& own = font.read();
-    if (own) return *own;
+    const FontSpec* own = font.read().value();
+    if (own != nullptr) return *own;
     return effective_theme().structure().typography.field;
 }
 
-void BlockPanel::prepare_write(const decltype(font)&, std::optional<FontSpec>& incoming) {
+void BlockPanel::prepare_write(const decltype(font)&, stxlib::Optional<FontSpec>& incoming) {
     require_mutable();
-    if (incoming && !valid_font_spec(*incoming)) throw std::invalid_argument("BlockPanel font is invalid");
-    set_font_from_code(incoming.has_value());
+    const FontSpec* face = incoming.value();
+    if (face != nullptr && !valid_font_spec(*face)) throw std::invalid_argument("BlockPanel font is invalid");
+    set_font_from_code(face != nullptr);
 }
 
 // The font feeds only the strut, so a set strut makes a font change moot.
 void BlockPanel::written(const decltype(font)&) {
-    if (!line_strut.read()) invalidate(invalidation::bounds);
+    if (line_strut.read().absent()) invalidate(invalidation::bounds);
 }
 
 void BlockPanel::set_item_layout(const Control& child, const BlockFlowItemLayout& layout) {
@@ -747,9 +748,10 @@ void BlockPanel::written(const decltype(text_align)&) {
     invalidate(invalidation::bounds);
 }
 
-void BlockPanel::prepare_write(const decltype(line_strut)&, std::optional<LineStrut>& incoming) {
+void BlockPanel::prepare_write(const decltype(line_strut)&, stxlib::Optional<LineStrut>& incoming) {
     require_mutable();
-    if (incoming && !admitted_strut(*incoming)) {
+    const LineStrut* strut = incoming.value();
+    if (strut != nullptr && !admitted_strut(*strut)) {
         throw std::invalid_argument("BlockPanel line strut values must be finite and nonnegative");
     }
 }

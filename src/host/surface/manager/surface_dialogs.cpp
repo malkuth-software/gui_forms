@@ -8,6 +8,7 @@
 #include <cctype>
 #include <filesystem>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <system_error>
 #include <variant>
 
@@ -153,7 +154,7 @@ HostDialogResult message_dialog(NativeWindow& owner, const HostDialogRequest& re
     MessageState state(owner, request);
     const Size size{560.0, 250.0};
     const std::shared_ptr<Label> text = make_control<Label>(StableId("host.dialog.message"), message.message);
-    (*text).font = FontSpec{FontRole::content, 15, 400, false};
+    (*text).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 15, 400, false});
     (*text).text_wrapping = TextWrapping::word;
     (*text).set_bounds({22.0, 20.0, 516.0, 164.0});
     if (message.right_align || message.rtl_reading) (*text).alignment = HorizontalAlignment::far;

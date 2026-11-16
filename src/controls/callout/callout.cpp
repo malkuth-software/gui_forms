@@ -14,6 +14,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -172,7 +173,7 @@ void Callout::sync_children() {
     FontSpec title_font = text_font(effective_theme().structure().typography.control);
     title_font.weight = 600;
     title_font.size += title_size_increase;
-    (*title_label_).font = title_font;
+    (*title_label_).font = stxlib::Optional<FontSpec>::of(title_font);
     (*title_label_).text = title.read();
     set_child_layout_collapsed(title_label_, title.read().empty());
     (*text_label_).text = text.read();

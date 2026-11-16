@@ -118,7 +118,7 @@ FontSpec carlito(double size) {
 
 std::shared_ptr<TextBlock> text_block(const std::string& id, const std::string& text) {
     std::shared_ptr<TextBlock> made = make_control<TextBlock>(StableId(id), text);
-    (*made).font = carlito(13.0);
+    (*made).font = stxlib::Optional<FontSpec>::of(carlito(13.0));
     (*made).margin = {0.0, 0.0, 0.0, 0.0};
     return made;
 }
@@ -284,7 +284,7 @@ void test_properties_and_validation() {
         refused = true;
     }
     require(refused, "an unknown alignment is refused");
-    require(!(*block).font.read().has_value(), "the font is the theme's until set");
+    require((*block).font.read().absent(), "the font is the theme's until set");
     (*block).set_property_value("text_align", BindingValue{PropertyEnumValue{"text_alignment", "end", 1}});
     require((*block).text_align.read() == TextAlignment::end, "the text_align property sets the alignment");
     (*block).set_property_value("line_height", BindingValue{18.0});
@@ -310,7 +310,7 @@ void test_containers_align_by_baselines() {
     (*row).align_items = LayoutAlignment::baseline;
     std::shared_ptr<TextBlock> small = text_block("text.flex.small", "aaa");
     std::shared_ptr<TextBlock> large = text_block("text.flex.large", "bbb");
-    (*large).font = carlito(19.5);
+    (*large).font = stxlib::Optional<FontSpec>::of(carlito(19.5));
     (*row).add_child(small);
     (*row).add_child(large);
     const std::unique_ptr<Window> held = std::make_unique<Window>(row, Size{400.0, 300.0});
@@ -323,7 +323,7 @@ void test_containers_align_by_baselines() {
     (*grid).align_items = LayoutAlignment::baseline;
     std::shared_ptr<TextBlock> left = text_block("text.grid.small", "aaa");
     std::shared_ptr<TextBlock> right = text_block("text.grid.large", "bbb");
-    (*right).font = carlito(19.5);
+    (*right).font = stxlib::Optional<FontSpec>::of(carlito(19.5));
     GridTrackList columns{};
     columns.tracks.push_back(GridTrackSize{});
     columns.tracks.push_back(GridTrackSize{});
@@ -342,7 +342,7 @@ void test_containers_align_by_baselines() {
 void test_block_panel_strut_and_inline_baseline() {
     CarlitoProportions metrics{};
     std::shared_ptr<BlockPanel> flow = make_control<BlockPanel>(StableId("text.block"));
-    (*flow).font = carlito(19.5);
+    (*flow).font = stxlib::Optional<FontSpec>::of(carlito(19.5));
     std::shared_ptr<TextBlock> words = text_block("text.block.words", "aaa bbb");
     (*flow).add_child(words);
     BlockFlowItemLayout inline_layout{};
@@ -357,11 +357,11 @@ void test_block_panel_strut_and_inline_baseline() {
     (*held).perform_layout();
     require_near((*words).arranged_bounds().y, 19.0 - 12.0, "the block's baseline is on the strut's");
     require_near((*words).arranged_bounds().height, 15.0, "the block keeps its own line box");
-    (*flow).line_strut = LineStrut{};
+    (*flow).line_strut = stxlib::Optional<LineStrut>::of(LineStrut{});
     (*held).perform_layout();
     require_near((*words).arranged_bounds().y, 0.0, "a zero strut leaves the line as tall as the item");
-    (*flow).line_strut = std::nullopt;
-    require(!(*flow).line_strut.read().has_value(), "clearing it resumes the font's");
+    (*flow).line_strut = stxlib::Optional<LineStrut>::none();
+    require((*flow).line_strut.read().absent(), "clearing it resumes the font's");
 }
 
 } // namespace

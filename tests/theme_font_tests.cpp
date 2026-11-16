@@ -34,6 +34,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -244,11 +245,11 @@ void test_resolution() {
     require((*label).resolved_text_font(own).font.italic, "the class rule's style");
     require((*label).resolved_text_font(own).levels[style] == CascadeLevel::theme_sheet, "provenance: a sheet rule (the class rule)");
 
-    (*label).font = FontSpec{FontRole::content, 11.0, 400, false};
+    (*label).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 11.0, 400, false});
     const ResolvedFont coded = (*label).resolved_text_font((*label).resolved_font());
     require(coded.from_code && coded.font == FontSpec{FontRole::content, 11.0, 400, false},
             "a font set in code wins over the theme");
-    (*label).font = std::nullopt;
+    (*label).font = stxlib::Optional<FontSpec>::none();
     require(!(*label).resolved_text_font((*label).resolved_font()).from_code, "cleared, the theme's again");
 }
 

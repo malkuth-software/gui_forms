@@ -13,6 +13,7 @@
 #include <limits>
 #include <numeric>
 #include <stdexcept>
+#include <stxlib/optional.hpp>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -463,7 +464,7 @@ struct InstrumentRack::Impl final {
         module.status = make_control<Label>(
             StableId(module.spec.stable_id + ".state"),
             module.spec.status_text);
-        (*module.status).font = FontSpec{FontRole::control, 9.5, 600, false, 0.30};
+        (*module.status).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 9.5, 600, false, 0.30});
         (*module.status).margin = Insets{};
         (*module.status).accessible_name = "Application state";
         (*module.panel).add_child(module.status);

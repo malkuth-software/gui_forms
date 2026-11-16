@@ -30,6 +30,7 @@
 #include <cstdio>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -199,8 +200,7 @@ inline std::shared_ptr<Label> label(std::string id, std::string text,
                              double size = 12.0, int weight = 400,
                              std::string_view role_class = "ink") {
     std::shared_ptr<gui_forms::Label> control = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*control).font = FontSpec{FontRole::content, size,
-                       static_cast<std::uint16_t>(weight), false};
+    (*control).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, size, static_cast<std::uint16_t>(weight), false});
     static_cast<void>((*control).add_class(role_class));
     return control;
 }

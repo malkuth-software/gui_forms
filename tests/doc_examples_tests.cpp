@@ -292,7 +292,7 @@ void example() {
     std::shared_ptr<gf::BlockPanel> row =
         gf::make_control<gf::BlockPanel>(gf::StableId("row"));
     (*row).text_align = gf::TextAlignment::center;
-    (*row).line_strut = gf::LineStrut{};   // lines as tall as their items
+    (*row).line_strut = stxlib::Optional<gf::LineStrut>::of(gf::LineStrut{});   // lines as tall as their items
     gf::BlockFlowItemLayout atomic{};
     atomic.level = gf::BlockFlowLevel::inline_level;
     atomic.width = gf::SizeValue{gf::SizeKind::length_percentage,
@@ -3456,7 +3456,7 @@ void example() {
     (*column).flex_direction = gf::FlexDirection::column;
     std::shared_ptr<gf::TextBlock> heading = gf::make_control<gf::TextBlock>(
         gf::StableId("article.heading"), "Export settings");
-    (*heading).font = gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0};
+    (*heading).font = stxlib::Optional<gf::FontSpec>::of(gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0});
     std::shared_ptr<gf::TextBlock> body = gf::make_control<gf::TextBlock>(
         gf::StableId("article.body"),
         "Exported files keep their names; existing files are never overwritten.");
@@ -3478,7 +3478,7 @@ void example() {
         gf::make_control<gf::TextBlock>(gf::StableId("rate.caption"), "Rate");
     std::shared_ptr<gf::TextBlock> value =
         gf::make_control<gf::TextBlock>(gf::StableId("rate.value"), "42 MB/s");
-    (*value).font = gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0};
+    (*value).font = stxlib::Optional<gf::FontSpec>::of(gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0});
     (*row).add_child(caption);
     (*row).add_child(value);
 

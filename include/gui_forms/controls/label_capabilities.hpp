@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -31,9 +32,9 @@ namespace gui_forms {
 // The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).
 template <typename Declaring>
 struct LabelFontCapability {
-    PropertyCell<std::optional<FontSpec>, LabelFontCapability<Declaring>> font{};
+    PropertyCell<stxlib::Optional<FontSpec>, LabelFontCapability<Declaring>> font{};
 
-    static void assign(LabelFontCapability& capability, std::optional<FontSpec> incoming) {
+    static void assign(LabelFontCapability& capability, stxlib::Optional<FontSpec> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.font), incoming);
         if (!capability.font.replace(std::move(incoming))) return;

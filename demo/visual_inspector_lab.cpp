@@ -25,6 +25,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -70,7 +71,7 @@ std::shared_ptr<Label> label(std::string id, std::string text,
                              FontSpec font, Color color) {
     std::shared_ptr<Label> result = make_control<Label>(
         StableId(std::move(id)), std::move(text));
-    (*result).font = font;
+    (*result).font = stxlib::Optional<FontSpec>::of(font);
     (*result).fore_color = color;
     return result;
 }

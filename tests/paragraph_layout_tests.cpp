@@ -29,6 +29,7 @@
 #include <memory>
 #include <new>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -640,7 +641,7 @@ void test_matches_text_block() {
                     const std::string what = std::string(text) + " at " + std::to_string(width);
                     std::shared_ptr<TextBlock> block = make_control<TextBlock>(StableId("paragraph.block"),
                                                                                std::string(text));
-                    (*block).font = carlito();
+                    (*block).font = stxlib::Optional<FontSpec>::of(carlito());
                     (*block).margin = {0.0, 0.0, 0.0, 0.0};
                     (*block).padding = {0.0, 0.0, 0.0, 0.0};
                     (*block).text_align = alignment;

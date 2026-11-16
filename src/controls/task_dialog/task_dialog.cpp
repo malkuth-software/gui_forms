@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <stxlib/optional.hpp>
 #include <unordered_set>
 #include <utility>
 
@@ -286,7 +287,7 @@ std::shared_ptr<Label> TaskDialog::make_paragraph(std::string_view suffix, const
     std::string identity(stable_id().value());
     identity.append(suffix);
     std::shared_ptr<Label> paragraph = make_control<Label>(StableId(std::move(identity)), text);
-    (*paragraph).font = font;
+    (*paragraph).font = stxlib::Optional<FontSpec>::of(font);
     (*paragraph).text_wrapping = TextWrapping::word;
     (*paragraph).vertical_alignment = VerticalAlignment::near;
     add_child(paragraph);

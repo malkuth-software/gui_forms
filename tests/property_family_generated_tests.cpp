@@ -210,12 +210,12 @@ void test_block_panel_properties() {
         expect((*control).text_align.read() == sample, "BlockPanel.text_align: a write stores");
     }
     {
-        const std::optional<LineStrut> sample = LineStrut{4.0, 2.0, 1.0};
+        const stxlib::Optional<LineStrut> sample = stxlib::Optional<LineStrut>::of(LineStrut{4.0, 2.0, 1.0});
         (*control).line_strut = sample;
         expect((*control).line_strut.read() == sample, "BlockPanel.line_strut: a write stores");
     }
     {
-        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        const stxlib::Optional<FontSpec> sample = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false});
         (*control).font = sample;
         expect((*control).font.read() == sample, "BlockPanel.font: a write stores");
     }
@@ -1385,7 +1385,7 @@ void test_label_properties() {
                "Label.text: the table reads the cell");
     }
     {
-        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        const stxlib::Optional<FontSpec> sample = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false});
         (*control).font = sample;
         expect((*control).font.read() == sample, "Label.font: a write stores");
         expect((*control).property_value("font").has_value(), "Label.font: the table reads it");
@@ -2913,7 +2913,7 @@ void test_text_block_properties() {
                "TextBlock.text: the table reads the cell");
     }
     {
-        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        const stxlib::Optional<FontSpec> sample = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false});
         (*control).font = sample;
         expect((*control).font.read() == sample, "TextBlock.font: a write stores");
         expect((*control).property_value("font").has_value(), "TextBlock.font: the table reads it");

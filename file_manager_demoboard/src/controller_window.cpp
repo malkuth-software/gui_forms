@@ -6,6 +6,7 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace file_manager_demoboard {
@@ -106,7 +107,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
     std::shared_ptr<gui_forms::Label> title = std::make_shared<Label>(StableId("demo.controller.title"),
                                          "DEMOboard controller · catalogue 001 / generation 86");
     (*title).set_requested_bounds({0,0,430,30});
-    (*title).font = FontSpec{FontRole::control,12,700,false,.25};
+    (*title).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control,12,700,false,.25});
     (*root).add_child(title);
 
     std::shared_ptr<gui_forms::ComboBox> surface = std::make_shared<ComboBox>(StableId("demo.surface.choice"));
@@ -126,7 +127,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
         StableId("demo.accommodation.title"),
         "ACCOMMODATION · LOGICAL TEXT / HOST DENSITY SEPARATE");
     (*accommodation).set_requested_bounds({0,0,430,24});
-    (*accommodation).font = FontSpec{FontRole::control,9,700,false,.28};
+    (*accommodation).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control,9,700,false,.28});
     (*root).add_child(accommodation);
 
     std::shared_ptr<gui_forms::ComboBox> text_scale = std::make_shared<ComboBox>(
@@ -145,7 +146,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
         StableId("demo.accommodation.display-scale"),
         "Display scale: host-derived · text scale: 100%");
     (*density).set_requested_bounds({0,0,430,24});
-    (*density).font = FontSpec{FontRole::content,10,400,false};
+    (*density).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content,10,400,false});
     (*density).accessible_name = "Presentation scale status";
     (*root).add_child(density);
 
