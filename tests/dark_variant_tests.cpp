@@ -194,7 +194,7 @@ void contrast_kept() {
 void materials_darken() {
     SurfaceMaterial material{};
     material.fills = {MaterialFillLayer::solid(Color::rgba(155, 182, 218))};
-    material.border = MaterialBorder{Color::rgba(73, 108, 159), 1.0};
+    material.border.set(MaterialBorder{Color::rgba(73, 108, 159), 1.0});
     MaterialKeyline top{};
     top.edge = MaterialEdge::top;
     top.color = Color::rgba(255, 255, 255, 125);
@@ -206,13 +206,13 @@ void materials_darken() {
     detail::darken_material(dark, ControlVisualRole::button);
     require(dark.fills[0].color == detail::dark_colour(Color::rgba(155, 182, 218), DarkColourClass::chrome_surface),
             "a button face darkens as chrome");
-    require((*dark.border).color == detail::dark_colour(Color::rgba(73, 108, 159), DarkColourClass::line),
+    require((*dark.border.value()).color == detail::dark_colour(Color::rgba(73, 108, 159), DarkColourClass::line),
             "an edge darkens as a line");
     require(dark.keylines[0].color.red == 255 && dark.keylines[0].color.alpha < 125, "a light keyline dims");
     require(dark.shadows[0].color.red == 0 && dark.shadows[0].color.alpha > 56, "a cast shadow deepens");
     SurfaceMaterial accent = material;
     detail::darken_material(accent, ControlVisualRole::accent_button);
-    require((*accent.border).color == detail::phosphor_complement, "an accent's edge is the complement");
+    require((*accent.border.value()).color == detail::phosphor_complement, "an accent's edge is the complement");
 }
 
 void parameters_darken() {

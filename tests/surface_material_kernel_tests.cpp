@@ -56,7 +56,7 @@ SurfaceMaterial well_material() {
     SurfaceMaterial made{};
     made.fills = {MaterialFillLayer::solid(Color::rgba(238, 243, 247))};
     made.corner_radius = 3.0;
-    made.border = MaterialBorder{.color = Color::rgba(132, 148, 163), .width = 1.0};
+    made.border.set(MaterialBorder{.color = Color::rgba(132, 148, 163), .width = 1.0});
     MaterialShadow inner{};
     inner.offset = Point{0.0, 1.0};
     inner.blur_radius = 2.0;
@@ -77,7 +77,7 @@ SurfaceMaterial card_material() {
                                             {GradientStop{0.0, Color::rgba(250, 252, 254)},
                                              GradientStop{1.0, Color::rgba(214, 224, 234)}})};
     made.corner_radius = 6.0;
-    made.border = MaterialBorder{.color = Color::rgba(112, 130, 156), .width = 1.0};
+    made.border.set(MaterialBorder{.color = Color::rgba(112, 130, 156), .width = 1.0});
     return made;
 }
 
@@ -180,17 +180,17 @@ void test_rounded_single_edges() {
     SurfaceMaterial well{};
     well.fills = {MaterialFillLayer::solid(Color::rgba(255, 255, 255))};
     well.corner_radius = 7.5;
-    well.border_edges.top = MaterialBorder{.color = Color::rgba(128, 128, 128), .width = 1.0};
-    well.border_edges.left = MaterialBorder{.color = Color::rgba(128, 128, 128), .width = 1.0};
-    well.border_edges.bottom = MaterialBorder{.color = Color::rgba(255, 255, 255), .width = 1.0};
-    well.border_edges.right = MaterialBorder{.color = Color::rgba(255, 255, 255), .width = 1.0};
+    well.border_edges.top.set(MaterialBorder{.color = Color::rgba(128, 128, 128), .width = 1.0});
+    well.border_edges.left.set(MaterialBorder{.color = Color::rgba(128, 128, 128), .width = 1.0});
+    well.border_edges.bottom.set(MaterialBorder{.color = Color::rgba(255, 255, 255), .width = 1.0});
+    well.border_edges.right.set(MaterialBorder{.color = Color::rgba(255, 255, 255), .width = 1.0});
     well.keylines = {MaterialKeyline{.edge = MaterialEdge::top, .color = Color::rgba(64, 64, 64), .width = 1.0, .inset = 1.0},
                      MaterialKeyline{.edge = MaterialEdge::left, .color = Color::rgba(64, 64, 64), .width = 1.0, .inset = 1.0},
                      MaterialKeyline{.edge = MaterialEdge::bottom, .color = Color::rgba(212, 208, 200), .width = 1.0, .inset = 1.0},
                      MaterialKeyline{.edge = MaterialEdge::right, .color = Color::rgba(212, 208, 200), .width = 1.0, .inset = 1.0}};
     require(valid_surface_material(well), "rounded single edges of one width are valid");
     SurfaceMaterial uneven = well;
-    (*uneven.border_edges.top).width = 2.0;
+    (*uneven.border_edges.top.value()).width = 2.0;
     require(!valid_surface_material(uneven), "rounded single edges of differing widths are refused");
     const double outset = detail::material_raster_outset(well);
     const std::shared_ptr<const PartRaster> raster =

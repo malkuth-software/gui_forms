@@ -281,7 +281,7 @@ void install_page_fixtures(Window& window) {
                     {static_cast<double>(test_tile_extent),
                      static_cast<double>(test_tile_extent)},
                     1.0, 0.42)};
-            material.border = MaterialBorder{Color::rgba(76, 105, 129), 1.0};
+            material.border.set(MaterialBorder{Color::rgba(76, 105, 129), 1.0});
             (*panel).material = std::move(material);
         }
     }

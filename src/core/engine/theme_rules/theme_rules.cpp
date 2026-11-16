@@ -748,8 +748,8 @@ void compose_fills(const SurfaceMaterial& floor,
 
 // One corner of the floor: its corner_radii's, else its corner_radius.
 double floor_corner(const SurfaceMaterial& floor, std::size_t corner) noexcept {
-    if (!floor.corner_radii) return floor.corner_radius;
-    const MaterialCornerRadii& radii = *floor.corner_radii;
+    if (floor.corner_radii.absent()) return floor.corner_radius;
+    const MaterialCornerRadii& radii = (*floor.corner_radii.value());
     const std::array<double, corner_field_count> corners{radii.top_left, radii.top_right, radii.bottom_right,
                                                          radii.bottom_left};
     return corners[corner];
@@ -777,7 +777,7 @@ void compose_corners(const SurfaceMaterial& floor,
         material.corner_radii.reset();
         return;
     }
-    material.corner_radii = MaterialCornerRadii{corners[0], corners[1], corners[2], corners[3]};
+    material.corner_radii.set(MaterialCornerRadii{corners[0], corners[1], corners[2], corners[3]});
 }
 
 bool edge_field(MaterialField field) noexcept {
@@ -798,8 +798,8 @@ struct AssembledEdge final {
 void apply_edge_declaration(const MaterialDeclaration& declaration, AssembledEdge& edge) {
     const std::size_t part = (static_cast<std::size_t>(declaration.field) - first_edge_field) % 3U;
     if (part == 0U) {
-        edge.drawn = declaration.border_style.has_value();
-        if (declaration.border_style) edge.border.style = *declaration.border_style;
+        edge.drawn = declaration.border_style.present();
+        if (declaration.border_style.present()) edge.border.style = *declaration.border_style.value();
         edge.lines = declaration.edge_lines;
         return;
     }
@@ -812,9 +812,9 @@ void apply_edge_declaration(const MaterialDeclaration& declaration, AssembledEdg
 
 // The edge as a material draws it: none when it is not drawn or has no
 // width.
-std::optional<MaterialBorder> drawn_edge(const AssembledEdge& edge) {
-    if (!edge.drawn || edge.border.width == 0.0) return std::nullopt;
-    return edge.border;
+stxlib::Optional<MaterialBorder> drawn_edge(const AssembledEdge& edge) {
+    if (!edge.drawn || edge.border.width == 0.0) return stxlib::Optional<MaterialBorder>::none();
+    return stxlib::Optional<MaterialBorder>::of(edge.border);
 }
 
 // A colour with each channel halved, rounded down: a groove's or ridge's
@@ -863,22 +863,23 @@ void assemble_edges(const SurfaceMaterial& floor,
                     const std::array<const MaterialDeclaration*, material_field_count>& fields,
                     SurfaceMaterial& material) {
     const bool single = !floor.border_edges.empty();
-    const std::array<const std::optional<MaterialBorder>*, 4> floor_edges{
+    const std::array<const stxlib::Optional<MaterialBorder>*, 4> floor_edges{
         single ? &floor.border_edges.top : &floor.border, single ? &floor.border_edges.right : &floor.border,
         single ? &floor.border_edges.bottom : &floor.border, single ? &floor.border_edges.left : &floor.border};
-    std::array<std::optional<MaterialBorder>, 4> drawn{};
+    std::array<stxlib::Optional<MaterialBorder>, 4> drawn{};
     for (std::size_t edge_index = 0U; edge_index < drawn.size(); ++edge_index) {
-        const std::optional<MaterialBorder>& base = *floor_edges[edge_index];
+        const stxlib::Optional<MaterialBorder>& base = *floor_edges[edge_index];
         AssembledEdge edge{};
-        edge.drawn = base.has_value();
-        if (base) edge.border = *base;
+        edge.drawn = base.present();
+        if (base.present()) edge.border = *base.value();
         for (std::size_t part = 0U; part < 3U; ++part) {
             const MaterialDeclaration* const declaration = fields[first_edge_field + 3U * edge_index + part];
             if (declaration != nullptr && !(*declaration).initial) apply_edge_declaration(*declaration, edge);
         }
         drawn[edge_index] = drawn_edge(edge);
-        if (!drawn[edge_index] || edge.lines == MaterialEdgeLines::single) continue;
-        append_edge_lines(static_cast<MaterialEdge>(edge_index), *drawn[edge_index], edge.lines, material.keylines);
+        if (drawn[edge_index].absent() || edge.lines == MaterialEdgeLines::single) continue;
+        append_edge_lines(static_cast<MaterialEdge>(edge_index), *drawn[edge_index].value(), edge.lines,
+                          material.keylines);
         drawn[edge_index].reset();
     }
     const bool uniform = drawn[0] == drawn[1] && drawn[0] == drawn[2] && drawn[0] == drawn[3];
@@ -1104,14 +1105,14 @@ void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
         walk.visit(keyline.width);
         walk.visit(keyline.inset);
     }
-    if (declaration.drop_shadow) {
-        MaterialDropShadow& shadow = *declaration.drop_shadow;
+    if (declaration.drop_shadow.present()) {
+        MaterialDropShadow& shadow = (*declaration.drop_shadow.value());
         walk.visit(shadow.offset.x);
         walk.visit(shadow.offset.y);
         walk.visit(shadow.blur_radius);
     }
-    if (declaration.reflection) {
-        MaterialReflection& reflection = *declaration.reflection;
+    if (declaration.reflection.present()) {
+        MaterialReflection& reflection = (*declaration.reflection.value());
         walk.visit(reflection.gap);
         walk.visit(reflection.reach);
     }
@@ -1231,7 +1232,7 @@ void walk_material_colours(MaterialDeclaration& declaration, ColourWalk& walk) {
     for (MaterialShadow& shadow : declaration.shadows) walk.visit(shadow.color);
     for (MaterialGlow& glow : declaration.glows) walk.visit(glow.color);
     for (MaterialKeyline& keyline : declaration.keylines) walk.visit(keyline.color);
-    if (declaration.drop_shadow) walk.visit((*declaration.drop_shadow).color);
+    if (declaration.drop_shadow.present()) walk.visit((*declaration.drop_shadow.value()).color);
 }
 
 } // namespace

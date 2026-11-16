@@ -332,17 +332,17 @@ std::string material_text(const MaterialDeclaration& declaration) {
     for (const MaterialImageRepeat repeat : declaration.image_repeats) {
         text += " repeat(" + std::to_string(static_cast<unsigned int>(repeat)) + ")";
     }
-    if (declaration.border_style) {
-        text += " border-style=" + std::to_string(static_cast<unsigned int>(*declaration.border_style));
+    if (declaration.border_style.present()) {
+        text += " border-style=" + std::to_string(static_cast<unsigned int>(*declaration.border_style.value()));
     }
     if (declaration.edge_lines != MaterialEdgeLines::single) {
         text += " edge-lines=" + std::to_string(static_cast<unsigned int>(declaration.edge_lines));
     }
     if (declaration.border_image) text += " border-image";
-    if (declaration.drop_shadow) text += " drop-shadow";
+    if (declaration.drop_shadow.present()) text += " drop-shadow";
     if (declaration.mask) text += " mask";
-    if (declaration.reflection) {
-        const MaterialReflection& reflection = *declaration.reflection;
+    if (declaration.reflection.present()) {
+        const MaterialReflection& reflection = (*declaration.reflection.value());
         text += " reflection edge=" + std::to_string(static_cast<unsigned int>(reflection.edge)) + " opacities=" +
                 number_text(reflection.start_opacity) + "," + number_text(reflection.end_opacity);
         if (reflection.source == MaterialReflectionSource::backplane) text += " source=backplane";

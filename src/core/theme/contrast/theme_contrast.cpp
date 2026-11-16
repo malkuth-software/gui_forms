@@ -132,18 +132,19 @@ bool sample_material(const SurfaceMaterial& material, const FaceSamples& ground,
 using EdgeColours = std::array<Color, 4U + SurfaceMaterial::maximum_keylines>;
 
 std::size_t edge_colours(const SurfaceMaterial& material, EdgeColours& colours) noexcept {
-    if (material.border && (*material.border).width > 0.0) {
-        colours[0] = (*material.border).color;
+    if (material.border.present() && (*material.border.value()).width > 0.0) {
+        colours[0] = (*material.border.value()).color;
         return 1U;
     }
-    const std::array<const std::optional<MaterialBorder>*, 4> edges{
+    const std::array<const stxlib::Optional<MaterialBorder>*, 4> edges{
         &material.border_edges.top, &material.border_edges.right,
         &material.border_edges.bottom, &material.border_edges.left,
     };
     std::size_t count = 0U;
-    for (const std::optional<MaterialBorder>* edge : edges) {
-        if (*edge && (**edge).width > 0.0) {
-            colours[count] = (**edge).color;
+    for (const stxlib::Optional<MaterialBorder>* edge : edges) {
+        const MaterialBorder* const border = (*edge).value();
+        if (border != nullptr && (*border).width > 0.0) {
+            colours[count] = (*border).color;
             ++count;
         }
     }

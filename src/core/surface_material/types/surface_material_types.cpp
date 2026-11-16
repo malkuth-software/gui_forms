@@ -19,10 +19,10 @@ MaterialBorderEdges MaterialBorderEdges::from_parts(
     const MaterialBorder* top_value, const MaterialBorder* right_value,
     const MaterialBorder* bottom_value, const MaterialBorder* left_value) {
     MaterialBorderEdges result;
-    if (top_value != nullptr) result.top = *top_value;
-    if (right_value != nullptr) result.right = *right_value;
-    if (bottom_value != nullptr) result.bottom = *bottom_value;
-    if (left_value != nullptr) result.left = *left_value;
+    if (top_value != nullptr) result.top.set(*top_value);
+    if (right_value != nullptr) result.right.set(*right_value);
+    if (bottom_value != nullptr) result.bottom.set(*bottom_value);
+    if (left_value != nullptr) result.left.set(*left_value);
     return result;
 }
 
@@ -76,7 +76,7 @@ SurfaceMaterial SurfaceMaterial::from_parts(
     if (border_value == nullptr) {
         result.border.reset();
     } else {
-        result.border = *border_value;
+        result.border.set(*border_value);
     }
     if (border_edges_value == nullptr) {
         result.border_edges = {};

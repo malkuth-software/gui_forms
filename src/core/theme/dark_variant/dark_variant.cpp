@@ -424,9 +424,10 @@ void darken_fill(MaterialFillLayer& layer, const DarkRecipePlan& plan) noexcept 
     }
 }
 
-void darken_border(std::optional<MaterialBorder>& border, const DarkRecipePlan& plan) noexcept {
-    if (!border) return;
-    (*border).color = detail::dark_colour((*border).color, plan.edge);
+void darken_border(stxlib::Optional<MaterialBorder>& border, const DarkRecipePlan& plan) noexcept {
+    MaterialBorder* const present = border.value();
+    if (present == nullptr) return;
+    (*present).color = detail::dark_colour((*present).color, plan.edge);
 }
 
 void darken_planned(SurfaceMaterial& material, const DarkRecipePlan& plan) noexcept {
@@ -446,8 +447,9 @@ void darken_planned(SurfaceMaterial& material, const DarkRecipePlan& plan) noexc
     for (MaterialKeyline& line : material.keylines) {
         line.color = detail::dark_colour(line.color, relief_class(line.color, plan));
     }
-    if (material.drop_shadow) {
-        (*material.drop_shadow).color = detail::dark_colour((*material.drop_shadow).color, DarkColourClass::shade);
+    if (material.drop_shadow.present()) {
+        (*material.drop_shadow.value()).color = detail::dark_colour((*material.drop_shadow.value()).color,
+                                                                    DarkColourClass::shade);
     }
 }
 

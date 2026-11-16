@@ -698,7 +698,7 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
                 {{0.0, Color::rgba(255, 255, 255, 115)},
                  {1.0, Color::rgba(255, 255, 255, 0)}})};
         material_recipe.corner_radius = 4.0;
-        material_recipe.border = MaterialBorder{Color::rgba(56, 72, 92), 1.0};
+        material_recipe.border.set(MaterialBorder{Color::rgba(56, 72, 92), 1.0});
         (*swatch).material = std::move(material_recipe);
         static_cast<void>((*card).set_body(swatch));
         std::shared_ptr<Label> footer = label(std::string("fm.palette.") + spec.id + ".state",

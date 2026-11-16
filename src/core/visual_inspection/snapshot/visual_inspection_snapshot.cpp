@@ -222,8 +222,9 @@ const char* border_style_name(MaterialBorderStyle value) noexcept {
 }
 
 void append_border(std::ostringstream& output,
-                   const std::optional<MaterialBorder>& border) {
-    if (!border) {
+                   const stxlib::Optional<MaterialBorder>& optional_border) {
+    const MaterialBorder* const border = optional_border.value();
+    if (border == nullptr) {
         output << "null";
         return;
     }
@@ -235,8 +236,9 @@ void append_border(std::ostringstream& output,
 }
 
 void append_corner_radii(std::ostringstream& output,
-                         const std::optional<MaterialCornerRadii>& radii) {
-    if (!radii) {
+                         const stxlib::Optional<MaterialCornerRadii>& optional_radii) {
+    const MaterialCornerRadii* const radii = optional_radii.value();
+    if (radii == nullptr) {
         output << "null";
         return;
     }
@@ -272,8 +274,9 @@ void append_colour_filter(std::ostringstream& output,
 }
 
 void append_drop_shadow(std::ostringstream& output,
-                        const std::optional<MaterialDropShadow>& shadow) {
-    if (!shadow) {
+                        const stxlib::Optional<MaterialDropShadow>& optional_shadow) {
+    const MaterialDropShadow* const shadow = optional_shadow.value();
+    if (shadow == nullptr) {
         output << "null";
         return;
     }
@@ -428,8 +431,8 @@ void append_material(std::ostringstream& output,
         append_fill(output, *material.mask);
     }
     // A reflection (T5 C7), likewise only when set.
-    if (material.reflection) {
-        const MaterialReflection& reflection = *material.reflection;
+    if (material.reflection.present()) {
+        const MaterialReflection& reflection = (*material.reflection.value());
         output << ",\"reflection\":{\"edge\":";
         append_json_string(output, material_edge_name(reflection.edge));
         output << ",\"gap\":" << reflection.gap << ",\"reach\":" << reflection.reach

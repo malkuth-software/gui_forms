@@ -142,7 +142,7 @@ void paint_surface(Painter& painter, const PartPaint& part, const ControlVisualR
 
 // A divider or seam: one line across the long axis of `bounds`, centred.
 void paint_rule(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe) {
-    const Color color = recipe.material.border ? (*recipe.material.border).color : recipe.muted_text;
+    const Color color = recipe.material.border.present() ? (*recipe.material.border.value()).color : recipe.muted_text;
     if (bounds.width >= bounds.height) {
         const double y = bounds.y + bounds.height * 0.5;
         painter.draw_line({bounds.x, y}, {bounds.x + bounds.width, y}, color, 1.0);
@@ -820,8 +820,8 @@ void paint_arc(Painter& painter, const PartPaint& part, const ControlVisualRecip
     Color colour = recipe.glyph;
     if (selected) {
         colour = material_face_colour(recipe.material, false);
-    } else if (recipe.material.border) {
-        colour = (*recipe.material.border).color;
+    } else if (recipe.material.border.present()) {
+        colour = (*recipe.material.border.value()).color;
     }
     const bool invalid = context.surface == ControlSurfaceState::invalid ||
                          part.states.contains(AnatomyState::invalid);
@@ -950,9 +950,9 @@ void paint_beak(Painter& painter, const PartPaint& part, const ControlVisualReci
         if (right) band = Rect{box.x + box.width - offset - strip, across_y, strip, half * 2.0};
         painter.fill_rect(band, face);
     }
-    if (!recipe.material.border) return;
-    const Color edge = (*recipe.material.border).color;
-    const double edge_width = std::max(1.0, (*recipe.material.border).width);
+    if (recipe.material.border.absent()) return;
+    const Color edge = (*recipe.material.border.value()).color;
+    const double edge_width = std::max(1.0, (*recipe.material.border.value()).width);
     const BeakCorners corners = beak_corners(box, mark);
     painter.draw_line(corners.first, corners.tip, edge, edge_width);
     painter.draw_line(corners.second, corners.tip, edge, edge_width);
@@ -1023,8 +1023,8 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::arc:
         // paint_arc strokes an unselected arc in the border's colour, else
         // the glyph's.
-        if (recipe.material.border) {
-            (*recipe.material.border).color = ink;
+        if (recipe.material.border.present()) {
+            (*recipe.material.border.value()).color = ink;
         } else {
             recipe.glyph = ink;
         }
@@ -1039,8 +1039,8 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::grid_minor:
     case PartRole::crosshair:
         // paint_rule draws in the border's colour, else the muted text's.
-        if (recipe.material.border) {
-            (*recipe.material.border).color = ink;
+        if (recipe.material.border.present()) {
+            (*recipe.material.border.value()).color = ink;
         } else {
             recipe.muted_text = ink;
         }
@@ -1165,8 +1165,8 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
     paint_part_clipped(painter, control, whole, clips);
     const ControlVisualContext context = part_visual_context(control, part.states);
     const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
-    if (part.frame == PartFrame::none || !recipe.material.border) return;
-    const Color edge = (*recipe.material.border).color;
+    if (part.frame == PartFrame::none || recipe.material.border.absent()) return;
+    const Color edge = (*recipe.material.border.value()).color;
     const double tip_x = leading ? bounds.x + 0.5 : bounds.x + bounds.width - 0.5;
     const Point tip{tip_x, bounds.y + bounds.height * 0.5};
     painter.draw_line({shoulder, bounds.y + 0.5}, tip, edge, 1.0);
@@ -1263,7 +1263,7 @@ void paint_profiled_part(Painter& painter, const Control& control, const PartPai
         control.effective_theme().resolve(control, part.family, context, part.states, part_name, part.control_type);
     const SurfaceMaterial& material = resolved.recipe().material;
     double radius = part.corner_radius ? std::max(0.0, *part.corner_radius) : material.corner_radius;
-    if (!part.corner_radius && material.corner_radii) radius = (*material.corner_radii).top_right;
+    if (!part.corner_radius && material.corner_radii.present()) radius = (*material.corner_radii.value()).top_right;
     radius = std::clamp(radius, 0.0, std::min(maximum_part_shape, bounds.height));
     // Without a taper the outline is the straight right edge; its rounded
     // top corner is the face's own and only the shadow follows it.

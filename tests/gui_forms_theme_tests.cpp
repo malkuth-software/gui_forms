@@ -154,7 +154,7 @@ SurfaceMaterial plate(PlateColours colours, double radius) {
     } else {
         result.fills = {MaterialFillLayer::linear({0.0, 0.0}, {0.0, 1.0}, {{0.0, colours.top}, {1.0, colours.bottom}})};
     }
-    result.border = MaterialBorder{colours.border, 1.0};
+    result.border.set(MaterialBorder{colours.border, 1.0});
     result.corner_radius = radius;
     return result;
 }

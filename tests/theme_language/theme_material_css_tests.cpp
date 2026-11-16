@@ -419,7 +419,7 @@ void test_border_lowering() {
     const Compilation none = compile(none_sheet);
     const MaterialDeclaration* const no_line = field_of(only_rule(none, none_sheet), MaterialField::border_left_style);
     const MaterialDeclaration* const thick = field_of(only_rule(none, none_sheet), MaterialField::border_right_width);
-    require(no_line != nullptr && !(*no_line).border_style && thick != nullptr && (*thick).number == 5.0,
+    require(no_line != nullptr && (*no_line).border_style.absent() && thick != nullptr && (*thick).number == 5.0,
             "none is no line; thick is 5px");
 
     const std::string_view radius_sheet = "#pad::part(face) { border-radius: 4px 50%; border-top-left-radius: 3px }";
@@ -563,7 +563,7 @@ void test_filter_lowering() {
     const MaterialDeclaration* const none_drop = field_of(none_rule, MaterialField::drop_shadow);
     const MaterialDeclaration* const none_blur = field_of(none_rule, MaterialField::filter_blur);
     require(none_rule.materials.size() == 3U && none_colour != nullptr && !(*none_colour).colour_filter &&
-                none_drop != nullptr && !(*none_drop).drop_shadow && none_blur != nullptr &&
+                none_drop != nullptr && (*none_drop).drop_shadow.absent() && none_blur != nullptr &&
                 (*none_blur).number == 0.0 && selects_material(none_rule),
             "filter: none clears the three filter fields");
 
@@ -581,9 +581,10 @@ void test_filter_lowering() {
         MaterialColourMatrix::opacity(0.5).then(MaterialColourMatrix::invert(1.0));
     require(colour != nullptr && (*colour).colour_filter && *(*colour).colour_filter == expected,
             "the colour functions compose in source order");
-    require(drop != nullptr && (*drop).drop_shadow && (*(*drop).drop_shadow).offset == Point{0.0, 1.0} &&
-                (*(*drop).drop_shadow).blur_radius == 0.0 &&
-                (*(*drop).drop_shadow).color == Color::rgba(0, 255, 255),
+    require(drop != nullptr && (*drop).drop_shadow.present() &&
+            (*(*drop).drop_shadow.value()).offset == Point{0.0, 1.0} &&
+                (*(*drop).drop_shadow.value()).blur_radius == 0.0 &&
+                (*(*drop).drop_shadow.value()).color == Color::rgba(0, 255, 255),
             "a drop shadow's colour takes the colour functions after it, not those before");
 
     const std::string_view finish_sheet = "#pad::part(face) { surface-finish: 25% }";
@@ -735,13 +736,14 @@ void test_reflection_lowering() {
     for (const Lowered& entry : lowered) {
         const Compilation compiled = compile(entry.sheet);
         const MaterialDeclaration* const declaration = field_of(only_rule(compiled, entry.sheet), MaterialField::reflection);
-        require(declaration != nullptr && (*declaration).reflection && *(*declaration).reflection == entry.reflection,
+        require(declaration != nullptr && (*declaration).reflection.present() &&
+                (*(*declaration).reflection.value()) == entry.reflection,
                 std::string("the reflection lowers: ") + std::string(entry.sheet));
     }
     const std::string_view none_sheet = "#pad::part(face) { reflection: none }";
     const Compilation none = compile(none_sheet);
     const MaterialDeclaration* const cleared = field_of(only_rule(none, none_sheet), MaterialField::reflection);
-    require(cleared != nullptr && !(*cleared).reflection, "reflection: none clears it");
+    require(cleared != nullptr && (*cleared).reflection.absent(), "reflection: none clears it");
 }
 
 // The seat (skeudoindustrial surfaces): `seat` lowers to its height, as a
@@ -1098,29 +1100,29 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
 
     GateRow border{};
     border.declarations = "border: 2px solid red";
-    border.material.border = border_of(red, 2.0, MaterialBorderStyle::solid);
+    border.material.border.set(border_of(red, 2.0, MaterialBorderStyle::solid));
     rows.push_back(border);
     GateRow dashed{};
     dashed.declarations = "border: 2px dashed red; border-radius: 6px";
-    dashed.material.border = border_of(red, 2.0, MaterialBorderStyle::dashed);
+    dashed.material.border.set(border_of(red, 2.0, MaterialBorderStyle::dashed));
     dashed.material.corner_radius = 6.0;
     rows.push_back(dashed);
     GateRow edges{};
     edges.declarations = "border-top: 3px solid blue; border-bottom: 1px solid red";
-    edges.material.border_edges.top = border_of(blue, 3.0, MaterialBorderStyle::solid);
-    edges.material.border_edges.bottom = border_of(red, 1.0, MaterialBorderStyle::solid);
+    edges.material.border_edges.top.set(border_of(blue, 3.0, MaterialBorderStyle::solid));
+    edges.material.border_edges.bottom.set(border_of(red, 1.0, MaterialBorderStyle::solid));
     rows.push_back(edges);
     GateRow sides{};
     sides.declarations = "border-style: solid; border-width: 1px 2px; border-color: red blue";
-    sides.material.border_edges.top = border_of(red, 1.0, MaterialBorderStyle::solid);
-    sides.material.border_edges.right = border_of(blue, 2.0, MaterialBorderStyle::solid);
-    sides.material.border_edges.bottom = border_of(red, 1.0, MaterialBorderStyle::solid);
-    sides.material.border_edges.left = border_of(blue, 2.0, MaterialBorderStyle::solid);
+    sides.material.border_edges.top.set(border_of(red, 1.0, MaterialBorderStyle::solid));
+    sides.material.border_edges.right.set(border_of(blue, 2.0, MaterialBorderStyle::solid));
+    sides.material.border_edges.bottom.set(border_of(red, 1.0, MaterialBorderStyle::solid));
+    sides.material.border_edges.left.set(border_of(blue, 2.0, MaterialBorderStyle::solid));
     rows.push_back(sides);
     GateRow radii{};
     radii.declarations = "border-radius: 4px 8px";
     radii.material.corner_radius = 4.0;
-    radii.material.corner_radii = MaterialCornerRadii{4.0, 8.0, 4.0, 8.0};
+    radii.material.corner_radii.set(MaterialCornerRadii{4.0, 8.0, 4.0, 8.0});
     rows.push_back(radii);
     GateRow relative{};
     relative.declarations = "border-radius: 50%";
@@ -1150,7 +1152,7 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     drop.offset = Point{1.0, 2.0};
     drop.blur_radius = 2.0;
     drop.color = Color::rgba(0, 255, 255);
-    dropped.material.drop_shadow = drop;
+    dropped.material.drop_shadow.set(drop);
     rows.push_back(dropped);
     GateRow finished{};
     finished.declarations = "background: blue; surface-finish: 0.5";

@@ -177,7 +177,7 @@ SurfaceMaterial specimen_material() {
         MaterialFillLayer::radial({0.5, 0.5}, {0.5, 0.5}, glow)};
     material.shadows = {{{0.0, 3.0}, 6.0, 1.0,
                          Color::rgba(15, 25, 45, 80)}};
-    material.border = MaterialBorder{Color::rgba(25, 45, 75), 2.0};
+    material.border.set(MaterialBorder{Color::rgba(25, 45, 75), 2.0});
     material.corner_radius = 9.0;
     return material;
 }
@@ -206,7 +206,7 @@ void test_generated_pointer_count_construction_is_owned_and_bounded() {
                 material.fills[1].stops[1].offset == 0.55 &&
                 material.shadows.size() == 1U &&
                 material.shadows[0].blur_radius == 7.0 &&
-                material.border == border && material.corner_radius == 8.0,
+                material.border == stxlib::Optional<MaterialBorder>::of(border) && material.corner_radius == 8.0,
             "pointer/count construction must copy generated static data into retained ownership");
 
     bool rejected{};

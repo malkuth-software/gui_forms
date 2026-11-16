@@ -72,7 +72,7 @@ SurfaceMaterial inspected_material() {
     material.shadows = {
         {{0.0, 3.0}, 6.0, 1.0, Color::rgba(0, 0, 0, 80), false},
     };
-    material.border = MaterialBorder{Color::rgba(10, 30, 60), 1.0};
+    material.border.set(MaterialBorder{Color::rgba(10, 30, 60), 1.0});
     material.corner_radius = 8.0;
     return material;
 }

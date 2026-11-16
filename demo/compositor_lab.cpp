@@ -86,7 +86,7 @@ SurfaceMaterial mirrored_material(MaterialReflectionSource source) {
     reflection.start_opacity = 0.5;
     reflection.end_opacity = 0.0;
     reflection.source = source;
-    material.reflection = reflection;
+    material.reflection.set(reflection);
     return material;
 }
 

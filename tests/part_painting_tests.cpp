@@ -612,7 +612,8 @@ void families() {
     const ControlVisualRecipe& tool_tip = (*theme).resolve(ControlVisualRole::tool_tip, normal);
     const ControlVisualRecipe& card = (*theme).resolve(ControlVisualRole::card, normal);
     require(tool_tip.material.fills.front().color == Color::rgba(255, 255, 225) &&
-                tool_tip.material.border && (*tool_tip.material.border).color == Color::rgba(104, 111, 118) &&
+                tool_tip.material.border.present() && (*tool_tip.material.border.value()).color == Color::rgba(104, 111,
+                                                                                                               118) &&
                 tool_tip.material.corner_radius == 0.0 && tool_tip.text == Color::rgba(0, 0, 0) &&
                 !(tool_tip.material == card.material),
             "windows-professional's tooltip family keeps the plain tooltip's face, edge and text");
@@ -637,7 +638,8 @@ void families() {
                 const ControlVisualRecipe& recipe = (*theme).resolve(family, context);
                 const bool clear = std::all_of(recipe.material.fills.begin(), recipe.material.fills.end(),
                                                &clear_fill) &&
-                                   (!recipe.material.border || (*recipe.material.border).color.alpha == 0U);
+                                   (recipe.material.border.absent() ||
+                                    (*recipe.material.border.value()).color.alpha == 0U);
                 require(recipe.text == text && clear, "a link family draws only its text, in the link's colour");
             }
         }

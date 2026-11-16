@@ -80,8 +80,7 @@ SurfaceMaterial title_material(bool active) {
                 {1.0, Color::rgba(255, 195, 142, 0)},
             }),
         };
-        result.border_edges.bottom =
-            MaterialBorder{Color::rgba(23, 45, 105, 235), 1.0};
+        result.border_edges.bottom.set(MaterialBorder{Color::rgba(23, 45, 105, 235), 1.0});
         result.keylines = {
             {MaterialEdge::top, Color::rgba(255, 255, 255, 105), 1.0, 0.0},
             {MaterialEdge::bottom, Color::rgba(185, 236, 255, 210), 1.0,
@@ -99,8 +98,7 @@ SurfaceMaterial title_material(bool active) {
                 {1.0, Color::rgba(212, 230, 240, 0)},
             }),
         };
-        result.border_edges.bottom =
-            MaterialBorder{Color::rgba(55, 65, 91), 1.0};
+        result.border_edges.bottom.set(MaterialBorder{Color::rgba(55, 65, 91), 1.0});
         result.keylines = {
             {MaterialEdge::top, Color::rgba(255, 255, 255, 44), 1.0, 0.0},
             {MaterialEdge::bottom, Color::rgba(210, 223, 244, 55), 1.0,
@@ -127,7 +125,7 @@ SurfaceMaterial glass_mark_material() {
             {1.0, Color::rgba(255, 255, 255, 0)},
         }),
     };
-    result.border = MaterialBorder{Color::rgba(255, 236, 164, 220), 1.0};
+    result.border.set(MaterialBorder{Color::rgba(255, 236, 164, 220), 1.0});
     result.corner_radius = 4.0;
     result.shadows = {
         {{0.0, 2.0}, 4.0, 0.0, Color::rgba(14, 28, 70, 120), false},
@@ -144,7 +142,7 @@ SurfaceMaterial paper_material() {
             {1.0, Color::rgba(231, 237, 246)},
         }),
     };
-    result.border = MaterialBorder{Color::rgba(119, 140, 171), 1.0};
+    result.border.set(MaterialBorder{Color::rgba(119, 140, 171), 1.0});
     result.shadows = {
         {{0.0, 6.0}, 18.0, 0.0, Color::rgba(28, 46, 72, 58), false},
         {{0.0, 1.0}, 1.0, 0.0, Color::rgba(255, 255, 255, 210), true},

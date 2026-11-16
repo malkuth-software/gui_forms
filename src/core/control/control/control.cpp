@@ -1983,16 +1983,17 @@ void Control::set_owned_decorations(
                 valid_offsets = false;
             }
         }
-        const std::optional<MaterialBorder>* borders[]{
+        const stxlib::Optional<MaterialBorder>* borders[]{
             &decoration.border_edges.top, &decoration.border_edges.right,
             &decoration.border_edges.bottom, &decoration.border_edges.left,
         };
         bool valid_borders = !decoration.border_edges.empty();
-        for (const std::optional<MaterialBorder>* border : borders) {
-            if ((*border).has_value() &&
-                (!std::isfinite((*border).value().width) ||
-                 (*border).value().width <= 0.0 ||
-                 (*border).value().width > 64.0)) {
+        for (const stxlib::Optional<MaterialBorder>* border : borders) {
+            const MaterialBorder* const present = (*border).value();
+            if (present != nullptr &&
+                (!std::isfinite((*present).width) ||
+                 (*present).width <= 0.0 ||
+                 (*present).width > 64.0)) {
                 valid_borders = false;
             }
         }
@@ -4802,28 +4803,28 @@ void Control::paint_owned_decorations(
         if (decoration.layer != layer) continue;
         const Rect box = owner_decoration_box(decoration, bounds);
         const MaterialBorderEdges& edges = decoration.border_edges;
-        if (edges.top) {
-            const double y = box.y + (*edges.top).width * 0.5;
+        if (edges.top.present()) {
+            const double y = box.y + (*edges.top.value()).width * 0.5;
             draw_owner_decoration_edge(
-                painter, {box.x, y}, {box.x + box.width, y}, *edges.top,
+                painter, {box.x, y}, {box.x + box.width, y}, (*edges.top.value()),
                 box, decoration.rotation_degrees);
         }
-        if (edges.right) {
-            const double x = box.x + box.width - (*edges.right).width * 0.5;
+        if (edges.right.present()) {
+            const double x = box.x + box.width - (*edges.right.value()).width * 0.5;
             draw_owner_decoration_edge(
-                painter, {x, box.y}, {x, box.y + box.height}, *edges.right,
+                painter, {x, box.y}, {x, box.y + box.height}, (*edges.right.value()),
                 box, decoration.rotation_degrees);
         }
-        if (edges.bottom) {
-            const double y = box.y + box.height - (*edges.bottom).width * 0.5;
+        if (edges.bottom.present()) {
+            const double y = box.y + box.height - (*edges.bottom.value()).width * 0.5;
             draw_owner_decoration_edge(
-                painter, {box.x, y}, {box.x + box.width, y}, *edges.bottom,
+                painter, {box.x, y}, {box.x + box.width, y}, (*edges.bottom.value()),
                 box, decoration.rotation_degrees);
         }
-        if (edges.left) {
-            const double x = box.x + (*edges.left).width * 0.5;
+        if (edges.left.present()) {
+            const double x = box.x + (*edges.left.value()).width * 0.5;
             draw_owner_decoration_edge(
-                painter, {x, box.y}, {x, box.y + box.height}, *edges.left,
+                painter, {x, box.y}, {x, box.y + box.height}, (*edges.left.value()),
                 box, decoration.rotation_degrees);
         }
     }

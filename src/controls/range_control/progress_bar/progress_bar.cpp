@@ -806,8 +806,8 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     // effect's clip_part_shape follows.
     PartShape track_shape{};
     track_shape.corner_radius = track_recipe.material.corner_radius;
-    if (track_recipe.material.corner_radii.has_value()) {
-        const MaterialCornerRadii& radii = *track_recipe.material.corner_radii;
+    if (track_recipe.material.corner_radii.present()) {
+        const MaterialCornerRadii& radii = (*track_recipe.material.corner_radii.value());
         track_shape.per_corner = true;
         track_shape.corners = PartCornerRadii{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
     }

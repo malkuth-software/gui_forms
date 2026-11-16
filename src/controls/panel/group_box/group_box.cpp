@@ -60,7 +60,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     const ControlVisualContext context = part_visual_context(*this, states);
     const ControlVisualRecipe& panel = effective_theme().resolve(ControlVisualRole::panel, context);
     const MaterialBorderEdges& edges = panel.material.border_edges;
-    const bool etched = edges.top && edges.bottom && !context.high_contrast;
+    const bool etched = edges.top.present() && edges.bottom.present() && !context.high_contrast;
     const double inset = etched ? 2.0 : 1.0;
     const double top = rule_y - 0.5;
     const double right = std::max(0.0, bounds.width - inset);
@@ -76,7 +76,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     PartPaint rule;
     rule.family = ControlVisualRole::panel;
     rule.role = PartRole::keyline;
-    if (etched) rule.authored_foreground = (*edges.top).color;
+    if (etched) rule.authored_foreground = (*edges.top.value()).color;
     for (const Rect& side : sides) {
         rule.bounds = side;
         paint_part(painter, *this, rule);
@@ -84,7 +84,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     if (etched) {
         // The light lines: each rule moved one pixel down (a horizontal
         // rule) or right (a vertical one).
-        rule.authored_foreground = (*edges.bottom).color;
+        rule.authored_foreground = (*edges.bottom.value()).color;
         const std::array<Rect, 5> lights{{
             {1.0, top + 1.0, std::max(0.0, gap.x - 1.0), 1.0},
             {gap_right, top + 1.0, std::max(0.0, right - gap_right), 1.0},

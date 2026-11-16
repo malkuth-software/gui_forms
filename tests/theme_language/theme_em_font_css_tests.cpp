@@ -228,8 +228,9 @@ void test_em_assembly() {
     assemble_material(floor, fields, Size{40.0, 20.0}, MaterialAssemblyContext{12.0, Color{}}, at_twelve);
     SurfaceMaterial at_twenty_four{};
     assemble_material(floor, fields, Size{40.0, 20.0}, MaterialAssemblyContext{24.0, Color{}}, at_twenty_four);
-    const bool sized = at_twelve.border_edges.top.has_value() && at_twenty_four.border_edges.top.has_value() &&
-                       (*at_twelve.border_edges.top).width == 7.0 && (*at_twenty_four.border_edges.top).width == 13.0;
+    const bool sized = at_twelve.border_edges.top.present() && at_twenty_four.border_edges.top.present() &&
+                       (*at_twelve.border_edges.top.value()).width == 7.0 &&
+                           (*at_twenty_four.border_edges.top.value()).width == 13.0;
     require(sized, "1px + 0.5em at 12 and 24");
     require(width.number == 1.0, "the rules' declaration is not changed");
 
@@ -321,7 +322,8 @@ void test_current_colour_records() {
     const MaterialDeclaration* drop = material_of(glow, MaterialField::drop_shadow);
     require(glows != nullptr && (*glows).current_colours == std::vector<std::uint16_t>{1U},
             "a glow without a colour");
-    require(drop != nullptr && (*drop).drop_shadow && (*drop).current_colours == std::vector<std::uint16_t>{1U},
+    require(drop != nullptr && (*drop).drop_shadow.present() &&
+            (*drop).current_colours == std::vector<std::uint16_t>{1U},
             "a drop shadow without a colour");
     const ThemeRule background = only_rule("#a { background-color: currentcolor }");
     bool current_fill = false;

@@ -37,7 +37,7 @@ SurfaceMaterial reference_surface(Color top, Color bottom, Color border, double 
     } else {
         result.fills = {MaterialFillLayer::linear({0.0, 0.0}, {0.0, 1.0}, {{0.0, top}, {1.0, bottom}})};
     }
-    result.border = MaterialBorder{border, 1.0};
+    result.border.set(MaterialBorder{border, 1.0});
     result.corner_radius = radius;
     return result;
 }
@@ -88,7 +88,7 @@ StateRecipes reference_high_contrast_selected(double radius) {
     StateRecipes result = reference_high_contrast(radius);
     for (ControlVisualRecipe& selected : result) {
         const Color state_border =
-            selected.material.border ? (*selected.material.border).color : Color::rgba(255, 255, 0);
+            selected.material.border.present() ? (*selected.material.border.value()).color : Color::rgba(255, 255, 0);
         selected.material =
             reference_surface(Color::rgba(255, 255, 255), Color::rgba(255, 255, 255), state_border, radius);
         selected.text = Color::rgba(0, 0, 0);
@@ -135,7 +135,7 @@ void derived_records_match_the_authored_ones() {
             pressed.focus_ring = Color::rgba(0, 255, 255);
             for (std::size_t state = 0; state < control_surface_state_count; ++state) {
                 expected_selected[state] = expected[state];
-                (*expected_selected[state].material.border).color = Color::rgba(0, 255, 255);
+                (*expected_selected[state].material.border.value()).color = Color::rgba(0, 255, 255);
             }
         }
         for (std::size_t state = 0; state < control_surface_state_count; ++state) {
@@ -170,7 +170,7 @@ void the_pass_keeps_geometry_and_drops_effects() {
     definition.id = "effects";
     ControlRoleRecipes& card = definition.roles[static_cast<std::size_t>(ControlVisualRole::card)];
     ControlVisualRecipe& ordinary = card.ordinary[at(ControlSurfaceState::hot)];
-    ordinary.material.border = MaterialBorder{Color::rgba(1, 2, 3), 2.0};
+    ordinary.material.border.set(MaterialBorder{Color::rgba(1, 2, 3), 2.0});
     ordinary.material.corner_radius = 9.0;
     ordinary.material.shadows.push_back(MaterialShadow{});
     ordinary.material.keylines.push_back(MaterialKeyline{});
@@ -182,14 +182,14 @@ void the_pass_keeps_geometry_and_drops_effects() {
     const ControlVisualRecipe& derived =
         (*theme).definition().roles[static_cast<std::size_t>(ControlVisualRole::card)]
             .high_contrast[at(ControlSurfaceState::hot)];
-    require(derived.material.corner_radius == 9.0 && derived.material.border &&
-                (*derived.material.border).width == 2.0 && derived.focus_width == 2.0 &&
+    require(derived.material.corner_radius == 9.0 && derived.material.border.present() &&
+                (*derived.material.border.value()).width == 2.0 && derived.focus_width == 2.0 &&
                 derived.visual_offset == Point{0.0, -1.0},
             "the pass keeps the shape, the edge width and the cues");
     require(derived.material.shadows.empty() && derived.material.keylines.empty() &&
                 derived.material.fills.size() == 1U &&
                 derived.material.fills[0] == MaterialFillLayer::solid(Color::rgba(0, 0, 0)) &&
-                (*derived.material.border).color == Color::rgba(0, 255, 255),
+                (*derived.material.border.value()).color == Color::rgba(0, 255, 255),
             "and draws one solid plate in one solid edge, without shadows or keylines");
     require(derived.text == Color::rgba(255, 255, 255), "an authored high-contrast record is replaced");
     const ControlRoleRecipes direct = derive_high_contrast_recipes(card, ControlVisualRole::card);

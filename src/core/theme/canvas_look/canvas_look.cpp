@@ -148,7 +148,7 @@ struct CanvasResolver final {
 void apply_high_contrast_paint(const ControlVisualRecipe& recipe, ControlCanvasPaint& canvas) noexcept {
     const SurfaceMaterial& material = recipe.material;
     if (!material.fills.empty()) canvas.fill.set(material.fills.front().color);
-    if (material.border.has_value()) canvas.stroke.set((*material.border).color);
+    if (material.border.present()) canvas.stroke.set((*material.border.value()).color);
     canvas.halo.set(recipe.focus_ring);
     canvas.texture.reset();
 }

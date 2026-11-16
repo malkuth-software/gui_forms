@@ -2154,7 +2154,7 @@ void example() {
     banner.fills = {gf::MaterialFillLayer::linear(
         {0.0, 0.0}, {0.0, 1.0},
         {{0.0, gf::Color::rgba(250, 252, 255)}, {1.0, gf::Color::rgba(222, 230, 240)}})};
-    banner.border = gf::MaterialBorder{gf::Color::rgba(120, 140, 160), 1.0};
+    banner.border.set(gf::MaterialBorder{gf::Color::rgba(120, 140, 160), 1.0});
     banner.shadows.push_back(gf::MaterialShadow{});
     banner.corner_radius = 8.0;
 

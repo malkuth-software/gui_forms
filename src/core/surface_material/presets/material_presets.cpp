@@ -113,7 +113,7 @@ SurfaceMaterial finished_surface_material(const SurfaceMaterial& material) {
     shine.edge = MaterialEdge::top;
     shine.color = Color::rgba(255, 255, 255, channel_of(finish_shine_alpha * finish));
     shine.width = 1.0;
-    shine.inset = material.border ? (*material.border).width : 0.0;
+    shine.inset = material.border.present() ? (*material.border.value()).width : 0.0;
     result.keylines.push_back(shine);
     return result;
 }

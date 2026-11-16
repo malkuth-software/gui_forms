@@ -96,7 +96,7 @@ SurfaceMaterial title_material() {
         {{0.0, 3.0}, 8.0, 0.0, Color::rgba(15, 28, 46, 90), false},
         {{0.0, 1.0}, 2.0, 0.0, Color::rgba(255, 255, 255, 82), true},
     };
-    result.border_edges.bottom = MaterialBorder{Color::rgba(18, 42, 77), 2.0};
+    result.border_edges.bottom.set(MaterialBorder{Color::rgba(18, 42, 77), 2.0});
     return result;
 }
 
@@ -123,7 +123,7 @@ SurfaceMaterial specimen_material() {
         {{0.0, 5.0}, 14.0, 1.0, Color::rgba(9, 25, 36, 90), false},
         {{0.0, 1.0}, 2.0, 0.0, Color::rgba(255, 255, 255, 180), true},
     };
-    result.border = MaterialBorder{Color::rgba(92, 117, 132), 1.0};
+    result.border.set(MaterialBorder{Color::rgba(92, 117, 132), 1.0});
     result.corner_radius = 10.0;
     return result;
 }

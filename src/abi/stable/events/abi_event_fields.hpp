@@ -63,6 +63,8 @@
 #include <utility>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 class DockDragOutcome;
 class Theme;
@@ -553,6 +555,21 @@ void append_field(EventFields& fields, std::string_view name, const std::optiona
     fields.mark_optional(mark, name, true);
 }
 
+// STXlib's optional (D15) lends the same field as the standard one.
+template <typename Value>
+void append_field(EventFields& fields, std::string_view name, const stxlib::Optional<Value>& value) {
+    const std::size_t mark = fields.count();
+    const Value* const present = value.value();
+    if (present != nullptr) {
+        append_field(fields, name, *present);
+        fields.mark_optional(mark, name, false);
+        return;
+    }
+    const Value absent{};
+    append_field(fields, name, absent);
+    fields.mark_optional(mark, name, true);
+}
+
 // ---------------------------------------------------------------------------
 // Readers: a written field back into the argument. A type no field of which
 // is writable reads nothing.
@@ -679,6 +696,28 @@ void read_field(EventFields& fields, std::string_view name, std::optional<Value>
     Value present = value ? *value : Value{};
     read_field(fields, name, present);
     value = std::move(present);
+}
+
+// STXlib's optional (D15) reads as the standard one does.
+template <typename Value>
+void read_field(EventFields& fields, std::string_view name, stxlib::Optional<Value>& value) {
+    gf_value written{};
+    if (!fields.written(name, written)) {
+        // A struct's members may have been written one by one.
+        Value* const held = value.value();
+        if (held != nullptr) {
+            read_field(fields, name, *held);
+        }
+        return;
+    }
+    if (written.kind == GF_VALUE_KIND_NULL) {
+        value.reset();
+        return;
+    }
+    const Value* const held = value.value();
+    Value present = held != nullptr ? *held : Value{};
+    read_field(fields, name, present);
+    value.set(present);
 }
 
 template <typename Element>

@@ -150,7 +150,7 @@ ControlVisualRecipe pearl_recipe(const ControlSurfaceState state,
         {{0.0, 2.0}, 3.0, 0.0, Color::rgba(52, 77, 99, 48), false},
         {{0.0, 1.0}, 1.0, 0.0, Color::rgba(255, 255, 255, 210), true},
     };
-    result.material.border = MaterialBorder{border, 1.0};
+    result.material.border.set(MaterialBorder{border, 1.0});
     result.material.keylines = {
         {MaterialEdge::top, Color::rgba(255, 255, 255, 224), 1.0, 1.0},
         {MaterialEdge::bottom, Color::rgba(102, 127, 150, 110), 1.0, 1.0},

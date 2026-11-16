@@ -917,13 +917,13 @@ bool show_content_in_high_contrast(const Control& control, const PartPaint& part
     framed.fills = content.fills;
     framed.shadows.clear();
     framed.glows.clear();
-    if (!framed.border) {
+    if (framed.border.absent()) {
         const ResolvedControlRecipe contrast =
             theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
         MaterialBorder frame{};
         frame.color = contrast.recipe().text;
         frame.width = 1.0;
-        framed.border = frame;
+        framed.border.set(frame);
     }
     return true;
 }
@@ -1721,7 +1721,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         // transparency (stage T5, PLAN.md §4.5, T5-Q16), for this paint only.
         const bool reflections_omitted =
             context.high_contrast || (*window).presentation_settings().reduced_transparency;
-        if (reflections_omitted && (*request.target.material).reflection) {
+        if (reflections_omitted && (*request.target.material).reflection.present()) {
             run.unreflected.emplace(*request.target.material);
             (*run.unreflected).reflection.reset();
             request.target.material = &*run.unreflected;
@@ -1792,8 +1792,8 @@ void ThemeEngine::borrow_part_backplane(const PartPaint& part, PartPaintRun& run
     // part in the backplane plane would read itself, so it reads nothing.
     const SurfaceMaterial* const lent = request.target.material;
     const bool reflects_backplane =
-        run.primitive_draws && !run.samples_backplane && lent != nullptr && (*lent).reflection &&
-        (*(*lent).reflection).source == MaterialReflectionSource::backplane &&
+        run.primitive_draws && !run.samples_backplane && lent != nullptr && (*lent).reflection.present() &&
+        (*(*lent).reflection.value()).source == MaterialReflectionSource::backplane &&
         (*run.place.painted_by).paint_plane() != PaintPlane::backplane;
     if (run.record && reflects_backplane) detail::SurfaceEngineAccess::note_backplane_reader(*window, *run.record, true);
     if (run.samples_backplane) {

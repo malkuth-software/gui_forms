@@ -232,7 +232,7 @@ SurfaceMaterial panel_material(MaterialDither dither) {
     SurfaceMaterial material = gradient_material(Point{0.0, 0.0}, Point{0.0, 1.0}, Color::rgba(236, 236, 234),
                                                  Color::rgba(222, 222, 219), dither);
     material.corner_radius = 6.0;
-    material.border = MaterialBorder{Color::rgba(150, 152, 156), 1.0};
+    material.border.set(MaterialBorder{Color::rgba(150, 152, 156), 1.0});
     MaterialShadow shadow{};
     shadow.offset = Point{0.0, 2.0};
     shadow.blur_radius = 6.0;

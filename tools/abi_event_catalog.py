@@ -126,7 +126,9 @@ ENTRY = re.compile(r'\{\s*\.name\s*=\s*"([^"]+)",\s*\.payload\s*=\s*"([^"]*)",\s
 APPEND = re.compile(r'void ([\w:]+)::append_interactions\(std::vector<InteractionDeclaration>& interactions\) '
                     r'(?:const )?\{(.*?)\n\}', re.S)
 CLASS = re.compile(r'^(?:class|struct) (?:GUI_FORMS_API )?(\w+)(?: final)?\s*(?::\s*([^{;]*))?\{', re.M)
-OPTIONAL = re.compile(r'^std::optional<(.+)>$')
+# An optional, standard or STXlib's owned form (D15): both lend the same
+# optional field.
+OPTIONAL = re.compile(r'^(?:std::optional|stxlib::Optional)<(.+)>$')
 # A collection: a vector, a span, or a borrowed span (a call-scope payload,
 # gui_forms/borrow/borrowed_view/borrowed_view.hpp), whose element follows.
 VECTOR = re.compile(r'^(?:std::(?:vector|span)|BorrowedSpan)<(?:const )?(.+)>$')

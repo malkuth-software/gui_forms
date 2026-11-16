@@ -22,6 +22,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // Which set a theme's rules are compiled as: a program's theme
@@ -885,7 +887,7 @@ struct GUI_FORMS_API MaterialDeclaration final {
     std::vector<MaterialShadow> shadows{};
     std::vector<MaterialGlow> glows{};
     std::vector<MaterialGlowPlacement> glow_placements{};
-    std::optional<MaterialBorderStyle> border_style{};
+    stxlib::Optional<MaterialBorderStyle> border_style{};
     MaterialEdgeLines edge_lines{MaterialEdgeLines::single};
     std::optional<MaterialFillLayer> border_image{};
     Color colour{};
@@ -893,9 +895,9 @@ struct GUI_FORMS_API MaterialDeclaration final {
     double number{};
     bool relative{};
     MaterialColourFilter colour_filter{};
-    std::optional<MaterialDropShadow> drop_shadow{};
+    stxlib::Optional<MaterialDropShadow> drop_shadow{};
     std::optional<MaterialFillLayer> mask{};
-    std::optional<MaterialReflection> reflection{};
+    stxlib::Optional<MaterialReflection> reflection{};
     MaterialDither dither{MaterialDither::none};
     // Where the declaration's colours came from (EC4).
     ColourOrigin origin{};

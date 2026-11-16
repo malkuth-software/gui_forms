@@ -1937,7 +1937,7 @@ bool MaterialReader::lower_filter() {
     if (filtered) colour.colour_filter = composed;
     if (shadowed) {
         shadow.color = filtered_colour(after_shadow, shadow.color);
-        drop.drop_shadow = shadow;
+        drop.drop_shadow.set(shadow);
     }
     blur.number = 2.0 * std::sqrt(variance);
     SurfaceMaterial checked{};
@@ -2272,9 +2272,9 @@ bool MaterialReader::lower_reflection() {
     if (opacity_count > 0U) reflection.start_opacity = opacities[0];
     if (opacity_count > 1U) reflection.end_opacity = opacities[1];
     SurfaceMaterial checked{};
-    checked.reflection = reflection;
+    checked.reflection.set(reflection);
     if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a reflection");
-    declaration.reflection = reflection;
+    declaration.reflection.set(reflection);
     lowering_.declarations.push_back(std::move(declaration));
     return true;
 }

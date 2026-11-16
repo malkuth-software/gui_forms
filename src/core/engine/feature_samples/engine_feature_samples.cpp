@@ -36,7 +36,7 @@ std::vector<GradientStop> three_stops() {
 SurfaceMaterial bordered() {
     SurfaceMaterial material{};
     material.fills.clear();
-    material.border = MaterialBorder{ink, 1.0};
+    material.border.set(MaterialBorder{ink, 1.0});
     material.corner_radius = feature_sample_corner_radius;
     return material;
 }
@@ -293,7 +293,7 @@ void fill_blend_screen(const FeatureSampleInputs&, ThemeDefinition& definition) 
 
 void shape_corner_radii(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
-    material.corner_radii = MaterialCornerRadii{10.0, 0.0, 6.0, 2.0};
+    material.corner_radii.set(MaterialCornerRadii{10.0, 0.0, 6.0, 2.0});
     draw_material(definition, material, "shape_corner_radii");
 }
 
@@ -321,13 +321,13 @@ void shape_cap_end(const FeatureSampleInputs&, ThemeDefinition& definition) {
 
 void border_dashed(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = pale_face();
-    material.border = MaterialBorder{ink, 2.0, MaterialBorderStyle::dashed};
+    material.border.set(MaterialBorder{ink, 2.0, MaterialBorderStyle::dashed});
     draw_material(definition, material, "border_dashed");
 }
 
 void border_dotted(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = pale_face();
-    material.border = MaterialBorder{ink, 2.0, MaterialBorderStyle::dotted};
+    material.border.set(MaterialBorder{ink, 2.0, MaterialBorderStyle::dotted});
     draw_material(definition, material, "border_dotted");
 }
 
@@ -336,8 +336,8 @@ void border_edges(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = pale_face();
     material.border.reset();
     material.corner_radius = 0.0;
-    material.border_edges.top = MaterialBorder{rose, 2.0};
-    material.border_edges.bottom = MaterialBorder{ink, 1.0};
+    material.border_edges.top.set(MaterialBorder{rose, 2.0});
+    material.border_edges.bottom.set(MaterialBorder{ink, 1.0});
     draw_material(definition, material, "border_edges");
 }
 
@@ -395,7 +395,7 @@ void filter_colour_matrix(const FeatureSampleInputs&, ThemeDefinition& definitio
 
 void filter_drop_shadow(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
-    material.drop_shadow = MaterialDropShadow{Point{2.0, 3.0}, 2.0, Color::rgba(0, 0, 0, 128)};
+    material.drop_shadow.set(MaterialDropShadow{Point{2.0, 3.0}, 2.0, Color::rgba(0, 0, 0, 128)});
     draw_material(definition, material, "filter_drop_shadow");
 }
 
@@ -455,7 +455,7 @@ void mask_image(const FeatureSampleInputs& inputs, ThemeDefinition& definition) 
 // fading from 0.6 to 0.
 void reflection_below(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
-    material.reflection = MaterialReflection{MaterialEdge::bottom, 1.0, 6.0, 0.6, 0.0};
+    material.reflection.set(MaterialReflection{MaterialEdge::bottom, 1.0, 6.0, 0.6, 0.0});
     draw_material(definition, material, "reflection_below");
 }
 
