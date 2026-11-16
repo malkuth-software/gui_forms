@@ -304,6 +304,8 @@ void TabControl::restore_page_focus(const std::shared_ptr<TabPage>& page,
 // page held, makes the strip's set agree, moves the focus into the new page
 // when the old page held it, then raises selected_index_changed.
 void TabControl::show_selected(std::size_t index, const std::vector<std::shared_ptr<TabPage>>& live) {
+    // The focus move runs focus handlers, which may drop the control.
+    const Control::Ptr lifetime = shared_from_this();
     const stxlib::Optional<std::size_t> old_index = selected_index.read();
     const std::shared_ptr<TabPage> old_page = selected_page_.lock();
     bool selection_owned_focus{};
@@ -319,13 +321,20 @@ void TabControl::show_selected(std::size_t index, const std::vector<std::shared_
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
     restore_page_focus(live[index], selection_owned_focus);
+    // The focus handlers may have removed pages or chosen another: the
+    // change is reported only while its page is still the selected one, at
+    // the index it has now (commit, then notify; house style 5).
+    if (!is_alive() || selected_page_.lock() != live[index]) return;
+    const stxlib::Optional<std::size_t> placed = index_of(live[index]);
+    if (placed.absent()) return;
+    const std::size_t now = *placed.value();
     if (old_page && old_index.present()) {
         const TabControlEvent left{old_page, *old_index.value(), TabControlAction::deselected};
         publish_change(deselected_, left);
     }
-    const TabControlEvent chosen{live[index], index, TabControlAction::selected};
+    const TabControlEvent chosen{live[index], now, TabControlAction::selected};
     publish_change(selected_, chosen);
-    const TabSelectionChange change{old_index, stxlib::Optional<std::size_t>::of(index)};
+    const TabSelectionChange change{old_index, stxlib::Optional<std::size_t>::of(now)};
     publish_change(selected_index_changed_, change);
 }
 
@@ -563,7 +572,13 @@ void TabControl::select_in_tab_set(const std::shared_ptr<TabPage>& page) {
 void TabControl::on_set_selecting(PageSelectingEvent& event) {
     if (editing_tab_set_ || !is_alive()) return;
     if (event.cause == PageSelectionCause::pointer && window() != nullptr) {
-        static_cast<void>((*window()).request_focus(shared_from_this()));
+        // `lifetime` keeps the control alive across the focus handlers.
+        const Control::Ptr lifetime = shared_from_this();
+        static_cast<void>((*window()).request_focus(lifetime));
+        if (!is_alive()) {
+            event.cancel = true;
+            return;
+        }
     }
     const std::vector<std::shared_ptr<TabPage>> live = pages();
     for (const std::shared_ptr<TabPage>& page : live) {
@@ -842,17 +857,28 @@ bool TabControl::on_semantic_child_action(std::string_view child_stable_id,
                                           std::string_view) {
     if (action != SemanticAction::focus && action != SemanticAction::select &&
         action != SemanticAction::press) return false;
+    if (find_semantic_tab(child_stable_id).absent()) return false;
+    // Focus first: its handlers may remove or reorder the pages, so the tab
+    // is found again after it (commit, then notify; house style 5), and
+    // `lifetime` keeps the control alive across them.
+    const Control::Ptr lifetime = shared_from_this();
+    if (window() != nullptr) {
+        static_cast<void>((*window()).request_focus(lifetime));
+    }
+    if (!is_alive()) return true;
+    const stxlib::Optional<std::size_t> found = find_semantic_tab(child_stable_id);
+    if (found.absent()) return true;
+    selected_index = found;
+    return true;
+}
+
+stxlib::Optional<std::size_t> TabControl::find_semantic_tab(std::string_view child_stable_id) const {
     const std::vector<std::shared_ptr<TabPage>> live = pages();
     for (std::size_t index = 0U; index < live.size(); ++index) {
-        if (child_stable_id !=
-            std::string((*live[index]).stable_id().value()) + ".tab") continue;
-        if (window() != nullptr) {
-            static_cast<void>((*window()).request_focus(shared_from_this()));
-        }
-        selected_index = stxlib::Optional<std::size_t>::of(index);
-        return true;
+        if (child_stable_id != std::string((*live[index]).stable_id().value()) + ".tab") continue;
+        return stxlib::Optional<std::size_t>::of(index);
     }
-    return false;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 namespace {
