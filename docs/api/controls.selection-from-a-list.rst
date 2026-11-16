@@ -2056,9 +2056,9 @@ Related types
 
    .. cpp:member:: DataGridViewRowId row_id
 
-   .. cpp:member:: std::optional<DataGridViewRowPosition> row
+   .. cpp:member:: stxlib::Optional<DataGridViewRowPosition> row
 
-   .. cpp:member:: std::optional<std::size_t> column
+   .. cpp:member:: stxlib::Optional<std::size_t> column
 
    .. cpp:member:: Point location
 
@@ -2843,9 +2843,9 @@ Related types
 
       Default: ``{DataGridViewHitTestType::none}``.
 
-   .. cpp:member:: std::optional<DataGridViewRowPosition> row
+   .. cpp:member:: stxlib::Optional<DataGridViewRowPosition> row
 
-   .. cpp:member:: std::optional<std::size_t> column
+   .. cpp:member:: stxlib::Optional<std::size_t> column
 
 .. cpp:namespace:: gui_forms
 

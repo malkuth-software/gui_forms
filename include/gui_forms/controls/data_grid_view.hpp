@@ -310,8 +310,8 @@ enum class DataGridViewHitTestType : std::uint8_t {
 // and neither elsewhere.
 struct GUI_FORMS_API DataGridViewHitTestInfo final {
     DataGridViewHitTestType type{DataGridViewHitTestType::none};
-    std::optional<DataGridViewRowPosition> row{};
-    std::optional<std::size_t> column{};
+    stxlib::Optional<DataGridViewRowPosition> row{};
+    stxlib::Optional<std::size_t> column{};
 };
 
 // Which parts of a row the grid paints (Windows Forms' DataGridViewPaintParts,
@@ -415,8 +415,8 @@ struct GUI_FORMS_API DataGridViewEditingControlShowingEvent final {
 struct GUI_FORMS_API DataGridViewCellMouseEvent final {
     DataGridViewHitTestType area{DataGridViewHitTestType::none};
     DataGridViewRowId row_id{};
-    std::optional<DataGridViewRowPosition> row{};
-    std::optional<std::size_t> column{};
+    stxlib::Optional<DataGridViewRowPosition> row{};
+    stxlib::Optional<std::size_t> column{};
     Point location{};
     PointerButton button{PointerButton::none};
     std::uint32_t click_count{};

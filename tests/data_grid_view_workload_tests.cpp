@@ -233,7 +233,7 @@ void million_row_workload(bool timing) {
         const double x = well.x + static_cast<double>(sequence.next() % 400U);
         const double y = well.y + 30.0 + static_cast<double>(sequence.next() % 300U);
         const DataGridViewHitTestInfo hit = (*grid).hit_test_at(Point{x, y});
-        if (hit.type == DataGridViewHitTestType::cell && hit.row && (*hit.row).value < row_total) ++found;
+        if (hit.type == DataGridViewHitTestType::cell && hit.row.present() && (*hit.row.value()).value < row_total) ++found;
     }
     report(timing, "hit tests", seconds_since(start), probes);
     require(found > probes / 2U, "points over the cells hit cells");

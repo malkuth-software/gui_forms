@@ -3642,15 +3642,15 @@ void clicks_tool_tips_and_hit_tests() {
 
     // The grid is the window's root, so its own coordinates are the window's.
     const DataGridViewHitTestInfo on_cell = (*grid).hit_test_at(second_point);
-    require(on_cell.type == DataGridViewHitTestType::cell && on_cell.row && *on_cell.row == row_at(1U) &&
-                on_cell.column && *on_cell.column == 0U,
+    require(on_cell.type == DataGridViewHitTestType::cell && on_cell.row == present_row(1U) &&
+                on_cell.column == stxlib::Optional<std::size_t>::of(0U),
             "hit_test_at finds a cell's row and column");
     const DataGridViewHitTestInfo on_header = (*grid).hit_test_at(centre(*grid, rows[0].parts.row_header.bounds));
-    require(on_header.type == DataGridViewHitTestType::row_header && on_header.row && *on_header.row == row_at(0U) &&
-                !on_header.column,
+    require(on_header.type == DataGridViewHitTestType::row_header && on_header.row == present_row(0U) &&
+                on_header.column.absent(),
             "hit_test_at finds a row header's row and no column");
     const DataGridViewHitTestInfo outside = (*grid).hit_test_at(Point{359.0, 199.0});
-    require(outside.type == DataGridViewHitTestType::none && !outside.row && !outside.column,
+    require(outside.type == DataGridViewHitTestType::none && outside.row.absent() && outside.column.absent(),
             "hit_test_at finds nothing past the last row and column");
 
     std::vector<DataGridViewColumn> columns = sample_columns();
@@ -3714,7 +3714,7 @@ void frozen_columns_and_rows() {
     // Column 1 (50 wide, scrolled 60) lies at band.x + 40 to + 90, under the
     // frozen column: the point hits the frozen column.
     const DataGridViewHitTestInfo under = (*grid).hit_test_at(Point{band.x + 60.0, first_header.y + 4.0});
-    require(under.type == DataGridViewHitTestType::cell && under.column && *under.column == 0U,
+    require(under.type == DataGridViewHitTestType::cell && under.column == stxlib::Optional<std::size_t>::of(0U),
             "a point over the frozen column hits it, not the column scrolled under it");
 
     (*grid).set_horizontal_scroll_offset(0.0);
@@ -3734,7 +3734,7 @@ void frozen_columns_and_rows() {
             "the first scrolling row starts under the frozen rows");
     const DataGridViewHitTestInfo on_frozen = (*grid).hit_test_at(Point{band.x + 10.0, second.y + 2.0});
     const DataGridViewHitTestInfo on_scrolled = (*grid).hit_test_at(Point{band.x + 10.0, scrolled.y + 4.0});
-    require(on_frozen.row && *on_frozen.row == row_at(1U) && on_scrolled.row && *on_scrolled.row == row_at(10U),
+    require(on_frozen.row == present_row(1U) && on_scrolled.row == present_row(10U),
             "hit testing finds frozen and scrolling rows");
     const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
     require(find_node(nodes, "alpha") != nullptr && find_node(nodes, "extra7") != nullptr &&
@@ -3824,7 +3824,7 @@ struct RecordCellMouse final {
         std::string entry(label);
         entry += event.area == DataGridViewHitTestType::cell ? " cell" : " other";
         entry += " " + event.row_id.value;
-        entry += event.column ? " " + std::to_string(*event.column) : std::string(" -");
+        entry += event.column.present() ? " " + std::to_string(*event.column.value()) : std::string(" -");
         (*seen).push_back(entry);
         (*events).push_back(event);
     }
@@ -3857,7 +3857,7 @@ void cell_mouse_events() {
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, first_point}));
     require(seen == std::vector<std::string>{"enter cell alpha 0", "move cell alpha 0"},
             "moving onto a cell raises enter, then move");
-    require(events.back().location.x == 3.0 && events.back().location.y == 4.0 && events.back().row == row_at(0U),
+    require(events.back().location.x == 3.0 && events.back().location.y == 4.0 && events.back().row == present_row(0U),
             "the location is relative to the cell's corner");
     seen.clear();
     events.clear();

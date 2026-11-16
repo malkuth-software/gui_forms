@@ -4422,24 +4422,24 @@ DataGridView::MouseTarget DataGridView::mouse_target_at(Point local) const {
     switch (hit.type) {
         case DataGridViewHitTestType::cell:
             target.area = DataGridViewHitTestType::cell;
-            target.row_id = row_id_text(*hit.row);
-            target.column = *hit.column;
+            target.row_id = row_id_text(*hit.row.value());
+            target.column = *hit.column.value();
             break;
         case DataGridViewHitTestType::column_header:
         case DataGridViewHitTestType::column_divider:
             target.area = DataGridViewHitTestType::column_header;
-            target.column = *hit.column;
+            target.column = *hit.column.value();
             break;
         case DataGridViewHitTestType::column_headers_divider:
             // The header band's edge belongs to the header under it.
-            if (!hit.column) break;
+            if (hit.column.absent()) break;
             target.area = DataGridViewHitTestType::column_header;
-            target.column = *hit.column;
+            target.column = *hit.column.value();
             break;
         case DataGridViewHitTestType::row_header:
         case DataGridViewHitTestType::row_divider:
             target.area = DataGridViewHitTestType::row_header;
-            target.row_id = row_id_text(*hit.row);
+            target.row_id = row_id_text(*hit.row.value());
             break;
         case DataGridViewHitTestType::top_left:
             target.area = DataGridViewHitTestType::top_left;
@@ -4465,11 +4465,11 @@ DataGridViewCellMouseEvent DataGridView::cell_mouse_event(const MouseTarget& tar
     if (!target.row_id.empty()) {
         raised.row_id.value = target.row_id;
         position = find_row(target.row_id);
-        if (position.present()) raised.row = DataGridViewRowPosition{*position.value()};
+        if (position.present()) raised.row.set(DataGridViewRowPosition{*position.value()});
     }
     const bool column_known = target.column < columns_.size();
     if (target.area == DataGridViewHitTestType::cell || target.area == DataGridViewHitTestType::column_header) {
-        raised.column = target.column;
+        raised.column.set(target.column);
     }
     if (target.area == DataGridViewHitTestType::cell && position.present() && column_known) {
         const Rect bounds = cell_bounds(DataGridViewRowPosition{*position.value()}, target.column, layout);
@@ -4554,31 +4554,31 @@ DataGridViewHitTestInfo DataGridView::hit_test_at(Point local) const {
     switch (hit.zone) {
         case HitZone::cell:
             info.type = DataGridViewHitTestType::cell;
-            info.row = hit.row;
-            info.column = hit.column;
+            info.row.set(hit.row);
+            info.column.set(hit.column);
             break;
         case HitZone::column_header:
             info.type = DataGridViewHitTestType::column_header;
-            info.column = hit.column;
+            info.column.set(hit.column);
             break;
         case HitZone::column_divider:
             info.type = DataGridViewHitTestType::column_divider;
-            info.column = hit.column;
+            info.column.set(hit.column);
             break;
         case HitZone::row_header:
             info.type = DataGridViewHitTestType::row_header;
-            info.row = hit.row;
+            info.row.set(hit.row);
             break;
         case HitZone::row_divider:
             info.type = DataGridViewHitTestType::row_divider;
-            info.row = hit.row;
+            info.row.set(hit.row);
             break;
         case HitZone::top_left:
             info.type = DataGridViewHitTestType::top_left;
             break;
         case HitZone::column_headers_divider:
             info.type = DataGridViewHitTestType::column_headers_divider;
-            if (hit.edge_column) info.column = hit.column;
+            if (hit.edge_column) info.column.set(hit.column);
             break;
         case HitZone::none:
         default:
