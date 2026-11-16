@@ -480,3 +480,96 @@ void gf_kit_relative_pointer(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the relative pointer root");
     gf_kit_status(kit, (*kit).objects.release(loose), GF_STATUS_OK, "release the loose control");
 }
+
+/* The controls table's content effect slot (since 1.6): a valid effect
+ * with a matrix, a table, a blur and two mask layers is set and cleared;
+ * each malformed effect is refused as INVALID_ARGUMENT before the control
+ * changes. */
+static int controls_have_content_effect(const gf_kit* kit) {
+    const int present = (*kit).controls.struct_size >= offsetof(gf_controls_table, set_content_effect) + sizeof(void*) &&
+                        (*kit).controls.set_content_effect != NULL;
+    return present;
+}
+
+static gf_effect_mask_layer effect_mask_layer(void) {
+    gf_effect_mask_layer layer;
+    memset(&layer, 0, sizeof(layer));
+    layer.struct_size = (uint32_t)sizeof(layer);
+    layer.mode = GF_EFFECT_MASK_MODE_ALPHA;
+    layer.composite = GF_EFFECT_MASK_COMPOSITE_ADD;
+    layer.start_rgba = 0x000000FFu;
+    layer.end_rgba = 0x00000000u;
+    layer.end.x = 1.0;
+    return layer;
+}
+
+void gf_kit_content_effect(gf_kit* kit) {
+    if (!controls_have_content_effect(kit)) {
+        return;
+    }
+    const gf_object control = gf_kit_create(kit, "Button", "kit.content_effect");
+    gf_effect_mask_layer layers[2];
+    layers[0] = effect_mask_layer();
+    layers[1] = effect_mask_layer();
+    layers[1].mode = GF_EFFECT_MASK_MODE_INVERSE_LUMINANCE;
+    layers[1].composite = GF_EFFECT_MASK_COMPOSITE_INTERSECT;
+    layers[1].end = layers[1].start;
+    gf_content_effect effect;
+    memset(&effect, 0, sizeof(effect));
+    effect.struct_size = (uint32_t)sizeof(effect);
+    effect.has_colour_matrix = 1u;
+    effect.has_colour_table = 1u;
+    /* Grayscale rows, alpha kept. */
+    for (uint32_t row = 0u; row < 3u; ++row) {
+        effect.colour_matrix[row * 5u + 0u] = 0.2126;
+        effect.colour_matrix[row * 5u + 1u] = 0.7152;
+        effect.colour_matrix[row * 5u + 2u] = 0.0722;
+    }
+    effect.colour_matrix[18] = 1.0;
+    for (uint32_t index = 0u; index < 1024u; ++index) effect.colour_table[index] = (uint8_t)(255u - index % 256u);
+    effect.blur = 2.0;
+    effect.mask_count = 2u;
+    effect.masks = layers;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &effect), GF_STATUS_OK, "set a content effect");
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, NULL), GF_STATUS_OK, "clear the content effect");
+
+    gf_content_effect bad = effect;
+    bad.struct_size = 8u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "an effect smaller than its size is refused");
+    bad = effect;
+    bad.has_colour_table = 2u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "a flag that is not 0 or 1 is refused");
+    bad = effect;
+    bad.blur = GF_CONTENT_EFFECT_MAXIMUM_BLUR + 1.0;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "a blur past the limit is refused");
+    bad = effect;
+    bad.colour_matrix[4] = NAN;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "a matrix value that is not finite is refused");
+    bad = effect;
+    bad.mask_count = GF_CONTENT_EFFECT_MAXIMUM_MASKS + 1u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "more than 4 mask layers are refused");
+    bad = effect;
+    bad.masks = NULL;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "mask layers need their array");
+    layers[1].mode = 4u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &effect), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown mask mode is refused");
+    layers[1].mode = GF_EFFECT_MASK_MODE_ALPHA;
+    layers[1].reserved = 1u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &effect), GF_STATUS_INVALID_ARGUMENT,
+                  "a nonzero reserved is refused");
+    layers[1].reserved = 0u;
+    layers[1].struct_size = (uint32_t)sizeof(layers[1]) + 8u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &effect), GF_STATUS_INVALID_ARGUMENT,
+                  "layers whose strides differ are refused");
+    layers[1].struct_size = (uint32_t)sizeof(layers[1]);
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &effect), GF_STATUS_OK,
+                  "the repaired effect is set");
+    gf_kit_status(kit, (*kit).objects.release(control), GF_STATUS_OK, "release the content effect control");
+}
