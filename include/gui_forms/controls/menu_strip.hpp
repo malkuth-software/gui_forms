@@ -142,6 +142,8 @@ protected:
     [[nodiscard]] std::size_t realized_item_index(std::size_t item) const noexcept;
 
 private:
+    // The index of the visible, enabled top-level menu `id`, or none.
+    [[nodiscard]] stxlib::Optional<std::size_t> find_top_level(std::string_view id) const;
     friend class detail::StripMergeAccess;
     // set_items' work; a merge may leave a menu empty.
     void apply_items(std::vector<MenuStripItemSpec> items, bool merged);
