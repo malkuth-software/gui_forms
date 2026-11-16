@@ -1,0 +1,10 @@
+#include <gui_forms/reads.hpp>
+#include <stxlib/optional.hpp>
+
+int main() {
+    const gui_forms::Panel panel{};
+    gui_forms::Reader reader;
+    reader.last.set(gui_forms::read_part(panel, 2));
+    const std::size_t again = gui_forms::Capability<gui_forms::Panel>::read(panel, 3);
+    return reader.last.present() && again > 0U ? 0 : 1;
+}

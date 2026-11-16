@@ -56,6 +56,13 @@ private:
     return left.column < right.column;
 }
 
+// A non-local entity off the consumer surface: a value flow does not
+// carry a conversion to it (README.md, "Consumer surface").
+[[nodiscard]] bool off_surface(const EntityFact& fact) noexcept {
+    const bool result = !fact.surface && fact.kind != EntityKind::local;
+    return result;
+}
+
 [[nodiscard]] EntityKind kind_from_name(llvm::StringRef name) noexcept {
     if (name == "variable") return EntityKind::variable;
     if (name == "local") return EntityKind::local;
@@ -89,12 +96,14 @@ void close_plan(const std::vector<EntityFact>& facts, const std::vector<EdgeFact
         }
         EntityFact& merged = (*found).second;
         const bool seeded = merged.seeded || fact.seeded;
+        const bool surface = merged.surface || fact.surface;
         std::string ineligible = merged.ineligible;
         if (ineligible.empty() || (!fact.ineligible.empty() && fact.ineligible < ineligible)) {
             if (!fact.ineligible.empty()) ineligible = fact.ineligible;
         }
         if (fact_location_less(fact, merged)) merged = fact;
         merged.seeded = seeded;
+        merged.surface = surface;
         merged.ineligible = ineligible;
     }
 
@@ -112,6 +121,9 @@ void close_plan(const std::vector<EntityFact>& facts, const std::vector<EdgeFact
         std::map<std::string, std::size_t>::const_iterator first = indices.find(edge.first);
         std::map<std::string, std::size_t>::const_iterator second = indices.find(edge.second);
         if (first == indices.end() || second == indices.end()) continue;
+        if (edge.flow && (off_surface(closure.entities[edge.first]) || off_surface(closure.entities[edge.second]))) {
+            continue;
+        }
         all.join((*first).second, (*second).second);
         if (edge.strict) strict.join((*first).second, (*second).second);
     }
@@ -180,6 +192,7 @@ bool write_plan(const std::string& path, const Stage stage, const std::vector<En
         record["name"] = fact.name;
         record["qualifiedName"] = fact.qualified_name;
         record["seeded"] = fact.seeded;
+        record["surface"] = fact.surface;
         record["ineligible"] = fact.ineligible;
         entity_records.push_back(llvm::json::Value(std::move(record)));
     }
@@ -189,6 +202,7 @@ bool write_plan(const std::string& path, const Stage stage, const std::vector<En
         record["first"] = edge.first;
         record["second"] = edge.second;
         record["strict"] = edge.strict;
+        record["flow"] = edge.flow;
         edge_records.push_back(llvm::json::Value(std::move(record)));
     }
     llvm::json::Object root;
@@ -241,6 +255,7 @@ bool read_plan(const std::string& path, const Stage stage, std::vector<EntityFac
         fact.name = std::string((*record).getString("name").value_or(""));
         fact.qualified_name = std::string((*record).getString("qualifiedName").value_or(""));
         fact.seeded = (*record).getBoolean("seeded").value_or(false);
+        fact.surface = (*record).getBoolean("surface").value_or(true);
         fact.ineligible = std::string((*record).getString("ineligible").value_or(""));
         facts.push_back(fact);
     }
@@ -251,6 +266,7 @@ bool read_plan(const std::string& path, const Stage stage, std::vector<EntityFac
         edge.first = std::string((*record).getString("first").value_or(""));
         edge.second = std::string((*record).getString("second").value_or(""));
         edge.strict = (*record).getBoolean("strict").value_or(false);
+        edge.flow = (*record).getBoolean("flow").value_or(false);
         edges.push_back(edge);
     }
     return true;

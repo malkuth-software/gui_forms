@@ -56,10 +56,22 @@ struct FamilyMatch final {
 
 // True when copying a value of `type` cannot throw, as far as the AST says:
 // scalars, trivially copyable records, noexcept copy constructors, and
-// records whose implicit copy copies only such members. stxlib's
+// records whose implicit copy copies only such members. A deleted copy
+// (declared, or implicitly by a declared move or a member) is false. stxlib's
 // vocabulary is answered by name (owner, 2026-11-16: owned text and
 // vectors copy noexcept; Unique and OperationResult do not copy).
 [[nodiscard]] bool copy_is_nothrow(clang::QualType type, clang::ASTContext& context, unsigned depth);
+
+// True when moving a value of `type` cannot throw, as far as the AST says:
+// a declared move constructor's specification, or, where none is declared,
+// the copy (when a declared copy operation or destructor suppresses the
+// implicit move) or every base and member's move. A deleted move is false.
+// stxlib::Optional static_asserts this of its value type.
+[[nodiscard]] bool move_is_nothrow(clang::QualType type, clang::ASTContext& context, unsigned depth);
+
+// True when destroying a value of `type` cannot throw (an unresolved
+// implicit destructor counts as nothrow, as the language makes it).
+[[nodiscard]] bool destruction_is_nothrow(clang::QualType type);
 
 // True when `declaration` is the standard library entity `name` (any
 // inline namespace).

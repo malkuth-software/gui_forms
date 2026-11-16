@@ -12,10 +12,15 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
+#include <set>
+#include <string>
 #include <system_error>
 #include <utility>
+#include <vector>
 
 namespace d15 {
 
@@ -194,6 +199,97 @@ void drop_unused_standard_includes(std::string& text, const Stage stage) {
     }
 }
 
+// The site of an edit that carries no group: a replacement alone, a
+// wrapper's opener and closer together (both name the wrapped range).
+[[nodiscard]] std::string default_group(const Edit& edit) {
+    std::uint64_t begin = edit.offset;
+    std::uint64_t end = edit.offset + edit.length;
+    if (edit.role == EditRole::open) end = edit.offset + edit.span;
+    if (edit.role == EditRole::close) begin = edit.offset >= edit.span ? edit.offset - edit.span : 0U;
+    const std::string result = std::string(edit.role == EditRole::replace ? "edit:" : "wrap:") +
+        std::to_string(begin) + ":" + std::to_string(end);
+    return result;
+}
+
+// Sites joined because they share an edit, by group name (union-find with
+// path halving; the smaller name is the root, so the result does not
+// depend on order). Owned by EditPlan::resolve for one file.
+class GroupSets final {
+public:
+    void add(const std::string& group) {
+        parents_.emplace(group, group);
+    }
+
+    [[nodiscard]] std::string root(const std::string& group) {
+        std::map<std::string, std::string>::iterator found = parents_.find(group);
+        if (found == parents_.end()) return group;
+        std::string current = group;
+        for (unsigned guard = 0U; guard < 4096U; ++guard) {
+            std::map<std::string, std::string>::iterator node = parents_.find(current);
+            if (node == parents_.end() || (*node).second == current) break;
+            std::map<std::string, std::string>::iterator parent = parents_.find((*node).second);
+            if (parent != parents_.end()) (*node).second = (*parent).second;
+            current = (*node).second;
+        }
+        return current;
+    }
+
+    void join(const std::string& first, const std::string& second) {
+        add(first);
+        add(second);
+        const std::string first_root = root(first);
+        const std::string second_root = root(second);
+        if (first_root == second_root) return;
+        if (first_root < second_root) {
+            parents_[second_root] = first_root;
+        } else {
+            parents_[first_root] = second_root;
+        }
+    }
+
+private:
+    std::map<std::string, std::string> parents_;
+};
+
+// A byte range an edit wraps (an opener or closer) or replaces, with the
+// index of the edit, for the crossing check.
+struct EditRange final {
+    std::uint64_t begin{0U};
+    std::uint64_t end{0U};
+    std::size_t edit{0U};
+};
+
+[[nodiscard]] bool range_less(const EditRange& left, const EditRange& right) noexcept {
+    if (left.begin != right.begin) return left.begin < right.begin;
+    if (left.end != right.end) return left.end > right.end;
+    return left.edit < right.edit;
+}
+
+// Fills `ranges` (cleared first) with every non-empty range of `edits`,
+// sorted by start, longer first.
+void ranges_of(const std::vector<Edit>& edits, std::vector<EditRange>& ranges) {
+    ranges.clear();
+    ranges.reserve(edits.size());
+    for (std::size_t index = 0U; index < edits.size(); ++index) {
+        const Edit& edit = edits[index];
+        EditRange range;
+        range.edit = index;
+        if (edit.role == EditRole::replace) {
+            range.begin = edit.offset;
+            range.end = edit.offset + edit.length;
+        } else if (edit.role == EditRole::open) {
+            range.begin = edit.offset;
+            range.end = edit.offset + edit.span;
+        } else {
+            range.begin = edit.offset >= edit.span ? edit.offset - edit.span : 0U;
+            range.end = edit.offset;
+        }
+        if (range.end <= range.begin) continue;
+        ranges.push_back(range);
+    }
+    std::sort(ranges.begin(), ranges.end(), range_less);
+}
+
 } // namespace
 
 void line_and_column(const std::string& text, const std::uint64_t offset, unsigned& line, unsigned& column) {
@@ -230,44 +326,97 @@ void EditPlan::merge(const TranslationUnitHarvest& harvest) {
 void EditPlan::resolve(const std::string& source_root, std::vector<Residue>& residue) {
     for (std::pair<const std::string, std::vector<Edit>>& file : edits_) {
         std::vector<Edit>& edits = file.second;
-        std::sort(edits.begin(), edits.end(), edit_less);
-        std::vector<Edit>::iterator unique_end = std::unique(edits.begin(), edits.end(), edit_equal);
-        edits.erase(unique_end, edits.end());
+        // An empty insertion changes nothing; an edit without a group (an
+        // older edits file) is its own site, a wrapper's two halves one.
+        std::vector<Edit> live;
+        live.reserve(edits.size());
+        for (Edit& edit : edits) {
+            if (edit.length == 0U && edit.text.empty()) continue;
+            if (edit.group.empty()) edit.group = default_group(edit);
+            live.push_back(edit);
+        }
+        std::sort(live.begin(), live.end(), edit_less);
 
-        // A conflict: a replacement overlapping another, or an insertion
-        // strictly inside a replacement. Both ends are dropped.
-        std::vector<bool> conflicting(edits.size(), false);
-        for (std::size_t first = 0U; first < edits.size(); ++first) {
-            if (edits[first].role != EditRole::replace) continue;
-            const std::uint64_t first_end = edits[first].offset + edits[first].length;
-            for (std::size_t second = first + 1U; second < edits.size(); ++second) {
-                if (edits[second].offset >= first_end) break;
-                const bool overlapping_replace = edits[second].role == EditRole::replace;
-                const bool inside = edits[second].offset > edits[first].offset;
+        // Merge: identical edits (a header seen by several units, or two
+        // rules writing the same text) are applied once, and their sites
+        // stand or fall together.
+        GroupSets groups;
+        std::vector<Edit> merged;
+        merged.reserve(live.size());
+        for (const Edit& edit : live) {
+            if (!merged.empty() && edit_equal(merged.back(), edit)) {
+                groups.join(merged.back().group, edit.group);
+                continue;
+            }
+            groups.add(edit.group);
+            merged.push_back(edit);
+        }
+
+        // Conflicts: a replacement overlapping another (or two insertions
+        // by replacement at one offset with different text), an insertion
+        // strictly inside a replacement, or two wrapped or replaced ranges
+        // that cross (a < b < c < d). Every edit of a conflicting site is
+        // dropped: a site is applied whole or not at all.
+        std::vector<bool> conflicting(merged.size(), false);
+        for (std::size_t first = 0U; first < merged.size(); ++first) {
+            if (merged[first].role != EditRole::replace) continue;
+            const std::uint64_t first_end = merged[first].offset + merged[first].length;
+            for (std::size_t second = first + 1U; second < merged.size(); ++second) {
+                const Edit& other = merged[second];
+                const bool same_point = merged[first].length == 0U && other.length == 0U &&
+                    other.role == EditRole::replace && other.offset == merged[first].offset;
+                if (!same_point && other.offset >= first_end) break;
+                const bool overlapping_replace = other.role == EditRole::replace;
+                const bool inside = other.offset > merged[first].offset;
                 if (overlapping_replace || inside) {
                     conflicting[first] = true;
                     conflicting[second] = true;
                 }
             }
         }
-        bool any = false;
-        for (std::size_t index = 0U; index < edits.size(); ++index) any = any || conflicting[index];
-        if (!any) continue;
+        std::vector<EditRange> ranges;
+        ranges_of(merged, ranges);
+        for (std::size_t first = 0U; first < ranges.size(); ++first) {
+            for (std::size_t second = first + 1U; second < ranges.size(); ++second) {
+                if (ranges[second].begin >= ranges[first].end) break;
+                const bool crossing = ranges[second].begin > ranges[first].begin &&
+                    ranges[second].end > ranges[first].end;
+                if (!crossing) continue;
+                conflicting[ranges[first].edit] = true;
+                conflicting[ranges[second].edit] = true;
+            }
+        }
+        std::set<std::string> refused;
+        for (std::size_t index = 0U; index < merged.size(); ++index) {
+            if (conflicting[index]) refused.insert(groups.root(merged[index].group));
+        }
+        if (refused.empty()) {
+            edits = merged;
+            continue;
+        }
         std::string text;
         const bool readable = read_file(join_path(source_root, file.first), text);
         std::vector<Edit> kept;
-        for (std::size_t index = 0U; index < edits.size(); ++index) {
-            if (!conflicting[index]) {
-                kept.push_back(edits[index]);
+        std::map<std::string, Residue> reported;
+        for (const Edit& edit : merged) {
+            const std::string root = groups.root(edit.group);
+            if (refused.find(root) == refused.end()) {
+                kept.push_back(edit);
                 continue;
             }
-            Residue item;
-            item.path = file.first;
-            if (readable) line_and_column(text, edits[index].offset, item.line, item.column);
-            item.reason = "conflicting edits from different rules or configurations; this site was left unchanged";
-            item.snippet = edits[index].text;
-            residue.push_back(item);
+            std::map<std::string, Residue>::iterator found = reported.find(root);
+            if (found == reported.end()) {
+                Residue item;
+                item.path = file.first;
+                if (readable) line_and_column(text, edit.offset, item.line, item.column);
+                item.reason = "conflicting edits from different rules or configurations; this site was left unchanged";
+                item.snippet = edit.text;
+                reported.emplace(root, item);
+                continue;
+            }
+            (*found).second.snippet += " ... " + edit.text;
         }
+        for (const std::pair<const std::string, Residue>& item : reported) residue.push_back(item.second);
         edits = kept;
     }
 }
@@ -293,6 +442,7 @@ bool EditPlan::save(const std::string& path, const std::vector<Residue>& residue
             record["text"] = edit.text;
             record["role"] = static_cast<std::int64_t>(edit.role);
             record["span"] = static_cast<std::int64_t>(edit.span);
+            record["group"] = edit.group;
             edit_records.push_back(llvm::json::Value(std::move(record)));
         }
         llvm::json::Object record;
@@ -365,6 +515,7 @@ bool EditPlan::load(const std::string& path, std::vector<Residue>& residue, std:
                 const std::int64_t role = (*edit_record).getInteger("role").value_or(0);
                 edit.role = role == 1 ? EditRole::open : role == 2 ? EditRole::close : EditRole::replace;
                 edit.span = static_cast<std::uint64_t>((*edit_record).getInteger("span").value_or(0));
+                edit.group = std::string((*edit_record).getString("group").value_or(""));
                 target.push_back(edit);
             }
         }

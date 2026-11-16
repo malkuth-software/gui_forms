@@ -1,0 +1,10 @@
+#pragma once
+
+#include <optional>
+
+namespace gui_forms {
+
+[[nodiscard]] std::optional<int> find_value(int key) noexcept;
+[[nodiscard]] int count_found(int key) noexcept;
+
+} // namespace gui_forms

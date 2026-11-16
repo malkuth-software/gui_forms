@@ -1,0 +1,8 @@
+#include <gui_forms/bridge.hpp>
+#include <stxlib/optional.hpp>
+
+int main() {
+    gui_forms::Segment segment;
+    segment.topology.set(gui_forms::Topology::first);
+    return segment.topology.present() ? 0 : 1;
+}

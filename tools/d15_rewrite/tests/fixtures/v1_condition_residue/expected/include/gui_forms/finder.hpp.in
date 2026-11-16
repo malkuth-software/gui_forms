@@ -1,0 +1,11 @@
+#pragma once
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+namespace gui_forms {
+
+[[nodiscard]] stxlib::Optional<int> find_value(int key) noexcept;
+[[nodiscard]] int drain(int key) noexcept;
+
+} // namespace gui_forms

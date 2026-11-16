@@ -1,0 +1,15 @@
+#include <gui_forms/finder.hpp>
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+namespace gui_forms {
+
+int drain(const int key) noexcept {
+    int total = 0;
+    while (const stxlib::Optional<int> next = find_value(key + total)) total += (*next.value());
+    if (const int limit = key; const stxlib::Optional<int> other = find_value(limit)) total += (*other.value());
+    return total;
+}
+
+} // namespace gui_forms

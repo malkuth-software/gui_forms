@@ -1,0 +1,14 @@
+#pragma once
+
+#include <optional>
+
+namespace gui_forms {
+
+// Off the consumer surface: stays standard, reached through the bridge.
+struct Cache final {
+    std::optional<int> cached;
+};
+
+void store(Cache& cache, std::optional<int> value) noexcept;
+
+} // namespace gui_forms

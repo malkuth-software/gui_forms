@@ -1,0 +1,9 @@
+#include <gui_forms/level.hpp>
+
+namespace gui_forms {
+
+bool level_set(const Level& level) noexcept {
+    return level.value.present();
+}
+
+} // namespace gui_forms

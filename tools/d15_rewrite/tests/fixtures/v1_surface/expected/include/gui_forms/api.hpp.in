@@ -1,0 +1,14 @@
+#pragma once
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+namespace gui_forms {
+
+struct Api final {
+    stxlib::Optional<int> limit;
+};
+
+[[nodiscard]] stxlib::Optional<int> read_limit(const Api& api) noexcept;
+
+} // namespace gui_forms

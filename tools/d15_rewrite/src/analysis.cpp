@@ -280,6 +280,50 @@ struct Destination final {
     return nullptr;
 }
 
+// Names the site whose edits are being recorded for as long as it lives,
+// then restores the enclosing site's name (EditPlan::resolve applies a
+// site's edits together or not at all). Borrows the slot, which outlives it.
+class GroupScope final {
+public:
+    GroupScope(std::string& slot, std::string label) : slot_(&slot), saved_(slot) {
+        *slot_ = std::move(label);
+    }
+    ~GroupScope() {
+        *slot_ = saved_;
+    }
+    GroupScope(const GroupScope&) = delete;
+    GroupScope& operator=(const GroupScope&) = delete;
+
+private:
+    std::string* slot_;
+    std::string saved_;
+};
+
+// Finds, in one instantiation of a template, the expression written at
+// the same place as an expression of the pattern (instantiation keeps the
+// pattern's locations): the outermost expression with the same range.
+class InstantiatedExpression final : public clang::RecursiveASTVisitor<InstantiatedExpression> {
+public:
+    InstantiatedExpression(const clang::SourceLocation begin, const clang::SourceLocation end)
+        : begin_(begin), end_(end) {}
+
+    [[nodiscard]] bool shouldVisitTemplateInstantiations() const { return true; }
+
+    bool VisitExpr(clang::Expr* expression) {
+        if (found_ != nullptr) return false;
+        if ((*expression).getBeginLoc() != begin_ || (*expression).getEndLoc() != end_) return true;
+        found_ = expression;
+        return false;
+    }
+
+    [[nodiscard]] const clang::Expr* found() const noexcept { return found_; }
+
+private:
+    clang::SourceLocation begin_;
+    clang::SourceLocation end_;
+    const clang::Expr* found_{nullptr};
+};
+
 class Analysis final : public clang::RecursiveASTVisitor<Analysis> {
 public:
     Analysis(clang::ASTContext& context, const AnalysisInput& input, TranslationUnitHarvest& harvest)
@@ -458,7 +502,20 @@ private:
     }
 
     void add_edit(const std::string& path, const Edit& edit) {
-        harvest_.edits[path].push_back(edit);
+        std::vector<Edit>& file = harvest_.edits[path];
+        file.push_back(edit);
+        file.back().group = group_;
+    }
+
+    // The name of the site at `location`: the rule's kind and the file
+    // offset of the anchor, the same in every unit that sees the site.
+    [[nodiscard]] std::string site_label(const char* kind, const clang::SourceLocation location) {
+        std::string result(kind);
+        if (location.isInvalid()) return result;
+        const clang::SourceLocation file_location = sources_.getFileLoc(location);
+        const std::pair<clang::FileID, unsigned> decomposed = sources_.getDecomposedLoc(file_location);
+        result += ":" + std::to_string(decomposed.second);
+        return result;
     }
 
     void replace_bytes(const Span& file, const unsigned begin, const unsigned end, const std::string& text) {
@@ -735,6 +792,85 @@ private:
         return false;
     }
 
+    // A function that converts one vocabulary into the other: it takes a
+    // standard type and returns its stxlib counterpart of the same value
+    // type, or the reverse (connected_topology_from_standard, the D15 Q3
+    // helpers), or is marked [[clang::annotate("gui_forms::d15_bridge")]].
+    // Converting its standard side would defeat it (defect 3 of the
+    // 2026-11-16 V1 run). The private bridge header is excluded by path.
+    [[nodiscard]] bool is_vocabulary_bridge(const clang::FunctionDecl& function) {
+        for (const clang::AnnotateAttr* annotation : function.specific_attrs<clang::AnnotateAttr>()) {
+            if ((*annotation).getAnnotation() == "gui_forms::d15_bridge") return true;
+        }
+        const clang::QualType returned = function.getReturnType();
+        const Family returned_standard = expression_family(returned, stage_);
+        const Family returned_owned = owned_family(returned);
+        if (returned_standard == Family::none && returned_owned == Family::none) return false;
+        for (const clang::ParmVarDecl* parameter : function.parameters()) {
+            const clang::QualType taken = (*parameter).getType();
+            const bool into_owned = returned_owned != Family::none &&
+                returned_owned == expression_family(taken, stage_);
+            const bool into_standard = returned_standard != Family::none &&
+                returned_standard == owned_family(taken);
+            if (!into_owned && !into_standard) continue;
+            if (same_value_type(returned, taken)) return true;
+        }
+        return false;
+    }
+
+    // True when two vocabulary types hold the same first template argument
+    // (stxlib::Optional<T> and std::optional<T>), or one is not a template
+    // (std::string_view and stxlib::TextView).
+    [[nodiscard]] static bool same_value_type(const clang::QualType first, const clang::QualType second) {
+        const clang::ClassTemplateSpecializationDecl* const first_record =
+            llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+                (*first.getNonReferenceType().getCanonicalType()).getAsCXXRecordDecl());
+        const clang::ClassTemplateSpecializationDecl* const second_record =
+            llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+                (*second.getNonReferenceType().getCanonicalType()).getAsCXXRecordDecl());
+        // The text families hold no value type: any pairing is the same.
+        if (first_record == nullptr || second_record == nullptr) return true;
+        const clang::TemplateArgumentList& first_arguments = (*first_record).getTemplateArgs();
+        const clang::TemplateArgumentList& second_arguments = (*second_record).getTemplateArgs();
+        if (first_arguments.size() == 0U || second_arguments.size() == 0U) {
+            return first_arguments.size() == second_arguments.size();
+        }
+        if (first_arguments[0].getKind() != clang::TemplateArgument::Type ||
+            second_arguments[0].getKind() != clang::TemplateArgument::Type) {
+            return false;
+        }
+        const bool result = first_arguments[0].getAsType().getCanonicalType().getUnqualifiedType() ==
+            second_arguments[0].getAsType().getCanonicalType().getUnqualifiedType();
+        return result;
+    }
+
+    // On the consumer surface: declared in one of --surface-headers, or
+    // inside a declaration --surface-exports names (the outermost named
+    // declaration enclosing it, below its namespace: a class for a member,
+    // the function for a parameter or return). Everything is on it when no
+    // surface is given.
+    [[nodiscard]] bool on_surface(const clang::Decl& declaration, const std::string& path) const {
+        if (!options_.surface_mode) return true;
+        if (!path.empty() && any_directory_contains(path, options_.surface_headers)) return true;
+        if (options_.surface_names.empty()) return false;
+        const clang::Decl* current = &declaration;
+        for (unsigned guard = 0U; guard < 64U && current != nullptr; ++guard) {
+            const clang::DeclContext* const context = (*current).getDeclContext();
+            if (context == nullptr) return false;
+            const bool top = llvm::isa<clang::NamespaceDecl>(context) || llvm::isa<clang::TranslationUnitDecl>(context) ||
+                llvm::isa<clang::LinkageSpecDecl>(context);
+            if (top) {
+                const clang::NamedDecl* const named = llvm::dyn_cast<clang::NamedDecl>(current);
+                if (named == nullptr) return false;
+                const bool result = options_.surface_names.find((*named).getQualifiedNameAsString()) !=
+                    options_.surface_names.end();
+                return result;
+            }
+            current = clang::Decl::castFromDeclContext(context);
+        }
+        return false;
+    }
+
     [[nodiscard]] bool only_matches(const std::string& qualified) {
         if (options_.only_pattern.empty()) return true;
         const bool result = only_.match(qualified);
@@ -778,11 +914,16 @@ private:
             fact.ineligible = match.unsupported;
         } else if (written.isNull() && kind != EntityKind::shared_base) {
             fact.ineligible = "the type is not written where it is declared";
+        } else if (!written.isNull()) {
+            const TypeRewrite planned = declared_type_rewrite(written, match);
+            if (!planned.problem.empty()) fact.ineligible = planned.problem;
         }
         if (fact.ineligible.empty() && function != nullptr) {
             const clang::CXXMethodDecl* const method = llvm::dyn_cast<clang::CXXMethodDecl>(function);
             if (method != nullptr && (*(*method).getParent()).isLambda()) {
                 fact.ineligible = "a lambda's parameter or return";
+            } else if (is_vocabulary_bridge(*function)) {
+                fact.ineligible = "a D15 bridge between the standard and stxlib vocabularies (Q3): left as written";
             } else if ((*function).hasAttr<clang::DeprecatedAttr>() && has_sibling_overload(*function)) {
                 fact.ineligible = "a deprecated D15 compatibility overload (Q3), removed at V6";
             } else if (kind == EntityKind::parameter && would_collide(*function, index, match)) {
@@ -790,15 +931,10 @@ private:
             }
         }
         const core_alias_result alias = first_party_alias(written);
-        if (alias.alias != nullptr) {
-            EdgeFact edge;
-            edge.first = key;
-            edge.second = "A:" + usr_of(alias.alias);
-            edge.strict = true;
-            harvest_.edges.push_back(edge);
-        }
+        if (alias.alias != nullptr) edge(key, "A:" + usr_of(alias.alias), true, false);
+        fact.surface = kind == EntityKind::local || on_surface(declaration, fact.path);
         fact.seeded = kind != EntityKind::local && name_span.valid && in_seed(name_span.path) &&
-            options_.seed_kinds.find(kind) != options_.seed_kinds.end() && only_matches(qualified);
+            options_.seed_kinds.find(kind) != options_.seed_kinds.end() && only_matches(qualified) && fact.surface;
         harvest_.entities.push_back(fact);
     }
 
@@ -819,91 +955,146 @@ private:
         return result;
     }
 
-    void rewrite_declared_type(const clang::TypeLoc whole, const FamilyMatch& match, const clang::SourceLocation where) {
+    // The rewrite of one declared type: either `problem` (why it cannot be
+    // written), or nothing to write (`needed` false: auto, a first-party
+    // alias that changes on its own), or one replacement and its headers.
+    // The plan phase uses the problem to keep an entity whose declaration
+    // cannot change out of the converted set, so that its uses are not
+    // rewritten without it (a second run then finds nothing to do).
+    struct TypeRewrite final {
+        std::string problem;
+        bool needed{false};
+        Span file;
+        unsigned begin{0U};
+        unsigned end{0U};
+        std::string text;
+        std::uint32_t headers{include_none};
+    };
+
+    [[nodiscard]] TypeRewrite declared_type_rewrite(const clang::TypeLoc whole, const FamilyMatch& match) {
+        TypeRewrite result;
         if (whole.isNull()) {
-            residue_at(where, "the converted declaration's type is not written here");
-            return;
+            result.problem = "the converted declaration's type is not written here";
+            return result;
         }
         if (match.family == Family::text_reference || (match.family == Family::text_view && match.reference)) {
-            Span whole_span = span_of(whole.getSourceRange());
-            if (!editable(whole_span, where)) return;
+            const Span whole_span = span_of(whole.getSourceRange());
+            if (!whole_span.valid) {
+                result.problem = "inside a macro body: the site cannot be rewritten";
+                return result;
+            }
             // `const std::string& name` becomes `stxlib::TextView name`:
             // the view is passed by value, so the const before it goes too.
-            whole_span.begin = leading_const_start(buffer_of(whole_span.file), whole_span.begin);
-            replace_span(whole_span, "stxlib::TextView");
-            need(whole_span.path, include_text_view);
-            return;
+            result.needed = true;
+            result.file = whole_span;
+            result.begin = leading_const_start(buffer_of(whole_span.file), whole_span.begin);
+            result.end = whole_span.end;
+            result.text = "stxlib::TextView";
+            result.headers = include_text_view;
+            return result;
         }
         const clang::TypeLoc core = core_type_loc(whole);
         if (core.isNull()) {
-            residue_at(where, "the declared type is not spelled as the standard type");
-            return;
+            result.problem = "the declared type is not spelled as the standard type";
+            return result;
         }
-        if (!core.getAs<clang::AutoTypeLoc>().isNull()) return;
+        if (!core.getAs<clang::AutoTypeLoc>().isNull()) return result;
         const clang::TypedefTypeLoc typedef_loc = core.getAs<clang::TypedefTypeLoc>();
         if (!typedef_loc.isNull()) {
             const clang::TypedefNameDecl* const alias = (*typedef_loc.getTypePtr()).getDecl();
-            if (alias == nullptr || !(*alias).isInStdNamespace()) return;
+            if (alias == nullptr || !(*alias).isInStdNamespace()) return result;
             const Span name = token_span(typedef_loc.getNameLoc());
-            if (!editable(name, where)) return;
+            if (!name.valid) {
+                result.problem = "inside a macro body: the site cannot be rewritten";
+                return result;
+            }
             bool clean = true;
             const unsigned start = qualifier_start(buffer_of(name.file), name.begin, clean);
             if (!clean) {
-                residue_at(where, "the standard name is qualified by something other than std::");
-                return;
+                result.problem = "the standard name is qualified by something other than std::";
+                return result;
             }
-            replace_bytes(name, start, name.end, owned_name(match.family));
-            need(name.path, family_includes(match.family));
-            return;
+            result.needed = true;
+            result.file = name;
+            result.begin = start;
+            result.end = name.end;
+            result.text = owned_name(match.family);
+            result.headers = family_includes(match.family);
+            return result;
         }
         const clang::TemplateSpecializationTypeLoc specialization = core.getAs<clang::TemplateSpecializationTypeLoc>();
         if (specialization.isNull()) {
-            residue_at(where, "the declared type is not spelled as the standard template");
-            return;
+            result.problem = "the declared type is not spelled as the standard template";
+            return result;
         }
         const Span name = token_span(specialization.getTemplateNameLoc());
         const Span closing = token_span(specialization.getRAngleLoc());
-        if (!editable(name, where) || !closing.valid || closing.path != name.path) return;
+        if (!name.valid) {
+            result.problem = "inside a macro body: the site cannot be rewritten";
+            return result;
+        }
+        if (!closing.valid || closing.path != name.path) {
+            result.problem = "the declared type's closing bracket is spelled through a macro";
+            return result;
+        }
         bool clean = true;
         const unsigned start = qualifier_start(buffer_of(name.file), name.begin, clean);
         if (!clean) {
-            residue_at(where, "the standard name is qualified by something other than std::");
-            return;
+            result.problem = "the standard name is qualified by something other than std::";
+            return result;
         }
+        result.file = name;
+        result.begin = start;
+        result.headers = family_includes(match.family);
         switch (match.family) {
         case Family::view:
         case Family::mutable_view: {
             if (specialization.getNumArgs() < 1U) {
-                residue_at(where, "std::span without a written element type");
-                return;
+                result.problem = "std::span without a written element type";
+                return result;
             }
             const clang::TemplateArgumentLoc argument = specialization.getArgLoc(0U);
             const clang::TypeSourceInfo* const information = argument.getTypeSourceInfo();
             if (information == nullptr) {
-                residue_at(where, "std::span's element is not a written type");
-                return;
+                result.problem = "std::span's element is not a written type";
+                return result;
             }
             clang::TypeLoc element = (*information).getTypeLoc();
             const clang::QualifiedTypeLoc qualified = element.getAs<clang::QualifiedTypeLoc>();
             if (!qualified.isNull()) element = qualified.getUnqualifiedLoc();
             const Span element_span = span_of(element.getSourceRange());
             if (!element_span.valid) {
-                residue_at(where, "std::span's element type is spelled through a macro");
-                return;
+                result.problem = "std::span's element type is spelled through a macro";
+                return result;
             }
-            replace_bytes(name, start, closing.end,
-                          std::string(owned_name(match.family)) + "<" + text_of(element_span) + ">");
+            result.end = closing.end;
+            result.text = std::string(owned_name(match.family)) + "<" + text_of(element_span) + ">";
             break;
         }
         case Family::text_view:
         case Family::owned_text:
-            replace_bytes(name, start, closing.end, owned_name(match.family));
+            result.end = closing.end;
+            result.text = owned_name(match.family);
             break;
         default:
-            replace_bytes(name, start, name.end, owned_name(match.family));
+            result.end = name.end;
+            result.text = owned_name(match.family);
             break;
         }
-        need(name.path, family_includes(match.family));
+        result.needed = true;
+        return result;
+    }
+
+    void rewrite_declared_type(const clang::TypeLoc whole, const FamilyMatch& match, const clang::SourceLocation where) {
+        const GroupScope site(group_, site_label("type", where));
+        const TypeRewrite planned = declared_type_rewrite(whole, match);
+        if (!planned.problem.empty()) {
+            residue_at(where, planned.problem);
+            return;
+        }
+        if (!planned.needed || !editable(planned.file, where)) return;
+        replace_bytes(planned.file, planned.begin, planned.end, planned.text);
+        need(planned.file.path, planned.headers);
     }
 
     // -- denotation -----------------------------------------------------------
@@ -999,11 +1190,18 @@ private:
         if (already != Family::none) {
             destination.converted = true;
             destination.family = already;
+            // The argument as written keeps its sugar (std::size_t, not the
+            // platform's unsigned long); the canonical one otherwise.
+            const clang::TemplateSpecializationType* const written =
+                (*type.getNonReferenceType()).getAs<clang::TemplateSpecializationType>();
             const clang::ClassTemplateSpecializationDecl* const owned =
                 llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
                     (*type.getNonReferenceType().getCanonicalType()).getAsCXXRecordDecl());
-            if (owned != nullptr && (*owned).getTemplateArgs().size() > 0U &&
-                (*owned).getTemplateArgs()[0].getKind() == clang::TemplateArgument::Type) {
+            if (written != nullptr && !(*written).template_arguments().empty() &&
+                (*written).template_arguments()[0].getKind() == clang::TemplateArgument::Type) {
+                destination.value_type = (*written).template_arguments()[0].getAsType();
+            } else if (owned != nullptr && (*owned).getTemplateArgs().size() > 0U &&
+                       (*owned).getTemplateArgs()[0].getKind() == clang::TemplateArgument::Type) {
                 destination.value_type = (*owned).getTemplateArgs()[0].getAsType();
             }
         }
@@ -1041,6 +1239,10 @@ private:
             expression = (*llvm::cast<clang::ParenExpr>(expression)).getSubExpr();
         }
         shape.expression = expression;
+        if (llvm::isa<clang::ParenListExpr>(expression)) {
+            shape.kind = SourceKind::init_list;
+            return shape;
+        }
         if (llvm::isa<clang::ConditionalOperator>(expression)) {
             shape.kind = SourceKind::conditional;
             return shape;
@@ -1163,11 +1365,13 @@ private:
         return local;
     }
 
-    void edge(const std::string& first, const std::string& second, const bool strict) {
+    // `flow` marks a value flow (EdgeFact): one a consumer surface may cut.
+    void edge(const std::string& first, const std::string& second, const bool strict, const bool flow) {
         EdgeFact fact;
         fact.first = first;
         fact.second = second;
         fact.strict = strict;
+        fact.flow = flow;
         harvest_.edges.push_back(fact);
     }
 
@@ -1187,9 +1391,10 @@ private:
             const Denoted from = denoted(source);
             if (!from.found || !wants_edge(destination.key, from.key)) return;
             const bool strict = stage_ == Stage::v5_ownership || destination.key.compare(0U, 2U, "L:") == 0;
-            edge(destination.key, from.key, strict);
+            edge(destination.key, from.key, strict, true);
             return;
         }
+        const GroupScope site(group_, site_label("flow", (*source).getBeginLoc()));
         if (!destination.known) {
             const Denoted from = denoted(source);
             if (from.found && is_converted(from.key)) {
@@ -1198,12 +1403,93 @@ private:
             }
             return;
         }
+        // A template-dependent source (a call through a template parameter,
+        // a parenthesised initialiser list) has no type here: its
+        // instantiations decide (defect 1 of the 2026-11-16 V1 run).
+        if ((*source).isTypeDependent()) {
+            dependent_flow(*source, destination, assigned);
+            return;
+        }
         const SourceShape shape = classify(source);
         if (destination.converted) {
             into_converted(shape, destination, assigned, *source);
             return;
         }
         if (shape.kind == SourceKind::converted) out_of_converted(shape, destination, *source);
+    }
+
+    // Fills `found` (cleared first) with the expressions that every
+    // instantiation of the enclosing template, seen in this unit, has where
+    // the pattern has `pattern`: function templates and members of class
+    // templates. Empty when the pattern is not in a template, or no
+    // instantiation of it was made here.
+    void instantiated_counterparts(const clang::Expr& pattern, std::vector<const clang::Expr*>& found) {
+        found.clear();
+        const clang::FunctionDecl* const function = enclosing_function(pattern);
+        if (function == nullptr) return;
+        std::vector<clang::FunctionDecl*> instances;
+        clang::FunctionTemplateDecl* const described = (*function).getDescribedFunctionTemplate();
+        if (described != nullptr) {
+            for (clang::FunctionDecl* specialization : (*described).specializations()) instances.push_back(specialization);
+        } else {
+            const clang::CXXMethodDecl* const method = llvm::dyn_cast<clang::CXXMethodDecl>(function);
+            clang::ClassTemplateDecl* const owner =
+                method == nullptr ? nullptr : (*(*method).getParent()).getDescribedClassTemplate();
+            if (owner != nullptr) {
+                for (clang::ClassTemplateSpecializationDecl* specialization : (*owner).specializations()) {
+                    for (clang::Decl* member : (*specialization).decls()) {
+                        clang::CXXMethodDecl* const candidate = llvm::dyn_cast<clang::CXXMethodDecl>(member);
+                        if (candidate == nullptr) continue;
+                        const clang::FunctionDecl* const instantiated_from = (*candidate).getTemplateInstantiationPattern();
+                        if (instantiated_from == nullptr) continue;
+                        if ((*instantiated_from).getCanonicalDecl() != (*function).getCanonicalDecl()) continue;
+                        instances.push_back(candidate);
+                    }
+                }
+            }
+        }
+        for (clang::FunctionDecl* instance : instances) {
+            clang::FunctionDecl* const definition = (*instance).getDefinition();
+            if (definition == nullptr || (*definition).getBody() == nullptr) continue;
+            InstantiatedExpression finder(pattern.getBeginLoc(), pattern.getEndLoc());
+            finder.TraverseDecl(definition);
+            if (finder.found() != nullptr) found.push_back(finder.found());
+        }
+    }
+
+    // A template-dependent value flowing into a converted destination.
+    // Nothing changes when every instantiation already gives the stxlib
+    // type (or a converted value); a plain value in every instantiation is
+    // wrapped as usual; anything else is residue. A template never
+    // instantiated in this unit is left to the units that instantiate it.
+    void dependent_flow(const clang::Expr& source, const Destination& destination, const clang::Expr* assigned) {
+        if (!destination.converted || destination.dependent) return;
+        std::vector<const clang::Expr*> instances;
+        instantiated_counterparts(source, instances);
+        if (instances.empty()) return;
+        bool every_unchanged = true;
+        bool every_value = true;
+        for (const clang::Expr* instance : instances) {
+            const SourceShape shape = classify(instance);
+            const bool unchanged = shape.kind == SourceKind::converted || shape.kind == SourceKind::owned ||
+                shape.kind == SourceKind::empty;
+            const bool value = shape.kind == SourceKind::value || shape.kind == SourceKind::literal;
+            every_unchanged = every_unchanged && unchanged;
+            every_value = every_value && value;
+        }
+        if (every_unchanged) return;
+        const clang::SourceLocation where = source.getBeginLoc();
+        if (!every_value || destination.family != Family::optional) {
+            residue_at(where, "a template-dependent value flows into a converted declaration, and its "
+                              "instantiations need a rewrite the template cannot spell: rewrite by hand");
+            return;
+        }
+        SourceShape shape;
+        shape.kind = SourceKind::value;
+        shape.expression = (*source.IgnoreImplicit()).IgnoreParens();
+        const Span span = span_of(shape.expression);
+        if (!editable(span, where)) return;
+        into_optional(shape, destination, assigned, source, span, context_of(source));
     }
 
     // The OperationResult<Utf8String> of a converted V3 call, read with fail-fast.
@@ -1616,6 +1902,7 @@ private:
     // -- uses -------------------------------------------------------------------
 
     void handle_use(const clang::Expr& expression, const Denoted& entity);
+    void condition_use(const clang::DeclRefExpr& reference, const clang::VarDecl& variable);
     void use_member(const clang::Expr& top, const Denoted& entity, bool xvalue, const clang::MemberExpr& member);
     void use_conversion(const clang::Expr& top, const clang::MemberExpr& member);
     void use_operator(const clang::Expr& top, const Denoted& entity, bool xvalue,
@@ -1633,6 +1920,7 @@ private:
     const Stage stage_;
     llvm::Regex only_;
     std::map<unsigned, std::string> paths_;
+    std::string group_;      // the site whose edits are being recorded (GroupScope)
 };
 
 // -- declarations ----------------------------------------------------------------
@@ -1661,11 +1949,11 @@ bool Analysis::VisitFunctionDecl(clang::FunctionDecl* function) {
         const clang::CXXMethodDecl* const method = llvm::dyn_cast<clang::CXXMethodDecl>(function);
         if (method != nullptr) {
             for (const clang::CXXMethodDecl* overridden : (*method).overridden_methods()) {
-                edge(return_key(method), return_key(overridden), true);
+                edge(return_key(method), return_key(overridden), true, false);
                 const unsigned count = std::min((*method).getNumParams(), (*overridden).getNumParams());
                 for (unsigned index = 0U; index < count; ++index) {
                     edge(parameter_key((*method).getParamDecl(index)), parameter_key((*overridden).getParamDecl(index)),
-                         true);
+                         true, false);
                 }
             }
         }
@@ -1711,7 +1999,7 @@ bool Analysis::VisitVarDecl(clang::VarDecl* variable) {
     if (plan_ && deduced && local) {
         // An auto local takes its initialiser's type, so it changes with it.
         const Denoted from = denoted((*variable).getInit());
-        if (from.found) edge(key, from.key, true);
+        if (from.found) edge(key, from.key, true, false);
         return true;
     }
     flow((*variable).getInit(), destination, nullptr);
@@ -1882,8 +2170,47 @@ bool Analysis::VisitDeclRefExpr(clang::DeclRefExpr* reference) {
     const Denoted entity = denoted(reference);
     if (!entity.found) return true;
     if (!plan_ && !is_converted(entity.key)) return true;
+    // The reference Sema makes for a condition declaration (`if (T x =
+    // f())`) carries the declaration's own location: there is no written
+    // use to rewrite there (defect 4 of the 2026-11-16 V1 run).
+    const clang::VarDecl* const variable = llvm::cast<clang::VarDecl>((*reference).getDecl());
+    if (!(*variable).isImplicit() && (*reference).getLocation() == (*variable).getLocation()) {
+        condition_use(*reference, *variable);
+        return true;
+    }
     handle_use(*reference, entity);
     return true;
+}
+
+// A converted variable declared in a condition, tested by its implicit
+// conversion to bool. An `if` without an init-statement takes the test as
+// one: `if (stxlib::Optional<T> x = f(); x.present())`, which keeps the
+// variable's scope. A while, a switch, a for, or an `if` that has an
+// init-statement already are residue. V5's owners keep their own test.
+void Analysis::condition_use(const clang::DeclRefExpr& reference, const clang::VarDecl& variable) {
+    if (plan_ || stage_ == Stage::v5_ownership) return;
+    const GroupScope site(group_, site_label("condition", variable.getLocation()));
+    const clang::Expr* top = &reference;
+    clang::DynTypedNode node;
+    bool found = false;
+    for (unsigned guard = 0U; guard < 16U; ++guard) {
+        node = parent_of(clang::DynTypedNode::create(*top), found);
+        if (!found) return;
+        const clang::Expr* const parent = node.get<clang::Expr>();
+        if (parent == nullptr) break;
+        top = parent;
+    }
+    const clang::IfStmt* const statement = node.get<clang::IfStmt>();
+    const bool testable = stage_ == Stage::v1_optional && statement != nullptr &&
+        (*statement).getConditionVariable() == &variable && (*statement).getInit() == nullptr &&
+        (*(*top).getType()).isBooleanType();
+    if (!testable) {
+        residue_at(variable.getLocation(), "a converted value declared in a condition: rewrite the condition by hand");
+        return;
+    }
+    const Span declaration = span_of(variable.getSourceRange());
+    if (!editable(declaration, variable.getLocation())) return;
+    close_at(declaration, "; " + std::string(variable.getName()) + ".present()");
 }
 
 bool Analysis::VisitMemberExpr(clang::MemberExpr* member) {
@@ -1900,6 +2227,7 @@ bool Analysis::VisitMemberExpr(clang::MemberExpr* member) {
 // -- uses -------------------------------------------------------------------------
 
 void Analysis::handle_use(const clang::Expr& expression, const Denoted& entity) {
+    const GroupScope site(group_, site_label("use", expression.getBeginLoc()));
     const clang::Expr* top = &expression;
     bool xvalue = false;
     clang::DynTypedNode parent_node;
@@ -2346,7 +2674,7 @@ void Analysis::use_comparison(const clang::Expr& top, const Denoted& entity,
     const Denoted other_entity = denoted(other);
     if (plan_) {
         if (other_entity.found && other_entity.key != entity.key && (options_.flow_edges || stage_ == Stage::v5_ownership)) {
-            edge(entity.key, other_entity.key, stage_ == Stage::v5_ownership);
+            edge(entity.key, other_entity.key, stage_ == Stage::v5_ownership, true);
         }
         return;
     }
@@ -2365,6 +2693,24 @@ void Analysis::use_comparison(const clang::Expr& top, const Denoted& entity,
         return;
     }
     if (other_entity.found && is_converted(other_entity.key)) return;
+    if ((*other).isTypeDependent()) {
+        // The instantiations decide, as for a dependent flow.
+        std::vector<const clang::Expr*> instances;
+        instantiated_counterparts(*other, instances);
+        bool unchanged = true;
+        for (const clang::Expr* instance : instances) {
+            const clang::Expr* const plain = strip_value(instance, stage_);
+            const Denoted instance_entity = denoted(instance);
+            const bool converted = instance_entity.found && is_converted(instance_entity.key);
+            const bool owned = owned_family((*plain).getType()) != Family::none;
+            unchanged = unchanged && (converted || owned);
+        }
+        if (!unchanged) {
+            residue_at(top.getBeginLoc(), "compared with a template-dependent value whose instantiations need a "
+                                          "rewrite: compare by hand");
+        }
+        return;
+    }
     const clang::Expr* const other_plain = strip_value(other, stage_);
     if (owned_family((*other_plain).getType()) != Family::none &&
         owned_family((*other_plain).getType()) == owned_family(top.getType())) {

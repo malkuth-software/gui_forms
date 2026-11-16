@@ -4,8 +4,13 @@
 Each fixture directory holds input/ and expected/ trees of `.in` files (the
 suffix keeps the fixtures out of the house-style scan of tools/), an `args`
 file of tool arguments and, optionally, a `residue` file of substrings that
-must each appear in the residue report, and a `skip-compile` file (its
-reason) when the expected result keeps residue that cannot compile. For each fixture the runner copies
+must each appear in the residue report, a `skip-compile` file (its
+reason) when the expected result keeps residue that cannot compile, a
+`database-args` file of extra compiler arguments for every compile command
+(a stale precompiled header, for example), and a `skip-idempotence` file
+(its reason) when the arguments themselves carry edits (merged --edits-input
+files), so a second run would apply them again. In `args` and
+`database-args`, `{root}` names the fixture's scratch root. For each fixture the runner copies
 input/ into a fresh gui_forms-shaped root with the `.in` suffix removed,
 adds the real src/platform/stxlib_bridge.hpp, writes compile_commands.json
 for every .cpp, runs the tool in apply mode, compares every file with
@@ -50,7 +55,7 @@ def tree_files(tree):
     return found
 
 
-def write_database(root, options):
+def write_database(root, options, database_arguments):
     commands = []
     for relative in sorted(tree_files(root)):
         if not relative.endswith('.cpp'):
@@ -58,6 +63,7 @@ def write_database(root, options):
         arguments = [options.compiler, '-std=c++20', '-I', os.path.join(root, 'include'),
                      '-I', os.path.join(root, 'src'), '-I', options.stxlib_include]
         arguments.extend(options.extra_arg)
+        arguments.extend(database_arguments)
         arguments.extend(['-c', relative])
         commands.append({'directory': root, 'file': os.path.join(root, relative), 'arguments': arguments})
     with open(os.path.join(root, 'compile_commands.json'), 'w', encoding='utf-8') as stream:
@@ -65,9 +71,12 @@ def write_database(root, options):
     return [entry['file'] for entry in commands]
 
 
-def read_arguments(fixture):
-    with open(os.path.join(fixture, 'args'), encoding='utf-8') as stream:
-        return stream.read().split()
+def read_arguments(fixture, name, root):
+    path = os.path.join(fixture, name)
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding='utf-8') as stream:
+        return [argument.replace('{root}', root) for argument in stream.read().split()]
 
 
 def run_tool(options, root, arguments, mode, residue_path):
@@ -136,15 +145,18 @@ def run_fixture(options, name, scratch):
     copy_stripped(os.path.join(fixture, 'input'), root)
     os.makedirs(os.path.join(root, 'src', 'platform'), exist_ok=True)
     shutil.copyfile(os.path.join(GUI_FORMS_ROOT, BRIDGE), os.path.join(root, BRIDGE))
-    units = write_database(root, options)
-    arguments = read_arguments(fixture)
+    units = write_database(root, options, read_arguments(fixture, 'database-args', root))
+    arguments = read_arguments(fixture, 'args', root)
     residue_path = os.path.join(scratch, name + '.residue')
     applied = run_tool(options, root, arguments, 'apply', residue_path)
     if applied.returncode != 0:
         return [f'{name}: apply exited {applied.returncode}\n{applied.stdout}{applied.stderr}']
     failures = compare_trees(root, os.path.join(fixture, 'expected'), name)
     failures.extend(check_residue(fixture, residue_path, name))
-    checked = run_tool(options, root, arguments, 'check', residue_path + '.again')
+    if os.path.exists(os.path.join(fixture, 'skip-idempotence')):
+        checked = subprocess.CompletedProcess([], 0, '', '')
+    else:
+        checked = run_tool(options, root, arguments, 'check', residue_path + '.again')
     if checked.returncode != 0:
         failures.append(f'{name}: second run is not idempotent (check exited {checked.returncode})\n'
                         f'{checked.stdout}{checked.stderr}')

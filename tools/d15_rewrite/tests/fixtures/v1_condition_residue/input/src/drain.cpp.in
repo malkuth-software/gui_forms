@@ -1,0 +1,14 @@
+#include <gui_forms/finder.hpp>
+
+#include <optional>
+
+namespace gui_forms {
+
+int drain(const int key) noexcept {
+    int total = 0;
+    while (const std::optional<int> next = find_value(key + total)) total += *next;
+    if (const int limit = key; const std::optional<int> other = find_value(limit)) total += *other;
+    return total;
+}
+
+} // namespace gui_forms

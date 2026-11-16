@@ -1,0 +1,14 @@
+#pragma once
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+namespace gui_forms {
+
+struct Level final {
+    stxlib::Optional<int> value;
+};
+
+[[nodiscard]] bool level_set(const Level& level) noexcept;
+
+} // namespace gui_forms

@@ -1,0 +1,9 @@
+#include <gui_forms/channel.hpp>
+#include <stxlib/optional.hpp>
+
+int main() {
+    gui_forms::Channel channel;
+    channel.state.set(2);
+    const bool moving = channel.value.has_value() || channel.heavy.has_value();
+    return channel.state.present() && !moving ? 0 : 1;
+}

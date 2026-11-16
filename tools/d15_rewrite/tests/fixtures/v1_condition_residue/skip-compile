@@ -1,0 +1,1 @@
+a while condition and an if with an init-statement keep their implicit test of a converted value (residue)

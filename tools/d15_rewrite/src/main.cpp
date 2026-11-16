@@ -17,7 +17,6 @@
 #include "clang/Tooling/ArgumentsAdjusters.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/CompilationDatabase.h"
-#include "clang/Tooling/CompilationDatabase.h"
 #include "clang/Tooling/Tooling.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringRef.h"
@@ -107,6 +106,15 @@ llvm::cl::opt<std::string> edits_output_option("edits-output", llvm::cl::init(""
 llvm::cl::list<std::string> edits_input_option("edits-input",
     llvm::cl::desc("Merge edits files instead of parsing (repeatable); with --plan-input the uncompiled scan runs too"),
     llvm::cl::cat(rewrite_category));
+llvm::cl::list<std::string> surface_headers_option("surface-headers",
+    llvm::cl::desc("A file listing the consumer surface's headers (or directories), one relative path per line "
+                   "(repeatable): only their declarations are seeded, and value flows do not convert other "
+                   "non-local declarations"),
+    llvm::cl::cat(rewrite_category));
+llvm::cl::list<std::string> surface_exports_option("surface-exports",
+    llvm::cl::desc("A module interface whose `using gui_forms::Name;` lines name the consumer surface "
+                   "(modules/gui_forms.cppm, tools/module_exports.py; repeatable)"),
+    llvm::cl::cat(rewrite_category));
 llvm::cl::opt<bool> quiet_option("quiet", llvm::cl::init(false),
     llvm::cl::desc("Print only the summary"), llvm::cl::cat(rewrite_category));
 
@@ -163,6 +171,41 @@ const char* const common_names[] = {"value", "values", "text", "name", "size", "
         return true;
     }
     return false;
+}
+
+// Reads a list file: one entry per line, blank lines and `#` comments
+// skipped. False when the file cannot be read.
+[[nodiscard]] bool read_list(const std::string& path, std::vector<std::string>& entries) {
+    std::string text;
+    if (!d15::read_file(path, text)) return false;
+    llvm::SmallVector<llvm::StringRef, 64U> lines;
+    llvm::StringRef(text).split(lines, '\n', -1, false);
+    for (const llvm::StringRef line : lines) {
+        const llvm::StringRef entry = line.trim();
+        if (entry.empty() || entry.starts_with("#")) continue;
+        entries.push_back(trimmed_directory(entry));
+    }
+    return true;
+}
+
+// Reads the names a module interface exports by using-declaration
+// (`using gui_forms::Name;`, as tools/module_exports.py writes them), as
+// qualified names. False when the file cannot be read.
+[[nodiscard]] bool read_exports(const std::string& path, std::set<std::string>& names) {
+    std::string text;
+    if (!d15::read_file(path, text)) return false;
+    llvm::SmallVector<llvm::StringRef, 256U> lines;
+    llvm::StringRef(text).split(lines, '\n', -1, false);
+    for (const llvm::StringRef line : lines) {
+        llvm::StringRef entry = line.trim();
+        if (!entry.consume_front("using ")) continue;
+        if (!entry.consume_back(";")) continue;
+        entry = entry.trim();
+        entry.consume_front("::");
+        if (entry.empty() || entry.contains('=') || entry.starts_with("namespace ")) continue;
+        names.insert(std::string(entry));
+    }
+    return true;
 }
 
 [[nodiscard]] bool build_options(d15::Options& options, std::string& error) {
@@ -239,6 +282,24 @@ const char* const common_names[] = {"value", "values", "text", "name", "size", "
     }
     options.allocating_returns_result = returns_option == "result";
     options.drop_standard_includes = drop_includes_option;
+    for (const std::string& list : surface_headers_option) {
+        if (!read_list(list, options.surface_headers)) {
+            error = "cannot read --surface-headers " + list;
+            return false;
+        }
+        options.surface_mode = true;
+    }
+    for (const std::string& module : surface_exports_option) {
+        if (!read_exports(module, options.surface_names)) {
+            error = "cannot read --surface-exports " + module;
+            return false;
+        }
+        options.surface_mode = true;
+    }
+    if (options.surface_mode && options.surface_headers.empty() && options.surface_names.empty()) {
+        error = "the consumer surface given is empty";
+        return false;
+    }
     return true;
 }
 
@@ -334,6 +395,59 @@ private:
     std::mutex lock_;
 };
 
+// True when the driver would read a precompiled form of `header` given as
+// `-include header` (GCC's convention, which clang's driver follows).
+[[nodiscard]] bool has_precompiled_sibling(const std::string& header) {
+    const bool result = llvm::sys::fs::exists(header + ".pch") || llvm::sys::fs::exists(header + ".gch");
+    return result;
+}
+
+// The compile command without precompiled headers (defect 6 of the
+// 2026-11-16 V1 run): an apply makes the build tree's PCH stale, and a
+// unit read through it reports the PCH's errors, not the code's. Drops
+// `-include-pch FILE` (plain or as `-Xclang` pairs, CMake's form) and
+// turns a plain `-include HEADER` that has a precompiled sibling into the
+// cc1 form, so the header is read as text (the PCH's prefix header, which
+// CMake also passes, keeps every unit's force-included declarations).
+// An ArgumentsAdjuster.
+clang::tooling::CommandLineArguments without_precompiled_headers(const clang::tooling::CommandLineArguments& arguments,
+                                                                 llvm::StringRef file) {
+    (void)file;
+    clang::tooling::CommandLineArguments result;
+    result.reserve(arguments.size());
+    const std::size_t count = arguments.size();
+    std::size_t index = 0U;
+    while (index < count) {
+        const std::string& argument = arguments[index];
+        const bool next_exists = index + 1U < count;
+        if (argument == "-include-pch") {
+            index += 2U;
+            continue;
+        }
+        if (llvm::StringRef(argument).starts_with("-include-pch=")) {
+            index += 1U;
+            continue;
+        }
+        if (argument == "-Xclang" && next_exists && arguments[index + 1U] == "-include-pch") {
+            index += 2U;
+            if (index < count && arguments[index] == "-Xclang") index += 1U;
+            index += 1U;
+            continue;
+        }
+        if (argument == "-include" && next_exists && has_precompiled_sibling(arguments[index + 1U])) {
+            result.push_back("-Xclang");
+            result.push_back("-include");
+            result.push_back("-Xclang");
+            result.push_back(arguments[index + 1U]);
+            index += 2U;
+            continue;
+        }
+        result.push_back(argument);
+        index += 1U;
+    }
+    return result;
+}
+
 // One translation unit's analysis, run on a pool thread. Borrows the
 // database, input and collector, which main keeps alive until the pool
 // has finished.
@@ -350,6 +464,8 @@ public:
         clang::tooling::ClangTool tool(*database_, sources, std::make_shared<clang::PCHContainerOperations>(),
                                        llvm::vfs::createPhysicalFileSystem());
         // Clang 22's ClangTool has no setRestoreWorkingDir: it restores nothing to set.
+        const clang::tooling::ArgumentsAdjuster precompiled_headers_removed(&without_precompiled_headers);
+        tool.appendArgumentsAdjuster(precompiled_headers_removed);
         CountingDiagnostics diagnostics;
         tool.setDiagnosticConsumer(&diagnostics);
         std::unique_ptr<clang::tooling::FrontendActionFactory> factory =
