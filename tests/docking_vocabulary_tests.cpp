@@ -311,18 +311,18 @@ void custom_states() {
                 admitted_custom_states.size() == 2U,
             "the custom states modified and pinned are admitted");
     for (const CustomStateDeclaration& state : admitted_custom_states) {
-        require(snake_case(state.name) && !anatomy_state_from_name(state.name).has_value(),
+        require(snake_case(state.name) && anatomy_state_from_name(state.name).absent(),
                 "an admitted custom state is snake_case and shadows no standard state");
     }
     const AnatomyValidation validation = validate_control_anatomy(strip_anatomy);
     require(validation.defect == AnatomyDefect::none, "an item system declaring the admitted states validates");
-    const std::optional<CustomStateIndex> modified = find_item_custom_state(tab_systems[0], "modified");
-    const std::optional<CustomStateIndex> pinned = find_item_custom_state(tab_systems[0], "pinned");
-    require(modified && pinned && (*modified).value == 0U && (*pinned).value == 1U,
+    const stxlib::Optional<CustomStateIndex> modified = find_item_custom_state(tab_systems[0], "modified");
+    const stxlib::Optional<CustomStateIndex> pinned = find_item_custom_state(tab_systems[0], "pinned");
+    require(modified.present() && pinned.present() && (*modified.value()).value == 0U && (*pinned.value()).value == 1U,
             "the admitted states are found by name in the item system that declares them");
     AnatomyStateSet item_states;
-    item_states.insert(*pinned);
-    require(item_states.contains(*pinned) && !item_states.contains(*modified),
+    item_states.insert(*pinned.value());
+    require(item_states.contains(*pinned.value()) && !item_states.contains(*modified.value()),
             "an item carries the admitted states as custom states");
 }
 

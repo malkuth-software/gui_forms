@@ -419,24 +419,24 @@ struct GUI_FORMS_API PartGeometryBuffer final {
 [[nodiscard]] GUI_FORMS_API std::string_view part_role_name(PartRole role) noexcept;
 [[nodiscard]] GUI_FORMS_API std::string_view anatomy_state_name(AnatomyState state) noexcept;
 [[nodiscard]] GUI_FORMS_API std::string_view engine_input_name(EngineInput input) noexcept;
-[[nodiscard]] GUI_FORMS_API std::optional<PartRole> part_role_from_name(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<PartRole> part_role_from_name(
     std::string_view name) noexcept;
-[[nodiscard]] GUI_FORMS_API std::optional<AnatomyState> anatomy_state_from_name(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<AnatomyState> anatomy_state_from_name(
     std::string_view name) noexcept;
 
 // Lookup by declared name within one declaration list, within a control
 // type's own parts, or within one of its item systems.
-[[nodiscard]] GUI_FORMS_API std::optional<PartIndex> find_declared_part(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<PartIndex> find_declared_part(
     std::span<const PartDeclaration> declared, std::string_view part_name) noexcept;
-[[nodiscard]] GUI_FORMS_API std::optional<PartIndex> find_part(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<PartIndex> find_part(
     const ControlAnatomy& anatomy, std::string_view part_name) noexcept;
-[[nodiscard]] GUI_FORMS_API std::optional<ItemSystemIndex> find_item_system(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<ItemSystemIndex> find_item_system(
     const ControlAnatomy& anatomy, std::string_view system_name) noexcept;
-[[nodiscard]] GUI_FORMS_API std::optional<PartIndex> find_item_part(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<PartIndex> find_item_part(
     const ItemSystemDeclaration& system, std::string_view part_name) noexcept;
-[[nodiscard]] GUI_FORMS_API std::optional<CustomStateIndex> find_custom_state(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<CustomStateIndex> find_custom_state(
     const ControlAnatomy& anatomy, std::string_view state_name) noexcept;
-[[nodiscard]] GUI_FORMS_API std::optional<CustomStateIndex> find_item_custom_state(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<CustomStateIndex> find_item_custom_state(
     const ItemSystemDeclaration& system, std::string_view state_name) noexcept;
 [[nodiscard]] GUI_FORMS_API bool declares_state(const ControlAnatomy& anatomy,
                                   AnatomyState state) noexcept;
@@ -508,13 +508,13 @@ void write_declared_parts(std::span<const PartDeclaration> declared,
                           const std::array<PartField<Record>, Count>& fields,
                           const Record& record, std::span<PartGeometry> geometry) noexcept {
     for (std::size_t index = 0; index < Count; ++index) {
-        const std::optional<PartIndex> part =
+        const stxlib::Optional<PartIndex> part =
             find_declared_part(declared, fields[index].declaration.name);
-        if (!part.has_value() || (*part).value >= geometry.size()) {
+        if (part.absent() || (*part.value()).value >= geometry.size()) {
             continue;
         }
         const PartGeometry& published = record.*(fields[index].member);
-        geometry[(*part).value] = published;
+        geometry[(*part.value()).value] = published;
     }
 }
 
@@ -525,11 +525,11 @@ void read_declared_parts(std::span<const PartDeclaration> declared,
                          const std::array<PartField<Record>, Count>& fields,
                          std::span<const PartGeometry> geometry, Record& record) noexcept {
     for (std::size_t index = 0; index < Count; ++index) {
-        const std::optional<PartIndex> part =
+        const stxlib::Optional<PartIndex> part =
             find_declared_part(declared, fields[index].declaration.name);
         PartGeometry value;
-        if (part.has_value() && (*part).value < geometry.size()) {
-            value = geometry[(*part).value];
+        if (part.present() && (*part.value()).value < geometry.size()) {
+            value = geometry[(*part.value()).value];
         }
         record.*(fields[index].member) = value;
     }

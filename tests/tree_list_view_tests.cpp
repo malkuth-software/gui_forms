@@ -193,9 +193,9 @@ void parts_states_and_paint() {
     const ControlAnatomy& anatomy = (*view).anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none &&
                 anatomy.control_id == "tree_list_view" && anatomy.item_systems.size() == 3U &&
-                find_item_system(anatomy, "row").has_value() && find_item_system(anatomy, "cell").has_value() &&
-                find_item_system(anatomy, "column").has_value() &&
-                find_item_part(anatomy.item_systems[0], "expander").has_value(),
+                find_item_system(anatomy, "row").present() && find_item_system(anatomy, "cell").present() &&
+                find_item_system(anatomy, "column").present() &&
+                find_item_part(anatomy.item_systems[0], "expander").present(),
             "TreeListView publishes a valid anatomy with row, cell and column systems");
     const TreeListView::Parts parts = (*view).parts();
     require(parts.well.present && parts.header.present && !parts.vertical_scroll_bar.present,

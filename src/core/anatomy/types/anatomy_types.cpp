@@ -176,11 +176,11 @@ static_assert(anatomy_defect_names.size() ==
 // system declared before `system`.
 [[nodiscard]] bool part_name_taken(const ControlAnatomy& anatomy, std::size_t system,
                                    std::string_view name) noexcept {
-    if (find_part(anatomy, name).has_value()) {
+    if (find_part(anatomy, name).present()) {
         return true;
     }
     for (std::size_t earlier = 0; earlier < system; ++earlier) {
-        if (find_item_part(anatomy.item_systems[earlier], name).has_value()) {
+        if (find_item_part(anatomy.item_systems[earlier], name).present()) {
             return true;
         }
     }
@@ -250,8 +250,8 @@ static_assert(anatomy_defect_names.size() ==
         if (!is_registered_name(name)) {
             return item_defect_at(AnatomyDefect::item_custom_state_not_snake_case, system_index, index);
         }
-        const std::optional<AnatomyState> standard = anatomy_state_from_name(name);
-        if (standard.has_value()) {
+        const stxlib::Optional<AnatomyState> standard = anatomy_state_from_name(name);
+        if (standard.present()) {
             return item_defect_at(AnatomyDefect::item_custom_state_shadows_standard_state,
                                   system_index, index);
         }
@@ -295,82 +295,82 @@ std::string_view engine_input_name(EngineInput input) noexcept {
     return {};
 }
 
-std::optional<PartRole> part_role_from_name(std::string_view name) noexcept {
+stxlib::Optional<PartRole> part_role_from_name(std::string_view name) noexcept {
     for (std::size_t index = 0; index < part_role_names.size(); ++index) {
         if (part_role_names[index] == name) {
-            return static_cast<PartRole>(index);
+            return stxlib::Optional<PartRole>::of(static_cast<PartRole>(index));
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<PartRole>::none();
 }
 
-std::optional<AnatomyState> anatomy_state_from_name(std::string_view name) noexcept {
+stxlib::Optional<AnatomyState> anatomy_state_from_name(std::string_view name) noexcept {
     for (std::size_t index = 0; index < anatomy_state_names.size(); ++index) {
         if (anatomy_state_names[index] == name) {
-            return static_cast<AnatomyState>(index);
+            return stxlib::Optional<AnatomyState>::of(static_cast<AnatomyState>(index));
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<AnatomyState>::none();
 }
 
-std::optional<PartIndex> find_declared_part(std::span<const PartDeclaration> declared,
+stxlib::Optional<PartIndex> find_declared_part(std::span<const PartDeclaration> declared,
                                             std::string_view part_name) noexcept {
     for (std::size_t index = 0; index < declared.size(); ++index) {
         if (declared[index].name == part_name) {
             PartIndex found;
             found.value = static_cast<std::uint8_t>(index);
-            return found;
+            return stxlib::Optional<PartIndex>::of(found);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<PartIndex>::none();
 }
 
-std::optional<PartIndex> find_part(const ControlAnatomy& anatomy,
+stxlib::Optional<PartIndex> find_part(const ControlAnatomy& anatomy,
                                    std::string_view part_name) noexcept {
-    const std::optional<PartIndex> found = find_declared_part(anatomy.parts, part_name);
+    const stxlib::Optional<PartIndex> found = find_declared_part(anatomy.parts, part_name);
     return found;
 }
 
-std::optional<ItemSystemIndex> find_item_system(const ControlAnatomy& anatomy,
+stxlib::Optional<ItemSystemIndex> find_item_system(const ControlAnatomy& anatomy,
                                                 std::string_view system_name) noexcept {
     for (std::size_t index = 0; index < anatomy.item_systems.size(); ++index) {
         if (anatomy.item_systems[index].name == system_name) {
             ItemSystemIndex found;
             found.value = static_cast<std::uint8_t>(index);
-            return found;
+            return stxlib::Optional<ItemSystemIndex>::of(found);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<ItemSystemIndex>::none();
 }
 
-std::optional<PartIndex> find_item_part(const ItemSystemDeclaration& system,
+stxlib::Optional<PartIndex> find_item_part(const ItemSystemDeclaration& system,
                                         std::string_view part_name) noexcept {
-    const std::optional<PartIndex> found = find_declared_part(system.parts, part_name);
+    const stxlib::Optional<PartIndex> found = find_declared_part(system.parts, part_name);
     return found;
 }
 
-std::optional<CustomStateIndex> find_custom_state(
+stxlib::Optional<CustomStateIndex> find_custom_state(
     const ControlAnatomy& anatomy, std::string_view state_name) noexcept {
     for (std::size_t index = 0; index < anatomy.custom_states.size(); ++index) {
         if (anatomy.custom_states[index].name == state_name) {
             CustomStateIndex found;
             found.value = static_cast<std::uint8_t>(index);
-            return found;
+            return stxlib::Optional<CustomStateIndex>::of(found);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<CustomStateIndex>::none();
 }
 
-std::optional<CustomStateIndex> find_item_custom_state(
+stxlib::Optional<CustomStateIndex> find_item_custom_state(
     const ItemSystemDeclaration& system, std::string_view state_name) noexcept {
     for (std::size_t index = 0; index < system.custom_states.size(); ++index) {
         if (system.custom_states[index].name == state_name) {
             CustomStateIndex found;
             found.value = static_cast<std::uint8_t>(index);
-            return found;
+            return stxlib::Optional<CustomStateIndex>::of(found);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<CustomStateIndex>::none();
 }
 
 bool declares_state(const ControlAnatomy& anatomy, AnatomyState state) noexcept {
@@ -458,8 +458,8 @@ AnatomyValidation validate_control_anatomy(const ControlAnatomy& anatomy) noexce
         if (!is_registered_name(name)) {
             return defect_at(AnatomyDefect::custom_state_not_snake_case, index);
         }
-        const std::optional<AnatomyState> standard = anatomy_state_from_name(name);
-        if (standard.has_value()) {
+        const stxlib::Optional<AnatomyState> standard = anatomy_state_from_name(name);
+        if (standard.present()) {
             return defect_at(AnatomyDefect::custom_state_shadows_standard_state, index);
         }
         for (std::size_t earlier = 0; earlier < index; ++earlier) {

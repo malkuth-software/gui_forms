@@ -216,7 +216,7 @@ void geometry() {
     require(parts.tab_rail.present && parts.application_button.present && parts.command_plane.present &&
                 parts.command_plane.bounds.y == parts.tab_rail.bounds.height,
             "the tab row is above the command plane");
-    require(find_part(anatomy, "help_button") && !parts.help_button.present,
+    require(find_part(anatomy, "help_button").present() && !parts.help_button.present,
             "the help button's part is reserved and not yet placed (owner, N4)");
     const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
     require(tabs.size() == 2U && tabs[0].states.selected && !tabs[1].states.selected &&

@@ -622,12 +622,12 @@ void published_states() {
 
     // The anatomy declares states only on the parts that take them.
     const ControlAnatomy& anatomy = pane.anatomy();
-    const std::optional<PartIndex> grip = find_part(anatomy, "grip");
-    require(grip && declares_part_state(anatomy.parts[(*grip).value], AnatomyState::captured),
+    const stxlib::Optional<PartIndex> grip = find_part(anatomy, "grip");
+    require(grip.present() && declares_part_state(anatomy.parts[(*grip.value()).value], AnatomyState::captured),
             "the grip declares captured");
-    const std::optional<PartIndex> configure = find_part(anatomy, "configure_button");
-    require(configure && declares_part_state(anatomy.parts[(*configure).value], AnatomyState::open) &&
-                anatomy.parts[(*configure).value].composed_from == "button",
+    const stxlib::Optional<PartIndex> configure = find_part(anatomy, "configure_button");
+    require(configure.present() && declares_part_state(anatomy.parts[(*configure.value()).value], AnatomyState::open) &&
+                anatomy.parts[(*configure.value()).value].composed_from == "button",
             "the configure button is composed from a button and declares open");
 }
 

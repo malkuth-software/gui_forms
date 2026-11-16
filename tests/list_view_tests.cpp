@@ -222,9 +222,9 @@ void details_parts_and_paint() {
     window.perform_layout();
     const ControlAnatomy& anatomy = (*view).anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none && anatomy.control_id == "list_view" &&
-                anatomy.item_systems.size() == 4U && find_item_system(anatomy, "column").has_value() &&
-                find_item_part(anatomy.item_systems[2], "sort_glyph").has_value() &&
-                find_item_part(anatomy.item_systems[3], "group_caption").has_value(),
+                anatomy.item_systems.size() == 4U && find_item_system(anatomy, "column").present() &&
+                find_item_part(anatomy.item_systems[2], "sort_glyph").present() &&
+                find_item_part(anatomy.item_systems[3], "group_caption").present(),
             "ListView publishes a valid anatomy with item, sub-item, column and group systems");
     const ListView::Parts parts = (*view).parts();
     require(parts.well.present && parts.header.present && !parts.vertical_scroll_bar.present,

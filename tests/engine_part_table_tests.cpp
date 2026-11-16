@@ -306,8 +306,8 @@ void test_windows_share_the_application_engine() {
 void test_image_role_draws_as_given() {
     const std::shared_ptr<Control> control = make_control<Control>(StableId("image.part"));
     require(part_role_name(PartRole::image) == "image", "the image role is registered");
-    std::optional<PartRole> parsed = part_role_from_name("image");
-    require(parsed == std::optional<PartRole>{PartRole::image}, "the image role parses by name");
+    stxlib::Optional<PartRole> parsed = part_role_from_name("image");
+    require(parsed == stxlib::Optional<PartRole>::of(PartRole::image), "the image role parses by name");
 
     PartPaint picture{};
     picture.role = PartRole::image;
@@ -411,7 +411,7 @@ void test_instrument_roles_draw_as_their_stand_ins() {
     require(part_role_name(PartRole::plot) == "plot" && part_role_name(PartRole::graticule) == "graticule" &&
                 part_role_name(PartRole::trace) == "trace",
             "the instrument roles are registered");
-    require(part_role_from_name("graticule") == std::optional<PartRole>{PartRole::graticule},
+    require(part_role_from_name("graticule") == stxlib::Optional<PartRole>::of(PartRole::graticule),
             "an instrument role parses by name");
 
     const std::shared_ptr<Control> root = make_control<Control>(StableId("instrument"));
@@ -464,7 +464,7 @@ void test_plot_roles_draw_as_their_stand_ins() {
         InstrumentStandIn{PartRole::color_scale, PartRole::well},
         InstrumentStandIn{PartRole::series, PartRole::indicator},
     };
-    require(part_role_from_name("grid_major") == std::optional<PartRole>{PartRole::grid_major} &&
+    require(part_role_from_name("grid_major") == stxlib::Optional<PartRole>::of(PartRole::grid_major) &&
                 part_role_name(PartRole::color_scale) == "color_scale",
             "the plot roles are registered");
     const std::shared_ptr<Control> root = make_control<Control>(StableId("plot"));

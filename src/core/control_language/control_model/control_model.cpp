@@ -4,6 +4,7 @@
 
 #include "../control_expression/control_expression.hpp"
 #include "../../form_language/form_xml/form_xml.hpp"
+#include "../../../platform/stxlib_bridge.hpp"
 
 #include "gui_forms/theme/types/theme_types.hpp"
 
@@ -896,7 +897,7 @@ void ModelBuilder::read_state(const std::uint32_t index, const bool custom, Cont
             report(DiagnosticCode::control_value_invalid, value_offset(index, "name"), name, "name",
                    "'" + std::string(name) + "' is not a kebab-case name");
         }
-        if (anatomy_state_from_name(snake_of(name)).has_value()) {
+        if (anatomy_state_from_name(snake_of(name)).present()) {
             report(DiagnosticCode::control_state_shadows_standard, value_offset(index, "name"), name, "name",
                    std::string(name) + " is a standard state: publish it with <publish>");
         }
@@ -904,7 +905,7 @@ void ModelBuilder::read_state(const std::uint32_t index, const bool custom, Cont
         const std::string_view name = attribute(index, "state");
         check_attributes(index, ElementShape{"publish", {"state", "when"}, {"state", "when"}}, name);
         state.name = std::string(name);
-        state.standard = anatomy_state_from_name(snake_of(name));
+        state.standard = platform::standard_optional(anatomy_state_from_name(snake_of(name)));
         if (has_attribute(index, "state") && !state.standard) {
             report(DiagnosticCode::control_vocabulary_unknown, value_offset(index, "state"), name, "state",
                    "standard state '" + std::string(name) + "'");
@@ -933,9 +934,9 @@ void ModelBuilder::read_part(const std::uint32_t index, ControlModel& scratch) {
     }
     if (has_attribute(index, "role")) {
         const std::string_view role = attribute(index, "role");
-        const std::optional<PartRole> known = part_role_from_name(snake_of(role));
-        if (known) {
-            part.role = *known;
+        const stxlib::Optional<PartRole> known = part_role_from_name(snake_of(role));
+        if (known.present()) {
+            part.role = *known.value();
         } else {
             report(DiagnosticCode::control_vocabulary_unknown, value_offset(index, "role"), name, "role",
                    "part role '" + std::string(role) + "'");
@@ -947,9 +948,9 @@ void ModelBuilder::read_part(const std::uint32_t index, ControlModel& scratch) {
                "composed-from", "family '" + part.composed_from + "'");
     }
     for (const std::string_view word : words_of(attribute(index, "states"))) {
-        const std::optional<AnatomyState> state = anatomy_state_from_name(snake_of(word));
-        if (state) {
-            part.states.push_back(*state);
+        const stxlib::Optional<AnatomyState> state = anatomy_state_from_name(snake_of(word));
+        if (state.present()) {
+            part.states.push_back(*state.value());
         } else {
             report(DiagnosticCode::control_vocabulary_unknown, value_offset(index, "states"), name, "states",
                    "standard state '" + std::string(word) + "'");
@@ -1563,7 +1564,7 @@ bool ModelBuilder::event_named(const ControlModel& scratch, const std::string_vi
 }
 
 bool ModelBuilder::state_named(const ControlModel& scratch, const std::string_view name) const {
-    if (anatomy_state_from_name(snake_of(name)).has_value()) return true;
+    if (anatomy_state_from_name(snake_of(name)).present()) return true;
     for (const ControlState& state : scratch.states) {
         if (state.name == name) return true;
     }

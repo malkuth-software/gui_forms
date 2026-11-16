@@ -1379,13 +1379,13 @@ bool ValuePass::push_name_operand(std::size_t at, ExpressionFunction function) {
     const std::string_view written = text_of(argument);
     const std::string registered = registered_name_from_kebab(written);
     if (function == ExpressionFunction::state) {
-        const std::optional<AnatomyState> state =
-            registered.empty() ? std::optional<AnatomyState>{} : anatomy_state_from_name(registered);
-        if (!state) {
+        const stxlib::Optional<AnatomyState> state =
+            registered.empty() ? stxlib::Optional<AnatomyState>::none() : anatomy_state_from_name(registered);
+        if (state.absent()) {
             report(DiagnosticCode::value_syntax, stream_[argument].token, clipped_theme_detail(written));
             return false;
         }
-        push_operand(ExpressionInstruction::state(*state), ValueUnit::none, false);
+        push_operand(ExpressionInstruction::state(*state.value()), ValueUnit::none, false);
         return true;
     }
     std::size_t position = context_.parameters.size();
