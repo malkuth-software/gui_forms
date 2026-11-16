@@ -2135,12 +2135,12 @@ private:
     Rect arranged_bounds_{};
     // A layout container assigns this slot without destroying the child's
     // authored/preferred requested bounds. Unmanaged children leave it empty.
-    std::optional<Rect> layout_slot_;
+    stxlib::Optional<Rect> layout_slot_;
     struct AnchorReference final {
         Rect bounds;
         Rect client;
     };
-    std::optional<AnchorReference> anchor_reference_;
+    stxlib::Optional<AnchorReference> anchor_reference_;
     // Drops the anchor reference and, when the control is undocked and it
     // and its attached parent are arranged, captures the current one.
     void recapture_anchor_reference();

@@ -3154,8 +3154,8 @@ void Control::set_child_layout(const Ptr& child, Rect bounds) {
         throw std::invalid_argument(
             "GUI.Forms child layout bounds must be finite and nonnegative");
     }
-    if ((*child).layout_slot_ == bounds) return;
-    (*child).layout_slot_ = bounds;
+    if ((*child).layout_slot_ == stxlib::Optional<Rect>::of(bounds)) return;
+    (*child).layout_slot_.set(bounds);
     if (surface_root_ != nullptr) {
         detail::SurfaceTreeAccess::mark_child_layout_slot(*surface_root_, *child);
     } else {
@@ -3663,7 +3663,7 @@ void Control::recapture_anchor_reference() {
     const bool arranged = arranged_bounds_.width > 0.0 || arranged_bounds_.height > 0.0;
     if (!owner_arranged || !arranged) return;
     const Rect client = client_rect({owner_bounds.width, owner_bounds.height}, (*owner).padding.read());
-    anchor_reference_ = AnchorReference{arranged_bounds_, client};
+    anchor_reference_.set(AnchorReference{arranged_bounds_, client});
 }
 
 Size Control::get_preferred_size(Size proposed) {
@@ -4671,8 +4671,8 @@ void Control::arrange(Rect final_bounds) {
             // reference; an automatically sized child takes its reference
             // from its preferred size when shown.
             const bool sized_client = client.width > 0.0 && client.height > 0.0;
-            if (sized_client && !(*child).auto_size.read() && !(*child).anchor_reference_) {
-                (*child).anchor_reference_ = AnchorReference{(*child).requested_bounds_, client};
+            if (sized_client && !(*child).auto_size.read() && (*child).anchor_reference_.absent()) {
+                (*child).anchor_reference_.set(AnchorReference{(*child).requested_bounds_, client});
             }
             continue;
         }
@@ -4713,13 +4713,13 @@ void Control::arrange(Rect final_bounds) {
         if ((*child).auto_size.read() || unrequested_extent) {
             // The preferred size follows the content, so the reference is
             // taken again each layout.
-            (*child).anchor_reference_ = AnchorReference{authored, client};
-        } else if (!(*child).anchor_reference_) {
-            (*child).anchor_reference_ = AnchorReference{
-                authored, client};
+            (*child).anchor_reference_.set(AnchorReference{authored, client});
+        } else if ((*child).anchor_reference_.absent()) {
+            (*child).anchor_reference_.set(AnchorReference{
+                authored, client});
         }
-        const Rect anchored = anchored_bounds((*(*child).anchor_reference_).bounds,
-                                              (*(*child).anchor_reference_).client, client,
+        const Rect anchored = anchored_bounds((*(*child).anchor_reference_.value()).bounds,
+                                              (*(*child).anchor_reference_.value()).client, client,
                                               (*child).anchor.read());
         set_child_layout(child, mirrored ? mirror_horizontally(anchored, viewport) : anchored);
     }
