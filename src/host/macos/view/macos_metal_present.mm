@@ -27,9 +27,13 @@ constexpr std::size_t tracked_presents = 8U;
 } // namespace
 
 struct MacMetalPath::State final {
+    // A surface the layer showed, by address and by IOSurface ID: a freed
+    // surface's address can be reused by a new one, its ID is not, so both
+    // must match (A-gf-present-01-F2).
     struct Shown final {
         // Observing: compared, never dereferenced.
         IOSurfaceRef surface{};
+        IOSurfaceID identity{};
         std::uint64_t shown_at{};
     };
 
@@ -56,22 +60,30 @@ namespace {
 
 // The last present that showed `surface`; 0 for none remembered.
 std::uint64_t shown_at(const MacMetalPath::State& state, IOSurfaceRef surface) noexcept {
+    const IOSurfaceID identity = IOSurfaceGetID(surface);
     for (const MacMetalPath::State::Shown& entry : state.shown) {
-        if (entry.surface == surface) return entry.shown_at;
+        if (entry.surface == surface && entry.identity == identity) return entry.shown_at;
     }
     return 0U;
+}
+
+// Forgets every surface shown: their contents are unknown from here.
+void forget_shown(MacMetalPath::State& state) noexcept {
+    state.shown = {};
+    state.next_shown = 0U;
 }
 
 // Remembers that `surface` was shown by the latest present, replacing its
 // own entry or the oldest.
 void remember_shown(MacMetalPath::State& state, IOSurfaceRef surface) noexcept {
+    const IOSurfaceID identity = IOSurfaceGetID(surface);
     for (MacMetalPath::State::Shown& entry : state.shown) {
-        if (entry.surface == surface) {
+        if (entry.surface == surface && entry.identity == identity) {
             entry.shown_at = state.presents;
             return;
         }
     }
-    state.shown[state.next_shown] = MacMetalPath::State::Shown{surface, state.presents};
+    state.shown[state.next_shown] = MacMetalPath::State::Shown{surface, identity, state.presents};
     state.next_shown = (state.next_shown + 1U) % remembered_surfaces;
 }
 
@@ -171,7 +183,12 @@ presentation::DirectAcquire MacMetalPath::acquire(presentation::PresentExtent ex
     if (state.layer == nil && !make_layer(state))
         return presentation::DirectAcquire::refused(presentation::DirectRefusal::resources);
     const CGSize size = CGSizeMake(static_cast<CGFloat>(extent.width), static_cast<CGFloat>(extent.height));
-    if (!CGSizeEqualToSize(state.layer.drawableSize, size)) state.layer.drawableSize = size;
+    // A new size makes new surfaces, possibly at freed ones' addresses:
+    // every remembered surface is forgotten, so their ages are unknown.
+    if (!CGSizeEqualToSize(state.layer.drawableSize, size)) {
+        state.layer.drawableSize = size;
+        forget_shown(state);
+    }
     // No drawable ready is a refusal for this frame, never a wait: while
     // every drawable of the pool is presented and not yet replaced on
     // screen, nextDrawable would block, so it is not called. The frame is
@@ -247,8 +264,7 @@ void MacMetalPath::release() noexcept {
     drop_drawable(state);
     forget_presented(state);
     hide_layer(state);
-    state.shown = {};
-    state.next_shown = 0U;
+    forget_shown(state);
     // As the IOSurface path: the backing store beneath the layer is drawn
     // whole on the next pass.
     if (state.view != nil)
