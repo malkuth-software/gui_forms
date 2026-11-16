@@ -20,6 +20,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // The two forms of a ribbon gallery (RIBBON_STUDY.md §5.2). In the ribbon a
@@ -251,7 +253,11 @@ private:
     [[nodiscard]] std::size_t visible_line_end(const Geometry& layout) const noexcept;
     [[nodiscard]] std::size_t lines_per_page(const Geometry& layout) const noexcept;
     [[nodiscard]] Rect cell_bounds(std::size_t position, const Geometry& layout) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> line_of(std::size_t position) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> line_of(std::size_t position) const noexcept;
+    // Whether `held` (hot_, pressed_ or focused_) holds display position
+    // `position`.
+    [[nodiscard]] static bool holds_position(const stxlib::Optional<std::size_t>& held,
+                                             std::size_t position) noexcept;
     [[nodiscard]] ItemParts item_parts(std::size_t position, const Geometry& layout) const;
     [[nodiscard]] CategoryParts category_parts(std::size_t line, const Geometry& layout) const;
     [[nodiscard]] AnatomyStateSet item_states(std::size_t position) const;
@@ -264,7 +270,7 @@ private:
     };
     [[nodiscard]] Realized realized(const Geometry& layout) const;
 
-    [[nodiscard]] std::optional<std::size_t> position_of(std::string_view item_id) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> position_of(std::string_view item_id) const noexcept;
     [[nodiscard]] bool item_enabled(std::size_t position) const noexcept;
     void commit(std::size_t position);
     void focus_position(std::size_t position);
@@ -302,16 +308,16 @@ private:
     std::size_t first_line_{};
 
     // Interaction state, as display positions.
-    std::optional<std::size_t> hot_{};
-    std::optional<std::size_t> pressed_{};
-    std::optional<std::size_t> focused_{};
+    stxlib::Optional<std::size_t> hot_{};
+    stxlib::Optional<std::size_t> pressed_{};
+    stxlib::Optional<std::size_t> focused_{};
     HitZone hot_zone_{HitZone::none};
     HitZone pressed_zone_{HitZone::none};
     // What a primary press was over before the press focused the gallery
     // (on_pointer_preview, ahead of the window's focus move): the press acts
     // on it, and the focus it gives does not scroll away from it. Set from
     // the preview until the press's own on_mouse_down, a release or a blur.
-    std::optional<HitResult> press_hit_{};
+    stxlib::Optional<HitResult> press_hit_{};
     bool has_focus_{};
     // The item a dwell timer is running for, and its timer.
     std::string dwell_item_{};
