@@ -30,6 +30,8 @@
 #include <utility>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class RibbonGroupOverlay;
@@ -1014,9 +1016,14 @@ private:
     [[nodiscard]] std::vector<Stop> stops_for(const Layout& placed) const;
     [[nodiscard]] std::vector<Stop> overlay_stops() const;
     [[nodiscard]] Stop resolve_stop(const std::vector<Stop>& all, const Stop& stop) const;
-    [[nodiscard]] std::optional<CommandAddress> find_command(std::string_view command_id) const;
-    [[nodiscard]] std::optional<std::size_t> find_group(std::string_view group_id) const;
-    [[nodiscard]] std::optional<Rect> command_window_bounds(CommandAddress address) const;
+    [[nodiscard]] stxlib::Optional<CommandAddress> find_command(std::string_view command_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> find_group(std::string_view group_id) const;
+    [[nodiscard]] stxlib::Optional<Rect> command_window_bounds(CommandAddress address) const;
+    // Whether `held` holds `value`: the interaction state's comparisons
+    // with a group, a command or a stop.
+    [[nodiscard]] static bool holds(const stxlib::Optional<std::size_t>& held, std::size_t value) noexcept;
+    [[nodiscard]] static bool holds(const stxlib::Optional<CommandAddress>& held, CommandAddress value) noexcept;
+    [[nodiscard]] static bool holds(const stxlib::Optional<Stop>& held, const Stop& value) noexcept;
     [[nodiscard]] Control::Ptr hosted_control(std::string_view command_id, RibbonCommandKind kind) const;
     [[nodiscard]] Control::Ptr make_hosted(const RibbonCommandSpec& command) const;
     void configure_hosted(const RibbonCommandSpec& command, Control& control) const;
@@ -1042,8 +1049,8 @@ private:
     // focus and a menu opening or closing change one part, never the whole
     // ribbon (owner, 2026-11-09).
     void repaint_part(Hit::Kind kind, std::size_t index, CommandAddress command);
-    void repaint_stop(const std::optional<Stop>& stop);
-    void set_stop(std::optional<Stop> stop);
+    void repaint_stop(const stxlib::Optional<Stop>& stop);
+    void set_stop(const Stop& stop);
     void activate_stop(const Stop& stop);
     void press(const Hit& hit, PointerEvent& event);
     void release(const Hit& hit, PointerEvent& event);
@@ -1121,14 +1128,14 @@ private:
     SubscriptionToken overlay_changed_{};
     // Which menu the overlay shows: the application menu, or a command's.
     bool application_open_{};
-    std::optional<CommandAddress> open_command_{};
+    stxlib::Optional<CommandAddress> open_command_{};
     Hit hot_{};
-    std::optional<CommandAddress> pressed_command_{};
+    stxlib::Optional<CommandAddress> pressed_command_{};
     CommandZone pressed_zone_{CommandZone::none};
-    std::optional<std::size_t> pressed_launcher_{};
+    stxlib::Optional<std::size_t> pressed_launcher_{};
     // The tab pressed while tabs_activate_on_release holds, until the release.
     stxlib::Optional<std::size_t> pressed_tab_{};
-    std::optional<std::size_t> pressed_group_{};
+    stxlib::Optional<std::size_t> pressed_group_{};
     Hit::Kind pressed_scroll_{Hit::Kind::none};
     bool application_pressed_{};
     // The help button was pressed and the release has not come yet.
@@ -1137,7 +1144,7 @@ private:
     std::shared_ptr<QuickAccessToolbar> quick_access_{};
     SubscriptionToken quick_access_placed_{};
     SubscriptionToken quick_access_customized_{};
-    std::optional<Stop> stop_{};
+    stxlib::Optional<Stop> stop_{};
     bool focused_{};
 
     // Scaling. The caches are derived state, emptied when scaling_key_ no
@@ -1165,8 +1172,8 @@ private:
     FocusScopeId group_scope_{};
     SubscriptionToken group_layer_dismissed_{};
     SubscriptionToken group_overlay_revoked_{};
-    std::optional<std::size_t> overlay_group_{};
-    std::optional<Stop> overlay_stop_{};
+    stxlib::Optional<std::size_t> overlay_group_{};
+    stxlib::Optional<Stop> overlay_stop_{};
     bool overlay_focused_{};
 
     // The minimized ribbon's popup: its content control and layer (made on

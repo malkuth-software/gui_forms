@@ -146,7 +146,8 @@ void Ribbon::tabs_shown_changed() {
     pressed_command_.reset();
     pressed_launcher_.reset();
     pressed_group_.reset();
-    if (stop_ && (*stop_).kind != StopKind::application) stop_ = Stop{StopKind::application, 0U, {}};
+    const Stop* const held_stop = stop_.value();
+    if (held_stop != nullptr && (*held_stop).kind != StopKind::application) stop_.set(Stop{StopKind::application, 0U, {}});
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
