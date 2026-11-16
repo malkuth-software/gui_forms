@@ -4,12 +4,12 @@
 #include "composite_evaluator.hpp"
 
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "../basic/number_text.hpp"
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
 #include <variant>
 
 namespace gui_forms {
@@ -26,8 +26,10 @@ using control_language::ExpressionOperator;
 // decimal text).
 constexpr double number_tolerance = 1e-9;
 
+// Number literals and numbers held as text, read in the C locale whatever
+// LC_NUMERIC says (A-gf-controls-02-F4).
 double parsed_number(const std::string& text) noexcept {
-    const double value = std::strtod(text.c_str(), nullptr);
+    const double value = number_text::leading_decimal(text);
     return value;
 }
 
@@ -70,10 +72,9 @@ std::string text_of(const CompositeValue& value) {
     case CompositeValueKind::word: return value.text;
     case CompositeValueKind::boolean: return value.boolean ? "true" : "false";
     case CompositeValueKind::number: {
-        std::array<char, 32> written{};
-        const int length = std::snprintf(written.data(), written.size(), "%.17g", value.number);
-        const std::size_t used = length > 0 ? static_cast<std::size_t>(length) : 0U;
-        std::string text(written.data(), std::min(used, written.size() - 1U));
+        // printf's "%.17g" in the C locale, whatever LC_NUMERIC says.
+        std::string text{};
+        number_text::append_number_text(text, value.number, std::chars_format::general, 17);
         return text;
     }
     case CompositeValueKind::none:

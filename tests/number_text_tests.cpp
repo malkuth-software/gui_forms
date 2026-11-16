@@ -3,6 +3,7 @@
 
 #include "../src/controls/basic/number_text.hpp"
 
+#include <charconv>
 #include <clocale>
 #include <cstdint>
 #include <iostream>
@@ -35,6 +36,21 @@ void check_decimal_forms() {
     require(value == 7.0, "a refusal leaves the value");
 }
 
+// The composite expressions' strtod replacement (A-gf-controls-02-F4): a
+// leading number, words after it allowed; under a comma locale "0.5" is still
+// a half, where strtod read it as 0.
+void check_leading_decimal_forms() {
+    require(gui_forms::number_text::leading_decimal("0.5") == 0.5, "a half");
+    require(gui_forms::number_text::leading_decimal(" \n-1.5px") == -1.5, "white space, sign and a unit");
+    require(gui_forms::number_text::leading_decimal("+2e1") == 20.0, "plus and exponent");
+    require(gui_forms::number_text::leading_decimal("word") == 0.0, "no number reads 0");
+    require(gui_forms::number_text::leading_decimal("+-3") == 0.0, "two signs read 0");
+    require(gui_forms::number_text::leading_decimal("") == 0.0, "empty reads 0");
+    std::string written{};
+    gui_forms::number_text::append_number_text(written, 0.5, std::chars_format::general, 17);
+    require(written == "0.5", "\"%.17g\" writes a point");
+}
+
 void check_hexadecimal_forms() {
     std::int64_t value = 0;
     require(gui_forms::number_text::parse_hexadecimal_integer("ff", value) && value == 255, "plain hex");
@@ -52,6 +68,7 @@ void check_hexadecimal_forms() {
 int main() {
     try {
         check_decimal_forms();
+        check_leading_decimal_forms();
         check_hexadecimal_forms();
         // Under a locale whose decimal separator is a comma, the same forms
         // still parse (std::stod would have read "12.5" as 12).
@@ -73,6 +90,7 @@ int main() {
             return skipped_exit_code;
         }
         check_decimal_forms();
+        check_leading_decimal_forms();
         check_hexadecimal_forms();
         // std-rules: allow(locale-change) the test restores the classic locale it changed above
         static_cast<void>(std::setlocale(LC_NUMERIC, "C"));

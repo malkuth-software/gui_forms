@@ -10,7 +10,9 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cstdlib>
+#include <system_error>
 #include <utility>
 
 namespace gui_forms::control_language {
@@ -207,8 +209,12 @@ std::optional<double> number_of(const std::string_view text) {
         if (!fraction_digits) return std::nullopt;
     }
     if (at != text.size() || (!integer_digits && !fraction_digits)) return std::nullopt;
-    const std::string copy(text);
-    const double value = std::strtod(copy.c_str(), nullptr);
+    // The text is checked above as sign, digits and point; from_chars reads
+    // it in the C locale whatever LC_NUMERIC says (A-gf-controls-02-F4).
+    double value{};
+    const std::from_chars_result result =
+        std::from_chars(text.data(), text.data() + text.size(), value, std::chars_format::general);
+    if (result.ec != std::errc{}) return std::nullopt;
     return value;
 }
 
