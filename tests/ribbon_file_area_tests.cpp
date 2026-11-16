@@ -460,7 +460,7 @@ void backstage() {
     int closes = 0;
     SubscriptionToken saved = (*save).invoked().subscribe(CountInvocation{&saves});
     SubscriptionToken closed = (*close).invoked().subscribe(CountInvocation{&closes});
-    require((*view).selected_topic.read() == std::size_t{1U}, "the first topic is selected");
+    require((*view).selected_topic.read() == stxlib::Optional<std::size_t>::of(1U), "the first topic is selected");
     click(window, centre((*ribbon).parts().application_button.bounds));
     require((*ribbon).backstage_open() && (*ribbon).parts().application_button.states.contains(AnatomyState::open),
             "the File tab opens Backstage");
