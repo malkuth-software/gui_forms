@@ -60,7 +60,7 @@ void throw_failure(const stxlib::ErrorRecord* const record) {
     throw std::runtime_error(message);
 }
 
-void check_status(const stxlib::Status& status) {
+void check_status(const stxlib::OperationStatus& status) {
     if (!status.failed()) return;
     throw_failure(status.error());
 }
@@ -78,9 +78,9 @@ struct AtomicThreadPool::State final {
 };
 
 AtomicThreadPool::AtomicThreadPool(const std::uint32_t threads) : state_(std::make_unique<State>()) {
-    stxlib::Result<stxlib::AtomicPool> created = stxlib::AtomicPool::create(threads);
+    stxlib::OperationResult<stxlib::AtomicPool> created = stxlib::AtomicPool::create(threads);
     if (created.failed()) throw_failure(created.error());
-    (*state_).pool = static_cast<stxlib::Result<stxlib::AtomicPool>&&>(created).take_value();
+    (*state_).pool = static_cast<stxlib::OperationResult<stxlib::AtomicPool>&&>(created).take_value();
 }
 
 AtomicThreadPool::~AtomicThreadPool() = default;
@@ -106,7 +106,7 @@ void AtomicThreadPool::run(const std::span<const AtomicTask> tasks) {
     }
     const stxlib::View<stxlib::PoolTask> batch(state.tasks.data(), static_cast<stxlib::usize>(state.tasks.size()));
     state.running = true;
-    const stxlib::Status result = state.pool.run(batch);
+    const stxlib::OperationStatus result = state.pool.run(batch);
     state.running = false;
     check_status(result);
 }
@@ -118,9 +118,9 @@ void AtomicThreadPool::run(const std::span<const AtomicTask> tasks) {
 struct Worker::State final {
     State(const Entry function, void* const address) : entry(function), context(address) {
         if (entry == nullptr) throw std::invalid_argument("Worker requires a named entry");
-        stxlib::Result<stxlib::Thread> started = stxlib::Thread::start(State::run, this);
+        stxlib::OperationResult<stxlib::Thread> started = stxlib::Thread::start(State::run, this);
         if (started.failed()) throw_failure(started.error());
-        thread = static_cast<stxlib::Result<stxlib::Thread>&&>(started).take_value();
+        thread = static_cast<stxlib::OperationResult<stxlib::Thread>&&>(started).take_value();
     }
     ~State() {
         cancellation.request();

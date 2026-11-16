@@ -200,11 +200,11 @@ std::vector<std::vector<std::byte>> gui_forms_note_descriptions(std::uint32_t ty
     // the answer.
     if (only_containing) {
         const stxlib::uptr address = reinterpret_cast<stxlib::uptr>(within);
-        const stxlib::Status visited =
+        const stxlib::OperationStatus visited =
             stxlib::visit_image_regions_containing(address, note_regions, collect_region, &search);
         static_cast<void>(visited);
     } else {
-        const stxlib::Status visited = stxlib::visit_image_regions(note_regions, collect_region, &search);
+        const stxlib::OperationStatus visited = stxlib::visit_image_regions(note_regions, collect_region, &search);
         static_cast<void>(visited);
     }
     if (search.exhausted) throw std::bad_alloc();

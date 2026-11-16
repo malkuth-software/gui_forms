@@ -30,7 +30,7 @@ namespace {
 // answers with pthread_main_np on macOS (stxlib::is_main_thread); a refused
 // answer counts as the wrong thread.
 bool on_main_thread() noexcept {
-    const stxlib::Result<bool> answer = stxlib::is_main_thread();
+    const stxlib::OperationResult<bool> answer = stxlib::is_main_thread();
     if (answer.failed()) return false;
     const bool result = *answer.value();
     return result;

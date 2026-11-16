@@ -61,9 +61,9 @@ std::string environment(std::string_view name) {
     static_cast<void>(name);
     return std::string{};
 #else
-    const stxlib::Result<stxlib::TextView> checked = platform::validated_text(name);
+    const stxlib::OperationResult<stxlib::TextView> checked = platform::validated_text(name);
     if (checked.failed()) return std::string{};
-    const stxlib::Result<stxlib::Utf8String> value =
+    const stxlib::OperationResult<stxlib::Utf8String> value =
         stxlib::read_variable(*checked.value(), stxlib::maximum_environment_bytes);
     if (value.failed()) return std::string{};
     std::string made = platform::standard_text_copy((*value.value()).view());
@@ -226,7 +226,7 @@ std::string environment_value(std::string_view name) {
 // Windows, _NSGetExecutablePath on macOS, /proc/self/exe on Linux. Empty
 // when the host cannot say or the name is not Unicode text.
 std::string executable_path() {
-    const stxlib::Result<stxlib::Path> found = stxlib::current_executable();
+    const stxlib::OperationResult<stxlib::Path> found = stxlib::current_executable();
     if (found.failed()) return std::string{};
     const stxlib::PathText text = (*found.value()).text();
     if (!text.is_unicode()) return std::string{};
@@ -240,7 +240,7 @@ std::string executable_path() {
 // Empty when the host cannot be read.
 std::vector<std::string> process_arguments() {
     std::vector<std::string> arguments{};
-    const stxlib::Result<stxlib::ProcessArguments> read = stxlib::process_arguments();
+    const stxlib::OperationResult<stxlib::ProcessArguments> read = stxlib::process_arguments();
     if (read.failed()) return arguments;
     const stxlib::ProcessArguments& host = *read.value();
     // The program's own name (index 0) is not an argument.

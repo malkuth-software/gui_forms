@@ -273,14 +273,14 @@ ContentWorker::ContentWorker(std::unique_ptr<ContentProgram> program, ContentFra
     // released with shared_ then.
     std::unique_ptr<ContentWorkerStart> start = std::make_unique<ContentWorkerStart>();
     (*start).shared = shared_;
-    stxlib::Result<stxlib::Thread> started = stxlib::Thread::start(&content_worker_thread_main, start.get());
+    stxlib::OperationResult<stxlib::Thread> started = stxlib::Thread::start(&content_worker_thread_main, start.get());
     if (started.failed()) {
         // The thread never ran: the start block is still ours, freed here.
         if ((*started.error()).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc();
         throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again),
                                 "ContentWorker could not start its thread");
     }
-    (*thread_).thread = static_cast<stxlib::Result<stxlib::Thread>&&>(started).take_value();
+    (*thread_).thread = static_cast<stxlib::OperationResult<stxlib::Thread>&&>(started).take_value();
     // The thread owns the start block from here (run_content_worker).
     (*thread_).start = start.release();
     (*thread_).joinable = true;
