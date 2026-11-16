@@ -686,9 +686,9 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
 
     const double before_semantic = (*split).splitter_distance.read();
     const SemanticDescriptor semantics = (*split).semantic_descriptor();
-    require(semantics.numeric_value == before_semantic &&
-                semantics.minimum_value.has_value() &&
-                semantics.maximum_value.has_value() &&
+    require(semantics.numeric_value == stxlib::Optional<double>::of(before_semantic) &&
+                semantics.minimum_value.present() &&
+                semantics.maximum_value.present() &&
                 window.perform_semantic_action(
                     "split.proximity", SemanticAction::increment) &&
                 (*split).splitter_distance.read() > before_semantic &&
@@ -905,12 +905,14 @@ void test_seam_drag_engine_parity() {
     const SemanticDescriptor range = (*split).semantic_descriptor();
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::down, 191.0)));
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, 1000.0)));
-    require(near((*split).splitter_distance.read(), *range.maximum_value), "a drag past the end stops at the maximum");
+    require(near((*split).splitter_distance.read(), *range.maximum_value.value()),
+            "a drag past the end stops at the maximum");
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, -50.0)));
-    require(near((*split).splitter_distance.read(), *range.minimum_value),
+    require(near((*split).splitter_distance.read(), *range.minimum_value.value()),
             "a drag past the start stops at the minimum, with no refusal");
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::up, -50.0)));
-    require(near((*split).splitter_distance.read(), *range.minimum_value), "the release keeps the clamped distance");
+    require(near((*split).splitter_distance.read(), *range.minimum_value.value()),
+            "the release keeps the clamped distance");
 }
 
 // Every end but a release puts the distance back with the cancel reason:

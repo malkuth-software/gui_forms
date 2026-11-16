@@ -471,7 +471,8 @@ void accessibility_publication() {
     const SemanticDescriptor descriptor = editor.semantic_descriptor();
     require(descriptor.role == SemanticRole::text_box && descriptor.name == "Notes" && descriptor.value == "ab\ncd",
             "the editor is an editable text box with its text as the value");
-    require(descriptor.text_selection && (*descriptor.text_selection).caret.value() == 4U && descriptor.multiline,
+    require(descriptor.text_selection.present() && (*descriptor.text_selection.value()).caret.value() == 4U &&
+                descriptor.multiline,
             "the selection and caret are published");
 
     SemanticTextLayout unlaid{};

@@ -31,14 +31,16 @@ void append_json_string(std::ostringstream& stream, std::string_view value) {
 }
 
 // Appends `,"name":value`, or `,"name":null` when the field is absent.
-void append_count(std::ostringstream& stream, const char* name, const std::optional<std::size_t>& value) {
+void append_count(std::ostringstream& stream, const char* name, const stxlib::Optional<std::size_t>& value) {
     stream << ",\"" << name << "\":";
-    if (value) stream << *value;
+    const std::size_t* const count = value.value();
+    if (count != nullptr) stream << *count;
     else stream << "null";
 }
-void append_number(std::ostringstream& stream, const char* name, const std::optional<double>& value) {
+void append_number(std::ostringstream& stream, const char* name, const stxlib::Optional<double>& value) {
     stream << ",\"" << name << "\":";
-    if (value) stream << *value;
+    const double* const number = value.value();
+    if (number != nullptr) stream << *number;
     else stream << "null";
 }
 
@@ -57,25 +59,25 @@ void append_node(std::ostringstream& stream, const SemanticNode& node) {
     stream << ",\"description\":";
     append_json_string(stream, node.description);
     stream << ",\"numeric_value\":";
-    if (node.numeric_value) stream << *node.numeric_value;
+    if (node.numeric_value.present()) stream << *node.numeric_value.value();
     else stream << "null";
     stream << ",\"minimum_value\":";
-    if (node.minimum_value) stream << *node.minimum_value;
+    if (node.minimum_value.present()) stream << *node.minimum_value.value();
     else stream << "null";
     stream << ",\"maximum_value\":";
-    if (node.maximum_value) stream << *node.maximum_value;
+    if (node.maximum_value.present()) stream << *node.maximum_value.value();
     else stream << "null";
     stream << ",\"position_in_set\":";
-    if (node.position_in_set) stream << *node.position_in_set;
+    if (node.position_in_set.present()) stream << *node.position_in_set.value();
     else stream << "null";
     stream << ",\"set_size\":";
-    if (node.set_size) stream << *node.set_size;
+    if (node.set_size.present()) stream << *node.set_size.value();
     else stream << "null";
     stream << ",\"has_popup\":" << (node.has_popup ? "true" : "false");
     stream << ",\"controlled_panel\":";
     append_json_string(stream, node.controlled_panel);
     stream << ",\"orientation\":";
-    if (node.orientation) append_json_string(stream, semantic_orientation_name(*node.orientation));
+    if (node.orientation.present()) append_json_string(stream, semantic_orientation_name(*node.orientation.value()));
     else stream << "null";
     append_count(stream, "level", node.level);
     stream << ",\"modal\":" << (node.modal ? "true" : "false");
@@ -88,9 +90,9 @@ void append_node(std::ostringstream& stream, const SemanticNode& node) {
     append_number(stream, "small_step", node.small_step);
     append_number(stream, "large_step", node.large_step);
     stream << ",\"text_selection\":";
-    if (node.text_selection) {
-        stream << "{\"anchor\":" << (*node.text_selection).anchor.value() << ",\"caret\":"
-               << (*node.text_selection).caret.value() << '}';
+    if (node.text_selection.present()) {
+        stream << "{\"anchor\":" << (*node.text_selection.value()).anchor.value() << ",\"caret\":"
+               << (*node.text_selection.value()).caret.value() << '}';
     } else {
         stream << "null";
     }

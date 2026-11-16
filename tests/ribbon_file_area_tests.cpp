@@ -394,8 +394,9 @@ void recent_pane() {
     const Control::Ptr overlay = (*ribbon).application_menu_overlay();
     std::vector<SemanticNode> rows = (*overlay).semantic_virtual_children();
     require(rows.size() == 4U && rows[0].name == "Open" && rows[1].name == "Save" && rows[2].name == "1 Report.txt" &&
-                rows[2].description == "C:\\Documents" && rows[3].position_in_set == std::size_t{2U} &&
-                rows[3].set_size == std::size_t{2U},
+                rows[2].description == "C:\\Documents" &&
+                rows[3].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                rows[3].set_size == stxlib::Optional<std::size_t>::of(2U),
             "the commands sit beside the numbered recent items, each positioned in its pane");
     require(rows[2].bounds.x > rows[0].bounds.x + rows[0].bounds.width - 1.0 &&
                 rows[0].bounds.y >= (*ribbon).parts().application_button.bounds.height,

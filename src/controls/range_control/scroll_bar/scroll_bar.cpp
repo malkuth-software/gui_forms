@@ -477,12 +477,12 @@ SemanticDescriptor ScrollBar::semantic_descriptor() const {
     std::string value_text;
     number_text::append_number_text(value_text, value.read(), std::chars_format::general, 6);
     descriptor.value = value_text;
-    descriptor.numeric_value = value.read();
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
+    descriptor.numeric_value.set(value.read());
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
     // The arrow keys move by the small change, the page keys by the large.
-    descriptor.small_step = small_change.read();
-    descriptor.large_step = large_change.read();
+    descriptor.small_step.set(small_change.read());
+    descriptor.large_step.set(large_change.read());
     descriptor.actions = {SemanticAction::increment, SemanticAction::decrement, SemanticAction::set_value};
     // A bar a composite owns without focus (ListView's, a scroll viewer's)
     // offers no focus action: the window refuses to focus it, so a client's

@@ -1405,8 +1405,8 @@ SemanticDescriptor ObjectView::semantic_descriptor() const {
     // and every column, realized or not; the other views are lists.
     if (has_details_columns()) {
         descriptor.role = SemanticRole::table;
-        descriptor.row_count = items_.size();
-        descriptor.column_count = details_columns_.size();
+        descriptor.row_count.set(items_.size());
+        descriptor.column_count.set(details_columns_.size());
     } else {
         descriptor.role = SemanticRole::list;
     }
@@ -1439,12 +1439,12 @@ std::vector<SemanticNode> ObjectView::semantic_virtual_children() const {
         // the whole collection.
         if (table) {
             node.role = SemanticRole::row;
-            node.row_index = index + 1U;
+            node.row_index.set(index + 1U);
             append_row_cells(index, node);
         } else {
             node.role = SemanticRole::list_item;
-            node.position_in_set = index + 1U;
-            node.set_size = items_.size();
+            node.position_in_set.set(index + 1U);
+            node.set_size.set(items_.size());
         }
         node.name = item.name;
         node.value = item.secondary_text;
@@ -1478,7 +1478,7 @@ void ObjectView::append_column_headers(std::vector<SemanticNode>& nodes) const {
         node.stable_id = view_id + ".column." + definition.id.value;
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::column_header;
-        node.column_index = column + 1U;
+        node.column_index.set(column + 1U);
         node.name = definition.label;
         if (!details_sort_.column.value.empty() && definition.id == details_sort_.column) {
             node.value = details_sort_.direction == ObjectSortDirection::ascending ? "ascending" : "descending";
@@ -1513,8 +1513,8 @@ void ObjectView::append_row_cells(std::size_t index, SemanticNode& row_node) con
         cell.role = SemanticRole::cell;
         cell.name = details_columns_[column].label;
         cell.value = value.text;
-        cell.row_index = index + 1U;
-        cell.column_index = column + 1U;
+        cell.row_index.set(index + 1U);
+        cell.column_index.set(column + 1U);
         cell.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         cell.states = SemanticState::visible;
         if (enabled && value.availability == ObjectCellAvailability::available) cell.states |= SemanticState::enabled;

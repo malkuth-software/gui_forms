@@ -6,6 +6,8 @@
 #include "gui_forms/rules/rule/rule.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -67,7 +69,7 @@ struct AccessibilityProjection final {
 
 // A one-row or one-column range from an index counting from one, as
 // AXRowIndexRange publishes it: "location+length", or "" without one.
-[[nodiscard]] std::string expected_ax_range(const std::optional<std::size_t>& index);
+[[nodiscard]] std::string expected_ax_range(const stxlib::Optional<std::size_t>& index);
 
 [[nodiscard]] const char* expected_ax_role(SemanticRole role);
 // The subrole, or "" for none.

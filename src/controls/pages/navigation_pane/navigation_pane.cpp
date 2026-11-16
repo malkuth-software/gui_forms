@@ -1635,9 +1635,9 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
         node.role = SemanticRole::split_pane;
         node.name = "Large buttons";
         node.value = std::to_string(placed.large_count);
-        node.numeric_value = static_cast<double>(placed.large_count);
-        node.minimum_value = 0.0;
-        node.maximum_value = static_cast<double>(std::min(placed.shown_count, placed.button_capacity));
+        node.numeric_value.set(static_cast<double>(placed.large_count));
+        node.minimum_value.set(0.0);
+        node.maximum_value.set(static_cast<double>(std::min(placed.shown_count, placed.button_capacity)));
         node.bounds = window_rect(absolute, placed.grip_bar);
         node.states = base | SemanticState::focusable;
         if (focused_ && stop_ == target) node.states |= SemanticState::focused;
@@ -1651,7 +1651,7 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
         list.runtime_id = virtual_semantic_runtime_id(list.stable_id);
         list.role = SemanticRole::tab_group;
         list.name = "Pages";
-        list.orientation = SemanticOrientation::vertical;
+        list.orientation.set(SemanticOrientation::vertical);
         Rect area = placed.tabs.front().bounds;
         for (const TabSlot& slot : placed.tabs) area = Rect::united(area, slot.bounds);
         list.bounds = window_rect(absolute, area);
@@ -1669,8 +1669,8 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
             tab.role = SemanticRole::tab;
             tab.name = page_text(slot.position);
             tab.bounds = window_rect(absolute, slot.bounds);
-            tab.position_in_set = index + 1U;
-            tab.set_size = placed.tabs.size();
+            tab.position_in_set.set(index + 1U);
+            tab.set_size.set(placed.tabs.size());
             tab.states = base | SemanticState::focusable;
             if (selected == slot.position) {
                 tab.states |= SemanticState::selected;

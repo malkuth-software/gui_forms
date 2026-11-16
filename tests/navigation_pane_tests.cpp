@@ -246,8 +246,10 @@ void grip_steps() {
     require(states.size() == 1U && states.back().button_count == 5U, "the step reports the new state");
     SemanticSnapshot grip_snapshot = window.semantic_snapshot();
     const SemanticNode* grip = find_node(grip_snapshot.roots, "nav.grip");
-    require(grip != nullptr && (*grip).role == SemanticRole::split_pane && (*grip).numeric_value == 5.0 &&
-                (*grip).minimum_value == 0.0 && (*grip).maximum_value == 6.0 && (*grip).value == "5",
+    require(grip != nullptr && (*grip).role == SemanticRole::split_pane &&
+                (*grip).numeric_value == stxlib::Optional<double>::of(5.0) &&
+                (*grip).minimum_value == stxlib::Optional<double>::of(0.0) &&
+                (*grip).maximum_value == stxlib::Optional<double>::of(6.0) && (*grip).value == "5",
             "the grip publishes the large-button count as its value, from none to every page");
     require(pane.show_more_buttons() && !pane.show_more_buttons() && pane.visible_button_count() == 6U,
             "the count stops at the number of pages");
@@ -473,11 +475,14 @@ void keyboard_and_semantics() {
     SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* list = find_node(snapshot.roots, "nav.tabs");
     require(list != nullptr && (*list).role == SemanticRole::tab_group &&
-                (*list).orientation == SemanticOrientation::vertical && (*list).children.size() == 6U,
+                (*list).orientation == stxlib::Optional<SemanticOrientation>::of(SemanticOrientation::vertical) &&
+                (*list).children.size() == 6U,
             "the buttons and icons are one vertical tab list");
     const SemanticNode& first = (*list).children[0];
-    require(first.role == SemanticRole::tab && first.name == "Mail" && first.position_in_set == 1U &&
-                first.set_size == 6U && has_semantic_state(first.states, SemanticState::selected) &&
+    require(first.role == SemanticRole::tab && first.name == "Mail" &&
+                first.position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                first.set_size == stxlib::Optional<std::size_t>::of(6U) &&
+                has_semantic_state(first.states, SemanticState::selected) &&
                 has_semantic_state(first.states, SemanticState::focused) && first.controlled_panel == "nav.content",
             "the selected tab is focused first and controls the content panel");
     bool presses = false;

@@ -536,7 +536,7 @@ void accessibility() {
     (*view).set_selected_row(VirtualRowIndex{2U});
     const SemanticDescriptor descriptor = (*view).semantic_descriptor();
     require(descriptor.role == SemanticRole::list && descriptor.name == "Messages" &&
-                descriptor.row_count == 1'000'000U && descriptor.value == "Row 2",
+                descriptor.row_count == stxlib::Optional<std::size_t>::of(1'000'000U) && descriptor.value == "Row 2",
             "the view is a named list sized by every row, its value the selected row's name");
     std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     const std::size_t realized = (*view).end_visible_row().value - (*view).first_visible_row().value;
@@ -547,7 +547,8 @@ void accessibility() {
             "the live region is present, silent before any announcement");
     require(children[0].role == SemanticRole::list_item && children[0].stable_id == "rows.row-0" &&
                 children[0].name == "Row 0" && children[0].value == "Message text of row 0" &&
-                children[0].position_in_set == 1U && children[0].set_size == 1'000'000U,
+                children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                children[0].set_size == stxlib::Optional<std::size_t>::of(1'000'000U),
             "a row is a list item named by the describe target, placed in the whole set");
     require(has_semantic_state(children[2].states, SemanticState::selected) &&
                 !has_semantic_state(children[1].states, SemanticState::selected),
@@ -573,7 +574,7 @@ void accessibility() {
     (*view).scroll_to_row(VirtualRowIndex{777'777U}, VirtualRowAlignment::start);
     children = (*view).semantic_virtual_children();
     require(!children.empty() && children[0].stable_id == "rows.row-777777" &&
-                children[0].position_in_set == 777'778U,
+                children[0].position_in_set == stxlib::Optional<std::size_t>::of(777'778U),
             "after a jump the children are the rows in view");
     static_cast<void>(activated);
 }
@@ -1288,7 +1289,7 @@ void column_semantics() {
     const SemanticNode& self = *headers[1];
     const SemanticNode& total = *headers[2];
     require(name.stable_id == "rows.column-a" && name.name == "Name" &&
-                name.column_index == std::optional<std::size_t>(1U) && name.value.empty() &&
+                name.column_index == stxlib::Optional<std::size_t>::of(1U) && name.value.empty() &&
                 name.bounds.x == 0.0 && name.bounds.width == 100.0 && name.bounds.height == 24.0,
             "a header is named by its column, placed by its index and bounds");
     require(self.value == "descending" && total.actions.empty() && self.actions.size() == 1U &&

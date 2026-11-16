@@ -633,8 +633,9 @@ void test_list_box_publishes_a_window() {
     window.perform_layout();
     const std::vector<SemanticNode> shown = (*list).semantic_virtual_children();
     require(!shown.empty() && shown.size() < 20U, "a long list publishes about a screenful of rows");
-    require(shown.front().stable_id == "window.row.0" && shown.front().set_size == 400U &&
-                shown.front().position_in_set == std::optional<std::size_t>{1U},
+    require(shown.front().stable_id == "window.row.0" &&
+                shown.front().set_size == stxlib::Optional<std::size_t>::of(400U) &&
+                shown.front().position_in_set == stxlib::Optional<std::size_t>::of(1U),
             "each published row carries its place in the whole set");
     require(window.perform_semantic_action("window.row.250", SemanticAction::select) &&
                 (*list).selected_index() == 250U,
@@ -1021,7 +1022,8 @@ void test_list_box_long_list_damage_and_window() {
     require(!moved.empty() && moved.bounds().height <= row_height * 2.0 + 2.0,
             "a hover move repaints only the rows it leaves and enters");
     const std::vector<SemanticNode> children = (*list).semantic_virtual_children();
-    require(!children.empty() && children.size() < 20U && children[0].set_size == 1000U &&
+    require(!children.empty() && children.size() < 20U &&
+                children[0].set_size == stxlib::Optional<std::size_t>::of(1000U) &&
                 children[0].stable_id == "long.item-0",
             "only the shown window is described, sized by the whole list");
     require(window.perform_semantic_action("long.item-900", SemanticAction::select) &&

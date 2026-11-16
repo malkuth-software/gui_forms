@@ -1437,7 +1437,7 @@ SemanticDescriptor VirtualRowsView::semantic_descriptor() const {
     descriptor.role = SemanticRole::list;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    descriptor.row_count = row_count();
+    descriptor.row_count.set(row_count());
     if (selected_.has_value()) {
         description_.row = VirtualRowIndex{*selected_};
         description_.name.clear();
@@ -1488,8 +1488,8 @@ std::vector<SemanticNode> VirtualRowsView::semantic_virtual_children() const {
             node.name = description_.name;
         }
         if (validate_utf8(description_.value).valid()) node.value = description_.value;
-        node.position_in_set = row + 1U;
-        node.set_size = count;
+        node.position_in_set.set(row + 1U);
+        node.set_size.set(count);
         const Rect shown = Rect::intersection(row_rectangle(row), viewport_);
         node.bounds = {absolute.x + shown.x, absolute.y + shown.y, shown.width, shown.height};
         node.states = SemanticState::visible | SemanticState::focusable;

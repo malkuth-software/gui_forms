@@ -723,7 +723,7 @@ std::vector<SemanticNode> TreeView::semantic_virtual_children() const {
         node.name = item.text;
         // The items are published flat, in display order; the level says
         // how deep each one is (counting from one at the top level).
-        node.level = item.depth + 1U;
+        node.level.set(item.depth + 1U);
         node.bounds = {tree_bounds.x + 2.0,
                        tree_bounds.y + 2.0 +
                            static_cast<double>(row - top_row_) * row_height,

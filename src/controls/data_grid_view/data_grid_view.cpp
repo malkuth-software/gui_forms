@@ -5007,8 +5007,8 @@ SemanticDescriptor DataGridView::semantic_descriptor() const {
     // every column, realized or not.
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::table;
-    descriptor.row_count = row_count();
-    descriptor.column_count = columns_.size();
+    descriptor.row_count.set(row_count());
+    descriptor.column_count.set(columns_.size());
     if (multi_select.read()) descriptor.states |= SemanticState::multiselectable;
     descriptor.name = accessible_name.read().empty() ? "Data grid" : accessible_name.read();
     descriptor.description = accessible_description.read();
@@ -5043,7 +5043,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             node.stable_id = column_stable_id(column);
             node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
             node.role = SemanticRole::column_header;
-            node.column_index = display + 1U;
+            node.column_index.set(display + 1U);
             node.name = columns_[column].header_text.empty() ? columns_[column].name : columns_[column].header_text;
             if (show_cell_tool_tips.read()) node.tool_tip = columns_[column].tool_tip_text;
             node.bounds = {absolute.x + placed.column_header.bounds.x, absolute.y + placed.column_header.bounds.y,
@@ -5062,7 +5062,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
         row_node.stable_id = row_id_text(row);
         row_node.runtime_id = virtual_semantic_runtime_id(row_node.stable_id);
         row_node.role = SemanticRole::row;
-        row_node.row_index = position + 1U;
+        row_node.row_index.set(position + 1U);
         const bool labelled = row_source_ == DataGridViewRowSource::unbound && position < rows.read().size() &&
                               !rows.read()[position].header_text.empty();
         row_node.name = labelled ? rows.read()[position].header_text : "Row " + std::to_string(position + 1U);
@@ -5087,7 +5087,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             header.stable_id = header_prefix + row_node.stable_id;
             header.runtime_id = virtual_semantic_runtime_id(header.stable_id);
             header.role = SemanticRole::row_header;
-            header.row_index = position + 1U;
+            header.row_index.set(position + 1U);
             header.name = row_node.name;
             header.bounds = {absolute.x + placed_row.row_header.bounds.x, absolute.y + placed_row.row_header.bounds.y,
                              placed_row.row_header.bounds.width, placed_row.row_header.bounds.height};
@@ -5108,8 +5108,8 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             cell.runtime_id = virtual_semantic_runtime_id(cell.stable_id);
             cell.name = definition.header_text.empty() ? definition.name : definition.header_text;
             cell.value = cell_text(row, column);
-            cell.row_index = position + 1U;
-            cell.column_index = display + 1U;
+            cell.row_index.set(position + 1U);
+            cell.column_index.set(display + 1U);
             cell.bounds = {absolute.x + placed.cell.bounds.x, absolute.y + placed.cell.bounds.y,
                            placed.cell.bounds.width, placed.cell.bounds.height};
             cell.states = SemanticState::visible | SemanticState::enabled | SemanticState::focusable;

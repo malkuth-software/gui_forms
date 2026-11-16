@@ -1143,12 +1143,12 @@ SemanticDescriptor CompositeControl::semantic_descriptor() const {
     if (!semantics.value.empty()) {
         const CompositeValue value = evaluator.first(semantics.value);
         descriptor.value = evaluator.text(semantics.value);
-        if (value.kind == CompositeValueKind::number) descriptor.numeric_value = value.number;
+        if (value.kind == CompositeValueKind::number) descriptor.numeric_value.set(value.number);
     }
     const std::vector<ExpressionNodeIndex>& range = semantics.range.parsed.terms;
-    if (range.size() >= 1U) descriptor.minimum_value = evaluator.evaluate(semantics.range, range[0]).number;
-    if (range.size() >= 2U) descriptor.maximum_value = evaluator.evaluate(semantics.range, range[1]).number;
-    if (range.size() >= 3U) descriptor.small_step = evaluator.evaluate(semantics.range, range[2]).number;
+    if (range.size() >= 1U) descriptor.minimum_value.set(evaluator.evaluate(semantics.range, range[0]).number);
+    if (range.size() >= 2U) descriptor.maximum_value.set(evaluator.evaluate(semantics.range, range[1]).number);
+    if (range.size() >= 3U) descriptor.small_step.set(evaluator.evaluate(semantics.range, range[2]).number);
     for (const control_language::CompositeSemanticState& state : semantics.states) {
         if (CompositeEvaluator::truthy(evaluator.evaluate(semantics.states_expression, state.condition))) {
             descriptor.states = descriptor.states | state.state;

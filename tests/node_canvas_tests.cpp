@@ -687,8 +687,8 @@ void accessibility() {
     require((*mix).children.size() == 2U && (*mix).children[0].stable_id == mix_id + ".port-0" &&
                 (*mix).children[0].name == "input in, connected to Noise" && (*mix).children[1].name == "output out",
             "ports are children; an input names its source (no flow relations yet, gap 13)");
-    require((*mix).children[0].position_in_set == std::optional<std::size_t>{1U} &&
-                (*mix).children[0].set_size == std::optional<std::size_t>{2U},
+    require((*mix).children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                (*mix).children[0].set_size == stxlib::Optional<std::size_t>::of(2U),
             "ports have positions in their set");
 
     // Child actions select and reveal; press opens an edit.

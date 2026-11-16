@@ -100,9 +100,9 @@ SemanticDescriptor GaugeBase::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     const double current = std::clamp(value.read(), minimum.read(), maximum.read());
-    descriptor.numeric_value = current;
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
+    descriptor.numeric_value.set(current);
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
     std::string shown = value_text();
     if (in_alarm()) {
         const std::optional<double> low = low_alarm.read();

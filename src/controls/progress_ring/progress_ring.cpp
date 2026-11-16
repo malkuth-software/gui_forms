@@ -181,9 +181,9 @@ SemanticDescriptor ProgressRing::semantic_descriptor() const {
         std::string text;
         number_text::append_number_text(text, shown, std::chars_format::general, 6);
         descriptor.value = text;
-        descriptor.numeric_value = shown;
-        descriptor.minimum_value = 0.0;
-        descriptor.maximum_value = maximum.read();
+        descriptor.numeric_value.set(shown);
+        descriptor.minimum_value.set(0.0);
+        descriptor.maximum_value.set(maximum.read());
     }
     descriptor.exposed = true;
     return descriptor;

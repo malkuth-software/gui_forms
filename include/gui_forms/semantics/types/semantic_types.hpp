@@ -4,9 +4,10 @@
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -250,24 +251,24 @@ struct GUI_FORMS_API SemanticDescriptor final {
     std::string name;
     std::string value;
     std::string description;
-    std::optional<double> numeric_value;
-    std::optional<double> minimum_value;
-    std::optional<double> maximum_value;
-    std::optional<std::size_t> position_in_set;
-    std::optional<std::size_t> set_size;
+    stxlib::Optional<double> numeric_value;
+    stxlib::Optional<double> minimum_value;
+    stxlib::Optional<double> maximum_value;
+    stxlib::Optional<std::size_t> position_in_set;
+    stxlib::Optional<std::size_t> set_size;
     bool has_popup{};
     std::string controlled_panel;
-    std::optional<SemanticOrientation> orientation;
-    std::optional<std::size_t> level;
+    stxlib::Optional<SemanticOrientation> orientation;
+    stxlib::Optional<std::size_t> level;
     bool modal{};
-    std::optional<std::size_t> row_index;
-    std::optional<std::size_t> column_index;
-    std::optional<std::size_t> row_count;
-    std::optional<std::size_t> column_count;
+    stxlib::Optional<std::size_t> row_index;
+    stxlib::Optional<std::size_t> column_index;
+    stxlib::Optional<std::size_t> row_count;
+    stxlib::Optional<std::size_t> column_count;
     std::string access_key;
-    std::optional<double> small_step;
-    std::optional<double> large_step;
-    std::optional<SemanticTextSelection> text_selection;
+    stxlib::Optional<double> small_step;
+    stxlib::Optional<double> large_step;
+    stxlib::Optional<SemanticTextSelection> text_selection;
     bool multiline{};
     bool announces_on_appearance{};
     SemanticState states{SemanticState::none};
@@ -298,24 +299,24 @@ struct GUI_FORMS_API SemanticNode final {
     std::string name;
     std::string value;
     std::string description;
-    std::optional<double> numeric_value;
-    std::optional<double> minimum_value;
-    std::optional<double> maximum_value;
-    std::optional<std::size_t> position_in_set;
-    std::optional<std::size_t> set_size;
+    stxlib::Optional<double> numeric_value;
+    stxlib::Optional<double> minimum_value;
+    stxlib::Optional<double> maximum_value;
+    stxlib::Optional<std::size_t> position_in_set;
+    stxlib::Optional<std::size_t> set_size;
     bool has_popup{};
     std::string controlled_panel;
-    std::optional<SemanticOrientation> orientation;
-    std::optional<std::size_t> level;
+    stxlib::Optional<SemanticOrientation> orientation;
+    stxlib::Optional<std::size_t> level;
     bool modal{};
-    std::optional<std::size_t> row_index;
-    std::optional<std::size_t> column_index;
-    std::optional<std::size_t> row_count;
-    std::optional<std::size_t> column_count;
+    stxlib::Optional<std::size_t> row_index;
+    stxlib::Optional<std::size_t> column_index;
+    stxlib::Optional<std::size_t> row_count;
+    stxlib::Optional<std::size_t> column_count;
     std::string access_key;
-    std::optional<double> small_step;
-    std::optional<double> large_step;
-    std::optional<SemanticTextSelection> text_selection;
+    stxlib::Optional<double> small_step;
+    stxlib::Optional<double> large_step;
+    stxlib::Optional<SemanticTextSelection> text_selection;
     bool multiline{};
     bool announces_on_appearance{};
     // The thing's plain tooltip text (owner, 2026-10-28): a control's

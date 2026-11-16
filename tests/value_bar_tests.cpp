@@ -376,13 +376,16 @@ void semantics() {
     const SemanticDescriptor descriptor = bar.semantic_descriptor();
     require(descriptor.role == SemanticRole::slider, "the fill style is a slider");
     require(descriptor.name == "Samples", "the label names it without an accessible name");
-    require(descriptor.value == "10.000" && descriptor.numeric_value && near(*descriptor.numeric_value, 10.0),
+    require(descriptor.value == "10.000" && descriptor.numeric_value.present() &&
+                near(*descriptor.numeric_value.value(), 10.0),
             "the value and its text");
-    require(descriptor.minimum_value && near(*descriptor.minimum_value, 0.0) && descriptor.maximum_value &&
-                near(*descriptor.maximum_value, 100.0),
+    require(descriptor.minimum_value.present() && near(*descriptor.minimum_value.value(), 0.0) &&
+                descriptor.maximum_value.present() &&
+                near(*descriptor.maximum_value.value(), 100.0),
             "the hard range");
-    require(descriptor.small_step && near(*descriptor.small_step, 1.0) && descriptor.large_step &&
-                near(*descriptor.large_step, 10.0),
+    require(descriptor.small_step.present() && near(*descriptor.small_step.value(), 1.0) &&
+                descriptor.large_step.present() &&
+                near(*descriptor.large_step.value(), 10.0),
             "the steps");
     require(!descriptor.include_descendants, "the closed editor is not published");
     require(bar.on_semantic_action(SemanticAction::increment, {}) && near(bar.value.read(), 11.0),

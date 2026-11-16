@@ -2933,8 +2933,8 @@ SemanticDescriptor ListView::semantic_descriptor() const {
     // A table is sized by every item and every column, realized or not.
     if (publishes_table()) {
         descriptor.role = SemanticRole::table;
-        descriptor.row_count = item_count();
-        descriptor.column_count = columns_.size();
+        descriptor.row_count.set(item_count());
+        descriptor.column_count.set(columns_.size());
     } else {
         descriptor.role = SemanticRole::list;
     }
@@ -2970,7 +2970,7 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
         node.stable_id = column_identity(list_id, columns_[column].stable_id);
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::column_header;
-        node.column_index = column + 1U;
+        node.column_index.set(column + 1U);
         node.name = columns_[column].text;
         if (sort_column_ == column && sort_order_ == ListViewSortOrder::ascending) node.value = "ascending";
         if (sort_column_ == column && sort_order_ == ListViewSortOrder::descending) node.value = "descending";
@@ -2997,18 +2997,18 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
         node.name = item.text;
         if (table) {
             node.role = SemanticRole::row;
-            node.row_index = position + 1U;
+            node.row_index.set(position + 1U);
             append_row_cells(placed, index, item, node);
         } else {
             // A list item is n of m: of every item, or of its group's items
             // in a grouped view, counted in the shown order, realized or not.
             node.role = check_boxes.read() ? SemanticRole::check_list_item : SemanticRole::list_item;
-            node.position_in_set = position + 1U;
-            node.set_size = item_count();
+            node.position_in_set.set(position + 1U);
+            node.set_size.set(item_count());
             if (placed.grouped) {
                 const GroupBand& record = placed.bands[band_of_position(placed, position)];
-                node.position_in_set = position - record.first + 1U;
-                node.set_size = record.count;
+                node.position_in_set.set(position - record.first + 1U);
+                node.set_size.set(record.count);
             }
         }
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
@@ -3074,8 +3074,8 @@ void ListView::append_row_cells(const Layout& placed, std::size_t index, const L
         cell.role = SemanticRole::cell;
         cell.name = columns_[column].text;
         cell.value = std::string(column_text(item, column));
-        cell.row_index = position_of(placed, index) + 1U;
-        cell.column_index = column + 1U;
+        cell.row_index.set(position_of(placed, index) + 1U);
+        cell.column_index.set(column + 1U);
         cell.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         cell.states = SemanticState::visible | enabled_state;
         row_node.children.push_back(std::move(cell));

@@ -199,8 +199,9 @@ void left_drag() {
             "invalid limits and positions are refused");
 
     const SemanticDescriptor descriptor = splitter.semantic_descriptor();
-    require(descriptor.role == SemanticRole::separator && descriptor.numeric_value && near(*descriptor.numeric_value, 25.0) &&
-                descriptor.maximum_value && near(*descriptor.maximum_value, 371.0),
+    require(descriptor.role == SemanticRole::separator && descriptor.numeric_value.present() &&
+                near(*descriptor.numeric_value.value(), 25.0) &&
+                descriptor.maximum_value.present() && near(*descriptor.maximum_value.value(), 371.0),
             "the splitter publishes a separator with its position and limits");
     require(splitter.on_semantic_action(SemanticAction::set_value, "90"), "set_value is taken");
     window.perform_layout();

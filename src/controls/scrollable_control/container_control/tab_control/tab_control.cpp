@@ -797,7 +797,7 @@ SemanticDescriptor TabControl::semantic_descriptor() const {
     const std::shared_ptr<TabPage> selected = selected_page_.lock();
     if (selected) descriptor.value = (*selected).text.read();
     const bool row = alignment.read() == TabAlignment::top || alignment.read() == TabAlignment::bottom;
-    descriptor.orientation = row ? SemanticOrientation::horizontal : SemanticOrientation::vertical;
+    descriptor.orientation.set(row ? SemanticOrientation::horizontal : SemanticOrientation::vertical);
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

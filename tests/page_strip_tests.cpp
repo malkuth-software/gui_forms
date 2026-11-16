@@ -673,7 +673,7 @@ void semantics() {
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* const list = find_node(snapshot.roots, "strip");
     require(list != nullptr && (*list).role == SemanticRole::tab_group && (*list).name == "Sections" &&
-                (*list).orientation && *(*list).orientation == SemanticOrientation::horizontal &&
+                (*list).orientation.present() && *(*list).orientation.value() == SemanticOrientation::horizontal &&
                 (*list).value == "Page 0",
             "the strip is a horizontal tab list named by the application, valued by the selected tab");
     std::size_t tabs = 0U;
@@ -682,7 +682,8 @@ void semantics() {
         ++tabs;
         require(!has_action(child, SemanticAction::press) && has_action(child, SemanticAction::select),
                 "tabs offer select and never press");
-        require(child.set_size && *child.set_size == 10U && child.position_in_set, "tabs carry their place in the set");
+        require(child.set_size.present() && *child.set_size.value() == 10U &&
+                    child.position_in_set.present(), "tabs carry their place in the set");
         require(child.controlled_panel.empty(), "a strip alone links no panel");
     }
     require(tabs == 10U, "every page is a tab, laid out or not");
@@ -690,7 +691,7 @@ void semantics() {
     const SemanticNode* const closable = find_node(snapshot.roots, "strip.tab.p1");
     const SemanticNode* const hidden = find_node(snapshot.roots, "strip.tab.p9");
     require(first != nullptr && has_semantic_state((*first).states, SemanticState::selected) &&
-                *(*first).position_in_set == 1U,
+                *(*first).position_in_set.value() == 1U,
             "the selected tab is selected and first in the set");
     require(closable != nullptr && has_action(*closable, SemanticAction::close) &&
                 !has_action(*first, SemanticAction::close),

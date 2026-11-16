@@ -535,23 +535,29 @@ void semantics() {
     window.perform_layout();
     const SemanticDescriptor descriptor = (*view).semantic_descriptor();
     require(descriptor.role == SemanticRole::tree_grid && descriptor.name == "Project" &&
-                descriptor.row_count == 7U && descriptor.column_count == 3U,
+                descriptor.row_count == stxlib::Optional<std::size_t>::of(7U) &&
+                descriptor.column_count == stxlib::Optional<std::size_t>::of(3U),
             "the view is a named tree grid sized by its shown rows and its columns");
     std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     require(children.size() == 3U + 7U && children[0].role == SemanticRole::column_header &&
-                children[0].name == "Name" && children[0].column_index == 1U && children[2].column_index == 3U &&
+                children[0].name == "Name" && children[0].column_index == stxlib::Optional<std::size_t>::of(1U) &&
+                children[2].column_index == stxlib::Optional<std::size_t>::of(3U) &&
                 children[3].role == SemanticRole::tree_item && children[3].name == "Sources" &&
-                children[3].row_index == 1U,
+                children[3].row_index == stxlib::Optional<std::size_t>::of(1U),
             "column headers carry their column and rows are tree items carrying their row");
     const SemanticNode& lib = children[5];
-    require(lib.stable_id == "lib" && lib.description.empty() && lib.level == 2U && lib.row_index == 3U &&
-                lib.position_in_set == 2U && lib.set_size == 3U &&
+    require(lib.stable_id == "lib" && lib.description.empty() && lib.level == stxlib::Optional<std::size_t>::of(2U) &&
+                lib.row_index == stxlib::Optional<std::size_t>::of(3U) &&
+                lib.position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                lib.set_size == stxlib::Optional<std::size_t>::of(3U) &&
                 has_semantic_state(lib.states, SemanticState::expanded),
             "a row publishes its level, its row, its place among its siblings and its expansion");
     require(lib.children.size() == 3U && lib.children[0].role == SemanticRole::cell &&
                 lib.children[0].stable_id == "lib.cell.name" && lib.children[1].name == "Kind" &&
-                lib.children[1].value == "Folder" && lib.children[1].row_index == 3U &&
-                lib.children[1].column_index == 2U && lib.children[2].value.empty() && lib.children[2].actions.empty(),
+                lib.children[1].value == "Folder" &&
+                lib.children[1].row_index == stxlib::Optional<std::size_t>::of(3U) &&
+                lib.children[1].column_index == stxlib::Optional<std::size_t>::of(2U) &&
+                lib.children[2].value.empty() && lib.children[2].actions.empty(),
             "a row holds one cell per column, each carrying its row and column");
     require(children[9].stable_id == "docs" && !has_semantic_state(children[9].states, SemanticState::expanded) &&
                 children[9].actions.back() == SemanticAction::expand,

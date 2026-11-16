@@ -212,7 +212,8 @@ void roles_and_fields() {
     require(split_semantics.role == SemanticRole::split_button && split_semantics.has_popup,
             "a split-mode DropDownButton is a split button with an overlay");
     const std::vector<SemanticNode> rows = (*list).semantic_virtual_children();
-    require(rows.size() == 3U && rows[1].position_in_set == std::size_t{2U} && rows[1].set_size == std::size_t{3U},
+    require(rows.size() == 3U && rows[1].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                rows[1].set_size == stxlib::Optional<std::size_t>::of(3U),
             "list items publish their position in the set and the set's size");
 
     const std::string json = window.semantic_snapshot().to_json();

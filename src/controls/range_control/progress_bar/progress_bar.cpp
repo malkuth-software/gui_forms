@@ -921,9 +921,9 @@ SemanticDescriptor ProgressBar::semantic_descriptor() const {
     std::string value_text;
     number_text::append_number_text(value_text, value.read(), std::chars_format::general, 6);
     descriptor.value = value_text;
-    descriptor.numeric_value = value.read();
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
+    descriptor.numeric_value.set(value.read());
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
     if (animation_enabled.read() && effective_motion_policy().active() &&
         animated_style()) {
         descriptor.states |= SemanticState::busy;

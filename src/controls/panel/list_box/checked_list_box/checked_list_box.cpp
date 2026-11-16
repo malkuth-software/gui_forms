@@ -227,8 +227,8 @@ std::vector<SemanticNode> CheckedListBox::semantic_virtual_children() const {
     // names its row.
     std::vector<SemanticNode> nodes = ListBox::semantic_virtual_children();
     for (SemanticNode& node : nodes) {
-        if (!node.position_in_set || *node.position_in_set == 0U) continue;
-        const std::size_t index = *node.position_in_set - 1U;
+        if (node.position_in_set.absent() || *node.position_in_set.value() == 0U) continue;
+        const std::size_t index = *node.position_in_set.value() - 1U;
         if (index >= check_states_.size()) continue;
         node.role = SemanticRole::check_list_item;
         node.states |= SemanticState::checkable;

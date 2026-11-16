@@ -151,7 +151,7 @@ void paper_pane() {
         ++headings;
         const bool expandable = std::find(node.actions.begin(), node.actions.end(), SemanticAction::expand) !=
                                 node.actions.end();
-        if (expandable && node.level.has_value() && !has_semantic_state(node.states, SemanticState::expanded)) {
+        if (expandable && node.level.present() && !has_semantic_state(node.states, SemanticState::expanded)) {
             collapsed_heading = true;
         }
     }

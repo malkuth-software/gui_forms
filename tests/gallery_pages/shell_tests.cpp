@@ -152,7 +152,7 @@ void test_shell_keyboard_order() {
     const SemanticNode* first_item = find_node(snapshot, (*list).items()[0].stable_id);
     require(first_item != nullptr && (*first_item).role == SemanticRole::list_item &&
                 has_semantic_state((*first_item).states, SemanticState::selected) &&
-                (*first_item).position_in_set == std::optional<std::size_t>(1U),
+                (*first_item).position_in_set == stxlib::Optional<std::size_t>::of(1U),
             "the open page's item is item 1 of its group, selected");
     const SemanticNode* body_node = find_node(snapshot, std::string((*body_first).stable_id().value()));
     require(body_node != nullptr, "the page body's controls are published under the window");

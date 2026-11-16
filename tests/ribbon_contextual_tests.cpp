@@ -318,14 +318,19 @@ void semantics_and_keyboard() {
     const std::vector<SemanticNode> nodes = ribbon.semantic_virtual_children();
     const SemanticNode& row = nodes[1];
     require(row.children.size() == 6U, "the tab row lists the shown tabs only");
-    require(row.children[2].name == "View" && row.children[2].position_in_set == std::size_t{3U} &&
-                row.children[2].set_size == std::size_t{3U} && row.children[2].description.empty(),
+    require(row.children[2].name == "View" &&
+                row.children[2].position_in_set == stxlib::Optional<std::size_t>::of(3U) &&
+                row.children[2].set_size == stxlib::Optional<std::size_t>::of(3U) &&
+                row.children[2].description.empty(),
             "core tabs count among the core tabs");
-    require(row.children[4].name == "Arrange" && row.children[4].position_in_set == std::size_t{2U} &&
-                row.children[4].set_size == std::size_t{2U} && row.children[4].description == "Picture Tools",
+    require(row.children[4].name == "Arrange" &&
+                row.children[4].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                row.children[4].set_size == stxlib::Optional<std::size_t>::of(2U) &&
+                row.children[4].description == "Picture Tools",
             "a contextual tab counts among its set and is described by the set's caption");
-    require(row.children[5].name == "Chart" && row.children[5].position_in_set == std::size_t{1U} &&
-                row.children[5].set_size == std::size_t{1U},
+    require(row.children[5].name == "Chart" &&
+                row.children[5].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                row.children[5].set_size == stxlib::Optional<std::size_t>::of(1U),
             "each set counts its own tabs");
     require(!ribbon.on_semantic_child_action("ribbon.tab.design", SemanticAction::select, {}),
             "a hidden tab is not selectable through accessibility");

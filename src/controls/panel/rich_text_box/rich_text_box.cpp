@@ -683,7 +683,7 @@ SemanticDescriptor RichTextBox::semantic_descriptor() const {
     descriptor.value = std::string((*editing_).text());
     descriptor.description = accessible_description.read();
     if (read_only.read()) descriptor.states |= SemanticState::read_only;
-    descriptor.text_selection = SemanticTextSelection{.anchor = selection.anchor, .caret = selection.caret};
+    descriptor.text_selection.set(SemanticTextSelection{.anchor = selection.anchor, .caret = selection.caret});
     descriptor.multiline = true;
     descriptor.actions = {SemanticAction::focus};
     if (!read_only.read()) descriptor.actions.push_back(SemanticAction::set_value);

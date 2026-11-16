@@ -348,7 +348,7 @@ SemanticDescriptor Splitter::semantic_descriptor() const {
     descriptor.role = SemanticRole::separator;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    descriptor.orientation = horizontal_axis() ? SemanticOrientation::vertical : SemanticOrientation::horizontal;
+    descriptor.orientation.set(horizontal_axis() ? SemanticOrientation::vertical : SemanticOrientation::horizontal);
     const Control::Ptr resized = target();
     if (resized) {
         const double extent = extent_of(*resized);
@@ -358,10 +358,10 @@ SemanticDescriptor Splitter::semantic_descriptor() const {
         std::string extent_text;
         number_text::append_number_text(extent_text, extent, std::chars_format::fixed, 6);
         descriptor.value = extent_text;
-        descriptor.numeric_value = extent;
-        descriptor.minimum_value = bounds.minimum;
-        descriptor.maximum_value = bounds.maximum;
-        descriptor.small_step = semantic_step;
+        descriptor.numeric_value.set(extent);
+        descriptor.minimum_value.set(bounds.minimum);
+        descriptor.maximum_value.set(bounds.maximum);
+        descriptor.small_step.set(semantic_step);
         descriptor.actions = {SemanticAction::decrement, SemanticAction::increment, SemanticAction::set_value};
     }
     descriptor.exposed = true;

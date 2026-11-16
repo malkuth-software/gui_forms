@@ -308,31 +308,34 @@ SemanticNode node_from_json(NSDictionary* object) {
     node.name = ns_text(object[@"name"]);
     node.value = ns_text(object[@"value"]);
     node.description = ns_text(object[@"description"]);
-    node.numeric_value = ns_number(object[@"numeric_value"]);
+    const std::optional<double> numeric = ns_number(object[@"numeric_value"]);
+    if (numeric) node.numeric_value.set(*numeric);
     // The stage A fields the AX projection reads (12.13); null in the dump
     // is no value.
     const std::optional<double> level = ns_number(object[@"level"]);
-    if (level) node.level = static_cast<std::size_t>(*level);
+    if (level) node.level.set(static_cast<std::size_t>(*level));
     const std::optional<double> row_index = ns_number(object[@"row_index"]);
-    if (row_index) node.row_index = static_cast<std::size_t>(*row_index);
+    if (row_index) node.row_index.set(static_cast<std::size_t>(*row_index));
     const std::optional<double> column_index = ns_number(object[@"column_index"]);
-    if (column_index) node.column_index = static_cast<std::size_t>(*column_index);
+    if (column_index) node.column_index.set(static_cast<std::size_t>(*column_index));
     const std::optional<double> row_count = ns_number(object[@"row_count"]);
-    if (row_count) node.row_count = static_cast<std::size_t>(*row_count);
+    if (row_count) node.row_count.set(static_cast<std::size_t>(*row_count));
     const std::optional<double> column_count = ns_number(object[@"column_count"]);
-    if (column_count) node.column_count = static_cast<std::size_t>(*column_count);
+    if (column_count) node.column_count.set(static_cast<std::size_t>(*column_count));
     node.modal = ns_number(object[@"modal"]).value_or(0.0) != 0.0;
     node.multiline = ns_number(object[@"multiline"]).value_or(0.0) != 0.0;
     NSDictionary* selection = object[@"text_selection"];
     if ([selection isKindOfClass:[NSDictionary class]]) {
         const double anchor = ns_number(selection[@"anchor"]).value_or(0.0);
         const double caret = ns_number(selection[@"caret"]).value_or(0.0);
-        node.text_selection = gui_forms::SemanticTextSelection{
+        node.text_selection.set(gui_forms::SemanticTextSelection{
             .anchor = gui_forms::Utf8Offset(static_cast<std::size_t>(anchor)),
-            .caret = gui_forms::Utf8Offset(static_cast<std::size_t>(caret))};
+            .caret = gui_forms::Utf8Offset(static_cast<std::size_t>(caret))});
     }
-    node.minimum_value = ns_number(object[@"minimum_value"]);
-    node.maximum_value = ns_number(object[@"maximum_value"]);
+    const std::optional<double> minimum = ns_number(object[@"minimum_value"]);
+    if (minimum) node.minimum_value.set(*minimum);
+    const std::optional<double> maximum = ns_number(object[@"maximum_value"]);
+    if (maximum) node.maximum_value.set(*maximum);
     const std::optional<double> states = ns_number(object[@"states"]);
     node.states = static_cast<SemanticState>(states ? static_cast<std::uint32_t>(*states) : 0U);
     for (id name in (NSArray*)object[@"actions"]) {
@@ -879,7 +882,7 @@ Dump check_text_ranges(const std::string& path, AXUIElementRef application, Dump
     AxElement surface = find_surface(application);
     AxElement field = find_identified(surface.get(), "text-box");
     const SemanticNode* node = find_semantic_node(dump.snapshot.roots, "text-box");
-    if (field.get() == nullptr || node == nullptr || !(*node).text_selection) {
+    if (field.get() == nullptr || node == nullptr || (*node).text_selection.absent()) {
         report.failures.push_back("text ranges: the fixture's text box is not published with a selection");
         return dump;
     }
@@ -934,9 +937,9 @@ Dump check_text_ranges(const std::string& path, AXUIElementRef application, Dump
     const AXError set = AXUIElementSetAttributeValue(field.get(), kAXSelectedTextRangeAttribute, wanted_range.get());
     Dump after = wait_for_new_dump(path, dump, 1500);
     const SemanticNode* changed = find_semantic_node(after.snapshot.roots, "text-box");
-    const bool selected = set == kAXErrorSuccess && changed != nullptr && (*changed).text_selection &&
-                          (*(*changed).text_selection).anchor.value() == 1U &&
-                          (*(*changed).text_selection).caret.value() == 2U;
+    const bool selected = set == kAXErrorSuccess && changed != nullptr && (*changed).text_selection.present() &&
+                          (*(*changed).text_selection.value()).anchor.value() == 1U &&
+                          (*(*changed).text_selection.value()).caret.value() == 2U;
     if (!selected) {
         report.failures.push_back("text ranges: setting AXSelectedTextRange {1, 1} (AX error " +
                                   std::to_string(static_cast<int>(set)) + ") did not select byte 1 to 2");

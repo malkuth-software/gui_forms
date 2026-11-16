@@ -328,9 +328,9 @@ SemanticDescriptor SweepScope::semantic_descriptor() const {
     descriptor.name = accessible_name.read().empty() ? caption.read() : accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.value = caption_text();
-    descriptor.numeric_value = value.read();
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
+    descriptor.numeric_value.set(value.read());
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
     descriptor.exposed = true;
     return descriptor;
 }

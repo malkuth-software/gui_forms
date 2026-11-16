@@ -2490,9 +2490,9 @@ std::vector<SemanticNode> DockSite::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::split_pane;
         node.name = slot.axis == DockAxis::horizontal ? "Vertical seam" : "Horizontal seam";
-        node.numeric_value = slot.first;
-        node.minimum_value = slot.first_minimum;
-        node.maximum_value = std::max(slot.first_minimum, slot.span - slot.second_minimum);
+        node.numeric_value.set(slot.first);
+        node.minimum_value.set(slot.first_minimum);
+        node.maximum_value.set(std::max(slot.first_minimum, slot.span - slot.second_minimum));
         node.value = std::to_string(static_cast<long long>(std::lround(slot.first)));
         node.bounds = to_window(absolute, slot.bar);
         node.states = SemanticState::visible | SemanticState::focusable | enabled_state;

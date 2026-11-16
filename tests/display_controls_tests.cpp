@@ -1138,7 +1138,7 @@ void test_spinner() {
             "a spinner is active and measures 24 units square");
     const SemanticDescriptor busy = (*loose).semantic_descriptor();
     require(busy.role == SemanticRole::progress_bar && busy.exposed && has_semantic_state(busy.states, SemanticState::busy) &&
-                !busy.numeric_value,
+                busy.numeric_value.absent(),
             "an active spinner is a busy progress bar without a value");
     require(!(*loose).hit_test_local(Point{4.0, 4.0}), "a spinner takes no pointer input");
 
@@ -1227,8 +1227,10 @@ void test_progress_ring() {
     (*loose).maximum = 50.0;
     (*loose).value = 20.0;
     const SemanticDescriptor amount = (*loose).semantic_descriptor();
-    require(amount.role == SemanticRole::progress_bar && amount.exposed && amount.numeric_value == 20.0 &&
-                amount.minimum_value == 0.0 && amount.maximum_value == 50.0 && amount.value == "20" &&
+    require(amount.role == SemanticRole::progress_bar && amount.exposed &&
+                amount.numeric_value == stxlib::Optional<double>::of(20.0) &&
+                amount.minimum_value == stxlib::Optional<double>::of(0.0) &&
+                amount.maximum_value == stxlib::Optional<double>::of(50.0) && amount.value == "20" &&
                 !has_semantic_state(amount.states, SemanticState::busy),
             "a determinate ring publishes its value and range");
     // A-gf-controls-10-F10: the published value does not follow the program's global locale.
@@ -1269,7 +1271,7 @@ void test_progress_ring() {
     const ProgressRing::Parts spinning = (*ring).parts();
     require(spinning.activity.present && !spinning.fill.present, "an indeterminate ring publishes its activity part");
     const SemanticDescriptor busy = (*ring).semantic_descriptor();
-    require(has_semantic_state(busy.states, SemanticState::busy) && !busy.numeric_value,
+    require(has_semantic_state(busy.states, SemanticState::busy) && busy.numeric_value.absent(),
             "an indeterminate ring is busy without a value");
     NullPainter first;
     (*ring).on_paint(first, bounds);

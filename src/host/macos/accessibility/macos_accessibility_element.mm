@@ -152,7 +152,7 @@ static void announce_live_region(GUIFormsView* owner, const std::string& text) {
 // Whether `node` publishes text ranges.
 static bool publishes_text_ranges(const SemanticNode& node) noexcept {
     const bool text = gui_forms::semantic_role_fallback(node.role) == SemanticRole::text_box &&
-                      node.text_selection.has_value() &&
+                      node.text_selection.present() &&
                       node.runtime_id != 0U && !gui_forms::is_virtual_semantic_runtime_id(node.runtime_id) &&
                       !gui_forms::has_semantic_state(node.states, SemanticState::protected_content);
     return text;
@@ -513,8 +513,8 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 }
 
 - (NSInteger)answerAccessibilityIndex {
-    if (!_node.position_in_set || *_node.position_in_set == 0) return 0;
-    return static_cast<NSInteger>(*_node.position_in_set - 1);
+    if (_node.position_in_set.absent() || *_node.position_in_set.value() == 0) return 0;
+    return static_cast<NSInteger>(*_node.position_in_set.value() - 1);
 }
 - (BOOL)isAccessibilityProtectedContent {
     return gui_forms::detail::call_failing_fast(
@@ -556,8 +556,8 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 }
 
 - (NSInteger)answerAccessibilityDisclosureLevel {
-    if (!_node.level || *_node.level == 0) return 0;
-    return static_cast<NSInteger>(*_node.level - 1);
+    if (_node.level.absent() || *_node.level.value() == 0) return 0;
+    return static_cast<NSInteger>(*_node.level.value() - 1);
 }
 // A row's, cell's or header's place in its table, counting from zero, and a
 // table's size. A node without an index does not publish the attribute
@@ -571,8 +571,8 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 }
 
 - (NSRange)answerAccessibilityRowIndexRange {
-    if (!_node.row_index || *_node.row_index == 0) return NSMakeRange(NSNotFound, 0);
-    return NSMakeRange(static_cast<NSUInteger>(*_node.row_index - 1), 1);
+    if (_node.row_index.absent() || *_node.row_index.value() == 0) return NSMakeRange(NSNotFound, 0);
+    return NSMakeRange(static_cast<NSUInteger>(*_node.row_index.value() - 1), 1);
 }
 - (NSRange)accessibilityColumnIndexRange {
     return gui_forms::detail::call_failing_fast(
@@ -581,8 +581,8 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 }
 
 - (NSRange)answerAccessibilityColumnIndexRange {
-    if (!_node.column_index || *_node.column_index == 0) return NSMakeRange(NSNotFound, 0);
-    return NSMakeRange(static_cast<NSUInteger>(*_node.column_index - 1), 1);
+    if (_node.column_index.absent() || *_node.column_index.value() == 0) return NSMakeRange(NSNotFound, 0);
+    return NSMakeRange(static_cast<NSUInteger>(*_node.column_index.value() - 1), 1);
 }
 - (NSInteger)accessibilityRowCount {
     return gui_forms::detail::call_failing_fast(
@@ -590,7 +590,7 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 }
 
 - (NSInteger)answerAccessibilityRowCount {
-    return _node.row_count ? static_cast<NSInteger>(*_node.row_count) : 0;
+    return _node.row_count.present() ? static_cast<NSInteger>(*_node.row_count.value()) : 0;
 }
 - (NSInteger)accessibilityColumnCount {
     return gui_forms::detail::call_failing_fast(
@@ -599,7 +599,7 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 }
 
 - (NSInteger)answerAccessibilityColumnCount {
-    return _node.column_count ? static_cast<NSInteger>(*_node.column_count) : 0;
+    return _node.column_count.present() ? static_cast<NSInteger>(*_node.column_count.value()) : 0;
 }
 // A dialog that blocks the rest of its window.
 - (BOOL)isAccessibilityModal {
@@ -618,8 +618,8 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 }
 
 - (NSAccessibilityOrientation)answerAccessibilityOrientation {
-    if (!_node.orientation) return NSAccessibilityOrientationUnknown;
-    if (*_node.orientation == SemanticOrientation::horizontal) return NSAccessibilityOrientationHorizontal;
+    if (_node.orientation.absent()) return NSAccessibilityOrientationUnknown;
+    if (*_node.orientation.value() == SemanticOrientation::horizontal) return NSAccessibilityOrientationHorizontal;
     return NSAccessibilityOrientationVertical;
 }
 // The tab-to-panel relation as AppKit's linked elements: the panel's element
@@ -676,7 +676,7 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
     if (_node.role == SemanticRole::tab) {
         return @(gui_forms::has_semantic_state(_node.states, SemanticState::selected));
     }
-    if (_node.numeric_value) return @(*_node.numeric_value);
+    if (_node.numeric_value.present()) return @(*_node.numeric_value.value());
     return native_string(_node.value);
 }
 - (id)accessibilityMinValue {
@@ -685,7 +685,7 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 }
 
 - (id)answerAccessibilityMinValue {
-    return _node.minimum_value ? @(*_node.minimum_value) : nil;
+    return _node.minimum_value.present() ? @(*_node.minimum_value.value()) : nil;
 }
 - (id)accessibilityMaxValue {
     return gui_forms::detail::call_failing_fast(
@@ -693,7 +693,7 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 }
 
 - (id)answerAccessibilityMaxValue {
-    return _node.maximum_value ? @(*_node.maximum_value) : nil;
+    return _node.maximum_value.present() ? @(*_node.maximum_value.value()) : nil;
 }
 - (BOOL)accessibilityPerformPress {
     return gui_forms::detail::call_failing_fast(
@@ -832,7 +832,7 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 }
 // The selection's ends in bytes, low first, within the value.
 - (void)selectionBytesLow:(std::size_t&)low high:(std::size_t&)high {
-    const SemanticTextSelection selection = *_node.text_selection;
+    const SemanticTextSelection selection = *_node.text_selection.value();
     const std::size_t size = _node.value.size();
     low = std::min(std::min(selection.anchor.value(), selection.caret.value()), size);
     high = std::min(std::max(selection.anchor.value(), selection.caret.value()), size);
@@ -920,7 +920,7 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 
 - (NSInteger)answerAccessibilityInsertionPointLineNumber {
     if (![self readSemanticText]) return 0;
-    const std::size_t caret = (*_node.text_selection).caret.value();
+    const std::size_t caret = (*_node.text_selection.value()).caret.value();
     return static_cast<NSInteger>(line_of_offset(_textLayout, caret));
 }
 - (NSString*)accessibilityStringForRange:(NSRange)range {
@@ -1080,10 +1080,10 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
         return semantic_has_action(_node, SemanticAction::decrement);
     }
     if (selector == @selector(accessibilityRowIndexRange)) {
-        return _node.row_index && *_node.row_index != 0 ? YES : NO;
+        return _node.row_index.present() && *_node.row_index.value() != 0 ? YES : NO;
     }
     if (selector == @selector(accessibilityColumnIndexRange)) {
-        return _node.column_index && *_node.column_index != 0 ? YES : NO;
+        return _node.column_index.present() && *_node.column_index.value() != 0 ? YES : NO;
     }
     return [super isAccessibilitySelectorAllowed:selector];
 }

@@ -541,8 +541,8 @@ void seam_keyboard_and_pointer() {
     // The semantic seam: a split pane with its value and actions.
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* node = find_node(snapshot.roots, seams[left_seam].stable_id);
-    require(node != nullptr && (*node).role == SemanticRole::split_pane && (*node).numeric_value &&
-                near(*(*node).minimum_value, 120.0),
+    require(node != nullptr && (*node).role == SemanticRole::split_pane && (*node).numeric_value.present() &&
+                near(*(*node).minimum_value.value(), 120.0),
             "the seam publishes a split pane with its value and minimum");
     require(window.perform_semantic_action(seams[left_seam].stable_id, SemanticAction::set_value, "200"),
             "set_value moves the seam");

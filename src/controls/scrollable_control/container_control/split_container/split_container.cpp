@@ -586,10 +586,10 @@ SemanticDescriptor SplitContainer::semantic_descriptor() const {
     std::string distance_text;
     number_text::append_number_text(distance_text, effective_distance_, std::chars_format::fixed, 6);
     descriptor.value = distance_text;
-    descriptor.numeric_value = effective_distance_;
+    descriptor.numeric_value.set(effective_distance_);
     const double total = axis_extent(committed_arranged_bounds());
-    descriptor.minimum_value = constrained_distance(0.0, total);
-    descriptor.maximum_value = constrained_distance(total, total);
+    descriptor.minimum_value.set(constrained_distance(0.0, total));
+    descriptor.maximum_value.set(constrained_distance(total, total));
     descriptor.actions = {SemanticAction::focus};
     if (!splitter_fixed.read() && !first_collapsed_ && !second_collapsed_) {
         descriptor.actions.push_back(SemanticAction::decrement);

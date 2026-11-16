@@ -299,7 +299,8 @@ void test_dial() {
             "Page Up adds the large change");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::end}) && near((*dial).value.read(), 100.0), "End is the maximum");
     const SemanticDescriptor semantics = (*dial).semantic_descriptor();
-    require(semantics.role == SemanticRole::slider && semantics.numeric_value && near(*semantics.numeric_value, 100.0),
+    require(semantics.role == SemanticRole::slider && semantics.numeric_value.present() &&
+                near(*semantics.numeric_value.value(), 100.0),
             "a dial is a slider to assistive technology");
     require((*dial).on_semantic_action(SemanticAction::set_value, "25") && near((*dial).value.read(), 25.0),
             "the set-value action moves the dial");

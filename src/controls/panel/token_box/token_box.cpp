@@ -596,8 +596,8 @@ std::vector<SemanticNode> TokenBox::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::list_item;
         node.name = token.text;
-        node.position_in_set = placement.index + 1U;
-        node.set_size = tokens_.size();
+        node.position_in_set.set(placement.index + 1U);
+        node.set_size.set(tokens_.size());
         node.bounds = Rect{absolute.x + placement.face.x, absolute.y + placement.face.y,
                            placement.face.width, placement.face.height};
         node.states = SemanticState::visible;

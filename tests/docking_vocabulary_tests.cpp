@@ -361,7 +361,8 @@ void roles_actions_and_fields() {
     require(items[0].controlled_panel == "tabs.first" && items[1].controlled_panel == "tabs.second",
             "each tab names its page as its panel");
     require((*first).semantic_descriptor().role == SemanticRole::tab_panel, "a tab page is a tab panel");
-    require((*tabs).semantic_descriptor().orientation == SemanticOrientation::horizontal,
+    require((*tabs).semantic_descriptor().orientation ==
+                stxlib::Optional<SemanticOrientation>::of(SemanticOrientation::horizontal),
             "a tab row along the top is horizontal");
 
     const std::string json = window.semantic_snapshot().to_json();
@@ -376,7 +377,8 @@ void roles_actions_and_fields() {
 
     (*tabs).alignment = TabAlignment::left;
     window.perform_layout();
-    require((*tabs).semantic_descriptor().orientation == SemanticOrientation::vertical,
+    require((*tabs).semantic_descriptor().orientation ==
+                stxlib::Optional<SemanticOrientation>::of(SemanticOrientation::vertical),
             "a tab column along a side is vertical");
 }
 
@@ -401,7 +403,8 @@ void ribbon_tabs() {
         if (node.stable_id == "ribbon.command-plane") plane = &node;
     }
     require(row != nullptr && plane != nullptr, "the ribbon publishes its tab row and command plane");
-    require((*row).orientation == SemanticOrientation::horizontal, "the ribbon's tab row is horizontal");
+    require((*row).orientation == stxlib::Optional<SemanticOrientation>::of(SemanticOrientation::horizontal),
+            "the ribbon's tab row is horizontal");
     require((*plane).role == SemanticRole::tab_panel, "the command plane is the selected tab's panel");
     for (const SemanticNode& tab : (*row).children) {
         const bool press = std::find(tab.actions.begin(), tab.actions.end(), SemanticAction::press) !=

@@ -442,8 +442,8 @@ std::vector<SemanticNode> BackstageView::semantic_virtual_children() const {
         node.name = item_text(spec);
         node.access_key = mnemonic_access_key(authored_text(spec));
         if (spec.command) node.description = (*spec.command).state().description;
-        node.position_in_set = item + 1U;
-        node.set_size = items_.size();
+        node.position_in_set.set(item + 1U);
+        node.set_size.set(items_.size());
         const Rect bounds = placed.items[item];
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | SemanticState::focusable;

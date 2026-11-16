@@ -1270,8 +1270,8 @@ std::vector<SemanticNode> NodeCanvas::semantic_virtual_children() const {
                 const Point anchor = view_.to_view(port_world(node, record));
                 child.bounds = Rect{absolute.x + anchor.x - port_hit_radius, absolute.y + anchor.y - port_hit_radius,
                                     2.0 * port_hit_radius, 2.0 * port_hit_radius};
-                child.position_in_set = port + 1U;
-                child.set_size = node.ports.size();
+                child.position_in_set.set(port + 1U);
+                child.set_size.set(node.ports.size());
                 child.states = SemanticState::visible;
                 if (enabled) child.states |= SemanticState::enabled;
                 if (current && focused_ && focused_port_.has_value() && (*focused_port_).value == port) {

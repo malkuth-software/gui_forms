@@ -390,7 +390,7 @@ void VirtualRowsView::append_column_semantics(std::vector<SemanticNode>& childre
         column_identity(column, node.stable_id);
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::column_header;
-        node.column_index = column + 1U;
+        node.column_index.set(column + 1U);
         node.name = columns_[column].header;
         if (sort_column_.has_value() && *sort_column_ == column) {
             node.value = sort_direction_ == VirtualRowsSort::ascending ? "ascending" : "descending";

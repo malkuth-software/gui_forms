@@ -932,7 +932,7 @@ SemanticDescriptor ContentTextEditor::semantic_descriptor() const {
     descriptor.description = accessible_description.read();
     if ((*editing_).read_only()) descriptor.states |= SemanticState::read_only;
     const TextSelection selection = (*editing_).selection();
-    descriptor.text_selection = SemanticTextSelection{.anchor = selection.anchor, .caret = selection.caret};
+    descriptor.text_selection.set(SemanticTextSelection{.anchor = selection.anchor, .caret = selection.caret});
     descriptor.multiline = multiline_;
     descriptor.actions = {SemanticAction::focus};
     if (!(*editing_).read_only()) descriptor.actions.push_back(SemanticAction::set_value);

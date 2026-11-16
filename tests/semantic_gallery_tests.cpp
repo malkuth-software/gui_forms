@@ -429,14 +429,14 @@ void walk_node(PageWalk& walk, const SemanticNode& node, const SemanticNode* sco
         fail(walk.report, walk.page, node.stable_id, "two nodes share one runtime ID in one scope");
     }
     // A position is published with its set size or not at all (RB-22).
-    if (node.position_in_set.has_value() != node.set_size.has_value()) {
+    if (node.position_in_set.present() != node.set_size.present()) {
         fail(walk.report, walk.page, node.stable_id, "a position in set without a set size, or the reverse");
-    } else if (node.position_in_set.has_value()) {
+    } else if (node.position_in_set.present()) {
         ++walk.report.positioned;
-        if (*node.position_in_set < 1U || *node.position_in_set > *node.set_size) {
+        if (*node.position_in_set.value() < 1U || *node.position_in_set.value() > *node.set_size.value()) {
             fail(walk.report, walk.page, node.stable_id,
-                 "position " + std::to_string(*node.position_in_set) + " outside a set of " +
-                     std::to_string(*node.set_size));
+                 "position " + std::to_string(*node.position_in_set.value()) + " outside a set of " +
+                     std::to_string(*node.set_size.value()));
         }
     }
     if (node.role == SemanticRole::tab) walk.tabs.push_back(&node);

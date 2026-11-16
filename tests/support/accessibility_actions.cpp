@@ -37,8 +37,8 @@ constexpr SemanticAction default_action_order[] = {
 
 bool default_action_of(const SemanticNode& node, SemanticAction& action) {
     if (!has_semantic_state(node.states, SemanticState::enabled)) return false;
-    const bool at_maximum = node.numeric_value && node.maximum_value &&
-        *node.numeric_value >= *node.maximum_value;
+    const bool at_maximum = node.numeric_value.present() && node.maximum_value.present() &&
+        *node.numeric_value.value() >= *node.maximum_value.value();
     for (const SemanticAction candidate : default_action_order) {
         const bool already_selected = candidate == SemanticAction::select &&
             has_semantic_state(node.states, SemanticState::selected);
@@ -74,7 +74,7 @@ void append_signature(const SemanticNode& node, std::string& signature) {
     signature += '|';
     signature += node.value;
     signature += '|';
-    if (node.numeric_value) signature += semantic_number_text(*node.numeric_value);
+    if (node.numeric_value.present()) signature += semantic_number_text(*node.numeric_value.value());
     signature += '{';
     for (const SemanticNode& child : node.children) append_signature(child, signature);
     signature += '}';
@@ -95,8 +95,9 @@ std::string default_action_value(const SemanticNode& node) {
     if (node.role == SemanticRole::calendar || node.role == SemanticRole::date_picker) {
         return node.value.find("15") == std::string::npos ? "2026-10-15" : "2026-10-16";
     }
-    if (node.numeric_value) {
-        const double target = node.maximum_value ? *node.maximum_value : *node.numeric_value + 1.0;
+    if (node.numeric_value.present()) {
+        const double target =
+            node.maximum_value.present() ? *node.maximum_value.value() : *node.numeric_value.value() + 1.0;
         return semantic_number_text(target);
     }
     if (is_iso_date(node.value)) {

@@ -702,7 +702,7 @@ void semantics() {
     SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* strip = find_node(snapshot.roots, "site.side.right");
     require(strip != nullptr && (*strip).role == SemanticRole::tab_group && (*strip).name == "Auto-hidden panels" &&
-                (*strip).orientation == SemanticOrientation::vertical,
+                (*strip).orientation == stxlib::Optional<SemanticOrientation>::of(SemanticOrientation::vertical),
             "a right side strip is a vertical tab list");
     const SemanticNode* tab = find_node(snapshot.roots, (*site.side_strip(DockSide::right)).tab_identity(PageId{"properties"}));
     require(tab != nullptr && (*tab).role == SemanticRole::tab && (*tab).name == "Properties", "with one tab per panel");

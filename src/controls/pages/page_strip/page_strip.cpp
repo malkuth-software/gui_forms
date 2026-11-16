@@ -2218,7 +2218,7 @@ SemanticDescriptor PageStrip::semantic_descriptor() const {
     descriptor.description = accessible_description.read();
     const std::optional<std::size_t> selected = selected_position();
     if (selected) descriptor.value = layout().tabs[*selected].label;
-    descriptor.orientation = horizontal() ? SemanticOrientation::horizontal : SemanticOrientation::vertical;
+    descriptor.orientation.set(horizontal() ? SemanticOrientation::horizontal : SemanticOrientation::vertical);
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;
@@ -2252,8 +2252,8 @@ std::vector<SemanticNode> PageStrip::semantic_virtual_children() const {
         if (record.pinned) node.description = "pinned";
         if (record.pinned && record.modified) node.description += ", ";
         if (record.modified) node.description += "modified";
-        node.position_in_set = position + 1U;
-        node.set_size = count;
+        node.position_in_set.set(position + 1U);
+        node.set_size.set(count);
         node.controlled_panel = page_panel_identity(record.id);
         node.states = SemanticState::focusable | enabled_state;
         if (!bounds.empty()) {

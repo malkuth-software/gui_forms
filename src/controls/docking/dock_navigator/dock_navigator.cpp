@@ -378,8 +378,8 @@ std::vector<SemanticNode> DockNavigator::semantic_virtual_children() const {
             row.runtime_id = virtual_semantic_runtime_id(row.stable_id);
             row.role = SemanticRole::list_item;
             row.name = held[index].title;
-            row.position_in_set = index + 1U;
-            row.set_size = held.size();
+            row.position_in_set.set(index + 1U);
+            row.set_size.set(held.size());
             row.bounds = to_window(absolute, row_bounds(placed, list, index));
             row.states = SemanticState::visible | SemanticState::enabled | SemanticState::focusable;
             if (current_ && list_ == list && *current_ == index) row.states |= SemanticState::selected;

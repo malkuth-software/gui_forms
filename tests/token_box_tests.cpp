@@ -378,7 +378,8 @@ void semantics() {
     const std::vector<SemanticNode> nodes = box.semantic_virtual_children();
     const std::string beta_id = "tokens.semantics.token." + std::to_string(beta.value);
     require(nodes.size() == 2U && nodes[1].stable_id == beta_id && nodes[1].role == SemanticRole::list_item &&
-                nodes[1].name == "beta" && nodes[1].position_in_set == 2U && nodes[1].set_size == 2U,
+                nodes[1].name == "beta" && nodes[1].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                nodes[1].set_size == stxlib::Optional<std::size_t>::of(2U),
             "each token is a list item with its position in the set");
     require(nodes[0].children.size() == 1U && nodes[0].children[0].role == SemanticRole::button &&
                 nodes[0].children[0].name == "Remove alpha",

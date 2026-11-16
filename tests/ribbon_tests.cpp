@@ -579,8 +579,8 @@ void semantics_and_region() {
             "the File tab is a menu button with an overlay");
     require(nodes[1].role == SemanticRole::tab_group && nodes[1].children.size() == 2U &&
                 nodes[1].children[0].role == SemanticRole::tab && nodes[1].children[0].name == "Home" &&
-                nodes[1].children[1].position_in_set == std::size_t{2U} &&
-                nodes[1].children[1].set_size == std::size_t{2U},
+                nodes[1].children[1].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                nodes[1].children[1].set_size == stxlib::Optional<std::size_t>::of(2U),
             "the tab row is a tab list with positioned tabs");
     const SemanticNode& plane = nodes[2];
     require(plane.role == SemanticRole::tab_panel && plane.name == "Home" && plane.children.size() == 2U &&
@@ -588,8 +588,9 @@ void semantics_and_region() {
             "the command plane holds the selected tab's groups, named by caption");
     const SemanticNode& clipboard = plane.children[0];
     require(clipboard.children.size() == 5U && clipboard.children[0].role == SemanticRole::split_button &&
-                clipboard.children[0].has_popup && clipboard.children[0].position_in_set == std::size_t{1U} &&
-                clipboard.children[0].set_size == std::size_t{4U} &&
+                clipboard.children[0].has_popup &&
+                clipboard.children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                clipboard.children[0].set_size == stxlib::Optional<std::size_t>::of(4U) &&
                 clipboard.children[4].name == "Clipboard dialog launcher",
             "commands carry split roles, overlays and positions; the launcher is a button");
     require(nodes[1].children[0].access_key == "H" && nodes[1].children[1].access_key == "I" &&

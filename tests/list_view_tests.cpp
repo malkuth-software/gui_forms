@@ -585,8 +585,10 @@ void groups() {
     const std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     require(children.size() == 3U + 3U && children[3].role == SemanticRole::group &&
                 children[3].name == "Default" && children[3].children.size() == 2U &&
-                children[3].children[0].name == "Charlie 2" && children[3].children[0].row_index == 1U &&
-                children[4].name == "Alpha" && children[4].children[0].row_index == 3U &&
+                children[3].children[0].name == "Charlie 2" &&
+                children[3].children[0].row_index == stxlib::Optional<std::size_t>::of(1U) &&
+                children[4].name == "Alpha" &&
+                children[4].children[0].row_index == stxlib::Optional<std::size_t>::of(3U) &&
                 children[5].stable_id == "list.group.b",
             "each shown group is a group node of its items, rows counted in the shown order");
 
@@ -1150,26 +1152,30 @@ void semantics() {
     Window window(view, {400.0, 240.0});
     window.perform_layout();
     const SemanticDescriptor descriptor = (*view).semantic_descriptor();
-    require(descriptor.role == SemanticRole::table && descriptor.name == "Files" && descriptor.row_count == 3U &&
-                descriptor.column_count == 3U && has_semantic_state(descriptor.states, SemanticState::multiselectable),
+    require(descriptor.role == SemanticRole::table && descriptor.name == "Files" &&
+                descriptor.row_count == stxlib::Optional<std::size_t>::of(3U) &&
+                descriptor.column_count == stxlib::Optional<std::size_t>::of(3U) &&
+                has_semantic_state(descriptor.states, SemanticState::multiselectable),
             "the details view is a named multiple-selection table sized by its items and columns");
     const std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     require(children.size() == 3U + 3U && children[0].role == SemanticRole::column_header &&
-                children[0].name == "Name" && children[0].column_index == 1U && children[2].column_index == 3U &&
+                children[0].name == "Name" && children[0].column_index == stxlib::Optional<std::size_t>::of(1U) &&
+                children[2].column_index == stxlib::Optional<std::size_t>::of(3U) &&
                 children[3].role == SemanticRole::row && children[3].name == "Delta 0" &&
-                children[3].row_index == 1U && children[3].description.empty(),
+                children[3].row_index == stxlib::Optional<std::size_t>::of(1U) && children[3].description.empty(),
             "column headers carry their column and rows carry their row");
     const SemanticNode& row = children[3];
     require(row.children.size() == 3U && row.children[0].role == SemanticRole::cell &&
                 row.children[0].value == "Delta 0" && row.children[1].name == "Size" &&
                 row.children[1].value == "1 KB" && row.children[2].value == "Image" &&
-                row.children[2].row_index == 1U && row.children[2].column_index == 3U,
+                row.children[2].row_index == stxlib::Optional<std::size_t>::of(1U) &&
+                row.children[2].column_index == stxlib::Optional<std::size_t>::of(3U),
             "a row holds one cell per column, the first holding the item's text");
     (*view).multi_select = false;
     (*view).view = ListViewView::list;
     window.perform_layout();
     const SemanticDescriptor list = (*view).semantic_descriptor();
-    require(list.role == SemanticRole::list && !list.row_count &&
+    require(list.role == SemanticRole::list && list.row_count.absent() &&
                 !has_semantic_state(list.states, SemanticState::multiselectable),
             "the other views are lists, multiple-selection only while multi_select is set");
     (*view).view = ListViewView::details;
@@ -1425,16 +1431,19 @@ void single_column_semantics() {
     Window window(view, {400.0, 320.0});
     window.perform_layout();
     const SemanticDescriptor descriptor = (*view).semantic_descriptor();
-    require(descriptor.role == SemanticRole::list && !descriptor.row_count && !descriptor.column_count,
+    require(descriptor.role == SemanticRole::list && descriptor.row_count.absent() && descriptor.column_count.absent(),
             "a single headerless column describes a list, not a table");
     std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     require(children.size() == 3U && children[0].role == SemanticRole::group && children[0].name == "Default" &&
                 children[0].children.size() == 2U && children[0].children[0].role == SemanticRole::list_item &&
-                children[0].children[0].name == "Charlie 2" && children[0].children[0].position_in_set == 1U &&
-                children[0].children[0].set_size == 2U && children[0].children[1].position_in_set == 2U &&
-                !children[0].children[0].row_index && children[0].children[0].children.empty() &&
-                children[1].name == "Alpha" && children[1].children[0].position_in_set == 1U &&
-                children[1].children[0].set_size == 2U && children[2].name == "Beta",
+                children[0].children[0].name == "Charlie 2" &&
+                children[0].children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                children[0].children[0].set_size == stxlib::Optional<std::size_t>::of(2U) &&
+                children[0].children[1].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                children[0].children[0].row_index.absent() && children[0].children[0].children.empty() &&
+                children[1].name == "Alpha" &&
+                children[1].children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                children[1].children[0].set_size == stxlib::Optional<std::size_t>::of(2U) && children[2].name == "Beta",
             "each group is a node named by its header over its list items, n of the group's m");
     const std::string json = window.semantic_snapshot().to_json();
     require(json.find("\"role\":\"list\"") != std::string::npos &&
@@ -1448,8 +1457,10 @@ void single_column_semantics() {
     window.perform_layout();
     children = (*view).semantic_virtual_children();
     require(children.size() == 6U && children[0].role == SemanticRole::list_item &&
-                children[0].position_in_set == 1U && children[0].set_size == 6U &&
-                children[5].position_in_set == 6U && children[5].set_size == 6U,
+                children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                children[0].set_size == stxlib::Optional<std::size_t>::of(6U) &&
+                children[5].position_in_set == stxlib::Optional<std::size_t>::of(6U) &&
+                children[5].set_size == stxlib::Optional<std::size_t>::of(6U),
             "ungrouped, each item is n of every item");
 
     (*view).header_style = ListViewHeaderStyle::nonclickable;
@@ -1463,7 +1474,8 @@ void single_column_semantics() {
     window.perform_layout();
     children = (*view).semantic_virtual_children();
     const SemanticDescriptor table = (*view).semantic_descriptor();
-    require(table.role == SemanticRole::table && table.column_count == 3U && !children.empty() &&
+    require(table.role == SemanticRole::table && table.column_count == stxlib::Optional<std::size_t>::of(3U) &&
+                !children.empty() &&
                 children[0].role == SemanticRole::row,
             "several columns keep the table without a header");
 }

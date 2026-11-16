@@ -526,12 +526,12 @@ SemanticDescriptor NumericUpDown::semantic_descriptor() const {
     descriptor.role = SemanticRole::numeric_field;
     descriptor.name = accessible_name.read();
     descriptor.value = formatted_value();
-    descriptor.numeric_value = value.read();
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
+    descriptor.numeric_value.set(value.read());
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
     // The arrow keys and the spin buttons move by the increment; there is no
     // larger step, so none is published (owner decision, stage A gap 7).
-    descriptor.small_step = increment.read();
+    descriptor.small_step.set(increment.read());
     descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement, SemanticAction::set_value};

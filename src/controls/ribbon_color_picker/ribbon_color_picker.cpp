@@ -792,8 +792,8 @@ std::vector<SemanticNode> RibbonColorPicker::palette_semantic_children() const {
         node.role = SemanticRole::button;
         node.name = all[entry].color ? color_name(*all[entry].color) : std::string("Automatic");
         if (all[entry].kind == RibbonPaletteEntryKind::recent) node.description = "Recent colour";
-        node.position_in_set = entry + 1U;
-        node.set_size = all.size();
+        node.position_in_set.set(entry + 1U);
+        node.set_size.set(all.size());
         const Rect bounds = all[entry].bounds;
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | SemanticState::enabled | SemanticState::focusable;

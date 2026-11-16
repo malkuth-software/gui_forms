@@ -1245,9 +1245,9 @@ void ScrollableControl::append_semantic_axis(
     node.role = SemanticRole::scroll_bar;
     node.name = orientation == ScrollOrientation::horizontal
         ? "Horizontal scroll bar" : "Vertical scroll bar";
-    node.numeric_value = axis.value_;
-    node.minimum_value = axis.minimum_;
-    node.maximum_value = axis.maximum_position();
+    node.numeric_value.set(axis.value_);
+    node.minimum_value.set(axis.minimum_);
+    node.maximum_value.set(axis.maximum_position());
     const Rect local = axis_geometry(orientation).bar;
     node.bounds = {absolute.x + local.x, absolute.y + local.y,
                    local.width, local.height};

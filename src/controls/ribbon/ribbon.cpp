@@ -2957,8 +2957,8 @@ void Ribbon::append_group_node(SemanticNode& parent, const Layout& placed, std::
         // The command's keyboard letter, its mnemonic (the ribbon has no
         // KeyTips, RB-16), is its access key (owner decision, stage A gap 5).
         node.access_key = mnemonic_access_key(authored_text(item));
-        node.position_in_set = position;
-        node.set_size = set_size;
+        node.position_in_set.set(position);
+        node.set_size.set(set_size);
         node.bounds = to_window(absolute, bounds);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (command_enabled(item)) node.states |= SemanticState::enabled;
@@ -3012,7 +3012,7 @@ std::vector<SemanticNode> Ribbon::semantic_virtual_children() const {
     row.stable_id = ribbon_id + ".tab-row";
     row.role = SemanticRole::tab_group;
     row.name = "Ribbon tabs";
-    row.orientation = SemanticOrientation::horizontal;
+    row.orientation.set(SemanticOrientation::horizontal);
     row.bounds = to_window(absolute, placed.tab_rail);
     row.states = base;
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
@@ -3026,8 +3026,8 @@ std::vector<SemanticNode> Ribbon::semantic_virtual_children() const {
         node.name = parse_mnemonic_text(tabs_[tab].text).display_text;
         node.access_key = mnemonic_access_key(tabs_[tab].text);
         if (tab_set_of_[tab]) node.description = tab_sets_[*tab_set_of_[tab]].caption;
-        node.position_in_set = place.position;
-        node.set_size = place.count;
+        node.position_in_set.set(place.position);
+        node.set_size.set(place.count);
         node.bounds = to_window(absolute, placed.tabs[tab]);
         // A disabled tab is published, neither enabled nor focusable, with
         // no action.

@@ -1398,21 +1398,26 @@ void semantics() {
     window.perform_layout();
     const SemanticDescriptor descriptor = (*grid).semantic_descriptor();
     require(descriptor.role == SemanticRole::table && descriptor.name == "Stations" &&
-                descriptor.column_count == 4U && descriptor.row_count == (*grid).row_count() &&
+                descriptor.column_count == stxlib::Optional<std::size_t>::of(4U) &&
+                descriptor.row_count == stxlib::Optional<std::size_t>::of((*grid).row_count()) &&
                 has_semantic_state(descriptor.states, SemanticState::multiselectable),
             "the grid is a named multiple-selection table sized by its rows and columns");
     const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
     require(nodes.size() == 7U && nodes[0].role == SemanticRole::column_header &&
-                nodes[0].stable_id == "grid.semantics.column.name" && nodes[0].column_index == 1U &&
-                nodes[3].column_index == 4U,
+                nodes[0].stable_id == "grid.semantics.column.name" &&
+                nodes[0].column_index == stxlib::Optional<std::size_t>::of(1U) &&
+                nodes[3].column_index == stxlib::Optional<std::size_t>::of(4U),
             "column headers carry their column, before the rows");
     const SemanticNode& row = nodes[4];
     require(row.role == SemanticRole::row && row.stable_id == "alpha" && row.children.size() == 5U &&
-                row.row_index == 1U && row.children[3].row_index == 1U && row.children[3].column_index == 3U,
+                row.row_index == stxlib::Optional<std::size_t>::of(1U) &&
+                row.children[3].row_index == stxlib::Optional<std::size_t>::of(1U) &&
+                row.children[3].column_index == stxlib::Optional<std::size_t>::of(3U),
             "each row holds its header and its cells, and each cell carries its row and column");
     const SemanticNode& header = row.children[0];
     require(header.role == SemanticRole::row_header && header.stable_id == "grid.semantics.row-header.alpha" &&
-                header.row_index == 1U && !header.column_index && header.name == row.name &&
+                header.row_index == stxlib::Optional<std::size_t>::of(1U) && header.column_index.absent() &&
+                header.name == row.name &&
                 header.actions == std::vector<SemanticAction>{SemanticAction::press},
             "a drawn row header comes first in its row, carrying its row only");
     bool all_cells = true;
@@ -2546,7 +2551,8 @@ void column_visibility() {
                 !(*grid).columns()[1].visible,
             "a hidden column keeps its display index");
     const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
-    require(nodes[1].role == SemanticRole::column_header && nodes[1].column_index == 2U,
+    require(nodes[1].role == SemanticRole::column_header &&
+                nodes[1].column_index == stxlib::Optional<std::size_t>::of(2U),
             "column headers count only shown columns");
     const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
     const DataGridView::Cell* const shown = find_cell(cells, 0U, 2U);
@@ -2632,8 +2638,9 @@ void column_order() {
     (*grid).set_cell_selected(row_at(0U), 1U, true);
     require((*grid).clipboard_content() == std::string("true\tAlpha\r\n"), "copied fields follow the display order");
     const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
-    require(nodes[0].role == SemanticRole::column_header && nodes[0].name == "On" && nodes[0].column_index == 1U &&
-                nodes[2].name == "Name" && nodes[2].column_index == 3U,
+    require(nodes[0].role == SemanticRole::column_header && nodes[0].name == "On" &&
+                nodes[0].column_index == stxlib::Optional<std::size_t>::of(1U) &&
+                nodes[2].name == "Name" && nodes[2].column_index == stxlib::Optional<std::size_t>::of(3U),
             "column headers are published in display order with their display indices");
 
     (*grid).remove_column_at(1U);

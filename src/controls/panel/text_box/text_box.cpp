@@ -1385,7 +1385,8 @@ SemanticDescriptor TextBox::semantic_descriptor() const {
     // The selection and caret index the value (A-T1, 12.13); a password box
     // publishes neither its text nor where in it the caret is.
     if (!password_protected()) {
-        descriptor.text_selection = SemanticTextSelection{.anchor = (*editing_).selection().anchor, .caret = (*editing_).selection().caret};
+        descriptor.text_selection.set(
+            SemanticTextSelection{.anchor = (*editing_).selection().anchor, .caret = (*editing_).selection().caret});
     }
     descriptor.multiline = multiline.read();
     descriptor.actions = {SemanticAction::focus};

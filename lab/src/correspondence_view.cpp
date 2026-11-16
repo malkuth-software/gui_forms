@@ -1100,9 +1100,9 @@ SemanticDescriptor CorrespondenceView::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.value = selected_id_;
-    descriptor.numeric_value = scroll_offset_;
-    descriptor.minimum_value = 0.0;
-    descriptor.maximum_value = maximum_scroll_offset();
+    descriptor.numeric_value.set(scroll_offset_);
+    descriptor.minimum_value.set(0.0);
+    descriptor.maximum_value.set(maximum_scroll_offset());
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement};
     descriptor.exposed = true;
