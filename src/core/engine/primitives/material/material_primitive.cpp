@@ -146,6 +146,14 @@ struct ResolvedFill final {
     std::size_t image{};
 };
 
+// One mask layer (E9.6): its fill, how its sample is read, and how it
+// joins the layers beneath.
+struct ResolvedMask final {
+    ResolvedFill fill{};
+    MaterialMaskMode mode{MaterialMaskMode::alpha};
+    MaterialMaskComposite composite{MaterialMaskComposite::add};
+};
+
 struct ResolvedBand final {
     Rect band{};
     Color colour{};
@@ -227,11 +235,11 @@ struct MaterialLook final {
     // A rounded box's single edges, then its keylines, as rings.
     std::array<ResolvedRing, maximum_rings> rings{};
     std::size_t ring_count{};
-    // An alpha mask (E9.6), evaluated at each pixel centre moved into the
-    // box, so that outside the box it extends at its edge value; an image
-    // mask's variant is MaterialImages' mask_layer.
-    bool masked{};
-    ResolvedFill mask{};
+    // The mask's layers (E9.6), bottom first, each evaluated at each pixel
+    // centre moved into the box, so that outside the box it extends at its
+    // edge value; an image layer's variant is MaterialImages' mask_layer.
+    std::array<ResolvedMask, SurfaceMaterial::maximum_mask_layers> masks{};
+    std::size_t mask_count{};
 };
 
 // An image mask's variant slot (E9.6), after the fills'.
@@ -633,11 +641,17 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
         look.fill_count = look.fill_count + 1U;
         if (layer.blend != MaterialBlendMode::normal) look.face_blends = true;
     }
-    if (material.mask) {
-        look.mask = resolve_fill(*material.mask, box, scale);
-        look.mask.image = mask_layer;
-        look.masked = true;
+    // A valid material holds at most maximum_mask_layers layers.
+    const std::size_t mask_count = std::min(material.masks.size(), look.masks.size());
+    for (std::size_t index = 0U; index < mask_count; ++index) {
+        const MaterialMaskLayer& layer = material.masks[index];
+        ResolvedMask& resolved = look.masks[index];
+        resolved.fill = resolve_fill(layer.source, box, scale);
+        resolved.fill.image = mask_layer;
+        resolved.mode = layer.mode;
+        resolved.composite = layer.composite;
     }
+    look.mask_count = mask_count;
     if (material.border) {
         const double width = (*material.border).width * scale;
         look.border = true;
@@ -879,6 +893,15 @@ void prepare_finishes(const SurfaceMaterial& material, const PrimitiveTarget& ta
     }
 }
 
+// The material's image mask layer's fill (E9.6; a valid material has at
+// most one), or null.
+const MaterialFillLayer* image_mask_source(const SurfaceMaterial& material) noexcept {
+    for (const MaterialMaskLayer& layer : material.masks) {
+        if (layer.source.kind == MaterialFillKind::image) return &layer.source;
+    }
+    return nullptr;
+}
+
 // Maps each image fill's lent variant, each procedural fill's lent
 // pattern and an image mask's lent variant onto the destination, after
 // painting the finish fills. Storage that cannot be allocated leaves that
@@ -900,11 +923,12 @@ void prepare_images(const SurfaceMaterial& material, const PrimitiveTarget& targ
         }
         map_image(layer, index, look.box, scale, variant, extent, images.layers[index]);
     }
-    if (!material.mask || (*material.mask).kind != MaterialFillKind::image) return;
+    const MaterialFillLayer* const image_mask = image_mask_source(material);
+    if (image_mask == nullptr) return;
     const std::shared_ptr<const PartRaster>& lent_mask = (*target.variants).layers[mask_layer];
     if (!lent_mask) return;
     MaterialImageLayer& mask = images.layers[mask_layer];
-    map_image(*material.mask, mask_layer, look.box, scale, *lent_mask, extent, mask);
+    map_image(*image_mask, mask_layer, look.box, scale, *lent_mask, extent, mask);
     if (mask.variant == nullptr) return;
     extend_at_box(mask.columns, look.box.x, look.box.right());
     extend_at_box(mask.rows, look.box.y, look.box.bottom());
@@ -1623,39 +1647,121 @@ void apply_reflection(const MaterialReflection& reflection, const Rect& box, dou
     }
 }
 
-// The mask's alpha at pixel (x, y) (E9.6): its centre moved into the box,
-// so that outside the box the mask extends at its edge value (an image
-// mask's maps are extended so, extend_at_box).
-double mask_alpha(const MaterialLook& look, const MaterialImages& images, std::int64_t x, std::int64_t y) noexcept {
-    const Rect& box = look.box;
-    const double centre_x = std::max(box.x, std::min(static_cast<double>(x) + 0.5, box.right()));
-    const double centre_y = std::max(box.y, std::min(static_cast<double>(y) + 0.5, box.bottom()));
-    const Unit sampled = fill_colour(look.mask, images, static_cast<std::size_t>(x), static_cast<std::size_t>(y),
-                                     centre_x, centre_y, 1.0);
-    return sampled.alpha;
+// The mask's weights are formed a run of columns at a time, so that each
+// layer's mode and composite are chosen once per run, never per pixel.
+constexpr std::size_t mask_run = 64U;
+using MaskRun = std::array<double, mask_run>;
+
+// Luminance of a premultiplied sample (MaterialMaskMode::luminance): the
+// luminance of its colour times its alpha, in [0, 1].
+double sample_luminance(const Unit& sample) noexcept {
+    const double luminance = 0.2126 * sample.red + 0.7152 * sample.green + 0.0722 * sample.blue;
+    return luminance;
 }
 
-// Multiplies every pixel of the finished raster by the mask's alpha (E9.6,
-// owner 2026-10-23): after the part filters, so that the shadows, the drop
-// shadow and the blur fade with the face beside them.
-// An image mask whose variant was not lent leaves the raster unmasked, as
+// `layer`'s weights over columns [first, first + count) of `row` into
+// `weights` (count <= mask_run): each sample at its pixel centre moved
+// into the box, so that outside the box the layer extends at its edge
+// value (an image layer's maps are extended so, extend_at_box), then read
+// by the layer's mode.
+void mask_layer_weights(const MaterialLook& look, const ResolvedMask& layer, const MaterialImages& images,
+                        std::uint32_t row, std::uint32_t first, std::size_t count, MaskRun& weights) noexcept {
+    const Rect& box = look.box;
+    const double centre_y = std::max(box.y, std::min(static_cast<double>(row) + 0.5, box.bottom()));
+    std::array<Unit, mask_run> samples{};
+    for (std::size_t index = 0U; index < count; ++index) {
+        const std::size_t column = static_cast<std::size_t>(first) + index;
+        const double centre_x = std::max(box.x, std::min(static_cast<double>(column) + 0.5, box.right()));
+        samples[index] = fill_colour(layer.fill, images, column, row, centre_x, centre_y, 1.0);
+    }
+    switch (layer.mode) {
+    case MaterialMaskMode::alpha:
+        for (std::size_t index = 0U; index < count; ++index) weights[index] = samples[index].alpha;
+        return;
+    case MaterialMaskMode::luminance:
+        for (std::size_t index = 0U; index < count; ++index) weights[index] = sample_luminance(samples[index]);
+        return;
+    case MaterialMaskMode::inverse_alpha:
+        for (std::size_t index = 0U; index < count; ++index) weights[index] = 1.0 - samples[index].alpha;
+        return;
+    case MaterialMaskMode::inverse_luminance:
+        for (std::size_t index = 0U; index < count; ++index) {
+            weights[index] = 1.0 - sample_luminance(samples[index]);
+        }
+        return;
+    }
+    // A mode outside the enumeration (refused by valid_surface_material)
+    // reads alpha.
+    for (std::size_t index = 0U; index < count; ++index) weights[index] = samples[index].alpha;
+}
+
+// `layer` (an upper layer's weights) joined onto `combined` (the layers
+// beneath) by `composite` (MaterialMaskComposite), over `count` entries.
+void join_mask_weights(MaterialMaskComposite composite, const MaskRun& layer, std::size_t count,
+                       MaskRun& combined) noexcept {
+    switch (composite) {
+    case MaterialMaskComposite::add:
+        for (std::size_t index = 0U; index < count; ++index) {
+            combined[index] = layer[index] + combined[index] * (1.0 - layer[index]);
+        }
+        return;
+    case MaterialMaskComposite::subtract:
+        for (std::size_t index = 0U; index < count; ++index) {
+            combined[index] = layer[index] * (1.0 - combined[index]);
+        }
+        return;
+    case MaterialMaskComposite::intersect:
+        for (std::size_t index = 0U; index < count; ++index) combined[index] = layer[index] * combined[index];
+        return;
+    case MaterialMaskComposite::exclude:
+        for (std::size_t index = 0U; index < count; ++index) {
+            const double above = layer[index] * (1.0 - combined[index]);
+            const double beneath = combined[index] * (1.0 - layer[index]);
+            combined[index] = above + beneath;
+        }
+        return;
+    }
+    // A composite outside the enumeration (refused by
+    // valid_surface_material) adds.
+    for (std::size_t index = 0U; index < count; ++index) {
+        combined[index] = layer[index] + combined[index] * (1.0 - layer[index]);
+    }
+}
+
+// Multiplies every pixel of the finished raster by the mask's combined
+// weight (E9.6, owner 2026-10-23): after the part filters, so that the
+// shadows, the drop shadow and the blur fade with the face beside them.
+// One alpha layer gives the bytes the single alpha mask always gave. An
+// image layer whose variant was not lent leaves the raster unmasked, as
 // the built-in path draws it.
 void apply_mask(const MaterialLook& look, const MaterialImages& images, const PartRasterView& destination) noexcept {
-    if (!look.masked) return;
-    const bool image = look.mask.kind == MaterialFillKind::image;
-    if (image && images.layers[mask_layer].variant == nullptr) return;
+    if (look.mask_count == 0U) return;
+    for (std::size_t index = 0U; index < look.mask_count; ++index) {
+        const bool image = look.masks[index].fill.kind == MaterialFillKind::image;
+        if (image && images.layers[mask_layer].variant == nullptr) return;
+    }
+    MaskRun combined{};
+    MaskRun layer{};
     for (std::uint32_t row = 0U; row < destination.extent.height; ++row) {
         const std::size_t start = static_cast<std::size_t>(row) * destination.row_bytes;
-        for (std::uint32_t column = 0U; column < destination.extent.width; ++column) {
-            const std::size_t offset = start + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel;
-            // The mask's alpha over 255: a byte times it is the masked unit.
-            const double weight = mask_alpha(look, images, static_cast<std::int64_t>(column),
-                                           static_cast<std::int64_t>(row)) / 255.0;
-            const Unit masked{static_cast<double>(destination.pixels[offset + 2U]) * weight,
-                              static_cast<double>(destination.pixels[offset + 1U]) * weight,
-                              static_cast<double>(destination.pixels[offset]) * weight,
-                              static_cast<double>(destination.pixels[offset + 3U]) * weight};
-            store(destination, offset, masked);
+        for (std::uint32_t first = 0U; first < destination.extent.width; first = first + static_cast<std::uint32_t>(mask_run)) {
+            const std::size_t count = std::min<std::size_t>(mask_run, destination.extent.width - first);
+            mask_layer_weights(look, look.masks[0], images, row, first, count, combined);
+            for (std::size_t index = 1U; index < look.mask_count; ++index) {
+                mask_layer_weights(look, look.masks[index], images, row, first, count, layer);
+                join_mask_weights(look.masks[index].composite, layer, count, combined);
+            }
+            for (std::size_t index = 0U; index < count; ++index) {
+                const std::size_t column = static_cast<std::size_t>(first) + index;
+                const std::size_t offset = start + column * part_raster_bytes_per_pixel;
+                // The weight over 255: a byte times it is the masked unit.
+                const double weight = combined[index] / 255.0;
+                const Unit masked{static_cast<double>(destination.pixels[offset + 2U]) * weight,
+                                  static_cast<double>(destination.pixels[offset + 1U]) * weight,
+                                  static_cast<double>(destination.pixels[offset]) * weight,
+                                  static_cast<double>(destination.pixels[offset + 3U]) * weight};
+                store(destination, offset, masked);
+            }
         }
     }
 }
@@ -1805,8 +1911,10 @@ BakeEffort bake_effort_at(const SurfaceMaterial& authored, const PrimitiveTarget
     // raster can hold (maximum_part_raster_side).
     std::uint64_t per_pixel = weights.base;
     for (const MaterialFillLayer& layer : material.fills) per_pixel = per_pixel + fill_weight(layer, weights);
-    // A mask (E9.6) is a fill's evaluation and its pass.
-    if (material.mask) per_pixel = per_pixel + fill_weight(*material.mask, weights) + weights.mask;
+    // Each mask layer (E9.6) is a fill's evaluation and its pass.
+    for (const MaterialMaskLayer& layer : material.masks) {
+        per_pixel = per_pixel + fill_weight(layer.source, weights) + weights.mask;
+    }
     for (const MaterialShadow& shadow : material.shadows) {
         per_pixel = per_pixel + (shadow.inset ? weights.inset_shadow : weights.outer_shadow);
     }
@@ -1921,8 +2029,10 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
     for (const MaterialFillLayer& layer : material.fills) {
         if (fill_varies(layer, box, scale, across)) reach.varies = true;
     }
-    // A mask (E9.6) varies as a fill does.
-    if (material.mask && fill_varies(*material.mask, box, scale, across)) reach.varies = true;
+    // A mask layer (E9.6) varies as a fill does.
+    for (const MaterialMaskLayer& layer : material.masks) {
+        if (fill_varies(layer.source, box, scale, across)) reach.varies = true;
+    }
     for (const MaterialShadow& shadow : material.shadows) {
         const double spread = shadow.spread * scale;
         const double offset = (across ? shadow.offset.x : shadow.offset.y) * scale;
@@ -2178,8 +2288,9 @@ bool MaterialPrimitive::accepts(const PrimitiveParameterBlock& parameters,
         if (layer.kind != MaterialFillKind::image) continue;
         if (target.images == nullptr || !material_image_available(*target.images, layer)) return false;
     }
-    if (material.mask && (*material.mask).kind == MaterialFillKind::image) {
-        if (target.images == nullptr || !material_image_available(*target.images, *material.mask)) return false;
+    const MaterialFillLayer* const image_mask = image_mask_source(material);
+    if (image_mask != nullptr) {
+        if (target.images == nullptr || !material_image_available(*target.images, *image_mask)) return false;
     }
     // A part assembled from slices bakes only its reference. The engine
     // lends a material whose dither it has already lowered to the
@@ -2231,9 +2342,9 @@ std::size_t MaterialPrimitive::image_variants(const PrimitiveParameterBlock&, co
         count = count + 1U;
     }
     // An image mask's variant (E9.6), in its own slot.
-    const bool image_mask = material.mask && (*material.mask).kind == MaterialFillKind::image;
-    if (image_mask && count < requests.size()) {
-        requests[count] = image_variant_request(*material.mask, mask_layer, box, target.scale.value);
+    const MaterialFillLayer* const image_mask = image_mask_source(material);
+    if (image_mask != nullptr && count < requests.size()) {
+        requests[count] = image_variant_request(*image_mask, mask_layer, box, target.scale.value);
         count = count + 1U;
     }
     return count;

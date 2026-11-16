@@ -1,0 +1,3 @@
+/* forms: property.mask-mode property.mask-composite property.mask-position property.mask-size property.mask-repeat */
+button { mask-image: linear-gradient(black, transparent), linear-gradient(90deg, black, transparent); mask-mode: luminance, inverse-alpha; mask-composite: subtract }
+track-bar { mask-image: url("resource:mask.dots"); mask-size: 8px; mask-repeat: mirror; mask-position: 50% 0 }

@@ -470,7 +470,12 @@ constexpr std::array<std::string_view, material_field_count> material_field_name
     "seat",
     "gradient_dither",
     "transform",
-    "clip_path"};
+    "clip_path",
+    "mask_modes",
+    "mask_composites",
+    "mask_positions",
+    "mask_sizes",
+    "mask_repeats"};
 
 // The edge fields: four edges of three fields each, from border_top_style.
 constexpr std::size_t first_edge_field = static_cast<std::size_t>(MaterialField::border_top_style);
@@ -534,6 +539,11 @@ ColourPosition material_field_colour_position(MaterialField field) noexcept {
     case MaterialField::gradient_dither:
     case MaterialField::transform:
     case MaterialField::clip_path:
+    case MaterialField::mask_modes:
+    case MaterialField::mask_composites:
+    case MaterialField::mask_positions:
+    case MaterialField::mask_sizes:
+    case MaterialField::mask_repeats:
     case MaterialField::count:
     default: return ColourPosition::none;
     }
@@ -574,7 +584,16 @@ void apply_material_declaration(const MaterialDeclaration& declaration, SurfaceM
     case MaterialField::drop_shadow: material.drop_shadow = declaration.drop_shadow; return;
     case MaterialField::filter_blur: material.filter_blur = declaration.number; return;
     case MaterialField::finish: material.finish = declaration.number; return;
-    case MaterialField::mask: material.mask = declaration.mask; return;
+    case MaterialField::mask: {
+        // The layers as written, read by alpha and added; their longhands
+        // and authored gradients follow (compose_masks).
+        material.masks.clear();
+        material.masks.reserve(declaration.masks.size());
+        for (const MaterialFillLayer& source : declaration.masks) {
+            material.masks.push_back(MaterialMaskLayer{.source = source});
+        }
+        return;
+    }
     case MaterialField::reflection: material.reflection = declaration.reflection; return;
     // Appended after the other fields (assemble_material).
     case MaterialField::seat: return;
@@ -604,6 +623,11 @@ void apply_material_declaration(const MaterialDeclaration& declaration, SurfaceM
     case MaterialField::corner_top_right:
     case MaterialField::corner_bottom_right:
     case MaterialField::corner_bottom_left:
+    case MaterialField::mask_modes:
+    case MaterialField::mask_composites:
+    case MaterialField::mask_positions:
+    case MaterialField::mask_sizes:
+    case MaterialField::mask_repeats:
     case MaterialField::count: return;
     // A value outside the enumeration names no field: nothing is written,
     // as for the composed fields above.
@@ -688,33 +712,77 @@ MaterialImageMode repeated_image_mode(const MaterialImageRepeat repeat) noexcept
     return MaterialImageMode::tile;
 }
 
+// Places image fill `layer`, `from_top` layers from the top of its list,
+// by the declared sizes, repetitions and positions, each list in CSS's
+// order (the top layer's first) and repeated over the layers. A gradient
+// or a nine-patch is not placed.
+void place_image_layer(const MaterialDeclaration* sizes, const MaterialDeclaration* repeats,
+                       const MaterialDeclaration* positions, std::size_t from_top, Size box,
+                       MaterialFillLayer& layer) noexcept {
+    if (layer.kind != MaterialFillKind::image || layer.image_mode == MaterialImageMode::nine_patch) return;
+    if (sizes != nullptr && !(*sizes).image_sizes.empty()) {
+        const std::vector<MaterialImageSize>& written = (*sizes).image_sizes;
+        size_image(written[from_top % written.size()], box, layer);
+    }
+    const bool tiled = layer.image_mode == MaterialImageMode::tile || layer.image_mode == MaterialImageMode::single ||
+                       layer.image_mode == MaterialImageMode::mirror || layer.image_mode == MaterialImageMode::extend;
+    if (repeats != nullptr && !(*repeats).image_repeats.empty() && tiled) {
+        const std::vector<MaterialImageRepeat>& written = (*repeats).image_repeats;
+        layer.image_mode = repeated_image_mode(written[from_top % written.size()]);
+    }
+    if (positions != nullptr && !(*positions).image_positions.empty()) {
+        const std::vector<MaterialImagePosition>& written = (*positions).image_positions;
+        const MaterialImagePosition& position = written[from_top % written.size()];
+        layer.image_anchor = Point{position.across.fraction, position.down.fraction};
+        layer.image_offset = Point{position.across.units, position.down.units};
+    }
+}
+
 // Places the image fills among `material`'s image layers, from
-// `images_first` up, by the declared sizes, repetitions and positions,
-// each list in CSS's order (the top layer's first) and repeated over the
-// image layers.
+// `images_first` up (place_image_layer).
 void place_images(const MaterialDeclaration* sizes, const MaterialDeclaration* repeats,
                   const MaterialDeclaration* positions, std::size_t images_first, Size box,
                   SurfaceMaterial& material) noexcept {
     const std::size_t image_count = material.fills.size() - images_first;
     for (std::size_t from_top = 0U; from_top < image_count; ++from_top) {
         MaterialFillLayer& layer = material.fills[material.fills.size() - 1U - from_top];
-        if (layer.kind != MaterialFillKind::image || layer.image_mode == MaterialImageMode::nine_patch) continue;
-        if (sizes != nullptr && !(*sizes).image_sizes.empty()) {
-            const std::vector<MaterialImageSize>& written = (*sizes).image_sizes;
-            size_image(written[from_top % written.size()], box, layer);
+        place_image_layer(sizes, repeats, positions, from_top, box, layer);
+    }
+}
+
+// The mask's layers (E9.6) as declared or the floor's, already in
+// `material`: the declared layers' authored gradients resolved for `box`,
+// then each layer's mode, composite, size, repetition and position from
+// the declared longhands, each list in CSS's order (the top layer's first)
+// and repeated over the layers.
+void compose_masks(const std::array<const MaterialDeclaration*, material_field_count>& fields, Size box,
+                   SurfaceMaterial& material) {
+    const MaterialDeclaration* const layers = set_field(fields, MaterialField::mask);
+    if (layers != nullptr) {
+        const std::vector<AuthoredGradient>& gradients = (*layers).gradients;
+        const std::size_t resolved = std::min(gradients.size(), material.masks.size());
+        for (std::size_t layer = 0U; layer < resolved; ++layer) {
+            if (gradients[layer].kind == MaterialFillKind::solid) continue;
+            resolve_authored_gradient(gradients[layer], box, material.masks[layer].source);
         }
-        const bool tiled = layer.image_mode == MaterialImageMode::tile || layer.image_mode == MaterialImageMode::single ||
-                           layer.image_mode == MaterialImageMode::mirror || layer.image_mode == MaterialImageMode::extend;
-        if (repeats != nullptr && !(*repeats).image_repeats.empty() && tiled) {
-            const std::vector<MaterialImageRepeat>& written = (*repeats).image_repeats;
-            layer.image_mode = repeated_image_mode(written[from_top % written.size()]);
+    }
+    const MaterialDeclaration* const modes = set_field(fields, MaterialField::mask_modes);
+    const MaterialDeclaration* const composites = set_field(fields, MaterialField::mask_composites);
+    const MaterialDeclaration* const sizes = set_field(fields, MaterialField::mask_sizes);
+    const MaterialDeclaration* const repeats = set_field(fields, MaterialField::mask_repeats);
+    const MaterialDeclaration* const positions = set_field(fields, MaterialField::mask_positions);
+    const std::size_t count = material.masks.size();
+    for (std::size_t from_top = 0U; from_top < count; ++from_top) {
+        MaterialMaskLayer& layer = material.masks[count - 1U - from_top];
+        if (modes != nullptr && !(*modes).mask_modes.empty()) {
+            const std::vector<MaterialMaskMode>& written = (*modes).mask_modes;
+            layer.mode = written[from_top % written.size()];
         }
-        if (positions != nullptr && !(*positions).image_positions.empty()) {
-            const std::vector<MaterialImagePosition>& written = (*positions).image_positions;
-            const MaterialImagePosition& position = written[from_top % written.size()];
-            layer.image_anchor = Point{position.across.fraction, position.down.fraction};
-            layer.image_offset = Point{position.across.units, position.down.units};
+        if (composites != nullptr && !(*composites).mask_composites.empty()) {
+            const std::vector<MaterialMaskComposite>& written = (*composites).mask_composites;
+            layer.composite = written[from_top % written.size()];
         }
+        place_image_layer(sizes, repeats, positions, from_top, box, layer.source);
     }
 }
 
@@ -956,19 +1024,19 @@ bool material_declaration_admitted(const MaterialDeclaration& declaration) {
         const bool admitted = valid_surface_material(checked);
         return admitted;
     }
-    if (declaration.field == MaterialField::fill_positions) {
+    if (declaration.field == MaterialField::fill_positions || declaration.field == MaterialField::mask_positions) {
         for (const MaterialImagePosition& position : declaration.image_positions) {
             if (!image_position_admitted(position)) return false;
         }
         return true;
     }
-    if (declaration.field == MaterialField::fill_sizes) {
+    if (declaration.field == MaterialField::fill_sizes || declaration.field == MaterialField::mask_sizes) {
         for (const MaterialImageSize& size : declaration.image_sizes) {
             if (!image_size_admitted(size)) return false;
         }
         return true;
     }
-    if (declaration.field == MaterialField::fill_repeats) {
+    if (declaration.field == MaterialField::fill_repeats || declaration.field == MaterialField::mask_repeats) {
         for (const MaterialImageRepeat repeat : declaration.image_repeats) {
             if (static_cast<std::uint8_t>(repeat) > static_cast<std::uint8_t>(MaterialImageRepeat::extend)) return false;
         }
@@ -998,16 +1066,36 @@ bool material_declaration_admitted(const MaterialDeclaration& declaration) {
         const bool admitted = valid_surface_material(checked);
         return admitted;
     }
-    if (declaration.field == MaterialField::mask && !declaration.gradients.empty()) {
-        const AuthoredGradient& gradient = declaration.gradients.front();
-        if (declaration.gradients.size() != 1U || !declaration.mask) return false;
-        checked.mask = declaration.mask;
-        if (gradient.kind != MaterialFillKind::solid) {
-            if (!valid_authored_gradient(gradient)) return false;
-            resolve_authored_gradient(gradient, sample_box, *checked.mask);
+    if (declaration.field == MaterialField::mask) {
+        const std::vector<AuthoredGradient>& gradients = declaration.gradients;
+        if (!gradients.empty() && gradients.size() != declaration.masks.size()) return false;
+        if (declaration.masks.size() > SurfaceMaterial::maximum_mask_layers) return false;
+        for (const MaterialFillLayer& source : declaration.masks) {
+            checked.masks.push_back(MaterialMaskLayer{.source = source});
+        }
+        for (std::size_t layer = 0U; layer < gradients.size(); ++layer) {
+            if (gradients[layer].kind == MaterialFillKind::solid) continue;
+            if (!valid_authored_gradient(gradients[layer])) return false;
+            resolve_authored_gradient(gradients[layer], sample_box, checked.masks[layer].source);
         }
         const bool admitted = valid_surface_material(checked);
         return admitted;
+    }
+    if (declaration.field == MaterialField::mask_modes) {
+        for (const MaterialMaskMode mode : declaration.mask_modes) {
+            if (static_cast<std::uint8_t>(mode) > static_cast<std::uint8_t>(MaterialMaskMode::inverse_luminance)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (declaration.field == MaterialField::mask_composites) {
+        for (const MaterialMaskComposite composite : declaration.mask_composites) {
+            if (static_cast<std::uint8_t>(composite) > static_cast<std::uint8_t>(MaterialMaskComposite::exclude)) {
+                return false;
+            }
+        }
+        return true;
     }
     if (!edge_field(declaration.field)) {
         apply_material_declaration(declaration, checked);
@@ -1034,7 +1122,9 @@ bool material_fields_read_box(
         if (declaration == nullptr || (*declaration).initial) continue;
         if (corner_field((*declaration).field) && (*declaration).relative) return true;
         if ((*declaration).field == MaterialField::seat && (*declaration).relative) return true;
-        if ((*declaration).field == MaterialField::fill_sizes) {
+        const bool sizes = (*declaration).field == MaterialField::fill_sizes ||
+                           (*declaration).field == MaterialField::mask_sizes;
+        if (sizes) {
             for (const MaterialImageSize& size : (*declaration).image_sizes) {
                 const bool proportional = size.sizing == MaterialImageSizing::cover ||
                                           size.sizing == MaterialImageSizing::contain;
@@ -1353,11 +1443,7 @@ void assemble_material(const SurfaceMaterial& floor,
     }
     const MaterialDeclaration* const placements = set_field(fields, MaterialField::glow_placements);
     if (placements != nullptr) apply_material_declaration(*placements, material);
-    const MaterialDeclaration* const mask = set_field(fields, MaterialField::mask);
-    if (mask != nullptr && material.mask && !(*mask).gradients.empty() &&
-        (*mask).gradients.front().kind != MaterialFillKind::solid) {
-        resolve_authored_gradient((*mask).gradients.front(), box, *material.mask);
-    }
+    compose_masks(fields, box, material);
     if (fills) compose_fills(floor, fields, box, material);
     if (corners) compose_corners(floor, fields, std::min(box.width, box.height), material);
     // The seat's shadows go after the authored ones, at the part's size.

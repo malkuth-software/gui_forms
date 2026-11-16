@@ -659,24 +659,64 @@ void test_filter_lowering() {
     const std::string_view fixed_sheet = "#pad::part(face) { mask-image: linear-gradient(black, transparent) }";
     const Compilation fixed = compile(fixed_sheet);
     const MaterialDeclaration* const fixed_mask = field_of(only_rule(fixed, fixed_sheet), MaterialField::mask);
-    require(fixed_mask != nullptr && (*fixed_mask).gradients.empty() && (*fixed_mask).mask &&
-                *(*fixed_mask).mask ==
+    require(fixed_mask != nullptr && (*fixed_mask).gradients.empty() && (*fixed_mask).masks.size() == 1U &&
+                (*fixed_mask).masks.front() ==
                     MaterialFillLayer::linear_css_angle(180.0, stops_of({{0.0, black}, {1.0, transparent}})),
             "a fixed mask gradient is resolved when the sheet compiles");
     const std::string_view sized_sheet = "#pad::part(face) { mask-image: radial-gradient(circle 10px, black, transparent) }";
     const Compilation sized = compile(sized_sheet);
     const MaterialDeclaration* const sized_mask = field_of(only_rule(sized, sized_sheet), MaterialField::mask);
-    require(sized_mask != nullptr && (*sized_mask).gradients.size() == 1U && (*sized_mask).mask,
+    require(sized_mask != nullptr && (*sized_mask).gradients.size() == 1U && (*sized_mask).masks.size() == 1U,
             "a mask gradient of lengths waits for the box");
     std::array<const MaterialDeclaration*, material_field_count> masked{};
     masked[static_cast<std::size_t>(MaterialField::mask)] = sized_mask;
     require(material_fields_read_box(masked), "a mask gradient of lengths reads the box");
     assemble_material(SurfaceMaterial{}, masked, Size{40.0, 24.0}, assembled);
-    require(assembled.mask &&
-                *assembled.mask == MaterialFillLayer::radial(Point{20.0, 12.0}, Size{10.0, 10.0},
-                                                             stops_of({{0.0, black}, {1.0, transparent}}),
-                                                             MaterialCoordinateSpace::logical),
+    require(assembled.masks.size() == 1U &&
+                assembled.masks.front().source == MaterialFillLayer::radial(Point{20.0, 12.0}, Size{10.0, 10.0},
+                                                                            stops_of({{0.0, black}, {1.0, transparent}}),
+                                                                            MaterialCoordinateSpace::logical),
             "the mask is resolved for the part's box");
+
+    // Several layers (E9.6, owner 2026-11-16): CSS lists the top layer
+    // first, the material holds them bottom first; a deferred layer's
+    // neighbours keep a solid placeholder gradient.
+    const std::string_view layered_sheet =
+        "#pad::part(face) { mask-image: linear-gradient(black, transparent), radial-gradient(circle 10px, black, "
+        "transparent); mask-mode: luminance, inverse-alpha; mask-composite: subtract, add }";
+    const Compilation layered = compile(layered_sheet);
+    const ThemeRule& layered_rule = only_rule(layered, layered_sheet);
+    const MaterialDeclaration* const layers = field_of(layered_rule, MaterialField::mask);
+    require(layers != nullptr && (*layers).masks.size() == 2U && (*layers).gradients.size() == 2U &&
+                (*layers).gradients[0].kind != MaterialFillKind::solid &&
+                (*layers).gradients[1].kind == MaterialFillKind::solid,
+            "two mask layers, bottom first, the radial one waiting for the box");
+    const MaterialDeclaration* const modes = field_of(layered_rule, MaterialField::mask_modes);
+    require(modes != nullptr &&
+                (*modes).mask_modes ==
+                    std::vector<MaterialMaskMode>{MaterialMaskMode::luminance, MaterialMaskMode::inverse_alpha},
+            "mask-mode lowers in CSS's order");
+    const MaterialDeclaration* const composites = field_of(layered_rule, MaterialField::mask_composites);
+    require(composites != nullptr && (*composites).mask_composites ==
+                                         std::vector<MaterialMaskComposite>{MaterialMaskComposite::subtract,
+                                                                            MaterialMaskComposite::add},
+            "mask-composite lowers in CSS's order");
+    std::array<const MaterialDeclaration*, material_field_count> layered_fields{};
+    layered_fields[static_cast<std::size_t>(MaterialField::mask)] = layers;
+    layered_fields[static_cast<std::size_t>(MaterialField::mask_modes)] = modes;
+    layered_fields[static_cast<std::size_t>(MaterialField::mask_composites)] = composites;
+    assemble_material(SurfaceMaterial{}, layered_fields, Size{40.0, 24.0}, assembled);
+    require(assembled.masks.size() == 2U && assembled.masks[1].mode == MaterialMaskMode::luminance &&
+                assembled.masks[1].composite == MaterialMaskComposite::subtract &&
+                assembled.masks[0].mode == MaterialMaskMode::inverse_alpha &&
+                assembled.masks[0].source.kind == MaterialFillKind::radial_gradient &&
+                assembled.masks[1].source.kind == MaterialFillKind::linear_gradient,
+            "the top layer takes the first mode and composite");
+    const std::string_view modes_only_sheet = "#pad::part(face) { mask-mode: match-source }";
+    const Compilation modes_only = compile(modes_only_sheet);
+    const MaterialDeclaration* const matched = field_of(only_rule(modes_only, modes_only_sheet), MaterialField::mask_modes);
+    require(matched != nullptr && (*matched).mask_modes == std::vector<MaterialMaskMode>{MaterialMaskMode::alpha},
+            "match-source reads an image layer's alpha");
 }
 
 void test_image_lowering() {
@@ -1408,13 +1448,14 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     GateRow linear_mask{};
     linear_mask.declarations = "background: blue; mask-image: linear-gradient(black, transparent)";
     linear_mask.material.fills = {MaterialFillLayer::solid(blue)};
-    linear_mask.material.mask = MaterialFillLayer::linear_css_angle(180.0, fading);
+    linear_mask.material.masks = {MaterialMaskLayer{.source = MaterialFillLayer::linear_css_angle(180.0, fading)}};
     rows.push_back(linear_mask);
     GateRow radial_mask{};
     radial_mask.declarations = "background: blue; mask-image: radial-gradient(circle 10px, black, transparent)";
     radial_mask.material.fills = {MaterialFillLayer::solid(blue)};
-    radial_mask.material.mask =
+    const MaterialFillLayer radial_fade =
         MaterialFillLayer::radial(Point{20.0, 12.0}, Size{10.0, 10.0}, fading, MaterialCoordinateSpace::logical);
+    radial_mask.material.masks = {MaterialMaskLayer{.source = radial_fade}};
     rows.push_back(radial_mask);
 
     const Size four{4.0, 4.0};
@@ -1453,8 +1494,25 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     GateRow image_mask{};
     image_mask.declarations = "background: blue; mask-image: url(\"resource:mask.dots\")";
     image_mask.material.fills = {MaterialFillLayer::solid(blue)};
-    image_mask.material.mask = MaterialFillLayer::tiled_image(images.dots, Size{2.0, 2.0}, 0.5);
+    image_mask.material.masks = {MaterialMaskLayer{.source = MaterialFillLayer::tiled_image(images.dots, Size{2.0, 2.0}, 0.5)}};
     rows.push_back(image_mask);
+    // The mask longhands (owner 2026-11-16): an image layer placed as a
+    // background image is, under a luminance gradient that subtracts it.
+    GateRow placed_mask{};
+    placed_mask.declarations = "background: blue; mask-image: linear-gradient(black, transparent), "
+                               "url(\"resource:mask.dots\"); mask-mode: luminance, alpha; mask-composite: subtract; "
+                               "mask-size: auto, 8px; mask-repeat: repeat, mirror; mask-position: 0 0, center";
+    placed_mask.material.fills = {MaterialFillLayer::solid(blue)};
+    MaterialFillLayer placed_dots = MaterialFillLayer::tiled_image(images.dots, Size{2.0, 2.0}, 0.5);
+    placed_dots.image_scale = 2.0 / 8.0;
+    placed_dots.image_mode = MaterialImageMode::mirror;
+    placed_dots.image_anchor = Point{0.5, 0.5};
+    placed_mask.material.masks = {
+        MaterialMaskLayer{.source = placed_dots},
+        MaterialMaskLayer{.source = MaterialFillLayer::linear_css_angle(180.0, fading),
+                          .mode = MaterialMaskMode::luminance,
+                          .composite = MaterialMaskComposite::subtract}};
+    rows.push_back(placed_mask);
 
     // Each edge's two lines, the outer first, in CSS's edge order.
     const std::array<MaterialEdge, 4> each_edge{MaterialEdge::top, MaterialEdge::right, MaterialEdge::bottom,

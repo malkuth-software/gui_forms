@@ -288,6 +288,8 @@ Types
      -  
    * - :cpp:class:`MaterialKeyline <gui_forms::MaterialKeyline>`
      - One ordered physical keyline.
+   * - :cpp:class:`MaterialMaskLayer <gui_forms::MaterialMaskLayer>`
+     - One layer of a material's mask (E9.6, CSS ``mask-image`` with its longhands): a solid, gradient or image fill, read by ``mode`` and joined to the layers beneath by ``composite``.
    * - :cpp:class:`MaterialReflection <gui_forms::MaterialReflection>`
      - A reflection (stage T5, C7; owner T5-Q14, T5-Q15): ``source`` within the part's box, mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end.
    * - :cpp:class:`MaterialShadow <gui_forms::MaterialShadow>`
@@ -3877,7 +3879,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``); - transform: ``transform`` (MaterialTransform), the identity for none; - clip_path: ``clip_path`` (MaterialClipPath), empty for none. ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
+   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``masks``, the mask's layers, bottom first, at most SurfaceMaterial::maximum_mask_layers, empty for none, and ``gradients``, empty or one per layer, as for the fills; - mask_modes, mask_composites: ``mask_modes`` and ``mask_composites``, in CSS's order (the top layer's first), repeated over the mask's layers; - mask_positions, mask_sizes, mask_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, likewise, read by an image layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``); - transform: ``transform`` (MaterialTransform), the identity for none; - clip_path: ``clip_path`` (MaterialClipPath), empty for none. ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
 
    .. cpp:member:: MaterialField field
 
@@ -3923,7 +3925,11 @@ Types
 
    .. cpp:member:: std::optional<MaterialDropShadow> drop_shadow
 
-   .. cpp:member:: std::optional<MaterialFillLayer> mask
+   .. cpp:member:: std::vector<MaterialFillLayer> masks
+
+   .. cpp:member:: std::vector<MaterialMaskMode> mask_modes
+
+   .. cpp:member:: std::vector<MaterialMaskComposite> mask_composites
 
    .. cpp:member:: std::optional<MaterialReflection> reflection
 
@@ -4187,6 +4193,24 @@ Types
       Default: ``{1.0}``.
 
    .. cpp:member:: double inset
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialMaskLayer final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   One layer of a material's mask (E9.6, CSS ``mask-image`` with its longhands): a solid, gradient or image fill, read by ``mode`` and joined to the layers beneath by ``composite``. An image layer's size, position and repetition are its fill's image_scale, image_anchor, image_offset and image_mode, as a background image's are.
+
+   .. cpp:member:: MaterialFillLayer source
+
+   .. cpp:member:: MaterialMaskMode mode
+
+      Default: ``{MaterialMaskMode::alpha}``.
+
+   .. cpp:member:: MaterialMaskComposite composite
+
+      Default: ``{MaterialMaskComposite::add}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -6319,6 +6343,14 @@ Types
 
       The farthest a reflection reaches outside the box, gap and reach together, in logical units (T5-Q15: the blur and glow cap). Default: ``8.0``.
 
+   .. cpp:member:: constexpr std::size_t maximum_mask_layers
+
+      The most mask layers, and the most of them that are images: an image mask's resampled variant has one slot (image_mask_variant_layer). Default: ``4U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_image_mask_layers
+
+      Default: ``1U``.
+
    .. cpp:member:: std::vector<MaterialFillLayer> fills
 
       Default: ``{MaterialFillLayer::solid(Color::rgba(255, 255, 255))}``.
@@ -6353,9 +6385,9 @@ Types
 
       The surface finish (E9.6, CSS coverage row 9), from 0, the material as authored, to 1, a full gloss derived from its first fill (finished_surface_material, which both paths draw). A finish above 0 needs a solid or linear first fill and room for one more keyline.
 
-   .. cpp:member:: std::optional<MaterialFillLayer> mask
+   .. cpp:member:: std::vector<MaterialMaskLayer> masks
 
-      An alpha mask (E9.6, CSS ``mask-image``): a solid, gradient or image fill whose alpha, times its opacity for an image, multiplies the whole finished part, its shadows and glows included; outside the box it extends at its edge value, so that a shadow fades with the face beside it. The engine's material primitive draws it; the built-in path, paint_surface_material, draws the material unmasked.
+      The mask (E9.6, CSS ``mask-image``, ``mask-mode``, ``mask-composite``): up to maximum_mask_layers layers, bottom first (CSS lists the top layer first), at most maximum_image_mask_layers of them images. Each layer's weight at a pixel is its fill's sample there read by its mode (an image's times its opacity); the weights combine from the bottom up by each upper layer's composite, and the result multiplies the whole finished part, its shadows and glows included. Outside the box each layer extends at its edge value, so that a shadow fades with the face beside it. Empty for none. The engine's material primitive draws it; the built-in path, paint_surface_material, draws the material unmasked.
 
    .. cpp:member:: std::optional<MaterialReflection> reflection
 
@@ -8311,6 +8343,16 @@ Enumerations
 
    .. cpp:enumerator:: clip_path
 
+   .. cpp:enumerator:: mask_modes
+
+   .. cpp:enumerator:: mask_composites
+
+   .. cpp:enumerator:: mask_positions
+
+   .. cpp:enumerator:: mask_sizes
+
+   .. cpp:enumerator:: mask_repeats
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -8402,6 +8444,34 @@ Enumerations
    .. cpp:enumerator:: endpoints
 
    .. cpp:enumerator:: css_angle
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialMaskComposite
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: add
+
+   .. cpp:enumerator:: subtract
+
+   .. cpp:enumerator:: intersect
+
+   .. cpp:enumerator:: exclude
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialMaskMode
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: alpha
+
+   .. cpp:enumerator:: luminance
+
+   .. cpp:enumerator:: inverse_alpha
+
+   .. cpp:enumerator:: inverse_luminance
 
 .. cpp:namespace:: gui_forms
 

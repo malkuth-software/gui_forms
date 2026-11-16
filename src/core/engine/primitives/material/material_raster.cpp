@@ -52,14 +52,14 @@ MaterialPainting material_painting(const SurfaceMaterial& material) noexcept {
 
 std::optional<SurfaceMaterial> material_as_painted(const SurfaceMaterial& material) {
     const bool unpainted = material.corner_radii || material.colour_filter || material.drop_shadow ||
-                           material.filter_blur != 0.0 || material.mask || material.reflection;
+                           material.filter_blur != 0.0 || !material.masks.empty() || material.reflection;
     if (!unpainted) return std::nullopt;
     std::optional<SurfaceMaterial> painted{material};
     (*painted).corner_radii.reset();
     (*painted).colour_filter.reset();
     (*painted).drop_shadow.reset();
     (*painted).filter_blur = 0.0;
-    (*painted).mask.reset();
+    (*painted).masks.clear();
     (*painted).reflection.reset();
     return painted;
 }

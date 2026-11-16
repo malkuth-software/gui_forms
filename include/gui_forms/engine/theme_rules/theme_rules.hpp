@@ -829,6 +829,14 @@ enum class MaterialField : std::uint8_t {
     transform,
     // The material's clip path (`clip-path: polygon() | path()`).
     clip_path,
+    // The mask layers' longhands (`mask-mode`, `mask-composite`,
+    // `mask-position`, `mask-size`, `mask-repeat`), each in CSS's order
+    // and repeated over the layers as CSS repeats a short list.
+    mask_modes,
+    mask_composites,
+    mask_positions,
+    mask_sizes,
+    mask_repeats,
     count,
 };
 
@@ -866,8 +874,13 @@ inline constexpr std::size_t material_field_count = static_cast<std::size_t>(Mat
 //   a fraction of the box's shorter side (CSS's percentage, R2-11),
 //   resolved when the material is assembled for a part;
 // - colour_filter: `colour_filter`; drop_shadow: `drop_shadow`, empty for
-//   none; mask: `mask`, empty for none, and `gradients`, empty or one
-//   entry, the mask's authored gradient as for a fill layer;
+//   none; mask: `masks`, the mask's layers, bottom first, at most
+//   SurfaceMaterial::maximum_mask_layers, empty for none, and
+//   `gradients`, empty or one per layer, as for the fills;
+// - mask_modes, mask_composites: `mask_modes` and `mask_composites`, in
+//   CSS's order (the top layer's first), repeated over the mask's layers;
+// - mask_positions, mask_sizes, mask_repeats: `image_positions`,
+//   `image_sizes`, `image_repeats`, likewise, read by an image layer;
 // - filter_blur and finish: `number`;
 // - reflection: `reflection`, empty for none (stage T5, C7);
 // - seat: `number`, the part's height above its panel in logical units
@@ -901,7 +914,9 @@ struct GUI_FORMS_API MaterialDeclaration final {
     bool relative{};
     MaterialColourFilter colour_filter{};
     std::optional<MaterialDropShadow> drop_shadow{};
-    std::optional<MaterialFillLayer> mask{};
+    std::vector<MaterialFillLayer> masks{};
+    std::vector<MaterialMaskMode> mask_modes{};
+    std::vector<MaterialMaskComposite> mask_composites{};
     std::optional<MaterialReflection> reflection{};
     MaterialDither dither{MaterialDither::none};
     MaterialTransform transform{};
@@ -929,7 +944,9 @@ struct GUI_FORMS_API MaterialDeclaration final {
                left.colour == right.colour && left.keylines == right.keylines &&
                left.number == right.number && left.relative == right.relative &&
                left.colour_filter == right.colour_filter && left.drop_shadow == right.drop_shadow &&
-               left.mask == right.mask && left.reflection == right.reflection && left.dither == right.dither &&
+               left.masks == right.masks && left.mask_modes == right.mask_modes &&
+               left.mask_composites == right.mask_composites && left.reflection == right.reflection &&
+               left.dither == right.dither &&
                left.transform == right.transform && left.clip_path == right.clip_path &&
                left.origin == right.origin &&
                left.em_lengths == right.em_lengths &&

@@ -41,7 +41,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 94> material_properties{{
+constexpr std::array<NamedMaterialProperty, 99> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -106,7 +106,12 @@ constexpr std::array<NamedMaterialProperty, 94> material_properties{{
     {.name = "letter-spacing", .property = MaterialProperty::letter_spacing},
     {.name = "margin-bottom", .property = MaterialProperty::margin_bottom},
     {.name = "margin-top", .property = MaterialProperty::margin_top},
+    {.name = "mask-composite", .property = MaterialProperty::mask_composite},
     {.name = "mask-image", .property = MaterialProperty::mask_image},
+    {.name = "mask-mode", .property = MaterialProperty::mask_mode},
+    {.name = "mask-position", .property = MaterialProperty::mask_position},
+    {.name = "mask-repeat", .property = MaterialProperty::mask_repeat},
+    {.name = "mask-size", .property = MaterialProperty::mask_size},
     {.name = "min-width", .property = MaterialProperty::min_width},
     {.name = "muted-color", .property = MaterialProperty::muted_color},
     {.name = "needle-shape", .property = MaterialProperty::needle_shape},
@@ -961,9 +966,9 @@ private:
     bool lower_background_colour();
     bool lower_background_image();
     bool lower_blend_modes();
-    bool lower_positions();
-    bool lower_sizes();
-    bool lower_repeats();
+    bool lower_positions(MaterialField field, std::size_t maximum_layers);
+    bool lower_sizes(MaterialField field, std::size_t maximum_layers);
+    bool lower_repeats(MaterialField field, std::size_t maximum_layers);
     bool lower_background();
     bool lower_edges(std::size_t first_edge, std::size_t edge_count);
     bool lower_sides(std::size_t part);
@@ -985,6 +990,8 @@ private:
     bool lower_glows();
     bool lower_glow_placements();
     bool lower_mask();
+    bool lower_mask_modes();
+    bool lower_mask_composites();
     bool lower_reflection();
     bool lower_keylines();
     [[nodiscard]] bool outline_style_word(std::size_t index) const noexcept;
@@ -1738,14 +1745,16 @@ bool MaterialReader::read_image_repeat(ComponentRange range, MaterialImageRepeat
     return true;
 }
 
-bool MaterialReader::lower_positions() {
+// `background-position` or `mask-position` (as `field` says): one entry
+// per layer, at most `maximum_layers`.
+bool MaterialReader::lower_positions(MaterialField field, std::size_t maximum_layers) {
     std::vector<ComponentRange> layers{};
     split(ComponentRange{0U, value_.components.size()}, layers);
-    if (layers.size() > SurfaceMaterial::maximum_fill_layers) {
-        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_fill_layers));
+    if (layers.size() > maximum_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(maximum_layers));
     }
     MaterialDeclaration declaration{};
-    declaration.field = MaterialField::fill_positions;
+    declaration.field = field;
     declaration.image_positions.resize(layers.size());
     for (std::size_t layer = 0U; layer < layers.size(); ++layer) {
         if (!read_image_position(layers[layer], declaration.image_positions[layer])) return false;
@@ -1754,14 +1763,16 @@ bool MaterialReader::lower_positions() {
     return true;
 }
 
-bool MaterialReader::lower_sizes() {
+// `background-size` or `mask-size` (as `field` says): one entry per
+// layer, at most `maximum_layers`.
+bool MaterialReader::lower_sizes(MaterialField field, std::size_t maximum_layers) {
     std::vector<ComponentRange> layers{};
     split(ComponentRange{0U, value_.components.size()}, layers);
-    if (layers.size() > SurfaceMaterial::maximum_fill_layers) {
-        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_fill_layers));
+    if (layers.size() > maximum_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(maximum_layers));
     }
     MaterialDeclaration declaration{};
-    declaration.field = MaterialField::fill_sizes;
+    declaration.field = field;
     declaration.image_sizes.resize(layers.size());
     for (std::size_t layer = 0U; layer < layers.size(); ++layer) {
         if (!read_image_size(layers[layer], declaration.image_sizes[layer])) return false;
@@ -1770,14 +1781,16 @@ bool MaterialReader::lower_sizes() {
     return true;
 }
 
-bool MaterialReader::lower_repeats() {
+// `background-repeat` or `mask-repeat` (as `field` says): one entry per
+// layer, at most `maximum_layers`.
+bool MaterialReader::lower_repeats(MaterialField field, std::size_t maximum_layers) {
     std::vector<ComponentRange> layers{};
     split(ComponentRange{0U, value_.components.size()}, layers);
-    if (layers.size() > SurfaceMaterial::maximum_fill_layers) {
-        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_fill_layers));
+    if (layers.size() > maximum_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(maximum_layers));
     }
     MaterialDeclaration declaration{};
-    declaration.field = MaterialField::fill_repeats;
+    declaration.field = field;
     declaration.image_repeats.resize(layers.size());
     for (std::size_t layer = 0U; layer < layers.size(); ++layer) {
         if (!read_image_repeat(layers[layer], declaration.image_repeats[layer])) return false;
@@ -2831,10 +2844,13 @@ bool MaterialReader::lower_keylines() {
     return true;
 }
 
-// `mask-image`: none, one gradient or one image, whose alpha the engine
-// multiplies the finished part by; an image tiled at its own size (CSS's
-// initial mask size and repetition), a fixed gradient resolved now, the
-// others when the material is assembled for a part.
+// `mask-image`: none, or up to SurfaceMaterial::maximum_mask_layers
+// layers in CSS's order (the top layer first), each one gradient or one
+// image, at most one of them an image; an image tiled at its own size
+// (CSS's initial mask size and repetition), a fixed gradient resolved now,
+// the others when the material is assembled for a part. The layers are
+// stored bottom first, read by alpha and added until `mask-mode` and
+// `mask-composite` say otherwise.
 bool MaterialReader::lower_mask() {
     MaterialDeclaration declaration{};
     declaration.field = MaterialField::mask;
@@ -2845,20 +2861,106 @@ bool MaterialReader::lower_mask() {
     }
     std::vector<ComponentRange> layers{};
     split(whole, layers);
-    if (layers.size() > 1U) return fail(DiagnosticCode::too_many_layers, start_, "1 mask layer");
-    if (count(layers[0]) != 1U) return fail(DiagnosticCode::value_syntax, start_, "one image");
-    WrittenLayer written{};
-    if (!read_image(0U, written)) return false;
-    MaterialFillLayer layer = written.image;
-    if (!written.imaged) resolve_authored_gradient(written.gradient, Size{100.0, 100.0}, layer);
+    if (layers.size() > SurfaceMaterial::maximum_mask_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_,
+                    std::to_string(SurfaceMaterial::maximum_mask_layers) + " mask layers");
+    }
+    const std::size_t layer_count = layers.size();
+    declaration.masks.resize(layer_count);
+    std::vector<AuthoredGradient> gradients(layer_count);
+    bool deferred = false;
     SurfaceMaterial checked{};
-    checked.mask = layer;
+    checked.masks.resize(layer_count);
+    for (std::size_t from_top = 0U; from_top < layer_count; ++from_top) {
+        const ComponentRange range = layers[from_top];
+        if (count(range) != 1U) return fail(DiagnosticCode::value_syntax, start_, "one image in each mask layer");
+        WrittenLayer written{};
+        if (!read_image(range.first, written)) return false;
+        const std::size_t bottom_first = layer_count - 1U - from_top;
+        MaterialFillLayer layer = written.image;
+        if (!written.imaged) resolve_authored_gradient(written.gradient, Size{100.0, 100.0}, layer);
+        checked.masks[bottom_first].source = layer;
+        if (written.imaged || fixed_gradient(written.gradient)) {
+            declaration.masks[bottom_first] = layer;
+            continue;
+        }
+        declaration.masks[bottom_first] = MaterialFillLayer{};
+        gradients[bottom_first] = std::move(written.gradient);
+        deferred = true;
+    }
     if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a mask");
-    if (written.imaged || fixed_gradient(written.gradient)) {
-        declaration.mask = layer;
-    } else {
-        declaration.mask = MaterialFillLayer{};
-        declaration.gradients.push_back(std::move(written.gradient));
+    // One authored gradient per layer when any waits for the part's box;
+    // a layer kept as written has a solid entry (MaterialDeclaration).
+    if (deferred) declaration.gradients = std::move(gradients);
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// `mask-mode`: one keyword per layer, in CSS's order: `alpha`,
+// `luminance`, `match-source` (an image's alpha, as CSS reads an image
+// layer), or the theme language's `inverse-alpha` and `inverse-luminance`
+// (owner 2026-11-16; not CSS).
+bool MaterialReader::lower_mask_modes() {
+    std::vector<ComponentRange> layers{};
+    split(ComponentRange{0U, value_.components.size()}, layers);
+    if (layers.size() > SurfaceMaterial::maximum_mask_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_mask_layers));
+    }
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::mask_modes;
+    declaration.mask_modes.reserve(layers.size());
+    for (const ComponentRange range : layers) {
+        const ValueComponent& component = value_.components[range.first];
+        if (count(range) != 1U) return fail(DiagnosticCode::value_syntax, component.token, "one mask mode");
+        MaterialMaskMode mode = MaterialMaskMode::alpha;
+        if (keyword(range.first, "alpha") || keyword(range.first, "match-source")) {
+            mode = MaterialMaskMode::alpha;
+        } else if (keyword(range.first, "luminance")) {
+            mode = MaterialMaskMode::luminance;
+        } else if (keyword(range.first, "inverse-alpha")) {
+            mode = MaterialMaskMode::inverse_alpha;
+        } else if (keyword(range.first, "inverse-luminance")) {
+            mode = MaterialMaskMode::inverse_luminance;
+        } else if (component.kind == ValueComponentKind::keyword) {
+            return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+        } else {
+            return fail(DiagnosticCode::value_wrong_kind, component.token, "a mask mode");
+        }
+        declaration.mask_modes.push_back(mode);
+    }
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// `mask-composite`: one keyword per layer, in CSS's order: `add`,
+// `subtract`, `intersect` or `exclude` (MaterialMaskComposite).
+bool MaterialReader::lower_mask_composites() {
+    std::vector<ComponentRange> layers{};
+    split(ComponentRange{0U, value_.components.size()}, layers);
+    if (layers.size() > SurfaceMaterial::maximum_mask_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_mask_layers));
+    }
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::mask_composites;
+    declaration.mask_composites.reserve(layers.size());
+    for (const ComponentRange range : layers) {
+        const ValueComponent& component = value_.components[range.first];
+        if (count(range) != 1U) return fail(DiagnosticCode::value_syntax, component.token, "one mask composite");
+        MaterialMaskComposite composite = MaterialMaskComposite::add;
+        if (keyword(range.first, "add")) {
+            composite = MaterialMaskComposite::add;
+        } else if (keyword(range.first, "subtract")) {
+            composite = MaterialMaskComposite::subtract;
+        } else if (keyword(range.first, "intersect")) {
+            composite = MaterialMaskComposite::intersect;
+        } else if (keyword(range.first, "exclude")) {
+            composite = MaterialMaskComposite::exclude;
+        } else if (component.kind == ValueComponentKind::keyword) {
+            return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+        } else {
+            return fail(DiagnosticCode::value_wrong_kind, component.token, "a mask composite");
+        }
+        declaration.mask_composites.push_back(composite);
     }
     lowering_.declarations.push_back(std::move(declaration));
     return true;
@@ -4080,9 +4182,15 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::background_color: static_cast<void>(lower_background_colour()); return;
     case MaterialProperty::background_image: static_cast<void>(lower_background_image()); return;
     case MaterialProperty::background_blend_mode: static_cast<void>(lower_blend_modes()); return;
-    case MaterialProperty::background_position: static_cast<void>(lower_positions()); return;
-    case MaterialProperty::background_size: static_cast<void>(lower_sizes()); return;
-    case MaterialProperty::background_repeat: static_cast<void>(lower_repeats()); return;
+    case MaterialProperty::background_position:
+        static_cast<void>(lower_positions(MaterialField::fill_positions, SurfaceMaterial::maximum_fill_layers));
+        return;
+    case MaterialProperty::background_size:
+        static_cast<void>(lower_sizes(MaterialField::fill_sizes, SurfaceMaterial::maximum_fill_layers));
+        return;
+    case MaterialProperty::background_repeat:
+        static_cast<void>(lower_repeats(MaterialField::fill_repeats, SurfaceMaterial::maximum_fill_layers));
+        return;
     case MaterialProperty::border: static_cast<void>(lower_edges(0U, 4U)); return;
     case MaterialProperty::border_top: static_cast<void>(lower_edges(0U, 1U)); return;
     case MaterialProperty::border_right: static_cast<void>(lower_edges(1U, 1U)); return;
@@ -4114,6 +4222,17 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::glow: static_cast<void>(lower_glows()); return;
     case MaterialProperty::glow_placement: static_cast<void>(lower_glow_placements()); return;
     case MaterialProperty::mask_image: static_cast<void>(lower_mask()); return;
+    case MaterialProperty::mask_mode: static_cast<void>(lower_mask_modes()); return;
+    case MaterialProperty::mask_composite: static_cast<void>(lower_mask_composites()); return;
+    case MaterialProperty::mask_position:
+        static_cast<void>(lower_positions(MaterialField::mask_positions, SurfaceMaterial::maximum_mask_layers));
+        return;
+    case MaterialProperty::mask_size:
+        static_cast<void>(lower_sizes(MaterialField::mask_sizes, SurfaceMaterial::maximum_mask_layers));
+        return;
+    case MaterialProperty::mask_repeat:
+        static_cast<void>(lower_repeats(MaterialField::mask_repeats, SurfaceMaterial::maximum_mask_layers));
+        return;
     case MaterialProperty::reflection: static_cast<void>(lower_reflection()); return;
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
     case MaterialProperty::seat: static_cast<void>(lower_seat()); return;
@@ -4303,6 +4422,11 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::glow: fields.push_back(MaterialField::glows); return;
     case MaterialProperty::glow_placement: fields.push_back(MaterialField::glow_placements); return;
     case MaterialProperty::mask_image: fields.push_back(MaterialField::mask); return;
+    case MaterialProperty::mask_mode: fields.push_back(MaterialField::mask_modes); return;
+    case MaterialProperty::mask_composite: fields.push_back(MaterialField::mask_composites); return;
+    case MaterialProperty::mask_position: fields.push_back(MaterialField::mask_positions); return;
+    case MaterialProperty::mask_size: fields.push_back(MaterialField::mask_sizes); return;
+    case MaterialProperty::mask_repeat: fields.push_back(MaterialField::mask_repeats); return;
     case MaterialProperty::reflection: fields.push_back(MaterialField::reflection); return;
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
     case MaterialProperty::seat: fields.push_back(MaterialField::seat); return;

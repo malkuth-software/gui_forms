@@ -176,7 +176,12 @@ property.keylines	recipe-colours
 property.layout	not-admitted
 property.letter-spacing	fonts
 property.linear-gradient	fills
+property.mask-composite	material-masks
 property.mask-image	finish-light-images-masks
+property.mask-mode	material-masks
+property.mask-position	material-masks
+property.mask-repeat	material-masks
+property.mask-size	material-masks
 property.mix-blend-mode	shadows-opacity-filters
 property.muted-color	recipe-colours
 property.opacity	shadows-opacity-filters

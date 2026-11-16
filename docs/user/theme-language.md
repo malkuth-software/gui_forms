@@ -265,7 +265,7 @@ only material fields selects the `material` primitive.
 | fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` and `reflecting-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat` (`repeat`, `no-repeat`, and the GUI.Forms additions `mirror` and `extend`), `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `seat`, `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
-| filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
+| filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` (up to 4 layers), `mask-mode`, `mask-composite`, `mask-size`, `mask-position`, `mask-repeat` |
 | presentation | `opacity`, `scale`, `translate` |
 | shape | `transform` (`rotate()`, `scale()`) and `clip-path` (`polygon()`, `path()`), on a material |
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; a user theme the process is started with (`--theme`, `GUI_FORMS_THEME_SHEET`) is checked against the process's installed registry (`install_built_in_effect_registry()`, called by a program using the stock controls while it sets up) and refused the same way, the program's own theme staying; with none installed the names' form only is checked and the request's report says so; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
@@ -361,6 +361,27 @@ are drawn by a transform group and a path clip around however the part
 is drawn, so a baked face composites under the path's coverage mask, the
 same on every host. For example, a tab's slanted face:
 `clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%)`.
+
+A material's mask fades the whole finished part, its shadows and glows
+included. `mask-image` is `none` or up to 4 comma-separated layers, the
+top layer first as in CSS, each a gradient or an image; at most one of
+them may be an image. `mask-mode` reads each layer's weight: `alpha`, the
+layer's alpha (also `match-source`, since every layer is an image or a
+gradient); `luminance`, 0.2126 R + 0.7152 G + 0.0722 B of the layer's
+premultiplied colour, on its sRGB-encoded values; or the GUI.Forms
+additions `inverse-alpha` and `inverse-luminance`, one minus either.
+`mask-composite` joins each layer to the layers beneath it, with w the
+layer's weight and c theirs: `add` gives w + c (1 - w), `subtract` w
+(1 - c), `intersect` w c and `exclude` w (1 - c) + c (1 - w); the bottom
+layer's is not read. `mask-size`, `mask-position` and `mask-repeat` place
+an image layer as the matching `background-` properties place an image
+(including `mirror` and `extend`); a gradient layer covers the box. Each
+of these lists is in CSS's order, the top layer first, and a short list
+repeats over the layers. Outside the box each layer carries on at its
+edge value, so a shadow fades with the face beside it. The `mask`
+shorthand, `mask-clip`, `mask-origin` and `mask-type` are not built. For
+example, a face that fades from the top except under a hole:
+`mask-image: linear-gradient(black, transparent), radial-gradient(circle 6px, black, transparent); mask-composite: subtract`.
 
 An image layer's `background-repeat` may also be `mirror` or `extend`
 (GUI.Forms additions, not CSS), written once or twice: `mirror` tiles the

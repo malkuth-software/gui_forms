@@ -285,6 +285,40 @@ struct GUI_FORMS_API MaterialClipPath final {
         return left.verbs == right.verbs && left.points == right.points && left.rule == right.rule;
     }
 };
+// How a mask layer's sample becomes its weight (CSS `mask-mode`, and the
+// theme language's inverse forms, owner 2026-11-16): the sample's alpha;
+// its luminance, 0.2126 R + 0.7152 G + 0.0722 B of the premultiplied
+// sample (so its luminance times its alpha, on the sRGB-encoded values, as
+// CSS's luminance masks compute it); or one minus either.
+enum class MaterialMaskMode : std::uint8_t {
+    alpha,
+    luminance,
+    inverse_alpha,
+    inverse_luminance,
+};
+// How a mask layer joins the layers beneath it (CSS `mask-composite`), on
+// weights w (this layer) and c (the layers beneath, combined) in [0, 1]:
+// add c' = w + c (1 - w); subtract c' = w (1 - c); intersect c' = w c;
+// exclude c' = w (1 - c) + c (1 - w). The bottom layer's is not read.
+enum class MaterialMaskComposite : std::uint8_t {
+    add,
+    subtract,
+    intersect,
+    exclude,
+};
+// One layer of a material's mask (E9.6, CSS `mask-image` with its
+// longhands): a solid, gradient or image fill, read by `mode` and joined
+// to the layers beneath by `composite`. An image layer's size, position
+// and repetition are its fill's image_scale, image_anchor, image_offset
+// and image_mode, as a background image's are.
+struct GUI_FORMS_API MaterialMaskLayer final {
+    MaterialFillLayer source{};
+    MaterialMaskMode mode{MaterialMaskMode::alpha};
+    MaterialMaskComposite composite{MaterialMaskComposite::add};
+    friend bool operator==(const MaterialMaskLayer& left, const MaterialMaskLayer& right) noexcept {
+        return left.source == right.source && left.mode == right.mode && left.composite == right.composite;
+    }
+};
 struct GUI_FORMS_API SurfaceMaterial final {
     static constexpr std::size_t maximum_fill_layers = 8U;
     static constexpr std::size_t maximum_shadows = 4U;
@@ -300,6 +334,10 @@ struct GUI_FORMS_API SurfaceMaterial final {
     // The farthest a reflection reaches outside the box, gap and reach
     // together, in logical units (T5-Q15: the blur and glow cap).
     static constexpr double maximum_reflection_reach = 8.0;
+    // The most mask layers, and the most of them that are images: an image
+    // mask's resampled variant has one slot (image_mask_variant_layer).
+    static constexpr std::size_t maximum_mask_layers = 4U;
+    static constexpr std::size_t maximum_image_mask_layers = 1U;
     std::vector<MaterialFillLayer> fills{
         MaterialFillLayer::solid(Color::rgba(255, 255, 255))};
     std::vector<MaterialShadow> shadows;
@@ -329,13 +367,18 @@ struct GUI_FORMS_API SurfaceMaterial final {
     // (finished_surface_material, which both paths draw). A finish above 0
     // needs a solid or linear first fill and room for one more keyline.
     double finish{};
-    // An alpha mask (E9.6, CSS `mask-image`): a solid, gradient or image
-    // fill whose alpha, times its opacity for an image, multiplies the
-    // whole finished part, its shadows and glows included; outside the box
-    // it extends at its edge value, so that a shadow fades with the face
-    // beside it. The engine's material primitive draws it; the built-in
-    // path, paint_surface_material, draws the material unmasked.
-    std::optional<MaterialFillLayer> mask;
+    // The mask (E9.6, CSS `mask-image`, `mask-mode`, `mask-composite`):
+    // up to maximum_mask_layers layers, bottom first (CSS lists the top
+    // layer first), at most maximum_image_mask_layers of them images. Each
+    // layer's weight at a pixel is its fill's sample there read by its mode
+    // (an image's times its opacity); the weights combine from the bottom
+    // up by each upper layer's composite, and the result multiplies the
+    // whole finished part, its shadows and glows included. Outside the box
+    // each layer extends at its edge value, so that a shadow fades with the
+    // face beside it. Empty for none. The engine's material primitive draws
+    // it; the built-in path, paint_surface_material, draws the material
+    // unmasked.
+    std::vector<MaterialMaskLayer> masks;
     // A reflection of the finished face (MaterialReflection), drawn after
     // the mask; none by default.
     std::optional<MaterialReflection> reflection;
@@ -372,7 +415,7 @@ struct GUI_FORMS_API SurfaceMaterial final {
         left.colour_filter == right.colour_filter &&
         left.drop_shadow == right.drop_shadow &&
         left.filter_blur == right.filter_blur && left.finish == right.finish &&
-        left.mask == right.mask && left.reflection == right.reflection &&
+        left.masks == right.masks && left.reflection == right.reflection &&
         left.dither == right.dither && left.transform == right.transform &&
         left.clip_path == right.clip_path)) {
         return left.fills == right.fills && left.shadows == right.shadows &&
@@ -385,7 +428,7 @@ struct GUI_FORMS_API SurfaceMaterial final {
                left.colour_filter == right.colour_filter &&
                left.drop_shadow == right.drop_shadow &&
                left.filter_blur == right.filter_blur &&
-               left.finish == right.finish && left.mask == right.mask &&
+               left.finish == right.finish && left.masks == right.masks &&
                left.reflection == right.reflection &&
                left.dither == right.dither && left.transform == right.transform &&
                left.clip_path == right.clip_path;

@@ -1477,13 +1477,24 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         const bool derivable = first == MaterialFillKind::solid || first == MaterialFillKind::linear_gradient;
         if (!derivable || material.keylines.size() >= SurfaceMaterial::maximum_keylines) return false;
     }
-    // A mask (E9.6) is a solid, gradient or image layer; a procedural
-    // pattern or a finish is not a mask.
-    if (material.mask) {
-        const MaterialFillLayer& mask = *material.mask;
+    // A mask (E9.6) is up to maximum_mask_layers solid, gradient or image
+    // layers, at most maximum_image_mask_layers of them images; a
+    // procedural pattern or a finish is not a mask.
+    if (material.masks.size() > SurfaceMaterial::maximum_mask_layers) return false;
+    std::size_t image_masks = 0U;
+    for (const MaterialMaskLayer& layer : material.masks) {
+        const MaterialFillLayer& mask = layer.source;
         const bool textured = mask.kind == MaterialFillKind::procedural || mask.kind == MaterialFillKind::finish;
         if (textured || !valid_fill_layer(mask)) return false;
+        if (static_cast<std::uint8_t>(layer.mode) > static_cast<std::uint8_t>(MaterialMaskMode::inverse_luminance)) {
+            return false;
+        }
+        if (static_cast<std::uint8_t>(layer.composite) > static_cast<std::uint8_t>(MaterialMaskComposite::exclude)) {
+            return false;
+        }
+        if (mask.kind == MaterialFillKind::image) image_masks = image_masks + 1U;
     }
+    if (image_masks > SurfaceMaterial::maximum_image_mask_layers) return false;
     if (material.reflection && !valid_material_reflection(*material.reflection)) return false;
     if (static_cast<std::uint8_t>(material.dither) > static_cast<std::uint8_t>(MaterialDither::blue_noise)) {
         return false;
@@ -1665,7 +1676,7 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
     if (surface_material_shaped(material)) return false;
     if (material.corner_radius != 0.0 || material.corner_radii) return false;
     if (!(surface_material_visual_outsets(material) == Insets{})) return false;
-    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask ||
+    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || !material.masks.empty() ||
         material.reflection) {
         return false;
     }
@@ -1689,7 +1700,7 @@ std::optional<double> surface_material_resize_band(const SurfaceMaterial& materi
     if (!material.shadows.empty() || !material.glows.empty() || !material.keylines.empty()) return std::nullopt;
     if (!material.border_edges.empty()) return std::nullopt;
     if (!(surface_material_visual_outsets(material) == Insets{})) return std::nullopt;
-    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask ||
+    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || !material.masks.empty() ||
         material.reflection) {
         return std::nullopt;
     }
@@ -1859,6 +1870,11 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
         case MaterialField::finish:
         case MaterialField::gradient_dither:
         case MaterialField::mask:
+        case MaterialField::mask_modes:
+        case MaterialField::mask_composites:
+        case MaterialField::mask_positions:
+        case MaterialField::mask_sizes:
+        case MaterialField::mask_repeats:
         case MaterialField::reflection:
         case MaterialField::seat:
         case MaterialField::count:

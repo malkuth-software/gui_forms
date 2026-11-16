@@ -1070,7 +1070,9 @@ void add_material_features(std::vector<std::string>& keys, const SurfaceMaterial
     if (material.drop_shadow) add_key(keys, "drop_shadow");
     if (material.filter_blur > 0.0) add_key(keys, "filter_blur");
     if (material.finish > 0.0) add_key(keys, "finish");
-    if (material.mask) add_key(keys, "mask." + std::string(fill_kind_name((*material.mask).kind)));
+    for (const MaterialMaskLayer& mask : material.masks) {
+        add_key(keys, "mask." + std::string(fill_kind_name(mask.source.kind)));
+    }
 }
 
 PresentationProperty transition_property(const PropertyTransition& transition) {

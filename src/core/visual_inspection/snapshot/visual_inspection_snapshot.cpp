@@ -217,6 +217,26 @@ const char* material_edge_name(MaterialEdge edge) noexcept {
     return "unknown";
 }
 
+const char* material_mask_mode_name(MaterialMaskMode mode) noexcept {
+    switch (mode) {
+    case MaterialMaskMode::alpha: return "alpha";
+    case MaterialMaskMode::luminance: return "luminance";
+    case MaterialMaskMode::inverse_alpha: return "inverse_alpha";
+    case MaterialMaskMode::inverse_luminance: return "inverse_luminance";
+    }
+    return "unknown";
+}
+
+const char* material_mask_composite_name(MaterialMaskComposite composite) noexcept {
+    switch (composite) {
+    case MaterialMaskComposite::add: return "add";
+    case MaterialMaskComposite::subtract: return "subtract";
+    case MaterialMaskComposite::intersect: return "intersect";
+    case MaterialMaskComposite::exclude: return "exclude";
+    }
+    return "unknown";
+}
+
 const char* border_style_name(MaterialBorderStyle value) noexcept {
     switch (value) {
     case MaterialBorderStyle::solid: return "solid";
@@ -428,9 +448,26 @@ void append_material(std::ostringstream& output,
     // A finish and a mask (E9.6), only when set, so that other materials'
     // snapshots are unchanged.
     if (material.finish != 0.0) output << ",\"finish\":" << material.finish;
-    if (material.mask) {
+    // One alpha layer keeps the single "mask" it always had; several
+    // layers, or another mode, are listed bottom first under "masks".
+    const bool lone_alpha_mask = material.masks.size() == 1U && material.masks.front().mode == MaterialMaskMode::alpha;
+    if (lone_alpha_mask) {
         output << ",\"mask\":";
-        append_fill(output, *material.mask);
+        append_fill(output, material.masks.front().source);
+    } else if (!material.masks.empty()) {
+        output << ",\"masks\":[";
+        for (std::size_t index = 0U; index < material.masks.size(); ++index) {
+            const MaterialMaskLayer& layer = material.masks[index];
+            if (index != 0U) output << ',';
+            output << "{\"source\":";
+            append_fill(output, layer.source);
+            output << ",\"mode\":";
+            append_json_string(output, material_mask_mode_name(layer.mode));
+            output << ",\"composite\":";
+            append_json_string(output, material_mask_composite_name(layer.composite));
+            output << '}';
+        }
+        output << ']';
     }
     // A reflection (T5 C7), likewise only when set.
     if (material.reflection) {

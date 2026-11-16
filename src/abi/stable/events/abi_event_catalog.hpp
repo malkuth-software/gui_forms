@@ -763,6 +763,28 @@ struct EnumerationChoices<MaterialLinearGeometry> {
 };
 
 template <>
+struct EnumerationChoices<MaterialMaskComposite> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 4> choices{{
+        {"add", static_cast<std::int64_t>(MaterialMaskComposite::add)},
+        {"subtract", static_cast<std::int64_t>(MaterialMaskComposite::subtract)},
+        {"intersect", static_cast<std::int64_t>(MaterialMaskComposite::intersect)},
+        {"exclude", static_cast<std::int64_t>(MaterialMaskComposite::exclude)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<MaterialMaskMode> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 4> choices{{
+        {"alpha", static_cast<std::int64_t>(MaterialMaskMode::alpha)},
+        {"luminance", static_cast<std::int64_t>(MaterialMaskMode::luminance)},
+        {"inverse_alpha", static_cast<std::int64_t>(MaterialMaskMode::inverse_alpha)},
+        {"inverse_luminance", static_cast<std::int64_t>(MaterialMaskMode::inverse_luminance)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<MaterialReflectionSource> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 2> choices{{
@@ -1439,6 +1461,7 @@ void append_field(EventFields& fields, std::string_view name, const MaterialDrop
 void append_field(EventFields& fields, std::string_view name, const MaterialFillLayer& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialGlow& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialKeyline& value);
+void append_field(EventFields& fields, std::string_view name, const MaterialMaskLayer& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialReflection& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialShadow& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialTransform& value);
@@ -2782,6 +2805,14 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const MaterialMaskLayer& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "source", value.source);
+    append_field(fields, "mode", value.mode);
+    append_field(fields, "composite", value.composite);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const MaterialReflection& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "edge", value.edge);
@@ -3479,7 +3510,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Surfa
     append_field(fields, "drop_shadow", value.drop_shadow);
     append_field(fields, "filter_blur", value.filter_blur);
     append_field(fields, "finish", value.finish);
-    append_field(fields, "mask", value.mask);
+    append_field(fields, "masks", value.masks);
     append_field(fields, "reflection", value.reflection);
     append_field(fields, "dither", value.dither);
     append_field(fields, "transform", value.transform);

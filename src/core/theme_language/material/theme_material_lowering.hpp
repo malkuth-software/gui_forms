@@ -70,6 +70,13 @@ enum class MaterialProperty : std::uint8_t {
     glow,
     glow_placement,
     mask_image,
+    // The mask layers' longhands (E9.6, owner 2026-11-16): MaterialField::
+    // mask_modes, mask_composites, mask_positions, mask_sizes, mask_repeats.
+    mask_mode,
+    mask_composite,
+    mask_position,
+    mask_size,
+    mask_repeat,
     reflection,
     surface_finish,
     // The part's seat in its panel: `seat: none | <height> [<colour>]`.

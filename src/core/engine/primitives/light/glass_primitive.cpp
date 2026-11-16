@@ -206,7 +206,9 @@ bool GlassPrimitive::accepts(const PrimitiveParameterBlock& parameters, const Pr
     for (const MaterialFillLayer& layer : material.fills) {
         if (lent_only_to_materials(layer)) return false;
     }
-    if (material.mask && lent_only_to_materials(*material.mask)) return false;
+    for (const MaterialMaskLayer& mask : material.masks) {
+        if (lent_only_to_materials(mask.source)) return false;
+    }
     // The authored material bounds the layers drawn, which are fewer.
     const BakeEffort effort = material_bake_effort(material, target, 0.0);
     const bool within = effort <= maximum_material_bake_effort;
