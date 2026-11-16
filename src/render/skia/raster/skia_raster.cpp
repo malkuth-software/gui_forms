@@ -3360,8 +3360,11 @@ bool SkiaRaster::Impl::make_clip_mask(const SkCanvas& target, const PaintPathVie
     const double sy = matrix.getScaleY();
     const double ty = matrix.getTranslateY();
     // The longest a unit of content becomes on the device bounds the chord
-    // error the device sees.
-    const double stretch = std::max(std::hypot(sx, ky), std::hypot(kx, sy));
+    // error the device sees. sqrt rounds exactly on every host; hypot need
+    // not, and the stretch decides how many points the flattened clip has.
+    const double first_column = std::sqrt(sx * sx + ky * ky);
+    const double second_column = std::sqrt(kx * kx + sy * sy);
+    const double stretch = std::max(first_column, second_column);
     if (!(stretch > 0.0) || !std::isfinite(stretch)) return false;
     const double tolerance = clip_mask_device_tolerance / stretch;
     if (clip_path_points.size() < initial_clip_path_points) clip_path_points.resize(initial_clip_path_points);

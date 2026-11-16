@@ -6,6 +6,7 @@
 #include "gui_forms/typography/font_families/font_families.hpp"
 
 #include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 
@@ -288,21 +289,11 @@ constexpr std::string_view path_function_name = "path";
 // The linear map rotate(degrees) names: clockwise on screen (y down), as
 // CSS turns. A multiple of 90 degrees is exact.
 [[nodiscard]] MaterialTransform rotation_transform(double degrees) noexcept {
-    double cosine = 0.0;
-    double sine = 0.0;
-    const double quarter_turns = degrees / 90.0;
-    if (quarter_turns == std::floor(quarter_turns) && std::abs(quarter_turns) < 1.0e9) {
-        const std::int64_t whole = static_cast<std::int64_t>(quarter_turns);
-        const std::int64_t quarter = ((whole % 4) + 4) % 4;
-        const std::array<double, 4> cosines{1.0, 0.0, -1.0, 0.0};
-        const std::array<double, 4> sines{0.0, 1.0, 0.0, -1.0};
-        cosine = cosines[static_cast<std::size_t>(quarter)];
-        sine = sines[static_cast<std::size_t>(quarter)];
-    } else {
-        const double radians = degrees * 0.017453292519943295769;
-        cosine = std::cos(radians);
-        sine = std::sin(radians);
-    }
+    // The engine's deterministic sine and cosine: the same bits on every
+    // host, and exact at every quarter turn.
+    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    const double cosine = turn.cosine;
+    const double sine = turn.sine;
     MaterialTransform turned{};
     turned.xx = cosine;
     turned.yx = sine;
@@ -490,9 +481,11 @@ SvgPathProblem SvgPathReader::push_arc(Point radii, double rotation_degrees, boo
         const std::array<Point, 1> line{end};
         return push(MaterialClipVerb::line, line, clip);
     }
-    const double rotation = rotation_degrees * 0.017453292519943295769;
-    const double cosine = std::cos(rotation);
-    const double sine = std::sin(rotation);
+    // The engine's deterministic trigonometry throughout, so the control
+    // points have the same bits on every host.
+    const EngineSineCosine rotation = engine_sine_cosine_degrees(rotation_degrees);
+    const double cosine = rotation.cosine;
+    const double sine = rotation.sine;
     // The endpoints' half difference in the ellipse's own axes (SVG F.6.5).
     const double half_x = (begin.x - end.x) * 0.5;
     const double half_y = (begin.y - end.y) * 0.5;
@@ -521,21 +514,23 @@ SvgPathProblem SvgPathReader::push_arc(Point radii, double rotation_degrees, boo
     const double start_y = (turned_y - centre_turned_y) / radius_y;
     const double end_x = (-turned_x - centre_turned_x) / radius_x;
     const double end_y = (-turned_y - centre_turned_y) / radius_y;
-    const double start_angle = std::atan2(start_y, start_x);
-    double sweep_angle = std::atan2(start_x * end_y - start_y * end_x, start_x * end_x + start_y * end_y);
+    const double start_angle = engine_arctangent2(start_y, start_x);
+    double sweep_angle = engine_arctangent2(start_x * end_y - start_y * end_x, start_x * end_x + start_y * end_y);
     if (!sweep && sweep_angle > 0.0) sweep_angle = sweep_angle - 2.0 * 3.14159265358979323846;
     if (sweep && sweep_angle < 0.0) sweep_angle = sweep_angle + 2.0 * 3.14159265358979323846;
     const double pieces_wanted = std::ceil(std::abs(sweep_angle) / arc_piece_limit - arc_piece_slack);
     const std::size_t pieces = static_cast<std::size_t>(std::clamp(pieces_wanted, 1.0, 4.0));
     const double piece = sweep_angle / static_cast<double>(pieces);
-    const double handle = 4.0 / 3.0 * std::tan(piece * 0.25);
+    const double handle = 4.0 / 3.0 * engine_tangent(piece * 0.25);
     for (std::size_t index = 0U; index < pieces; ++index) {
         const double from = start_angle + piece * static_cast<double>(index);
         const double to = from + piece;
-        const double from_cos = std::cos(from);
-        const double from_sin = std::sin(from);
-        const double to_cos = std::cos(to);
-        const double to_sin = std::sin(to);
+        const EngineSineCosine from_turn = engine_sine_cosine(from);
+        const EngineSineCosine to_turn = engine_sine_cosine(to);
+        const double from_cos = from_turn.cosine;
+        const double from_sin = from_turn.sine;
+        const double to_cos = to_turn.cosine;
+        const double to_sin = to_turn.sine;
         // On the unit circle, then onto the ellipse: scaled, turned, moved.
         const std::array<Point, 3> unit{Point{from_cos - handle * from_sin, from_sin + handle * from_cos},
                                         Point{to_cos + handle * to_sin, to_sin - handle * to_cos},

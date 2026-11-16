@@ -1,5 +1,6 @@
 #include "gui_forms/drawing/drawing_replay/drawing_replay.hpp"
 
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 
 #include <algorithm>
@@ -119,8 +120,6 @@ enum class ReplayClass : std::uint8_t { state, drawable, unsupported };
     style.dash_count = preset_count;
     return true;
 }
-
-constexpr double degrees_to_radians = 0.017453292519943295769;
 
 // A brush's gradient stops, when its colours and positions make valid
 // stops (valid_gradient_stops); otherwise none, and the count is 0.
@@ -533,9 +532,10 @@ struct BrushReplay final {
     if (brush.kind == BrushKind::linear_gradient) {
         // The executor's line: through the bounds' centre at the brush's
         // angle, as long as the bounds' extent along it.
-        const double radians = brush.angle * degrees_to_radians;
-        const double along_x = std::cos(radians);
-        const double along_y = std::sin(radians);
+        // The engine's deterministic sine and cosine, exact at quarter turns.
+        const EngineSineCosine along = engine_sine_cosine_degrees(brush.angle);
+        const double along_x = along.cosine;
+        const double along_y = along.sine;
         const double half_length =
             std::abs(along_x) * brush.bounds.width / 2.0 + std::abs(along_y) * brush.bounds.height / 2.0;
         const Point centre{brush.bounds.x + brush.bounds.width / 2.0, brush.bounds.y + brush.bounds.height / 2.0};
@@ -559,7 +559,10 @@ struct BrushReplay final {
     // farthest boundary point.
     double radius = 0.0;
     for (const gui_drawing::PointF point : brush.points) {
-        radius = std::max(radius, std::hypot(point.x - brush.center.x, point.y - brush.center.y));
+        // sqrt rounds exactly on every host; hypot need not.
+        const double across = point.x - brush.center.x;
+        const double down = point.y - brush.center.y;
+        radius = std::max(radius, std::sqrt(across * across + down * down));
     }
     if (!(radius > 0.0)) {
         painter.fill_rect(area, primary);
@@ -573,9 +576,9 @@ struct BrushReplay final {
 // The point at `degrees` on the ellipse inscribed in `bounds` (clockwise,
 // y down, from +x).
 [[nodiscard]] Point ellipse_point(gui_drawing::RectF bounds, double degrees) noexcept {
-    const double radians = degrees * degrees_to_radians;
-    const Point result{bounds.x + bounds.width * 0.5 + bounds.width * 0.5 * std::cos(radians),
-                       bounds.y + bounds.height * 0.5 + bounds.height * 0.5 * std::sin(radians)};
+    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    const Point result{bounds.x + bounds.width * 0.5 + bounds.width * 0.5 * turn.cosine,
+                       bounds.y + bounds.height * 0.5 + bounds.height * 0.5 * turn.sine};
     return result;
 }
 

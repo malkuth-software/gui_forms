@@ -145,6 +145,63 @@ void test_arctangent() {
     require(std::isnan(engine_arctangent2(std::numeric_limits<double>::quiet_NaN(), 1.0)), "NaN gives NaN");
 }
 
+// The degree form: every quarter turn exact, other angles within 2^-49 of the
+// host's radian functions; and the tangent at the arc handle constant.
+void test_degrees_and_tangent() {
+    struct QuarterTurn final {
+        double degrees{};
+        double sine{};
+        double cosine{};
+    };
+    const QuarterTurn turns[] = {
+        {0.0, 0.0, 1.0},    {90.0, 1.0, 0.0},   {180.0, 0.0, -1.0},  {270.0, -1.0, 0.0},
+        {360.0, 0.0, 1.0},  {-90.0, -1.0, 0.0}, {-180.0, 0.0, -1.0}, {-270.0, 1.0, 0.0},
+        {450.0, 1.0, 0.0},  {-0.0, 0.0, 1.0},   {7290.0, 1.0, 0.0},  {9.0e14, 0.0, 1.0},
+    };
+    for (const QuarterTurn& turn : turns) {
+        const EngineSineCosine observed = engine_sine_cosine_degrees(turn.degrees);
+        std::uint64_t sine_bits = 0U;
+        std::uint64_t expected_sine_bits = 0U;
+        std::memcpy(&sine_bits, &observed.sine, sizeof sine_bits);
+        std::memcpy(&expected_sine_bits, &turn.sine, sizeof expected_sine_bits);
+        std::uint64_t cosine_bits = 0U;
+        std::uint64_t expected_cosine_bits = 0U;
+        std::memcpy(&cosine_bits, &observed.cosine, sizeof cosine_bits);
+        std::memcpy(&expected_cosine_bits, &turn.cosine, sizeof expected_cosine_bits);
+        require(sine_bits == expected_sine_bits && cosine_bits == expected_cosine_bits,
+                "a quarter turn in degrees is exact, zeros positive");
+    }
+    const double bound = 2e-15;
+    for (int step = -40000; step <= 40000; ++step) {
+        const double degrees = static_cast<double>(step) * 0.0917;
+        const double radians = degrees * 0.017453292519943295769;
+        const EngineSineCosine observed = engine_sine_cosine_degrees(degrees);
+        require(std::fabs(observed.sine - std::sin(radians)) <= bound &&
+                    std::fabs(observed.cosine - std::cos(radians)) <= bound,
+                "the degree form within its bound on [-3668, 3668]");
+    }
+    const EngineSineCosine half = engine_sine_cosine_degrees(45.0);
+    require(std::fabs(half.sine - std::sqrt(0.5)) <= bound && std::fabs(half.cosine - std::sqrt(0.5)) <= bound,
+            "45 degrees is sqrt(1/2) within the bound");
+    const EngineSineCosine infinite = engine_sine_cosine_degrees(std::numeric_limits<double>::infinity());
+    const EngineSineCosine missing = engine_sine_cosine_degrees(std::numeric_limits<double>::quiet_NaN());
+    require(std::isnan(infinite.sine) && std::isnan(infinite.cosine) && std::isnan(missing.sine),
+            "infinities and NaN give NaN in degrees");
+
+    require(engine_tangent(0.0) == 0.0, "the tangent of 0 is exact");
+    // tan(π/8) = sqrt(2) − 1, and a quarter-turn arc piece's handle is
+    // 4/3 tan(π/8) = 0.55228474983079339840 of the radius.
+    const double eighth_turn = 0.39269908169872415481;
+    const double tangent = engine_tangent(eighth_turn);
+    require(std::fabs(tangent - (std::sqrt(2.0) - 1.0)) <= 4e-15, "tan(pi/8) is sqrt(2) - 1 within 2^-48");
+    const double handle = 4.0 / 3.0 * tangent;
+    require(std::fabs(handle - 0.55228474983079339840) <= 6e-15, "the quarter arc handle constant within its bound");
+    for (int step = -1000; step <= 1000; ++step) {
+        const double x = static_cast<double>(step) * 0.000785398;
+        require(std::fabs(engine_tangent(x) - std::tan(x)) <= 4e-15, "the tangent within its bound on [-pi/4, pi/4]");
+    }
+}
+
 // The bits of fixed tables, the same on every host. The expected values were
 // produced on Windows x64 and are checked by every CI platform.
 constexpr std::uint64_t expected_table_hash = 0xa2d6d4ebca4d01adULL;
@@ -191,6 +248,7 @@ int main() {
     test_power();
     test_sine_cosine();
     test_arctangent();
+    test_degrees_and_tangent();
     test_identity();
     std::cout << "engine math tests passed\n";
     return 0;

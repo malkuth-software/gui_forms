@@ -19,7 +19,10 @@ namespace gui_forms {
 // - engine_power: relative error at most 2^-49 · (1 + |exponent · ln base|)
 //   for results in the same range;
 // - engine_sine_cosine: absolute error at most 2^-50 for |x| ≤ 2^20;
-// - engine_arctangent2: absolute error at most 2^-48.
+// - engine_arctangent2: absolute error at most 2^-48;
+// - engine_sine_cosine_degrees: absolute error at most 2^-49, and exact at
+//   every multiple of 90 degrees;
+// - engine_tangent: absolute error at most 2^-48 for |x| ≤ π/4.
 // The tests check them against the host library with a margin.
 
 // Natural logarithm of `x`. Requires x > 0 and finite; returns NaN for
@@ -54,5 +57,29 @@ struct GUI_FORMS_API EngineSineCosine final {
 // reduced twice (by π/4 and by the half-angle formula) to at most 0.2,
 // where a 13-term series converges past 2^-60.
 [[nodiscard]] GUI_FORMS_API double engine_arctangent2(double y, double x) noexcept;
+
+// The sine and cosine of `degrees`, for every finite angle (the theme
+// language's rotate() and arc rotations, drawing replay's gradient
+// directions). Exact at every multiple of 90 degrees: 0, 90, 180 and 270
+// give (0, 1), (1, 0), (0, −1) and (−1, 0) with no rounding. The angle is
+// reduced exactly (fmod by 360, then the nearest multiple of 90, both
+// without rounding), the remainder of at most 45 degrees is turned into
+// radians (one rounding) and passed to engine_sine_cosine, and the quarter
+// turns are applied by swapping and negating. Absolute error at most
+// 2^-49. Infinities and NaN give NaN in both.
+//
+// This and the radian functions above are the only trigonometry the raster
+// and theme paths call, so a later move to STXlib's certified kernels
+// (stxlib/math.hpp's sincos and atan2, once gui_forms_core links
+// stxlib::algorithms at a pin that carries them) changes their bodies only;
+// STXlib's glyph seat needs the same exact quarter turns for rotated text.
+[[nodiscard]] GUI_FORMS_API EngineSineCosine engine_sine_cosine_degrees(double degrees) noexcept;
+
+// The tangent of `x` radians, as engine_sine_cosine's sine over its cosine
+// (the theme language's arc handles, 4/3 tan(piece/4) with |piece/4| at most
+// π/8). For |x| ≤ π/4 the cosine is at least 0.7071, so the absolute error
+// is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives
+// 0. Outside engine_sine_cosine's range, infinities and NaN give NaN.
+[[nodiscard]] GUI_FORMS_API double engine_tangent(double x) noexcept;
 
 } // namespace gui_forms

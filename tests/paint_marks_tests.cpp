@@ -1129,6 +1129,14 @@ void test_transform_group() {
     require(turn.xx == 0.0 && turn.xy == 1.0 && turn.yx == -1.0 && turn.yy == 0.0 && turn.dx == 5.0 &&
                 turn.dy == 15.0 && transform_paint_point(turn, Point{20.0, 5.0}) == (Point{10.0, -5.0}),
             "a quarter turn is exact and anticlockwise as seen");
+    // The other quarter turns are exact too (the engine's degree form).
+    const PaintTransform none = paint_rotation_about(Point{10.0, 5.0}, 0.0);
+    const PaintTransform half = paint_rotation_about(Point{10.0, 5.0}, 180.0);
+    const PaintTransform three = paint_rotation_about(Point{10.0, 5.0}, 270.0);
+    require(none == PaintTransform{} && half.xx == -1.0 && half.xy == 0.0 && half.yx == 0.0 && half.yy == -1.0 &&
+                half.dx == 20.0 && half.dy == 10.0 && three.xx == 0.0 && three.xy == -1.0 && three.yx == 1.0 &&
+                three.yy == 0.0 && three.dx == 15.0 && three.dy == -5.0,
+            "0, 180 and 270 degrees are exact");
     require(transformed_paint_bounds(turn, Rect{0.0, 0.0, 20.0, 10.0}) == (Rect{5.0, -5.0, 10.0, 20.0}),
             "the damage of a turned group bounds its four corners");
     PaintTransform flat{};

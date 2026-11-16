@@ -1,6 +1,7 @@
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <limits>
 
 // Identical bits on every host need the same operations in the same order.
@@ -34,6 +35,8 @@ constexpr double half_pi_rest = 2.02226624879595063154e-21;
 constexpr double inverse_half_pi = 6.36619772367581382433e-01;
 // The sine and cosine arguments the reduction serves.
 constexpr double largest_angle = 1048576.0;
+// One degree in radians, π/180 rounded once.
+constexpr double degree_in_radians = 1.74532925199432957692e-02;
 
 // ln m for m in [sqrt(1/2), sqrt(2)), as 2 atanh(s) with s = (m − 1)/(m + 1)
 // and |s| ≤ 0.1716. The series 2 s (1 + s²/3 + s⁴/5 + ... + s¹⁸/19) leaves out
@@ -246,6 +249,54 @@ EngineSineCosine engine_sine_cosine(double x) noexcept {
         result.cosine = sine;
     }
     return result;
+}
+
+EngineSineCosine engine_sine_cosine_degrees(double degrees) noexcept {
+    EngineSineCosine result{};
+    if (!std::isfinite(degrees)) {
+        result.sine = std::numeric_limits<double>::quiet_NaN();
+        result.cosine = result.sine;
+        return result;
+    }
+    // fmod is exact, so `turn` is the angle within (−360, 360) with no
+    // rounding. n · 90 is a small integer, and `rest`, of magnitude at most
+    // 45, is a multiple of the unit in the last place of `turn`, so the
+    // subtraction is exact too.
+    const double turn = std::fmod(degrees, 360.0);
+    const double n = std::floor(turn / 90.0 + 0.5);
+    const double rest = turn - n * 90.0;
+    EngineSineCosine base{};
+    base.sine = 0.0;
+    base.cosine = 1.0;
+    if (rest != 0.0) base = engine_sine_cosine(rest * degree_in_radians);
+    // The quadrant: n modulo 4 (n is −4 to 4), as 0 to 3.
+    const std::int64_t whole = static_cast<std::int64_t>(n);
+    const std::int64_t quadrant = ((whole % 4) + 4) % 4;
+    if (quadrant == 0) {
+        result.sine = base.sine;
+        result.cosine = base.cosine;
+    } else if (quadrant == 1) {
+        result.sine = base.cosine;
+        result.cosine = -base.sine;
+    } else if (quadrant == 2) {
+        result.sine = -base.sine;
+        result.cosine = -base.cosine;
+    } else {
+        result.sine = -base.cosine;
+        result.cosine = base.sine;
+    }
+    // A zero of either sign is written as +0, so a quarter turn's matrix has
+    // the same bits whichever way round it was reached.
+    if (result.sine == 0.0) result.sine = 0.0;
+    if (result.cosine == 0.0) result.cosine = 0.0;
+    return result;
+}
+
+double engine_tangent(double x) noexcept {
+    if (x == 0.0) return x;
+    const EngineSineCosine turned = engine_sine_cosine(x);
+    const double tangent = turned.sine / turned.cosine;
+    return tangent;
 }
 
 } // namespace gui_forms

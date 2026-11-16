@@ -784,8 +784,13 @@ void test_shape_lowering() {
         std::string_view sheet;
         MaterialTransform transform;
     };
-    const std::array<Turned, 5> turned{{
+    // Every quarter turn is exact (the engine's deterministic degree form).
+    const std::array<Turned, 9> turned{{
+        {"#pad::part(face) { transform: rotate(0deg) }", MaterialTransform{1.0, 0.0, 0.0, 1.0}},
         {"#pad::part(face) { transform: rotate(90deg) }", MaterialTransform{0.0, 1.0, -1.0, 0.0}},
+        {"#pad::part(face) { transform: rotate(180deg) }", MaterialTransform{-1.0, 0.0, 0.0, -1.0}},
+        {"#pad::part(face) { transform: rotate(270deg) }", MaterialTransform{0.0, -1.0, 1.0, 0.0}},
+        {"#pad::part(face) { transform: rotate(-450deg) }", MaterialTransform{0.0, -1.0, 1.0, 0.0}},
         {"#pad::part(face) { transform: scale(2, 50%) }", MaterialTransform{2.0, 0.0, 0.0, 0.5}},
         {"#pad::part(face) { transform: scale(1.5) }", MaterialTransform{1.5, 0.0, 0.0, 1.5}},
         // The last function applies first: scale, then the quarter turn.
@@ -889,8 +894,9 @@ void test_shape_lowering() {
         require(std::abs(middle.x_units - 10.0) < 1e-9 && std::abs(middle.y_units + 10.0) < 1e-9,
                 "the pieces meet at the top of the half turn");
         require(last.x_units == 20.0 && last.y_units == 0.0, "the last piece ends exactly at the arc's end");
-        // The quarter piece's handle: 4/3 tan(22.5 degrees) of the radius.
-        const double handle = 4.0 / 3.0 * std::tan(0.39269908169872415481) * 10.0;
+        // The quarter piece's handle: 4/3 tan(22.5 degrees) = 4/3 (sqrt(2) - 1)
+        // of the radius, the constant 0.55228474983079339840.
+        const double handle = 0.55228474983079339840 * 10.0;
         require(std::abs(clip.points[1].y_units + handle) < 1e-9 && std::abs(clip.points[1].x_units) < 1e-9,
                 "the first handle leaves the start upward by the stated length");
     }

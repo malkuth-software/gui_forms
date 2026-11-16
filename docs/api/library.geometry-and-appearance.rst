@@ -9626,6 +9626,14 @@ Functions, constants and aliases
 
    The angle of the point (x, y) from the positive x axis, in radians in [−π, π], as std::atan2(y, x) (E9.6's conic gradient). Exact cases: (0, 0) gives 0, and a point on an axis gives 0, ±π/2 or π. NaN in either argument gives NaN. The ratio of the smaller to the larger magnitude is reduced twice (by π/4 and by the half-angle formula) to at most 0.2, where a 13-term series converges past 2^-60.
 
+.. cpp:function:: EngineSineCosine engine_sine_cosine_degrees(double degrees) noexcept
+
+   The sine and cosine of ``degrees``, for every finite angle (the theme language's rotate() and arc rotations, drawing replay's gradient directions). Exact at every multiple of 90 degrees: 0, 90, 180 and 270 give (0, 1), (1, 0), (0, −1) and (−1, 0) with no rounding. The angle is reduced exactly (fmod by 360, then the nearest multiple of 90, both without rounding), the remainder of at most 45 degrees is turned into radians (one rounding) and passed to engine_sine_cosine, and the quarter turns are applied by swapping and negating. Absolute error at most 2^-49. Infinities and NaN give NaN in both. This and the radian functions above are the only trigonometry the raster and theme paths call, so a later move to STXlib's certified kernels (stxlib/math.hpp's sincos and atan2, once gui_forms_core links stxlib::algorithms at a pin that carries them) changes their bodies only; STXlib's glyph seat needs the same exact quarter turns for rotated text.
+
+.. cpp:function:: double engine_tangent(double x) noexcept
+
+   The tangent of ``x`` radians, as engine_sine_cosine's sine over its cosine (the theme language's arc handles, 4/3 tan(piece/4) with |piece/4| at most π/8). For |x| ≤ π/4 the cosine is at least 0.7071, so the absolute error is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives 0. Outside engine_sine_cosine's range, infinities and NaN give NaN.
+
 .. cpp:namespace:: gui_forms::engine_light
 
 ``#include <gui_forms/engine/light_planes/light_planes.hpp>``

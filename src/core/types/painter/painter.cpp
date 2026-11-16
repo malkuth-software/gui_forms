@@ -1,4 +1,5 @@
 #include "gui_forms/types.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/prepared_text/types/prepared_text_types.hpp"
 #include "../../theme/theme/material_layers.hpp"
@@ -507,22 +508,12 @@ Rect transformed_paint_bounds(const PaintTransform& transform, const Rect rect) 
 
 PaintTransform paint_rotation_about(const Point centre, const double degrees) noexcept {
     if (!std::isfinite(degrees) || !std::isfinite(centre.x) || !std::isfinite(centre.y)) return PaintTransform{};
-    // Quarter turns are exact, so a turned rectangle keeps whole-pixel edges.
-    const double turns = degrees / 90.0;
-    double cosine = 0.0;
-    double sine = 0.0;
-    if (turns == std::floor(turns) && std::fabs(turns) < 1.0e9) {
-        const long long quarter = static_cast<long long>(turns);
-        const long long phase = ((quarter % 4LL) + 4LL) % 4LL;
-        const std::array<double, 4> cosines{{1.0, 0.0, -1.0, 0.0}};
-        const std::array<double, 4> sines{{0.0, 1.0, 0.0, -1.0}};
-        cosine = cosines[static_cast<std::size_t>(phase)];
-        sine = sines[static_cast<std::size_t>(phase)];
-    } else {
-        const double radians = degrees * 3.14159265358979323846 / 180.0;
-        cosine = std::cos(radians);
-        sine = std::sin(radians);
-    }
+    // The engine's deterministic sine and cosine: the same bits on every
+    // host, and quarter turns exact, so a turned rectangle keeps whole-pixel
+    // edges.
+    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    const double cosine = turn.cosine;
+    const double sine = turn.sine;
     PaintTransform rotation{};
     rotation.xx = cosine;
     rotation.xy = sine;
