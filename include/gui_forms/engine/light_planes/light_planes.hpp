@@ -151,7 +151,8 @@ struct GUI_FORMS_API LightPlaneRect final {
 // is filtered before it is toned; a rectangle the bake's own size reads
 // each plane pixel exactly. Returns the pixels written; none when the two
 // bakes' shapes or lamp counts differ, `drives` holds fewer than the lamp
-// count, or `rect` is empty.
+// count, `rect` is empty or its far edge overflows, or `destination`'s
+// shape does not fit its buffer (validate_raster_view).
 GUI_FORMS_API std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& down,
                                                  std::span<const LampDrive> drives, const LightComposite& settings,
                                                  LightPlaneRect rect, const PartRasterView& destination) noexcept;
