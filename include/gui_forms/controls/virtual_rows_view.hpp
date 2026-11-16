@@ -413,6 +413,9 @@ public:
         if (rows.has_value()) owned.set(*rows);
         set_measured_row_budget(owned);
     }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::size_t>::of(value).
+    void set_measured_row_budget(std::size_t rows) = delete;
     [[nodiscard]] stxlib::Optional<std::size_t> measured_row_budget() const noexcept { return measured_budget_; }
 
     // The height unmeasured rows take. Changing it forgets every measured
@@ -489,6 +492,9 @@ public:
         if (row.has_value()) owned.set(*row);
         set_selected_row(owned);
     }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<VirtualRowIndex>::of(value).
+    void set_selected_row(VirtualRowIndex row) = delete;
     // The selected rows, sorted, disjoint and non-adjacent; valid until the
     // next change of the rows or the selection.
     [[nodiscard]] std::span<const VirtualRowRange> selected_ranges() const& noexcept { return ranges_; }
@@ -543,6 +549,9 @@ public:
         if (column.has_value()) owned.set(*column);
         set_sort(owned, direction);
     }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::size_t>::of(value).
+    void set_sort(std::size_t column, VirtualRowsSort direction) = delete;
     [[nodiscard]] stxlib::Optional<std::size_t> sort_column() const noexcept { return sort_column_; }
     [[nodiscard]] VirtualRowsSort sort_direction() const noexcept { return sort_direction_; }
     // The header strip in local coordinates; empty without columns or

@@ -43,6 +43,30 @@
 namespace {
 using namespace gui_forms;
 
+// D15 Q3: a setter keeps its deprecated std::optional form for one stage;
+// a plain value or {} must not reach it silently. Each plain call below is
+// refused (a deleted overload or an ambiguity), and the stxlib form is
+// accepted.
+template <typename View>
+concept takes_plain_selected_row = requires(View& view) { view.set_selected_row(VirtualRowIndex{1U}); };
+template <typename View>
+concept takes_empty_selected_row = requires(View& view) { view.set_selected_row({}); };
+template <typename View>
+concept takes_plain_sort = requires(View& view) { view.set_sort(std::size_t{1U}, VirtualRowsSort::ascending); };
+template <typename View>
+concept takes_empty_sort = requires(View& view) { view.set_sort({}, VirtualRowsSort::ascending); };
+template <typename View>
+concept takes_plain_budget = requires(View& view) { view.set_measured_row_budget(std::size_t{10U}); };
+template <typename View>
+concept takes_optional_row = requires(View& view) {
+    view.set_selected_row(stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{1U}));
+    view.set_sort(stxlib::Optional<std::size_t>::none(), VirtualRowsSort::none);
+    view.set_measured_row_budget(stxlib::Optional<std::size_t>::of(10U));
+};
+static_assert(!takes_plain_selected_row<VirtualRowsView> && !takes_empty_selected_row<VirtualRowsView>);
+static_assert(!takes_plain_sort<VirtualRowsView> && !takes_empty_sort<VirtualRowsView>);
+static_assert(!takes_plain_budget<VirtualRowsView> && takes_optional_row<VirtualRowsView>);
+
 void require(bool condition, const char* message) {
     if (condition) return;
     std::cerr << message << '\n';

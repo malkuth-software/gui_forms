@@ -300,6 +300,9 @@ public:
         if (index.has_value()) owned.set(*index);
         set_focused_index(owned);
     }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::size_t>::of(value).
+    void set_focused_index(std::size_t index) = delete;
 
     // The first item laid out in the visible area.
     [[nodiscard]] std::size_t top_index() const;
@@ -321,6 +324,9 @@ public:
         if (column.has_value()) owned.set(*column);
         set_sort_indicator(owned, order);
     }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::size_t>::of(value).
+    void set_sort_indicator(std::size_t column, ListViewSortOrder order) = delete;
     // A helper the application may call from column_click: stable-sorts an
     // ordinary view's items by one column's text (ASCII case folded, then
     // byte order) and shows the sort glyph. The selection and focus follow

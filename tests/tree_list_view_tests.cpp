@@ -33,6 +33,19 @@
 namespace {
 using namespace gui_forms;
 
+// D15 Q3: a setter keeps its deprecated std::optional form for one stage;
+// a plain value or {} must not reach it silently. Each plain call below is
+// refused (a deleted overload or an ambiguity), and the stxlib form is
+// accepted.
+template <typename View>
+concept takes_plain_sort = requires(View& view) { view.set_sort(std::size_t{1U}, TreeListSortOrder::ascending); };
+template <typename View>
+concept takes_empty_sort = requires(View& view) { view.set_sort({}, TreeListSortOrder::ascending); };
+template <typename View>
+concept takes_optional_sort =
+    requires(View& view) { view.set_sort(stxlib::Optional<std::size_t>::of(1U), TreeListSortOrder::ascending); };
+static_assert(!takes_plain_sort<TreeListView> && !takes_empty_sort<TreeListView> && takes_optional_sort<TreeListView>);
+
 void require(bool condition, const char* message) {
     if (condition) return;
     std::cerr << message << '\n';

@@ -78,6 +78,9 @@ public:
         if (id.has_value()) owned.set(*id);
         select_token(owned);
     }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<TokenId>::of(value).
+    void select_token(TokenId id) = delete;
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
     // Focus on the field goes to its edit part (null without one).
     [[nodiscard]] Ptr focus_target() const override { return editor_; }

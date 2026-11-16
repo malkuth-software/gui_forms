@@ -31,6 +31,18 @@
 namespace {
 using namespace gui_forms;
 
+// D15 Q3: a setter keeps its deprecated std::optional form for one stage;
+// a plain value or {} must not reach it silently. Each plain call below is
+// refused (a deleted overload or an ambiguity), and the stxlib form is
+// accepted.
+template <typename Box>
+concept takes_plain_token = requires(Box& box) { box.select_token(TokenId{1U}); };
+template <typename Box>
+concept takes_empty_token = requires(Box& box) { box.select_token({}); };
+template <typename Box>
+concept takes_optional_token = requires(Box& box) { box.select_token(stxlib::Optional<TokenId>::none()); };
+static_assert(!takes_plain_token<TokenBox> && !takes_empty_token<TokenBox> && takes_optional_token<TokenBox>);
+
 void require(bool condition, const char* message) {
     if (condition) return;
     std::cerr << message << '\n';

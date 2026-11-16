@@ -42,6 +42,25 @@
 namespace {
 using namespace gui_forms;
 
+// D15 Q3: a setter keeps its deprecated std::optional form for one stage;
+// a plain value or {} must not reach it silently. Each plain call below is
+// refused (a deleted overload or an ambiguity), and the stxlib form is
+// accepted.
+template <typename View>
+concept takes_plain_focus = requires(View& view) { view.set_focused_index(std::size_t{1U}); };
+template <typename View>
+concept takes_empty_focus = requires(View& view) { view.set_focused_index({}); };
+template <typename View>
+concept takes_plain_sort_indicator =
+    requires(View& view) { view.set_sort_indicator(std::size_t{1U}, ListViewSortOrder::ascending); };
+template <typename View>
+concept takes_optional_focus = requires(View& view) {
+    view.set_focused_index(stxlib::Optional<std::size_t>::of(1U));
+    view.set_sort_indicator(stxlib::Optional<std::size_t>::none(), ListViewSortOrder::none);
+};
+static_assert(!takes_plain_focus<ListView> && !takes_empty_focus<ListView>);
+static_assert(!takes_plain_sort_indicator<ListView> && takes_optional_focus<ListView>);
+
 void require(bool condition, const char* message) {
     if (condition) return;
     std::cerr << message << '\n';

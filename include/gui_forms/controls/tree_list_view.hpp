@@ -317,6 +317,9 @@ public:
         if (column.has_value()) owned.set(*column);
         set_sort(owned, order);
     }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::size_t>::of(value).
+    void set_sort(std::size_t column, TreeListSortOrder order) = delete;
 
     // The node under a point in window coordinates, if any.
     [[nodiscard]] std::optional<std::string> node_id_at(Point window_point) const;
