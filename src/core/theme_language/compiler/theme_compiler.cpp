@@ -3189,7 +3189,7 @@ bool CompilePass::lower_content_effect(std::uint32_t value_token, bool relative)
     }
     // Checked whole before any is kept.
     for (const MaterialDeclaration& declaration : material_lowering_.declarations) {
-        if (declaration.field == MaterialField::drop_shadow && declaration.drop_shadow) {
+        if (declaration.field == MaterialField::drop_shadow && declaration.drop_shadow.present()) {
             report(DiagnosticCode::value_form_not_admitted, value_token,
                    "drop-shadow() on a control's content effect; write it on ::part(face)");
             return false;
@@ -3857,7 +3857,7 @@ bool CompilePass::rule_selects_controls() const noexcept {
     if (lowered_selectors_.empty()) return false;
     for (const LoweredSelector& lowered : lowered_selectors_) {
         const RuleSelector& selector = lowered.selector;
-        if (!selector.part.empty() || selector.role.has_value()) return false;
+        if (!selector.part.empty() || selector.role.present()) return false;
         if (!selector.item_id.empty() || !selector.item_classes.empty()) return false;
     }
     return true;

@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
-#include <optional>
 #include <stxlib/optional.hpp>
 #include <limits>
 #include <stdexcept>
@@ -20,6 +19,14 @@
 namespace {
 
 using namespace gui_forms;
+
+// Whether the strip's open root item is `index`; absent never matches.
+bool active_is(const MenuStrip& strip, std::size_t index) {
+    const stxlib::Optional<std::size_t> held = strip.active_index();
+    const std::size_t* const active = held.value();
+    const bool result = active != nullptr && *active == index;
+    return result;
+}
 
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
@@ -457,7 +464,7 @@ void test_menu_with_every_command_hidden_stays_closed() {
         {"hidden.edit", "Edit", {{"edit.undo", MenuItemKind::command, hidden}}},
     });
     Window window(root, {320.0, 190.0});
-    require((*strip).open(0U, MenuOpenMode::pointer) && (*strip).active_index() == std::optional<std::size_t>{0U},
+    require((*strip).open(0U, MenuOpenMode::pointer) && active_is(*strip, 0U),
             "a menu with a visible command opens");
     bool threw = false;
     bool opened = true;
@@ -467,7 +474,7 @@ void test_menu_with_every_command_hidden_stays_closed() {
         threw = true;
     }
     require(!threw && !opened, "a menu whose commands are all hidden is refused without throwing");
-    require((*strip).active_index() == std::optional<std::size_t>{0U} && (*strip).is_open(),
+    require(active_is(*strip, 0U) && (*strip).is_open(),
             "the refused switch leaves the open menu as it was");
     (*strip).close();
 
@@ -588,7 +595,7 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
     require(operation_check_48, "Down on the menu bar must open its focused retained menu");
     const bool operation_check_49 = (*strip).is_open();
     require(operation_check_49, "Down on the menu bar must open its focused retained menu");
-    const bool operation_check_50 = (*strip).active_index() == 0U;
+    const bool operation_check_50 = active_is(*strip, 0U);
     require(operation_check_50, "Down on the menu bar must open its focused retained menu");
     const bool operation_check_51 = window.focus_scope_depth() == 1U;
     require(operation_check_51, "Down on the menu bar must open its focused retained menu");
@@ -607,7 +614,7 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
     require(operation_check_52, "Right from a root command must switch top-level menus in one overlay scope");
     const bool operation_check_53 = (*strip).is_open();
     require(operation_check_53, "Right from a root command must switch top-level menus in one overlay scope");
-    const bool operation_check_54 = (*strip).active_index() == 1U;
+    const bool operation_check_54 = active_is(*strip, 1U);
     require(operation_check_54, "Right from a root command must switch top-level menus in one overlay scope");
     const bool operation_check_55 = (*window.focused_control()).stable_id().value() ==
                     "menustrip.menu.overlay.row.view.icons";
@@ -638,21 +645,21 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
     require(operation_check_61, "semantic expansion must open the same retained overlay path");
     const bool operation_check_62 = (*strip).is_open();
     require(operation_check_62, "semantic expansion must open the same retained overlay path");
-    const bool operation_check_63 = (*strip).active_index() == 0U;
+    const bool operation_check_63 = active_is(*strip, 0U);
     require(operation_check_63, "semantic expansion must open the same retained overlay path");
     (*strip).close();
 
     const bool operation_check_64 = window.dispatch_pointer({PointerAction::down, PointerButton::primary,
                                      {70.0, 12.0}});
     require(operation_check_64, "pointer activation must open the top-level item under its geometry");
-    const bool operation_check_65 = (*strip).active_index() == 1U;
+    const bool operation_check_65 = active_is(*strip, 1U);
     require(operation_check_65, "pointer activation must open the top-level item under its geometry");
     require(window.focused_control() == window.find("menustrip.menu.overlay.panel.0"),
             "pointer dispatch must leave menu rows unselected");
     const bool operation_check_66 = window.dispatch_pointer({PointerAction::move, PointerButton::none,
                                      {12.0, 12.0}});
     require(operation_check_66, "moving across the open menu bar must switch menus without click-through");
-    const bool operation_check_67 = (*strip).active_index() == 0U;
+    const bool operation_check_67 = active_is(*strip, 0U);
     require(operation_check_67, "moving across the open menu bar must switch menus without click-through");
     require(window.focused_control() == window.find("menustrip.menu.overlay.panel.0"),
             "pointer switching must leave the new menu rows unselected");
@@ -723,14 +730,14 @@ void test_menu_mnemonics_strip_markers_and_overlay_activation() {
     require(operation_check_68, "a top-level menu mnemonic must focus and open its retained overlay");
     const bool operation_check_69 = (*strip).is_open();
     require(operation_check_69, "a top-level menu mnemonic must focus and open its retained overlay");
-    const bool operation_check_70 = (*strip).active_index() == 0U;
+    const bool operation_check_70 = active_is(*strip, 0U);
     require(operation_check_70, "a top-level menu mnemonic must focus and open its retained overlay");
     (*strip).close();
     const bool operation_check_71 = window.dispatch_key(alt_f);
     require(operation_check_71, "duplicate top-level menu mnemonics must cycle deterministically");
     const bool operation_check_72 = (*strip).is_open();
     require(operation_check_72, "duplicate top-level menu mnemonics must cycle deterministically");
-    const bool operation_check_73 = (*strip).active_index() == 1U;
+    const bool operation_check_73 = active_is(*strip, 1U);
     require(operation_check_73, "duplicate top-level menu mnemonics must cycle deterministically");
     (*strip).close();
 
@@ -961,7 +968,7 @@ void test_menu_font_controls_geometry_paint_and_hit_testing() {
     const bool operation_check_78 = window.dispatch_pointer({PointerAction::down, PointerButton::primary,
                                      {old_width + 2.0, 12.0}});
     require(operation_check_78, "font-expanded menu area must hit the same first item painted there");
-    const bool operation_check_79 = (*strip).active_index() == 0U;
+    const bool operation_check_79 = active_is(*strip, 0U);
     require(operation_check_79, "font-expanded menu area must hit the same first item painted there");
     (*strip).close();
     window.set_text_scale(1.5);

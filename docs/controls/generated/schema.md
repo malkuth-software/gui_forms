@@ -2748,7 +2748,7 @@ Properties beyond every control's: none.
 | Interaction | Payload |
 |---|---|
 | `item_invoked` | `MenuStripInvocation` |
-| `open_changed` | `std::optional<std::size_t>` |
+| `open_changed` | `stxlib::Optional<std::size_t>` |
 
 ## `tool_strip` (ToolStrip, control)
 

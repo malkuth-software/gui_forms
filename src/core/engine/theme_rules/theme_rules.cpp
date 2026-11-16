@@ -2320,7 +2320,7 @@ void CompiledThemeRules::add_content_effect(std::vector<RuleDiagnostic>& diagnos
                                             const ThemeRule& rule, CompiledRule& compiled) {
     if (rule.content_effect.empty()) return;
     const RuleSelector& selector = rule.selector;
-    const bool on_control = selector.part.empty() && !selector.role.has_value() &&
+    const bool on_control = selector.part.empty() && selector.role.absent() &&
                             selector.surface == SurfaceKind::none && selector.item_id.empty() &&
                             selector.item_classes.empty();
     // The fields alone, each once, assembled over an empty material to
