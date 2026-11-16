@@ -1,6 +1,6 @@
 // Stage L, phase L8a: what TextBlock reaches through the bundled text
 // engine (PLAN section 12). The engine's UAX #14 break opportunities
-// (libunibreak 8.0, admitted to the text engine by the owner on 2026-10-26)
+// (stxlib::textlayout, Unicode 18.0.0; libunibreak 8.0 until 2026-11-16)
 // against the white-space estimate; the faces' unrounded design metrics;
 // and the line boxes they give, which are Chromium's (measured against
 // Chrome 155 headless: Carlito 15 px tall at 13 px and 24 px at 19.5 px,
@@ -124,6 +124,17 @@ void test_break_opportunities() {
     const std::vector<LineBreakOpportunity> line_feed = engine_breaks("a\nb");
     require(line_feed[1] == LineBreakOpportunity::mandatory, "a line feed ends its line");
     require(estimated_breaks("a\nb")[1] == LineBreakOpportunity::mandatory, "in the estimate too");
+
+    // Where stxlib::textlayout follows UAX #14 (Unicode 18.0.0) and
+    // libunibreak 8.0 did not (docs/TEXTLAYOUT.md in STXlib): BA x GL is no
+    // break since rule LB12a stopped excepting BA, and "++" (PR PR) may
+    // break, libunibreak's own tailoring kept it whole.
+    const std::vector<LineBreakOpportunity> glued = engine_breaks("a\xE2\x80\x90\xC2\xA0" "b");
+    require(glued[3] == LineBreakOpportunity::prohibited, "no break between U+2010 and a no-break space");
+    const std::vector<LineBreakOpportunity> pluses = engine_breaks("a++b");
+    require(pluses[0] == LineBreakOpportunity::prohibited && pluses[1] == LineBreakOpportunity::allowed &&
+                pluses[2] == LineBreakOpportunity::prohibited,
+            "a break between two prefix signs, none around them");
 
     std::array<LineBreakOpportunity, 2> short_storage{LineBreakOpportunity::allowed, LineBreakOpportunity::allowed};
     require(HarfBuzzFontEngine::fill_line_break_opportunities_utf8("abc", short_storage) ==

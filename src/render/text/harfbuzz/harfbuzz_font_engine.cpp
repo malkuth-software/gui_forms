@@ -13,13 +13,17 @@
 #include <hb-ft.h>
 #include <hb.h>
 #include <SheenBidi/SheenBidi.h>
-#include <linebreak.h>
 #include <stx_text_allocation.h>
+#include <stxlib/result.hpp>
+#include <stxlib/text.hpp>
+#include <stxlib/textlayout.hpp>
+#include <stxlib/view.hpp>
 
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <limits>
 #include <new>
@@ -1724,11 +1728,14 @@ FontVerticalMetrics design_line_metrics(FT_Face face, const FontSpec font) {
     return result;
 }
 
-[[nodiscard]] LineBreakOpportunity line_break_opportunity(unsigned char decision) noexcept {
+// The opportunity a stxlib::textlayout decision names (compared by name:
+// the two enumerations need not share values).
+[[nodiscard]] LineBreakOpportunity line_break_opportunity(const stxlib::textlayout::LineBreak decision) noexcept {
     switch (decision) {
-    case LINEBREAK_MUSTBREAK: return LineBreakOpportunity::mandatory;
-    case LINEBREAK_ALLOWBREAK: return LineBreakOpportunity::allowed;
-    case LINEBREAK_INSIDEACHAR: return LineBreakOpportunity::inside_character;
+    case stxlib::textlayout::LineBreak::mandatory: return LineBreakOpportunity::mandatory;
+    case stxlib::textlayout::LineBreak::allowed: return LineBreakOpportunity::allowed;
+    case stxlib::textlayout::LineBreak::inside_character: return LineBreakOpportunity::inside_character;
+    case stxlib::textlayout::LineBreak::prohibited:
     default: return LineBreakOpportunity::prohibited;
     }
 }
@@ -1737,25 +1744,41 @@ FontVerticalMetrics design_line_metrics(FT_Face face, const FontSpec font) {
 
 TextResolutionStatus HarfBuzzFontEngine::fill_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept {
-    if (opportunities.size() != utf8.size() || !validate_utf8(utf8).valid()) {
-        return TextResolutionStatus::invalid_request;
-    }
+    if (opportunities.size() != utf8.size()) return TextResolutionStatus::invalid_request;
+    const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
+    const stxlib::TextView* const text = validated.value();
+    if (text == nullptr) return TextResolutionStatus::invalid_request;
     if (utf8.empty()) return TextResolutionStatus::exact;
-    // libunibreak writes one char per input byte. The caller's storage is
-    // one byte per entry, so it takes the decisions in place, and each is
-    // then read back as a byte and replaced by its opportunity.
-    static_assert(sizeof(LineBreakOpportunity) == sizeof(char));
-    char* const decisions = reinterpret_cast<char*>(opportunities.data());
-    const utf8_t* const source = reinterpret_cast<const utf8_t*>(utf8.data());
-    set_linebreaks_utf8(source, utf8.size(), "-strict", decisions);
+    // The caller's storage holds the library's decisions during the call
+    // (no allocation): its bytes are reused as LineBreak objects, which
+    // find_line_breaks writes, and each is then read and replaced by the
+    // LineBreakOpportunity it names. Both are one byte, trivially
+    // destructible, so the reuse ends no lifetime that needed ending; the
+    // replacements transparently replace the caller's objects.
+    using Decision = stxlib::textlayout::LineBreak;
+    static_assert(sizeof(Decision) == sizeof(LineBreakOpportunity));
+    static_assert(alignof(Decision) == alignof(LineBreakOpportunity));
+    static_assert(std::is_trivially_destructible_v<Decision>);
+    static_assert(std::is_trivially_destructible_v<LineBreakOpportunity>);
     const std::size_t size = utf8.size();
+    std::byte* const storage = reinterpret_cast<std::byte*>(opportunities.data());
+    Decision* const decisions = ::new (static_cast<void*>(storage)) Decision[size];
+    const stxlib::MutableView<Decision> output(decisions, size);
+    // The whole text is one piece, as libunibreak read it: its end is
+    // mandatory (LB3), so no forcing is needed. CJ is NS, which is what
+    // libunibreak's "-strict" gave.
+    const stxlib::Status found = stxlib::textlayout::find_line_breaks(output, *text);
+    // find_line_breaks fails only when the counts differ, which they do not;
+    // were it to fail, nothing it wrote is read and every entry is
+    // prohibited.
+    const bool written = !found.failed();
     for (std::size_t index = 0U; index < size; ++index) {
-        const unsigned char decision = static_cast<unsigned char>(decisions[index]);
-        opportunities[index] = line_break_opportunity(decision);
+        Decision decision = Decision::prohibited;
+        if (written) decision = decisions[index];
+        const LineBreakOpportunity opportunity = line_break_opportunity(decision);
+        ::new (static_cast<void*>(storage + index)) LineBreakOpportunity(opportunity);
     }
-    // The end of the text ends its last line, whether or not it ends in a
-    // line terminator (libunibreak reports LINEBREAK_INDETERMINATE there).
-    opportunities[size - 1U] = LineBreakOpportunity::mandatory;
+    if (!written) return TextResolutionStatus::invalid_request;
     return TextResolutionStatus::exact;
 }
 

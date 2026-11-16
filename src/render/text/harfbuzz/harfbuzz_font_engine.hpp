@@ -205,8 +205,8 @@ public:
     [[nodiscard]] GlyphSource glyph_source() const noexcept;
     // The calling thread's text stack heap calls (NativeAllocationCounts).
     [[nodiscard]] static NativeAllocationCounts thread_native_allocations() noexcept;
-    // UAX #14 line-break opportunities (libunibreak 8.0, Unicode 17, the
-    // locale-independent "-strict" tailoring), one per input byte, under
+    // UAX #14 line-break opportunities (stxlib::textlayout, Unicode 18.0.0,
+    // no tailoring; CJ is NS), one per input byte, under
     // TextMetricsProvider::fill_line_break_opportunities_utf8's contract.
     // Returns exact, or invalid_request with `opportunities` unchanged. It
     // reads no face and allocates nothing.
