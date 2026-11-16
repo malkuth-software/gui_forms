@@ -133,7 +133,7 @@
     {
       "name": "cursor",
       "capability": "Cursor",
-      "value": "std::optional<CursorKind>",
+      "value": "stxlib::Optional<CursorKind>",
       "initial": null,
       "comment": "The pointer's cursor; empty takes the parent's (Cursor).",
       "getter": null,

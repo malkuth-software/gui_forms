@@ -231,7 +231,7 @@ ContentTextEditor::ContentTextEditor(StableId stable_id, std::string initial_tex
       editing_(std::make_unique<detail::TextEditingEngine>(*editing_host_, initial_text)),
       notices_(std::make_shared<FrameNotices>(*this)) {
     focusable = true;
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
 }
 
 ContentTextEditor::~ContentTextEditor() {

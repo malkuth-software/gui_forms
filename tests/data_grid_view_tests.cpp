@@ -58,6 +58,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -1304,10 +1305,10 @@ void link_cells() {
     const Rect beside{go_link.x + go_link.width + 20.0, go_link.y, 10.0, go_link.height};
     PointerEvent over_link{PointerAction::move, PointerButton::none, centre(*grid, go_link)};
     static_cast<void>(window.dispatch_pointer(over_link));
-    require((*grid).cursor.read() == CursorKind::hand, "the pointer over a link is the hand");
+    require((*grid).cursor.read() == stxlib::Optional<CursorKind>::of(CursorKind::hand), "the pointer over a link is the hand");
     PointerEvent over_beside{PointerAction::move, PointerButton::none, centre(*grid, beside)};
     static_cast<void>(window.dispatch_pointer(over_beside));
-    require((*grid).cursor.read() == CursorKind::arrow, "the pointer beside a link is the arrow");
+    require((*grid).cursor.read() == stxlib::Optional<CursorKind>::of(CursorKind::arrow), "the pointer beside a link is the arrow");
     click(window, centre(*grid, beside));
     require(clicked.empty() && (*grid).current_cell() == cell_at(0U, 1U) && !(*grid).link_visited(row_at(0U), 1U),
             "a click beside the link makes the cell current and follows nothing");

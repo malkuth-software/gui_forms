@@ -33,6 +33,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -1088,13 +1089,13 @@ void test_cursor_inheritance_and_override() {
     Fixture fixture;
     require((*fixture.child).effective_cursor() == CursorKind::arrow,
             "controls must default to the portable arrow cursor");
-    (*fixture.root).cursor = CursorKind::hand;
+    (*fixture.root).cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
     require((*fixture.child).effective_cursor() == CursorKind::hand,
             "unset child cursor must inherit from the retained parent");
-    (*fixture.child).cursor = CursorKind::text;
+    (*fixture.child).cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
     require((*fixture.child).effective_cursor() == CursorKind::text,
             "explicit child cursor must override inherited cursor");
-    (*fixture.child).cursor = std::nullopt;
+    (*fixture.child).cursor = stxlib::Optional<CursorKind>::none();
     require((*fixture.child).effective_cursor() == CursorKind::hand,
             "clearing a cursor override must restore inheritance");
 }

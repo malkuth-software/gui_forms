@@ -1691,7 +1691,7 @@ void TreeListView::handle_pointer(PointerEvent& event) {
         const std::optional<std::size_t> next_row = on_row ? std::optional<std::size_t>(hit.index) : std::nullopt;
         const std::optional<std::size_t> next_column =
             hit.zone == HitZone::header ? std::optional<std::size_t>(hit.index) : std::nullopt;
-        cursor = hit.zone == HitZone::divider ? CursorKind::resize_horizontal : CursorKind::arrow;
+        cursor = stxlib::Optional<CursorKind>::of(hit.zone == HitZone::divider ? CursorKind::resize_horizontal : CursorKind::arrow);
         if (next_row != hot_row_ || next_column != hot_column_) {
             hot_row_ = next_row;
             hot_column_ = next_column;

@@ -83,7 +83,7 @@ Rect centred_square(Point centre, double half) noexcept {
 
 Dial::Dial(StableId stable_id) : RangeControl(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 double Dial::ratio() const noexcept {

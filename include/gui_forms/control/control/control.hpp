@@ -1830,7 +1830,7 @@ private:
     void written(const decltype(causes_validation)& cell);
     void prepare_write(const decltype(tool_tip_text)& cell, std::string& value);
     void written(const decltype(tool_tip_text)& cell);
-    void prepare_write(const decltype(cursor)& cell, std::optional<CursorKind>& value);
+    void prepare_write(const decltype(cursor)& cell, stxlib::Optional<CursorKind>& value);
     void written(const decltype(cursor)& cell);
     void prepare_write(const decltype(back_color)& cell, stxlib::Optional<Color>& value);
     void written(const decltype(back_color)& cell);

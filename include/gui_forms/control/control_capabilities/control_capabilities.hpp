@@ -113,9 +113,9 @@ struct ToolTipTextCapability {
 // The pointer's cursor; empty takes the parent's (Cursor).
 template <typename Declaring>
 struct CursorCapability {
-    PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor{};
+    PropertyCell<stxlib::Optional<CursorKind>, CursorCapability<Declaring>> cursor{};
 
-    static void assign(CursorCapability& capability, std::optional<CursorKind> incoming) {
+    static void assign(CursorCapability& capability, stxlib::Optional<CursorKind> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.cursor), incoming);
         if (!capability.cursor.replace(std::move(incoming))) return;

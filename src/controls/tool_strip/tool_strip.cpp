@@ -120,7 +120,7 @@ void ToolStrip::construct() {
     focusable = true;
     // Items carry their own tooltips in their semantic nodes.
     set_publishes_item_tool_tips(true);
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     overlay_ = std::make_unique<ContextMenu>(std::string(stable_id().value()) + ".menu");
     overlay_invoked_ = (*overlay_).item_invoked().subscribe(

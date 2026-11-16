@@ -385,7 +385,7 @@ BusinessCard::BusinessCard(StableId stable_id, BusinessCardPresentation presenta
     if (!known) throw std::invalid_argument("BusinessCard presentation is outside BusinessCardPresentation");
     focusable = true;
     tab_stop = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
     // Radians, settled to within half a device pixel of arc at the card's
     // edge (half its width from the axis).
     static_cast<void>(turn_.set_extent(hand_card_size.width * 0.5));

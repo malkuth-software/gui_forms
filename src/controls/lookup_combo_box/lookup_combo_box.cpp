@@ -102,7 +102,7 @@ public:
     List(StableId stable_id, LookupComboBox& owner) : Control(std::move(stable_id)), owner_(owner) {
         set_paint_plane(PaintPlane::overlay);
         focusable = false;
-        cursor = CursorKind::arrow;
+        cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     }
 
     [[nodiscard]] Event<std::size_t>& row_activated() noexcept { return row_activated_; }
@@ -218,7 +218,7 @@ private:
 
 LookupComboBox::LookupComboBox(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
 }
 
 LookupComboBox::~LookupComboBox() {

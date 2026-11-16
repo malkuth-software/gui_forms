@@ -91,7 +91,7 @@ struct SearchField::SearchDelayCallback final {
 SearchField::SearchField(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     focusable = false;
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
 }
 
 SearchField::~SearchField() {

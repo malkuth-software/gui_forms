@@ -6,6 +6,7 @@
 #include "gui_forms/types.hpp"
 
 #include <optional>
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -49,15 +50,15 @@ struct PropertyValueTraits<LayoutDirection> {
 };
 
 template <>
-struct PropertyValueTraits<std::optional<CursorKind>> {
+struct PropertyValueTraits<stxlib::Optional<CursorKind>> {
     static PropertyType type();
-    static BindingValue to_binding(std::optional<CursorKind> value);
-    static std::optional<CursorKind> from_binding(const BindingValue& value);
+    static BindingValue to_binding(stxlib::Optional<CursorKind> value);
+    static stxlib::Optional<CursorKind> from_binding(const BindingValue& value);
 };
 
 namespace types {
 
-inline constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind{};
+inline constexpr TypeTag<stxlib::Optional<CursorKind>> optional_cursor_kind{};
 
 } // namespace types
 

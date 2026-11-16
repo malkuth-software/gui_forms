@@ -68,7 +68,7 @@ FlagsValueEditor::FlagsValueEditor(StableId stable_id) : Panel(std::move(stable_
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 FlagsValueEditor::FlagsValueEditor(

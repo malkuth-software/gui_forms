@@ -395,9 +395,8 @@ struct ContextMenu::Impl final {
             set_paint_plane(PaintPlane::overlay);
             enabled = item.kind != MenuItemKind::separator && enabled_item();
             focusable = item.kind != MenuItemKind::separator && enabled_item();
-            cursor = item.kind != MenuItemKind::separator && enabled_item()
-                ? std::optional<CursorKind>{CursorKind::hand}
-                : std::optional<CursorKind>{};
+            cursor = item.kind != MenuItemKind::separator && enabled_item() ? stxlib::Optional<CursorKind>::of(CursorKind::hand)
+                                                                            : stxlib::Optional<CursorKind>::none();
         }
 
         [[nodiscard]] bool enabled_item() const noexcept {

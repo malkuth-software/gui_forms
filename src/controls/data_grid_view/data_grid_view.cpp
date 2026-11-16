@@ -224,7 +224,7 @@ struct DataGridView::SortingScope final {
 
 DataGridView::DataGridView(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     // The error glyphs are the grid's interface, not its data: each shows
     // its error text as a part tooltip (owner decision, 2026-11-02). Cells
@@ -4176,7 +4176,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             hot_column_.reset();
             invalidate(Dirty::paint);
         }
-        if (cursor.read() != CursorKind::arrow) cursor = CursorKind::arrow;
+        if (cursor.read() != stxlib::Optional<CursorKind>::of(CursorKind::arrow)) cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
         return;
     }
     const HitResult hit = hit_test(local);
@@ -4215,7 +4215,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         if (hit.zone == HitZone::column_divider && column_resizable(hit.column)) {
             wanted = CursorKind::resize_horizontal;
         }
-        if (cursor.read() != wanted) cursor = wanted;
+        if (cursor.read() != stxlib::Optional<CursorKind>::of(wanted)) cursor = stxlib::Optional<CursorKind>::of(wanted);
         return;
     }
     if (event.action == PointerAction::wheel) {

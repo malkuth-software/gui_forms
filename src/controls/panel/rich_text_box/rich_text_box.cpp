@@ -118,7 +118,7 @@ RichTextBox::RichTextBox(StableId stable_id, std::string_view markdown)
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     Panel::auto_scroll = true;
     reparse();
@@ -504,7 +504,7 @@ void RichTextBox::handle_pointer(PointerEvent& event) {
         // elsewhere.
         const bool over_link = command && link_at(local_x, local_y).has_value();
         const CursorKind wanted = over_link ? CursorKind::hand : CursorKind::text;
-        if (cursor.read() != wanted) cursor = wanted;
+        if (cursor.read() != stxlib::Optional<CursorKind>::of(wanted)) cursor = stxlib::Optional<CursorKind>::of(wanted);
         return;
     }
     if (event.action == PointerAction::up && event.button == PointerButton::primary && selecting_) {

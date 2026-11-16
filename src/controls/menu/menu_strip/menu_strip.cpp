@@ -38,7 +38,7 @@ MenuStrip::MenuStrip(StableId stable_id)
       overlay_(std::make_unique<ContextMenu>(
           std::string((*this).stable_id().value()) + ".menu")) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     // This owner retains the overlay and subscriptions. Bound handlers borrow
     // this MenuStrip; disposal closes the overlay before owner teardown.

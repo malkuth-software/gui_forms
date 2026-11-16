@@ -111,7 +111,7 @@ constexpr std::array<InteractionDeclaration, 2> color_picker_interactions{{
 
 ColorPicker::ColorPicker(StableId stable_id, Color initial_value) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
     value = initial_value;
     // The write above runs written only when the colour differs from the
     // cell's initial white; place the thumbs either way.

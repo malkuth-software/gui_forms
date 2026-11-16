@@ -222,7 +222,7 @@ ButtonBase::ButtonBase(StableId stable_id, std::string initial_text)
     // As in WinForms, a button raises no DoubleClick: each press it counts
     // as part of a double-click is a Click of its own.
     Control::set_style(ControlStyles::standard_double_click, false);
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 bool ButtonBase::should_serialize_image() const noexcept {

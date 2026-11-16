@@ -54,7 +54,7 @@ RibbonGallery::RibbonGallery(StableId stable_id, RibbonGalleryForm form)
         throw std::invalid_argument("RibbonGallery form is invalid");
     }
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(form_ == RibbonGalleryForm::drop_down ? PaintPlane::overlay : PaintPlane::control);
 }
 

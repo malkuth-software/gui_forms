@@ -269,9 +269,9 @@ void test_inherited_values() {
     (*root).enabled = true;
     require((*leaf).effectively_enabled(), "enabling it again enables the leaf");
 
-    (*middle).cursor = CursorKind::hand;
+    (*middle).cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
     require((*leaf).effective_cursor() == CursorKind::hand, "a cursor is inherited");
-    (*leaf).cursor = CursorKind::text;
+    (*leaf).cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
     require((*leaf).effective_cursor() == CursorKind::text, "a cursor of its own wins");
     (*root).layout_direction = LayoutDirection::right_to_left;
     require((*leaf).effective_layout_direction() == LayoutDirection::right_to_left, "a direction is inherited");

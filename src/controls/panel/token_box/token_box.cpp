@@ -71,7 +71,7 @@ bool admitted_delimiter(char byte) noexcept {
 
 TokenBox::TokenBox(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
 }
 
 TokenBox::~TokenBox() {

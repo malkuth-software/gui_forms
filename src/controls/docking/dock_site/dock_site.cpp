@@ -103,7 +103,7 @@ DockSite::DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floa
       stamp_motion_(*this, drag_gesture::stamp_curve(), 1.0),
       tile_fade_(*this, MotionCurve::timed(tile_fade_duration, MotionEasing::linear), 1.0),
       flyout_slide_(*this, MotionCurve::timed(flyout_slide_duration, MotionEasing::linear), 1.0) {
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     stamp_motion_.set_listener(MotionListener::bind<DockSite, &DockSite::on_drag_motion>(*this));
     tile_fade_.set_listener(MotionListener::bind<DockSite, &DockSite::on_drag_motion>(*this));
@@ -1530,7 +1530,7 @@ void DockSite::set_hot(Hit hit) {
         shape = seams_[hit.index].axis == DockAxis::horizontal ? CursorKind::resize_horizontal
                                                                : CursorKind::resize_vertical;
     }
-    cursor = shape;
+    cursor = stxlib::Optional<CursorKind>::of(shape);
     invalidate(Dirty::paint);
 }
 

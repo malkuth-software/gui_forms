@@ -46,7 +46,7 @@ ComboBox::ComboBox(StableId stable_id) : ListControl(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 BindingValue ComboBox::items_property_value() const {

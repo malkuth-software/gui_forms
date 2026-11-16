@@ -254,7 +254,7 @@ Size Splitter::measure(Size) {
 // and no hot face.
 void Splitter::set_hot_from_pointer(bool inside) {
     const bool hot = inside && enabled.read() && target() != nullptr;
-    if (hot) cursor = horizontal_axis() ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
+    if (hot) cursor = stxlib::Optional<CursorKind>::of(horizontal_axis() ? CursorKind::resize_horizontal : CursorKind::resize_vertical);
     if (hot_ != hot) {
         hot_ = hot;
         invalidate(Dirty::paint);

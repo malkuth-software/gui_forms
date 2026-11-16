@@ -80,7 +80,7 @@ constexpr CustomStateIndex modified_state{1U};
 
 PageStrip::PageStrip(StableId stable_id, PageSet& pages) : Control(std::move(stable_id)), pages_(&pages) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     pages_changed_token_ = (*pages_).pages_changed().subscribe(
         *this, Delegate<const PageSetChange&>::bind<PageStrip, &PageStrip::on_pages_changed>(*this));

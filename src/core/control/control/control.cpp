@@ -386,13 +386,14 @@ BindingValue PropertyValueTraits<LayoutDirection>::to_binding(LayoutDirection va
     return general;
 }
 
-PropertyType PropertyValueTraits<std::optional<CursorKind>>::type() {
+PropertyType PropertyValueTraits<stxlib::Optional<CursorKind>>::type() {
     return PropertyType{BindingValueKind::enumeration, false, cursor_kind_property_enum()};
 }
 
-BindingValue PropertyValueTraits<std::optional<CursorKind>>::to_binding(std::optional<CursorKind> value) {
+BindingValue PropertyValueTraits<stxlib::Optional<CursorKind>>::to_binding(stxlib::Optional<CursorKind> value) {
     std::int64_t encoded = 0;
-    if (value) encoded = static_cast<std::int64_t>(*value) + 1;
+    const CursorKind* kind = value.value();
+    if (kind != nullptr) encoded = static_cast<std::int64_t>(*kind) + 1;
     const BindingValue general = current_enum_property_value_impl(cursor_kind_property_enum(), encoded);
     return general;
 }
@@ -417,17 +418,17 @@ LayoutDirection PropertyValueTraits<LayoutDirection>::from_binding(const Binding
     return static_cast<LayoutDirection>(choice.value);
 }
 
-std::optional<CursorKind> PropertyValueTraits<std::optional<CursorKind>>::from_binding(const BindingValue& value) {
+stxlib::Optional<CursorKind> PropertyValueTraits<stxlib::Optional<CursorKind>>::from_binding(const BindingValue& value) {
     const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
-    if (choice.value == 0) return std::nullopt;
-    return static_cast<CursorKind>(choice.value - 1);
+    if (choice.value == 0) return stxlib::Optional<CursorKind>::none();
+    const stxlib::Optional<CursorKind> kind = stxlib::Optional<CursorKind>::of(static_cast<CursorKind>(choice.value - 1));
+    return kind;
 }
 
 BindingValue Control::cursor_property_value() const {
     std::int64_t value = 0;
-    if (cursor.read()) {
-        value = static_cast<std::int64_t>(*cursor.read()) + 1;
-    }
+    const CursorKind* own = cursor.read().value();
+    if (own != nullptr) value = static_cast<std::int64_t>(*own) + 1;
     const BindingValue current = current_enum_property_value(cursor_kind_property_enum(), value);
     return current;
 }
@@ -449,10 +450,10 @@ void Control::set_right_to_left_property_value(const BindingValue& value) {
 void Control::set_cursor_property_value(const BindingValue& value) {
     const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
     if (choice.value == 0) {
-        cursor = std::nullopt;
+        cursor = stxlib::Optional<CursorKind>::none();
         return;
     }
-    cursor = static_cast<CursorKind>(choice.value - 1);
+    cursor = stxlib::Optional<CursorKind>::of(static_cast<CursorKind>(choice.value - 1));
 }
 
 BindingValue Control::classes_property_value() const {
@@ -3327,7 +3328,7 @@ void Control::written(const decltype(tool_tip_text)&) {
     if (surface_root_ != nullptr) detail::SurfaceTreeAccess::tool_tip_text_changed(*surface_root_, *this);
 }
 
-void Control::prepare_write(const decltype(cursor)&, std::optional<CursorKind>&) {
+void Control::prepare_write(const decltype(cursor)&, stxlib::Optional<CursorKind>&) {
     require_mutable();
     // A stock cursor replaces a custom image even when the stock value is
     // unchanged; the compare after this hook then skips the rest.
@@ -4081,9 +4082,9 @@ void Control::prepare_composite_looks() {
 
 void Control::set_custom_cursor(CursorImagesPtr images, CursorKind fallback) {
     require_mutable();
-    if (cursor_images_ == images && cursor.read() == fallback) return;
+    if (cursor_images_ == images && cursor.read() == stxlib::Optional<CursorKind>::of(fallback)) return;
     // The stock write drops the old images first (its prepare hook).
-    cursor = fallback;
+    cursor = stxlib::Optional<CursorKind>::of(fallback);
     cursor_images_ = std::move(images);
     invalidate(Dirty::semantics);
 }
@@ -4092,7 +4093,7 @@ CursorImagesPtr Control::effective_cursor_images() const noexcept {
     const Control* current = this;
     Ptr owner;
     while (current != nullptr) {
-        if ((*current).cursor.read().has_value()) return (*current).cursor_images_;
+        if ((*current).cursor.read().present()) return (*current).cursor_images_;
         owner = (*current).parent_.lock();
         current = owner.get();
     }
@@ -4132,12 +4133,12 @@ const Control::InheritedValues& Control::inherited_values() const noexcept {
         if (computed.theme_override == nullptr) computed.theme_override = above.theme_override;
         if (computed.back_color.absent() && !stops_inherited_colours_) computed.back_color = above.back_color;
         if (computed.fore_color.absent() && !stops_inherited_colours_) computed.fore_color = above.fore_color;
-        computed.cursor = cursor.read() ? *cursor.read() : above.cursor;
+        computed.cursor = cursor.read().value_or(above.cursor);
         computed.visible = computed.visible && above.visible;
         computed.enabled = computed.enabled && above.enabled;
         computed.ceremonial = computed.ceremonial || above.ceremonial;
     } else {
-        computed.cursor = cursor.read() ? *cursor.read() : CursorKind::arrow;
+        computed.cursor = cursor.read().value_or(CursorKind::arrow);
     }
     computed.generation = now;
     inherited_ = computed;

@@ -109,7 +109,7 @@ TextBox::TextBox(StableId stable_id, std::string initial_text)
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
 }
 

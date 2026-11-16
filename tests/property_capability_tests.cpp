@@ -516,7 +516,7 @@ void test_setters_store() {
     (*control).layout_direction = LayoutDirection::right_to_left;
     (*control).minimum_size = Size{4.0, 4.0};
     (*control).maximum_size = Size{40.0, 40.0};
-    (*control).cursor = CursorKind::hand;
+    (*control).cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
     (*control).back_color = stxlib::Optional<Color>::of(Color::rgba(1, 2, 3));
     (*control).fore_color = stxlib::Optional<Color>::of(Color::rgba(4, 5, 6));
     (*control).accessible_name = "a";
@@ -532,7 +532,7 @@ void test_setters_store() {
                (*control).layout_direction.read() == LayoutDirection::right_to_left &&
                (*control).minimum_size.read() == Size{4.0, 4.0} &&
                (*control).maximum_size.read() == Size{40.0, 40.0} &&
-               (*control).cursor.read() == CursorKind::hand && (*control).back_color.read().present() &&
+               (*control).cursor.read() == stxlib::Optional<CursorKind>::of(CursorKind::hand) && (*control).back_color.read().present() &&
                (*control).fore_color.read().present() && (*control).accessible_name.read() == "a" &&
                (*control).accessible_description.read() == "d" && (*control).tool_tip_text.read() == "t",
            "every named setter stores its value");

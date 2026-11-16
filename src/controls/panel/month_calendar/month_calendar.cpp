@@ -97,7 +97,7 @@ void erase_day(std::vector<DateTimeValue>& dates, DateTimeValue date) {
 
 MonthCalendar::MonthCalendar(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     system_today_ = system_date();
     selection_ = CalendarDateRange{system_today_, system_today_};

@@ -56,7 +56,7 @@ public:
         : Control(std::move(stable_id)), owner_(&owner) {
         focusable = false;
         tab_stop = false;
-        cursor = CursorKind::resize_horizontal;
+        cursor = stxlib::Optional<CursorKind>::of(CursorKind::resize_horizontal);
     }
 
 protected:

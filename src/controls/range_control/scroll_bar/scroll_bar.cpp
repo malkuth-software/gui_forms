@@ -22,7 +22,7 @@ ScrollBar::ScrollBar(StableId stable_id, Orientation initial_orientation)
     : RangeControl(std::move(stable_id)) {
     orientation = initial_orientation;
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
 }
 
 void ScrollBar::prepare_write(const decltype(initial_repeat_delay)&, FrameInterval& incoming) {

@@ -139,7 +139,7 @@ private:
 Callout::Callout(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     const std::string prefix((*this).stable_id().value());
     title_label_ = make_control<Label>(StableId(prefix + ".title"));
     (*title_label_).text_wrapping = TextWrapping::word;

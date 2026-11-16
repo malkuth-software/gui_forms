@@ -115,7 +115,7 @@ std::size_t ValueBarScrub::describe_scrub(double value, std::span<char> out) con
 
 ValueBar::ValueBar(StableId stable_id) : RangeControl(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::resize_horizontal;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::resize_horizontal);
     scrub_ = std::make_unique<ValueBarScrub>(*this);
 }
 

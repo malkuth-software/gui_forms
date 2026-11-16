@@ -44,7 +44,7 @@ std::string_view list_suffix(DockNavigatorList list) noexcept {
 
 DockNavigator::DockNavigator(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
 }
 

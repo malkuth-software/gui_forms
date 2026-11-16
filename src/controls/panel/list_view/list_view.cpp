@@ -2348,11 +2348,11 @@ void ListView::handle_pointer(PointerEvent& event) {
         // tracking for one_click and two_click).
         const bool clickable_items = activation.read() != ListViewActivation::standard;
         if (hit.zone == HitZone::divider) {
-            cursor = CursorKind::resize_horizontal;
+            cursor = stxlib::Optional<CursorKind>::of(CursorKind::resize_horizontal);
         } else if (on_item && clickable_items) {
-            cursor = CursorKind::hand;
+            cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
         } else {
-            cursor = CursorKind::arrow;
+            cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
         }
         if (next_hot != hot_index_ || next_column != hot_column_) {
             hot_index_ = next_hot;

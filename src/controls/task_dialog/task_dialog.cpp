@@ -180,7 +180,7 @@ public:
 
 TaskDialog::TaskDialog(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
 }
 
 TaskDialog::~TaskDialog() {

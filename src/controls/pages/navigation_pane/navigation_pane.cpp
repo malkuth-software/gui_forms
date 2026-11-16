@@ -230,7 +230,7 @@ private:
 
 NavigationPane::NavigationPane(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     // The pane sizes itself: its width follows collapsing (measure).
     auto_size = true;

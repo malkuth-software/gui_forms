@@ -32,7 +32,7 @@ public:
     HelpPickLayer(StableId stable_id, HelpBookSystem& system, Window& window)
         : Control(std::move(stable_id)), system_(&system), window_(&window) {
         focusable = true;
-        cursor = CursorKind::help;
+        cursor = stxlib::Optional<CursorKind>::of(CursorKind::help);
     }
 
     void on_mouse_down(MouseEventArgs& arguments) override {

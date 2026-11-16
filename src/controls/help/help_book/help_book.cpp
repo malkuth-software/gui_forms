@@ -1033,7 +1033,7 @@ void HelpBook::on_mouse_leave() {
         hovered_link_.reset();
         hovered_section_.reset();
         close_hovered_ = false;
-        cursor = std::optional<CursorKind>();
+        cursor = stxlib::Optional<CursorKind>::none();
         invalidate(Dirty::paint);
     }
     Control::on_mouse_leave();
@@ -1054,8 +1054,8 @@ void HelpBook::handle_mouse(MouseEventArgs& arguments) {
             hovered_link_ = link;
             hovered_section_ = section;
             close_hovered_ = over_close;
-            cursor = (link.has_value() || section.has_value() || over_close) ? std::optional<CursorKind>(CursorKind::hand)
-                                                                             : std::optional<CursorKind>();
+            cursor = (link.has_value() || section.has_value() || over_close) ? stxlib::Optional<CursorKind>::of(CursorKind::hand)
+                                                                             : stxlib::Optional<CursorKind>::none();
             invalidate(Dirty::paint);
         }
         return;

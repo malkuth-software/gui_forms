@@ -33,6 +33,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -1357,7 +1358,7 @@ void activation_modes() {
     require(activations.size() == 1U, "a modified click only changes the selection");
     PointerEvent hover{PointerAction::move, PointerButton::none, first};
     static_cast<void>(window.dispatch_pointer(hover));
-    require((*view).cursor.read() == CursorKind::hand, "one_click shows the hand over an item");
+    require((*view).cursor.read() == stxlib::Optional<CursorKind>::of(CursorKind::hand), "one_click shows the hand over an item");
 
     (*view).activation = ListViewActivation::two_click;
     activations.clear();
@@ -1368,7 +1369,7 @@ void activation_modes() {
 
     (*view).activation = ListViewActivation::standard;
     static_cast<void>(window.dispatch_pointer(hover));
-    require((*view).cursor.read() == CursorKind::arrow, "standard keeps the arrow over items");
+    require((*view).cursor.read() == stxlib::Optional<CursorKind>::of(CursorKind::arrow), "standard keeps the arrow over items");
     require(window.request_focus(view) && key(window, PhysicalKey::enter) && activations.size() == 2U,
             "Enter activates in every mode");
     bool refused = false;

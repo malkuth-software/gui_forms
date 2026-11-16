@@ -48,7 +48,7 @@ constexpr ControlAnatomy modal_layer_anatomy{
 ModalLayer::ModalLayer(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
     focusable = false;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
 }
 
 ModalLayer::~ModalLayer() {
