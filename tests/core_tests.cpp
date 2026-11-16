@@ -31,6 +31,8 @@
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <limits>
+#include <locale>
 #include <memory>
 #include <optional>
 #include <stxlib/optional.hpp>
@@ -458,6 +460,52 @@ struct Fixture {
     std::unique_ptr<Window> window;
     RecordingPainter painter;
 };
+
+// A numeric punctuation that groups every three digits with '.' and writes
+// a decimal comma, as many system locales do.
+class GroupingCommaPunctuation final : public std::numpunct<char> {
+protected:
+    char do_decimal_point() const override { return ','; }
+    char do_thousands_sep() const override { return '.'; }
+    std::string do_grouping() const override { return std::string("\3"); }
+};
+
+// Sets the program's global locale for the scope's life, then restores it.
+class GlobalLocaleScope final {
+public:
+    explicit GlobalLocaleScope(const std::locale& replacement) : previous_(std::locale::global(replacement)) {}
+    ~GlobalLocaleScope() { static_cast<void>(std::locale::global(previous_)); }
+    GlobalLocaleScope(const GlobalLocaleScope&) = delete;
+    GlobalLocaleScope& operator=(const GlobalLocaleScope&) = delete;
+
+private:
+    std::locale previous_;
+};
+
+// A-gf-core-11-F1: a semantic snapshot's JSON is the same in any global
+// locale, round-trips its doubles, writes non-finite ones as null, and
+// stays valid UTF-8 with control bytes escaped.
+void test_semantic_snapshot_json_ignores_the_global_locale() {
+    SemanticSnapshot snapshot{};
+    snapshot.generation = 1234567U;
+    snapshot.node_count = 1U;
+    SemanticNode node{};
+    node.runtime_id = 9223372036854775809ULL;
+    node.name = std::string("bad\xFFname\x01");
+    node.bounds = Rect{12.5, 1234567.5, 0.1, 3.0};
+    node.numeric_value = stxlib::Optional<double>::of(std::numeric_limits<double>::infinity());
+    snapshot.roots.push_back(node);
+    const GlobalLocaleScope scope(std::locale(std::locale::classic(), new GroupingCommaPunctuation()));
+    const std::string json = snapshot.to_json();
+    require(json.find("\"generation\":1234567,") != std::string::npos &&
+                json.find("\"runtime_id\":9223372036854775809,") != std::string::npos,
+            "semantic JSON integers are not grouped by the global locale");
+    require(json.find("\"bounds\":[12.5,1234567.5,0.1,3]") != std::string::npos,
+            "semantic JSON doubles use a decimal point and round-trip");
+    require(json.find("\"numeric_value\":null") != std::string::npos, "a non-finite number is null");
+    require(json.find("\"name\":\"bad\\ufffdname\\u0001\"") != std::string::npos,
+            "an ill-formed byte is U+FFFD and a control byte is escaped");
+}
 
 void test_nested_scopes_and_read_barrier() {
     Fixture fixture;
@@ -1511,6 +1559,7 @@ void test_paint_wake_is_coalesced_and_rearmed_after_damage_consumption() {
 int main() {
     try {
         test_nested_scopes_and_read_barrier();
+        test_semantic_snapshot_json_ignores_the_global_locale();
         test_per_control_layout_transactions();
         test_layout_fault_releases_reentry_guard();
         test_layout_callbacks_may_mutate_retained_tree();

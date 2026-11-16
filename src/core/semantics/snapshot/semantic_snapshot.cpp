@@ -1,34 +1,20 @@
 #include "gui_forms/semantics.hpp"
 
+#include "../../json/json_text/json_text.hpp"
+
 #include <algorithm>
 #include <sstream>
 
 namespace gui_forms {
 namespace {
 
+using detail::append_json_string;
+
 // Whether an offset lies past `end` (fill_semantic_text_boundaries).
 struct OffsetPast final {
     Utf8Offset end;
     bool operator()(Utf8Offset offset) const noexcept { return end < offset; }
 };
-
-void append_json_string(std::ostringstream& stream, std::string_view value) {
-    stream << '"';
-    for (const unsigned char character : value) {
-        switch (character) {
-        case '"': stream << "\\\""; break;
-        case '\\': stream << "\\\\"; break;
-        case '\n': stream << "\\n"; break;
-        case '\r': stream << "\\r"; break;
-        case '\t': stream << "\\t"; break;
-        default:
-            if (character < 0x20U) stream << "?";
-            else stream << static_cast<char>(character);
-            break;
-        }
-    }
-    stream << '"';
-}
 
 // Appends `,"name":value`, or `,"name":null` when the field is absent.
 void append_count(std::ostringstream& stream, const char* name, const stxlib::Optional<std::size_t>& value) {
@@ -320,6 +306,9 @@ std::span<const char* const> semantic_field_names() noexcept {
 
 std::string SemanticSnapshot::to_json() const {
     std::ostringstream stream;
+    // Numbers in the classic locale whatever the program's global one,
+    // doubles round-trip, and non-finite ones null (A-gf-core-11-F1).
+    detail::imbue_json_numbers(stream);
     stream << "{\"generation\":" << generation << ",\"node_count\":"
            << node_count << ",\"roots\":[";
     for (std::size_t index = 0; index < roots.size(); ++index) {

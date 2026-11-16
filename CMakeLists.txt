@@ -729,6 +729,7 @@ add_library(gui_forms_core STATIC
     src/core/theme_language/package/theme_header.cpp
     src/core/theme_language/package/theme_package.cpp
     src/core/json/json_reader/json_reader.cpp
+    src/core/json/json_text/json_text.cpp
     src/core/docking/types/dock_types.cpp
     src/core/docking/dock_split_solver/dock_split_solver.cpp
     src/core/docking/dock_layout/dock_layout.cpp
