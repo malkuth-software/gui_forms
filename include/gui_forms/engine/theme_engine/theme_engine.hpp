@@ -5,10 +5,11 @@
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 
-#include <optional>
 #include <span>
 
 #include <cstdint>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -272,7 +273,7 @@ private:
     // when the effect is refused for its area (`area_ok` false) or ambient
     // motion is stopped. A part without a record is at its pose.
     [[nodiscard]] static double ambient_seconds(SurfaceRoot& window, EnginePartRecord* record,
-                                                const std::optional<PartRecordHandle>& handle,
+                                                const stxlib::Optional<PartRecordHandle>& handle,
                                                 const AmbientEffect& ambient, bool area_ok);
     // Stops the ambient effect of a part whose paint has none.
     static void stop_ambient(SurfaceRoot& window, EnginePartRecord& record, PartRecordHandle handle) noexcept;

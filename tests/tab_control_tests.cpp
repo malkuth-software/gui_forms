@@ -584,17 +584,17 @@ void test_tab_records_follow_their_pages() {
     window.perform_layout();
     RecordingPainter painter;
     static_cast<void>(window.paint(painter, {0.0, 0.0, 480.0, 260.0}));
-    const std::optional<PartRecordHandle> before =
+    const stxlib::Optional<PartRecordHandle> before =
         window.engine_parts().find("tabs.strip", PartKey{"tab", "tabs.third", {}});
-    require(before.has_value(), "the third tab's record is keyed by its page");
+    require(before.present(), "the third tab's record is keyed by its page");
     require(window.metrics_snapshot().engine_part_index_fallbacks == 0U, "no tab falls back to its index");
     const std::shared_ptr<TabPage> removed = (*fixture.tabs).remove_page(*fixture.second);
     require(removed == fixture.second, "the middle page goes");
     window.perform_layout();
     static_cast<void>(window.paint(painter, {0.0, 0.0, 480.0, 260.0}));
-    const std::optional<PartRecordHandle> after =
+    const stxlib::Optional<PartRecordHandle> after =
         window.engine_parts().find("tabs.strip", PartKey{"tab", "tabs.third", {}});
-    require(after.has_value() && *after == *before && window.metrics_snapshot().engine_part_index_fallbacks == 0U,
+    require(after.present() && after == before && window.metrics_snapshot().engine_part_index_fallbacks == 0U,
             "the third tab, now second, keeps its record");
 }
 

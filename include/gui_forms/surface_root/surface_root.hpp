@@ -1910,7 +1910,7 @@ private:
     // Called by ThemeEngine::paint for a part painted with a key: makes or
     // updates its record and counts a new record's index fallback. Returns
     // the record's handle, or none when the table has no record for it.
-    std::optional<PartRecordHandle> note_engine_part(const Control& control, const PartKey& key,
+    stxlib::Optional<PartRecordHandle> note_engine_part(const Control& control, const PartKey& key,
                                                      AnatomyStateSet states);
     // Called by Control::report_opaque_cover: marks the cover on the
     // display chunk being recorded, when `control` is recording it into

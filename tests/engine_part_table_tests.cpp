@@ -156,9 +156,9 @@ void test_table_records_and_handles() {
     require(shifted.created, "keys that join to the same bytes stay distinct");
     require(table.record_count() == 6U, "six records are live");
 
-    require(table.find("control.a", PartKey{"face", {}, {}}) == std::optional<PartRecordHandle>{face.handle},
+    require(table.find("control.a", PartKey{"face", {}, {}}) == stxlib::Optional<PartRecordHandle>::of(face.handle),
             "find returns the live record's handle");
-    require(!table.find("control.a", PartKey{"missing", {}, {}}), "find makes nothing");
+    require(table.find("control.a", PartKey{"missing", {}, {}}).absent(), "find makes nothing");
     require(table.record_count() == 6U, "find leaves the table unchanged");
 }
 
@@ -172,7 +172,7 @@ void test_release_makes_handles_stale() {
     require(table.record(face.handle) == nullptr && table.record(row.handle) == nullptr,
             "a released record's handle is stale");
     require(table.record(kept.handle) != nullptr, "another control's handle stays live");
-    require(!table.find("control.a", PartKey{"face", {}, {}}), "a released key finds nothing");
+    require(table.find("control.a", PartKey{"face", {}, {}}).absent(), "a released key finds nothing");
     require(table.release_control("control.a") == 0U, "releasing again releases nothing");
 
     // A released slot is reused, under a new generation: the old handle
@@ -243,9 +243,9 @@ void test_keyed_parts_have_records() {
     (*keyed).invalidate(Dirty::paint);
     paint_window(window);
     const EnginePartTable& probe = window.engine_parts();
-    const std::optional<PartRecordHandle> face = probe.find("keyed", PartKey{"face", {}, {}});
-    require(face.has_value(), "the face's record is found under the control's stable ID");
-    require((*probe.record(*face)).states.contains(AnatomyState::hot), "the record holds the last painted states");
+    const stxlib::Optional<PartRecordHandle> face = probe.find("keyed", PartKey{"face", {}, {}});
+    require(face.present(), "the face's record is found under the control's stable ID");
+    require((*probe.record(*face.value())).states.contains(AnatomyState::hot), "the record holds the last painted states");
 
     // Moving the fallback item to another index makes a new record, and
     // counts another fallback; the named item keeps its record.
@@ -263,7 +263,7 @@ void test_keyed_parts_have_records() {
     require(window.engine_parts().record_count() == 0U, "the control's records are released on detach");
     require(metrics.engine_part_records == 0U && metrics.engine_part_records_released == 4U,
             "the metrics count the released records");
-    require(probe.record(*face) == nullptr, "a handle kept past the detach is stale");
+    require(probe.record(*face.value()) == nullptr, "a handle kept past the detach is stale");
 
     // A detached control's keyed parts are drawn statically, with no record.
     TracePainter detached;
@@ -522,8 +522,8 @@ void test_item_records_are_evicted_least_recently_painted_first() {
     // When every other item record is unsettled, the table holds more than
     // the cap until their motion settles.
     for (std::size_t index = 0U; index < 6U; ++index) {
-        const std::optional<PartRecordHandle> handle = table.find("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(index)});
-        if (handle) (*table.record(*handle)).motion_unsettled = true;
+        const stxlib::Optional<PartRecordHandle> handle = table.find("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(index)});
+        if (handle.present()) (*table.record(*handle.value())).motion_unsettled = true;
     }
     const PartRecordAcquisition seventh = table.acquire("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(6U)});
     require(seventh.created && seventh.evicted == 0U && table.item_record_count() == 5U,
@@ -592,8 +592,8 @@ void test_scrolling_a_virtualized_control_stays_within_the_cap() {
         const std::string last = "row." + std::to_string(distance - 1U);
         const PartKey newest{"row_label", stable ? std::string_view(last) : std::string_view{}, stxlib::Optional<std::size_t>::of(distance - 1U)};
         const PartKey oldest{"row_label", stable ? std::string_view("row.0") : std::string_view{}, stxlib::Optional<std::size_t>::of(0U)};
-        require(table.find("rows", newest).has_value(), "the rows in view keep their records");
-        require(!table.find("rows", oldest).has_value(), "the rows scrolled away longest ago are evicted");
+        require(table.find("rows", newest).present(), "the rows in view keep their records");
+        require(table.find("rows", oldest).absent(), "the rows scrolled away longest ago are evicted");
     }
     std::cout << "an EnginePartRecord is " << sizeof(EnginePartRecord) << " bytes\n";
 }

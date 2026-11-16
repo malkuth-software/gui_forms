@@ -592,19 +592,20 @@ void SurfaceRoot::note_inline_with_theme(const Control& control) {
     theme_language::write_theme_diagnostics(list, stderr);
 }
 
-std::optional<PartRecordHandle> SurfaceRoot::note_engine_part(const Control& control, const PartKey& key,
+stxlib::Optional<PartRecordHandle> SurfaceRoot::note_engine_part(const Control& control, const PartKey& key,
                                                          AnatomyStateSet states) {
     const PartRecordAcquisition acquired = engine_parts_.acquire(control.stable_id().value(), key);
     if (acquired.created) metrics_.record_engine_part_created(key.index_fallback(), engine_parts_.record_count());
     if (acquired.evicted > 0U) metrics_.record_engine_parts_evicted(acquired.evicted, engine_parts_.record_count());
     EnginePartRecord* const record = engine_parts_.record(acquired.handle);
-    if (record == nullptr) return std::nullopt;
+    if (record == nullptr) return stxlib::Optional<PartRecordHandle>::none();
     // time_in_state counts from the paint that first shows new states.
     if (acquired.created || !((*record).states == states)) (*record).state_entered = motion_clock_.now();
     (*record).states = states;
     // The paint in progress, counted as the paints completed before it.
     (*record).last_painted = paint_leases_completed_;
-    return acquired.handle;
+    const stxlib::Optional<PartRecordHandle> result = stxlib::Optional<PartRecordHandle>::of(acquired.handle);
+    return result;
 }
 
 PartRasterResult SurfaceRoot::engine_part_raster(PartRecordHandle handle, const PartRasterRequest& request) {

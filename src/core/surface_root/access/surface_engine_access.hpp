@@ -23,7 +23,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms::detail {
 
@@ -41,9 +42,9 @@ public:
         root.note_inline_with_theme(control);
     }
     // Makes or updates a keyed part's record (SurfaceRoot::note_engine_part).
-    [[nodiscard]] static std::optional<PartRecordHandle> note_part(SurfaceRoot& root, const Control& control,
+    [[nodiscard]] static stxlib::Optional<PartRecordHandle> note_part(SurfaceRoot& root, const Control& control,
                                                                    const PartKey& key, AnatomyStateSet states) {
-        const std::optional<PartRecordHandle> result = root.note_engine_part(control, key, states);
+        const stxlib::Optional<PartRecordHandle> result = root.note_engine_part(control, key, states);
         return result;
     }
     // Where a part drawn with `painter` lands (SurfaceRoot::engine_paint_place).

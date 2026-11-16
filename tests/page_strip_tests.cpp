@@ -853,16 +853,16 @@ void tab_records_follow_their_pages() {
     window.perform_layout();
     CountingPainter painter;
     static_cast<void>(window.paint(painter, {0.0, 0.0, 640.0, 26.0}));
-    const std::optional<PartRecordHandle> before = window.engine_parts().find("strip", PartKey{"tab", "p2", {}});
-    const std::optional<PartRecordHandle> label = window.engine_parts().find("strip", PartKey{"tab_label", "p2", {}});
-    require(before.has_value() && label.has_value(), "a tab's parts have records under its page's ID");
+    const stxlib::Optional<PartRecordHandle> before = window.engine_parts().find("strip", PartKey{"tab", "p2", {}});
+    const stxlib::Optional<PartRecordHandle> label = window.engine_parts().find("strip", PartKey{"tab_label", "p2", {}});
+    require(before.present() && label.present(), "a tab's parts have records under its page's ID");
     require(window.metrics_snapshot().engine_part_index_fallbacks == 0U, "no tab part falls back to its index");
     const std::size_t records = window.engine_parts().record_count();
     require(pages.move(PageId{"p2"}, PagePosition{0U}) == PageEditStatus::applied, "the last page moves first");
     window.perform_layout();
     static_cast<void>(window.paint(painter, {0.0, 0.0, 640.0, 26.0}));
-    const std::optional<PartRecordHandle> after = window.engine_parts().find("strip", PartKey{"tab", "p2", {}});
-    require(after.has_value() && *after == *before, "the moved tab keeps its record");
+    const stxlib::Optional<PartRecordHandle> after = window.engine_parts().find("strip", PartKey{"tab", "p2", {}});
+    require(after.present() && after == before, "the moved tab keeps its record");
     require(window.engine_parts().record_count() == records && window.metrics_snapshot().engine_part_index_fallbacks == 0U,
             "moving a page makes no record and no index fallback");
 }

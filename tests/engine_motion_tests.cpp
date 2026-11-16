@@ -160,9 +160,9 @@ std::uint64_t run_frame(Window& window, ManualTime& time, Painter& painter) {
 
 const EnginePartRecord* record_of(const Window& window, std::string_view control, std::string_view part,
                                   std::string_view item) {
-    const std::optional<PartRecordHandle> handle = window.engine_parts().find(control, PartKey{part, item, {}});
-    if (!handle) return nullptr;
-    const EnginePartRecord* const record = window.engine_parts().record(*handle);
+    const stxlib::Optional<PartRecordHandle> handle = window.engine_parts().find(control, PartKey{part, item, {}});
+    if (handle.absent()) return nullptr;
+    const EnginePartRecord* const record = window.engine_parts().record(*handle.value());
     return record;
 }
 

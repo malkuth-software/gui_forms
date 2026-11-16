@@ -2724,7 +2724,7 @@ Types
 
       The record for ``control_id`` and ``key``, made if there is none, and marked the most recently painted item record when it is an item's. A new record reuses a released slot before the table grows; a new item record beyond the cap evicts the least recently painted settled item record (O(1) unless records with unsettled motion are passed over). If an allocation fails, std::bad_alloc propagates and the table is unchanged.
 
-   .. cpp:function:: std::optional<PartRecordHandle> find(std::string_view control_id, const PartKey& key) const
+   .. cpp:function:: stxlib::Optional<PartRecordHandle> find(std::string_view control_id, const PartKey& key) const
 
       The live record for ``control_id`` and ``key``, if there is one. For inspection: it builds its lookup text in a string of its own.
 
