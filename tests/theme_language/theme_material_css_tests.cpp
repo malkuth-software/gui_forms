@@ -218,6 +218,29 @@ void test_radial_geometry() {
                 ringed.stops == stops_of({{0.0, middle}, {0.5, blue}, {0.5 + separation, red}, {1.0, middle}}),
             "a repeating period that begins off the centre is rotated to begin there");
 
+    // Reflected off the centre: the period and its mirror image repeat as
+    // one pair of twice the radii, rotated as a repeating period is.
+    AuthoredGradient mirrored = rings;
+    mirrored.reflecting = true;
+    const MaterialFillLayer reflected = resolved(mirrored, Size{40.0, 24.0});
+    require(reflected.spread == GradientSpreadMode::repeat && reflected.radii == (Size{100.0, 100.0}) &&
+                reflected.stops ==
+                    stops_of({{0.0, middle}, {0.25, red}, {0.25 + separation, red}, {0.75, blue}, {1.0, middle}}),
+            "a reflecting period that begins off the centre repeats with its mirror image");
+    AuthoredGradient centred = rings;
+    centred.reflecting = true;
+    centred.stops = {stop_at(red, 0.0, 0.0), stop_at(blue, 0.0, 50.0)};
+    const MaterialFillLayer reflecting = resolved(centred, Size{40.0, 24.0});
+    require(reflecting.spread == GradientSpreadMode::reflect && reflecting.radii == (Size{50.0, 50.0}) &&
+                reflecting.stops == stops_of({{0.0, red}, {1.0, blue}}),
+            "a reflecting period that begins at the centre reflects");
+    AuthoredGradient unrepeated = centred;
+    unrepeated.repeating = false;
+    require(!valid_authored_gradient(unrepeated), "a reflecting gradient repeats");
+    AuthoredGradient crowded = centred;
+    crowded.stops.assign(maximum_reflecting_radial_stops + 1U, stop(red));
+    require(!valid_authored_gradient(crowded), "a reflecting radial gradient's stops fit twice over");
+
     AuthoredGradient wrong = circle;
     wrong.extent = RadialExtent::lengths;
     wrong.radius_x = BoxLength{0.5, 0.0};
@@ -837,7 +860,8 @@ void test_refusals() {
         {"#a { background-color: inherit }", DiagnosticCode::value_wrong_kind},
         {"#a { background-image: radial-gradient(circle 10%, red, blue) }", DiagnosticCode::value_wrong_kind},
         {"#a { background-image: radial-gradient(-4px 4px, red, blue) }", DiagnosticCode::value_out_of_range},
-        {"#a { background-image: repeating-radial-gradient(focus 25% 50%, red, blue) }",
+        {"#a { background-image: reflecting-radial-gradient(red, blue, red, blue, red, blue, red, blue, red, blue, "
+         "red, blue, red, blue, red, blue) }",
          DiagnosticCode::value_out_of_range},
         {"#a { background-image: radial-gradient(at center focus, red, blue) }", DiagnosticCode::value_syntax},
         {"#a { background-image: linear-gradient(to center, red, blue) }", DiagnosticCode::value_syntax},
@@ -1106,6 +1130,21 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
                           {MaterialFillLayer::conic(Point{0.5, 0.5}, 90.0, red_blue)}));
     rows.push_back(filled("background: repeating-conic-gradient(red 0deg, blue 90deg)",
                           {MaterialFillLayer::repeating_conic(Point{0.5, 0.5}, 0.0, 90.0, red_blue)}));
+    MaterialFillLayer reflected_conic = MaterialFillLayer::repeating_conic(Point{0.5, 0.5}, 0.0, 90.0, red_blue);
+    reflected_conic.spread = GradientSpreadMode::reflect;
+    rows.push_back(filled("background: reflecting-conic-gradient(red 0deg, blue 90deg)", {reflected_conic}));
+    MaterialFillLayer reflected_linear = MaterialFillLayer::repeating_linear(Point{20.0, 24.0}, Point{20.0, 18.0},
+                                                                             red_blue, MaterialCoordinateSpace::logical);
+    reflected_linear.spread = GradientSpreadMode::reflect;
+    rows.push_back(filled("background: reflecting-linear-gradient(0deg, red 0px, blue 6px)", {reflected_linear}));
+    MaterialFillLayer reflected_rings = MaterialFillLayer::repeating_radial(Point{0.5, 0.5}, Size{0.25, 0.25}, red_blue);
+    reflected_rings.spread = GradientSpreadMode::reflect;
+    rows.push_back(filled("background: reflecting-radial-gradient(closest-side, red, blue 50%)", {reflected_rings}));
+    MaterialFillLayer focused_rings = MaterialFillLayer::repeating_radial(Point{0.5, 0.5}, Size{0.25, 0.25}, red_blue);
+    focused_rings.focused = true;
+    focused_rings.focus = Point{0.4, 0.5};
+    rows.push_back(filled("background: repeating-radial-gradient(closest-side at 50% 50% focus 40% 50%, red, blue 50%)",
+                          {focused_rings}));
     rows.push_back(filled("background: linear-gradient(red, blue) green",
                           {MaterialFillLayer::solid(green), MaterialFillLayer::linear_css_angle(180.0, red_blue)}));
     MaterialFillLayer multiplied = MaterialFillLayer::linear_css_angle(90.0, red_blue);

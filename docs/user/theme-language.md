@@ -262,7 +262,7 @@ only material fields selects the `material` primitive.
 
 | Area | Properties |
 |---|---|
-| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
+| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` and `reflecting-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `seat`, `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
@@ -311,7 +311,18 @@ A `radial-gradient()` may name a focus after its centre, `focus
 the rings grow from it to the ending shape, so a lens can be lit off centre,
 as in `radial-gradient(at 50% 50% focus 30% 40%, white, #4060a0)`. The focus
 must lie inside the ending shape (for a box where it does not, the gradient
-is drawn about its centre), and a `repeating-radial-gradient()` takes none.
+is drawn about its centre). A `repeating-radial-gradient()` or
+`reflecting-radial-gradient()` takes one too: its periods are counted from
+the focus, which must lie inside one period's ellipse.
+
+`reflecting-linear-gradient()`, `reflecting-radial-gradient()` and
+`reflecting-conic-gradient()` (GUI.Forms additions, not CSS) are written as
+the `repeating-` forms and repeat in the same periods, but each period is
+the one before it mirrored, so the colours run there and back without a
+seam: `reflecting-linear-gradient(90deg, #303030, #a0a0a0 8px)` is a
+brushed bar of soft ridges. A reflecting conic gradient whose periods do
+not divide the turn into an even count meets unmirrored at its `from`
+angle. A reflecting radial gradient takes at most 15 colour stops.
 
 `finish(<name>, <paint>, <second> [, <seed> [, <grain>]])` is a surface
 finish: paint or metal lit by one light from the upper left, painted for

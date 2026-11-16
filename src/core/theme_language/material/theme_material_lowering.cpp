@@ -198,15 +198,24 @@ struct NamedGradient final {
     std::string_view name{};
     MaterialFillKind kind{MaterialFillKind::linear_gradient};
     bool repeating{};
+    // The theme language's reflecting- forms (owner, 2026-11-16; not CSS):
+    // repeating, each period the one before mirrored.
+    bool reflecting{};
 };
 
-constexpr std::array<NamedGradient, 6> gradient_functions{{
+constexpr std::array<NamedGradient, 9> gradient_functions{{
     {.name = "linear-gradient", .kind = MaterialFillKind::linear_gradient, .repeating = false},
     {.name = "radial-gradient", .kind = MaterialFillKind::radial_gradient, .repeating = false},
     {.name = "conic-gradient", .kind = MaterialFillKind::conic_gradient, .repeating = false},
     {.name = "repeating-linear-gradient", .kind = MaterialFillKind::linear_gradient, .repeating = true},
     {.name = "repeating-radial-gradient", .kind = MaterialFillKind::radial_gradient, .repeating = true},
     {.name = "repeating-conic-gradient", .kind = MaterialFillKind::conic_gradient, .repeating = true},
+    {.name = "reflecting-linear-gradient", .kind = MaterialFillKind::linear_gradient, .repeating = true,
+     .reflecting = true},
+    {.name = "reflecting-radial-gradient", .kind = MaterialFillKind::radial_gradient, .repeating = true,
+     .reflecting = true},
+    {.name = "reflecting-conic-gradient", .kind = MaterialFillKind::conic_gradient, .repeating = true,
+     .reflecting = true},
 }};
 
 // The built-in procedural patterns `pattern()` names (ProceduralPattern);
@@ -881,7 +890,7 @@ bool MaterialReader::read_linear_configuration(ComponentRange range, AuthoredGra
 // `[<ending-shape> || <size>]? [at <position>]? [focus <position>]?`;
 // `configured` is false for a first argument that is a colour stop. The
 // focus (GUI.Forms, not CSS; owner, 2026-11-16) is where position 0 lies,
-// read as the centre is; a repeating gradient refuses it.
+// read as the centre is; a repeating gradient's periods count from it.
 bool MaterialReader::read_radial_configuration(ComponentRange range, AuthoredGradient& gradient, bool& configured) {
     configured = false;
     if (range.first >= range.end) return true;
@@ -979,6 +988,7 @@ bool MaterialReader::read_gradient(std::size_t index, AuthoredGradient& gradient
     gradient = AuthoredGradient{};
     gradient.kind = named.kind;
     gradient.repeating = named.repeating;
+    gradient.reflecting = named.reflecting;
     std::vector<ComponentRange> arguments{};
     split(ComponentRange{index + 1U, function.subtree_end}, arguments);
     bool configured = false;

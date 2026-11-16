@@ -27,7 +27,7 @@ Types
    * - :cpp:class:`AssembledPartMaterial <gui_forms::AssembledPartMaterial>`
      - A part's assembled material (T3 EC1): its recipe's material, the floor, with the winning material fields of the theme's rules in place, and what it was assembled from.
    * - :cpp:class:`AuthoredGradient <gui_forms::AuthoredGradient>`
-     - A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``focused``, ``focus_x``, ``focus_y``: a radial gradient's focus (theme language ``focus <position>`` after its centre), where position 0 lies; only a radial gradient that does not repeat has one; - ``stops``: at least one, at most maximum_authored_gradient_stops.
+     - A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``reflecting``: with ``repeating``, the theme language's reflecting- form (owner, 2026-11-16; not CSS): the periods alternate direction, each the one before it mirrored (spread ``reflect``), so the colours meet without a seam; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``focused``, ``focus_x``, ``focus_y``: a radial gradient's focus (theme language ``focus <position>`` after its centre), where position 0 lies; only a radial gradient has one, repeating or not (a repeating one's periods are counted from it); - ``stops``: at least one, at most maximum_authored_gradient_stops.
    * - :cpp:class:`AuthoredGradientStop <gui_forms::AuthoredGradientStop>`
      - One colour stop.
    * - :cpp:class:`BackdropDeclaration <gui_forms::BackdropDeclaration>`
@@ -608,13 +608,15 @@ Types
 
    ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>``
 
-   A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``focused``, ``focus_x``, ``focus_y``: a radial gradient's focus (theme language ``focus <position>`` after its centre), where position 0 lies; only a radial gradient that does not repeat has one; - ``stops``: at least one, at most maximum_authored_gradient_stops.
+   A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``reflecting``: with ``repeating``, the theme language's reflecting- form (owner, 2026-11-16; not CSS): the periods alternate direction, each the one before it mirrored (spread ``reflect``), so the colours meet without a seam; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``focused``, ``focus_x``, ``focus_y``: a radial gradient's focus (theme language ``focus <position>`` after its centre), where position 0 lies; only a radial gradient has one, repeating or not (a repeating one's periods are counted from it); - ``stops``: at least one, at most maximum_authored_gradient_stops.
 
    .. cpp:member:: MaterialFillKind kind
 
       Default: ``{MaterialFillKind::linear_gradient}``.
 
    .. cpp:member:: bool repeating
+
+   .. cpp:member:: bool reflecting
 
    .. cpp:member:: double angle_degrees
 
@@ -9243,7 +9245,7 @@ Functions, constants and aliases
 
 .. cpp:function:: bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept
 
-   Whether ``gradient`` is one a layer can draw: a gradient kind; one to maximum_authored_gradient_stops stops; finite numbers; radii not negative; a circle's radius a length, without a fraction; a conic stop without units.
+   Whether ``gradient`` is one a layer can draw: a gradient kind; one to maximum_authored_gradient_stops stops; finite numbers; radii not negative; a circle's radius a length, without a fraction; a conic stop without units; ``reflecting`` only with ``repeating``, and a reflecting radial gradient at most maximum_reflecting_radial_stops stops.
 
 .. cpp:function:: bool authored_gradient_fixed(const AuthoredGradient& gradient) noexcept
 
@@ -9251,11 +9253,15 @@ Functions, constants and aliases
 
 .. cpp:function:: void resolve_authored_gradient(const AuthoredGradient& gradient, Size box, MaterialFillLayer& layer)
 
-   Writes a valid ``gradient``, for a part's box ``box`` in logical units, into ``layer``, which is reset first: its kind, geometry, spread and stops, the other fields at MaterialFillLayer's defaults. A fixed gradient (authored_gradient_fixed) ignores ``box``. The layer: - places the stops as CSS does: a first stop without a position at 0, a last one at 1, a stop before an earlier one at the earlier one, the others evenly between their neighbours; - for a gradient that does not repeat, keeps the stops within the drawn range and adds the colours at its ends, interpolated as the engine interpolates (straight colour, rounded to 8 bits: at most half a step from the exact colour); - for a repeating one, scales its geometry to the span from the first stop to the last; a radial one's stops are rotated to begin at its centre. A span of 0 draws CSS's average colour, a solid; - separates coincident stops (CSS's hard stops) by 2^-20 of the gradient, which the layer's validity requires: under a tenth of a device pixel on a gradient shorter than 100,000 device pixels; - is a solid for a single stop; - keeps a focus (resolved as the centre is) only where it lies strictly inside the resolved ellipse for this box; elsewhere the gradient is drawn about its centre.
+   Writes a valid ``gradient``, for a part's box ``box`` in logical units, into ``layer``, which is reset first: its kind, geometry, spread and stops, the other fields at MaterialFillLayer's defaults. A fixed gradient (authored_gradient_fixed) ignores ``box``. The layer: - places the stops as CSS does: a first stop without a position at 0, a last one at 1, a stop before an earlier one at the earlier one, the others evenly between their neighbours; - for a gradient that does not repeat, keeps the stops within the drawn range and adds the colours at its ends, interpolated as the engine interpolates (straight colour, rounded to 8 bits: at most half a step from the exact colour); - for a repeating one, scales its geometry to the span from the first stop to the last; a radial one's stops are rotated to begin at its centre (or focus). A reflecting one draws spread ``reflect``, except a radial one whose periods do not begin at its centre: that one draws twice the period, the stops then their mirror image, rotated so, with spread ``repeat``. A span of 0 draws CSS's average colour, a solid; - separates coincident stops (CSS's hard stops) by 2^-20 of the gradient, which the layer's validity requires: under a tenth of a device pixel on a gradient shorter than 100,000 device pixels; - is a solid for a single stop; - keeps a focus (resolved as the centre is) only where it lies strictly inside the resolved ellipse for this box; elsewhere the gradient is drawn about its centre.
 
 .. cpp:var:: constexpr std::size_t maximum_authored_gradient_stops
 
    The most stops one gradient may have: resolving adds at most two, the colours at the ends of a clipped or rotated stop list. Value: ``maximum_gradient_stops - 2U``.
+
+.. cpp:var:: constexpr std::size_t maximum_reflecting_radial_stops
+
+   The most stops a reflecting radial gradient may have: when its periods do not begin at its centre, it is resolved as a repeating gradient of twice the period, the stops and their mirror image, begun part way in (two stops more), which must fit maximum_gradient_stops. Value: ``(maximum_gradient_stops - 2U) / 2U``.
 
 .. cpp:namespace:: gui_forms
 

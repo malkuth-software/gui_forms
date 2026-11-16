@@ -166,6 +166,19 @@ void rotated_stops(std::span<const GradientStop> period, double phase, std::vect
     stops.push_back(GradientStop{1.0, colour_before(period, seam)});
 }
 
+// One period's stops (`period`, from 0 to 1) followed by their mirror
+// image, as one period of twice the length, into `stops`, which is cleared
+// first: a reflecting gradient's two periods, forward and back. The stop
+// at the turn is written once.
+void mirrored_stops(std::span<const GradientStop> period, std::vector<GradientStop>& stops) {
+    stops.clear();
+    for (const GradientStop& stop : period) stops.push_back(GradientStop{stop.offset * 0.5, stop.color});
+    for (std::size_t index = period.size() - 1U; index > 0U; --index) {
+        const GradientStop& stop = period[index - 1U];
+        stops.push_back(GradientStop{1.0 - stop.offset * 0.5, stop.color});
+    }
+}
+
 // Separates coincident stops by hard_stop_separation, keeping the ends at
 // exactly 0 and 1. `stops` has at least two, from 0 to 1, not decreasing.
 void separate_stops(std::vector<GradientStop>& stops) noexcept {
@@ -267,8 +280,9 @@ void resolve_linear(const AuthoredGradient& gradient, Size box, std::vector<Grad
     }
     period_stops(placed, first, span, stops);
     separate_stops(stops);
+    const GradientSpreadMode spread = gradient.reflecting ? GradientSpreadMode::reflect : GradientSpreadMode::repeat;
     if (first == 0.0 && last == 1.0) {
-        layer = MaterialFillLayer::linear_css_angle(angle, std::move(stops), GradientSpreadMode::repeat);
+        layer = MaterialFillLayer::linear_css_angle(angle, std::move(stops), spread);
         return;
     }
     if (line <= 0.0) {
@@ -282,6 +296,7 @@ void resolve_linear(const AuthoredGradient& gradient, Size box, std::vector<Grad
     const Point start{line_start.x + direction.x * first * line, line_start.y + direction.y * first * line};
     const Point end{line_start.x + direction.x * last * line, line_start.y + direction.y * last * line};
     layer = MaterialFillLayer::repeating_linear(start, end, std::move(stops), MaterialCoordinateSpace::logical);
+    layer.spread = spread;
 }
 
 // A radial gradient's radii about `centre` in a box of `box`.
@@ -371,14 +386,43 @@ void resolve_radial(const AuthoredGradient& gradient, Size box, MaterialCoordina
     period.reserve(maximum_gradient_stops);
     period_stops(placed, first, span, period);
     const double periods = first / span;
-    const double phase = periods - std::floor(periods);
-    if (phase == 0.0) {
-        stops = std::move(period);
+    GradientSpreadMode spread = GradientSpreadMode::repeat;
+    if (!gradient.reflecting) {
+        const double phase = periods - std::floor(periods);
+        if (phase == 0.0) {
+            stops = std::move(period);
+        } else {
+            rotated_stops(period, phase, stops);
+        }
     } else {
-        rotated_stops(period, phase, stops);
+        // Reflected periods repeat in pairs: begun at the centre, the
+        // period reflects; begun part way into a pair, the pair (the period
+        // and its mirror image) repeats from there, over twice the radii.
+        const double pairs = periods * 0.5;
+        const double phase = pairs - std::floor(pairs);
+        if (phase == 0.0) {
+            stops = std::move(period);
+            spread = GradientSpreadMode::reflect;
+        } else {
+            std::vector<GradientStop> pair{};
+            pair.reserve(maximum_gradient_stops);
+            mirrored_stops(period, pair);
+            rotated_stops(pair, phase, stops);
+            radii = Size{radii.width * 2.0, radii.height * 2.0};
+        }
     }
     separate_stops(stops);
     layer = MaterialFillLayer::repeating_radial(centre, radii, std::move(stops), space);
+    layer.spread = spread;
+    if (gradient.focused) {
+        // The periods are counted from the focus, kept where it lies inside
+        // one period's ellipse.
+        const Point focus{resolved_length(gradient.focus_x, box.width), resolved_length(gradient.focus_y, box.height)};
+        if (focus_inside_ellipse(centre, radii, focus)) {
+            layer.focused = true;
+            layer.focus = focus;
+        }
+    }
 }
 
 void resolve_conic(const AuthoredGradient& gradient, Size box, MaterialCoordinateSpace space,
@@ -411,6 +455,9 @@ void resolve_conic(const AuthoredGradient& gradient, Size box, MaterialCoordinat
     period_stops(placed, first, span, stops);
     separate_stops(stops);
     layer = MaterialFillLayer::repeating_conic(centre, from, span * 360.0, std::move(stops), space);
+    // Reflected periods: where the turn closes after an odd count of them
+    // the colours meet unmirrored, as at the from-angle of any conic.
+    if (gradient.reflecting) layer.spread = GradientSpreadMode::reflect;
 }
 
 } // namespace
@@ -432,7 +479,12 @@ bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept {
         !finite_length(gradient.focus_x) || !finite_length(gradient.focus_y)) {
         return false;
     }
-    if (gradient.focused && (gradient.kind != MaterialFillKind::radial_gradient || gradient.repeating)) return false;
+    if (gradient.focused && gradient.kind != MaterialFillKind::radial_gradient) return false;
+    if (gradient.reflecting && !gradient.repeating) return false;
+    if (gradient.reflecting && gradient.kind == MaterialFillKind::radial_gradient &&
+        gradient.stops.size() > maximum_reflecting_radial_stops) {
+        return false;
+    }
     const bool lengths = gradient.extent == RadialExtent::lengths;
     const bool negative = gradient.radius_x.fraction < 0.0 || gradient.radius_x.units < 0.0 ||
                           gradient.radius_y.fraction < 0.0 || gradient.radius_y.units < 0.0;

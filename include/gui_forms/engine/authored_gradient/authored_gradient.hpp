@@ -61,6 +61,10 @@ inline constexpr std::size_t maximum_authored_gradient_stops = maximum_gradient_
 // A gradient as written:
 // - `kind`: linear_gradient, radial_gradient or conic_gradient;
 // - `repeating`: CSS's repeating- form;
+// - `reflecting`: with `repeating`, the theme language's reflecting- form
+//   (owner, 2026-11-16; not CSS): the periods alternate direction, each
+//   the one before it mirrored (spread `reflect`), so the colours meet
+//   without a seam;
 // - `angle_degrees`: a linear gradient's CSS angle (0 up, 90 right),
 //   unless `corner` names one, or a conic gradient's `from`;
 // - `centre_x`, `centre_y`: a radial or conic gradient's centre, across
@@ -70,11 +74,13 @@ inline constexpr std::size_t maximum_authored_gradient_stops = maximum_gradient_
 //   or a circle's radius, radius_x's units;
 // - `focused`, `focus_x`, `focus_y`: a radial gradient's focus (theme
 //   language `focus <position>` after its centre), where position 0
-//   lies; only a radial gradient that does not repeat has one;
+//   lies; only a radial gradient has one, repeating or not (a repeating
+//   one's periods are counted from it);
 // - `stops`: at least one, at most maximum_authored_gradient_stops.
 struct GUI_FORMS_API AuthoredGradient final {
     MaterialFillKind kind{MaterialFillKind::linear_gradient};
     bool repeating{};
+    bool reflecting{};
     double angle_degrees{180.0};
     GradientCorner corner{GradientCorner::none};
     BoxLength centre_x{0.5, 0.0};
@@ -89,7 +95,7 @@ struct GUI_FORMS_API AuthoredGradient final {
     std::vector<AuthoredGradientStop> stops{};
 
     friend bool operator==(const AuthoredGradient& left, const AuthoredGradient& right) noexcept {
-        return left.kind == right.kind && left.repeating == right.repeating &&
+        return left.kind == right.kind && left.repeating == right.repeating && left.reflecting == right.reflecting &&
                left.angle_degrees == right.angle_degrees && left.corner == right.corner &&
                left.centre_x == right.centre_x && left.centre_y == right.centre_y && left.circle == right.circle &&
                left.extent == right.extent && left.radius_x == right.radius_x && left.radius_y == right.radius_y &&
@@ -98,10 +104,17 @@ struct GUI_FORMS_API AuthoredGradient final {
     }
 };
 
+// The most stops a reflecting radial gradient may have: when its periods
+// do not begin at its centre, it is resolved as a repeating gradient of
+// twice the period, the stops and their mirror image, begun part way in
+// (two stops more), which must fit maximum_gradient_stops.
+inline constexpr std::size_t maximum_reflecting_radial_stops = (maximum_gradient_stops - 2U) / 2U;
+
 // Whether `gradient` is one a layer can draw: a gradient kind; one to
 // maximum_authored_gradient_stops stops; finite numbers; radii not
 // negative; a circle's radius a length, without a fraction; a conic stop
-// without units.
+// without units; `reflecting` only with `repeating`, and a reflecting
+// radial gradient at most maximum_reflecting_radial_stops stops.
 [[nodiscard]] GUI_FORMS_API bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept;
 
 // Whether a valid `gradient` resolves to the same layer for every box: no
@@ -124,7 +137,10 @@ struct GUI_FORMS_API AuthoredGradient final {
 //   from the exact colour);
 // - for a repeating one, scales its geometry to the span from the first
 //   stop to the last; a radial one's stops are rotated to begin at its
-//   centre. A span of 0 draws CSS's average colour, a solid;
+//   centre (or focus). A reflecting one draws spread `reflect`, except a
+//   radial one whose periods do not begin at its centre: that one draws
+//   twice the period, the stops then their mirror image, rotated so, with
+//   spread `repeat`. A span of 0 draws CSS's average colour, a solid;
 // - separates coincident stops (CSS's hard stops) by 2^-20 of the
 //   gradient, which the layer's validity requires: under a tenth of a
 //   device pixel on a gradient shorter than 100,000 device pixels;
