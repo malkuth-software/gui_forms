@@ -3918,7 +3918,7 @@ Types
 
    .. cpp:function:: static MaterialColourMatrix fill(Color colour) noexcept
 
-      The theme language's colour stages (owner 2026-11-16; not CSS): - fill: every colour channel ``colour``'s, and alpha the pixel's times the colour's (a covered pixel recoloured, its coverage kept); - duotone (tint): with L = 0.2126 R + 0.7152 G + 0.0722 B, each colour channel dark + L (light - dark); alpha kept, the colours' own alpha not read; - luminance: each colour channel L (the first stage of tritone, whose second is MaterialColourTable::tritone); alpha kept.
+      The theme language's colour stages (owner 2026-11-16; not CSS): - fill: every colour channel ``colour``'s, and alpha the pixel's times the colour's (a covered pixel recoloured, its coverage kept); - duotone (tint): with L = 0.2126 R + 0.7152 G + 0.0722 B, each colour channel dark + L (light - dark), a straight line on the sRGB-encoded values; alpha kept, the colours' own alpha not read. The theme language's duotone() no longer lowers to this matrix but to luminance() and MaterialColourTable::duotone, which mixes in linear light as every gradient does (owner, 2026-11-16); - luminance: each colour channel L (the first stage of duotone() and tritone(), whose second is MaterialColourTable::duotone or ::tritone); alpha kept.
 
    .. cpp:function:: static MaterialColourMatrix duotone(Color dark, Color light) noexcept
 
@@ -3970,6 +3970,10 @@ Types
    .. cpp:function:: static MaterialColourTable tritone(Color shadow, Color midtone, Color highlight)
 
       Tritone's table (after MaterialColourMatrix::luminance()): levels 0 to 127 from the shadow to the midtone, 128 to 255 from the midtone to the highlight, interpolated in linear light as every gradient is (gui_forms/types/linear_light/linear_light.hpp); alpha kept.
+
+   .. cpp:function:: static MaterialColourTable duotone(Color dark, Color light) noexcept
+
+      Duotone's table (after MaterialColourMatrix::luminance()): levels 0 to 255 from ``dark`` to ``light``, interpolated in linear light as every gradient is; alpha kept, the colours' own alpha not read.
 
    .. cpp:function:: MaterialColourTable then(const MaterialColourTable& after) const noexcept
 

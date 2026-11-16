@@ -36,7 +36,7 @@ That is computation of a colour, not blending of two layers.
 | Part rasters, baked materials, isolated paint groups (`composite_part_raster`) | integer: weight `w` = opacity·clip coverage, `s' = (s·w + 32640) / 65280`, then source-over; plus, multiply, screen and copy as `text_composite.hpp` states; an opaque raster at full weight is copied exactly | yes |
 | Rectangle fills, rounded rectangles, paths, strokes, shadows, gradients, images, patterns (Skia CPU raster pipeline) | Skia's: float (highp) or 16-bit fixed (lowp) stages, chosen per draw; source-over unless a copy | no: see section 2 |
 | Gradients (Skia: Painter's linear, radial, focal, conic and spread fills; the executor's GUI.Drawing brushes) | the stops expanded first (`expand_linear_light_stops`, `gui_forms/types/linear_light`): colours added between stops wherever the linear-light interpolation leaves Skia's premultiplied sRGB chord by more than half a step, computed in integers; Skia then interpolates the expanded stops premultiplied in sRGB (`fInPremul = kYes`, `ColorSpace::kSRGB`), within 1.3 steps of the exact colour | stop colours yes; Skia's per-pixel interpolation no |
-| Gradients (engine: material kernel, presets, relief faces, authored gradients' clipped stops and averages, tritone table, GUI.Drawing blend factors) | premultiplied in linear light by `interpolate_linear_light`: integer tables both ways, no libm | yes |
+| Gradients (engine: material kernel, presets, relief faces, authored gradients' clipped stops and averages, duotone and tritone tables, GUI.Drawing blend factors; not the colour picker, section 5) | premultiplied in linear light by `interpolate_linear_light`: integer tables both ways, no libm | yes |
 | Opaque live surfaces, opaque device tiles | row copies (`writePixels`, `copy_opaque_tile`) | yes |
 | Theme engine colour computation | float in linear light, tables both ways; the authored gradient avoids fused multiply-add on purpose | yes, where FMA is kept out |
 
@@ -60,14 +60,16 @@ the bytes as they are (not checked for the Linux host's other paths).
    results differ between architectures. Our own float code follows the
    build (owner, 2026-11-16: "turn it off for referencing, and leave it on
    for actual deployment"): with `GUI_FORMS_REFERENCE_ARITHMETIC=ON` (the
-   reference and conformance builds: `tools/ci_build.py` and every build
-   that runs the suite, the engine gate, the pixel-hash tests and the
+   reference and conformance builds: `tools/ci_build.py`'s native and
+   sanitizer trees, the engine gate, the pixel-hash tests and the
    cross-host comparisons) every first-party target compiles with
    `-ffp-contract=off` and the raster, engine, material, theme-kernel and
    effect sources add the pragma; with it OFF (deployment: the SDK, the
    release packages' consumers, profiling) the compiler contracts as it
-   chooses. `engine_math` (its error bounds) and the value paths (parsed
-   text, layout lengths, theme values, motion) stay unfused in every build;
+   chooses (the SDK, profiling, and the release programs job that builds
+   what ships, section 5, item 5). `engine_math` (its error bounds) and the
+   value paths (parsed text, layout lengths, theme values, motion) stay
+   unfused in every build (section 5, item 4);
    stx_skia sets its own `-ffp-contract=off`. Skia's explicit fused stages
    are logged, not fixed, before 1.0.
 3. **Text where pixels cannot be addressed.** Where the canvas pixels are
@@ -145,6 +147,24 @@ once the integrator has run it.
    contract (section 2, item 2; CMakeLists.txt, "Floating-point
    contraction").
 
-Still open: `duotone()` remains an sRGB-encoded colour matrix (a matrix
-cannot mix in linear light); lowering it as luminance and a two-colour
-table, as `tritone()` is, would make it linear too.
+Follow-ups (coordinator, 2026-11-16):
+
+3. `duotone()` lowers as the luminance matrix and a two-colour table
+   (`MaterialColourTable::duotone`), as `tritone()` does, so it mixes in
+   linear light too. The `MaterialColourMatrix::duotone` matrix remains for
+   C++ callers, as a straight line on sRGB-encoded values.
+4. The value paths stay unfused in every build, accepted: `engine_math`
+   (its stated error bounds) and `engine_expression`, `theme_value`,
+   `value_text`, `scrub_gesture`, `layout_style_reader`,
+   `theme_motion_lowering` and `motion_value`, which produce numbers
+   (parsed text, theme values, layout lengths, motion samples), not
+   pixels, so a deployment build computes the same values as a reference
+   one.
+5. Shipped programs are deployment builds: the release programs job
+   configures `GUI_FORMS_REFERENCE_ARITHMETIC=OFF` and runs every test but
+   those labelled `reference_arithmetic` (pinned pixel hashes, cross-host
+   comparisons), which the native, sanitizer and engine-gate jobs run in
+   reference builds.
+6. The colour picker is exempt from linear light: a picker must show the
+   exact colour under the pointer, so its saturation/value field and hue
+   strip are drawn per pixel from HSV, not as gradients.

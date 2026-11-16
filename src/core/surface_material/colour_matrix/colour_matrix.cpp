@@ -298,6 +298,22 @@ MaterialColourTable MaterialColourTable::tritone(Color shadow, Color midtone, Co
     return table;
 }
 
+MaterialColourTable MaterialColourTable::duotone(Color dark, Color light) noexcept {
+    const Color low{dark.red, dark.green, dark.blue, 255U};
+    const Color high{light.red, light.green, light.blue, 255U};
+    MaterialColourTable table{};
+    for (std::size_t level = 0U; level < levels; ++level) {
+        // level / 255 in 1/65536, rounded.
+        const std::uint64_t along = static_cast<std::uint64_t>(level);
+        const std::uint32_t weight = static_cast<std::uint32_t>((along * linear_light_weight_one + 127U) / 255U);
+        const Color mixed = interpolate_linear_light(low, high, weight);
+        table.entries[level] = mixed.red;
+        table.entries[levels + level] = mixed.green;
+        table.entries[2U * levels + level] = mixed.blue;
+    }
+    return table;
+}
+
 MaterialColourTable MaterialColourTable::then(const MaterialColourTable& after) const noexcept {
     MaterialColourTable result{};
     for (std::size_t channel = 0U; channel < channels; ++channel) {

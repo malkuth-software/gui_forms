@@ -237,9 +237,10 @@ void colour_filters() {
     require(first && second, "the colour filters match their references");
 }
 
-// The colour stages (owner 2026-11-16): fill and duotone as matrices,
-// tritone as the luminance matrix and a table, and the table's transfer
-// functions, each checked to the byte.
+// The colour stages (owner 2026-11-16): fill and the duotone matrix as
+// matrices, duotone() and tritone() as the luminance matrix and a table
+// mixed in linear light, and the table's transfer functions, each checked
+// to the byte.
 void colour_stages() {
     const Size logical{24.0, 16.0};
     SurfaceMaterial filled = filled_with(brick);
@@ -251,7 +252,15 @@ void colour_stages() {
     SurfaceMaterial toned = filled_with(grey);
     toned.colour_filter = MaterialColourMatrix::duotone(Color{20, 40, 60, 255}, Color{220, 240, 255, 255});
     require(draw(toned, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{120U, 140U, 158U, 255U}),
-            "duotone maps luminance between its colours");
+            "the duotone matrix maps luminance between its colours");
+    // duotone() as the theme language lowers it: grey's luminance is level
+    // 128, 32897/65536 of the way from dark to light in linear light.
+    SurfaceMaterial duotoned = filled_with(grey);
+    duotoned.colour_filter = MaterialColourFilter(
+        MaterialColourMatrix::luminance(),
+        MaterialColourTable::duotone(Color{20, 40, 60, 255}, Color{220, 240, 255, 255}));
+    require(draw(duotoned, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{162U, 178U, 192U, 255U}),
+            "duotone's table maps luminance between its colours in linear light");
     // Grey's luminance is level 128, 257/65536 past the midtone, mixed in
     // linear light: red rises to 13 (linear 257 of 65535), green stays 255
     // (65278 still encodes to 255), blue stays 0.

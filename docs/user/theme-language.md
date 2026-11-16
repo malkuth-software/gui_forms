@@ -284,8 +284,11 @@ white gradient is 188 grey at its middle. Alpha mixes as it is, and a stop
 fading to transparent fades the other stop's colour. The conversions are
 tables in integers, so a gradient has the same bytes on every host. This
 holds for every gradient the engine makes: material layers, the painter's
-gradient fills, GUI.Drawing brushes and `tritone()`'s table. Hard stops,
-solid fills and `color-mix(in srgb, ...)` are unchanged.
+gradient fills, GUI.Drawing brushes and the `duotone()` and `tritone()`
+tables. Hard stops, solid fills and `color-mix(in srgb, ...)` are unchanged.
+The ColorPicker's saturation and value field and its hue strip are not
+gradients: a picker must show the exact colour under the pointer, so they
+are drawn pixel by pixel from HSV.
 
 `gradient-dither: none | ordered | blue-noise` sets how the engine's
 material kernel quantizes a part's finished pixels to 8 bits. `none`
@@ -380,20 +383,19 @@ extensions (not CSS).
 coverage: the colour channels become the colour's, and the alpha is the
 pixel's times the colour's. `duotone(<dark>, <light>)` (a tint) maps each
 pixel's luminance L = 0.2126 R + 0.7152 G + 0.0722 B (on the sRGB-encoded
-values) to dark + L (light - dark), keeping its alpha; the colours' own
+values) from dark at 0 to light at 1, keeping its alpha; the colours' own
 alpha is not read. `tritone(<shadow>, <midtone>, <highlight>)` maps
 luminance through the three colours, shadow at 0, midtone at one half and
-highlight at 1, mixed in linear light between them as a gradient is.
-`duotone()` stays a straight line on the sRGB-encoded values: it is a
-matrix, which cannot mix in linear light. `fill()` and `duotone()` are colour
-matrices, composed with the CSS colour functions in order. `tritone()` is
-the luminance matrix followed by a colour table: each straight channel,
-rounded to 8 bits once, looked up in a table of 256 levels made when the
-theme compiles, the same bytes on every host. After `tritone()` a function
-that reads only its own channel (`brightness()`, `contrast()`, `invert()`,
-`opacity()`) folds into the table; one that mixes channels (`saturate()`,
-`grayscale()`, `sepia()`, `hue-rotate()`, `fill()`, `duotone()`), a second
-`tritone()`, and a `tritone()` after `drop-shadow()` refuse the theme. For
+highlight at 1. Both mix their colours in linear light, as a gradient does.
+`fill()` is a colour matrix, composed with the CSS colour functions in
+order. `duotone()` and `tritone()` are the luminance matrix followed by a
+colour table: each straight channel, rounded to 8 bits once, looked up in a
+table of 256 levels made when the theme compiles, the same bytes on every
+host. After either, a function that reads only its own channel
+(`brightness()`, `contrast()`, `invert()`, `opacity()`) folds into the
+table; one that mixes channels (`saturate()`, `grayscale()`, `sepia()`,
+`hue-rotate()`, `fill()`), a second `duotone()` or `tritone()`, and either
+after `drop-shadow()` refuse the theme. For
 example, `filter: tritone(#14213d, #fca311, #e5e5e5)`.
 
 A filter may also be declared once and named. `@filter <id> { ... }`

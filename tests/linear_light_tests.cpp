@@ -186,6 +186,16 @@ void test_expansion() {
     require(found == alternating.size(), "every original stop is kept");
 }
 
+void test_duotone() {
+    const MaterialColourTable table = MaterialColourTable::duotone(black, white);
+    const std::size_t levels = MaterialColourTable::levels;
+    require(table.entries[0] == 0U && table.entries[255] == 255U, "dark at 0, light at 255");
+    require(table.entries[64] == 137U && table.entries[128] == 188U, "a quarter and a half way in linear light");
+    for (std::size_t level = 0U; level < levels; ++level) {
+        require(table.entries[3U * levels + level] == level, "duotone keeps alpha");
+    }
+}
+
 void test_tritone() {
     const Color grey{128U, 128U, 128U, 255U};
     const MaterialColourTable table = MaterialColourTable::tritone(black, grey, white);
@@ -208,6 +218,7 @@ int main() {
     test_weights();
     test_interpolation();
     test_expansion();
+    test_duotone();
     test_tritone();
     std::cout << "linear light tests passed\n";
     return 0;

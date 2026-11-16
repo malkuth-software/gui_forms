@@ -84,11 +84,12 @@ option(GUI_FORMS_CHECKED_BORROWS "Check borrowed views against their owners (the
 # target with -ffp-contract=off and defines GUI_FORMS_REFERENCE_ARITHMETIC, so
 # the raster, engine, material, theme-kernel and effect paths fuse no
 # multiply-add and every CPU gives the same bytes. The reference and
-# conformance builds turn it on: tools/ci_build.py and every build that runs
-# the suite (tools/toolkit_configure.py with tests), the engine gate, the
-# pixel-hash tests and the cross-host comparisons. Deployment builds (the
-# SDK, the release packages, profiling) leave it OFF, so the compiler
-# contracts as it would by default. See "Floating-point contraction" below.
+# conformance builds turn it on: tools/ci_build.py (tools/toolkit_configure.py
+# with tests: the native and sanitizer jobs), the engine gate, the pixel-hash
+# tests and the cross-host comparisons. Deployment builds leave it OFF, so the
+# compiler contracts as it would by default: the SDK, profiling, and the
+# release programs job, which builds what ships and skips the tests labelled
+# reference_arithmetic. See "Floating-point contraction" below.
 option(GUI_FORMS_REFERENCE_ARITHMETIC
     "Reference arithmetic: no floating-point contraction in first-party code (reference and conformance builds)" OFF)
 if(GUI_FORMS_CHECKED_BORROWS)
@@ -7410,9 +7411,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
 if(GUI_FORMS_BUILD_TESTS AND NOT GUI_FORMS_REFERENCE_ARITHMETIC)
-    message(WARNING "GUI_FORMS_BUILD_TESTS is ON without GUI_FORMS_REFERENCE_ARITHMETIC: the pixel-hash tests "
-                    "pin the reference arithmetic's bytes and may fail where the compiler fuses multiply-adds "
-                    "(arm64). tools/ci_build.py configures with -DGUI_FORMS_REFERENCE_ARITHMETIC=ON.")
+    message(WARNING "GUI_FORMS_BUILD_TESTS is ON without GUI_FORMS_REFERENCE_ARITHMETIC: the tests labelled "
+                    "reference_arithmetic pin the reference arithmetic's bytes and may fail where the compiler "
+                    "fuses multiply-adds (arm64); run the rest with ctest -LE reference_arithmetic. "
+                    "tools/ci_build.py configures with -DGUI_FORMS_REFERENCE_ARITHMETIC=ON.")
 endif()
 
 # One precompiled header per group of test programs, after every option is set
@@ -7420,6 +7422,44 @@ endif()
 if(GUI_FORMS_BUILD_TESTS)
     include(cmake/TestPrecompiledHeader.cmake)
     gui_forms_share_test_precompiled_header()
+endif()
+
+# The byte-exact tests: pinned pixel hashes and cross-host comparisons of code
+# whose arithmetic follows GUI_FORMS_REFERENCE_ARITHMETIC. They pass only in
+# a reference build; a deployment build (the release programs job, which
+# builds what ships with the option OFF) runs the suite with
+# `ctest -LE reference_arithmetic`, and the reference jobs (native, sanitizer,
+# the engine gate) run them all.
+if(GUI_FORMS_BUILD_TESTS)
+    foreach(gui_forms_reference_test IN ITEMS
+            gui_forms_engine_gate_tests
+            gui_forms_engine_fill_shape_tests
+            gui_forms_engine_filter_blend_tests
+            gui_forms_engine_material_tests
+            gui_forms_engine_reflection_tests
+            gui_forms_engine_dither_tests
+            gui_forms_engine_relief_tests
+            gui_forms_engine_finish_tests
+            gui_forms_engine_primitive_tests
+            gui_forms_engine_procedural_tests
+            gui_forms_engine_light_tests
+            gui_forms_engine_motion_tests
+            gui_forms_engine_glass_tests
+            gui_forms_engine_backdrop_tests
+            gui_forms_engine_backplane_replay_tests
+            gui_forms_backplane_replay_identity_tests
+            gui_forms_windows_backplane_replay_tests
+            gui_forms_part_composite_identity_tests
+            gui_forms_text_identity_raster_tests
+            gui_forms_windows_text_tests
+            gui_forms_png_color_tests
+            gui_forms_png_pixels_tests
+            gui_forms_png_writer_tests
+            gui_forms_plot_primitives_tests)
+        if(TEST ${gui_forms_reference_test})
+            set_property(TEST ${gui_forms_reference_test} APPEND PROPERTY LABELS reference_arithmetic)
+        endif()
+    endforeach()
 endif()
 
 # The foreground and input-desktop tests (gui_forms_foreground_test and

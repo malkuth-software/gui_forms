@@ -2338,12 +2338,6 @@ bool MaterialReader::read_colour_function(std::size_t function, FilterFunction k
         matrix = MaterialColourMatrix::fill(colour[0]);
         return true;
     }
-    if (kind == FilterFunction::duotone) {
-        std::array<Color, 2> pair{};
-        if (!read_function_colours(function, pair)) return false;
-        matrix = MaterialColourMatrix::duotone(pair[0], pair[1]);
-        return true;
-    }
     if (kind == FilterFunction::hue_rotate) {
         const ValueComponent& written = value_.components[function];
         const ComponentRange arguments{function + 1U, written.subtree_end};
@@ -2435,12 +2429,13 @@ bool MaterialReader::read_drop_shadow(std::size_t function, MaterialDropShadow& 
 // drop-shadow() (which would fade the shadow twice) and an SVG filter
 // reference are not admitted. The theme language's fill(<colour>),
 // duotone(<dark>, <light>) and tritone(<shadow>, <midtone>, <highlight>)
-// (owner 2026-11-16) are colour functions too: fill and duotone one matrix
-// each, tritone the luminance matrix and then a colour table
-// (MaterialColourTable). After a table, a colour function that reads only
-// its own channel (brightness(), contrast(), invert(), opacity()) folds
-// into the table; one that mixes channels, a second tritone(), and a
-// tritone() after drop-shadow() are not admitted.
+// (owner 2026-11-16) are colour functions too: fill one matrix, duotone and
+// tritone the luminance matrix and then a colour table (MaterialColourTable),
+// which mixes the colours in linear light as every gradient does. After a
+// table, a colour function that reads only its own channel (brightness(),
+// contrast(), invert(), opacity()) folds into the table; one that mixes
+// channels, a second table, and a table after drop-shadow() are not
+// admitted.
 bool MaterialReader::lower_filter() {
     MaterialDeclaration colour{};
     colour.field = MaterialField::colour_filter;
@@ -2514,15 +2509,22 @@ bool MaterialReader::lower_filter() {
         if (kind == FilterFunction::opacity && shadowed) {
             return fail(DiagnosticCode::value_form_not_admitted, component.token, "opacity() after drop-shadow()");
         }
-        if (kind == FilterFunction::tritone) {
-            if (table) return fail(DiagnosticCode::value_form_not_admitted, component.token, "a second tritone()");
+        if (kind == FilterFunction::tritone || kind == FilterFunction::duotone) {
+            const bool three = kind == FilterFunction::tritone;
+            if (table) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            three ? "a second tritone()" : "duotone() after a colour table");
+            }
             if (shadowed) {
-                return fail(DiagnosticCode::value_form_not_admitted, component.token, "tritone() after drop-shadow()");
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            three ? "tritone() after drop-shadow()" : "duotone() after drop-shadow()");
             }
             std::array<Color, 3> tones{};
-            if (!read_function_colours(index, tones)) return false;
+            const std::span<Color> read = three ? std::span<Color>(tones) : std::span<Color>(tones.data(), 2U);
+            if (!read_function_colours(index, read)) return false;
             composed = composed.then(MaterialColourMatrix::luminance());
-            table = MaterialColourTable::tritone(tones[0], tones[1], tones[2]);
+            table = three ? MaterialColourTable::tritone(tones[0], tones[1], tones[2])
+                          : MaterialColourTable::duotone(tones[0], tones[1]);
             filtered = true;
             continue;
         }
@@ -2534,7 +2536,7 @@ bool MaterialReader::lower_filter() {
             table = (*table).then_matrix(matrix);
         } else {
             return fail(DiagnosticCode::value_form_not_admitted, component.token,
-                        clipped_theme_detail(component.text) + "() after tritone()");
+                        clipped_theme_detail(component.text) + "() after duotone() or tritone()");
         }
         filtered = true;
         if (shadowed) after_shadow = after_shadow.then(matrix);

@@ -3,6 +3,8 @@
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 
 #include <algorithm>
 #include <array>
@@ -45,6 +47,33 @@ double wrap_hue(double hue) noexcept {
     if (wrapped < 0.0) wrapped += 360.0;
     if (wrapped >= 360.0) wrapped = 0.0;
     return wrapped;
+}
+
+// A part's device extent at `scale`: its logical size, rounded up.
+DeviceExtent device_extent_of(Rect area, double scale) noexcept {
+    const double width = std::ceil(std::max(0.0, area.width) * scale);
+    const double height = std::ceil(std::max(0.0, area.height) * scale);
+    const DeviceExtent extent{static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height)};
+    return extent;
+}
+
+// `kept` when it can be written again (the picker holds its last reference
+// and it has this extent and scale), else a new raster, null when none of
+// that extent can be made.
+std::shared_ptr<PartRaster> writable_raster(const std::shared_ptr<PartRaster>& kept, DeviceExtent extent,
+                                            DeviceScale scale) {
+    const bool reusable = kept && kept.use_count() == 1 && (*kept).extent() == extent && (*kept).scale() == scale;
+    if (reusable) return kept;
+    std::shared_ptr<PartRaster> made = PartRaster::create(extent, scale);
+    return made;
+}
+
+// One opaque pixel of a part raster (premultiplied BGRA8) at byte `at`.
+void write_opaque_pixel(std::span<std::uint8_t> pixels, std::size_t at, Color colour) noexcept {
+    pixels[at] = colour.blue;
+    pixels[at + 1U] = colour.green;
+    pixels[at + 2U] = colour.red;
+    pixels[at + 3U] = 255U;
 }
 
 std::uint8_t channel(double unit) noexcept {
@@ -378,14 +407,88 @@ void ColorPicker::on_focus_changed(bool focused) {
 
 // -- paint ----------------------------------------------------------------------
 
+// The saturation-brightness field and the hue strip are drawn pixel by
+// pixel from HSV, never as gradients: a picker must show the exact colour it
+// picks under the pointer, and every gradient mixes in linear light (owner,
+// 2026-11-16), which HSV does not. Each device pixel is color_of at the
+// pixel's centre as pick() maps it: across the field saturation 0 to 1,
+// down it brightness 1 to 0; down the strip hue 0 to 360. They are content
+// (W-7), drawn exactly as given by an image part under the theme's well
+// part, whose content rule leaves its background transparent and draws the
+// frame and edges over them.
+void ColorPicker::paint_hsv_areas(Painter& painter, const Layout& layout, const AnatomyStateSet& states) {
+    const SurfaceRoot* const root = attached_surface_root();
+    const double scale = root != nullptr ? (*root).scale() : 1.0;
+    const DeviceScale device{scale};
+    PartPaint pixels{.role = PartRole::image, .states = states, .family = ControlVisualRole::editor};
+
+    const DeviceExtent field_extent = device_extent_of(layout.field, scale);
+    const bool field_kept = field_pixels_ && field_pixels_hue_ == hsv_.hue && (*field_pixels_).extent() == field_extent &&
+                            (*field_pixels_).scale() == device;
+    if (!field_kept && field_extent.width > 0U && field_extent.height > 0U) {
+        std::shared_ptr<PartRaster> target = writable_raster(field_pixels_, field_extent, device);
+        if (target) {
+            const PartRasterView view = (*target).view();
+            const double width = static_cast<double>(field_extent.width);
+            const double height = static_cast<double>(field_extent.height);
+            for (std::uint32_t row = 0U; row < field_extent.height; ++row) {
+                const double brightness = 1.0 - (static_cast<double>(row) + 0.5) / height;
+                const std::size_t row_start = static_cast<std::size_t>(row) * view.row_bytes;
+                for (std::uint32_t column = 0U; column < field_extent.width; ++column) {
+                    const double saturation = (static_cast<double>(column) + 0.5) / width;
+                    const Color colour = color_of(ColorPickerHsv{hsv_.hue, saturation, brightness}, 255U);
+                    write_opaque_pixel(view.pixels, row_start + static_cast<std::size_t>(column) * 4U, colour);
+                }
+            }
+            (*target).record_opacity();
+            field_pixels_ = std::move(target);
+            field_pixels_hue_ = hsv_.hue;
+        }
+    }
+    if (field_pixels_ && (*field_pixels_).extent() == field_extent && (*field_pixels_).scale() == device) {
+        pixels.bounds = layout.field;
+        pixels.raster = field_pixels_;
+        paint_part(painter, *this, pixels);
+    }
+
+    const DeviceExtent hue_extent = device_extent_of(layout.hue_track, scale);
+    const bool hue_kept = hue_pixels_ && (*hue_pixels_).extent() == hue_extent && (*hue_pixels_).scale() == device;
+    if (!hue_kept && hue_extent.width > 0U && hue_extent.height > 0U) {
+        std::shared_ptr<PartRaster> target = writable_raster(hue_pixels_, hue_extent, device);
+        if (target) {
+            const PartRasterView view = (*target).view();
+            const double height = static_cast<double>(hue_extent.height);
+            for (std::uint32_t row = 0U; row < hue_extent.height; ++row) {
+                const double hue = (static_cast<double>(row) + 0.5) / height * 360.0;
+                const Color colour = color_of(ColorPickerHsv{hue, 1.0, 1.0}, 255U);
+                const std::size_t row_start = static_cast<std::size_t>(row) * view.row_bytes;
+                for (std::uint32_t column = 0U; column < hue_extent.width; ++column) {
+                    write_opaque_pixel(view.pixels, row_start + static_cast<std::size_t>(column) * 4U, colour);
+                }
+            }
+            (*target).record_opacity();
+            hue_pixels_ = std::move(target);
+        }
+    }
+    if (hue_pixels_ && (*hue_pixels_).extent() == hue_extent && (*hue_pixels_).scale() == device) {
+        pixels.bounds = layout.hue_track;
+        pixels.raster = hue_pixels_;
+        paint_part(painter, *this, pixels);
+    }
+}
+
 // Every area is a theme part in the control's states; the colour areas
 // carry their content colours for the themes' content rules.
 void ColorPicker::on_paint(Painter& painter, Rect) {
     const Layout layout = layout_parts();
     const AnatomyStateSet states = anatomy_states();
-    // The colour areas are well parts whose content colours (W-7) the
-    // theme's content rules draw as gradients over: the field's pure hue,
-    // the alpha ramp's colour made opaque and the swatch's value.
+    // The field and the hue strip first, as pixels (paint_hsv_areas).
+    paint_hsv_areas(painter, layout, states);
+    // The colour areas are well parts carrying content colours (W-7): the
+    // field's pure hue, the alpha ramp's colour made opaque and the
+    // swatch's value. The theme's content rules draw the alpha ramp and the
+    // swatch as gradients over a checkerboard, and leave the field's and
+    // the strip's backgrounds transparent over their pixels.
     PartPaint well;
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;

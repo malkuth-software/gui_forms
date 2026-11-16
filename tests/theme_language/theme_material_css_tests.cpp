@@ -1163,6 +1163,9 @@ void test_refusals() {
         {"#a { filter: tritone(black, grey, white) tritone(black, grey, white) }",
          DiagnosticCode::value_form_not_admitted},
         {"#a { filter: drop-shadow(1px 1px red) tritone(black, grey, white) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: drop-shadow(1px 1px red) duotone(black, white) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: duotone(black, white) tritone(black, grey, white) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: duotone(black, white) saturate(2) }", DiagnosticCode::value_form_not_admitted},
         {"#a { filter: duotone(black) }", DiagnosticCode::value_syntax},
         {"#a { filter: fill(1px) }", DiagnosticCode::value_wrong_kind},
         {"#a { filter: tritone(black grey white) }", DiagnosticCode::value_syntax},
@@ -1533,8 +1536,11 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     GateRow duotoned{};
     duotoned.declarations = "background: red; filter: duotone(#000000, #ffffff)";
     duotoned.material.fills = {MaterialFillLayer::solid(red)};
+    // duotone() is the luminance matrix and a two-colour table, mixed in
+    // linear light as tritone()'s is.
     duotoned.material.colour_filter =
-        MaterialColourMatrix::duotone(Color::rgba(0, 0, 0), Color::rgba(255, 255, 255));
+        MaterialColourFilter(MaterialColourMatrix::luminance(),
+                             MaterialColourTable::duotone(Color::rgba(0, 0, 0), Color::rgba(255, 255, 255)));
     rows.push_back(duotoned);
     GateRow tritoned{};
     tritoned.declarations = "background: red; filter: tritone(blue, lime, red) brightness(0.5)";
