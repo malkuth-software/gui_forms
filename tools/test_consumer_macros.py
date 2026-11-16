@@ -2,8 +2,10 @@
 
 consumer_macros (the lexer, the header scan, the closure and the
 classification), generate_hostile_macros (the conformance header and its
-seeds) and guard_header_macros (the guard's exact name set, its placement,
-its idempotence and its check mode). They read and write only temporary
+seeds), consumer_shield (the shield's name set, its handshake run through a
+small preprocessor in nested, repeated and mixed include orders, and the
+placement of its include lines) and module_exports (the declarations the
+gui_forms module exports). They read and write only temporary
 files; nothing is compiled.
 """
 from __future__ import annotations
@@ -13,8 +15,9 @@ import unittest
 from pathlib import Path
 
 import consumer_macros
+import consumer_shield
 import generate_hostile_macros
-import guard_header_macros
+import module_exports
 
 STANDARD: frozenset[str] = frozenset(('vector', 'size_t', 'uint8_t', 'min', 'max', 'size', 'std', 'value'))
 
@@ -156,68 +159,202 @@ class HostileGeneratorTests(unittest.TestCase):
                 generate_hostile_macros.seeds_of(unit, 'hostile_macros_label.h')
 
 
-class GuardTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.directory: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
-        self.root: Path = Path(self.directory.name)
-        self.include: Path = self.root / 'include'
-        write(self.root, 'include/gui_forms/macros.hpp', '#pragma once\n#define HELPER(x) (x)\n')
+class Preprocessor:
+    """Just enough of a preprocessor to run the shield's handshake.
 
-    def tearDown(self) -> None:
-        self.directory.cleanup()
+    Files are a dict of include spelling -> text. It follows #pragma once,
+    #ifndef/#ifdef/#else/#endif, #define and #undef of object-like names,
+    push_macro and pop_macro (a stack per name, as Clang, GCC and MSVC keep
+    one), and #include "...". '#pragma probe NAME' records whether NAME is
+    defined at that point, and its value.
+    """
 
-    def guard(self, relative: str, text: str) -> str:
-        header: Path = write(self.root, relative, text)
-        return guard_header_macros.guard_header(header, [self.include], STANDARD)
+    def __init__(self, files: dict[str, str]) -> None:
+        self.files: dict[str, str] = files
+        self.macros: dict[str, str] = {}
+        self.stacks: dict[str, list[str | None]] = {}
+        self.once: set[str] = set()
+        self.probes: list[tuple[str, str | None]] = []
 
-    def test_guard_saves_exactly_the_open_names_the_header_uses(self) -> None:
-        guarded: str = self.guard(
-            'include/gui_forms/a.hpp',
-            '// near in a comment\n#pragma once\n#include "gui_forms/macros.hpp"\n#include <vector>\n'
-            '#ifdef CONFIGURED\n#endif\nnamespace gui_forms {\nenum class A { near, far };\n'
-            'inline int g(std::vector<int> v) { return HELPER((std::max)(int(v.size()), 1)); }\n'
-            'inline const char* s = "Status";\n}\n')
-        lines: list[str] = guarded.splitlines()
-        pushed: list[str] = []
-        popped: list[str] = []
-        for line in lines:
-            if line.startswith('#pragma push_macro'):
-                pushed.append(line.split('"')[1])
-            if line.startswith('#pragma pop_macro'):
-                popped.append(line.split('"')[1])
-        self.assertEqual(pushed, ['A', 'far', 'g', 'max', 'near', 's', 'v'])
-        self.assertEqual(popped, list(reversed(pushed)))
-        self.assertIn('#undef near', lines)
-        # Opening after #pragma once, before the includes; closing at the end.
-        self.assertEqual(lines[2], guard_header_macros.GUARD_BEGIN)
-        self.assertLess(lines.index(guard_header_macros.GUARD_END), lines.index('#include "gui_forms/macros.hpp"'))
-        self.assertEqual(lines[-1], guard_header_macros.RESTORE_END)
+    def run(self, spelling: str) -> None:
+        if spelling in self.once:
+            return
+        active: list[bool] = [True]
+        for raw in self.files[spelling].splitlines():
+            line: str = raw.strip()
+            if not line.startswith('#'):
+                continue
+            words: list[str] = line[1:].split()
+            directive: str = words[0]
+            if directive in ('ifdef', 'ifndef'):
+                defined: bool = words[1] in self.macros
+                active.append(active[-1] and (defined if directive == 'ifdef' else not defined))
+                continue
+            if directive == 'else':
+                enclosing: bool = active[-2]
+                active[-1] = enclosing and not active[-1]
+                continue
+            if directive == 'endif':
+                active.pop()
+                continue
+            if not active[-1]:
+                continue
+            if directive == 'define':
+                self.macros[words[1]] = ' '.join(words[2:])
+            elif directive == 'undef':
+                self.macros.pop(words[1], None)
+            elif directive == 'include':
+                self.run(words[1].strip('"'))
+            elif directive == 'pragma' and words[1] == 'once':
+                self.once.add(spelling)
+            elif directive == 'pragma' and words[1].startswith('push_macro('):
+                name: str = words[1].split('"')[1]
+                self.stacks.setdefault(name, []).append(self.macros.get(name))
+            elif directive == 'pragma' and words[1].startswith('pop_macro('):
+                name = words[1].split('"')[1]
+                if self.stacks.get(name):
+                    value: str | None = self.stacks[name].pop()
+                    if value is None:
+                        self.macros.pop(name, None)
+                    else:
+                        self.macros[name] = value
+            elif directive == 'pragma' and words[1] == 'probe':
+                self.probes.append((words[2], self.macros.get(words[2])))
+        if len(active) != 1:
+            raise AssertionError(f'{spelling}: unbalanced conditionals')
 
-    def test_guard_goes_inside_an_include_guard(self) -> None:
-        guarded: str = self.guard('include/gui_forms/c.h',
-                                  '#ifndef GF_C_H\n#define GF_C_H\nstruct gf_rect { int width; };\n#endif\n')
-        lines: list[str] = guarded.splitlines()
-        self.assertEqual(lines[:3], ['#ifndef GF_C_H', '#define GF_C_H', guard_header_macros.GUARD_BEGIN])
-        self.assertEqual(lines[-2:], [guard_header_macros.RESTORE_END, '#endif'])
-        self.assertIn('#pragma push_macro("width")', lines)
-        self.assertNotIn('#pragma push_macro("GF_C_H")', lines)
 
-    def test_guard_is_idempotent_and_checkable(self) -> None:
-        relative: str = 'include/gui_forms/b.hpp'
-        once: str = self.guard(relative, '#pragma once\nenum class B { small };')
-        twice: str = self.guard(relative, once)
-        self.assertEqual(once, twice)
-        header: Path = self.root / relative
-        names: Path = write(self.root, 'standard.txt', 'std\n')
-        arguments: list[str] = [str(header), '--include-root', str(self.include), '--standard-names', str(names),
-                                '--check']
-        self.assertEqual(guard_header_macros.main(arguments), 0)
-        header.write_text('#pragma once\nenum class B { small, large };\n', encoding='utf-8')
-        self.assertEqual(guard_header_macros.main(arguments), 1)
+class ShieldTests(unittest.TestCase):
+    NAMES: list[str] = ['near', 'far', 'Button']
 
-    def test_header_without_open_names_is_unchanged(self) -> None:
-        text: str = '#pragma once\nnamespace gui_forms { int gf_value; }\n'
-        self.assertEqual(self.guard('include/gui_forms/d.hpp', text), text)
+    def files(self) -> dict[str, str]:
+        begin: str = consumer_shield.render_begin(self.NAMES)
+        end: str = consumer_shield.render_end(self.NAMES)
+        outer: str = consumer_shield.insert_handshake(
+            '#pragma once\n#pragma probe near\n#include "inner.hpp"\n#pragma probe far\n')
+        inner: str = consumer_shield.insert_handshake('#pragma once\n#pragma probe Button\n')
+        guarded: str = consumer_shield.insert_handshake(
+            '#ifndef GF_C_H\n#define GF_C_H\n#include "inner.hpp"\n#pragma probe near\n#endif\n')
+        return {'gui_forms/gf_shield_begin.h': begin, 'gui_forms/gf_shield_end.h': end,
+                'outer.hpp': outer, 'inner.hpp': inner, 'c.h': guarded}
+
+    def consumer(self, body: str) -> Preprocessor:
+        files: dict[str, str] = self.files()
+        files['unit.cpp'] = '#define near 1\n#define Button 3\n' + body
+        preprocessor: Preprocessor = Preprocessor(files)
+        preprocessor.run('unit.cpp')
+        return preprocessor
+
+    def assert_restored(self, preprocessor: Preprocessor) -> None:
+        self.assertEqual(preprocessor.macros.get('near'), '1')
+        self.assertEqual(preprocessor.macros.get('Button'), '3')
+        self.assertNotIn('far', preprocessor.macros)
+        self.assertNotIn('GF_SHIELD_ACTIVE', preprocessor.macros)
+        self.assertNotIn('GF_SHIELD_OPENER', preprocessor.macros)
+        for name, stack in preprocessor.stacks.items():
+            self.assertEqual(stack, [], name)
+
+    def test_nested_headers_open_and_close_once(self) -> None:
+        preprocessor: Preprocessor = self.consumer('#include "outer.hpp"\n#pragma probe near\n')
+        # Inside: every shielded name is absent; after: restored.
+        self.assertEqual(preprocessor.probes, [('near', None), ('Button', None), ('far', None), ('near', '1')])
+        self.assert_restored(preprocessor)
+
+    def test_repeated_and_mixed_orders(self) -> None:
+        preprocessor: Preprocessor = self.consumer(
+            '#include "inner.hpp"\n#pragma probe Button\n#include "outer.hpp"\n#include "inner.hpp"\n'
+            '#include "c.h"\n#include "c.h"\n#pragma probe near\n')
+        self.assertEqual(preprocessor.probes, [
+            ('Button', None), ('Button', '3'),        # inner alone, then restored
+            ('near', None), ('far', None),            # outer (inner already read once)
+            ('near', None),                           # c.h's guard opens its own shield
+            ('near', '1')])
+        self.assert_restored(preprocessor)
+
+    def test_consumer_wrapped_block(self) -> None:
+        preprocessor: Preprocessor = self.consumer(
+            '#include "gui_forms/gf_shield_begin.h"\n#pragma probe near\n#include "c.h"\n#include "outer.hpp"\n'
+            '#pragma probe Button\n#include "gui_forms/gf_shield_end.h"\n#pragma probe Button\n')
+        self.assertEqual(preprocessor.probes, [
+            ('near', None), ('Button', None), ('near', None), ('near', None), ('far', None),
+            ('Button', None), ('Button', '3')])
+        self.assert_restored(preprocessor)
+
+    def test_handshake_placement_and_idempotence(self) -> None:
+        once: str = consumer_shield.insert_handshake('// x\n#pragma once\nint a;\n')
+        self.assertEqual(once, '// x\n#pragma once\n' + consumer_shield.BEGIN_LINE + '\nint a;\n'
+                         + consumer_shield.END_LINE + '\n')
+        self.assertEqual(consumer_shield.insert_handshake(once), once)
+        self.assertTrue(consumer_shield.has_handshake(once))
+        self.assertFalse(consumer_shield.has_handshake('#pragma once\nint a;\n'))
+        guarded: str = consumer_shield.insert_handshake('#ifndef G\n#define G\nint a;\n#endif\n')
+        self.assertEqual(guarded.splitlines(), ['#ifndef G', '#define G', consumer_shield.BEGIN_LINE, 'int a;',
+                                                consumer_shield.END_LINE, '#endif'])
+        with self.assertRaises(ValueError):
+            consumer_shield.insert_handshake('int a;\n')
+
+    def test_shield_names_cover_the_surface_and_skip_the_shield(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root: Path = Path(directory)
+            write(root, 'include/gui_forms/a.hpp', '#pragma once\n#include "gui_forms/gf_shield_begin.h"\n'
+                  '#include "gui_forms/b.hpp"\nnamespace gui_forms { enum class A { near }; }\n'
+                  '#include "gui_forms/gf_shield_end.h"\n')
+            write(root, 'include/gui_forms/b.hpp', '#pragma once\n#define GF_B 1\n#ifdef CONFIGURED\n#endif\n'
+                  'namespace gui_forms { int far = GF_B; int CONFIGURED; std::size_t s; }\n')
+            write(root, 'include/gui_forms/gf_shield_begin.h', '#undef stale\n')
+            names: list[str] = consumer_shield.shield_names(root, [], STANDARD | {'size_t'})
+            self.assertEqual(names, ['A', 'far', 'near', 's'])
+
+
+class ModuleExportsTests(unittest.TestCase):
+    def names(self, source: str) -> list[str]:
+        found: list[str] = []
+        for declaration in module_exports.declarations_of(source):
+            found.append('::'.join(declaration.namespace + (declaration.name,)))
+        return found
+
+    def test_exportable_namespace_scope_declarations(self) -> None:
+        source: str = (
+            '#pragma once\n#define GF_X 1\nnamespace gui_forms {\n'
+            'class Forward;\nclass GUI_FORMS_API Button final : public Base { void f(); int x_{0}; };\n'
+            'enum class Alignment : std::uint8_t { near, far };\n'
+            'template <typename T> class Value { T v; };\n'
+            'template <typename T> Value(T) -> Value<T>;\n'
+            'using Interval = std::chrono::milliseconds;\n'
+            'GUI_FORMS_API void run(Button& button);\n'
+            'inline int twice(int a) { return a + a; }\n'
+            'bool operator==(const Button& a, const Button& b) noexcept;\n'
+            'inline constexpr Interval period{40};\n'
+            'constexpr int internal_constant = 3;\n'
+            'static void helper();\n'
+            'template <> inline constexpr int kind_of<bool> = 1;\n'
+            'void Value<int>::member() {}\n'
+            'struct Holder { friend void hidden(Holder&); };\n'
+            'namespace detail { void secret(); }\n'
+            'namespace { void anonymous(); }\n'
+            'namespace plots { struct Series {}; }\n'
+            'template <typename T> concept Numeric = true;\n'
+            '}\n')
+        self.assertEqual(self.names(source), [
+            'gui_forms::Forward', 'gui_forms::Button', 'gui_forms::Alignment', 'gui_forms::Value',
+            'gui_forms::Interval', 'gui_forms::run', 'gui_forms::twice', 'gui_forms::operator==',
+            'gui_forms::period', 'gui_forms::Holder', 'gui_forms::plots::Series', 'gui_forms::Numeric'])
+        forward: list[bool] = []
+        for declaration in module_exports.declarations_of('namespace gui_forms { class A; class B {}; }'):
+            forward.append(declaration.forward)
+        self.assertEqual(forward, [True, False])
+
+    def test_module_unit_exports_by_namespace(self) -> None:
+        declarations: list[module_exports.Declaration] = [
+            module_exports.Declaration(('gui_forms',), 'Button'),
+            module_exports.Declaration(('gui_forms', 'abi'), 'RuntimeTable'),
+            module_exports.Declaration(('gui_forms',), 'Application')]
+        text: str = module_exports.render_module(declarations)
+        self.assertIn('module;\n#include "gui_forms/gui_forms.hpp"\n', text)
+        self.assertIn('export module gui_forms;\n', text)
+        self.assertIn('export namespace gui_forms {\nusing gui_forms::Application;\nusing gui_forms::Button;\n'
+                      '} // namespace gui_forms\n', text)
+        self.assertIn('export namespace gui_forms::abi {\nusing gui_forms::abi::RuntimeTable;\n', text)
 
 
 if __name__ == '__main__':

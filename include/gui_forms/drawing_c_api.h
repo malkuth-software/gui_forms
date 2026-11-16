@@ -1,5 +1,6 @@
 #ifndef GUI_FORMS_DRAWING_C_API_H
 #define GUI_FORMS_DRAWING_C_API_H
+#include "gui_forms/gf_shield_begin.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -1094,4 +1095,5 @@ GD_C_API_EXPORT gd_result gd_get_api_v0(uint32_t requested_version,
 }
 #endif
 
+#include "gui_forms/gf_shield_end.h"
 #endif

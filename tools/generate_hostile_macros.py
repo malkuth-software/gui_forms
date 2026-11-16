@@ -13,7 +13,9 @@ own code, is covered by construction. A test translation unit includes the
 generated header and then the consumer headers, and must compile.
 
 The translation unit names the generated header in its first first-party
-include; the includes after it are the seeds. The standard headers the
+include; the includes after it are the seeds (the shield's two headers are
+not scanned). A unit of the module path imports gui_forms after the header
+instead: its seeds are then the module's umbrellas, given with --seed. The standard headers the
 closure includes are included first, before any definition, since the
 consumer may not define standard names ([macro.names]).
 
@@ -24,7 +26,8 @@ consumer may not define standard names ([macro.names]).
         --output build/hostile_macros/hostile_macros_minimal.h \\
         --report build/hostile_macros/hostile_macros_minimal.txt
 
---include-directories-file reads further roots, one per line (CMake writes
+--surface include/gui_forms classifies first-party macros and configuration
+names over the whole surface, as the shield does. --include-directories-file reads further roots, one per line (CMake writes
 the consumer's include directories there). The report lists every hostile
 identifier with the header and line of its first use: the failures the test
 would show while the surface is unguarded.
@@ -52,8 +55,6 @@ def seeds_of(translation_unit: Path, generated_name: str) -> list[consumer_macro
             found = True
     if not found:
         raise SystemExit(f'{translation_unit}: no include of {generated_name}')
-    if not seeds:
-        raise SystemExit(f'{translation_unit}: no consumer header after {generated_name}')
     return seeds
 
 
@@ -128,20 +129,38 @@ def main(argument_list: list[str]) -> int:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('--translation-unit', type=Path, required=True)
     parser.add_argument('--include-root', action='append', default=[])
+    parser.add_argument('--seed', action='append', default=[], help='a further seed header, as included')
     parser.add_argument('--include-directories-file', type=Path)
     parser.add_argument('--standard-names', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--report', type=Path)
+    parser.add_argument('--surface', type=Path,
+                        help='the surface directory (include/gui_forms) whose macros and #if names are excluded')
     arguments: argparse.Namespace = parser.parse_args(argument_list)
 
     roots: list[Path] = read_roots(arguments)
     seeds: list[consumer_macros.Include] = seeds_of(arguments.translation_unit, arguments.output.name)
+    for spelling in arguments.seed:
+        seeds.append(consumer_macros.Include(spelling, False, 1))
+    if not seeds:
+        raise SystemExit(f'{arguments.translation_unit}: no consumer header after {arguments.output.name}, '
+                         'and no --seed')
     closure: consumer_macros.Closure = consumer_macros.compute_closure(
         seeds, roots, arguments.translation_unit.resolve().parent)
     if not closure.headers:
         raise SystemExit(f'{arguments.translation_unit}: no seed resolves under {roots}')
     standard_names: frozenset[str] = consumer_macros.load_standard_names(arguments.standard_names)
-    classification: consumer_macros.Classification = consumer_macros.classify(closure.headers, standard_names)
+    defined: set[str] = set()
+    conditions: set[str] = set()
+    if arguments.surface:
+        # The whole surface decides what is a first-party macro or a
+        # configuration name, exactly as the shield (tools/consumer_shield.py) does.
+        surface_root: Path = arguments.surface.resolve().parent
+        surface: consumer_macros.Closure = consumer_macros.compute_closure(
+            consumer_macros.surface_seeds(arguments.surface.resolve(), surface_root), roots, surface_root)
+        defined, conditions = consumer_macros.surface_exclusions(surface)
+    classification: consumer_macros.Classification = consumer_macros.classify(
+        closure.headers, standard_names, first_party_macros=defined, configuration=conditions)
 
     header_text: str = render_header(arguments.translation_unit, closure, classification)
     arguments.output.parent.mkdir(parents=True, exist_ok=True)

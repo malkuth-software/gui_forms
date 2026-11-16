@@ -27,8 +27,9 @@ define them regardless; libc++ and the Microsoft STL defend min and max the
 same way.
 
 Two tools use this module: generate_hostile_macros.py writes the hostile
-conformance header, and guard_header_macros.py wraps one header in
-push_macro, #undef and pop_macro for exactly the identifiers it uses.
+conformance header, and consumer_shield.py writes the consumer-macro shield
+(gf_shield_begin.h and gf_shield_end.h), which saves, removes and restores
+every open name around the outermost GUI.Forms header of a translation unit.
 
 The lexer follows translation phases 1 to 3 closely enough for these
 headers: line continuations, comments, string and character literals with
@@ -344,6 +345,12 @@ def resolve_include(include: Include, including: Path, roots: list[Path]) -> Pat
     return None
 
 
+# The consumer-macro shield's own headers (tools/consumer_shield.py): included
+# by every public header, made of push_macro, #undef and pop_macro lines for
+# every open name. They are resolved but never scanned.
+SHIELD_HEADERS: frozenset[str] = frozenset(('gf_shield_begin.h', 'gf_shield_end.h'))
+
+
 @dataclasses.dataclass
 class Closure:
     """The headers a set of seeds reaches, in first-reached order."""
@@ -367,13 +374,32 @@ def compute_closure(seeds: list[Include], roots: list[Path], seed_directory: Pat
             if include.spelling not in closure.system_includes:
                 closure.system_includes.append(include.spelling)
             continue
-        if resolved in closure.headers:
+        if resolved in closure.headers or resolved.name in SHIELD_HEADERS:
             continue
         scan: HeaderScan = scan_header(read_source(resolved))
         closure.headers[resolved] = scan
         for nested in reversed(scan.includes):
             pending.append((nested, resolved))
     return closure
+
+
+def surface_seeds(surface: Path, root: Path) -> list[Include]:
+    """Every header under surface (a directory of an include root) as a seed."""
+    seeds: list[Include] = []
+    for path in sorted(surface.rglob('*')):
+        if path.suffix in ('.h', '.hpp') and path.name not in SHIELD_HEADERS:
+            seeds.append(Include(path.relative_to(root).as_posix(), False, 1))
+    return seeds
+
+
+def surface_exclusions(closure: Closure) -> tuple[set[str], set[str]]:
+    """The macros a closure defines and the names its #if lines read."""
+    defined: set[str] = set()
+    conditions: set[str] = set()
+    for scan in closure.headers.values():
+        defined |= scan.defined
+        conditions |= scan.conditions
+    return defined, conditions
 
 
 def read_source(path: Path) -> str:
@@ -422,14 +448,16 @@ class Classification:
 def classify(headers: dict[Path, HeaderScan], standard_names: frozenset[str],
              prefixes: tuple[str, ...] = RESERVED_PREFIXES,
              always_hostile: frozenset[str] = ALWAYS_HOSTILE,
-             first_party_macros: set[str] | None = None) -> Classification:
+             first_party_macros: set[str] | None = None,
+             configuration: set[str] | None = None) -> Classification:
     """Sorts every identifier the headers use.
 
-    first_party_macros adds macros defined outside the headers given (the
-    rest of the closure, when one header is classified alone).
+    first_party_macros and configuration add macros defined, and names read
+    in #if lines, outside the headers given: the whole surface's, so that a
+    subset is classified exactly as the shield classifies the surface.
     """
     defined: set[str] = set(first_party_macros or ())
-    conditions: set[str] = set()
+    conditions: set[str] = set(configuration or ())
     result: Classification = Classification(hostile={}, excluded={}, first_party_macros=defined,
                                             unprefixed_macros={}, undefined_macros={})
     for path, scan in headers.items():

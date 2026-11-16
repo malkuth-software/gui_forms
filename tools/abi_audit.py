@@ -214,7 +214,10 @@ def parse_directives(text: str, declarations: Declarations, findings: list[Findi
             if constant is not None:
                 declarations.constants.append(constant)
             continue
-        if re.fullmatch(r"#(ifndef|define)\s+GUI_FORMS_C_GF_ABI(_CLASSES)?_H|#endif|#include <stdint\.h>", stripped):
+        # The consumer-macro shield's two include lines (tools/consumer_shield.py)
+        # declare nothing.
+        if re.fullmatch(r"#(ifndef|define)\s+GUI_FORMS_C_GF_ABI(_CLASSES)?_H|#endif|#include <stdint\.h>"
+                        r'|#include "gui_forms/gf_shield_(begin|end)\.h"', stripped):
             continue
         findings.append(Finding("dialect", f"directive outside the header dialect: {stripped}"))
     return "\n".join(kept)

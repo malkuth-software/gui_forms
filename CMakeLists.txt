@@ -73,8 +73,8 @@ option(GUI_FORMS_BUILD_TESTS "Build automated proving-slice tests" ${PROJECT_IS_
 # anatomy coverage, the Gallery page, interaction and accessibility tests),
 # so it builds with the tests; the programs (GUI_FORMS_BUILD_GALLERY) link it.
 # Register the hostile-macro conformance objects as tests
-# (cmake/HostileMacroConformance.cmake). OFF while the consumer surface is
-# unguarded: they fail until it is.
+# (cmake/HostileMacroConformance.cmake). OFF until they have passed on every
+# host; CI builds them in one job, allowed to fail, until then.
 option(GUI_FORMS_HOSTILE_MACRO_TESTS "Run the hostile-macro conformance compiles as tests" OFF)
 option(GUI_FORMS_BUILD_GALLERY_MODEL "Build the Gallery model and the tests that read it" ${GUI_FORMS_BUILD_TESTS})
 option(GUI_FORMS_INSTALL_GALLERY_MODEL "Install the Gallery model as the GalleryModel package component" OFF)
@@ -1606,6 +1606,8 @@ install(EXPORT GUIFormsTargets
         FILE GUIFormsTargets.cmake
         NAMESPACE GUIForms::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+# `import gui_forms;` (cmake/Module.cmake), when GUI_FORMS_BUILD_MODULE is ON.
+include(cmake/Module.cmake)
 # The swap kernel's archive name, which GUIFormsConfig imports (the package
 # was built in one configuration, so the first one it lists is the one).
 get_target_property(gui_forms_swizzle_configurations stx_skia::swizzle IMPORTED_CONFIGURATIONS)
@@ -3751,9 +3753,9 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_native_boundary_check_self_test
             COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_native_boundaries.py
                 --self-test)
-        # No consumer macro, known or not, can reach the consumer surface
-        # (cmake/HostileMacroConformance.cmake). Its objects build on request
-        # until the surface is guarded.
+        # No consumer macro, known or not, can reach the consumer surface,
+        # through the module or the shield (cmake/HostileMacroConformance.cmake).
+        # Its objects build on request until they pass on every host.
         include(cmake/HostileMacroConformance.cmake)
     endif()
     add_executable(gui_drawing_core_tests tests/drawing_core_tests.cpp)

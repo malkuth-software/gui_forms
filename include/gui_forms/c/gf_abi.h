@@ -1,5 +1,6 @@
 #ifndef GUI_FORMS_C_GF_ABI_H
 #define GUI_FORMS_C_GF_ABI_H
+#include "gui_forms/gf_shield_begin.h"
 
 /*
  * GUI.Forms C ABI, major 1: the stability target of GUI.Forms 0.5, frozen
@@ -5462,4 +5463,5 @@ GF_ABI_EXPORT gf_status GF_CALL gf_abi_get_table(gf_table_id table_id,
 }
 #endif
 
+#include "gui_forms/gf_shield_end.h"
 #endif
