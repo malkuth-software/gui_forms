@@ -886,3 +886,12 @@ rewrite it. A program that parses its own arguments passes them over with
   primitive, is refused (`E405`).
 - Procedural backgrounds (`felt()` and the rest) are warnings until the
   engine registers them.
+- A control's content effect, a filter and mask on the control and its
+  descendants together (C++ `Control::set_content_effect`, C
+  `gf_controls_table.set_content_effect`), has no theme spelling yet: a
+  rule without `::part` already gives `filter` and `mask-*` to the
+  control's own material. The effect's colour stages are the material
+  filter's; its blur is in logical units, read as `filter_blur` is (the
+  standard deviation is half of it), from 0 to 16, a named limit
+  (`maximum_paint_group_effect_blur`, `GF_CONTENT_EFFECT_MAXIMUM_BLUR`);
+  it holds up to 4 mask layers, solid or gradient, no image.
