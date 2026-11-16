@@ -271,8 +271,8 @@ void PageStrip::on_attached_to_window() {
 
 void PageStrip::on_pages_changed(const PageSetChange& change) {
     if (pages_ == nullptr) return;
-    if (keyboard_page_ && !(*pages_).find(*keyboard_page_)) keyboard_page_ = (*pages_).selected_page();
-    if (middle_pressed_ && !(*pages_).find(*middle_pressed_)) middle_pressed_.reset();
+    if (keyboard_page_ && (*pages_).find(*keyboard_page_).absent()) keyboard_page_ = (*pages_).selected_page();
+    if (middle_pressed_ && (*pages_).find(*middle_pressed_).absent()) middle_pressed_.reset();
     const bool hot_stale = hot_.zone != Zone::none && hot_.position >= (*pages_).count();
     if (hot_stale || change.membership || change.order) hot_ = {};
     if (change.membership || change.order) {
@@ -952,9 +952,9 @@ PageStrip::ItemParts PageStrip::tab_parts(std::size_t position) const {
 
 PageStrip::ItemParts PageStrip::tab_parts_of(const PageId& page) const {
     if (pages_ == nullptr) return {};
-    const std::optional<PagePosition> found = (*pages_).find(page);
-    if (!found) return {};
-    const ItemParts parts = tab_parts((*found).value);
+    const stxlib::Optional<PagePosition> found = (*pages_).find(page);
+    if (found.absent()) return {};
+    const ItemParts parts = tab_parts((*found.value()).value);
     return parts;
 }
 
@@ -1012,18 +1012,18 @@ bool PageStrip::focus_cue() const noexcept {
 
 std::optional<std::size_t> PageStrip::selected_position() const {
     if (pages_ == nullptr || !(*pages_).selected_page()) return std::nullopt;
-    const std::optional<PagePosition> found = (*pages_).find(*(*pages_).selected_page());
-    if (!found) return std::nullopt;
-    const std::size_t position = (*found).value;
+    const stxlib::Optional<PagePosition> found = (*pages_).find(*(*pages_).selected_page());
+    if (found.absent()) return std::nullopt;
+    const std::size_t position = (*found.value()).value;
     return position;
 }
 
 std::optional<std::size_t> PageStrip::keyboard_position() const {
     if (pages_ == nullptr || !focused_) return std::nullopt;
     if (!keyboard_page_) return selected_position();
-    const std::optional<PagePosition> found = (*pages_).find(*keyboard_page_);
-    if (!found) return selected_position();
-    const std::size_t position = (*found).value;
+    const stxlib::Optional<PagePosition> found = (*pages_).find(*keyboard_page_);
+    if (found.absent()) return selected_position();
+    const std::size_t position = (*found.value()).value;
     return position;
 }
 
@@ -1380,8 +1380,8 @@ bool PageStrip::choose_from_list(std::size_t position) {
     if (!relocate) {
         const bool chosen = choose(position, PageSelectionCause::pointer);
         if (!chosen || !is_alive() || pages_ == nullptr) return chosen;
-        const std::optional<PagePosition> still = (*pages_).find(page);
-        if (still) reveal((*still).value);
+        const stxlib::Optional<PagePosition> still = (*pages_).find(page);
+        if (still.present()) reveal((*still.value()).value);
         return chosen;
     }
     std::size_t destination = pinned;
@@ -1450,9 +1450,9 @@ bool PageStrip::scroll_forward() {
 bool PageStrip::ensure_visible(const PageId& page) {
     require_mutable();
     if (pages_ == nullptr) return false;
-    const std::optional<PagePosition> found = (*pages_).find(page);
-    if (!found) return false;
-    reveal((*found).value);
+    const stxlib::Optional<PagePosition> found = (*pages_).find(page);
+    if (found.absent()) return false;
+    reveal((*found.value()).value);
     return true;
 }
 
@@ -1507,8 +1507,8 @@ bool PageStrip::move_selected(int direction) {
 bool PageStrip::request_close(const PageId& page, PageCloseCause cause) {
     require_mutable();
     if (pages_ == nullptr) return false;
-    const std::optional<PagePosition> found = (*pages_).find(page);
-    if (!found || !(*pages_).record_at(*found).closable) return false;
+    const stxlib::Optional<PagePosition> found = (*pages_).find(page);
+    if (found.absent() || !(*pages_).record_at(*found.value()).closable) return false;
     // The request holds its own copy of the identity: a handler may remove
     // the page `page` refers to.
     PageCloseRequest request{page, cause, false};
@@ -1607,12 +1607,12 @@ void PageStrip::on_drag_move(Point window_point) {
             invalidate(Dirty::paint);
             return;
         }
-        const std::optional<PagePosition> found = (*pages_).find(drag_.page);
-        if (!reorder_enabled.read() || !found || !slidable((*found).value)) {
+        const stxlib::Optional<PagePosition> found = (*pages_).find(drag_.page);
+        if (!reorder_enabled.read() || found.absent() || !slidable((*found.value()).value)) {
             drag_ = {};
             return;
         }
-        drag_.origin = (*found).value;
+        drag_.origin = (*found.value()).value;
         drag_.destination = drag_.origin;
         drag_.phase = DragState::Phase::sliding;
         pressed_ = {};
@@ -1692,8 +1692,8 @@ Rect PageStrip::slid_bounds(std::size_t position) const {
     return moved;
 }
 
-std::optional<PagePosition> PageStrip::insertion_position_at(Point window_point) const {
-    if (pages_ == nullptr || !absolute_bounds().contains(window_point)) return std::nullopt;
+stxlib::Optional<PagePosition> PageStrip::insertion_position_at(Point window_point) const {
+    if (pages_ == nullptr || !absolute_bounds().contains(window_point)) return stxlib::Optional<PagePosition>::none();
     const Layout& placed = layout();
     const double along = local_main(window_point);
     const std::size_t pinned = (*pages_).pinned_count();
@@ -1704,21 +1704,21 @@ std::optional<PagePosition> PageStrip::insertion_position_at(Point window_point)
         const Rect bounds = placed.tabs[position].bounds;
         if (along < main_start(bounds) + main_length(bounds) * 0.5) {
             gap = position;
-            const PagePosition before{std::max(gap, pinned)};
+            const stxlib::Optional<PagePosition> before = stxlib::Optional<PagePosition>::of(PagePosition{std::max(gap, pinned)});
             return before;
         }
         gap = position + 1U;
     }
-    const PagePosition after{std::max(gap, pinned)};
+    const stxlib::Optional<PagePosition> after = stxlib::Optional<PagePosition>::of(PagePosition{std::max(gap, pinned)});
     return after;
 }
 
 // The mark lies across the row at the gap: centred on the start of the tab
 // at that position, or on the end of the tab before it.
 Rect PageStrip::insertion_mark_bounds() const {
-    if (!insertion_gap_ || pages_ == nullptr) return {};
+    if (insertion_gap_.absent() || pages_ == nullptr) return {};
     const Layout& placed = layout();
-    const std::size_t gap = (*insertion_gap_).value;
+    const std::size_t gap = (*insertion_gap_.value()).value;
     const double thickness = insertion_thickness * placed.key.scale;
     const bool shrinking = overflow.read() == PageStripOverflow::shrink_then_list && placed.overflow;
     for (const std::size_t position : placed.visible) {
@@ -1742,7 +1742,7 @@ bool PageStrip::show_insertion_mark(PagePosition gap) {
         clear_insertion_mark();
         return false;
     }
-    insertion_gap_ = gap;
+    insertion_gap_.set(gap);
     invalidate(Dirty::paint);
     const bool shown = !insertion_mark_bounds().empty();
     if (!shown) insertion_gap_.reset();
@@ -1750,7 +1750,7 @@ bool PageStrip::show_insertion_mark(PagePosition gap) {
 }
 
 void PageStrip::clear_insertion_mark() noexcept {
-    if (!insertion_gap_) return;
+    if (insertion_gap_.absent()) return;
     insertion_gap_.reset();
     invalidate(Dirty::paint);
 }
@@ -1983,9 +1983,9 @@ void PageStrip::handle_pointer(PointerEvent& event) {
     if (!is_alive()) return;
     if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
     if (!is_alive() || pages_ == nullptr) return;
-    const std::optional<PagePosition> found = (*pages_).find(page);
-    if (found) arm_drag((*found).value, event.position);
-    if (event.click_count == 2U && found) {
+    const stxlib::Optional<PagePosition> found = (*pages_).find(page);
+    if (found.present()) arm_drag((*found.value()).value, event.position);
+    if (event.click_count == 2U && found.present()) {
         const PageDoubleClick doubled{page};
         page_double_clicked_.emit(doubled);
     }
@@ -2184,9 +2184,9 @@ void PageStrip::on_list_open_changed(bool open) {
 void PageStrip::on_list_item_invoked(const MenuItemInvocation& invocation) {
     if (pages_ == nullptr) return;
     const PageId page{invocation.item_id};
-    const std::optional<PagePosition> found = (*pages_).find(page);
-    if (!found) return;
-    static_cast<void>(choose_from_list((*found).value));
+    const stxlib::Optional<PagePosition> found = (*pages_).find(page);
+    if (found.absent()) return;
+    static_cast<void>(choose_from_list((*found.value()).value));
 }
 
 // -- semantics -----------------------------------------------------------------
@@ -2205,9 +2205,9 @@ std::optional<std::size_t> PageStrip::position_of_tab_identity(std::string_view 
     const std::string prefix = std::string(stable_id().value()) + ".tab.";
     if (identity.size() <= prefix.size() || identity.substr(0U, prefix.size()) != prefix) return std::nullopt;
     const PageId page{std::string(identity.substr(prefix.size()))};
-    const std::optional<PagePosition> found = (*pages_).find(page);
-    if (!found) return std::nullopt;
-    const std::size_t position = (*found).value;
+    const stxlib::Optional<PagePosition> found = (*pages_).find(page);
+    if (found.absent()) return std::nullopt;
+    const std::size_t position = (*found.value()).value;
     return position;
 }
 

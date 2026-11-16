@@ -247,7 +247,7 @@ void PageView::reconcile_panels() {
     std::size_t index = 0U;
     while (index < slots_.size()) {
         PageSlot& slot = slots_[index];
-        if (!pages_.find(slot.page)) {
+        if (pages_.find(slot.page).absent()) {
             detach_panel(slot);
             slots_.erase(slots_.begin() + static_cast<std::ptrdiff_t>(index));
             continue;

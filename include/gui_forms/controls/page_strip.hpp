@@ -10,6 +10,8 @@
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/controls/page_strip_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -239,14 +241,14 @@ public:
     // tab; never inside the pinned group. None outside the strip. Under
     // `shrink_then_list` the selected page shown after the front run counts
     // for nothing.
-    [[nodiscard]] std::optional<PagePosition> insertion_position_at(Point window_point) const;
+    [[nodiscard]] stxlib::Optional<PagePosition> insertion_position_at(Point window_point) const;
     // Shows the insertion mark (the `insertion_mark` part) at a gap, until
     // `clear_insertion_mark` or a change to the set's pages or order. False,
     // showing nothing, when the gap is beyond the set or not between laid-out
     // tabs.
     bool show_insertion_mark(PagePosition gap);
     void clear_insertion_mark() noexcept;
-    [[nodiscard]] std::optional<PagePosition> insertion_mark() const noexcept { return insertion_gap_; }
+    [[nodiscard]] stxlib::Optional<PagePosition> insertion_mark() const noexcept { return insertion_gap_; }
 
     [[nodiscard]] Event<const PageInvocation&>& page_invoked() noexcept { return page_invoked_; }
     [[nodiscard]] Event<PageCloseRequest&>& page_close_requested() noexcept {
@@ -618,7 +620,7 @@ private:
     // The page a middle press went down on, for a close on its release.
     std::optional<PageId> middle_pressed_{};
     DragState drag_{};
-    std::optional<PagePosition> insertion_gap_{};
+    stxlib::Optional<PagePosition> insertion_gap_{};
     bool focused_{};
     // The keyboard's page while focused; under automatic activation it is
     // the selected page.

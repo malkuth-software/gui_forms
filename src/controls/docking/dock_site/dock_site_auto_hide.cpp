@@ -311,19 +311,19 @@ void DockSite::sync_side_strips() {
             for (std::size_t index = 0; index < wanted.size(); ++index) {
                 const PageId page{wanted[index].value};
                 const std::string title = (*workspace_).panel_title(wanted[index]);
-                const std::optional<PagePosition> found = pages.find(page);
-                if (!found) {
+                const stxlib::Optional<PagePosition> found = pages.find(page);
+                if (found.absent()) {
                     PageRecord record{};
                     record.id = page;
                     record.title = title;
                     static_cast<void>(pages.insert(record, PagePlacement::at(PagePosition{index})));
                     continue;
                 }
-                if ((*found).value != index) static_cast<void>(pages.move(page, PagePosition{index}));
+                if ((*found.value()).value != index) static_cast<void>(pages.move(page, PagePosition{index}));
                 if (pages.record_at(PagePosition{index}).title != title) static_cast<void>(pages.set_title(page, title));
             }
             // The tab of the open flyout is the selected one.
-            if (flyout_panel_ && pages.find(PageId{(*flyout_panel_).value})) {
+            if (flyout_panel_ && pages.find(PageId{(*flyout_panel_).value}).present()) {
                 static_cast<void>(pages.select(PageId{(*flyout_panel_).value}, PageSelectionCause::programmatic));
             }
             batch.close();

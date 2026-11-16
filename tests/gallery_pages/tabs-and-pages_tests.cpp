@@ -85,7 +85,7 @@ void test_tabs_and_pages(gui_forms::Window& window) {
                 (*(*documents).strip()).overflowing() && (*(*documents).strip()).parts().list_count.present,
             "the gallery's document view holds ten documents, one pinned, overflowing into the counted list");
     require(window.perform_semantic_action("gallery.tabs.documents.strip.tab.doc.1", SemanticAction::close) &&
-                !(*documents).pages().find(PageId{"doc.1"}) &&
+                (*documents).pages().find(PageId{"doc.1"}).absent() &&
                 (*documents_status).text.read().find("Closed page_view.cpp") != std::string::npos,
             "closing a gallery document removes it and reports the cause");
     require((*(*documents).strip()).reorder_enabled.read(), "the gallery's documents reorder by dragging");

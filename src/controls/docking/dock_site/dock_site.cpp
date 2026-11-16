@@ -404,8 +404,8 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
             ++shown;
             const PageId page{panel.value};
             const std::string title = (*workspace_).panel_title(panel);
-            const std::optional<PagePosition> found = pages.find(page);
-            if (!found) {
+            const stxlib::Optional<PagePosition> found = pages.find(page);
+            if (found.absent()) {
                 PageRecord record{};
                 record.id = page;
                 record.title = title;
@@ -414,7 +414,7 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
                                                 PagePlacement::at(PagePosition{place_index})));
                 continue;
             }
-            if ((*found).value != place_index) static_cast<void>(pages.move(page, PagePosition{place_index}));
+            if ((*found.value()).value != place_index) static_cast<void>(pages.move(page, PagePosition{place_index}));
             if (pages.record_at(PagePosition{place_index}).title != title) {
                 static_cast<void>(pages.set_title(page, title));
             }
@@ -1307,7 +1307,7 @@ bool DockSite::stack_current(const StackSlot& slot) const {
     if (workspace_ == nullptr) return false;
     const std::optional<DockPanelId>& active = (*workspace_).active_panel();
     if (!active || !slot.view) return false;
-    const bool current = (*slot.view).pages().find(PageId{(*active).value}).has_value();
+    const bool current = (*slot.view).pages().find(PageId{(*active).value}).present();
     return current;
 }
 

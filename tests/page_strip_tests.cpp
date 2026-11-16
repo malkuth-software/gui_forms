@@ -711,7 +711,7 @@ void semantics() {
     std::vector<std::string> closes;
     SubscriptionToken closing = (*strip).page_close_requested().subscribe(TakeClose{&closes});
     require(window.perform_semantic_action("strip.tab.p1", SemanticAction::close) && closes.size() == 1U &&
-                closes[0] == "p1" && pages.find(PageId{"p1"}),
+                closes[0] == "p1" && pages.find(PageId{"p1"}).present(),
             "close asks the owner and the strip removes nothing itself");
     require(!window.perform_semantic_action("strip.tab.p0", SemanticAction::close),
             "close is refused on a tab that is not closable");
