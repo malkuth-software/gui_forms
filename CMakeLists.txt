@@ -5186,7 +5186,8 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_hostile_handlers_tests tests/hostile_handlers/hostile_handlers_tests.cpp)
     target_link_libraries(gui_forms_hostile_handlers_tests PRIVATE gui_forms_controls)
     foreach(_gui_hostile_subject IN ITEMS list_view list_box checked_list_box combo_box tree_view tab_control
-            split_container track_bar h_scroll_bar numeric_up_down data_grid_view menu_strip context_menu)
+            split_container track_bar h_scroll_bar numeric_up_down data_grid_view menu_strip context_menu
+            tree_list_view virtual_rows_view)
         add_test(NAME gui_forms_hostile_handlers_${_gui_hostile_subject}
                  COMMAND gui_forms_hostile_handlers_tests --subject ${_gui_hostile_subject} --actions mutate)
         add_test(NAME gui_forms_hostile_handlers_${_gui_hostile_subject}_release

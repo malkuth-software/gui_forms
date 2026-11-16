@@ -61,7 +61,9 @@
 #include "gui_forms/controls/tab_control.hpp"
 #include "gui_forms/controls/tab_page.hpp"
 #include "gui_forms/controls/track_bar.hpp"
+#include "gui_forms/controls/tree_list_view.hpp"
 #include "gui_forms/controls/tree_view.hpp"
+#include "gui_forms/controls/virtual_rows_view.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/event/event/event.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
@@ -78,6 +80,7 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -1237,6 +1240,153 @@ const HostileEvent context_menu_events[] = {
     {"open_changed", &attach_context_open},
 };
 
+// --- TreeListView (A-gf-controls-10-F1) ------------------------------------
+
+TreeListNode tree_list_node(const char* stable_id, const char* text, std::size_t depth, bool expandable) {
+    TreeListNode node;
+    node.stable_id = stable_id;
+    node.text = text;
+    node.cells = {std::string(text) + " size"};
+    node.depth = depth;
+    node.expandable = expandable;
+    return node;
+}
+
+void tree_list_clear(Stage& stage) {
+    const std::shared_ptr<TreeListView> view = subject_as<TreeListView>(stage);
+    if (view != nullptr) (*view).set_nodes({});
+}
+
+void tree_list_replace(Stage& stage) {
+    const std::shared_ptr<TreeListView> view = subject_as<TreeListView>(stage);
+    if (view == nullptr) return;
+    std::vector<TreeListNode> nodes;
+    nodes.push_back(tree_list_node("replaced", "Replaced", 0U, false));
+    (*view).set_nodes(std::move(nodes));
+}
+
+void build_tree_list_view(Stage& stage) {
+    std::shared_ptr<TreeListView> view = make_control<TreeListView>(StableId("hostile.tree-list"));
+    std::vector<TreeListColumn> columns;
+    columns.push_back({.stable_id = "name", .text = "Name", .width = 160.0});
+    columns.push_back({.stable_id = "size", .text = "Size", .width = 80.0});
+    (*view).set_columns(std::move(columns));
+    std::vector<TreeListNode> nodes;
+    nodes.push_back(tree_list_node("root", "Root", 0U, true));
+    nodes.push_back(tree_list_node("root.a", "A", 1U, false));
+    nodes.push_back(tree_list_node("root.b", "B", 1U, false));
+    nodes.push_back(tree_list_node("second", "Second", 0U, false));
+    nodes.push_back(tree_list_node("third", "Third", 0U, false));
+    (*view).set_nodes(std::move(nodes));
+    (*view).set_requested_bounds({0.0, 0.0, window_width, window_height});
+    stage.subject = view;
+    stage.clear_items = &tree_list_clear;
+    stage.replace_items = &tree_list_replace;
+}
+
+void drive_tree_list_view(Stage& stage) {
+    // Rows under the header; the first press also takes focus (the audit's
+    // hit index across request_focus).
+    click_at(stage, Point{60.0, 40.0});
+    click_at(stage, Point{60.0, 62.0});
+    click_at(stage, Point{60.0, 62.0}, 2U);
+    focus_subject(stage);
+    press_key(stage, PhysicalKey::home);
+    press_key(stage, PhysicalKey::right);
+    press_key(stage, PhysicalKey::down);
+    press_key(stage, PhysicalKey::left);
+    press_key(stage, PhysicalKey::enter);
+    press_key(stage, PhysicalKey::end);
+    click_at(stage, Point{40.0, 10.0});
+}
+
+void check_tree_list_view(Stage& stage, Findings& findings) {
+    const std::shared_ptr<TreeListView> view = subject_as<TreeListView>(stage);
+    if (view == nullptr) return;
+    const std::optional<std::string> selected = (*view).selected_id.read();
+    if (selected.has_value() && (*view).index_of(*selected).absent()) {
+        findings.fail("TreeListView's selected node is not among its nodes");
+    }
+    const stxlib::Optional<std::string_view> current = (*view).current_id();
+    const std::string_view* const current_id = current.value();
+    if (current_id != nullptr && (*view).index_of(*current_id).absent()) {
+        findings.fail("TreeListView's current node is not among its nodes");
+    }
+}
+
+const HostileEvent tree_list_view_events[] = {
+    {"focus_observed", &attach_focus},
+    {"selection_changed",
+     &attach_to_subject<TreeListView, Event<const TreeListSelectionChange&>, &TreeListView::selection_changed>},
+    {"expansion_changed",
+     &attach_to_subject<TreeListView, Event<const TreeListExpansionChange&>, &TreeListView::expansion_changed>},
+    {"item_activated",
+     &attach_to_subject<TreeListView, Event<const TreeListActivation&>, &TreeListView::item_activated>},
+    {"sort_changed", &attach_to_subject<TreeListView, Event<const TreeListSortChange&>, &TreeListView::sort_changed>},
+};
+
+// --- VirtualRowsView (A-gf-controls-14-F3) -----------------------------------
+// No row callbacks: rows keep the estimated height and are named by position.
+
+void virtual_rows_clear(Stage& stage) {
+    const std::shared_ptr<VirtualRowsView> view = subject_as<VirtualRowsView>(stage);
+    if (view != nullptr) (*view).reset_rows(0U);
+}
+
+void virtual_rows_replace(Stage& stage) {
+    const std::shared_ptr<VirtualRowsView> view = subject_as<VirtualRowsView>(stage);
+    if (view != nullptr) (*view).reset_rows(2U);
+}
+
+void build_virtual_rows_view(Stage& stage) {
+    std::shared_ptr<VirtualRowsView> view = make_control<VirtualRowsView>(StableId("hostile.virtual-rows"));
+    (*view).set_estimated_row_height(24.0);
+    (*view).set_selection_mode(ListSelectionMode::multiple_extended);
+    (*view).reset_rows(40U);
+    (*view).set_requested_bounds({0.0, 0.0, window_width, window_height});
+    stage.subject = view;
+    stage.clear_items = &virtual_rows_clear;
+    stage.replace_items = &virtual_rows_replace;
+}
+
+void drive_virtual_rows_view(Stage& stage) {
+    click_at(stage, Point{60.0, 36.0});
+    pointer(stage, PointerAction::down, PointerButton::primary, Point{60.0, 108.0});
+    pointer(stage, PointerAction::up, PointerButton::primary, Point{60.0, 108.0});
+    click_at(stage, Point{60.0, 60.0}, 2U);
+    focus_subject(stage);
+    press_key(stage, PhysicalKey::down);
+    press_key(stage, PhysicalKey::down, Modifier::shift);
+    press_key(stage, PhysicalKey::page_down);
+    press_key(stage, PhysicalKey::end);
+    press_key(stage, PhysicalKey::enter);
+    press_key(stage, PhysicalKey::home, Modifier::shift);
+}
+
+void check_virtual_rows_view(Stage& stage, Findings& findings) {
+    const std::shared_ptr<VirtualRowsView> view = subject_as<VirtualRowsView>(stage);
+    if (view == nullptr) return;
+    const std::size_t rows = (*view).row_count();
+    const stxlib::Optional<VirtualRowIndex> selected = (*view).selected_row();
+    const VirtualRowIndex* const selected_row = selected.value();
+    if (selected_row != nullptr && (*selected_row).value >= rows) {
+        findings.fail("VirtualRowsView's current row is past its rows");
+    }
+    const VirtualRowsView& viewed = *view;
+    for (const VirtualRowRange& range : viewed.selected_ranges()) {
+        if (range.first.value >= rows || range.count > rows - range.first.value) {
+            findings.fail("VirtualRowsView selects rows past its rows");
+        }
+    }
+}
+
+const HostileEvent virtual_rows_view_events[] = {
+    {"focus_observed", &attach_focus},
+    {"selection_changed",
+     &attach_to_subject<VirtualRowsView, Event<const VirtualRowSelection&>, &VirtualRowsView::selection_changed>},
+    {"row_activated", &attach_to_subject<VirtualRowsView, Event<VirtualRowIndex>, &VirtualRowsView::row_activated>},
+};
+
 // --- The subjects -----------------------------------------------------------------
 
 const Subject subjects[] = {
@@ -1257,6 +1407,9 @@ const Subject subjects[] = {
      &check_data_grid_view},
     {"menu_strip", &build_menu_strip, menu_strip_events, &drive_menu_strip, &check_menu_strip},
     {"context_menu", &build_context_menu, context_menu_events, &drive_context_menu, &check_context_menu},
+    {"tree_list_view", &build_tree_list_view, tree_list_view_events, &drive_tree_list_view, &check_tree_list_view},
+    {"virtual_rows_view", &build_virtual_rows_view, virtual_rows_view_events, &drive_virtual_rows_view,
+     &check_virtual_rows_view},
 };
 
 // --- One case ---------------------------------------------------------------------
