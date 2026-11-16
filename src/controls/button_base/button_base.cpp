@@ -272,9 +272,10 @@ void ButtonBase::clear_visual_recipes() {
 }
 
 void ButtonBase::set_connection_topology(
-    std::optional<ConnectedControlTopology> topology) {
+    stxlib::Optional<ConnectedControlTopology> topology) {
     require_mutable();
-    if (topology && !valid_connected_control_topology(*topology)) {
+    const ConnectedControlTopology* const authored = topology.value();
+    if (authored != nullptr && !valid_connected_control_topology(*authored)) {
         throw std::invalid_argument(
             "ButtonBase connection topology requires count >= 2 and index < count");
     }
@@ -850,7 +851,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     if (own != nullptr && authored.absent()) {
         authored.set(AuthoredButtonColours{(*own).face, (*own).text});
     }
-    const bool engine_drawn = !visual_recipes_override_ && !connection_topology_;
+    const bool engine_drawn = !visual_recipes_override_ && connection_topology_.absent();
     // The face, the cues and the content are parts the theme's engine draws,
     // so a theme's `::part(face)`, `::part(label)` and `::part(focus)` rules
     // select them; the states give the recipe context above.
@@ -912,7 +913,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         // the program's own recipes when it set them, else as parts.
         if (visual_recipes_override_) {
             ControlVisualRecipe cue_recipe = recipe;
-            if (connection_topology_) cue_recipe.material.corner_radius = 0.0;
+            if (connection_topology_.present()) cue_recipe.material.corner_radius = 0.0;
             paint_theme_cues(painter, visual_bounds, cue_recipe, context);
         } else {
             PartPaint cue;

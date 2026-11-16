@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <optional>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // Connection is authored explicitly. GUI.Forms never infers a group from
@@ -56,16 +58,44 @@ struct GUI_FORMS_API ConnectedControlVisualGeometry final {
     ConnectedControlSegment segment{ConnectedControlSegment::standalone};
     Rect clip_bounds{};
     Rect paint_bounds{};
-    std::optional<ConnectedControlSeam> leading_seam;
+    stxlib::Optional<ConnectedControlSeam> leading_seam{};
 };
 
 [[nodiscard]] GUI_FORMS_API bool valid_connected_control_topology(
     ConnectedControlTopology topology) noexcept;
 [[nodiscard]] GUI_FORMS_API ConnectedControlSegment connected_control_segment(
-    std::optional<ConnectedControlTopology> topology) noexcept;
+    stxlib::Optional<ConnectedControlTopology> topology) noexcept;
 [[nodiscard]] GUI_FORMS_API ConnectedControlVisualGeometry
 resolve_connected_control_visual_geometry(
     Rect bounds, const SurfaceMaterial& material,
-    std::optional<ConnectedControlTopology> topology) noexcept;
+    stxlib::Optional<ConnectedControlTopology> topology) noexcept;
+
+// The standard topology, as the forms above take it: the deprecated
+// std::optional overloads below convert through it.
+[[nodiscard]] inline stxlib::Optional<ConnectedControlTopology> connected_topology_from_standard(
+    const std::optional<ConnectedControlTopology>& topology) noexcept {
+    stxlib::Optional<ConnectedControlTopology> result{};
+    if (topology.has_value()) result.set(*topology);
+    return result;
+}
+
+// The standard forms, kept for one stage (D15 Q3). A plain topology is
+// refused rather than routed to them: pass
+// stxlib::Optional<ConnectedControlTopology>::of(topology).
+[[deprecated("pass stxlib::Optional<ConnectedControlTopology>")]] [[nodiscard]] inline ConnectedControlSegment
+connected_control_segment(std::optional<ConnectedControlTopology> topology) noexcept {
+    const ConnectedControlSegment result = connected_control_segment(connected_topology_from_standard(topology));
+    return result;
+}
+ConnectedControlSegment connected_control_segment(ConnectedControlTopology topology) = delete;
+[[deprecated("pass stxlib::Optional<ConnectedControlTopology>")]] [[nodiscard]] inline ConnectedControlVisualGeometry
+resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material,
+                                          std::optional<ConnectedControlTopology> topology) noexcept {
+    const ConnectedControlVisualGeometry result =
+        resolve_connected_control_visual_geometry(bounds, material, connected_topology_from_standard(topology));
+    return result;
+}
+ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material,
+                                                                         ConnectedControlTopology topology) = delete;
 
 } // namespace gui_forms

@@ -98,7 +98,7 @@ gui_forms::ButtonBase
 
       **visual_recipes_override** : ``std::optional<ControlStateRecipes>``, read-only
 
-      **connection_topology** : ``std::optional<ConnectedControlTopology>``, default ``std::nullopt``
+      **connection_topology** : ``stxlib::Optional<ConnectedControlTopology>``, default ``std::nullopt``
          Places the button in a joined row or column of buttons, as segment
          ``index`` of ``count``, so adjoining segments share edges. The count must be
          at least 2 and the index below it, or the setter throws
@@ -351,12 +351,16 @@ gui_forms::ButtonBase
 
    .. cpp:function:: const std::optional<ControlStateRecipes>& visual_recipes_override() const noexcept
 
-   .. cpp:function:: const std::optional<ConnectedControlTopology>& connection_topology() const noexcept
+   .. cpp:function:: const stxlib::Optional<ConnectedControlTopology>& connection_topology() const noexcept
 
       Places the button in a joined row or column of buttons, as segment
       ``index`` of ``count``, so adjoining segments share edges. The count must be
       at least 2 and the index below it, or the setter throws
       ``std::invalid_argument``.
+
+   .. cpp:function:: void set_connection_topology(stxlib::Optional<ConnectedControlTopology> topology)
+
+      Sets :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`; see the property's description above.
 
    .. cpp:function:: void set_connection_topology(std::optional<ConnectedControlTopology> topology)
 

@@ -48,14 +48,21 @@ public:
     }
     void set_visual_recipes(ControlStateRecipes recipes);
     void clear_visual_recipes();
-    [[nodiscard]] const std::optional<ConnectedControlTopology>&
+    [[nodiscard]] const stxlib::Optional<ConnectedControlTopology>&
     connection_topology() const noexcept {
         return connection_topology_;
     }
-    // Nullopt is a standalone control. A non-null value is explicit authored
+    // None is a standalone control. A topology is explicit authored
     // topology; layout coordinates are never consulted to infer connection.
-    void set_connection_topology(
-        std::optional<ConnectedControlTopology> topology);
+    void set_connection_topology(stxlib::Optional<ConnectedControlTopology> topology);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<ConnectedControlTopology>")]]
+    void set_connection_topology(std::optional<ConnectedControlTopology> topology) {
+        set_connection_topology(connected_topology_from_standard(topology));
+    }
+    // A plain topology is refused rather than routed to the deprecated
+    // form: pass stxlib::Optional<ConnectedControlTopology>::of(topology).
+    void set_connection_topology(ConnectedControlTopology topology) = delete;
     void clear_image();
     [[nodiscard]] std::shared_ptr<ImageList> image_list() const noexcept {
         return image_list_;
@@ -250,7 +257,7 @@ private:
 
     stxlib::Optional<BasicControlStyle> style_override_;
     std::optional<ControlStateRecipes> visual_recipes_override_;
-    std::optional<ConnectedControlTopology> connection_topology_;
+    stxlib::Optional<ConnectedControlTopology> connection_topology_;
     ImageId image_{};
     std::shared_ptr<ImageList> image_list_;
     SubscriptionToken image_list_changed_;

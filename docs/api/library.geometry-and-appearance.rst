@@ -1596,7 +1596,7 @@ Types
 
    .. cpp:member:: Rect paint_bounds
 
-   .. cpp:member:: std::optional<ConnectedControlSeam> leading_seam
+   .. cpp:member:: stxlib::Optional<ConnectedControlSeam> leading_seam
 
 .. cpp:namespace:: gui_forms
 
@@ -9762,9 +9762,19 @@ Functions, constants and aliases
 
 .. cpp:function:: bool valid_connected_control_topology(ConnectedControlTopology topology) noexcept
 
-.. cpp:function:: ConnectedControlSegment connected_control_segment(std::optional<ConnectedControlTopology> topology) noexcept
+.. cpp:function:: ConnectedControlSegment connected_control_segment(stxlib::Optional<ConnectedControlTopology> topology) noexcept
 
-.. cpp:function:: ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
+.. cpp:function:: ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology) noexcept
+
+.. cpp:function:: inline stxlib::Optional<ConnectedControlTopology> connected_topology_from_standard(const std::optional<ConnectedControlTopology>& topology) noexcept
+
+   The standard topology, as the forms above take it: the deprecated std::optional overloads below convert through it.
+
+.. cpp:function:: inline ConnectedControlSegment connected_control_segment(std::optional<ConnectedControlTopology> topology) noexcept
+
+   The standard forms, kept for one stage (D15 Q3). A plain topology is refused rather than routed to them: pass stxlib::Optional<ConnectedControlTopology>::of(topology).
+
+.. cpp:function:: inline ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -9776,11 +9786,17 @@ Functions, constants and aliases
 
 .. cpp:function:: void disconnect_button_group(std::span<const std::shared_ptr<ButtonBase>> controls)
 
-.. cpp:function:: void paint_connected_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology)
+.. cpp:function:: void paint_connected_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology)
 
    Renderer-neutral material composition used by ButtonBase and available to custom controls which need the same explicit connected physical grammar.
 
-.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
+.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology) noexcept
+
+.. cpp:function:: inline void paint_connected_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology)
+
+   The standard forms, kept for one stage (D15 Q3); a plain topology is refused: pass stxlib::Optional<ConnectedControlTopology>::of(topology).
+
+.. cpp:function:: inline Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
 
 .. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology, Size box) noexcept
 

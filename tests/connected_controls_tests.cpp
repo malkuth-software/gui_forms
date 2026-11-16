@@ -29,15 +29,60 @@
 #include <exception>
 #include <iostream>
 #include <memory>
-#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace {
 
 using namespace gui_forms;
+
+// D15 Q3: the topology setter and the connected-material functions keep
+// their deprecated std::optional forms for one stage; a plain topology (or
+// {} for the setter) must not reach them silently.
+template <typename Control>
+concept takes_plain_topology = requires(Control& control, const ConnectedControlTopology& topology) {
+    control.set_connection_topology(topology);
+};
+template <typename Control>
+concept takes_empty_topology = requires(Control& control) { control.set_connection_topology({}); };
+template <typename Control>
+concept takes_optional_topology = requires(Control& control) {
+    control.set_connection_topology(stxlib::Optional<ConnectedControlTopology>::none());
+};
+static_assert(!takes_plain_topology<ButtonBase> && !takes_empty_topology<ButtonBase>);
+static_assert(takes_optional_topology<ButtonBase>);
+template <typename Topology>
+concept segments = requires(const Topology& topology) { connected_control_segment(topology); };
+template <typename Topology>
+concept resolves = requires(const Topology& topology, Rect bounds, const SurfaceMaterial& material) {
+    resolve_connected_control_visual_geometry(bounds, material, topology);
+};
+template <typename Topology>
+concept outsets = requires(const Topology& topology, const SurfaceMaterial& material) {
+    connected_surface_visual_outsets(material, topology);
+};
+template <typename Topology>
+concept paints = requires(const Topology& topology, Painter& painter, Rect bounds, const SurfaceMaterial& material) {
+    paint_connected_surface_material(painter, bounds, material, topology);
+};
+static_assert(!segments<ConnectedControlTopology> && !resolves<ConnectedControlTopology> &&
+              !outsets<ConnectedControlTopology> && !paints<ConnectedControlTopology>);
+static_assert(segments<stxlib::Optional<ConnectedControlTopology>> &&
+              resolves<stxlib::Optional<ConnectedControlTopology>> &&
+              outsets<stxlib::Optional<ConnectedControlTopology>> &&
+              paints<stxlib::Optional<ConnectedControlTopology>>);
+
+// A connected position, as the topology functions and setter take it.
+stxlib::Optional<ConnectedControlTopology> joined(const ConnectedControlAxis axis, const std::size_t index,
+                                                  const std::size_t count) noexcept {
+    const stxlib::Optional<ConnectedControlTopology> result =
+        stxlib::Optional<ConnectedControlTopology>::of(ConnectedControlTopology{axis, index, count});
+    return result;
+}
 
 void require(const bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
@@ -106,16 +151,16 @@ void test_topology_and_resolved_geometry() {
                 valid_connected_control_topology(
                     {ConnectedControlAxis::horizontal, 1U, 3U}),
             "connected topology must require count >= 2 and index < count");
-    require(connected_control_segment(std::nullopt) ==
+    require(connected_control_segment(stxlib::Optional<ConnectedControlTopology>::none()) ==
                 ConnectedControlSegment::standalone &&
-                connected_control_segment(ConnectedControlTopology{
-                    ConnectedControlAxis::horizontal, 0U, 3U}) ==
+                connected_control_segment(joined(
+                    ConnectedControlAxis::horizontal, 0U, 3U)) ==
                     ConnectedControlSegment::leading &&
-                connected_control_segment(ConnectedControlTopology{
-                    ConnectedControlAxis::horizontal, 1U, 3U}) ==
+                connected_control_segment(joined(
+                    ConnectedControlAxis::horizontal, 1U, 3U)) ==
                     ConnectedControlSegment::middle &&
-                connected_control_segment(ConnectedControlTopology{
-                    ConnectedControlAxis::horizontal, 2U, 3U}) ==
+                connected_control_segment(joined(
+                    ConnectedControlAxis::horizontal, 2U, 3U)) ==
                     ConnectedControlSegment::trailing,
             "topology positions must resolve deterministically");
 
@@ -124,26 +169,26 @@ void test_topology_and_resolved_geometry() {
     const ConnectedControlVisualGeometry leading =
         resolve_connected_control_visual_geometry(
             bounds, material,
-            ConnectedControlTopology{ConnectedControlAxis::horizontal, 0U, 3U});
+            joined(ConnectedControlAxis::horizontal, 0U, 3U));
     const ConnectedControlVisualGeometry middle =
         resolve_connected_control_visual_geometry(
             bounds, material,
-            ConnectedControlTopology{ConnectedControlAxis::horizontal, 1U, 3U});
+            joined(ConnectedControlAxis::horizontal, 1U, 3U));
     const ConnectedControlVisualGeometry trailing =
         resolve_connected_control_visual_geometry(
             bounds, material,
-            ConnectedControlTopology{ConnectedControlAxis::horizontal, 2U, 3U});
+            joined(ConnectedControlAxis::horizontal, 2U, 3U));
     require(leading.paint_bounds == Rect{0.0, 0.0, 105.0, 30.0} &&
-                !leading.leading_seam &&
+                leading.leading_seam.absent() &&
                 middle.paint_bounds == Rect{-5.0, 0.0, 110.0, 30.0} &&
-                middle.leading_seam && near((*middle.leading_seam).from.x, 0.5) &&
+                middle.leading_seam.present() && near((*middle.leading_seam.value()).from.x, 0.5) &&
                 trailing.paint_bounds == Rect{-5.0, 0.0, 105.0, 30.0} &&
-                trailing.leading_seam,
+                trailing.leading_seam.present(),
             "joined geometry must remove interior corners and assign one leading seam");
 
     const Insets middle_outsets = connected_surface_visual_outsets(
         material,
-        ConnectedControlTopology{ConnectedControlAxis::horizontal, 1U, 3U});
+        joined(ConnectedControlAxis::horizontal, 1U, 3U));
     require(middle_outsets.left == 0.0 && middle_outsets.right == 0.0 &&
                 middle_outsets.top > 0.0 && middle_outsets.bottom > 0.0,
             "interior members must not claim clipped joined-edge shadow damage");
@@ -151,7 +196,7 @@ void test_topology_and_resolved_geometry() {
     GeometryPainter painter;
     paint_connected_surface_material(
         painter, bounds, material,
-        ConnectedControlTopology{ConnectedControlAxis::horizontal, 1U, 3U});
+        joined(ConnectedControlAxis::horizontal, 1U, 3U));
     require(painter.saves == 2U && painter.restores == 2U &&
                 painter.clips.size() == 1U && painter.clips.front() == bounds &&
                 painter.rounded_clips.size() == 1U &&
@@ -211,15 +256,12 @@ void test_atomic_grouping_hit_cracks_focus_and_semantics() {
     const std::array<std::shared_ptr<ButtonBase>, 3U> group{
         first, middle, last};
     connect_button_group(group, ConnectedControlAxis::horizontal);
-    require((*first).connection_topology() ==
-                ConnectedControlTopology{ConnectedControlAxis::horizontal, 0U, 3U} &&
-                (*middle).connection_topology() ==
-                ConnectedControlTopology{ConnectedControlAxis::horizontal, 1U, 3U} &&
-                (*last).connection_topology() ==
-                ConnectedControlTopology{ConnectedControlAxis::horizontal, 2U, 3U},
+    require((*first).connection_topology() == joined(ConnectedControlAxis::horizontal, 0U, 3U) &&
+                (*middle).connection_topology() == joined(ConnectedControlAxis::horizontal, 1U, 3U) &&
+                (*last).connection_topology() == joined(ConnectedControlAxis::horizontal, 2U, 3U),
             "atomic helper must assign the explicit supplied order");
 
-    const std::optional<ConnectedControlTopology> before =
+    const stxlib::Optional<ConnectedControlTopology> before =
         (*first).connection_topology();
     bool rejected_axis{};
     try {
@@ -228,10 +270,10 @@ void test_atomic_grouping_hit_cracks_focus_and_semantics() {
         rejected_axis = true;
     }
     require(rejected_axis && (*first).connection_topology() == before &&
-                (*(*middle).connection_topology()).axis ==
-                    ConnectedControlAxis::horizontal &&
-                (*(*last).connection_topology()).axis ==
-                    ConnectedControlAxis::horizontal,
+                (*middle).connection_topology().present() &&
+                (*(*middle).connection_topology().value()).axis == ConnectedControlAxis::horizontal &&
+                (*last).connection_topology().present() &&
+                (*(*last).connection_topology().value()).axis == ConnectedControlAxis::horizontal,
             "mixed-axis rejection must mutate no group member");
 
     const std::array<std::shared_ptr<ButtonBase>, 2U> duplicate{first, first};
@@ -258,7 +300,7 @@ void test_atomic_grouping_hit_cracks_focus_and_semantics() {
         rejected_parent = true;
     }
     require(rejected_parent && (*first).connection_topology() == before &&
-                !(*outsider).connection_topology(),
+                (*outsider).connection_topology().absent(),
             "mixed-parent rejection must mutate no group member");
 
     Window window(root, {300.0, 80.0});
@@ -286,7 +328,7 @@ void test_atomic_grouping_hit_cracks_focus_and_semantics() {
     bool rejected_invalid{};
     try {
         (*first).set_connection_topology(
-            ConnectedControlTopology{ConnectedControlAxis::horizontal, 2U, 2U});
+            joined(ConnectedControlAxis::horizontal, 2U, 2U));
     } catch (const std::invalid_argument&) {
         rejected_invalid = true;
     }
