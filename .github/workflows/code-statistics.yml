@@ -1,20 +1,15 @@
 name: Code statistics
 # Counts the C++ and C that GUI.Forms provides (tools/code_statistics.py):
-# gui_forms itself and the stx packages at the commit stx.lock pins, by
-# component, language and provenance. It reads the git trees only: no build,
+# gui_forms itself, the stx packages at the commit stx.lock pins and STXlib
+# at the commit stx's stxlib.lock pins, by component, language and
+# provenance. It reads the git trees only: no build,
 # no compiler, a few seconds on one Linux runner. The Markdown tables go to
 # the job summary and the JSON report is uploaded as the artifact
-# code-statistics. A manual run may also count STXlib, at the commit stx's
-# stxlib.lock pins.
+# code-statistics.
 on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      include_stxlib:
-        description: Also count STXlib at the commit stx's stxlib.lock pins
-        type: boolean
-        default: false
 permissions:
   contents: read
 concurrency:
@@ -38,7 +33,6 @@ jobs:
           git -C stx fetch -q --depth 1 origin "$commit"
           git -C stx checkout -q --detach FETCH_HEAD
       - name: Check out the pinned STXlib
-        if: inputs.include_stxlib
         run: |
           commit=$(sed -n 's/^commit = "\([0-9a-f]\{40\}\)"$/\1/p' stx/stxlib.lock)
           test -n "$commit"
@@ -52,14 +46,9 @@ jobs:
       - name: Check the counter
         run: python3 -B -m unittest discover -s gui_forms/tools -p test_code_statistics.py
       - name: Count
-        env:
-          INCLUDE_STXLIB: ${{ inputs.include_stxlib && 'true' || 'false' }}
         run: |
           mkdir -p code-statistics
-          checkouts="stx=stx"
-          if [ "$INCLUDE_STXLIB" = true ]; then checkouts="$checkouts stxlib=stxlib"; fi
-          # shellcheck disable=SC2086
-          python3 -B gui_forms/tools/code_statistics.py --root gui_forms $checkouts \
+          python3 -B gui_forms/tools/code_statistics.py --root gui_forms stx=stx stxlib=stxlib \
             --json code-statistics/code-statistics.json \
             --markdown code-statistics/code-statistics.md
           { echo '## C++ and C in GUI.Forms'; echo; cat code-statistics/code-statistics.md; } >> "$GITHUB_STEP_SUMMARY"

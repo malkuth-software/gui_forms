@@ -34,17 +34,24 @@ third_party/<library> split; files at a checkout's root are "(root)".
 Provenance, from the repositories' own records (each rule below names its
 record):
 
-- third_party: copied in from outside the repository and not converted to the
-  house style, whoever wrote it: every path under a third_party/ directory,
-  every directory holding a provenance.json copy record, files the records
-  list as kept unchanged, and stx_skia files still listed in
-  stx_skia/house_style_allowance.txt.
+- third_party: code from outside parties, copied in and not converted to the
+  house style: every path under a third_party/ directory, and stx_skia files
+  still listed in stx_skia/house_style_allowance.txt. The owner's own code is
+  first-party wherever it is copied (BFFT in stx_vorbis, the C thread pool
+  threadpool_atomic_fast in gui_forms and STXlib).
 - converted: first-party code converted from an outside source, the files the
   PROVENANCE.md records name as derived from, rewritten from or restating
   another code base (stx_skia/skia/, stx_zlib's inflate, stx_raster3d,
   stx_conv's surfaces, STXlib's stx_btree).
 - original: everything else, first-party code written for these
-  repositories (ports between first-party repositories included).
+  repositories, ports between first-party repositories and copies of the
+  owner's own code included.
+
+The headline figure is first-party C++ (original and converted) over every
+counted checkout.
+
+STXlib is part of what GUI.Forms provides: when a counted stx checkout pins
+STXlib (stxlib.lock) and no STXlib checkout is given, the report says so.
 
 Usage:
   python3 -B tools/code_statistics.py [--root DIR] [CHECKOUT ...]
@@ -120,8 +127,19 @@ class PathRule:
     record: str
 
 
-# The records' conversions and unchanged copies that the generic rules
-# (third_party/, provenance.json, the stx_skia allowance) do not see.
+# Copies of the owner's own code, first-party wherever they sit (owner,
+# 2026-11-16); these come before every other rule, third_party/ included.
+OWNER_COPIES: tuple[PathRule, ...] = (
+    PathRule(KIND_STX, 'stx_vorbis/third_party/bfft/', ORIGINAL,
+             'stx_vorbis/third_party/bfft/provenance.json: the owner\'s BFFT, falseywinchnet/bfft 0f75ca79'),
+    PathRule(KIND_GUI_FORMS, 'src/core/threading/atomic_pool/', ORIGINAL,
+             'src/core/threading/atomic_pool/provenance.json: the owner\'s threadpool_atomic_fast'),
+    PathRule(KIND_STXLIB, 'tests/reference/', ORIGINAL,
+             'PROVENANCE.md, threadpool_atomic_fast: the owner\'s C original, kept unchanged'),
+)
+
+# The records' conversions that the generic rules (third_party/, the
+# stx_skia allowance) do not see.
 PATH_RULES: tuple[PathRule, ...] = (
     PathRule(KIND_STX, 'stx_skia/skia/', CONVERTED,
              'stx_skia/PROVENANCE.md: a subset of Skia chrome/m152 (2a9b593b), '
@@ -141,13 +159,11 @@ PATH_RULES: tuple[PathRule, ...] = (
              'stx_conv/PROVENANCE.md, Surfaces: restates conv-teapot fc0a609'),
     PathRule(KIND_STXLIB, 'src/algorithms/stx_btree/', CONVERTED,
              'PROVENANCE.md, batch 3c6: the C++ form of bbtree (Xiangpeng Hao)'),
-    PathRule(KIND_STXLIB, 'tests/reference/', THIRD_PARTY,
-             'PROVENANCE.md, threadpool_atomic_fast: the C original kept unchanged'),
 )
 STX_SKIA_ALLOWANCE: str = 'stx_skia/house_style_allowance.txt'
 STX_SKIA_ROOT: str = 'stx_skia/'
-COPY_RECORD: str = 'provenance.json'
 THIRD_PARTY_DIRECTORY: str = 'third_party'
+DISPLAY_NAMES: dict[str, str] = {KIND_STXLIB: 'STXlib'}
 LOCK_COMMIT: re.Pattern[str] = re.compile(r'^commit = "([0-9a-f]{40})"$', re.MULTILINE)
 
 
@@ -539,38 +555,31 @@ def read_allowance(text: str) -> dict[str, int]:
     return allowance
 
 
-def copy_directories(tree: Tree) -> list[str]:
-    """Directories (with a trailing slash) that hold a provenance.json copy record."""
-    directories: list[str] = []
-    for path in tree.blobs:
-        if path == COPY_RECORD or path.endswith('/' + COPY_RECORD):
-            directories.append(path[:-len(COPY_RECORD)])
-    return directories
-
-
 @dataclass(frozen=True)
 class ProvenanceRules:
     kind: str
     allowance: dict[str, int]
-    copies: tuple[str, ...]
+
+
+def rule_matches(rule: PathRule, path: str, kind: str) -> bool:
+    if rule.kind != kind:
+        return False
+    if rule.prefix.endswith('/'):
+        return path.startswith(rule.prefix)
+    return path == rule.prefix
 
 
 def provenance_of(path: str, rules: ProvenanceRules) -> str:
     """The provenance class of one counted file."""
+    for rule in OWNER_COPIES:
+        if rule_matches(rule, path, rules.kind):
+            return rule.provenance
     if THIRD_PARTY_DIRECTORY in path.split('/')[:-1]:
         return THIRD_PARTY
-    for directory in rules.copies:
-        if path.startswith(directory):
-            return THIRD_PARTY
     if rules.allowance.get(path, 0) > 0:
         return THIRD_PARTY
     for rule in PATH_RULES:
-        if rule.kind != rules.kind:
-            continue
-        if rule.prefix.endswith('/'):
-            if path.startswith(rule.prefix):
-                return rule.provenance
-        elif path == rule.prefix:
+        if rule_matches(rule, path, rules.kind):
             return rule.provenance
     return ORIGINAL
 
@@ -611,7 +620,7 @@ def count_checkout(path: Path, name: str) -> Checkout:
     allowance: dict[str, int] = {}
     if STX_SKIA_ALLOWANCE in tree.blobs:
         allowance = read_allowance(contents[tree.blobs[STX_SKIA_ALLOWANCE]].decode('utf-8', 'replace'))
-    rules: ProvenanceRules = ProvenanceRules(kind, allowance, tuple(copy_directories(tree)))
+    rules: ProvenanceRules = ProvenanceRules(kind, allowance)
     census: SourceCensus = take_census(counted)
     result: Checkout = Checkout(name if name != '' else (kind if kind != KIND_OTHER else path.resolve().name),
                                 kind, commit, commit_date, lock_commits)
@@ -664,6 +673,33 @@ class Report:
             for counts in checkout.rows.values():
                 total.add(counts)
         return total
+
+    def first_party_cpp(self) -> Counts:
+        """The headline figure: first-party C++, original and converted, in
+        every counted checkout."""
+        result: Counts = self.by(LANGUAGE_CPP, ORIGINAL, None)
+        result.add(self.by(LANGUAGE_CPP, CONVERTED, None))
+        return result
+
+    def headline_label(self) -> str:
+        names: list[str] = []
+        for checkout in self.checkouts:
+            names.append(DISPLAY_NAMES.get(checkout.name, checkout.name))
+        joined: str = names[0] if len(names) == 1 else ', '.join(names[:-1]) + ' and ' + names[-1]
+        return 'first-party C++ (' + joined + ')'
+
+    def uncounted_pins(self) -> list[tuple[str, str]]:
+        """(kind, pinned commit) for each checkout a counted lock pins that
+        was not given."""
+        counted_kinds: set[str] = set()
+        for checkout in self.checkouts:
+            counted_kinds.add(checkout.kind)
+        missing: list[tuple[str, str]] = []
+        for checkout in self.checkouts:
+            for kind in sorted(checkout.lock_commits):
+                if kind not in counted_kinds and checkout.lock_commits[kind] != '':
+                    missing.append((kind, checkout.lock_commits[kind]))
+        return missing
 
     def by(self, language: str | None, provenance: str | None, checkout_name: str | None) -> Counts:
         result: Counts = Counts()
@@ -735,6 +771,9 @@ def report_json(report: Report) -> dict[str, object]:
         'schema': SCHEMA_VERSION,
         'checkouts': checkouts,
         'total': report.total().as_dictionary(),
+        'headline': {'label': report.headline_label(),
+                     'first_party_cpp': report.first_party_cpp().as_dictionary()},
+        'uncounted_pins': [{'kind': kind, 'commit': commit} for kind, commit in report.uncounted_pins()],
         'by_language': by_language,
         'by_provenance': by_provenance,
         'rows': rows,
@@ -825,10 +864,31 @@ def markdown_table(titles: list[str], rows: list[list[str]], left: int) -> list[
     return lines
 
 
+def headline_rows(report: Report) -> list[list[str]]:
+    counts: Counts = report.first_party_cpp()
+    return [[report.headline_label(), grouped(counts.files), grouped(counts.lines),
+             grouped(counts.code), grouped(counts.characters)]]
+
+
+HEADLINE_TITLES: list[str] = ['Figure', 'Files', 'Lines', 'Code', 'Characters']
+
+
+def uncounted_lines(report: Report) -> list[str]:
+    lines: list[str] = []
+    for kind, commit in report.uncounted_pins():
+        lines.append(DISPLAY_NAMES.get(kind, kind) + ' (pinned at ' + commit[:12] + ') is not counted: '
+                     'give its checkout to count it.')
+    return lines
+
+
 def render_text(report: Report) -> str:
     lines: list[str] = ['C++ and C at HEAD of each checkout (tools/code_statistics.py)']
     for checkout in report.checkouts:
         lines.append('  ' + checkout_line(checkout))
+    for note in uncounted_lines(report):
+        lines.append('  ' + note)
+    lines.append('')
+    lines += text_table(HEADLINE_TITLES, headline_rows(report), 1)
     lines.append('')
     lines.append('By language and provenance')
     lines += text_table(['Language', 'Provenance'] + list(COLUMN_TITLES), summary_rows(report), 2)
@@ -848,9 +908,11 @@ def render_markdown(report: Report) -> str:
     lines: list[str] = [
         'Counted by `tools/code_statistics.py` at ' + ', '.join(sources) + '.',
         '',
-        '**By language and provenance**',
-        '',
     ]
+    for note in uncounted_lines(report):
+        lines += [note, '']
+    lines += markdown_table(HEADLINE_TITLES, headline_rows(report), 1)
+    lines += ['', '**By language and provenance**', '']
     lines += markdown_table(['Language', 'Provenance'] + list(COLUMN_TITLES), summary_rows(report), 2)
     lines += ['', '**By checkout**', '']
     lines += markdown_table(['Checkout', 'Language'] + list(COLUMN_TITLES), checkout_rows(report), 2)

@@ -138,7 +138,7 @@ class ProvenanceTests(unittest.TestCase):
         allowance: dict[str, int] = code_statistics.read_allowance(
             '# header\n 3 skia/src/a.cpp\n 0 skia/src/b.cpp\n')
         rules: code_statistics.ProvenanceRules = code_statistics.ProvenanceRules(
-            code_statistics.KIND_STX, allowance, ('stx_vorbis/vendored/',))
+            code_statistics.KIND_STX, allowance)
         expected: dict[str, str] = {
             'stx_skia/skia/src/a.cpp': 'third_party',
             'stx_skia/skia/src/b.cpp': 'converted',
@@ -147,8 +147,8 @@ class ProvenanceTests(unittest.TestCase):
             'stx_zlib/src/deflate.cpp': 'original',
             'stx_raster3d/include/stx_raster3d/mesh.hpp': 'converted',
             'stx_raster3d/tests/raster3d.cpp': 'original',
-            'stx_vorbis/vendored/src/x.cpp': 'third_party',
-            'stx_vorbis/third_party/bfft/a.h': 'third_party',
+            'stx_vorbis/third_party/bfft/a.h': 'original',
+            'stx_vorbis/third_party/other/a.h': 'third_party',
             'third_party/freetype/src/a.c': 'third_party',
             'third_party.cpp': 'original',
         }
@@ -157,11 +157,17 @@ class ProvenanceTests(unittest.TestCase):
 
     def test_rules_apply_to_their_kind_only(self) -> None:
         rules: code_statistics.ProvenanceRules = code_statistics.ProvenanceRules(
-            code_statistics.KIND_GUI_FORMS, {}, ())
+            code_statistics.KIND_GUI_FORMS, {})
         self.assertEqual(code_statistics.provenance_of('stx_zlib/src/inflate.cpp', rules), 'original')
+        self.assertEqual(code_statistics.provenance_of('src/core/threading/atomic_pool/atomic_pool.c', rules),
+                         'original')
+        stxlib: code_statistics.ProvenanceRules = code_statistics.ProvenanceRules(
+            code_statistics.KIND_STXLIB, {})
+        self.assertEqual(code_statistics.provenance_of('tests/reference/atomic_pool.c', stxlib), 'original')
+        self.assertEqual(code_statistics.provenance_of('src/algorithms/stx_btree/node.hpp', stxlib), 'converted')
 
     def test_every_rule_names_a_known_class_and_record(self) -> None:
-        for rule in code_statistics.PATH_RULES:
+        for rule in code_statistics.OWNER_COPIES + code_statistics.PATH_RULES:
             self.assertIn(rule.provenance, code_statistics.PROVENANCE_ORDER)
             self.assertNotEqual(rule.record, '')
 
@@ -233,8 +239,15 @@ class CheckoutTests(unittest.TestCase):
         self.assertEqual(result['total'], {'files': 7, 'lines': 12, 'blank': 1, 'comment': 2,
                                            'code': 9, 'characters': 125, 'bytes': 126})
         self.assertEqual(result['by_provenance']['converted']['cpp']['files'], 2)  # type: ignore[index]
+        self.assertEqual(result['headline'], {
+            'label': 'first-party C++ (gui_forms and stx)',
+            'first_party_cpp': {'files': 3, 'lines': 5, 'blank': 1, 'comment': 1, 'code': 3,
+                                'characters': 35, 'bytes': 36}})
+        # stx pins STXlib, which was not given.
+        self.assertEqual(result['uncounted_pins'], [{'kind': 'stxlib', 'commit': '1' * 40}])
         self.assertEqual(sorted(result.keys()),
-                         ['by_language', 'by_provenance', 'checkouts', 'rows', 'schema', 'total'])
+                         ['by_language', 'by_provenance', 'checkouts', 'headline', 'rows', 'schema',
+                          'total', 'uncounted_pins'])
 
     def test_markdown_and_text_name_the_commits(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -245,6 +258,7 @@ class CheckoutTests(unittest.TestCase):
         self.assertIn('gui_forms `' + commit[:12] + '`', markdown)
         self.assertIn('| C++ | first-party original | 1 | 1 | 0 | 0 | 1 | 7 | 7 |', markdown)
         self.assertIn('| gui_forms | src/a | C++ |', markdown)
+        self.assertIn('| first-party C++ (gui_forms) | 1 | 1 | 1 | 7 |', markdown)
         text: str = code_statistics.render_text(report)
         self.assertIn('gui_forms ' + commit[:12], text)
 

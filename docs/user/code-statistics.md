@@ -2,10 +2,10 @@
 
 GUI.Forms is C++20 from its controls down to its codecs and its CPU
 renderer. This page counts that code: the C++ (Objective-C++ included) and
-the C in this repository and in the stx packages it builds with
-(stx_zlib, stx_png, stx_conv, stx_raster3d, stx_rtf2md, stx_vorbis,
-stx_skia and the third-party sources stx keeps), at the commit `stx.lock`
-pins.
+the C in this repository, in the stx packages it builds with (stx_zlib,
+stx_png, stx_conv, stx_raster3d, stx_rtf2md, stx_vorbis, stx_skia and the
+third-party sources stx keeps) at the commit `stx.lock` pins, and in STXlib
+at the commit stx's `stxlib.lock` pins.
 
 ## What is counted
 
@@ -27,54 +27,61 @@ output never enters them. It needs no build and no network.
 - **Components** are top-level directories, with `src/` split by subsystem
   and `third_party/` by library.
 - **Provenance** comes from the repositories' own records:
-  - *first-party original*: written for these repositories;
+  - *first-party original*: written for these repositories, including
+    the owner's own code wherever it is copied (BFFT inside stx_vorbis and
+    the C thread pool threadpool_atomic_fast in gui_forms and STXlib);
   - *first-party converted*: rewritten from an outside code base, as the
     `PROVENANCE.md` records state: stx_skia's `skia/` (from Skia, converted
     to the house style under `stx_skia/house_style_allowance.txt`),
     stx_zlib's inflate (from zlib's puff), stx_raster3d and stx_conv's
     surfaces (from conv-teapot);
-  - *third-party*: copied in and not converted, whoever wrote it: stx's
-    `third_party/` (FreeType, HarfBuzz, libunibreak, MD4C, SheenBidi), BFFT
-    inside stx_vorbis, and the C thread pool under
-    `src/core/threading/atomic_pool/` (each recorded by a `provenance.json`).
+  - *third-party*: code from outside parties, copied in and not
+    converted: stx's `third_party/` (FreeType, HarfBuzz, libunibreak, MD4C,
+    SheenBidi).
+- **The headline figure** is first-party C++, original and converted, over
+  all three repositories.
 
 ## Counting it yourself
 
 ```sh
-python3 -B tools/code_statistics.py <stx checkout> [<STXlib checkout>]
+python3 -B tools/code_statistics.py <stx checkout> <STXlib checkout>
 ```
 
 The tool prints the tables below; `--markdown FILE` writes them as Markdown
 and `--json FILE` writes every count with stable keys. A checkout given as
 `NAME=PATH` is reported under `NAME`. The report notes whether the stx
 checkout is at the commit `stx.lock` pins (and STXlib at the commit stx's
-`stxlib.lock` pins).
+`stxlib.lock` pins), and names a pinned checkout that was not given.
 
 The `Code statistics` workflow (`.github/workflows/code-statistics.yml`)
 runs the tool on every push to `main` and on request, writes the tables to
 its job summary and uploads the JSON report as the `code-statistics`
-artifact. A manual run can also count STXlib.
+artifact.
 
 ## The numbers
 
-Counted by `tools/code_statistics.py` at gui_forms `e791342a92ea` (2026-11-16), stx `7db7b4f48a2c` (2026-11-15).
+Counted by `tools/code_statistics.py` at gui_forms `659b0d2dcea7` (2026-11-16), stx `7db7b4f48a2c` (2026-11-15), stxlib `03a7630bebcf` (2026-11-15).
+
+| Figure | Files | Lines | Code | Characters |
+|---|---:|---:|---:|---:|
+| first-party C++ (gui_forms, stx and STXlib) | 3,855 | 1,159,331 | 923,621 | 53,074,007 |
 
 **By language and provenance**
 
 | Language | Provenance | Files | Lines | Blank | Comment | Code | Characters | Bytes |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| C++ | first-party original | 2,922 | 919,261 | 73,200 | 94,482 | 751,579 | 43,054,067 | 43,057,019 |
-| C++ | first-party converted | 523 | 128,985 | 17,805 | 24,563 | 86,617 | 4,831,383 | 4,831,459 |
-| C++ | third-party | 515 | 219,988 | 26,302 | 31,484 | 162,202 | 7,303,473 | 7,319,267 |
-| C++ | all | 3,960 | 1,268,234 | 117,307 | 150,529 | 1,000,398 | 55,188,923 | 55,207,745 |
-| C | first-party original | 57 | 22,516 | 1,381 | 4,391 | 16,744 | 1,240,630 | 1,240,630 |
+| C++ | first-party original | 3,307 | 1,017,697 | 81,326 | 109,542 | 826,829 | 47,708,408 | 47,711,408 |
+| C++ | first-party converted | 548 | 141,634 | 18,702 | 26,140 | 96,792 | 5,365,599 | 5,365,687 |
+| C++ | third-party | 511 | 218,339 | 26,160 | 31,393 | 160,786 | 7,230,717 | 7,246,511 |
+| C++ | all | 4,366 | 1,377,670 | 126,188 | 167,075 | 1,084,407 | 60,304,724 | 60,323,606 |
+| C | first-party original | 66 | 23,953 | 1,541 | 4,606 | 17,806 | 1,298,322 | 1,298,322 |
 | C | first-party converted | 2 | 202 | 26 | 80 | 96 | 8,599 | 8,599 |
-| C | third-party | 655 | 300,459 | 49,783 | 73,347 | 177,329 | 9,970,917 | 9,975,705 |
-| C | all | 714 | 323,177 | 51,190 | 77,818 | 194,169 | 11,220,146 | 11,224,934 |
-| C++ and C | first-party original | 2,979 | 941,777 | 74,581 | 98,873 | 768,323 | 44,294,697 | 44,297,649 |
-| C++ and C | first-party converted | 525 | 129,187 | 17,831 | 24,643 | 86,713 | 4,839,982 | 4,840,058 |
-| C++ and C | third-party | 1,170 | 520,447 | 76,085 | 104,831 | 339,531 | 17,274,390 | 17,294,972 |
-| C++ and C | all | 4,674 | 1,591,411 | 168,497 | 228,347 | 1,194,567 | 66,409,069 | 66,432,679 |
+| C | third-party | 651 | 299,687 | 49,678 | 73,207 | 176,802 | 9,937,990 | 9,942,778 |
+| C | all | 719 | 323,842 | 51,245 | 77,893 | 194,704 | 11,244,911 | 11,249,699 |
+| C++ and C | first-party original | 3,373 | 1,041,650 | 82,867 | 114,148 | 844,635 | 49,006,730 | 49,009,730 |
+| C++ and C | first-party converted | 550 | 141,836 | 18,728 | 26,220 | 96,888 | 5,374,198 | 5,374,286 |
+| C++ and C | third-party | 1,162 | 518,026 | 75,838 | 104,600 | 337,588 | 17,168,707 | 17,189,289 |
+| C++ and C | all | 5,085 | 1,701,512 | 177,433 | 244,968 | 1,279,111 | 71,549,635 | 71,573,305 |
 
 **By checkout**
 
@@ -84,6 +91,8 @@ Counted by `tools/code_statistics.py` at gui_forms `e791342a92ea` (2026-11-16), 
 | gui_forms | C | 55 | 22,649 | 1,416 | 4,401 | 16,832 | 1,243,181 | 1,243,181 |
 | stx | C++ | 1,281 | 411,124 | 47,300 | 59,378 | 304,446 | 14,940,748 | 14,956,618 |
 | stx | C | 659 | 300,528 | 49,774 | 73,417 | 177,337 | 9,976,965 | 9,981,753 |
+| stxlib | C++ | 406 | 109,436 | 8,881 | 16,546 | 84,009 | 5,115,801 | 5,115,861 |
+| stxlib | C | 5 | 665 | 55 | 75 | 535 | 24,765 | 24,765 |
 
 **By component**
 
@@ -131,3 +140,14 @@ Counted by `tools/code_statistics.py` at gui_forms `e791342a92ea` (2026-11-16), 
 | stx | third_party/md4c | C | 4 | 10,108 | 1,257 | 1,121 | 7,730 | 355,635 | 355,643 |
 | stx | third_party/sheenbidi | C | 62 | 13,150 | 1,203 | 3,680 | 8,267 | 597,666 | 597,666 |
 | stx | tools | C++ | 6 | 1,252 | 88 | 113 | 1,051 | 59,994 | 59,994 |
+| stxlib | include | C++ | 65 | 10,938 | 1,285 | 4,266 | 5,387 | 496,546 | 496,559 |
+| stxlib | proofs | C++ | 56 | 3,896 | 411 | 1,071 | 2,414 | 199,860 | 199,860 |
+| stxlib | proofs | C | 3 | 305 | 20 | 62 | 223 | 11,093 | 11,093 |
+| stxlib | src/algorithms | C++ | 68 | 24,799 | 2,104 | 3,314 | 19,381 | 1,074,081 | 1,074,093 |
+| stxlib | src/core | C++ | 48 | 9,179 | 974 | 1,434 | 6,771 | 395,090 | 395,093 |
+| stxlib | src/hosted | C++ | 73 | 10,463 | 1,189 | 2,180 | 7,094 | 438,935 | 438,935 |
+| stxlib | src/state | C++ | 13 | 4,098 | 423 | 1,373 | 2,302 | 185,261 | 185,262 |
+| stxlib | src/zones | C++ | 1 | 5,837 | 9 | 7 | 5,821 | 387,716 | 387,716 |
+| stxlib | tests | C++ | 77 | 39,640 | 2,436 | 2,809 | 34,395 | 1,913,148 | 1,913,179 |
+| stxlib | tests | C | 2 | 360 | 35 | 13 | 312 | 13,672 | 13,672 |
+| stxlib | tools | C++ | 5 | 586 | 50 | 92 | 444 | 25,164 | 25,164 |
