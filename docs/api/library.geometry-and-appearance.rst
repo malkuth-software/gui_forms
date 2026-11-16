@@ -430,6 +430,8 @@ Types
      - One axis of a slice plan.
    * - :cpp:class:`StrokeStyle <gui_forms::StrokeStyle>`
      - A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates.
+   * - :cpp:class:`StrokeTrim <gui_forms::StrokeTrim>`
+     - The part of a path a stroke keeps (Lottie's and ThorVG's trim path): ``start`` and ``end`` are fractions of the path's whole length (every contour end to end, paint_path_length), each in [0, 1], and either may be the larger: the kept part runs from the smaller to the larger.
    * - :cpp:class:`SurfaceMaterial <gui_forms::SurfaceMaterial>`
      - SurfaceMaterial is a bounded ordered fill stack plus optional border, bounded shadow stack, and shared corner radius.
    * - :cpp:class:`TextRun <gui_forms::TextRun>`
@@ -4713,7 +4715,7 @@ Types
 
    .. cpp:function:: virtual void stroke_path(PaintPathView path, const StrokeStyle& style)
 
-      A curved path stroked with ``style``'s width, joins, caps and dashes; closed contours join at their start instead of capping. An invalid path or style draws nothing. The base implementation flattens as fill_path's does and strokes each contour as stroke_polyline's fallback does (solid, no joins of its own).
+      A curved path stroked with ``style``'s width, joins, caps and dashes; closed contours join at their start instead of capping. A trim (StrokeStyle::trim) strokes only the sub-path trim_paint_path keeps at stroke_trim_tolerance; every implementation cuts it with that core function, so all painters stroke the same sub-path (a recording keeps the whole path and the trim). An invalid path or style draws nothing. The base implementation flattens as fill_path's does and strokes each contour as stroke_polyline's fallback does (solid, no joins of its own).
 
    .. cpp:function:: virtual void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color)
 
@@ -6248,7 +6250,7 @@ Types
 
    ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
 
-   A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates. ``dash_count`` of the ``dashes`` are live, alternately on and off lengths; 0 (or an odd count, which is refused as solid) draws solid. ``dash_phase`` shifts the pattern's start along the stroke (an effect moving it on the motion clock animates the dashes, piece C13).
+   A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates. ``dash_count`` of the ``dashes`` are live, alternately on and off lengths; 0 (or an odd count, which is refused as solid) draws solid. ``dash_phase`` shifts the pattern's start along the stroke (an effect moving it on the motion clock animates the dashes, piece C13). ``trim`` keeps part of a stroked path (paint_path.hpp, StrokeTrim; the default keeps it whole): Painter::stroke_path cuts the path in the core with trim_paint_path at stroke_trim_tolerance, so every painter strokes the same sub-path, and the dashes then run along the kept part from its start. The other stroke calls (stroke_polyline, stroke_segments) draw their whole geometry whatever the trim.
 
    .. cpp:member:: Color color
 
@@ -6273,6 +6275,28 @@ Types
    .. cpp:member:: std::size_t dash_count
 
    .. cpp:member:: double dash_phase
+
+   .. cpp:member:: StrokeTrim trim
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: StrokeTrim final
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   The part of a path a stroke keeps (Lottie's and ThorVG's trim path): ``start`` and ``end`` are fractions of the path's whole length (every contour end to end, paint_path_length), each in [0, 1], and either may be the larger: the kept part runs from the smaller to the larger. ``offset`` (any finite value, in the same fractions) moves that part along the path and wraps it across the path's start. Start 0 and end 1 (in either order) keep the whole path whatever the offset; equal start and end keep nothing.
+
+   .. cpp:member:: double start
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double end
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double offset
+
+      Default: ``{0.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -8512,6 +8536,20 @@ Enumerations
    .. cpp:enumerator:: screen
 
    .. cpp:enumerator:: copy
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PaintPathTrimResult
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   .. cpp:enumerator:: trimmed
+
+   .. cpp:enumerator:: whole
+
+   .. cpp:enumerator:: empty
+
+   .. cpp:enumerator:: refused
 
 .. cpp:namespace:: gui_forms
 
@@ -10930,7 +10968,7 @@ Functions, constants and aliases
 
 .. cpp:function:: bool valid_stroke_style(const StrokeStyle& style) noexcept
 
-   Whether ``style`` can be drawn: a finite positive width, a finite miter limit of at least 1, at most maximum_dash_intervals dashes, an even dash count whose entries are finite, non-negative and not all zero, and a finite phase.
+   Whether ``style`` can be drawn: a finite positive width, a finite miter limit of at least 1, at most maximum_dash_intervals dashes, an even dash count whose entries are finite, non-negative and not all zero, a finite phase, and a valid trim (valid_stroke_trim).
 
 .. cpp:function:: bool valid_marker_style(const MarkerStyle& style) noexcept
 
@@ -11008,6 +11046,22 @@ Functions, constants and aliases
 
    Fills ``points`` and ``contours``, which the caller owns, with ``path`` flattened to polylines: lines as they are, curves and arcs subdivided into chords no farther than ``tolerance`` (positive, finite) from the curve. Writes nothing and returns zeros for an invalid path or a tolerance that is not positive and finite. When either array fills, the last contour is ended where the storage ran out and ``truncated`` is set. The arrays must not overlap the path's (they cannot: different types).
 
+.. cpp:function:: std::optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept
+
+   The length of ``path``: each contour's segments end to end, in order, including the straight joins arc_to makes and each close's closing segment, measured on its chords (above) at ``tolerance`` (positive, finite). A chord never exceeds the curve it spans, so the result is at most the exact length. Empty for an invalid path or tolerance; 0 for a path of points only.
+
+.. cpp:function:: bool valid_stroke_trim(StrokeTrim trim) noexcept
+
+   Whether ``trim`` is valid: start and end finite and within [0, 1], offset finite.
+
+.. cpp:function:: bool stroke_trim_keeps_whole(StrokeTrim trim) noexcept
+
+   Whether a valid ``trim`` keeps the whole path (start and end are 0 and 1).
+
+.. cpp:function:: PaintPathTrimResult trim_paint_path(PaintPathView path, StrokeTrim trim, double tolerance, PaintPath& kept)
+
+   Writes into ``kept`` the part of ``path`` that ``trim`` keeps, measured at ``tolerance`` (positive, finite; the painters use stroke_trim_tolerance). The kept part is cut from the path's own verbs: a whole segment is copied as it is, and a cut segment becomes the same kind of verb over a sub-range of its parameter (a line's end, a Bezier curve's control points by de Casteljau's blossoms, an arc's start and sweep). Only the cut positions come from the chords: the parameter where the measured length reaches the cut, interpolated within its chord. A contour the kept part covers wholly keeps its close (a stroke joins there); a cut contour is open. Each kept piece starts with move_to. A kept part that wraps across the path's start is two pieces, written in path order (the one from the start first), except for a path of one closed contour, where the piece up to the contour's end continues through its start into the other as one open contour, so a ring's stroke has no cut where it passes the start. Validates everything before clearing ``kept``. Reserves ``kept`` once for the common case (twice the path's verbs and points); a cut into many pieces may grow it. Throws only what PaintPath's builder throws (allocation), leaving ``kept`` partial.
+
 .. cpp:var:: constexpr std::size_t maximum_paint_path_verbs
 
    The most verbs and the most points a path holds; a longer path is refused (valid_paint_path), as a batched mark of more than a million elements is. Value: ``1'000'000U``.
@@ -11019,6 +11073,18 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double paint_path_flattening_tolerance
 
    The default flattening tolerance, in the painter's units: the farthest a flattened chord may lie from the curve (the base painter's fallbacks use a quarter unit, below a device pixel at scale 2 and above). Value: ``0.25``.
+
+.. cpp:var:: constexpr std::size_t maximum_measured_curve_chords
+
+   Path length and trimming (owner, 2026-11-16: trim paths in the core). Both measure a path on chords, in + - * / and sqrt only (engine_math), so the same path and tolerance give the same bits on every host. The chord counts are fixed by the geometry: a Bezier curve takes Wang's count for ``tolerance`` (at most maximum_measured_curve_chords), an arc enough equal angular steps that no chord's sagitta exceeds ``tolerance`` and none turns more than a quarter (at most maximum_measured_arc_chords). These are counts of their own, finer for arcs than flatten_paint_path's. Value: ``1024U``.
+
+.. cpp:var:: constexpr std::size_t maximum_measured_arc_chords
+
+   Value: ``4096U``.
+
+.. cpp:var:: constexpr double stroke_trim_tolerance
+
+   The tolerance the painters measure a trimmed stroke at (StrokeStyle::trim), in painter units: a sixteenth, so a cut lies within a small fraction of a device pixel of its exact arc-length position at any display scale up to 4. Value: ``1.0 / 16.0``.
 
 .. cpp:var:: constexpr std::size_t maximum_fallback_path_points
 

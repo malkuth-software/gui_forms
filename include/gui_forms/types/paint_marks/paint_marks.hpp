@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_path/paint_path.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <array>
@@ -32,7 +33,13 @@ inline constexpr std::size_t maximum_dash_intervals = 8U;
 // coordinates. `dash_count` of the `dashes` are live, alternately on and off
 // lengths; 0 (or an odd count, which is refused as solid) draws solid.
 // `dash_phase` shifts the pattern's start along the stroke (an effect moving
-// it on the motion clock animates the dashes, piece C13).
+// it on the motion clock animates the dashes, piece C13). `trim` keeps part
+// of a stroked path (paint_path.hpp, StrokeTrim; the default keeps it
+// whole): Painter::stroke_path cuts the path in the core with
+// trim_paint_path at stroke_trim_tolerance, so every painter strokes the
+// same sub-path, and the dashes then run along the kept part from its
+// start. The other stroke calls (stroke_polyline, stroke_segments) draw
+// their whole geometry whatever the trim.
 struct GUI_FORMS_API StrokeStyle final {
     Color color{};
     double width{1.0};
@@ -42,11 +49,13 @@ struct GUI_FORMS_API StrokeStyle final {
     std::array<double, maximum_dash_intervals> dashes{};
     std::size_t dash_count{};
     double dash_phase{};
+    StrokeTrim trim{};
 
     friend bool operator==(const StrokeStyle& left, const StrokeStyle& right) noexcept {
         if (!(left.color == right.color) || left.width != right.width || left.join != right.join ||
             left.miter_limit != right.miter_limit || left.cap != right.cap ||
-            left.dash_count != right.dash_count || left.dash_phase != right.dash_phase) {
+            left.dash_count != right.dash_count || left.dash_phase != right.dash_phase ||
+            !(left.trim == right.trim)) {
             return false;
         }
         for (std::size_t index = 0U; index < maximum_dash_intervals; ++index) {
@@ -58,8 +67,8 @@ struct GUI_FORMS_API StrokeStyle final {
 
 // Whether `style` can be drawn: a finite positive width, a finite miter
 // limit of at least 1, at most maximum_dash_intervals dashes, an even dash
-// count whose entries are finite, non-negative and not all zero, and a
-// finite phase.
+// count whose entries are finite, non-negative and not all zero, a finite
+// phase, and a valid trim (valid_stroke_trim).
 [[nodiscard]] GUI_FORMS_API bool valid_stroke_style(const StrokeStyle& style) noexcept;
 
 // One independent segment of stroke_segments (no joins between segments).

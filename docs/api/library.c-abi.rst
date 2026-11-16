@@ -1451,6 +1451,8 @@ Types
 
    .. cpp:member:: gd_result (*radial_gradient_brush_set_radii)(gd_handle brush, double radius_x, double radius_y)
 
+   .. cpp:member:: gd_result (*pen_set_trim)(gd_handle pen, double start, double end, double offset)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary

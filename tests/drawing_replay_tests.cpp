@@ -498,6 +498,22 @@ void radial_gradient_brushes_replay() {
     CHECK(count_calls(third, "focal") == 1U && third.last_radii == (Size{6, 3}));
 }
 
+// A pen's trim reaches the stroke_path call as StrokeStyle::trim, with the
+// whole figure: the painter cuts it in the core (trim_paint_path), as the
+// executor does for the same command.
+void pen_trims_replay_on_the_stroke() {
+    gui_drawing::GraphicsRecorder recorder;
+    gui_drawing::Pen pen(gui_drawing::Color::from_argb(0xff000000U), 2.0);
+    pen.set_trim(0.25, 0.75, 0.5);
+    recorder.draw_ellipse(pen, {0, 0, 20, 10});
+    CallPainter painter;
+    CHECK(replay_drawing_commands(recorder.commands(), painter).drawn == 1U);
+    CHECK(count_calls(painter, "stroke_path") == 1U);
+    CHECK(painter.last_style.trim == (StrokeTrim{0.25, 0.75, 0.5}));
+    const std::vector<PaintPathVerb> ellipse{PaintPathVerb::move_to, PaintPathVerb::arc_to, PaintPathVerb::close};
+    CHECK(painter.last_verbs == ellipse);
+}
+
 } // namespace
 
 int main() {
@@ -507,6 +523,7 @@ int main() {
     path_verbs_follow_the_executor();
     unsupported_commands_are_counted();
     radial_gradient_brushes_replay();
+    pen_trims_replay_on_the_stroke();
     texture_brushes_replay_as_baked_rasters();
     return 0;
 }

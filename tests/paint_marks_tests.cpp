@@ -28,6 +28,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <span>
 #include <sstream>
 #include <stdexcept>
@@ -865,6 +866,195 @@ void test_path_values() {
             "the stroke outset covers miters and square caps");
 }
 
+// Path length and trims (owner, 2026-11-16: trim paths in the core). The
+// straight cases are exact in binary: every length, cut and kept point
+// below is a small integer or half-integer.
+PaintPath unit_square_path() {
+    PaintPath square;
+    square.move_to(Point{0.0, 0.0});
+    square.line_to(Point{10.0, 0.0});
+    square.line_to(Point{10.0, 10.0});
+    square.line_to(Point{0.0, 10.0});
+    square.close();
+    return square;
+}
+
+PaintPathTrimResult trimmed(const PaintPath& path, double start, double end, double offset, PaintPath& kept) {
+    const StrokeTrim trim{start, end, offset};
+    const PaintPathTrimResult result = trim_paint_path(path.view(), trim, stroke_trim_tolerance, kept);
+    return result;
+}
+
+void test_path_length() {
+    const PaintPath square = unit_square_path();
+    const std::optional<double> perimeter = paint_path_length(square.view(), stroke_trim_tolerance);
+    require(perimeter.has_value() && *perimeter == 40.0, "a square's length is its perimeter, the close included");
+    PaintPath triangle;
+    triangle.move_to(Point{0.0, 0.0});
+    triangle.line_to(Point{3.0, 0.0});
+    triangle.line_to(Point{3.0, 4.0});
+    triangle.close();
+    require(paint_path_length(triangle.view(), 0.25) == std::optional<double>(12.0), "3, 4 and the closing 5");
+    PaintPath line;
+    line.move_to(Point{0.0, 0.0});
+    line.cubic_to(Point{10.0, 0.0}, Point{20.0, 0.0}, Point{30.0, 0.0});
+    require(paint_path_length(line.view(), 0.25) == std::optional<double>(30.0), "a straight cubic is one chord");
+    // A circle measures on its chords: within the chord bound below 2 pi r,
+    // never above it, and the same bits each time.
+    PaintPath circle;
+    circle.arc_to(Point{0.0, 0.0}, Size{10.0, 10.0}, 0.0, 360.0);
+    const std::optional<double> round = paint_path_length(circle.view(), stroke_trim_tolerance);
+    require(round.has_value() && *round <= 20.0 * 3.14159265358979323846 && *round > 62.6,
+            "a circle's chords fall just short of its circumference");
+    require(paint_path_length(circle.view(), stroke_trim_tolerance) == round, "the length is deterministic");
+    PaintPath point;
+    point.move_to(Point{1.0, 1.0});
+    require(paint_path_length(point.view(), 0.25) == std::optional<double>(0.0), "a point has length 0");
+    PaintPath broken;
+    broken.line_to(Point{1.0, 1.0});
+    require(!paint_path_length(broken.view(), 0.25).has_value(), "an invalid path has no length");
+    require(!paint_path_length(square.view(), 0.0).has_value(), "a zero tolerance is refused");
+}
+
+void test_trim_exact_sub_paths() {
+    const PaintPath square = unit_square_path();
+    PaintPath kept;
+    PaintPath expected;
+    // From 5 to 25 along the 40-unit square.
+    require(trimmed(square, 0.125, 0.625, 0.0, kept) == PaintPathTrimResult::trimmed, "a part is kept");
+    expected.move_to(Point{5.0, 0.0});
+    expected.line_to(Point{10.0, 0.0});
+    expected.line_to(Point{10.0, 10.0});
+    expected.line_to(Point{5.0, 10.0});
+    require(kept == expected, "the kept part runs from 5 to 25");
+    require(trimmed(square, 0.625, 0.125, 0.0, kept) == PaintPathTrimResult::trimmed && kept == expected,
+            "start and end in either order keep the same part");
+    require(trimmed(square, 0.0, 0.5, 0.125, kept) == PaintPathTrimResult::trimmed && kept == expected,
+            "the offset moves the part along the path");
+
+    // Wrapping across the start of a ring: 30 to 40, then on through the
+    // start to 10, as one open contour.
+    require(trimmed(square, 0.0, 0.5, 0.75, kept) == PaintPathTrimResult::trimmed, "a wrapped part is kept");
+    expected.clear();
+    expected.move_to(Point{0.0, 10.0});
+    expected.line_to(Point{0.0, 0.0});
+    expected.line_to(Point{10.0, 0.0});
+    require(kept == expected, "a ring's wrapped part continues through its start");
+    require(trimmed(square, 0.0, 0.5, -0.25, kept) == PaintPathTrimResult::trimmed && kept == expected,
+            "a negative offset wraps the same way");
+
+    // Two open contours: the wrapped part is two pieces, in path order.
+    PaintPath rails;
+    rails.move_to(Point{0.0, 0.0});
+    rails.line_to(Point{10.0, 0.0});
+    rails.move_to(Point{0.0, 5.0});
+    rails.line_to(Point{10.0, 5.0});
+    require(trimmed(rails, 0.25, 0.75, 0.5, kept) == PaintPathTrimResult::trimmed, "two rails keep a part");
+    expected.clear();
+    expected.move_to(Point{0.0, 0.0});
+    expected.line_to(Point{5.0, 0.0});
+    expected.move_to(Point{5.0, 5.0});
+    expected.line_to(Point{10.0, 5.0});
+    require(kept == expected, "the pieces from the start and to the end");
+
+    // A closed contour kept whole keeps its close; the next one is cut.
+    PaintPath square_and_rail = unit_square_path();
+    square_and_rail.move_to(Point{20.0, 0.0});
+    square_and_rail.line_to(Point{30.0, 0.0});
+    require(trimmed(square_and_rail, 0.0, 0.9, 0.0, kept) == PaintPathTrimResult::trimmed, "most is kept");
+    expected = unit_square_path();
+    expected.move_to(Point{20.0, 0.0});
+    expected.line_to(Point{25.0, 0.0});
+    require(kept == expected, "the square keeps its close, the rail is cut at 45");
+
+    // A cubic is cut by its blossoms: the second half of a straight,
+    // evenly parameterised cubic.
+    PaintPath line;
+    line.move_to(Point{0.0, 0.0});
+    line.cubic_to(Point{10.0, 0.0}, Point{20.0, 0.0}, Point{30.0, 0.0});
+    require(trimmed(line, 0.5, 1.0, 0.0, kept) == PaintPathTrimResult::trimmed, "half a cubic is kept");
+    expected.clear();
+    expected.move_to(Point{15.0, 0.0});
+    expected.cubic_to(Point{20.0, 0.0}, Point{25.0, 0.0}, Point{30.0, 0.0});
+    require(kept == expected, "the cubic's second half has its blossom controls");
+
+    // Whole, empty and refused.
+    require(trimmed(square, 1.0, 0.0, 0.3, kept) == PaintPathTrimResult::whole && kept.view().verbs.empty(),
+            "start 0 and end 1 keep the whole path whatever the offset");
+    require(trimmed(square, 0.4, 0.4, 0.0, kept) == PaintPathTrimResult::empty && kept.view().verbs.empty(),
+            "equal start and end keep nothing");
+    PaintPath point;
+    point.move_to(Point{1.0, 1.0});
+    require(trimmed(point, 0.0, 0.5, 0.0, kept) == PaintPathTrimResult::empty, "a path of length 0 keeps nothing");
+    kept = unit_square_path();
+    require(trimmed(square, 1.5, 0.5, 0.0, kept) == PaintPathTrimResult::refused && kept == unit_square_path(),
+            "a refused trim leaves the output as it was");
+    const StrokeTrim endless{0.0, 0.5, std::numeric_limits<double>::infinity()};
+    require(!valid_stroke_trim(endless) && trim_paint_path(square.view(), endless, 0.25, kept) ==
+                                               PaintPathTrimResult::refused,
+            "an infinite offset is refused");
+    require(trim_paint_path(square.view(), StrokeTrim{0.0, 0.5, 0.0}, 0.0, kept) == PaintPathTrimResult::refused,
+            "a zero tolerance is refused");
+}
+
+void test_trim_arcs() {
+    // A closed circle: its first quarter is an arc piece from angle 0.
+    PaintPath circle;
+    circle.arc_to(Point{0.0, 0.0}, Size{10.0, 10.0}, 0.0, 360.0);
+    circle.close();
+    PaintPath kept;
+    require(trimmed(circle, 0.0, 0.25, 0.0, kept) == PaintPathTrimResult::trimmed, "a quarter is kept");
+    const PaintPathView quarter = kept.view();
+    require(quarter.verbs.size() == 2U && quarter.verbs[0] == PaintPathVerb::move_to &&
+                quarter.verbs[1] == PaintPathVerb::arc_to,
+            "one arc piece");
+    require(quarter.points[0] == (Point{10.0, 0.0}) && quarter.points[3].x == 0.0 &&
+                std::abs(quarter.points[3].y - 90.0) < 1e-9,
+            "it starts at angle 0 and sweeps a quarter turn");
+    // Wrapped across the start: from 315 degrees on through 0 to 45, one
+    // open contour of two arc pieces.
+    require(trimmed(circle, 0.0, 0.25, 0.875, kept) == PaintPathTrimResult::trimmed, "a wrapped arc is kept");
+    const PaintPathView wrapped = kept.view();
+    require(wrapped.verbs.size() == 3U && wrapped.verbs[0] == PaintPathVerb::move_to &&
+                wrapped.verbs[1] == PaintPathVerb::arc_to && wrapped.verbs[2] == PaintPathVerb::arc_to,
+            "two arc pieces in one contour");
+    require(std::abs(wrapped.points[3].x - 315.0) < 1e-9 && std::abs(wrapped.points[3].y - 45.0) < 1e-9 &&
+                wrapped.points[6].x == 0.0 && std::abs(wrapped.points[6].y - 45.0) < 1e-9,
+            "315 to 360, then 0 to 45");
+}
+
+// The base painter strokes the trimmed sub-path; the recording keeps the
+// whole path and the trim, and replays both.
+void test_trimmed_stroke_fallback_and_recording() {
+    const PaintPath square = unit_square_path();
+    StrokeStyle style{};
+    style.color = ink;
+    style.trim = StrokeTrim{0.125, 0.625, 0.0};
+    require(valid_stroke_style(style), "a trimmed style is valid");
+    MinimalPainter stroked;
+    stroked.stroke_path(square.view(), style);
+    require(stroked.lines.size() == 3U && stroked.lines[0].from == (Point{5.0, 0.0}) &&
+                stroked.lines[2].to == (Point{5.0, 10.0}),
+            "the fallback strokes the part from 5 to 25");
+    StrokeStyle nothing = style;
+    nothing.trim = StrokeTrim{0.5, 0.5, 0.0};
+    MinimalPainter none;
+    none.stroke_path(square.view(), nothing);
+    require(none.lines.empty(), "an empty trim strokes nothing");
+    StrokeStyle invalid = style;
+    invalid.trim.end = 2.0;
+    require(!valid_stroke_style(invalid), "a trim out of range makes the style invalid");
+
+    detail::RecordingPainter recorder;
+    recorder.stroke_path(square.view(), style);
+    const std::shared_ptr<const detail::DisplayChunk> chunk =
+        recorder.finish(1U, PaintPlane::control, Rect{0.0, 0.0, 16.0, 16.0});
+    MinimalPainter replayed;
+    require(detail::replay_display_chunk(*chunk, replayed) == 1U, "the trimmed stroke replays");
+    require(replayed.lines.size() == 3U && replayed.lines[0].from == (Point{5.0, 0.0}),
+            "the replay keeps the trim");
+}
+
 // The path calls record one command each, copy the caller's arrays, and
 // replay exactly; the base fallbacks fill and stroke the flattened path.
 void test_path_recording_and_fallbacks() {
@@ -1247,6 +1437,10 @@ int main() {
         test_joined_segments();
         test_path_values();
         test_path_recording_and_fallbacks();
+        test_path_length();
+        test_trim_exact_sub_paths();
+        test_trim_arcs();
+        test_trimmed_stroke_fallback_and_recording();
         test_path_clip_recording_and_fallback();
         test_image_pattern_clamp_fallback();
         test_hatch_squares();

@@ -203,10 +203,21 @@ void Painter::clip_path(PaintPathView path, PolygonFillRule rule) {
     clip_rect(bounds);
 }
 
+// A trimmed stroke flattens the sub-path trim_paint_path cuts (the same
+// one every painter strokes), held in a PaintPath of this call's own: the
+// minimal painter keeps no scratch, so a trimmed stroke allocates once per
+// call.
 void Painter::stroke_path(PaintPathView path, const StrokeStyle& style) {
     if (!valid_stroke_style(style) || !valid_paint_path(path)) return;
+    PaintPath trimmed;
+    PaintPathView drawn = path;
+    if (!stroke_trim_keeps_whole(style.trim)) {
+        const PaintPathTrimResult result = trim_paint_path(path, style.trim, stroke_trim_tolerance, trimmed);
+        if (result != PaintPathTrimResult::trimmed) return;
+        drawn = trimmed.view();
+    }
     FallbackPath flattened{};
-    flatten_for_fallback(path, flattened);
+    flatten_for_fallback(drawn, flattened);
     std::size_t contour_start = 0U;
     for (std::size_t index = 0U; index < flattened.written.contour_count; ++index) {
         const std::size_t contour_end = flattened.contours[index].end;

@@ -130,6 +130,7 @@
     _ZGVZN9gui_forms10ScopeSweep*;
     _ZGVZN9gui_forms10ScrollCopy*;
     _ZGVZN9gui_forms10StaticNode*;
+    _ZGVZN9gui_forms10StrokeTrim*;
     _ZGVZN9gui_forms10SubSurface*;
     _ZGVZN9gui_forms10SweepScope*;
     _ZGVZN9gui_forms10TabControl*;
@@ -1796,6 +1797,7 @@
     _ZGVZNK9gui_forms10ScopeSweep*;
     _ZGVZNK9gui_forms10ScrollCopy*;
     _ZGVZNK9gui_forms10StaticNode*;
+    _ZGVZNK9gui_forms10StrokeTrim*;
     _ZGVZNK9gui_forms10SubSurface*;
     _ZGVZNK9gui_forms10SweepScope*;
     _ZGVZNK9gui_forms10TabControl*;
@@ -3516,6 +3518,7 @@
     _ZN9gui_forms10ScopeSweep*;
     _ZN9gui_forms10ScrollCopy*;
     _ZN9gui_forms10StaticNode*;
+    _ZN9gui_forms10StrokeTrim*;
     _ZN9gui_forms10SubSurface*;
     _ZN9gui_forms10SweepScope*;
     _ZN9gui_forms10TabControl*;
@@ -4218,6 +4221,8 @@
     _ZN9gui_forms15soft_link_cubicE*;
     _ZN9gui_forms15stock_specimensB*;
     _ZN9gui_forms15stock_specimensE*;
+    _ZN9gui_forms15trim_paint_pathB*;
+    _ZN9gui_forms15trim_paint_pathE*;
     _ZN9gui_forms15valid_date_timeB*;
     _ZN9gui_forms15valid_date_timeE*;
     _ZN9gui_forms16AcceleratorToken*;
@@ -4578,6 +4583,8 @@
     _ZN9gui_forms17paint_masked_fillE*;
     _ZN9gui_forms17paint_path_boundsB*;
     _ZN9gui_forms17paint_path_boundsE*;
+    _ZN9gui_forms17paint_path_lengthB*;
+    _ZN9gui_forms17paint_path_lengthE*;
     _ZN9gui_forms17part_corner_radiiB*;
     _ZN9gui_forms17part_corner_radiiE*;
     _ZN9gui_forms17plain_number_textB*;
@@ -4600,6 +4607,8 @@
     _ZN9gui_forms17select_user_themeE*;
     _ZN9gui_forms17valid_host_localeB*;
     _ZN9gui_forms17valid_host_localeE*;
+    _ZN9gui_forms17valid_stroke_trimB*;
+    _ZN9gui_forms17valid_stroke_trimE*;
     _ZN9gui_forms17validate_app_fontB*;
     _ZN9gui_forms17validate_app_fontE*;
     _ZN9gui_forms17view_hosted_frameB*;
@@ -5677,6 +5686,8 @@
     _ZN9gui_forms23semantic_text_unit_nameE*;
     _ZN9gui_forms23stock_control_anatomiesB*;
     _ZN9gui_forms23stock_control_anatomiesE*;
+    _ZN9gui_forms23stroke_trim_keeps_wholeB*;
+    _ZN9gui_forms23stroke_trim_keeps_wholeE*;
     _ZN9gui_forms23surface_material_opaqueB*;
     _ZN9gui_forms23surface_material_opaqueE*;
     _ZN9gui_forms23surface_material_shapedB*;
@@ -6786,6 +6797,7 @@
     _ZNK[RO]9gui_forms10ScopeSweep*;
     _ZNK[RO]9gui_forms10ScrollCopy*;
     _ZNK[RO]9gui_forms10StaticNode*;
+    _ZNK[RO]9gui_forms10StrokeTrim*;
     _ZNK[RO]9gui_forms10SubSurface*;
     _ZNK[RO]9gui_forms10SweepScope*;
     _ZNK[RO]9gui_forms10TabControl*;
@@ -8452,6 +8464,7 @@
     _ZN[KRO]9gui_forms10ScopeSweep*;
     _ZN[KRO]9gui_forms10ScrollCopy*;
     _ZN[KRO]9gui_forms10StaticNode*;
+    _ZN[KRO]9gui_forms10StrokeTrim*;
     _ZN[KRO]9gui_forms10SubSurface*;
     _ZN[KRO]9gui_forms10SweepScope*;
     _ZN[KRO]9gui_forms10TabControl*;
@@ -10118,6 +10131,7 @@
     _ZT[VIST]N9gui_forms10ScopeSweep*E;
     _ZT[VIST]N9gui_forms10ScrollCopy*E;
     _ZT[VIST]N9gui_forms10StaticNode*E;
+    _ZT[VIST]N9gui_forms10StrokeTrim*E;
     _ZT[VIST]N9gui_forms10SubSurface*E;
     _ZT[VIST]N9gui_forms10SweepScope*E;
     _ZT[VIST]N9gui_forms10TabControl*E;
@@ -11784,6 +11798,7 @@
     _ZT[hvc]*9gui_forms10ScopeSweep*;
     _ZT[hvc]*9gui_forms10ScrollCopy*;
     _ZT[hvc]*9gui_forms10StaticNode*;
+    _ZT[hvc]*9gui_forms10StrokeTrim*;
     _ZT[hvc]*9gui_forms10SubSurface*;
     _ZT[hvc]*9gui_forms10SweepScope*;
     _ZT[hvc]*9gui_forms10TabControl*;
@@ -13450,6 +13465,7 @@
     _ZZN9gui_forms10ScopeSweep*;
     _ZZN9gui_forms10ScrollCopy*;
     _ZZN9gui_forms10StaticNode*;
+    _ZZN9gui_forms10StrokeTrim*;
     _ZZN9gui_forms10SubSurface*;
     _ZZN9gui_forms10SweepScope*;
     _ZZN9gui_forms10TabControl*;
@@ -15116,6 +15132,7 @@
     _ZZNK9gui_forms10ScopeSweep*;
     _ZZNK9gui_forms10ScrollCopy*;
     _ZZNK9gui_forms10StaticNode*;
+    _ZZNK9gui_forms10StrokeTrim*;
     _ZZNK9gui_forms10SubSurface*;
     _ZZNK9gui_forms10SweepScope*;
     _ZZNK9gui_forms10TabControl*;

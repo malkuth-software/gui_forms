@@ -142,6 +142,34 @@ static int check_texture_and_radial_brushes(const gd_api_v0* api) {
     return 0;
 }
 
+/* ABI 1.1, provisional: pen trims. In-range values in either order and any
+   finite offset are taken; out-of-range or non-finite values and a handle
+   of another kind are refused; a trimmed pen records like any other. */
+static int check_pen_trim(const gd_api_v0* api) {
+    gd_handle pen = {0};
+    gd_handle brush = {0};
+    gd_handle recorder = {0};
+    uint64_t count = 0;
+    CHECK((*api).pen_create((gd_color){UINT32_C(0xff000000), 0}, 2.0, &pen) == GD_OK);
+    CHECK((*api).pen_set_trim(pen, 0.25, 0.75, 0.5) == GD_OK);
+    CHECK((*api).pen_set_trim(pen, 0.75, 0.25, -3.5) == GD_OK);
+    CHECK((*api).pen_set_trim(pen, 0.0, 1.0, 0.0) == GD_OK);
+    CHECK((*api).pen_set_trim(pen, -0.25, 0.5, 0.0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).pen_set_trim(pen, 0.0, 1.5, 0.0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).pen_set_trim(pen, 0.0, 0.5, INFINITY) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).pen_set_trim(pen, NAN, 0.5, 0.0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).solid_brush_create((gd_color){UINT32_C(0xff000000), 0}, &brush) == GD_OK);
+    CHECK((*api).pen_set_trim(brush, 0.0, 0.5, 0.0) == GD_ERROR_WRONG_HANDLE_KIND);
+    CHECK((*api).pen_set_trim(pen, 0.0, 0.5, 0.25) == GD_OK);
+    CHECK((*api).recorder_create(&recorder) == GD_OK);
+    CHECK((*api).recorder_draw_ellipse(recorder, pen, (gd_rect){0, 0, 16, 16}) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 1U);
+    CHECK((*api).release(recorder) == GD_OK);
+    CHECK((*api).release(brush) == GD_OK);
+    CHECK((*api).release(pen) == GD_OK);
+    return 0;
+}
+
 /* ABI 1.1, provisional: path flattening into the caller's three arrays,
    counted first; short arrays and bad tolerances leave the arrays as they
    were. The quadratic needs 5 chords at 0.25 (Wang's formula), six points;
@@ -900,8 +928,10 @@ int main(void) {
               sizeof(api.last_error) == 5U);
     CHECK(offsetof(gd_api_v0, radial_gradient_brush_set_radii) ==
           offsetof(gd_api_v0, radial_gradient_brush_set_focus) + sizeof(api.radial_gradient_brush_set_focus));
-    CHECK(sizeof(gd_api_v0) ==
+    /* Then the pen's trim (claude/geometry-1), which ends the table. */
+    CHECK(offsetof(gd_api_v0, pen_set_trim) ==
           offsetof(gd_api_v0, radial_gradient_brush_set_radii) + sizeof(api.radial_gradient_brush_set_radii));
+    CHECK(sizeof(gd_api_v0) == offsetof(gd_api_v0, pen_set_trim) + sizeof(api.pen_set_trim));
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_1_1, &api) == GD_OK);
@@ -913,6 +943,7 @@ int main(void) {
     CHECK(api.texture_brush_create != NULL);
     CHECK(api.radial_gradient_brush_set_focus != NULL);
     CHECK(api.radial_gradient_brush_set_radii != NULL);
+    CHECK(api.pen_set_trim != NULL);
     CHECK(gd_get_api_v0(UINT32_C(0x00010002), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     CHECK(gd_get_api_v0(UINT32_C(0x00020000), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     memset(&api, 0, sizeof(api));
@@ -1210,6 +1241,7 @@ int main(void) {
     CHECK(check_curved_paths(&api) == 0);
     CHECK(check_path_flattening(&api) == 0);
     CHECK(check_texture_and_radial_brushes(&api) == 0);
+    CHECK(check_pen_trim(&api) == 0);
     CHECK(check_rotated_text(&api) == 0);
     CHECK(check_seal_errors(&api) == 0);
     CHECK(check_handle_staleness(&api) == 0);

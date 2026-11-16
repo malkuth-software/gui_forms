@@ -317,6 +317,9 @@ private:
     // opaque_live_surface_cover has promised.
     bool direct_patterns_{};
     std::uint64_t covers_promised_{};
+    // stroke_path's trimmed sub-path (StrokeStyle::trim), cleared and
+    // refilled by each trimmed stroke on the painting thread.
+    PaintPath trimmed_stroke_{};
 };
 
 } // namespace gui_forms::render

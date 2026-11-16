@@ -6,6 +6,7 @@
 #include "gui_forms/live_surface.hpp"
 #if defined(GUI_FORMS_PREPARED_TEXT)
 #include "prepared_skia_frame.hpp"
+#include "skia_paint_path.hpp"
 #endif
 
 #include "../../text/harfbuzz/bundled_face_loader.hpp"
@@ -3205,52 +3206,6 @@ int reserved_points(std::size_t count) noexcept {
     return static_cast<int>(bounded);
 }
 
-// Appends an arc_to's arc (paint_path.hpp) to `builder`: a straight segment
-// from the current point to its start unless `starts_contour`. A sweep
-// beyond a half turn either way is drawn in two halves, so a full turn
-// never reaches Skia as one arc whose ends coincide.
-void append_path_arc(SkPathBuilder& builder, Point center, Point radii, Point angles, bool starts_contour) {
-    const SkRect oval = SkRect::MakeLTRB(static_cast<SkScalar>(center.x - radii.x),
-                                         static_cast<SkScalar>(center.y - radii.y),
-                                         static_cast<SkScalar>(center.x + radii.x),
-                                         static_cast<SkScalar>(center.y + radii.y));
-    const double sweep = std::clamp(angles.y, -360.0, 360.0);
-    if (std::fabs(sweep) <= 180.0) {
-        builder.arcTo(oval, static_cast<SkScalar>(angles.x), static_cast<SkScalar>(sweep), starts_contour);
-        return;
-    }
-    const double half = sweep * 0.5;
-    builder.arcTo(oval, static_cast<SkScalar>(angles.x), static_cast<SkScalar>(half), starts_contour);
-    builder.arcTo(oval, static_cast<SkScalar>(angles.x + half), static_cast<SkScalar>(half), false);
-}
-
-// `path` (validated) as a Skia path with `fill`.
-SkPath built_paint_path(PaintPathView path, SkPathFillType fill) {
-    SkPathBuilder builder(fill);
-    builder.incReserve(reserved_points(path.points.size()));
-    std::size_t consumed = 0U;
-    bool have_current = false;
-    for (const PaintPathVerb verb : path.verbs) {
-        const std::span<const Point> operands = path.points.subspan(consumed, paint_path_points_for(verb));
-        consumed = consumed + operands.size();
-        switch (verb) {
-        case PaintPathVerb::move_to: builder.moveTo(to_sk_point(operands[0])); break;
-        case PaintPathVerb::line_to: builder.lineTo(to_sk_point(operands[0])); break;
-        case PaintPathVerb::quad_to: builder.quadTo(to_sk_point(operands[0]), to_sk_point(operands[1])); break;
-        case PaintPathVerb::cubic_to:
-            builder.cubicTo(to_sk_point(operands[0]), to_sk_point(operands[1]), to_sk_point(operands[2]));
-            break;
-        case PaintPathVerb::arc_to: append_path_arc(builder, operands[0], operands[1], operands[2], !have_current); break;
-        case PaintPathVerb::close: builder.close(); break;
-        default:
-            // Unreachable for a validated path.
-            break;
-        }
-        have_current = true;
-    }
-    return builder.detach();
-}
-
 } // namespace
 
 void SkiaRaster::stroke_polyline(std::span<const Point> points, const StrokeStyle& style) {
@@ -3300,7 +3255,7 @@ void SkiaRaster::fill_path(PaintPathView path, Color color, PolygonFillRule rule
     const bool known_rule = rule == PolygonFillRule::nonzero || rule == PolygonFillRule::even_odd;
     if (canvas == nullptr || !known_rule || !valid_paint_path(path)) return;
     const SkPathFillType fill = rule == PolygonFillRule::even_odd ? SkPathFillType::kEvenOdd : SkPathFillType::kWinding;
-    const SkPath built = built_paint_path(path, fill);
+    const SkPath built = skia_paint_path::built_path(path, fill);
     (*canvas).drawPath(built, make_paint(color));
 }
 
@@ -3314,7 +3269,7 @@ void SkiaRaster::clip_path(PaintPathView path, PolygonFillRule rule) {
         return;
     }
     const SkPathFillType fill = rule == PolygonFillRule::even_odd ? SkPathFillType::kEvenOdd : SkPathFillType::kWinding;
-    const SkPath built = built_paint_path(path, fill);
+    const SkPath built = skia_paint_path::built_path(path, fill);
     (*canvas).clipPath(built, SkClipOp::kIntersect, true);
     Impl::TextClipState* const state = (*impl_).current_text_clip(*canvas);
     if (state == nullptr) return;
@@ -3423,12 +3378,21 @@ bool SkiaRaster::Impl::make_clip_mask(const SkCanvas& target, const PaintPathVie
     return true;
 }
 
+// A trimmed stroke draws the sub-path trim_paint_path cuts in the core
+// (into trimmed_stroke_, reused across calls), so it is the same sub-path
+// every painter strokes.
 void SkiaRaster::stroke_path(PaintPathView path, const StrokeStyle& style) {
     SkCanvas* canvas = (*impl_).canvas();
     if (canvas == nullptr || !valid_stroke_style(style) || !valid_paint_path(path)) return;
     SkPaint paint;
     if (!configure_mark_stroke(paint, style)) return;
-    const SkPath built = built_paint_path(path, SkPathFillType::kWinding);
+    PaintPathView drawn = path;
+    if (!stroke_trim_keeps_whole(style.trim)) {
+        const PaintPathTrimResult trimmed = trim_paint_path(path, style.trim, stroke_trim_tolerance, trimmed_stroke_);
+        if (trimmed != PaintPathTrimResult::trimmed) return;
+        drawn = trimmed_stroke_.view();
+    }
+    const SkPath built = skia_paint_path::built_path(drawn, SkPathFillType::kWinding);
     (*canvas).drawPath(built, paint);
 }
 

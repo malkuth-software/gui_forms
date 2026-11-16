@@ -6,6 +6,7 @@
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace gui_forms {
@@ -301,6 +302,425 @@ FlattenedPath flatten_paint_path(PaintPathView path, double tolerance, std::span
         }
     }
     return writer.finish();
+}
+
+// Path length and trimming. The path is walked as a sequence of segments
+// (SegmentCursor), each measured on its own chords (segment_chords); the
+// measuring pass and the cutting pass sum the same chord lengths in the
+// same order, so a cut at the path's measured end lands exactly on it.
+namespace {
+
+enum class SegmentKind : std::uint8_t { line, quadratic, cubic, arc };
+
+// One segment of a path. `points` by kind: line 0 and 1 (from, to);
+// quadratic 0 to 2; cubic 0 to 3; arc 0 the centre, 1 the radii, 2 the
+// start and the sweep (held to a turn), in degrees. `starts_contour` marks
+// a contour's first segment, `closes_contour` a close's closing segment.
+struct PathSegment final {
+    SegmentKind kind{SegmentKind::line};
+    std::array<Point, 4> points{};
+    bool starts_contour{};
+    bool closes_contour{};
+};
+
+PathSegment line_segment(Point from, Point to) noexcept {
+    PathSegment segment{};
+    segment.kind = SegmentKind::line;
+    segment.points[0] = from;
+    segment.points[1] = to;
+    return segment;
+}
+
+// Walks a valid path's segments in order, with the contour rules of
+// flatten_paint_path: move_to starts a contour; a drawing verb after a
+// close starts a new contour at the closed contour's start; arc_to with a
+// current point first yields the straight join to its start (a segment of
+// its own), and with none starts a contour at its start; close yields the
+// closing segment (of length 0 when the contour already ends at its start).
+class SegmentCursor final {
+public:
+    explicit SegmentCursor(PaintPathView path) noexcept : path_(path) {}
+
+    // Writes the next segment into `segment`; false after the last.
+    [[nodiscard]] bool next(PathSegment& segment) noexcept {
+        if (pending_arc_) {
+            pending_arc_ = false;
+            segment = arc_;
+            mark(segment);
+            current_ = arc_end_;
+            return true;
+        }
+        while (verb_ < path_.verbs.size()) {
+            const PaintPathVerb verb = path_.verbs[verb_];
+            const std::span<const Point> operands = path_.points.subspan(consumed_, paint_path_points_for(verb));
+            verb_ = verb_ + 1U;
+            consumed_ = consumed_ + operands.size();
+            switch (verb) {
+            case PaintPathVerb::move_to:
+                current_ = operands[0];
+                contour_start_ = current_;
+                have_current_ = true;
+                fresh_ = true;
+                break;
+            case PaintPathVerb::line_to:
+                segment = line_segment(current_, operands[0]);
+                mark(segment);
+                current_ = operands[0];
+                return true;
+            case PaintPathVerb::quad_to:
+                segment = PathSegment{};
+                segment.kind = SegmentKind::quadratic;
+                segment.points = {current_, operands[0], operands[1], Point{}};
+                mark(segment);
+                current_ = operands[1];
+                return true;
+            case PaintPathVerb::cubic_to:
+                segment = PathSegment{};
+                segment.kind = SegmentKind::cubic;
+                segment.points = {current_, operands[0], operands[1], operands[2]};
+                mark(segment);
+                current_ = operands[2];
+                return true;
+            case PaintPathVerb::arc_to: {
+                const Point angles{operands[2].x, held_sweep(operands[2].y)};
+                arc_ = PathSegment{};
+                arc_.kind = SegmentKind::arc;
+                arc_.points = {operands[0], operands[1], angles, Point{}};
+                const Point start = arc_point(operands[0], operands[1], angles.x);
+                arc_end_ = arc_point(operands[0], operands[1], angles.x + angles.y);
+                if (!have_current_) {
+                    have_current_ = true;
+                    contour_start_ = start;
+                    fresh_ = true;
+                    segment = arc_;
+                    mark(segment);
+                    current_ = arc_end_;
+                    return true;
+                }
+                segment = line_segment(current_, start);
+                mark(segment);
+                current_ = start;
+                pending_arc_ = true;
+                return true;
+            }
+            case PaintPathVerb::close:
+                segment = line_segment(current_, contour_start_);
+                segment.closes_contour = true;
+                mark(segment);
+                current_ = contour_start_;
+                fresh_ = true;
+                return true;
+            default:
+                // Unreachable for a valid path; ends the walk.
+                return false;
+            }
+        }
+        return false;
+    }
+
+private:
+    void mark(PathSegment& segment) noexcept {
+        segment.starts_contour = fresh_;
+        fresh_ = false;
+    }
+
+    PaintPathView path_;
+    std::size_t verb_{};
+    std::size_t consumed_{};
+    Point current_{};
+    Point contour_start_{};
+    bool have_current_{};
+    bool fresh_{true};
+    bool pending_arc_{};
+    PathSegment arc_{};
+    Point arc_end_{};
+};
+
+double point_distance(Point from, Point to) noexcept {
+    const double length = engine_hypotenuse(to.x - from.x, to.y - from.y);
+    return length;
+}
+
+// The measuring chord count of `segment` at `tolerance` (the header's
+// rules). An arc's chord turns by `step` radians, whose sagitta
+// r (1 - cos(step / 2)) is at most r step^2 / 8; step = sqrt(8 tolerance / r)
+// keeps it within the tolerance with sqrt alone.
+std::size_t segment_chords(const PathSegment& segment, double tolerance) noexcept {
+    constexpr double quarter_turn = 3.14159265358979323846 * 0.5;
+    const std::array<Point, 4>& p = segment.points;
+    double wanted = 1.0;
+    std::size_t limit = maximum_measured_curve_chords;
+    switch (segment.kind) {
+    case SegmentKind::line: return 1U;
+    case SegmentKind::quadratic: {
+        const double second = engine_hypotenuse(p[0].x - 2.0 * p[1].x + p[2].x, p[0].y - 2.0 * p[1].y + p[2].y);
+        wanted = std::ceil(std::sqrt(0.25 * second / tolerance));
+        break;
+    }
+    case SegmentKind::cubic: {
+        const double first = engine_hypotenuse(p[0].x - 2.0 * p[1].x + p[2].x, p[0].y - 2.0 * p[1].y + p[2].y);
+        const double second = engine_hypotenuse(p[1].x - 2.0 * p[2].x + p[3].x, p[1].y - 2.0 * p[2].y + p[3].y);
+        wanted = std::ceil(std::sqrt(0.75 * std::max(first, second) / tolerance));
+        break;
+    }
+    case SegmentKind::arc: {
+        const double radius = std::max(p[1].x, p[1].y);
+        const double sweep = std::fabs(p[2].y) * degrees_to_radians;
+        const double step = std::min(std::sqrt(8.0 * tolerance / radius), quarter_turn);
+        wanted = std::ceil(sweep / step);
+        limit = maximum_measured_arc_chords;
+        break;
+    }
+    default: return 1U;
+    }
+    if (!(wanted >= 1.0)) return 1U;
+    if (wanted >= static_cast<double>(limit)) return limit;
+    return static_cast<std::size_t>(wanted);
+}
+
+// The segment's point at parameter `t` in [0, 1]: Bernstein forms for the
+// line and the curves (exactly the end points at 0 and 1), the angle
+// start + t sweep for the arc.
+Point segment_point(const PathSegment& segment, double t) noexcept {
+    const std::array<Point, 4>& p = segment.points;
+    const double u = 1.0 - t;
+    switch (segment.kind) {
+    case SegmentKind::line: return Point{u * p[0].x + t * p[1].x, u * p[0].y + t * p[1].y};
+    case SegmentKind::quadratic: {
+        const double a = u * u;
+        const double b = 2.0 * u * t;
+        const double c = t * t;
+        return Point{a * p[0].x + b * p[1].x + c * p[2].x, a * p[0].y + b * p[1].y + c * p[2].y};
+    }
+    case SegmentKind::cubic: {
+        const double a = u * u * u;
+        const double b = 3.0 * u * u * t;
+        const double c = 3.0 * u * t * t;
+        const double d = t * t * t;
+        return Point{a * p[0].x + b * p[1].x + c * p[2].x + d * p[3].x,
+                     a * p[0].y + b * p[1].y + c * p[2].y + d * p[3].y};
+    }
+    case SegmentKind::arc: {
+        const double angle = t == 1.0 ? p[2].x + p[2].y : p[2].x + t * p[2].y;
+        return arc_point(p[0], p[1], angle);
+    }
+    default: return p[0];
+    }
+}
+
+// Chord `index` of `chords` ends at parameter index / chords.
+double chord_parameter(std::size_t index, std::size_t chords) noexcept {
+    const double t = static_cast<double>(index) / static_cast<double>(chords);
+    return t;
+}
+
+double segment_length(const PathSegment& segment, std::size_t chords) noexcept {
+    double length = 0.0;
+    Point previous = segment_point(segment, 0.0);
+    for (std::size_t index = 1U; index <= chords; ++index) {
+        const Point point = segment_point(segment, chord_parameter(index, chords));
+        length = length + point_distance(previous, point);
+        previous = point;
+    }
+    return length;
+}
+
+// The parameter where the segment's measured length reaches `distance`
+// (within [0, its length]): the chord holding it, interpolated linearly.
+double parameter_at(const PathSegment& segment, std::size_t chords, double distance) noexcept {
+    double walked = 0.0;
+    Point previous = segment_point(segment, 0.0);
+    for (std::size_t index = 1U; index <= chords; ++index) {
+        const Point point = segment_point(segment, chord_parameter(index, chords));
+        const double chord = point_distance(previous, point);
+        if (walked + chord >= distance) {
+            const double share = chord > 0.0 ? std::clamp((distance - walked) / chord, 0.0, 1.0) : 0.0;
+            const double t = (static_cast<double>(index - 1U) + share) / static_cast<double>(chords);
+            return t;
+        }
+        walked = walked + chord;
+        previous = point;
+    }
+    return 1.0;
+}
+
+// The quadratic's blossom at (a, b): the control points of its piece over
+// [t0, t1] are blossom(t0, t0), blossom(t0, t1), blossom(t1, t1).
+Point quadratic_blossom(const std::array<Point, 4>& p, double a, double b) noexcept {
+    const double w0 = (1.0 - a) * (1.0 - b);
+    const double w1 = (1.0 - a) * b + a * (1.0 - b);
+    const double w2 = a * b;
+    return Point{w0 * p[0].x + w1 * p[1].x + w2 * p[2].x, w0 * p[0].y + w1 * p[1].y + w2 * p[2].y};
+}
+
+// The cubic's blossom at (a, b, c); its piece over [t0, t1] has controls
+// blossom(t0, t0, t0), (t0, t0, t1), (t0, t1, t1), (t1, t1, t1).
+Point cubic_blossom(const std::array<Point, 4>& p, double a, double b, double c) noexcept {
+    const double w0 = (1.0 - a) * (1.0 - b) * (1.0 - c);
+    const double w1 = (1.0 - a) * (1.0 - b) * c + (1.0 - a) * b * (1.0 - c) + a * (1.0 - b) * (1.0 - c);
+    const double w2 = (1.0 - a) * b * c + a * (1.0 - b) * c + a * b * (1.0 - c);
+    const double w3 = a * b * c;
+    return Point{w0 * p[0].x + w1 * p[1].x + w2 * p[2].x + w3 * p[3].x,
+                 w0 * p[0].y + w1 * p[1].y + w2 * p[2].y + w3 * p[3].y};
+}
+
+// The start of the segment's piece from `t0`: the curves' first blossom
+// control (so the piece's start and its first control agree in rounding).
+Point piece_start(const PathSegment& segment, double t0) noexcept {
+    if (segment.kind == SegmentKind::quadratic) return quadratic_blossom(segment.points, t0, t0);
+    if (segment.kind == SegmentKind::cubic) return cubic_blossom(segment.points, t0, t0, t0);
+    const Point start = segment_point(segment, t0);
+    return start;
+}
+
+// Appends the segment's piece over [t0, t1] to `kept`, starting a contour
+// at its start when `starting`.
+void append_piece(const PathSegment& segment, double t0, double t1, bool starting, PaintPath& kept) {
+    const std::array<Point, 4>& p = segment.points;
+    if (starting) kept.move_to(piece_start(segment, t0));
+    switch (segment.kind) {
+    case SegmentKind::line: kept.line_to(segment_point(segment, t1)); break;
+    case SegmentKind::quadratic: kept.quad_to(quadratic_blossom(p, t0, t1), quadratic_blossom(p, t1, t1)); break;
+    case SegmentKind::cubic:
+        kept.cubic_to(cubic_blossom(p, t0, t0, t1), cubic_blossom(p, t0, t1, t1), cubic_blossom(p, t1, t1, t1));
+        break;
+    case SegmentKind::arc: {
+        const double start = p[2].x + t0 * p[2].y;
+        const double sweep = (t1 - t0) * p[2].y;
+        kept.arc_to(p[0], Size{p[1].x, p[1].y}, start, sweep);
+        break;
+    }
+    default: break;
+    }
+}
+
+// What the measuring pass finds: the whole length, the contours with
+// positive or zero length that have segments, and whether the last of
+// them is closed.
+struct PathMeasure final {
+    double length{};
+    std::size_t contour_count{};
+    bool last_closed{};
+};
+
+PathMeasure measure_path(PaintPathView path, double tolerance) noexcept {
+    PathMeasure measure{};
+    SegmentCursor cursor(path);
+    PathSegment segment{};
+    while (cursor.next(segment)) {
+        if (segment.starts_contour) {
+            measure.contour_count = measure.contour_count + 1U;
+            measure.last_closed = false;
+        }
+        if (segment.closes_contour) measure.last_closed = true;
+        const double length = segment_length(segment, segment_chords(segment, tolerance));
+        measure.length = measure.length + length;
+    }
+    return measure;
+}
+
+// A kept distance range along the path, from `from` to `to`.
+struct KeptRange final {
+    double from{};
+    double to{};
+};
+
+// Appends the pieces of `path` within `range` to `kept`. With
+// `continues`, the range's first contour continues the contour `kept`
+// already ends with (the wrapped ring) instead of starting one.
+void append_range(PaintPathView path, double tolerance, KeptRange range, bool continues, PaintPath& kept) {
+    SegmentCursor cursor(path);
+    PathSegment segment{};
+    double before = 0.0;
+    bool pen_down = false;
+    bool contour_whole = false;
+    bool first_contour = true;
+    while (cursor.next(segment)) {
+        const std::size_t chords = segment_chords(segment, tolerance);
+        const double length = segment_length(segment, chords);
+        const double after = before + length;
+        if (segment.starts_contour) {
+            pen_down = first_contour && continues;
+            first_contour = false;
+            // Whole so far: the range holds the contour's start (and is
+            // not continuing a cut one).
+            contour_whole = !pen_down && range.from <= before && range.to > before;
+        }
+        const bool overlaps = range.from < after && range.to > before;
+        if (length > 0.0 && overlaps) {
+            const bool from_start = range.from <= before;
+            const bool to_end = range.to >= after;
+            if (!to_end) contour_whole = false;
+            if (segment.closes_contour && to_end && contour_whole && pen_down) {
+                kept.close();
+            } else {
+                const double t0 = from_start ? 0.0 : parameter_at(segment, chords, range.from - before);
+                const double t1 = to_end ? 1.0 : parameter_at(segment, chords, range.to - before);
+                append_piece(segment, t0, t1, !pen_down, kept);
+                pen_down = true;
+            }
+        } else if (length == 0.0 && segment.closes_contour && contour_whole && pen_down && range.to >= after) {
+            // A contour already back at its start keeps its close.
+            kept.close();
+        }
+        before = after;
+    }
+}
+
+} // namespace
+
+std::optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept {
+    if (!(tolerance > 0.0) || !std::isfinite(tolerance) || !valid_paint_path(path)) return std::nullopt;
+    const PathMeasure measure = measure_path(path, tolerance);
+    return measure.length;
+}
+
+bool valid_stroke_trim(StrokeTrim trim) noexcept {
+    const bool start = std::isfinite(trim.start) && trim.start >= 0.0 && trim.start <= 1.0;
+    const bool end = std::isfinite(trim.end) && trim.end >= 0.0 && trim.end <= 1.0;
+    return start && end && std::isfinite(trim.offset);
+}
+
+bool stroke_trim_keeps_whole(StrokeTrim trim) noexcept {
+    const double low = std::min(trim.start, trim.end);
+    const double high = std::max(trim.start, trim.end);
+    return low == 0.0 && high == 1.0;
+}
+
+PaintPathTrimResult trim_paint_path(PaintPathView path, StrokeTrim trim, double tolerance, PaintPath& kept) {
+    if (!(tolerance > 0.0) || !std::isfinite(tolerance) || !valid_stroke_trim(trim) || !valid_paint_path(path)) {
+        return PaintPathTrimResult::refused;
+    }
+    kept.clear();
+    if (stroke_trim_keeps_whole(trim)) return PaintPathTrimResult::whole;
+    const double low = std::min(trim.start, trim.end);
+    const double share = std::max(trim.start, trim.end) - low;
+    const PathMeasure measure = measure_path(path, tolerance);
+    if (!(share > 0.0) || !(measure.length > 0.0)) return PaintPathTrimResult::empty;
+    // The kept part's start as a fraction in [0, 1); x - floor(x) can
+    // round up to 1 for a tiny negative x, which is the path's start.
+    double from_fraction = low + trim.offset;
+    from_fraction = from_fraction - std::floor(from_fraction);
+    if (!(from_fraction < 1.0)) from_fraction = 0.0;
+    const double to_fraction = from_fraction + share;
+    const double from = from_fraction * measure.length;
+    kept.reserve(path.verbs.size() * 2U + 8U, path.points.size() * 2U + 8U);
+    if (to_fraction <= 1.0) {
+        append_range(path, tolerance, KeptRange{from, to_fraction * measure.length}, false, kept);
+    } else {
+        const double wrapped = (to_fraction - 1.0) * measure.length;
+        const bool ring = measure.contour_count == 1U && measure.last_closed;
+        if (ring) {
+            append_range(path, tolerance, KeptRange{from, measure.length}, false, kept);
+            const bool continues = !kept.view().verbs.empty();
+            append_range(path, tolerance, KeptRange{0.0, wrapped}, continues, kept);
+        } else {
+            append_range(path, tolerance, KeptRange{0.0, wrapped}, false, kept);
+            append_range(path, tolerance, KeptRange{from, measure.length}, false, kept);
+        }
+    }
+    if (kept.view().verbs.empty()) return PaintPathTrimResult::empty;
+    return PaintPathTrimResult::trimmed;
 }
 
 void PaintPath::reserve(std::size_t verb_capacity, std::size_t point_capacity) {
