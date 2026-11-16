@@ -99,8 +99,8 @@ bool surface_role(PartRole role) noexcept {
 // The corner radius a surface part is drawn with: its own, when set (never
 // negative), else its recipe's material's.
 double part_corner_radius(const PartPaint& part, const ControlVisualRecipe& recipe) noexcept {
-    if (part.corner_radius) {
-        const double result = std::max(0.0, *part.corner_radius);
+    if (part.corner_radius.present()) {
+        const double result = std::max(0.0, *part.corner_radius.value());
         return result;
     }
     return recipe.material.corner_radius;
@@ -125,14 +125,14 @@ bool any_state(AnatomyStateSet states, AnatomyState first, AnatomyState second) 
 // The surface of a part whose role is a plate, well or mark ground.
 void paint_surface(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
     const bool frameless = part.frame == PartFrame::none;
-    if (!part.corner_radius && !frameless) {
+    if (!part.corner_radius.present() && !frameless) {
         paint_surface_material(painter, part.bounds, recipe.material);
         return;
     }
     // A copy for this paint: the part's corner radius, and a frameless
     // part's ground without the material's borders (PartPaint::frame).
     SurfaceMaterial shaped = recipe.material;
-    if (part.corner_radius) shaped.corner_radius = std::max(0.0, *part.corner_radius);
+    if (part.corner_radius.present()) shaped.corner_radius = std::max(0.0, *part.corner_radius.value());
     if (frameless) {
         shaped.border.reset();
         shaped.border_edges = MaterialBorderEdges{};
@@ -964,7 +964,7 @@ void paint_beak(Painter& painter, const PartPaint& part, const ControlVisualReci
 // Content colour is drawn exactly as given, disabled or not (T2 GIVEN
 // E2-1): a disabled part shows through what surrounds it.
 void paint_content_color(Painter& painter, const PartPaint& part, Color color) {
-    const double radius = part.corner_radius ? std::max(0.0, *part.corner_radius) : 0.0;
+    const double radius = part.corner_radius.present() ? std::max(0.0, *part.corner_radius.value()) : 0.0;
     if (radius > 0.0) {
         painter.fill_rounded_rect(part.bounds, radius, color);
         return;
@@ -1130,8 +1130,8 @@ constexpr std::size_t pointed_face_strips = 9U;
 
 // The nose length of a pointed part, within its bounds (zero when none).
 double pointed_length(const PartPaint& part) noexcept {
-    if (!part.point || !surface_role(part.role)) return 0.0;
-    const double length = std::clamp(*part.point, 0.0, std::max(0.0, part.bounds.width));
+    if (!part.point.present() || !surface_role(part.role)) return 0.0;
+    const double length = std::clamp(*part.point.value(), 0.0, std::max(0.0, part.bounds.width));
     return length;
 }
 
@@ -1180,8 +1180,8 @@ constexpr std::size_t part_profile_strips = 12U;
 
 // Whether `part` carries a profile that draws anything.
 bool profiled(const PartPaint& part) noexcept {
-    if (!part.profile || part.point || !surface_role(part.role)) return false;
-    const PartProfile& profile = *part.profile;
+    if (!part.profile.present() || part.point.present() || !surface_role(part.role)) return false;
+    const PartProfile& profile = *part.profile.value();
     const bool any = profile.taper > 0.0 || profile.flare > 0.0 || profile.edge_shadow > 0.0;
     return any;
 }
@@ -1248,7 +1248,7 @@ std::size_t profile_rows(Rect bounds, double taper, double radius, std::span<Pro
 // the face ends, so the face's edge and the shadow's falloff are one
 // continuous edge, the top corner included.
 void paint_profiled_part(Painter& painter, const Control& control, const PartPaint& part) {
-    const PartProfile& profile = *part.profile;
+    const PartProfile& profile = *part.profile.value();
     PartPaint whole = part;
     whole.profile.reset();
     const Rect bounds = part.bounds;
@@ -1262,8 +1262,8 @@ void paint_profiled_part(Painter& painter, const Control& control, const PartPai
     const ResolvedControlRecipe resolved =
         control.effective_theme().resolve(control, part.family, context, part.states, part_name, part.control_type);
     const SurfaceMaterial& material = resolved.recipe().material;
-    double radius = part.corner_radius ? std::max(0.0, *part.corner_radius) : material.corner_radius;
-    if (!part.corner_radius && material.corner_radii.present()) radius = (*material.corner_radii.value()).top_right;
+    double radius = part.corner_radius.present() ? std::max(0.0, *part.corner_radius.value()) : material.corner_radius;
+    if (!part.corner_radius.present() && material.corner_radii.present()) radius = (*material.corner_radii.value()).top_right;
     radius = std::clamp(radius, 0.0, std::min(maximum_part_shape, bounds.height));
     // Without a taper the outline is the straight right edge; its rounded
     // top corner is the face's own and only the shadow follows it.
@@ -1334,8 +1334,8 @@ namespace {
 bool opaque_surface_part(const PartPaint& part, const SurfaceMaterial& material) noexcept {
     // A fill with a content colour paints that colour, not the material.
     const bool content = part.role == PartRole::fill && part.content_color.present();
-    if (!surface_role(part.role) || content || part.point) return false;
-    if (part.corner_radius && *part.corner_radius != 0.0) return false;
+    if (!surface_role(part.role) || content || part.point.present()) return false;
+    if (part.corner_radius.present() && *part.corner_radius.value() != 0.0) return false;
     const bool opaque = surface_material_opaque(material);
     return opaque;
 }
@@ -1414,12 +1414,12 @@ namespace {
 // shape where it has a corner radius.
 void draw_light_plane_raster(Painter& painter, const PartPaint& part, const std::shared_ptr<const PartRaster>& raster) {
     const Point origin{part.bounds.x, part.bounds.y};
-    if (!part.corner_radius) {
+    if (!part.corner_radius.present()) {
         painter.draw_part_raster(raster, origin, 1.0);
         return;
     }
     painter.save();
-    painter.clip_rounded_rect(part.bounds, std::max(0.0, *part.corner_radius));
+    painter.clip_rounded_rect(part.bounds, std::max(0.0, *part.corner_radius.value()));
     painter.draw_part_raster(raster, origin, 1.0);
     painter.restore();
 }

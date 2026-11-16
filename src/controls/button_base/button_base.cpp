@@ -914,7 +914,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
             cue.family = role;
             cue.bounds = visual_bounds;
             cue.states = states;
-            cue.corner_radius = 0.0;
+            cue.corner_radius.set(0.0);
             cue.role = PartRole::preselect;
             paint_part(painter, *this, cue);
             cue.role = PartRole::focus;
@@ -977,7 +977,7 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     cue.family = ControlVisualRole::button;
     cue.bounds = bounds;
     cue.states = states;
-    cue.corner_radius = 0.0;
+    cue.corner_radius.set(0.0);
     cue.role = PartRole::focus;
     cue.key = PartKey{"focus", {}, {}};
     paint_part(painter, *this, cue);

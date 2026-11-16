@@ -964,7 +964,7 @@ void DockSite::paint_flyout(Painter& painter, const Control& surface) const {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::shadow;
     part.bounds = moved(placed.full, offset);
-    part.corner_radius = 0.0;
+    part.corner_radius.set(0.0);
     part.key = PartKey{"flyout_shadow", {}, {}};
     paint_part(painter, surface, part);
     part.corner_radius.reset();

@@ -275,9 +275,9 @@ void SevenSegmentDisplay::on_paint(Painter& painter, Rect) {
     AnatomyStateSet lit_states = states;
     lit_states.insert(AnatomyState::selected);
     PartPaint bar{.role = PartRole::trace, .states = lit_states, .family = ControlVisualRole::progress};
-    bar.corner_radius = metrics.thickness * 0.5;
+    bar.corner_radius.set(metrics.thickness * 0.5);
     PartPaint ghost{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
-    ghost.corner_radius = metrics.thickness * 0.5;
+    ghost.corner_radius.set(metrics.thickness * 0.5);
     double x = metrics.left;
     for (const SevenSegmentCell& cell : shown) {
         if (cell.colon) {

@@ -371,7 +371,7 @@ void SplitterGrip::on_paint(Painter& painter, Rect) {
     band.family = ControlVisualRole::panel;
     band.role = PartRole::face;
     band.states = states;
-    band.corner_radius = 0.0;
+    band.corner_radius.set(0.0);
     if (orientation_ == Orientation::vertical) {
         const double width = std::min(visible_width_, bounds.width);
         const double x = std::clamp(visible_origin_, 0.0,

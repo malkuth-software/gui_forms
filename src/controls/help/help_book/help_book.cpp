@@ -745,7 +745,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
             bar.bounds = Rect{laid_block.bar.x + offset.x, laid_block.bar.y + offset.y, laid_block.bar.width,
                               laid_block.bar.height};
             bar.states = states;
-            bar.corner_radius = 0.0;
+            bar.corner_radius.set(0.0);
             bar.key = PartKey{"topic_bar", "topic", section};
             paint_part(painter, *this, bar);
             PartPaint expander{};
@@ -789,7 +789,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
                 callout.family = ControlVisualRole::card;
                 callout.role = PartRole::face;
                 callout.bounds = face;
-                callout.corner_radius = 0.0;
+                callout.corner_radius.set(0.0);
                 paint_part(painter, *this, callout);
             }
         }
@@ -881,7 +881,7 @@ void HelpBook::on_paint(Painter& painter, Rect) {
     paper.family = ControlVisualRole::tool_tip;
     paper.role = PartRole::face;
     paper.bounds = bounds;
-    paper.corner_radius = 0.0;
+    paper.corner_radius.set(0.0);
     paper.key = PartKey{"paper", {}, {}};
     paint_part(painter, *this, paper);
     const Rect viewport = viewport_rectangle();

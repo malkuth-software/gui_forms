@@ -283,7 +283,7 @@ public:
         part.role = role_;
         part.family = ControlVisualRole::button;
         part.bounds = engine_samples::feature_sample_bounds;
-        part.corner_radius = engine_samples::feature_sample_corner_radius;
+        part.corner_radius.set(engine_samples::feature_sample_corner_radius);
         part.key = PartKey{"subject", {}, {}};
         part.states = states;
         part.granted_overflow = overflow;
@@ -724,7 +724,7 @@ std::uint64_t sample_bake_effort(const EngineFeatureSample& sample, double scale
     target.logical_size = Size{engine_samples::feature_sample_bounds.width, engine_samples::feature_sample_bounds.height};
     target.scale = DeviceScale{scale};
     target.material = &material;
-    target.corner_radius = engine_samples::feature_sample_corner_radius;
+    target.corner_radius.set(engine_samples::feature_sample_corner_radius);
     const engine_primitives::BakeEffort effort = engine_primitives::material_bake_effort(material, target);
     return effort.units;
 }

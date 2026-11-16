@@ -124,7 +124,7 @@ void Badge::on_paint(Painter& painter, Rect) {
     const Rect chip = chip_bounds(shown);
     const AnatomyStateSet states = anatomy_states();
     PartPaint face{.role = PartRole::chip, .bounds = chip, .states = states, .family = ControlVisualRole::badge};
-    face.corner_radius = std::min(chip.width, chip.height) * 0.5;
+    face.corner_radius.set(std::min(chip.width, chip.height) * 0.5);
     paint_part(painter, *this, face);
     if (shown.empty()) return;
     PartPaint label{.role = PartRole::label, .bounds = chip, .states = states, .family = ControlVisualRole::badge};

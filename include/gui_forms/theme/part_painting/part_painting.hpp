@@ -243,20 +243,20 @@ struct GUI_FORMS_API PartPaint final {
     ImageId image{};
     // A focus or preselect ring follows the same shape: a connected
     // segment's square corners, for one.
-    std::optional<double> corner_radius{};
+    stxlib::Optional<double> corner_radius{};
     // A pointed face (design language §8.5; owner decision 2026-11-02): the
     // surface's trailing end is a nose this many units long, its tip at the
     // middle of the right edge, as a raised breadcrumb segment's. Only
     // surface roles read it; none is a rectangle. Hit testing uses the same
     // shape (pointed_face_contains).
-    std::optional<double> point{};
+    stxlib::Optional<double> point{};
     // The nose is at the left edge instead, its tip at the middle of the
     // left edge: a right-to-left breadcrumb segment's (Control::
     // right_to_left). Read only with `point`.
     bool point_leading{};
     // The part's profile beside its rectangle (PartProfile), or none. Only
     // surface roles read it; a pointed face ignores it.
-    std::optional<PartProfile> profile{};
+    stxlib::Optional<PartProfile> profile{};
     // Whether the part draws its frame. A surface part with frame none is
     // its material's ground: the material's border and per-edge borders are
     // left out, and its fills, keylines, shadows and shape are kept. It is

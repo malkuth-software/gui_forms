@@ -226,7 +226,7 @@ void RadioButton::on_paint(Painter& painter, Rect) {
     well.role = PartRole::well;
     well.bounds = box;
     well.states = states;
-    well.corner_radius = 7.5;
+    well.corner_radius.set(7.5);
     well.authored_background = ground;
     well.key = PartKey{"well", {}, {}};
     paint_part(painter, *this, well);

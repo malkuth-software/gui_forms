@@ -308,7 +308,7 @@ void overlay_shadow(const Control& control) {
                     operation.radius == 0.0,
                 "each layer is cast from the surface's rect with the theme's offset, blur and colour");
     }
-    shadow.corner_radius = 5.0;
+    shadow.corner_radius.set(5.0);
     RecordingPainter rounded;
     paint_part(rounded, control, shadow);
     require(rounded.operations.size() == layers.size() && rounded.operations[0].radius == 5.0,
@@ -382,7 +382,7 @@ void content_colors(const Control& control) {
     require(flat.operations.size() == 1U && flat.operations[0].kind == "fill" &&
                 flat.operations[0].bounds == fill.bounds && flat.operations[0].color == sample,
             "a fill with a content colour is that colour, flat, and nothing else");
-    fill.corner_radius = 2.0;
+    fill.corner_radius.set(2.0);
     RecordingPainter rounded;
     paint_part(rounded, control, fill);
     require(rounded.operations.size() == 1U && rounded.operations[0].kind == "fill_rounded" &&
@@ -772,7 +772,7 @@ void pointed_faces(const Control& control) {
     face.bounds = bounds;
     RecordingPainter square;
     paint_part(square, control, face);
-    face.point = 8.0;
+    face.point.set(8.0);
     RecordingPainter pointed;
     paint_part(pointed, control, face);
     require(pointed.operations.size() > square.operations.size(), "a pointed face paints its nose strips");
@@ -782,7 +782,7 @@ void pointed_faces(const Control& control) {
     label.text = lend_paint_text("Segment");
     RecordingPainter plain_label;
     paint_part(plain_label, control, label);
-    label.point = 8.0;
+    label.point.set(8.0);
     RecordingPainter pointed_label;
     paint_part(pointed_label, control, label);
     require(pointed_label.operations.size() == plain_label.operations.size(), "a label ignores the point");

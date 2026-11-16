@@ -271,7 +271,8 @@ Rect material_box(const PrimitiveTarget& target, double outset) noexcept {
 }
 
 double material_radius(const SurfaceMaterial& material, const PrimitiveTarget& target) noexcept {
-    const double logical = target.corner_radius ? std::max(0.0, *target.corner_radius) : material.corner_radius;
+    const double logical =
+        target.corner_radius.present() ? std::max(0.0, *target.corner_radius.value()) : material.corner_radius;
     const double radius = logical * target.scale.value;
     return radius;
 }
@@ -294,7 +295,7 @@ MaterialOutline material_outline(const SurfaceMaterial& material, const Primitiv
     outline.kind = kind;
     outline.radius = material_radius(material, target);
     // A part's own radius overrides the material's corners.
-    const bool own_radius = target.corner_radius.has_value();
+    const bool own_radius = target.corner_radius.present();
     if (kind == PartShapeKind::rounded_rectangle && (own_radius || material.corner_radii.absent())) return outline;
     outline.uniform = false;
     if (kind == PartShapeKind::rounded_rectangle) {

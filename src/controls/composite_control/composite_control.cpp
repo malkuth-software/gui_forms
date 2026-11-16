@@ -71,12 +71,13 @@ PartShape shape_of(const CompositePartDefinition& part) noexcept {
 
 // The radius a part is painted with: its declared radius, or the shape's
 // for a pill or a circle (the recipe has no shape kinds of its own yet).
-std::optional<double> paint_radius(const CompositePartDefinition& part, const Rect box) noexcept {
-    if (!part.corner_radius.empty()) return part.corner_radius[0];
+stxlib::Optional<double> paint_radius(const CompositePartDefinition& part, const Rect box) noexcept {
+    if (!part.corner_radius.empty()) return stxlib::Optional<double>::of(part.corner_radius[0]);
     const bool round = part.shape == ControlPartShape::pill || part.shape == ControlPartShape::circle ||
                        part.shape == ControlPartShape::cap_start || part.shape == ControlPartShape::cap_end;
-    if (!round) return std::nullopt;
-    return std::min(box.width, box.height) * 0.5;
+    if (!round) return stxlib::Optional<double>::none();
+    const stxlib::Optional<double> radius = stxlib::Optional<double>::of(std::min(box.width, box.height) * 0.5);
+    return radius;
 }
 
 bool text_role(const PartRole role) noexcept {

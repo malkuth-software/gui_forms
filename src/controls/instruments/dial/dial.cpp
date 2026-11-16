@@ -203,7 +203,7 @@ void Dial::on_paint(Painter& painter, Rect) {
         const double requested = std::floor(span / frequency) + 1.0;
         const std::size_t marks = static_cast<std::size_t>(std::clamp(requested, 2.0, static_cast<double>(most_marks)));
         PartPaint mark{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
-        mark.corner_radius = placed.mark * 0.5;
+        mark.corner_radius.set(placed.mark * 0.5);
         mark.key = PartKey{"graticule", {}, {}};
         for (std::size_t index = 0U; index < marks; ++index) {
             const double at = static_cast<double>(index) / static_cast<double>(marks - 1U);
@@ -214,7 +214,7 @@ void Dial::on_paint(Painter& painter, Rect) {
 
     const Rect knob = knob_bounds();
     PartPaint thumb{.role = PartRole::thumb, .bounds = knob, .states = states, .family = ControlVisualRole::button};
-    thumb.corner_radius = knob.width * 0.5;
+    thumb.corner_radius.set(knob.width * 0.5);
     thumb.key = PartKey{"thumb", {}, {}};
     paint_part(painter, *this, thumb);
 

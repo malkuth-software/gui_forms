@@ -1084,7 +1084,7 @@ void NavigationPane::paint_flyout(Painter& painter, const Control& surface) cons
     part.family = ControlVisualRole::panel;
     part.role = PartRole::shadow;
     part.bounds = placed.face;
-    part.corner_radius = 0.0;
+    part.corner_radius.set(0.0);
     paint_part(painter, surface, part);
     part.corner_radius.reset();
     part.role = PartRole::face;

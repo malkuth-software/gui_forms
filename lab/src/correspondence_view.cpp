@@ -551,7 +551,7 @@ void CorrespondenceView::paint_glyph(Painter& painter, Rect b,
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.states = states;
-    well.corner_radius = 0.0;
+    well.corner_radius.set(0.0);
     PartPaint fill;
     fill.family = ControlVisualRole::editor;
     fill.role = PartRole::fill;

@@ -200,7 +200,7 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
     // The theme's choice corners up to 2 px, as a check box's well.
     const ControlVisualContext context = part_visual_context(*this, states);
     const double theme_radius = effective_theme().resolve(ControlVisualRole::choice, context).material.corner_radius;
-    well.corner_radius = std::min(2.0, theme_radius);
+    well.corner_radius.set(std::min(2.0, theme_radius));
     if (has_style_override()) well.authored_background.set(selected && focused ? style().highlight : style().paper);
     paint_part(painter, *this, well);
     const CheckState state = check_states_[index];

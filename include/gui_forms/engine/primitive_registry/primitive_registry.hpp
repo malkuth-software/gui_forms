@@ -8,6 +8,8 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -257,7 +259,7 @@ struct GUI_FORMS_API PrimitiveTarget final {
     AnatomyStateSet states{};
     std::array<double, engine_input_count> inputs{};
     const SurfaceMaterial* material{};
-    std::optional<double> corner_radius{};
+    stxlib::Optional<double> corner_radius{};
     const ImageRegistry* images{};
     // Borrowed, as `material` is.
     const LentImageVariants* variants{};

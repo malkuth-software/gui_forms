@@ -151,7 +151,7 @@ void RadialGauge::on_paint(Painter& painter, Rect) {
 
     PartPaint plot{.role = PartRole::plot, .bounds = placed.plot, .states = states,
                    .family = ControlVisualRole::progress};
-    plot.corner_radius = placed.plot.width * 0.5;
+    plot.corner_radius.set(placed.plot.width * 0.5);
     plot.key = PartKey{"plot", {}, {}};
     paint_part(painter, *this, plot);
 
@@ -187,7 +187,7 @@ void RadialGauge::on_paint(Painter& painter, Rect) {
     }
 
     PartPaint mark{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
-    mark.corner_radius = placed.mark * 0.5;
+    mark.corner_radius.set(placed.mark * 0.5);
     mark.key = PartKey{"graticule", {}, {}};
     const std::vector<double> ratios = tick_ratios();
     for (const double ratio : ratios) {

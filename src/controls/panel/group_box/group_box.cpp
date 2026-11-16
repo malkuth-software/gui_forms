@@ -37,7 +37,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
         ground.family = ControlVisualRole::panel;
         ground.role = PartRole::fill;
         ground.bounds = {0.0, rule_y, bounds.width, std::max(0.0, bounds.height - rule_y)};
-        ground.corner_radius = 0.0;
+        ground.corner_radius.set(0.0);
         ground.authored_background.set(background());
         paint_part(painter, *this, ground);
     } else if (face_selected_by_rule()) {

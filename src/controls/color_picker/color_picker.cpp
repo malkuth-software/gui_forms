@@ -390,7 +390,7 @@ void ColorPicker::on_paint(Painter& painter, Rect) {
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.states = states;
-    well.corner_radius = 0.0;
+    well.corner_radius.set(0.0);
     well.bounds = layout.field;
     well.key = PartKey{"field", {}, {}};
     const Color pure_hue = color_of(ColorPickerHsv{hsv_.hue, 1.0, 1.0}, 255U);
@@ -439,7 +439,7 @@ void ColorPicker::on_paint(Painter& painter, Rect) {
         focus.states = states;
         focus.states.insert(AnatomyState::focus_visible);
         focus.bounds = layout.field;
-        focus.corner_radius = 0.0;
+        focus.corner_radius.set(0.0);
         focus.key = PartKey{"focus", {}, {}};
         paint_part(painter, *this, focus);
     }

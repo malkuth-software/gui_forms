@@ -122,7 +122,7 @@ public:
         glass.role = PartRole::region;
         glass.family = ControlVisualRole::card;
         glass.bounds = glass_bounds;
-        glass.corner_radius = 10.0;
+        glass.corner_radius.set(10.0);
         glass.key = PartKey{"compositor-lab.glass", {}, {}};
         paint_part(painter, *this, glass);
 

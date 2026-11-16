@@ -611,7 +611,7 @@ void BusinessCard::paint_face(Painter& painter, const Layout& placed, Point offs
 
     PartPaint stock{.role = PartRole::face, .bounds = offset_rect(placed.card, offset), .states = states,
                     .family = ControlVisualRole::card};
-    stock.corner_radius = height * 0.03;
+    stock.corner_radius.set(height * 0.03);
     if (keyed) stock.key = PartKey{"stock", {}, {}};
     paint_part(painter, *this, stock);
     // The back is the stock alone.
@@ -702,7 +702,7 @@ void BusinessCard::paint_turned(Painter& painter, const Layout& placed) {
                      .bounds = offset_rect(outline.empty() ? placed.card : outline, Point{0.0, height * shadow_drop_share}),
                      .states = states,
                      .family = ControlVisualRole::card};
-    shadow.corner_radius = height * 0.03;
+    shadow.corner_radius.set(height * 0.03);
     shadow.key = PartKey{"shadow", {}, {}};
     paint_part(painter, *this, shadow);
     if (!faces_ready(scale)) {
@@ -765,14 +765,14 @@ void BusinessCard::on_paint(Painter& painter, Rect) {
         const Point shadow_offset{-tilt_.x * shadow_lean, height * shadow_drop_share - tilt_.y * shadow_lean};
         PartPaint shadow{.role = PartRole::shadow, .bounds = offset_rect(placed.card, shadow_offset),
                          .states = states, .family = ControlVisualRole::card};
-        shadow.corner_radius = height * 0.03;
+        shadow.corner_radius.set(height * 0.03);
         shadow.key = PartKey{"shadow", {}, {}};
         paint_part(painter, *this, shadow);
         paint_face(painter, placed, face_offset, face_up(), true);
         if (states.contains(AnatomyState::focus_visible)) {
             PartPaint ring{.role = PartRole::focus, .bounds = offset_rect(placed.card, face_offset),
                            .states = states, .family = ControlVisualRole::card};
-            ring.corner_radius = height * 0.03;
+            ring.corner_radius.set(height * 0.03);
             ring.key = PartKey{"focus", {}, {}};
             paint_part(painter, *this, ring);
         }

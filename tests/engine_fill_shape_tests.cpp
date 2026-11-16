@@ -97,7 +97,7 @@ TestRaster draw(const SurfaceMaterial& material, Size logical, double scale,
     target.logical_size = logical;
     target.scale = DeviceScale{scale};
     target.material = &material;
-    if (own_radius >= 0.0) target.corner_radius = own_radius;
+    if (own_radius >= 0.0) target.corner_radius.set(own_radius);
     const EnginePrimitive& primitive = material_primitive();
     const PrimitiveParameterBlock parameters = shaped(shape);
     PrimitivePreparation preparation{};

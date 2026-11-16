@@ -657,7 +657,7 @@ Rect RichTextBox::paint_rows(Painter& painter) {
         shade.family = ControlVisualRole::panel;
         shade.role = PartRole::chip;
         shade.states = states;
-        shade.corner_radius = 0.0;
+        shade.corner_radius.set(0.0);
         if (row.code_block) {
             shade.bounds = {inks.origin.x - 2.0, top, std::max(0.0, code_right + 4.0), row.height};
             paint_part(painter, *this, shade);
@@ -672,7 +672,7 @@ Rect RichTextBox::paint_rows(Painter& painter) {
                 ground.role = PartRole::fill;
                 ground.bounds = fill;
                 ground.states = states;
-                ground.corner_radius = 0.0;
+                ground.corner_radius.set(0.0);
                 ground.authored_background.set(rgb_color(*set.style.background));
                 paint_part(painter, *this, ground);
             } else if (set.style.code && !row.code_block) {

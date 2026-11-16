@@ -298,7 +298,7 @@ void ColorValueEditor::on_paint(Painter& painter, Rect) {
     well.role = PartRole::well;
     well.states = states;
     well.bounds = swatch;
-    well.corner_radius = 0.0;
+    well.corner_radius.set(0.0);
     paint_part(painter, *this, well);
     const Rect inside{swatch.x + 1.0, swatch.y + 1.0, std::max(0.0, swatch.width - 2.0),
                       std::max(0.0, swatch.height - 2.0)};

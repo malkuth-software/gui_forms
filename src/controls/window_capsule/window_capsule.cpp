@@ -185,7 +185,7 @@ void WindowCapsule::on_paint(Painter& painter, Rect local_damage) {
     face.role = PartRole::face;
     face.family = ControlVisualRole::button;
     face.bounds = whole;
-    face.corner_radius = radius;
+    face.corner_radius.set(radius);
     face.authored_background.set(colors_.face);
     if (look_.hovered != WindowCapsuleSection::none) face.states.insert(AnatomyState::hot);
     if (look_.pressed != WindowCapsuleSection::none) face.states.insert(AnatomyState::pressed);
@@ -194,7 +194,7 @@ void WindowCapsule::on_paint(Painter& painter, Rect local_damage) {
     PartPaint fill;
     fill.role = PartRole::fill;
     fill.family = ControlVisualRole::button;
-    fill.corner_radius = radius;
+    fill.corner_radius.set(radius);
     if (whole_x) {
         fill.bounds = whole;
         fill.content_color.set(mixed_color(colors_.ready, colors_.close, morph, 1.0));
@@ -221,7 +221,7 @@ void WindowCapsule::on_paint(Painter& painter, Rect local_damage) {
         question.role = PartRole::face;
         question.family = ControlVisualRole::button;
         question.bounds = middle;
-        question.corner_radius = 0.0;
+        question.corner_radius.set(0.0);
         question.frame = PartFrame::none;
         question.authored_background.set(colors_.face);
         if (look_.hovered == WindowCapsuleSection::help) question.states.insert(AnatomyState::hot);
@@ -264,13 +264,13 @@ void WindowCapsule::on_paint(Painter& painter, Rect local_damage) {
         ring.family = ControlVisualRole::button;
         ring.states.insert(AnatomyState::focus_visible);
         ring.bounds = middle;
-        ring.corner_radius = 0.0;
-        if (look_.focused != WindowCapsuleSection::help) ring.corner_radius = radius;
+        ring.corner_radius.set(0.0);
+        if (look_.focused != WindowCapsuleSection::help) ring.corner_radius.set(radius);
         if (look_.focused == WindowCapsuleSection::left) ring.bounds = left;
         if (look_.focused == WindowCapsuleSection::right) ring.bounds = right;
         if (whole_x) {
             ring.bounds = whole;
-            ring.corner_radius = radius;
+            ring.corner_radius.set(radius);
         }
         paint_part(painter, *this, ring);
     }

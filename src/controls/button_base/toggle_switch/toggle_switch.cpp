@@ -180,7 +180,7 @@ void ToggleSwitch::on_paint(Painter& painter, Rect) {
     const AnatomyStateSet states = anatomy_states();
     PartPaint track{.role = PartRole::track, .bounds = placed.track, .states = states,
                     .family = ControlVisualRole::choice};
-    track.corner_radius = track_height * 0.5;
+    track.corner_radius.set(track_height * 0.5);
     track.key = PartKey{"track", {}, {}};
     paint_part(painter, *this, track);
     PartPaint thumb{.role = PartRole::indicator, .bounds = placed.thumb, .states = states,

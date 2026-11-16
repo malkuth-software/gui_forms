@@ -1466,7 +1466,7 @@ void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, 
         profile.flare_colour = metrics.flare_colour.value_or(Color::rgba(0, 0, 0, 0));
         profile.edge_shadow = metrics.edge_shadow_width * effective_text_scale();
         profile.edge_shadow_colour = metrics.edge_shadow_colour;
-        part.profile = profile;
+        part.profile.set(profile);
     }
     paint_part(painter, *this, part);
     part.profile.reset();

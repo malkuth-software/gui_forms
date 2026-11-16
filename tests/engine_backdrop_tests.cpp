@@ -154,7 +154,7 @@ public:
         glass.role = PartRole::region;
         glass.family = ControlVisualRole::card;
         glass.bounds = Rect{20.0, 20.0, 100.0, 30.0};
-        glass.corner_radius = 6.0;
+        glass.corner_radius.set(6.0);
         glass.key = PartKey{"glass", {}, {}};
         paint_part(painter, *this, glass);
         PartPaint face{};

@@ -66,7 +66,7 @@ public:
         shadow.role = PartRole::shadow;
         shadow.family = ControlVisualRole::panel;
         shadow.bounds = (*content_).requested_bounds();
-        shadow.corner_radius = 0.0;
+        shadow.corner_radius.set(0.0);
         paint_part(painter, *this, shadow);
     }
 

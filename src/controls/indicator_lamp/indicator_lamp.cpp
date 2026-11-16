@@ -237,7 +237,7 @@ void IndicatorLamp::on_paint(Painter& painter, Rect) {
 void IndicatorLamp::paint_theme_lens(Painter& painter, const Placement& placed, AnatomyStateSet states) {
     PartPaint bezel{.role = PartRole::well, .bounds = placed.bezel, .states = with_lit_state(states, state.read()),
                     .family = ControlVisualRole::panel};
-    bezel.corner_radius = placed.bezel.width * 0.5;
+    bezel.corner_radius.set(placed.bezel.width * 0.5);
     bezel.key = PartKey{"bezel", {}, {}};
     paint_part(painter, *this, bezel);
     // The dark lens, then the lit lens over it at the current power, clipped
@@ -245,7 +245,7 @@ void IndicatorLamp::paint_theme_lens(Painter& painter, const Placement& placed, 
     const double radius = placed.lens.width * 0.5;
     PartPaint lens{.role = PartRole::indicator, .bounds = placed.lens, .states = states,
                    .family = ControlVisualRole::choice};
-    lens.corner_radius = radius;
+    lens.corner_radius.set(radius);
     lens.key = PartKey{"lens", {}, {}};
     paint_part(painter, *this, lens);
     if (power_ > 0.0 && lit(lit_state_)) {

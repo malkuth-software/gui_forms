@@ -47,7 +47,7 @@ void paint_ring(Painter& painter, const Control& owner, const RingPlacement& rin
     const std::size_t lit = std::min(lighting.lit, lighting.count);
     PartPaint dot{};
     dot.family = ControlVisualRole::progress;
-    dot.corner_radius = ring.dot * 0.5;
+    dot.corner_radius.set(ring.dot * 0.5);
     AnatomyStateSet lit_states = states;
     lit_states.insert(AnatomyState::selected);
     for (std::size_t index = 0U; index < lighting.count; ++index) {

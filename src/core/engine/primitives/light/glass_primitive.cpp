@@ -229,7 +229,7 @@ void GlassPrimitive::fill(const PrimitiveParameterBlock& parameters, const Primi
     // With the material's layers the backdrop takes the material's corner,
     // as its fills do.
     if (material_layers) shape.corner_radius = (*lent).corner_radius;
-    if (target.corner_radius) shape.corner_radius = std::max(0.0, *target.corner_radius);
+    if (target.corner_radius.present()) shape.corner_radius = std::max(0.0, *target.corner_radius.value());
     const Rect box{0.0, 0.0, target.logical_size.width, target.logical_size.height};
 
     // The blurred backplane, when one is lent at the margin this blur reads.

@@ -1217,7 +1217,7 @@ void ScrollableControl::on_paint_overlay(Painter& painter, Rect) {
         corner.role = PartRole::face;
         corner.bounds = {viewport_rectangle_.width, viewport_rectangle_.height,
                          scrollbar_thickness_, scrollbar_thickness_};
-        corner.corner_radius = 0.0;
+        corner.corner_radius.set(0.0);
         paint_part(painter, *this, corner);
     }
 }

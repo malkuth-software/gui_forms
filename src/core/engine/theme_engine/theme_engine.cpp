@@ -672,7 +672,7 @@ void paint_pointer_overlay(Painter& painter, const Control& control, const PartP
     const ControlVisualContext context = part_visual_context(control, part.states);
     const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
     double radius = recipe.material.corner_radius;
-    if (part.corner_radius) radius = std::max(0.0, *part.corner_radius);
+    if (part.corner_radius.present()) radius = std::max(0.0, *part.corner_radius.value());
     if (placement.stretched) radius = radius * placement.granted;
     painter.save();
     painter.clip_rounded_rect(face, radius);
@@ -1773,7 +1773,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         (*run.overlay).fills.assign(1U, MaterialFillLayer::solid(Color::rgba(0, 0, 0, 0)));
         (*run.overlay).shadows = layers;
         (*run.overlay).corner_radius = recipe.material.corner_radius;
-        if (part.corner_radius) (*run.overlay).corner_radius = std::max(0.0, *part.corner_radius);
+        if (part.corner_radius.present()) (*run.overlay).corner_radius = std::max(0.0, *part.corner_radius.value());
         request.target.material = &*run.overlay;
         request.target.images = &(*window).image_resources();
     }
