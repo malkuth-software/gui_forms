@@ -667,6 +667,7 @@ add_library(gui_forms_core STATIC
     src/core/resources/fonts/bundled_font_pack.cpp
     ${GUI_FORMS_FONT_PACK_RECORDS}
     src/core/resources/fonts/app_font_registry.cpp
+    src/core/resources/fonts/app_font_validation.cpp
     src/core/resources/fonts/font_family_stacks.cpp
     src/core/resources/fonts/program_typefaces.cpp
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
@@ -679,6 +680,7 @@ add_library(gui_forms_core STATIC
     src/core/content/channel/content_channel.cpp
     src/core/content/frame_sink/content_frame_sink.cpp
     src/core/content/editing/content_text_layout.cpp
+    src/core/content/hosted/hosted_protocol.cpp
     src/core/content/operation/content_worker.cpp
     src/core/content/types/content_types.cpp
     src/core/content/watchdog/content_watchdog.cpp
@@ -825,16 +827,11 @@ target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
 target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:stx_text::md4c>)
 # Hosted content's parent end (include/gui_forms/content/hosted): POSIX
 # processes, shared memory and a socket pair on macOS and Linux; on Windows
-# an implementation that reports itself absent (the hand-back writes it). A
-# high-integrity build compiles none of it, nor the wire protocol
-# (cmake/HighIntegrity.cmake).
-if(GUI_FORMS_HIGH_INTEGRITY)
-elseif(WIN32)
-    target_sources(gui_forms_core PRIVATE src/core/content/hosted/hosted_protocol.cpp
-                                          src/host/windows/hosted/hosted_content_windows.cpp)
+# an implementation that reports itself absent (the hand-back writes it).
+if(WIN32)
+    target_sources(gui_forms_core PRIVATE src/host/windows/hosted/hosted_content_windows.cpp)
 else()
-    target_sources(gui_forms_core PRIVATE src/core/content/hosted/hosted_protocol.cpp
-                                          src/host/posix/hosted/hosted_content_posix.cpp)
+    target_sources(gui_forms_core PRIVATE src/host/posix/hosted/hosted_content_posix.cpp)
 endif()
 # stx_fontpack's loader (stx_fontpack/README.md), which opens the embedded font pack
 # (cmake/FontPack.cmake). Its objects are part of Core, like MD4C's, so no target joins the
@@ -859,11 +856,6 @@ endif()
 # The high-integrity configuration changes the declarations of the public
 # headers (entries are compiled out), so a consumer compiles them the same way
 # (cmake/HighIntegrity.cmake).
-# Application fonts' table checks (validate_app_font), which a high-integrity
-# build does not compile: no application font is loaded there.
-if(NOT GUI_FORMS_HIGH_INTEGRITY)
-    target_sources(gui_forms_core PRIVATE src/core/resources/fonts/app_font_validation.cpp)
-endif()
 if(GUI_FORMS_HIGH_INTEGRITY)
     target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_HIGH_INTEGRITY=1)
     if(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
@@ -920,9 +912,8 @@ endif()
 target_link_libraries(gui_forms_sealed_pages_objects PRIVATE gui_forms_core)
 set_target_properties(gui_forms_sealed_pages_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # The hosted program's end (include/gui_forms/content/hosted/hosted_client.hpp):
-# what a program started by make_hosted_content links. macOS and Linux; not
-# in a high-integrity build.
-if(NOT WIN32 AND NOT GUI_FORMS_HIGH_INTEGRITY)
+# what a program started by make_hosted_content links. macOS and Linux.
+if(NOT WIN32)
     add_library(gui_forms_hosted_client STATIC src/host/posix/hosted/hosted_client_posix.cpp)
     target_link_libraries(gui_forms_hosted_client PUBLIC gui_forms_core)
     set_target_properties(gui_forms_hosted_client PROPERTIES POSITION_INDEPENDENT_CODE ON)

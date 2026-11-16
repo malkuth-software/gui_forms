@@ -55,9 +55,8 @@ HostCapabilities headless_capabilities() {
                 // The reference host records each address it is asked to
                 // open (HeadlessHostServices::opened_urls) and opens none.
                 HostCapability::open_url
-#if !defined(_WIN32) && !defined(GUI_FORMS_HIGH_INTEGRITY)
-                // Hosted content is real where it exists (POSIX); a
-                // high-integrity build does not compile it.
+#if !defined(_WIN32)
+                // Hosted content is real where it exists (POSIX).
                 | HostCapability::hosted_content
 #endif
                 ,

@@ -1,11 +1,5 @@
 #pragma once
 
-// A high-integrity build (GUI_FORMS_HIGH_INTEGRITY, cmake/HighIntegrity.cmake)
-// does not compile hosted content: no other process is started or spoken to.
-#if defined(GUI_FORMS_HIGH_INTEGRITY)
-#error "hosted content is not compiled in a high-integrity build (GUI_FORMS_HIGH_INTEGRITY)"
-#endif
-
 // The hosted program's end (hosted_content.hpp, hosted_protocol.hpp): a
 // program GUI.Forms started with make_hosted_content connects with
 // HostedClient::connect, draws into the frame slots the parent releases and
