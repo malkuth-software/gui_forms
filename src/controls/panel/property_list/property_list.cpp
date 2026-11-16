@@ -824,6 +824,16 @@ void PropertyList::set_header_content(Control::Ptr content, double height) {
             "PropertyList header requires content and a 0 through 4096 height");
     }
     if ((*impl_).header == content && (*impl_).header_height == height) return;
+    // The same header at another height keeps its control; only the height
+    // changes (A-gf-controls-09-F7).
+    if ((*impl_).header == content) {
+        (*impl_).header_height = height;
+        (*impl_).recompute_geometry();
+        (*impl_).arrange_editors();
+        invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
+                   Dirty::semantics);
+        return;
+    }
     if ((*impl_).header && (*(*impl_).header).parent().get() == this) {
         Control::Ptr previous = remove_child((*(*impl_).header).runtime_id());
         if (previous && (*previous).is_alive()) (*previous).dispose();

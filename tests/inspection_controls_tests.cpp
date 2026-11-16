@@ -555,6 +555,13 @@ void test_scrolling_responsive_layout_and_validation_bounds() {
     require((*properties).header_content() == preview &&
                 (*properties).header_height.read() == 72.0,
             "preview/header content must participate in the PropertyList scroll owner");
+    (*properties).set_header_content(preview, 64.0);
+    window.perform_layout();
+    require((*preview).is_alive() && (*preview).parent().get() == properties.get() &&
+                (*properties).header_content() == preview && (*properties).header_height.read() == 64.0,
+            "the same header at another height keeps its control (A-gf-controls-09-F7)");
+    (*properties).set_header_content(preview, 72.0);
+    window.perform_layout();
     (*properties).scroll_offset = 10000.0;
     require((*properties).scroll_offset.read() > 0.0 &&
                 (*properties).scroll_offset.read() <=
