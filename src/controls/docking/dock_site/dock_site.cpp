@@ -3,7 +3,6 @@
 
 #include "dock_site_internal.hpp"
 #include "../../drag_gesture/drag_gesture.hpp"
-#include "../../../platform/stxlib_bridge.hpp"
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
@@ -1395,7 +1394,7 @@ void DockSite::on_paint(Painter& painter, Rect) {
     // The workspace's area colour (DockBackColor) is the well's authored
     // background; the theme engine paints it (and withdraws it under high
     // contrast).
-    if (workspace_ != nullptr) part.authored_background = platform::stxlib_optional((*workspace_).area_background());
+    if (workspace_ != nullptr) part.authored_background = (*workspace_).area_background();
     // Every part carries its anatomy name (PartKey), so that a theme's
     // `dock-site::part(...)` rules reach it; a seam item is known by its
     // split's node.

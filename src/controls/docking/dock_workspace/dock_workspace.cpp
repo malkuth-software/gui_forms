@@ -297,7 +297,7 @@ void DockWorkspace::set_document_tabs_shown(bool shown) {
 
 void DockWorkspace::set_auto_hide_opens_on_hover(bool opens) { auto_hide_opens_on_hover_ = opens; }
 
-void DockWorkspace::set_area_background(std::optional<Color> colour) {
+void DockWorkspace::set_area_background(stxlib::Optional<Color> colour) {
     if (area_background_ == colour) return;
     area_background_ = colour;
     const std::vector<DockSite*> sites = bound_sites();

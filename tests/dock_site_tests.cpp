@@ -50,6 +50,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -58,6 +59,20 @@
 
 namespace {
 using namespace gui_forms;
+
+// D15 Q3: set_area_background keeps its deprecated std::optional form for
+// one stage; a plain colour or {} must not reach it silently. Each plain
+// call below is refused (a deleted overload or an ambiguity), and the
+// stxlib form is accepted.
+template <typename Workspace>
+concept takes_plain_area = requires(Workspace& workspace) { workspace.set_area_background(Color{}); };
+template <typename Workspace>
+concept takes_empty_area = requires(Workspace& workspace) { workspace.set_area_background({}); };
+template <typename Workspace>
+concept takes_optional_area =
+    requires(Workspace& workspace) { workspace.set_area_background(stxlib::Optional<Color>::none()); };
+static_assert(!takes_plain_area<DockWorkspace> && !takes_empty_area<DockWorkspace>);
+static_assert(takes_optional_area<DockWorkspace>);
 
 void require(bool condition, const char* message) {
     if (condition) return;
