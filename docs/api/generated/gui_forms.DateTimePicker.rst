@@ -80,7 +80,7 @@ gui_forms::DateTimePicker
          not in a window or is in up-down mode; in a window, opening it while the
          picker is hidden or disabled throws ``std::logic_error``.
 
-      **drop_down_alignment** : ``DateTimeDropDownAlignment``, default ``DateTimeDropDownAlignment::left``
+      **drop_down_alignment** : ``DateTimeDropDownAlignment``, default ``DateTimeDropDownAlignment::start``
          Whether the calendar lines up with the left or the right edge of the
          field. Another value throws ``std::invalid_argument``.
 

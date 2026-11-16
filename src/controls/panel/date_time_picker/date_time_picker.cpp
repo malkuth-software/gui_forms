@@ -405,10 +405,11 @@ void DateTimePicker::open_drop_down() {
     const Rect picker = absolute_bounds();
     const double width = 286.0 * effective_text_scale();
     const double height = 260.0 * effective_text_scale();
-    // DropDownAlign mirrors under RightToLeft (Windows Forms): Left lines
-    // the calendar up with the picker's right edge.
-    const bool authored_right = drop_down_alignment.read() == DateTimeDropDownAlignment::right;
-    const bool right_aligned = authored_right != (effective_layout_direction() == LayoutDirection::right_to_left);
+    // DropDownAlign mirrors under RightToLeft (Windows Forms), as CSS's
+    // logical values do: `start` lines the calendar up with the picker's
+    // right edge in right to left.
+    const bool authored_end = drop_down_alignment.read() == DateTimeDropDownAlignment::end;
+    const bool right_aligned = authored_end != (effective_layout_direction() == LayoutDirection::right_to_left);
     const double requested_x = right_aligned ? picker.x + picker.width - width : picker.x;
     const double x = std::clamp(
         requested_x, 0.0, std::max(0.0, client.width - width));
@@ -823,7 +824,7 @@ void DateTimePicker::written(const decltype(checked)&) {
 
 void DateTimePicker::prepare_write(const decltype(drop_down_alignment)&, DateTimeDropDownAlignment& incoming) {
     require_mutable();
-    if (incoming != DateTimeDropDownAlignment::left && incoming != DateTimeDropDownAlignment::right) {
+    if (incoming != DateTimeDropDownAlignment::start && incoming != DateTimeDropDownAlignment::end) {
         throw std::invalid_argument("DateTimePicker drop-down alignment is invalid");
     }
 }

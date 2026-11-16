@@ -166,7 +166,7 @@ struct DateTimePickerDroppedDownCapability {
 // Which edge the calendar aligns to (DropDownAlign). An undeclared alignment throws std::invalid_argument.
 template <typename Declaring>
 struct DateTimePickerDropDownAlignmentCapability {
-    PropertyCell<DateTimeDropDownAlignment, DateTimePickerDropDownAlignmentCapability<Declaring>> drop_down_alignment{DateTimeDropDownAlignment::left};
+    PropertyCell<DateTimeDropDownAlignment, DateTimePickerDropDownAlignmentCapability<Declaring>> drop_down_alignment{DateTimeDropDownAlignment::start};
 
     static void assign(DateTimePickerDropDownAlignmentCapability& capability, DateTimeDropDownAlignment incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

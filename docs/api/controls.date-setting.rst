@@ -361,7 +361,7 @@ Related types
 
    .. cpp:member:: PropertyCell<DateTimeDropDownAlignment, DateTimePickerDropDownAlignmentCapability<Declaring>> drop_down_alignment
 
-      Default: ``{DateTimeDropDownAlignment::left}``.
+      Default: ``{DateTimeDropDownAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -836,9 +836,9 @@ Enumerations
 
    ``#include <gui_forms/controls/date_time_picker_values.hpp>``
 
-   .. cpp:enumerator:: left
+   .. cpp:enumerator:: start
 
-   .. cpp:enumerator:: right
+   .. cpp:enumerator:: end
 
 .. cpp:namespace:: gui_forms
 

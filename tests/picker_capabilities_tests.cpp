@@ -107,7 +107,7 @@ void test_date_time_picker() {
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*picker).drop_down_alignment.read() == DateTimeDropDownAlignment::left,
+    require(refused && (*picker).drop_down_alignment.read() == DateTimeDropDownAlignment::start,
             "an undeclared alignment is refused");
     (*picker).show_up_down = true;
     require((*picker).show_up_down.read() && !(*picker).dropped_down.read(), "the arrows replace the calendar");

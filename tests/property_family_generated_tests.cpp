@@ -917,7 +917,7 @@ void test_date_time_picker_properties() {
         expect((*control).show_up_down.read() == sample, "DateTimePicker.show_up_down: a write stores");
     }
     {
-        const DateTimeDropDownAlignment sample = DateTimeDropDownAlignment::right;
+        const DateTimeDropDownAlignment sample = DateTimeDropDownAlignment::end;
         (*control).drop_down_alignment = sample;
         expect((*control).drop_down_alignment.read() == sample, "DateTimePicker.drop_down_alignment: a write stores");
     }

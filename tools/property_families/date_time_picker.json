@@ -235,7 +235,7 @@
       "name": "drop_down_alignment",
       "capability": "DateTimePickerDropDownAlignment",
       "value": "DateTimeDropDownAlignment",
-      "initial": "DateTimeDropDownAlignment::left",
+      "initial": "DateTimeDropDownAlignment::start",
       "comment": "Which edge the calendar aligns to (DropDownAlign). An undeclared alignment throws std::invalid_argument.",
       "getter": "drop_down_alignment",
       "setter": "set_drop_down_alignment",
@@ -249,11 +249,11 @@
       "hand": [],
       "effects": "Dirty::paint | Dirty::semantics",
       "prepare": [
-        "if (incoming != DateTimeDropDownAlignment::left && incoming != DateTimeDropDownAlignment::right) {",
+        "if (incoming != DateTimeDropDownAlignment::start && incoming != DateTimeDropDownAlignment::end) {",
         "    throw std::invalid_argument(\"DateTimePicker drop-down alignment is invalid\");",
         "}"
       ],
-      "sample": "DateTimeDropDownAlignment::right"
+      "sample": "DateTimeDropDownAlignment::end"
     },
     {
       "name": "font",
