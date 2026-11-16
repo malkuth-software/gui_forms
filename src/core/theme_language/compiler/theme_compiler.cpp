@@ -15,6 +15,7 @@
 #include <cmath>
 #include <limits>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <utility>
 
@@ -285,10 +286,10 @@ struct EmittedRule final {
 
 // The join of one optional flag of two media conditions into `joined`:
 // false where they name opposite values.
-[[nodiscard]] bool join_flag(std::optional<bool> left, std::optional<bool> right,
-                             std::optional<bool>& joined) noexcept {
-    if (left && right && *left != *right) return false;
-    joined = left ? left : right;
+[[nodiscard]] bool join_flag(const stxlib::Optional<bool>& left, const stxlib::Optional<bool>& right,
+                             stxlib::Optional<bool>& joined) noexcept {
+    if (left.present() && right.present() && left != right) return false;
+    joined = left.present() ? left : right;
     return true;
 }
 
@@ -300,17 +301,17 @@ struct EmittedRule final {
     if (!join_flag(left.dark_scheme, right.dark_scheme, both.dark_scheme)) return false;
     if (!join_flag(left.forced_colours, right.forced_colours, both.forced_colours)) return false;
     if (!join_flag(left.reduced_motion, right.reduced_motion, both.reduced_motion)) return false;
-    both.minimum_resolution = left.minimum_resolution ? left.minimum_resolution : right.minimum_resolution;
-    if (left.minimum_resolution && right.minimum_resolution) {
-        both.minimum_resolution = std::max(*left.minimum_resolution, *right.minimum_resolution);
+    both.minimum_resolution = left.minimum_resolution.present() ? left.minimum_resolution : right.minimum_resolution;
+    if (left.minimum_resolution.present() && right.minimum_resolution.present()) {
+        both.minimum_resolution.set(std::max(*left.minimum_resolution.value(), *right.minimum_resolution.value()));
     }
-    both.maximum_resolution = left.maximum_resolution ? left.maximum_resolution : right.maximum_resolution;
-    if (left.maximum_resolution && right.maximum_resolution) {
-        both.maximum_resolution = std::min(*left.maximum_resolution, *right.maximum_resolution);
+    both.maximum_resolution = left.maximum_resolution.present() ? left.maximum_resolution : right.maximum_resolution;
+    if (left.maximum_resolution.present() && right.maximum_resolution.present()) {
+        both.maximum_resolution.set(std::min(*left.maximum_resolution.value(), *right.maximum_resolution.value()));
     }
-    if (both.minimum_resolution && both.maximum_resolution && *both.minimum_resolution > *both.maximum_resolution) {
-        return false;
-    }
+    const double* const minimum = both.minimum_resolution.value();
+    const double* const maximum = both.maximum_resolution.value();
+    if (minimum != nullptr && maximum != nullptr && *minimum > *maximum) return false;
     joined = both;
     return true;
 }

@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <iostream>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -208,7 +209,7 @@ void test_split() {
 
     const Compilation media = compile("@media (prefers-color-scheme: dark) { #a { opacity: 0.5 !important } }");
     require(compiled_clean(media) && media.sheet.rules.size() == 1U &&
-                media.sheet.rules[0].media.dark_scheme == std::optional<bool>(true),
+                media.sheet.rules[0].media.dark_scheme == stxlib::Optional<bool>::of(true),
             "a sibling keeps the rule's media condition");
 }
 

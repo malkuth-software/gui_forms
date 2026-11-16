@@ -26,6 +26,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <utility>
@@ -97,7 +98,7 @@ ThemeCompileResult refusal(const ThemeDiagnostic& problem) {
 // Whether a rule of `sheet` holds only under `prefers-color-scheme: dark`.
 bool sheet_has_dark_rules(const ThemeRuleSheet& sheet) noexcept {
     for (const ThemeRule& rule : sheet.rules) {
-        if (rule.media.dark_scheme == true) return true;
+        if (rule.media.dark_scheme == stxlib::Optional<bool>::of(true)) return true;
     }
     return false;
 }
@@ -142,7 +143,7 @@ struct ClosureSegment final {
 bool roots_have_dark_rules(const ThemeRuleSheet& sheet, std::span<const ClosureSegment> segments,
                            std::span<const VerifiedThemePack* const> roots) noexcept {
     for (const ThemeRule& rule : sheet.rules) {
-        if (rule.provenance.file != closure_file || rule.media.dark_scheme != true) continue;
+        if (rule.provenance.file != closure_file || rule.media.dark_scheme != stxlib::Optional<bool>::of(true)) continue;
         std::size_t found = 0U;
         for (std::size_t index = 0U; index < segments.size(); ++index) {
             if (segments[index].start <= rule.provenance.offset) found = index;

@@ -328,19 +328,19 @@ void test_refusals() {
 
 MediaCondition dark() {
     MediaCondition condition{};
-    condition.dark_scheme = true;
+    condition.dark_scheme.set(true);
     return condition;
 }
 
 MediaCondition light() {
     MediaCondition condition{};
-    condition.dark_scheme = false;
+    condition.dark_scheme.set(false);
     return condition;
 }
 
 MediaCondition forced() {
     MediaCondition condition{};
-    condition.forced_colours = true;
+    condition.forced_colours.set(true);
     return condition;
 }
 
@@ -368,7 +368,7 @@ void test_conditional_palettes() {
     require(compiled_clean(joined) && joined.sheet.rules.size() == 2U, "a conditional rule is copied too");
     if (joined.sheet.rules.size() == 2U) {
         MediaCondition both = forced();
-        both.dark_scheme = true;
+        both.dark_scheme.set(true);
         require(joined.sheet.rules[0].media == forced() && joined.sheet.rules[1].media == both,
                 "its copy holds where both conditions do");
     }

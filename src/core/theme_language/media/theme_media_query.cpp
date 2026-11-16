@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms::theme_language {
@@ -60,17 +61,22 @@ bool trivia(TokenKind kind) noexcept {
 
 // A keyword feature's value joined into a query: a second, different
 // value makes the query one no window meets.
-void join_keyword(std::optional<bool>& held, bool value, MediaQuery& query) noexcept {
-    if (held && *held != value) query.never = true;
-    held = value;
+void join_keyword(stxlib::Optional<bool>& held, bool value, MediaQuery& query) noexcept {
+    const bool* const before = held.value();
+    if (before != nullptr && *before != value) query.never = true;
+    held.set(value);
 }
 
-void join_minimum(std::optional<double>& held, double value) noexcept {
-    held = held ? std::max(*held, value) : value;
+void join_minimum(stxlib::Optional<double>& held, double value) noexcept {
+    const double* const before = held.value();
+    const double joined = before != nullptr ? std::max(*before, value) : value;
+    held.set(joined);
 }
 
-void join_maximum(std::optional<double>& held, double value) noexcept {
-    held = held ? std::min(*held, value) : value;
+void join_maximum(stxlib::Optional<double>& held, double value) noexcept {
+    const double* const before = held.value();
+    const double joined = before != nullptr ? std::min(*before, value) : value;
+    held.set(joined);
 }
 
 class QueryReader final {

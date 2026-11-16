@@ -1000,7 +1000,7 @@ std::unique_ptr<ThemeDefinition> colour_role_theme() {
     definition.rules.rules.push_back(light);
     ThemeRule dark = light;
     dark.label = "progress-bar::part(fill) (dark)";
-    dark.media.dark_scheme = true;
+    dark.media.dark_scheme.set(true);
     dark.declarations[0].colour = Color::rgba(120, 170, 255);
     dark.declarations[1].colour = Color::rgba(40, 44, 52);
     definition.rules.rules.push_back(dark);

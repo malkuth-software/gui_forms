@@ -203,14 +203,14 @@ struct GUI_FORMS_API RuleSpecificity final {
 // query of a comma list).
 struct GUI_FORMS_API MediaCondition final {
     // `prefers-color-scheme`: dark (true) or light (false).
-    std::optional<bool> dark_scheme{};
+    stxlib::Optional<bool> dark_scheme{};
     // `forced-colors`: active (true) or none (false).
-    std::optional<bool> forced_colours{};
+    stxlib::Optional<bool> forced_colours{};
     // `prefers-reduced-motion`: reduce (true) or no-preference (false).
-    std::optional<bool> reduced_motion{};
+    stxlib::Optional<bool> reduced_motion{};
     // `min-resolution` and `max-resolution`.
-    std::optional<double> minimum_resolution{};
-    std::optional<double> maximum_resolution{};
+    stxlib::Optional<double> minimum_resolution{};
+    stxlib::Optional<double> maximum_resolution{};
 
     friend bool operator==(const MediaCondition& left, const MediaCondition& right) noexcept {
         return left.dark_scheme == right.dark_scheme && left.forced_colours == right.forced_colours &&

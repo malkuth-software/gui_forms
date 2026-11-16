@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <iostream>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -294,7 +295,7 @@ void test_media_tokens() {
             "two names varying under one condition: two copies, not four");
     if (compiled.sheet.rules.size() == 2U) {
         require(media_condition_unconditional(compiled.sheet.rules[0].media) &&
-                    compiled.sheet.rules[1].media.dark_scheme == std::optional<bool>{true} &&
+                    compiled.sheet.rules[1].media.dark_scheme == stxlib::Optional<bool>::of(true) &&
                     compiled.sheet.rules[0].scoped_conditions.empty(),
                 "the light copy everywhere, the dark one where dark holds, unconditioned");
     }

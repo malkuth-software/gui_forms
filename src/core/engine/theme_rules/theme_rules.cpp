@@ -15,6 +15,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <stxlib/optional.hpp>
 #include <vector>
 #include <utility>
 
@@ -352,23 +353,26 @@ bool AncestorBloom::holds(const AncestorBloom& needed) const noexcept {
 
 namespace {
 
-bool resolution_bound_valid(const std::optional<double>& bound) noexcept {
-    if (!bound) return true;
-    const bool valid = std::isfinite(*bound) && *bound > 0.0;
+bool resolution_bound_valid(const stxlib::Optional<double>& bound) noexcept {
+    const double* const value = bound.value();
+    if (value == nullptr) return true;
+    const bool valid = std::isfinite(*value) && *value > 0.0;
     return valid;
 }
 
-bool feature_holds(const std::optional<bool>& wanted, bool fact) noexcept {
-    if (!wanted) return true;
-    const bool holds = *wanted == fact;
+bool feature_holds(const stxlib::Optional<bool>& wanted, bool fact) noexcept {
+    const bool* const value = wanted.value();
+    if (value == nullptr) return true;
+    const bool holds = *value == fact;
     return holds;
 }
 
 } // namespace
 
 bool media_condition_unconditional(const MediaCondition& condition) noexcept {
-    const bool unconditional = !condition.dark_scheme && !condition.forced_colours && !condition.reduced_motion &&
-                               !condition.minimum_resolution && !condition.maximum_resolution;
+    const bool unconditional = condition.dark_scheme.absent() && condition.forced_colours.absent() &&
+                               condition.reduced_motion.absent() && condition.minimum_resolution.absent() &&
+                               condition.maximum_resolution.absent();
     return unconditional;
 }
 
@@ -382,8 +386,10 @@ bool media_condition_holds(const MediaCondition& condition, const MediaFacts& fa
     if (!feature_holds(condition.dark_scheme, facts.dark_scheme)) return false;
     if (!feature_holds(condition.forced_colours, facts.forced_colours)) return false;
     if (!feature_holds(condition.reduced_motion, facts.reduced_motion)) return false;
-    if (condition.minimum_resolution && facts.resolution < *condition.minimum_resolution) return false;
-    if (condition.maximum_resolution && facts.resolution > *condition.maximum_resolution) return false;
+    const double* const minimum = condition.minimum_resolution.value();
+    const double* const maximum = condition.maximum_resolution.value();
+    if (minimum != nullptr && facts.resolution < *minimum) return false;
+    if (maximum != nullptr && facts.resolution > *maximum) return false;
     return true;
 }
 

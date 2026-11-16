@@ -225,11 +225,11 @@ std::string selector_text(const RuleSelector& selector) {
 std::string media_text(const MediaCondition& media) {
     if (media_condition_unconditional(media)) return "";
     std::string text = "  media";
-    if (media.dark_scheme) text += *media.dark_scheme ? " dark" : " light";
-    if (media.forced_colours) text += *media.forced_colours ? " forced" : " unforced";
-    if (media.reduced_motion) text += *media.reduced_motion ? " reduced" : " full-motion";
-    if (media.minimum_resolution) text += " min=" + number_text(*media.minimum_resolution);
-    if (media.maximum_resolution) text += " max=" + number_text(*media.maximum_resolution);
+    if (media.dark_scheme.present()) text += *media.dark_scheme.value() ? " dark" : " light";
+    if (media.forced_colours.present()) text += *media.forced_colours.value() ? " forced" : " unforced";
+    if (media.reduced_motion.present()) text += *media.reduced_motion.value() ? " reduced" : " full-motion";
+    if (media.minimum_resolution.present()) text += " min=" + number_text(*media.minimum_resolution.value());
+    if (media.maximum_resolution.present()) text += " max=" + number_text(*media.maximum_resolution.value());
     return text + "\n";
 }
 
