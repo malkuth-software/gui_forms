@@ -1,5 +1,7 @@
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 
+#include "../../json/json_text/json_text.hpp"
+
 #include <sstream>
 
 namespace gui_forms {
@@ -51,6 +53,8 @@ const char* window_backdrop_reason_name(WindowBackdropReason reason) noexcept {
 
 std::string CompositorState::to_json() const {
     std::ostringstream output;
+    // JSON numbers whatever the global locale (the pattern of A-gf-core-11-F1).
+    detail::imbue_json_numbers(output);
     output << "{\"generation\":" << generation.value << ",\"compositing\":\""
            << compositor_presence_name(compositing) << "\",\"support\":{";
     for (std::size_t index = 0; index < window_backdrop_count; ++index) {

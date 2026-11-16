@@ -1,4 +1,6 @@
 #include "gui_forms/host/windowing/host_windowing.hpp"
+
+#include "../../json/json_text/json_text.hpp"
 #include "gui_forms/host/windowing/desktop_coordinates.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
@@ -171,6 +173,8 @@ const char* host_window_kind_name(HostWindowKind kind) noexcept {
 
 std::string HostWindowingSnapshot::to_json() const {
     std::ostringstream output;
+    // JSON numbers whatever the global locale (the pattern of A-gf-core-11-F1).
+    detail::imbue_json_numbers(output);
     output << "{\"capabilities\":" << capabilities.to_json()
            << ",\"live_windows\":" << live_windows
            << ",\"admitted\":" << admitted
