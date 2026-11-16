@@ -387,7 +387,9 @@ public:
     // site.
     DockSite(StableId stable_id, DockWorkspace& workspace);
     // Realizes the floating site `floating_site` (phase D4). A second site
-    // made for the same floating site replaces the first in the workspace.
+    // made for the same floating site replaces the first in the workspace,
+    // which unbinds the first (it then shows nothing); a second main site
+    // replaces the first main site the same way.
     DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floating_site);
     ~DockSite() override;
     // Realizes the workspace's layout. make_control calls it; do not call it

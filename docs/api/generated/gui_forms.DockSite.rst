@@ -501,7 +501,7 @@ gui_forms::DockSite
 
    .. cpp:function:: DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floating_site)
 
-      Realizes the floating site :cpp:func:`floating_site <gui_forms::DockSite::floating_site>` (phase D4). A second site made for the same floating site replaces the first in the workspace.
+      Realizes the floating site :cpp:func:`floating_site <gui_forms::DockSite::floating_site>` (phase D4). A second site made for the same floating site replaces the first in the workspace, which unbinds the first (it then shows nothing); a second main site replaces the first main site the same way.
 
 
    .. rubric:: Properties
