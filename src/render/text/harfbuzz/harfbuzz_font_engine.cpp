@@ -1397,6 +1397,29 @@ void HarfBuzzFontEngine::prepare_workspace(BoundedShapeWorkspace& workspace,
     workspace.prepare(limits, external_bytes);
 }
 
+namespace {
+
+// Lends a reusable or bounded workspace's shaping scratch to one shape call and takes
+// it back when the call ends, also when shaping throws. Moving a scratch
+// moves its storage: nothing is allocated.
+class ScratchLoan final {
+public:
+    ScratchLoan(ShapeScratch& home, ShapeScratch& borrower) noexcept
+        : home_(home), borrower_(borrower) {
+        borrower_ = std::move(home_);
+    }
+    ~ScratchLoan() { home_ = std::move(borrower_); }
+    ScratchLoan(const ScratchLoan&) = delete;
+    ScratchLoan& operator=(const ScratchLoan&) = delete;
+
+private:
+    ShapeScratch& home_;
+    ShapeScratch& borrower_;
+};
+
+
+} // namespace
+
 std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_with_workspace(
     const std::string_view utf8, const FontSpec font, const ShapeStorageLimits& limits,
     BoundedShapeWorkspace& workspace) {
@@ -1446,10 +1469,13 @@ std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_with_workspace(
             staged.run_capacity = limits.runs;
             staged.glyph_capacity = limits.glyphs;
             try {
+                // The workspace's scratch and analysis, lent for the call
+                // (back with the loan's end, also on a throw): a prepared,
+                // warmed workspace allocates nothing here.
                 Impl::ShapeCall call{};
-                TextAnalysis analysis{};
-                (*impl_).fill_bounded_runs(utf8, font, call, analysis, selected, edges, scalars, segments, directions,
-                                           visual, staged);
+                const ScratchLoan loan(workspace.scratch_, call.scratch);
+                (*impl_).fill_bounded_runs(utf8, font, call, workspace.analysis_, selected, edges, scalars, segments,
+                                           directions, visual, staged);
             } catch (...) {
                 staged.run_capacity = run_capacity;
                 staged.glyph_capacity = glyph_capacity;
@@ -1480,24 +1506,6 @@ namespace {
 
 // Defined with the line metrics below.
 PrimaryLineMetrics sized_line_metrics(const stxlib::glyphs::Font& font, FontFaceId id, FontSpec font_spec);
-
-// Lends a reusable workspace's shaping scratch to one shape call and takes
-// it back when the call ends, also when shaping throws. Moving a scratch
-// moves its storage: nothing is allocated.
-class ScratchLoan final {
-public:
-    ScratchLoan(ShapeScratch& home, ShapeScratch& borrower) noexcept
-        : home_(home), borrower_(borrower) {
-        borrower_ = std::move(home_);
-    }
-    ~ScratchLoan() { home_ = std::move(borrower_); }
-    ScratchLoan(const ScratchLoan&) = delete;
-    ScratchLoan& operator=(const ScratchLoan&) = delete;
-
-private:
-    ShapeScratch& home_;
-    ShapeScratch& borrower_;
-};
 
 [[nodiscard]] TextExtent refused_extent() noexcept {
     TextExtent refused{};

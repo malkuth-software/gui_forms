@@ -20,16 +20,6 @@ namespace gui_forms::render::text {
 
 class HarfBuzzFontEngine;
 
-// One shape call's working storage for STXlib's shaper: a run's characters
-// and, for each, its cluster (the byte offset of its first byte in the
-// shaped text), counted under AllocationSubsystem::text_layout, and the
-// glyphs the shaper returns (STXlib's storage). Reused from run to run. A
-// reusable workspace holds one, reserved for its capacity, and lends it to
-// each call by moving it (ScratchLoan), which allocates nothing.
-struct ShapeScratch final {
-    using CountedScalars =
-        std::vector<std::uint32_t, gui_forms::detail::CountedAllocator<std::uint32_t, AllocationSubsystem::text_layout>>;
-    CountedScalars characters{};
     CountedScalars clusters{};
     stxlib::Vector<stxlib::glyphs::ShapedGlyph> glyphs{};
 };
