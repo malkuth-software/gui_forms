@@ -330,5 +330,33 @@ class PullRequestTargetListTests(unittest.TestCase):
         self.assertEqual(listed.call_args.args[1], 'a_tests|b_tests')
 
 
+class WholeTreeTestTests(unittest.TestCase):
+    """A test labelled sdk installs the whole tree (gui_forms_sdk_consumer_link):
+    a pull request that selects it builds `all`, since the merged Application
+    archive it installs is no output its command names (#483, native linux)."""
+
+    def listing(self) -> dict:
+        return {'tests': [{'name': 'a_tests', 'command': ['a_tests'],
+                           'properties': [{'name': 'LABELS', 'value': ['area_controls']}]},
+                          {'name': 'gui_forms_sdk_consumer_link', 'command': ['python3'],
+                           'properties': [{'name': 'LABELS', 'value': ['area_controls', 'sdk']}]}]}
+
+    def test_the_sdk_label_marks_a_whole_tree_test(self) -> None:
+        self.assertEqual(ci_build.whole_tree_tests(self.listing()), ['gui_forms_sdk_consumer_link'])
+        self.assertEqual(ci_build.whole_tree_tests({'tests': self.listing()['tests'][:1]}), [])
+
+    def test_the_programs_list_is_all_when_a_whole_tree_test_runs(self) -> None:
+        raw: io.BytesIO = io.BytesIO()
+        stdout: io.TextIOWrapper = io.TextIOWrapper(raw, encoding='utf-8')
+        with tempfile.TemporaryDirectory() as scratch:
+            with mock.patch.object(ci_build, 'test_listing', return_value=self.listing()), \
+                    mock.patch.object(ci_build, 'test_build_targets') as narrowed, \
+                    mock.patch.object(sys, 'stdout', stdout), mock.patch('sys.stderr'):
+                self.assertEqual(pr_build_targets.main(['--build-dir', scratch]), 0)
+                stdout.flush()
+        self.assertEqual(raw.getvalue(), b'all\n')
+        narrowed.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()

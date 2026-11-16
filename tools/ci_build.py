@@ -105,6 +105,31 @@ LOADED_LIBRARY_RULES: tuple[str, ...] = ('C_SHARED_LIBRARY_LINKER', 'CXX_SHARED_
                                          'C_MODULE_LIBRARY_LINKER', 'CXX_MODULE_LIBRARY_LINKER')
 
 
+# The labels of tests that install the whole tree (gui_forms_sdk_consumer_link
+# runs cmake --install and links a consumer against every component): no
+# build output a command names stands for what they read, so a pull request
+# run that selects one builds `all`.
+WHOLE_TREE_LABELS: tuple[str, ...] = ('sdk',)
+
+
+def whole_tree_tests(listing: dict) -> list[str]:
+    """The names of the tests of listing that carry a label in WHOLE_TREE_LABELS."""
+    names: list[str] = []
+    test: dict
+    for test in listing.get('tests', []):
+        labels: list[str] = []
+        prop: dict
+        for prop in test.get('properties', []):
+            if prop.get('name') == 'LABELS':
+                labels = list(prop.get('value', []))
+        label: str
+        for label in labels:
+            if label in WHOLE_TREE_LABELS:
+                names.append(test['name'])
+                break
+    return names
+
+
 def ninja_outputs(toolkit: Path) -> dict[str, str]:
     """Every output ninja can build in toolkit, with the name of the rule that builds it."""
     outputs: dict[str, str] = {}
@@ -355,10 +380,15 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
             print(f'pull request: {len(chosen_names)} of {len(suite["tests"])} tests are affected by the paths '
                   f'changed since {changed_from} or always run', flush=True)
             selection = ctest_selection(change_selection.name_pattern(chosen_names), skip_labels)
-        unbuilt: list[str]
-        targets, unbuilt = test_build_targets(chosen, ninja_outputs(toolkit), toolkit)
-        print(f'pull request: {len(targets)} build outputs serve those tests, not `all`; '
-              f'{len(unbuilt)} named paths are sources or test outputs: {", ".join(unbuilt)}', flush=True)
+        whole_tree: list[str] = whole_tree_tests(chosen)
+        if whole_tree:
+            print(f'pull request: {", ".join(whole_tree)} install the whole tree, so `all` is built',
+                  flush=True)
+        else:
+            unbuilt: list[str]
+            targets, unbuilt = test_build_targets(chosen, ninja_outputs(toolkit), toolkit)
+            print(f'pull request: {len(targets)} build outputs serve those tests, not `all`; '
+                  f'{len(unbuilt)} named paths are sources or test outputs: {", ".join(unbuilt)}', flush=True)
     elif tests or changed_from:
         listing: dict = test_listing(toolkit, tests, skip_labels)
         if changed_from:

@@ -5,7 +5,8 @@
 
 A pull request's programs job builds these instead of `all`: the tests it
 runs, plus every shared and module library, and no program, bundle or
-package no test runs. --tests narrows the listing to the matching tests
+package no test runs (all when a test installs the whole tree,
+ci_build.WHOLE_TREE_LABELS). --tests narrows the listing to the matching tests
 (the ones the native job did not pass); without it every test counts.
 --changed-from narrows it further to the tests the paths changed since that
 ref can affect (ci_build.pull_request_listing), and --pattern-out writes
@@ -58,9 +59,15 @@ def main(argv: list[str] | None = None) -> int:
         args.pattern_out.write_text(pattern + '\n', encoding='utf-8', newline='\n')
     targets: list[str]
     unbuilt: list[str]
-    targets, unbuilt = ci_build.test_build_targets(listing, ci_build.ninja_outputs(toolkit), toolkit)
-    print(f"{len(listing.get('tests', []))} tests run {len(targets)} build outputs; "
-          f"{len(unbuilt)} named paths need no build: {' '.join(unbuilt)}", file=sys.stderr)
+    whole_tree: list[str] = ci_build.whole_tree_tests(listing)
+    if whole_tree:
+        # A test that installs the whole tree reads every output (ci_build.WHOLE_TREE_LABELS).
+        targets = ['all']
+        print(f"{' '.join(whole_tree)} install the whole tree: building all", file=sys.stderr)
+    else:
+        targets, unbuilt = ci_build.test_build_targets(listing, ci_build.ninja_outputs(toolkit), toolkit)
+        print(f"{len(listing.get('tests', []))} tests run {len(targets)} build outputs; "
+              f"{len(unbuilt)} named paths need no build: {' '.join(unbuilt)}", file=sys.stderr)
     target: str
     for target in targets:
         print(target)
