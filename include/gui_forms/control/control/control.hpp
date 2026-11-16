@@ -913,6 +913,28 @@ public:
     [[nodiscard]] PaintPlane paint_plane() const noexcept { return paint_plane_; }
     void set_paint_plane(PaintPlane plane);
     [[nodiscard]] std::optional<DisplayChunkInfo> display_chunk_info() const noexcept;
+    // The control's content effect (capability review decision 1, owner
+    // 2026-11-16): PaintGroupEffect's colour stages, blur and masks applied
+    // to what this control and its descendants paint, as one image. The
+    // window draws the control's display chunk and its descendants' chunks
+    // in its paint plane inside one paint group carrying the effect, over
+    // the control's visual bounds and child viewport, and grows every
+    // damage of the control and its descendants by the effect's reach
+    // (paint_group_effect_reach), so that the blur's spread repaints. An
+    // effect set here wins over the theme's (`filter` and `mask-*` on a
+    // control rule). Null for none. Throws std::invalid_argument, changing
+    // nothing, for an effect valid_paint_group_effect refuses. Shared
+    // read-only: the window's recordings keep it alive.
+    void set_content_effect(std::shared_ptr<const PaintGroupEffect> effect);
+    [[nodiscard]] const std::shared_ptr<const PaintGroupEffect>& content_effect() const& noexcept {
+        return content_effect_;
+    }
+    const std::shared_ptr<const PaintGroupEffect>& content_effect() const&& = delete;
+    // The effect the window draws: the one set, else the theme's.
+    [[nodiscard]] const std::shared_ptr<const PaintGroupEffect>& shown_content_effect() const& noexcept {
+        return content_effect_ ? content_effect_ : theme_content_effect_;
+    }
+    const std::shared_ptr<const PaintGroupEffect>& shown_content_effect() const&& = delete;
     void invalidate(Dirty dirty);
     // Marks only a local client rectangle for repaint. The retained display
     // chunk remains the authoritative complete presentation, while host
@@ -2154,6 +2176,13 @@ private:
     PaintPlane paint_plane_{PaintPlane::control};
     std::shared_ptr<const detail::DisplayChunk> display_chunk_;
     Insets last_painted_visual_outsets_{};
+    // The content effects (set_content_effect): the one set in code, the
+    // theme's (set by the theme engine at the control's theme resolution),
+    // and the reach of the one last painted, so that a smaller or removed
+    // effect still damages what the larger one spread over.
+    std::shared_ptr<const PaintGroupEffect> content_effect_{};
+    std::shared_ptr<const PaintGroupEffect> theme_content_effect_{};
+    double last_painted_effect_reach_{};
     bool layout_collapsed_{};
     // Whether this is its window's hovered control, the one the pointer was
     // last over (stage T4, hot states). Only the window sets it, before the

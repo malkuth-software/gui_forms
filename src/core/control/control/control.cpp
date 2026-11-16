@@ -1,4 +1,5 @@
 #include "gui_forms/control.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/component/failures/component_failures.hpp"
@@ -4232,6 +4233,19 @@ void Control::set_paint_plane(PaintPlane plane) {
     paint_plane_ = plane;
     display_chunk_.reset();
     invalidate(invalidation::paint_only);
+}
+
+void Control::set_content_effect(std::shared_ptr<const PaintGroupEffect> effect) {
+    require_mutable();
+    if (effect && !valid_paint_group_effect(*effect)) {
+        throw std::invalid_argument("invalid content effect");
+    }
+    if (effect == content_effect_) return;
+    content_effect_ = std::move(effect);
+    // The whole subtree draws inside the group again; its damage grows by
+    // the larger of the new reach and the last painted one
+    // (SurfaceRoot::paint_damage_bounds_of).
+    redraw_all(invalidation::paint_only);
 }
 
 std::optional<DisplayChunkInfo> Control::display_chunk_info() const noexcept {

@@ -8,6 +8,7 @@
 // part_composite_identity_tests.
 
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/panel.hpp"
 #include "gui_forms/surface_material.hpp"
 #include "gui_forms/visual_inspection.hpp"
 #include "gui_forms/window.hpp"
@@ -82,7 +83,7 @@ public:
     std::vector<Rect> clips{};
 };
 
-enum class Script : std::uint8_t { nested, too_deep, left_open, ended_twice, saves_cross, effect };
+enum class Script : std::uint8_t { nested, too_deep, left_open, ended_twice, saves_cross, effect, plain };
 
 // The effect the `effect` script's group carries: grey fill, a blur and a
 // half-alpha mask.
@@ -133,6 +134,9 @@ public:
             painter.end_group();
             return;
         }
+        case Script::plain:
+            painter.fill_rect({0.0, 0.0, 10.0, 10.0}, Color::rgba(30, 200, 30, 255));
+            return;
         case Script::saves_cross:
             painter.begin_group(group_of({0.0, 0.0, 50.0, 40.0}, 0.5));
             painter.save();
@@ -239,6 +243,87 @@ void effect_recorded_and_replayed() {
             "the script's effect is valid and reaches 1.5 × 2 + 3");
 }
 
+// A control's content effect (Control::set_content_effect) wraps the
+// control's chunk and its descendants' chunks in one group carrying it, and
+// a damage inside grows by the effect's reach.
+void content_effect_wraps_the_subtree() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("content.root"));
+    const std::shared_ptr<Panel> holder = make_control<Panel>(StableId("content.holder"));
+    const std::shared_ptr<Grouper> child = make_control<Grouper>(StableId("content.child"));
+    (*child).script = Script::plain;
+    (*holder).set_requested_bounds(Rect{20.0, 20.0, 60.0, 40.0});
+    (*child).set_requested_bounds(Rect{20.0, 10.0, 10.0, 10.0});
+    (*holder).add_child(child);
+    (*root).add_child(holder);
+    Window window(root, Size{100.0, 80.0});
+    window.perform_layout();
+
+    PaintGroupEffect bad{};
+    bad.blur = -1.0;
+    bool refused = false;
+    try {
+        (*holder).set_content_effect(std::make_shared<const PaintGroupEffect>(bad));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && !(*holder).content_effect(), "an invalid content effect is refused and nothing changes");
+
+    const std::shared_ptr<const PaintGroupEffect> effect = script_effect();
+    (*holder).set_content_effect(effect);
+    require((*holder).content_effect() == effect && (*holder).shown_content_effect() == effect,
+            "the control keeps and shows its content effect");
+    ListingPainter painter{};
+    static_cast<void>(window.paint(painter));
+    std::size_t effect_group = painter.effects.size();
+    for (std::size_t index = 0U; index < painter.effects.size(); ++index) {
+        if (painter.effects[index] == effect) effect_group = index;
+    }
+    require(effect_group < painter.effects.size(), "the replay opens a group carrying the content effect");
+    // Walk to that group's begin, then to its matching end, counting the
+    // child's fill inside.
+    std::size_t begins = 0U;
+    std::size_t depth = 0U;
+    bool inside = false;
+    bool closed = false;
+    std::size_t fills_inside = 0U;
+    for (const std::string& call : painter.calls) {
+        if (closed) break;
+        if (call == "begin") {
+            if (!inside && begins == effect_group) {
+                inside = true;
+                depth = 0U;
+            } else if (inside) {
+                ++depth;
+            }
+            ++begins;
+            continue;
+        }
+        if (!inside) continue;
+        if (call == "fill") ++fills_inside;
+        if (call == "end") {
+            if (depth == 0U) {
+                closed = true;
+            } else {
+                --depth;
+            }
+        }
+    }
+    require(closed, "the content effect's group ends after the subtree");
+    require(fills_inside >= 1U, "the descendant's chunk draws inside the group");
+
+    // A damage in the child spreads by the reach, 1.5 × 2 + 3 = 6, on every
+    // side: its 10 × 10 bounds request at least 22 × 22.
+    const double before = window.metrics_snapshot().requested_damage_area;
+    (*child).invalidate(invalidation::paint_only);
+    ListingPainter repaint{};
+    static_cast<void>(window.paint(repaint));
+    const double requested = window.metrics_snapshot().requested_damage_area - before;
+    require(requested >= 22.0 * 22.0, "a damage under a content effect grows by its reach");
+
+    (*holder).set_content_effect(nullptr);
+    require(!(*holder).shown_content_effect(), "a null effect clears it");
+}
+
 void refused_past_the_depth() {
     Fixture fixture = make_fixture(Script::too_deep);
     ListingPainter painter{};
@@ -276,9 +361,10 @@ void minimal_painter_fallback() {
 int main() {
     recorded_and_replayed();
     effect_recorded_and_replayed();
+    content_effect_wraps_the_subtree();
     refused_past_the_depth();
     unbalanced_chunks_are_refused();
     minimal_painter_fallback();
-    std::cout << "paint groups: recording, effects, nesting, refusals, balance, inspection and the fallback passed\n";
+    std::cout << "paint groups: recording, effects, content effects, nesting, refusals, balance, inspection and the fallback passed\n";
     return EXIT_SUCCESS;
 }

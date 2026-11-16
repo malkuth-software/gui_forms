@@ -2453,6 +2453,11 @@ private:
     [[nodiscard]] Rect visual_bounds_of(const Control& control,
                                         Insets outsets) const;
     [[nodiscard]] Rect paint_damage_bounds_of(const Control& control) const;
+    // The sum of the content-effect reaches (paint_group_effect_reach) of
+    // `control` and its ancestors, each the larger of its shown effect's and
+    // its last painted one's: how far a damage inside the control spreads
+    // through their blurs. 0 when none has an effect.
+    [[nodiscard]] static double effect_reach_above(const Control& control) noexcept;
     [[nodiscard]] bool eligible(const Control::Ptr& control) const noexcept;
     [[nodiscard]] bool move_focus_after(const Control::Ptr& origin);
     void set_focus_cue_visible(bool visible);
