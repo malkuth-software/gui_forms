@@ -130,13 +130,15 @@ std::vector<StepIndicator::StepPlacement> StepIndicator::placements(double width
     return placed;
 }
 
-std::optional<std::size_t> StepIndicator::step_at(Point local_point) const {
+stxlib::Optional<std::size_t> StepIndicator::step_at(Point local_point) const {
     const Rect client = client_rectangle();
     const std::vector<StepPlacement> placed = placements(client.width);
     for (std::size_t index = 0U; index < placed.size(); ++index) {
-        if (placed[index].chip.contains(local_point) || placed[index].caption.contains(local_point)) return index;
+        if (placed[index].chip.contains(local_point) || placed[index].caption.contains(local_point)) {
+            return stxlib::Optional<std::size_t>::of(index);
+        }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 Size StepIndicator::measure(Size available) {
@@ -203,10 +205,10 @@ void StepIndicator::on_paint(Painter& painter, Rect) {
 
 void StepIndicator::on_mouse_down(MouseEventArgs& arguments) {
     if (eligible_for_input() && arguments.button == PointerButton::primary) {
-        const std::optional<std::size_t> pressed = step_at(arguments.location);
-        if (pressed && *pressed < current_step.read()) {
+        const stxlib::Optional<std::size_t> pressed = step_at(arguments.location);
+        if (pressed.present() && *pressed.value() < current_step.read()) {
             arguments.handled = true;
-            step_clicked_.emit(*pressed);
+            step_clicked_.emit(*pressed.value());
             if (!is_alive()) return;
         }
     }

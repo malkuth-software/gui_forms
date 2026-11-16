@@ -349,7 +349,7 @@ void test_step_indicator() {
     require(parts.chip.present && parts.glyph.present && parts.divider.present && parts.caption.present,
             "the indicator publishes its chips, checks, connectors and names");
     // Columns are 100 units wide; the first chip is centred at 50.
-    require((*steps).step_at(Point{50.0, 12.0}) == std::optional<std::size_t>{0U}, "the first chip is step 0");
+    require((*steps).step_at(Point{50.0, 12.0}) == stxlib::Optional<std::size_t>::of(0U), "the first chip is step 0");
     require(window.dispatch_pointer(press(Point{50.0, 12.0})) && recorder.seen.size() == 1U &&
                 recorder.seen[0] == "step:0",
             "a completed step can be pressed");
