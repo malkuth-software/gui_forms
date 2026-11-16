@@ -94,6 +94,12 @@ struct GUI_FORMS_API PreparedTextLimits final {
     static constexpr std::size_t mask_dimension = 4096;
     static constexpr std::size_t mask_bytes = 4U * 1024U * 1024U;
     static constexpr std::size_t mask_owners = 2;
+    // Glyph faces, in bytes (owner, 2026-11-16): each face's glyph store
+    // (its glyphs in font units, read once for every size) and each
+    // rasterization's fitted outlines per face. STXlib takes storage as it
+    // is needed and never more than these.
+    static constexpr std::size_t glyph_store_bytes = 1U * 1024U * 1024U;
+    static constexpr std::size_t fitted_glyph_bytes = 1U * 1024U * 1024U;
 };
 
 struct GUI_FORMS_API PreparedTextMetrics final {
@@ -114,6 +120,12 @@ struct GUI_FORMS_API PreparedTextBudgetSnapshot final {
     std::size_t input_bytes{};
     std::size_t mask_owners{};
     std::size_t mask_bytes{};
+    // The font banks' glyph faces: their typefaces' bytes as STXlib holds
+    // them after the latest rasterization (bytes_held), and the most one
+    // rasterization has held, typefaces and faces together (bytes_peak),
+    // since the service began.
+    std::size_t glyph_face_bytes{};
+    std::size_t glyph_face_peak_bytes{};
     // Reports requested controlled payload only, not allocator/vendor/RSS quota.
 };
 

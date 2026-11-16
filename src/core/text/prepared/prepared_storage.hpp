@@ -14,6 +14,8 @@
 
 namespace gui_forms::detail {
 
+class ProgramTypeface;
+
 // Private monotonic identity sources. Zero and the terminal maximum are never
 // issued; refusal preserves output. The counter helper admits a local source
 // for exhaustion fixtures, without resetting either process-wide source.
@@ -76,6 +78,28 @@ struct PreparedFontFace final {
     FontFamilyId family{};
 };
 
+// The glyph faces' bytes of one font bank charged to its ledger
+// (PreparedTextBudgetSnapshot::glyph_face_bytes and glyph_face_peak_bytes):
+// STXlib's bytes_held of the bank's typefaces, recharged after each
+// rasterization from them, and refunded when the bank goes. Any thread:
+// every change is made under the ledger's mutex. A bank without a ledger (a
+// text mask's) charges nothing.
+class PreparedFaceCharge final {
+public:
+    PreparedFaceCharge() = default;
+    ~PreparedFaceCharge();
+    PreparedFaceCharge(const PreparedFaceCharge&) = delete;
+    PreparedFaceCharge& operator=(const PreparedFaceCharge&) = delete;
+    // Recharges this bank to `held` bytes and raises the ledger's peak to
+    // `peak` (the typefaces' and the drawing faces' most, together). The
+    // ledger is the bank's own, the same on every call.
+    void charge(const std::shared_ptr<PreparedLedger>& ledger, std::size_t held, std::size_t peak) noexcept;
+    void release() noexcept;
+private:
+    std::shared_ptr<PreparedLedger> ledger_{};
+    std::size_t bytes_{};
+};
+
 struct PreparedFontBank final {
     PreparedReservation reservation{};
     std::shared_ptr<PreparedLedger> ledger{};
@@ -84,7 +108,24 @@ struct PreparedFontBank final {
     std::array<PreparedFontFace, PreparedTextLimits::font_faces> faces{};
     std::size_t face_count{};
     std::size_t encoded_bytes{};
+    // The program's typeface of each face (program_typefaces.hpp), opened
+    // over `faces`' bytes by open_bank_typefaces before the bank is shared,
+    // then read only. Declared after `faces`, destroyed before them: the
+    // typefaces borrow those bytes. Each rasterization opens its faces over
+    // these, so the glyphs read for one serve the next.
+    std::array<std::shared_ptr<const ProgramTypeface>, PreparedTextLimits::font_faces> typefaces{};
+    // Mutable: charging the typefaces' bytes is accounting, not a change to
+    // the bank, and is made under the ledger's mutex.
+    mutable PreparedFaceCharge face_charge{};
 };
+
+// Opens the program's typeface of each of the bank's faces
+// (PreparedTextLimits::glyph_store_bytes each) into bank.typefaces, and
+// checks what every rasterizer needs of a face: outlines STXlib reads, one
+// to 1,000,000 glyphs and a Unicode character map. False, with
+// bank.typefaces emptied, when a face fails any of them; std::bad_alloc when
+// the registry's storage runs out.
+[[nodiscard]] bool open_bank_typefaces(PreparedFontBank& bank);
 
 struct PreparedInputStorage final {
     PreparedReservation reservation{};
@@ -199,6 +240,8 @@ private:
 // operation whose authority is being checked, including publication if any.
 [[nodiscard]] bool prepared_authority_current_locked(const PreparedTextStorage& storage, const LayoutAuthority expected) noexcept;
 [[nodiscard]] PreparedTextMetrics prepared_device_metrics(const FontSpec font, const double scale);
-[[nodiscard]] PreparedTextStatus validate_prepared_fonts(const PreparedFontBank& bank);
+// Opens and checks the bank's typefaces (open_bank_typefaces):
+// incompatible_font when a face fails, resource_failure when memory runs out.
+[[nodiscard]] PreparedTextStatus validate_prepared_fonts(PreparedFontBank& bank);
 
 } // namespace gui_forms::detail

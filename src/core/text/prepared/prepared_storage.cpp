@@ -1,8 +1,10 @@
 #include "prepared_storage.hpp"
+#include "../../resources/fonts/program_typefaces.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -364,3 +366,64 @@ PreparedTextMetrics prepared_device_metrics(const FontSpec font, const double sc
 
 } // namespace detail
 } // namespace gui_forms
+
+namespace gui_forms::detail {
+
+PreparedFaceCharge::~PreparedFaceCharge() { release(); }
+
+void PreparedFaceCharge::charge(const std::shared_ptr<PreparedLedger>& ledger, const std::size_t held,
+                                const std::size_t peak) noexcept {
+    if (!ledger) return;
+    std::lock_guard<std::mutex> lock((*ledger).mutex);
+    PreparedTextBudgetSnapshot& usage = (*ledger).usage;
+    usage.glyph_face_bytes = usage.glyph_face_bytes - bytes_ + held;
+    usage.glyph_face_peak_bytes = std::max(usage.glyph_face_peak_bytes, peak);
+    bytes_ = held;
+    if (!ledger_) ledger_ = ledger;
+}
+
+void PreparedFaceCharge::release() noexcept {
+    if (!ledger_) return;
+    {
+        std::lock_guard<std::mutex> lock((*ledger_).mutex);
+        (*ledger_).usage.glyph_face_bytes -= bytes_;
+    }
+    bytes_ = 0;
+    ledger_.reset();
+}
+
+namespace {
+
+// The most glyphs a bank's face may have (as the FreeType check before it).
+constexpr std::uint32_t maximum_bank_glyphs = 1'000'000U;
+
+// Whether every rasterizer can draw from `font`: outlines STXlib reads, a
+// glyph count in range and a Unicode character map.
+[[nodiscard]] bool drawable_bank_font(const stxlib::glyphs::Font& font) noexcept {
+    const bool drawable = font.outlines != stxlib::glyphs::OutlineKind::none && font.glyph_count != 0U &&
+        font.glyph_count <= maximum_bank_glyphs && font.units_per_em != 0U && font.character_map.length != 0U;
+    return drawable;
+}
+
+} // namespace
+
+bool open_bank_typefaces(PreparedFontBank& bank) {
+    TypefaceByteLimits limits{};
+    limits.recent_glyph_bytes = PreparedTextLimits::glyph_store_bytes;
+    for (std::size_t index = 0; index < bank.face_count; ++index) {
+        const PreparedFontFace& source = bank.faces[index];
+        const std::span<const std::byte> bytes(source.bytes.get(), source.size);
+        // No owner: the bank owns the bytes and holds the typeface, and every
+        // other holder holds the bank (prepared storage, a mask key).
+        std::shared_ptr<const ProgramTypeface> typeface = program_typeface(bytes, nullptr, source.index, limits);
+        const stxlib::glyphs::Font* const font = typeface ? (*(*typeface).typeface()).font() : nullptr;
+        if (font == nullptr || !drawable_bank_font(*font)) {
+            for (std::shared_ptr<const ProgramTypeface>& opened : bank.typefaces) opened.reset();
+            return false;
+        }
+        bank.typefaces[index] = std::move(typeface);
+    }
+    return true;
+}
+
+} // namespace gui_forms::detail
