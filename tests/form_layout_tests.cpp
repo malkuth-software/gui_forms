@@ -96,8 +96,8 @@ void test_rows_and_columns() {
     require(widest > 0.0, "the widest caption sizes the column");
     require(near((*first).committed_arranged_bounds().x, widest + 12.0), "controls follow the measured column");
 
-    (*form).caption_alignment = HorizontalAlignment::far;
-    require((*first_caption).alignment.read() == HorizontalAlignment::far, "captions follow caption_alignment");
+    (*form).caption_alignment = HorizontalAlignment::end;
+    require((*first_caption).alignment.read() == HorizontalAlignment::end, "captions follow caption_alignment");
 
     // A control removed other than by remove_row leaves an empty row.
     static_cast<void>((*form).remove_child((*third).runtime_id()));

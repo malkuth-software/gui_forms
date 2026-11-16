@@ -72,7 +72,7 @@
         text="Late deadlines coalesce to one ordered tick; no catch-up burst and no hidden paint control."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="22 200 564 36"/>
   </scaled-group-box>
 
@@ -103,13 +103,13 @@
         text="Hover: 420 ms · Reshow: 90 ms · Auto-pop: 4 s&#10;Each control carries its own tooltip text; the window's one presenter shows it on rest and on keyboard focus, follows moving targets and closes with its owner."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="22 166 574 70"/>
     <label id="gallery.timing.tooltip.proof"
         text="TRY IT&#10;Hover each target, tab through the controls, adjust the interval, and watch the anchored moving tooltip."
         classes="heading strong"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="628 44 270 126"/>
     <text-box id="gallery.timing.provider.field"
         text="192.168.1.96:5555"

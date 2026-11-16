@@ -157,7 +157,7 @@ HostDialogResult message_dialog(NativeWindow& owner, const HostDialogRequest& re
     (*text).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 15, 400, false});
     (*text).text_wrapping = TextWrapping::word;
     (*text).set_bounds({22.0, 20.0, 516.0, 164.0});
-    if (message.right_align || message.rtl_reading) (*text).alignment = HorizontalAlignment::far;
+    if (message.right_align || message.rtl_reading) (*text).alignment = HorizontalAlignment::end;
     (*state.root).add_child(text);
     const std::vector<HostDialogChoice> choices = message_choices(message);
     for (std::size_t index = 0U; index < choices.size(); ++index) {

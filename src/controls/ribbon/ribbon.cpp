@@ -2608,13 +2608,13 @@ bool Ribbon::show_group_overlay(std::string_view group_id, MenuOpenMode mode) {
     const RibbonGroupSpec& spec = tabs_[*selected_tab_.value()].groups[group];
     (*group_overlay_).accessible_name = spec.caption;
     move_hosted_to_overlay(group);
-    // The content runs from the ribbon's left edge (near alignment) to the
+    // The content runs from the ribbon's left edge (start alignment) to the
     // panel's right; the panel starts under the group's button.
     const Rect absolute = absolute_bounds();
     const Size panel = overlay_panel_size();
     AnchoredOverlayPlacement placement;
     placement.preferred_size = {placed.groups[group].x + panel.width, panel.height};
-    placement.horizontal_alignment = OverlayHorizontalAlignment::near;
+    placement.horizontal_alignment = OverlayHorizontalAlignment::start;
     placement.vertical_preference = OverlayVerticalPreference::below;
     placement.gap = overlay_gap;
     sync_overlay_themes();
@@ -2845,7 +2845,7 @@ bool Ribbon::show_plane_popup() {
     const Rect absolute = absolute_bounds();
     AnchoredOverlayPlacement placement;
     placement.preferred_size = {absolute.width, plane_height()};
-    placement.horizontal_alignment = OverlayHorizontalAlignment::near;
+    placement.horizontal_alignment = OverlayHorizontalAlignment::start;
     placement.vertical_preference = OverlayVerticalPreference::below;
     placement.gap = 0.0;
     // Flush with the ribbon's edges: the default 4-unit viewport margin

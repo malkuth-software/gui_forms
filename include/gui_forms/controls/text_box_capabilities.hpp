@@ -248,10 +248,10 @@ struct TextBoxAutoCompleteCaseSensitiveCapability {
     }
 };
 
-// Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+// Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
 template <typename Declaring>
 struct TextBoxTextAlignmentCapability {
-    PropertyCell<HorizontalAlignment, TextBoxTextAlignmentCapability<Declaring>> text_alignment{HorizontalAlignment::near};
+    PropertyCell<HorizontalAlignment, TextBoxTextAlignmentCapability<Declaring>> text_alignment{HorizontalAlignment::start};
 
     static void assign(TextBoxTextAlignmentCapability& capability, HorizontalAlignment incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

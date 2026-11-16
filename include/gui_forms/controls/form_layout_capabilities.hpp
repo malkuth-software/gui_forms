@@ -38,10 +38,10 @@ struct FormLayoutCaptionWidthCapability {
     }
 };
 
-// Where each caption sits in the caption column: at its start (near, the default), centre or end (far, beside the control).
+// Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
 template <typename Declaring>
 struct FormLayoutCaptionAlignmentCapability {
-    PropertyCell<HorizontalAlignment, FormLayoutCaptionAlignmentCapability<Declaring>> caption_alignment{HorizontalAlignment::near};
+    PropertyCell<HorizontalAlignment, FormLayoutCaptionAlignmentCapability<Declaring>> caption_alignment{HorizontalAlignment::start};
 
     static void assign(FormLayoutCaptionAlignmentCapability& capability, HorizontalAlignment incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

@@ -37,14 +37,14 @@ bool close(double left, double right) {
 void test_resolution_flips_and_clamps() {
     AnchoredOverlayPlacement placement;
     placement.preferred_size = {180.0, 90.0};
-    placement.horizontal_alignment = OverlayHorizontalAlignment::far;
+    placement.horizontal_alignment = OverlayHorizontalAlignment::end;
     placement.gap = 2.0;
     const AnchoredOverlayPlacementResult below = resolve_anchored_overlay(
         {170.0, 20.0, 20.0, 20.0}, {200.0, 160.0}, placement);
     require(below.bounds == Rect{10.0, 42.0, 180.0, 90.0} &&
                 !below.placed_above && !below.width_clamped &&
                 !below.height_clamped,
-            "anchored placement must align its far edge and prefer below");
+            "anchored placement must align its end edge and prefer below");
 
     const AnchoredOverlayPlacementResult above = resolve_anchored_overlay(
         {170.0, 130.0, 20.0, 20.0}, {200.0, 160.0}, placement);
@@ -74,7 +74,7 @@ void test_layer_dismissal_focus_and_resize() {
     (*content).add_child(field);
     AnchoredOverlayPlacement placement;
     placement.preferred_size = {140.0, 80.0};
-    placement.horizontal_alignment = OverlayHorizontalAlignment::far;
+    placement.horizontal_alignment = OverlayHorizontalAlignment::end;
     std::shared_ptr<gui_forms::AnchoredOverlayLayer> layer = make_control<AnchoredOverlayLayer>(
         StableId("overlay.layer"), owner, placement);
     (*layer).set_content(content);

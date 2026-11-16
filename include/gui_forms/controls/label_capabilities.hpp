@@ -42,10 +42,10 @@ struct LabelFontCapability {
     }
 };
 
-// Horizontal placement of the text: near, center or far.
+// Horizontal placement of the text: start, center or end.
 template <typename Declaring>
 struct LabelAlignmentCapability {
-    PropertyCell<HorizontalAlignment, LabelAlignmentCapability<Declaring>> alignment{HorizontalAlignment::near};
+    PropertyCell<HorizontalAlignment, LabelAlignmentCapability<Declaring>> alignment{HorizontalAlignment::start};
 
     static void assign(LabelAlignmentCapability& capability, HorizontalAlignment incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
@@ -55,7 +55,7 @@ struct LabelAlignmentCapability {
     }
 };
 
-// Vertical placement of the text: near, center or far.
+// Vertical placement of the text: start, center or end.
 template <typename Declaring>
 struct LabelVerticalAlignmentCapability {
     PropertyCell<VerticalAlignment, LabelVerticalAlignmentCapability<Declaring>> vertical_alignment{VerticalAlignment::center};

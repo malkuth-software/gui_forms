@@ -343,9 +343,9 @@ void GalleryContext::attach(GalleryWindow& gallery_window)
     (*pages.gallery_slider).large_change = 10.0;
     (*pages.gallery_text_input).placeholder_text = "Type here";
     (*gallery.gallery_diagnostics_about).text_wrapping = TextWrapping::word;
-    (*gallery.gallery_diagnostics_about).vertical_alignment = VerticalAlignment::near;
+    (*gallery.gallery_diagnostics_about).vertical_alignment = VerticalAlignment::start;
     (*gallery.gallery_diagnostics_font).text_wrapping = TextWrapping::word;
-    (*gallery.gallery_diagnostics_font).vertical_alignment = VerticalAlignment::near;
+    (*gallery.gallery_diagnostics_font).vertical_alignment = VerticalAlignment::start;
     (*gallery.gallery_diagnostics).set_paint_plane(PaintPlane::overlay);
     std::vector<std::string> row_ids;
     row_ids.reserve(collection_row_ids.size());

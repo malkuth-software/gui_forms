@@ -959,7 +959,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
     const double slack = viewport - layout_positions_.back();
     const HorizontalAlignment placed_alignment =
         directed_alignment(text_alignment.read(), effective_layout_direction());
-    if (slack > 0.0 && placed_alignment != HorizontalAlignment::near) {
+    if (slack > 0.0 && placed_alignment != HorizontalAlignment::start) {
         horizontal_offset_ = placed_alignment == HorizontalAlignment::center ? -slack * 0.5 : -slack;
     }
 
@@ -1838,7 +1838,7 @@ void TextBox::on_font_changed() {}
 
 void TextBox::prepare_write(const decltype(text_alignment)&, HorizontalAlignment& incoming) {
     require_mutable();
-    if (incoming > HorizontalAlignment::far) throw std::invalid_argument("TextBox text alignment is unknown");
+    if (incoming > HorizontalAlignment::end) throw std::invalid_argument("TextBox text alignment is unknown");
 }
 
 void TextBox::written(const decltype(text_alignment)&) {

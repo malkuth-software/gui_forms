@@ -1183,8 +1183,8 @@ void test_label_multiline_wrapping_and_alignment() {
                                      "Retained labels wrap words\nand preserve breaks");
     (*label).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
     (*label).text_wrapping = TextWrapping::word;
-    (*label).vertical_alignment = VerticalAlignment::near;
-    (*label).alignment = HorizontalAlignment::far;
+    (*label).vertical_alignment = VerticalAlignment::start;
+    (*label).alignment = HorizontalAlignment::end;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{120.0, 80.0});
     Window& window = *held_window;
     RecordingPainter painter{};
@@ -1491,7 +1491,7 @@ void test_basic_control_layout_customization_is_bounded_and_atomic() {
     }
     require(rejected_lines && rejected_alignment &&
                 (*label).maximum_lines.read() == 2U &&
-                (*label).alignment.read() == HorizontalAlignment::near,
+                (*label).alignment.read() == HorizontalAlignment::start,
             "Label bounded and enum properties must reject invalid values atomically");
 
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.content-padding"), "Run");

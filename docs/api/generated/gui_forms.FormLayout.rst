@@ -25,7 +25,7 @@ gui_forms::FormLayout
          The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).
 
       **caption_alignment** : ``HorizontalAlignment``
-         Where each caption sits in the caption column: at its start (near, the default), centre or end (far, beside the control).
+         Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
 
       **row_spacing** : ``double``
          The space between rows in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
@@ -77,7 +77,7 @@ gui_forms::FormLayout
 
    .. cpp:member:: HorizontalAlignment caption_alignment
 
-      Where each caption sits in the caption column: at its start (near, the default), centre or end (far, beside the control).
+      Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
 
    .. cpp:member:: double row_spacing
 

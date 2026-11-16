@@ -2917,7 +2917,7 @@ typedef uint32_t gf_anchored_overlay_flags;
 /* Prefer the space above the anchor (else below). */
 #define GF_ANCHORED_OVERLAY_ABOVE 1u
 /* Align the content's right edge with the anchor's (else the left edges). */
-#define GF_ANCHORED_OVERLAY_ALIGN_FAR 2u
+#define GF_ANCHORED_OVERLAY_ALIGN_END 2u
 /* Never flip to the other side when the preferred one is too small. */
 #define GF_ANCHORED_OVERLAY_NO_FLIP 4u
 /* A click outside the content does not dismiss it. */

@@ -289,7 +289,7 @@ std::shared_ptr<Label> TaskDialog::make_paragraph(std::string_view suffix, const
     std::shared_ptr<Label> paragraph = make_control<Label>(StableId(std::move(identity)), text);
     (*paragraph).font = stxlib::Optional<FontSpec>::of(font);
     (*paragraph).text_wrapping = TextWrapping::word;
-    (*paragraph).vertical_alignment = VerticalAlignment::near;
+    (*paragraph).vertical_alignment = VerticalAlignment::start;
     add_child(paragraph);
     return paragraph;
 }

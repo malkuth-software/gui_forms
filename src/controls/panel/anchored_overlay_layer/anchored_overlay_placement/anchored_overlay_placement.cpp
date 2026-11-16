@@ -37,7 +37,7 @@ AnchoredOverlayPlacementResult resolve_anchored_overlay(
     double x = anchor_bounds.x;
     if (placement.horizontal_alignment == OverlayHorizontalAlignment::center) {
         x = anchor_bounds.x + (anchor_bounds.width - width) * 0.5;
-    } else if (placement.horizontal_alignment == OverlayHorizontalAlignment::far) {
+    } else if (placement.horizontal_alignment == OverlayHorizontalAlignment::end) {
         x = anchor_bounds.x + anchor_bounds.width - width;
     }
     x = std::clamp(x, margin_x,

@@ -55,7 +55,7 @@
         text="Enter commits · Esc restores · F4 drops the flags list down"
         classes="positive note-medium"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="20 130 410 34"/>
   </scaled-group-box>
 
@@ -71,7 +71,7 @@
         text=""
         classes="positive note-medium"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="20 84 410 48"/>
   </scaled-group-box>
 

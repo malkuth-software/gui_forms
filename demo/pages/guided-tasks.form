@@ -94,7 +94,7 @@
         text=""
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="14 350 322 80"/>
   </scaled-group-box>
 
@@ -110,7 +110,7 @@
         text="The window behind takes no input until this closes. Tab stays inside; Escape cancels."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="14 40 290 60"/>
     <button id="gallery.guided.modal.ok"
         text="OK"

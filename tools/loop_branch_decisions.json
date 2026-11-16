@@ -172,7 +172,7 @@
     {
       "path": "src/controls/label/label.cpp",
       "function": "gui_forms::layout_label_text",
-      "condition": "alignment_ == HorizontalAlignment::far",
+      "condition": "alignment_ == HorizontalAlignment::end",
       "decision": "keep",
       "reason": "aligns a few text lines; one alignment select per line"
     },

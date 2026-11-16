@@ -95,7 +95,7 @@
         text="Inspecting gallery.typography.specimen.0"
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="20 486 310 36"/>
   </scaled-group-box>
   <!-- The transparent overlay covers the whole body and never hit-tests. -->

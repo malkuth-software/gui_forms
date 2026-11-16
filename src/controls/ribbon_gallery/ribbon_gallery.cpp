@@ -630,7 +630,7 @@ bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
     Window& window = *(*anchor).attached_window();
     AnchoredOverlayPlacement placement;
     placement.preferred_size = measure({std::numeric_limits<double>::max(), std::numeric_limits<double>::max()});
-    placement.horizontal_alignment = OverlayHorizontalAlignment::near;
+    placement.horizontal_alignment = OverlayHorizontalAlignment::start;
     placement.vertical_preference = OverlayVerticalPreference::below;
     placement.gap = 2.0;
     if (!layer_) {

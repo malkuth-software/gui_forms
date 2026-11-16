@@ -51,8 +51,8 @@
       "name": "caption_alignment",
       "capability": "FormLayoutCaptionAlignment",
       "value": "HorizontalAlignment",
-      "initial": "HorizontalAlignment::near",
-      "comment": "Where each caption sits in the caption column: at its start (near, the default), centre or end (far, beside the control).",
+      "initial": "HorizontalAlignment::start",
+      "comment": "Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).",
       "getter": "caption_alignment",
       "setter": "set_caption_alignment",
       "clear": null,
@@ -63,8 +63,8 @@
       "table": {
         "kind": "enumeration",
         "category": "Layout",
-        "description": "Where each caption sits in the caption column: near, center or far.",
-        "default": "BindingValue{PropertyEnumValue{\"horizontal_alignment\", \"near\", 0}}",
+        "description": "Where each caption sits in the caption column: start, center or end.",
+        "default": "BindingValue{PropertyEnumValue{\"horizontal_alignment\", \"start\", 0}}",
         "effects": "Dirty::paint",
         "subtree": false,
         "bindable": false,
@@ -78,7 +78,7 @@
       "hand": [
         "written aligns every caption and repaints"
       ],
-      "sample": "HorizontalAlignment::far"
+      "sample": "HorizontalAlignment::end"
     },
     {
       "name": "row_spacing",

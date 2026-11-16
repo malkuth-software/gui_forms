@@ -114,7 +114,7 @@
         text="Ready · native host results remain typed, bounded, and owner-modal"
         classes="positive emphasis"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="24 142 440 56"/>
     <!-- The FontDialog specimen; the page adds the sample label after it. -->
     <button id="gallery.host.font.choose"

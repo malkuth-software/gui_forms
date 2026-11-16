@@ -224,7 +224,7 @@ constexpr std::uint32_t anchored_options_size_1_1 = 40U;
 static_assert(sizeof(gf_anchored_overlay_options) == anchored_options_size_1_1);
 
 constexpr gf_anchored_overlay_flags known_anchored_flags =
-    GF_ANCHORED_OVERLAY_ABOVE | GF_ANCHORED_OVERLAY_ALIGN_FAR | GF_ANCHORED_OVERLAY_NO_FLIP |
+    GF_ANCHORED_OVERLAY_ABOVE | GF_ANCHORED_OVERLAY_ALIGN_END | GF_ANCHORED_OVERLAY_NO_FLIP |
     GF_ANCHORED_OVERLAY_KEEP_ON_CLICK_AWAY | GF_ANCHORED_OVERLAY_KEEP_ON_ESCAPE |
     GF_ANCHORED_OVERLAY_TAKE_FOCUS;
 
@@ -404,8 +404,8 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
     Size preferred = requested;
     AnchoredOverlayPlacement placement;
     placement.preferred_size = preferred;
-    placement.horizontal_alignment = (flags & GF_ANCHORED_OVERLAY_ALIGN_FAR) != 0U
-        ? OverlayHorizontalAlignment::far : OverlayHorizontalAlignment::near;
+    placement.horizontal_alignment = (flags & GF_ANCHORED_OVERLAY_ALIGN_END) != 0U
+        ? OverlayHorizontalAlignment::end : OverlayHorizontalAlignment::start;
     placement.vertical_preference = (flags & GF_ANCHORED_OVERLAY_ABOVE) != 0U
         ? OverlayVerticalPreference::above : OverlayVerticalPreference::below;
     placement.gap = (*options).gap;

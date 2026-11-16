@@ -181,7 +181,7 @@ Related types
    * - :cpp:class:`NumericUpDownScrubCapability <gui_forms::NumericUpDownScrubCapability>`
      - Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected.
    * - :cpp:class:`NumericUpDownTextAlignmentCapability <gui_forms::NumericUpDownTextAlignmentCapability>`
-     - Where the editor's text sits (TextAlign): near, center or far.
+     - Where the editor's text sits (TextAlign): start, center or end.
    * - :cpp:class:`NumericUpDownThousandsSeparatorCapability <gui_forms::NumericUpDownThousandsSeparatorCapability>`
      - Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way.
    * - :cpp:class:`NumericUpDownValueCapability <gui_forms::NumericUpDownValueCapability>`
@@ -1351,7 +1351,7 @@ Related types
 
    .. cpp:member:: HorizontalAlignment text_alignment
 
-      Where the editor's text sits (TextAlign): near, center or far.
+      Where the editor's text sits (TextAlign): start, center or end.
 
 .. cpp:namespace:: gui_forms
 
@@ -1457,7 +1457,7 @@ Related types
 
    ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
 
-   Where the editor's text sits (TextAlign): near, center or far.
+   Where the editor's text sits (TextAlign): start, center or end.
 
 
    .. rubric:: Methods
@@ -1466,7 +1466,7 @@ Related types
 
    .. cpp:member:: PropertyCell<HorizontalAlignment, NumericUpDownTextAlignmentCapability<Declaring>> text_alignment
 
-      Default: ``{HorizontalAlignment::near}``.
+      Default: ``{HorizontalAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 

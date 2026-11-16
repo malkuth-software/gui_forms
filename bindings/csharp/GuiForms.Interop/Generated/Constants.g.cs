@@ -391,7 +391,7 @@ public static class Constants
     public const uint GF_TEXT_DECORATION_BACKGROUND = 64u;
     public const uint GF_ANCHORED_OVERLAY_FLAGS_NONE = 0u;
     public const uint GF_ANCHORED_OVERLAY_ABOVE = 1u;
-    public const uint GF_ANCHORED_OVERLAY_ALIGN_FAR = 2u;
+    public const uint GF_ANCHORED_OVERLAY_ALIGN_END = 2u;
     public const uint GF_ANCHORED_OVERLAY_NO_FLIP = 4u;
     public const uint GF_ANCHORED_OVERLAY_KEEP_ON_CLICK_AWAY = 8u;
     public const uint GF_ANCHORED_OVERLAY_KEEP_ON_ESCAPE = 16u;

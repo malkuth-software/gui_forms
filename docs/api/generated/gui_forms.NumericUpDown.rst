@@ -76,7 +76,7 @@ gui_forms::NumericUpDown
          Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 
       **text_alignment** : ``HorizontalAlignment``
-         Where the editor's text sits (TextAlign): near, center or far.
+         Where the editor's text sits (TextAlign): start, center or end.
 
       **scrubbing** : ``bool``, read-only
          Whether a scrub (scrub mode) is past its threshold or in the keyboard mode.
@@ -274,7 +274,7 @@ gui_forms::NumericUpDown
 
    .. cpp:member:: HorizontalAlignment text_alignment
 
-      Where the editor's text sits (TextAlign): near, center or far.
+      Where the editor's text sits (TextAlign): start, center or end.
 
    .. cpp:function:: bool scrubbing() const noexcept
 

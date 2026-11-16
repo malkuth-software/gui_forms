@@ -94,7 +94,7 @@
         text="The gauge goes into alarm above 80. Gauges take no focus and to assistive technology are meters with their value text; the dial is a slider."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="620 60 300 120"/>
   </scaled-group-box>
 </scaled-panel>

@@ -175,7 +175,7 @@ Related types
    * - :cpp:class:`FormLayoutCapabilities <gui_forms::FormLayoutCapabilities>`
      - Every FormLayout capability, in the order the declaring class takes them.
    * - :cpp:class:`FormLayoutCaptionAlignmentCapability <gui_forms::FormLayoutCaptionAlignmentCapability>`
-     - Where each caption sits in the caption column: at its start (near, the default), centre or end (far, beside the control).
+     - Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
    * - :cpp:class:`FormLayoutCaptionWidthCapability <gui_forms::FormLayoutCaptionWidthCapability>`
      - The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).
    * - :cpp:class:`FormLayoutColumnSpacingCapability <gui_forms::FormLayoutColumnSpacingCapability>`
@@ -1358,7 +1358,7 @@ Related types
 
    .. cpp:member:: HorizontalAlignment caption_alignment
 
-      Where each caption sits in the caption column: at its start (near, the default), centre or end (far, beside the control).
+      Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
 
    .. cpp:member:: double row_spacing
 
@@ -1374,7 +1374,7 @@ Related types
 
    ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
 
-   Where each caption sits in the caption column: at its start (near, the default), centre or end (far, beside the control).
+   Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
 
 
    .. rubric:: Methods
@@ -1383,7 +1383,7 @@ Related types
 
    .. cpp:member:: PropertyCell<HorizontalAlignment, FormLayoutCaptionAlignmentCapability<Declaring>> caption_alignment
 
-      Default: ``{HorizontalAlignment::near}``.
+      Default: ``{HorizontalAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 

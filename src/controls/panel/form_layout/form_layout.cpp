@@ -186,7 +186,7 @@ const ControlAnatomy& FormLayout::anatomy() const noexcept {
 
 void FormLayout::prepare_write(const decltype(caption_alignment)&, HorizontalAlignment& incoming) {
     require_mutable();
-    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::far)) {
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::end)) {
         throw std::invalid_argument("FormLayout caption alignment is invalid");
     }
 }
@@ -224,8 +224,8 @@ PropertyDescriptor form_layout_caption_alignment_descriptor() {
     descriptor.name = "caption_alignment";
     descriptor.kind = BindingValueKind::enumeration;
     descriptor.category = "Layout";
-    descriptor.description = "Where each caption sits in the caption column: near, center or far.";
-    descriptor.default_value = BindingValue{PropertyEnumValue{"horizontal_alignment", "near", 0}};
+    descriptor.description = "Where each caption sits in the caption column: start, center or end.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"horizontal_alignment", "start", 0}};
     descriptor.invalidation_effects = Dirty::paint;
     descriptor.bindable = false;
     descriptor.enumeration = label_detail::horizontal_alignment_enum();

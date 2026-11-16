@@ -172,7 +172,7 @@ bool ColorValueEditor::open_picker() {
     if (picker_open_ || window == nullptr || !effectively_enabled()) return false;
     const Control::Ptr self = shared_from_this();
     AnchoredOverlayPlacement placement;
-    placement.horizontal_alignment = OverlayHorizontalAlignment::near;
+    placement.horizontal_alignment = OverlayHorizontalAlignment::start;
     placement.vertical_preference = OverlayVerticalPreference::below;
     placement.gap = 1.0;
     placement.preferred_size = Size{220.0, 180.0};

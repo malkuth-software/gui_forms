@@ -50,7 +50,7 @@ struct PainterLabelWidth final {
 std::shared_ptr<const PropertyEnumDescriptor> vertical_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "vertical_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
+            "vertical_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }
 
@@ -85,7 +85,7 @@ const PropertyDescriptor& describe_label_fore_color() {
 std::shared_ptr<const PropertyEnumDescriptor> label_detail::horizontal_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "horizontal_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
+            "horizontal_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }
 
@@ -366,7 +366,7 @@ Label::TextLayout Label::layout_label_text(const std::string_view shown,
     double top = vertical_inset;
     if (vertical_alignment.read() == VerticalAlignment::center) {
         top = std::max(vertical_inset, (arranged.height - block_height) * 0.5);
-    } else if (vertical_alignment.read() == VerticalAlignment::far) {
+    } else if (vertical_alignment.read() == VerticalAlignment::end) {
         top = std::max(vertical_inset, arranged.height - block_height - vertical_inset);
     }
     layout.origins.reserve(layout.lines.size());
@@ -381,7 +381,7 @@ Label::TextLayout Label::layout_label_text(const std::string_view shown,
         double x = horizontal_inset;
         if (placed_alignment == HorizontalAlignment::center) {
             x = std::max(horizontal_inset, (arranged.width - text_width) * 0.5);
-        } else if (placed_alignment == HorizontalAlignment::far) {
+        } else if (placed_alignment == HorizontalAlignment::end) {
             x = std::max(horizontal_inset, arranged.width - text_width - horizontal_inset);
         }
         const double leading = std::max(
@@ -555,8 +555,8 @@ PropertyDescriptor label_alignment_descriptor() {
     descriptor.name = "alignment";
     descriptor.kind = BindingValueKind::enumeration;
     descriptor.category = "Appearance";
-    descriptor.description = "Horizontal placement of the text: near, center or far.";
-    descriptor.default_value = BindingValue{PropertyEnumValue{"horizontal_alignment", "near", 0}};
+    descriptor.description = "Horizontal placement of the text: start, center or end.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"horizontal_alignment", "start", 0}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
     descriptor.enumeration = label_detail::horizontal_alignment_enum();
@@ -575,7 +575,7 @@ PropertyDescriptor label_vertical_alignment_descriptor() {
     descriptor.name = "vertical_alignment";
     descriptor.kind = BindingValueKind::enumeration;
     descriptor.category = "Appearance";
-    descriptor.description = "Vertical placement of the text: near, center or far.";
+    descriptor.description = "Vertical placement of the text: start, center or end.";
     descriptor.default_value = BindingValue{PropertyEnumValue{"vertical_alignment", "center", 1}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
@@ -730,7 +730,7 @@ void Label::on_font_changed() {}
 
 void Label::prepare_write(const decltype(alignment)&, HorizontalAlignment& incoming) {
     require_mutable();
-    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::far)) throw std::invalid_argument("Label horizontal alignment is invalid");
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::end)) throw std::invalid_argument("Label horizontal alignment is invalid");
 }
 
 void Label::written(const decltype(alignment)&) {
@@ -742,7 +742,7 @@ void Label::on_alignment_changed() {}
 
 void Label::prepare_write(const decltype(vertical_alignment)&, VerticalAlignment& incoming) {
     require_mutable();
-    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(VerticalAlignment::far)) throw std::invalid_argument("Label vertical alignment is invalid");
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(VerticalAlignment::end)) throw std::invalid_argument("Label vertical alignment is invalid");
 }
 
 void Label::written(const decltype(vertical_alignment)&) {

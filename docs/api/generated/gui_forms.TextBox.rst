@@ -138,7 +138,7 @@ gui_forms::TextBox
          always compare exactly.
 
       **text_alignment** : ``HorizontalAlignment``
-         Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+         Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
 
       **scroll_offset** : ``Point``, read-only
 
@@ -528,7 +528,7 @@ gui_forms::TextBox
 
    .. cpp:member:: HorizontalAlignment text_alignment
 
-      Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+      Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
 
    .. cpp:function:: Point scroll_offset() const noexcept
 

@@ -172,7 +172,7 @@ int main() {
     gui_forms::AnchoredOverlayPlacement overlay_placement;
     overlay_placement.preferred_size = {160, 80};
     overlay_placement.horizontal_alignment =
-        gui_forms::OverlayHorizontalAlignment::far;
+        gui_forms::OverlayHorizontalAlignment::end;
     overlay_placement.gap = 2;
     std::shared_ptr<gui_forms::Panel> overlay_content =
         std::make_shared<gui_forms::Panel>(

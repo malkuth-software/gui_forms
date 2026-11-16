@@ -80,7 +80,7 @@
         text="Save is one Command: the bar item, File &gt; Save, the context-menu row, this button and Ctrl+S invoke it, and its enabled state follows the modified flag. Delete is disabled with an availability reason. Word wrap is a Value bound to the check box and projected onto the check Command, so the bar item, the View menu and the context menu stay in step."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="22 186 400 136"/>
   </scaled-group-box>
 
@@ -96,7 +96,7 @@
         text="Rows are temporary overlay presentations over stable MenuItemSpec identities. Arrow keys and Enter invoke; Escape and click-away revoke the overlay and restore the invoker's focus. Command state (enabled, checked, destructive, availability reason) is snapshotted as the menu opens."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="22 84 410 120"/>
   </scaled-group-box>
 

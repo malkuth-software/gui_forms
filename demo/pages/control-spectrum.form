@@ -117,7 +117,7 @@
         text="Carlito body specimen: editable and field text stays quiet, clear, and host-independent."
         classes="ink body"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="24 76 430 48"/>
     <label id="gallery.controls.type.center"
         text="Centered label"

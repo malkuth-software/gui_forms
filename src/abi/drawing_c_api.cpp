@@ -1706,7 +1706,7 @@ gd_result api_string_format_create(std::uint32_t flags, gd_handle* output) {
 gd_result api_string_format_set(gd_handle handle, std::uint32_t alignment,
                                 std::uint32_t line_alignment,
                                 std::uint32_t trimming, std::uint32_t flags) {
-    if (alignment > GD_STRING_FAR || line_alignment > GD_STRING_FAR ||
+    if (alignment > GD_STRING_END || line_alignment > GD_STRING_END ||
         trimming > GD_TRIM_ELLIPSIS_PATH) {
         return fail(GD_ERROR_INVALID_ARGUMENT, "string format enum is invalid");
     }

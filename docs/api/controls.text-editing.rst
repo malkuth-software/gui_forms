@@ -160,7 +160,7 @@ Related types
    * - :cpp:class:`TextBoxReadOnlyCapability <gui_forms::TextBoxReadOnlyCapability>`
      - Whether the user may select and copy the text but not change it (ReadOnly); a view onto the editing engine.
    * - :cpp:class:`TextBoxTextAlignmentCapability <gui_forms::TextBoxTextAlignmentCapability>`
-     - Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+     - Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
    * - :cpp:class:`TextBoxTextCapability <gui_forms::TextBoxTextCapability>`
      - The edited text (Text); a view onto the editing engine.
    * - :cpp:class:`TextBoxUseSystemPasswordCharacterCapability <gui_forms::TextBoxUseSystemPasswordCharacterCapability>`
@@ -1263,7 +1263,7 @@ Related types
 
    .. cpp:member:: HorizontalAlignment text_alignment
 
-      Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+      Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
 
 .. cpp:namespace:: gui_forms
 
@@ -1367,7 +1367,7 @@ Related types
 
    ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
-   Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+   Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
 
 
    .. rubric:: Methods
@@ -1376,7 +1376,7 @@ Related types
 
    .. cpp:member:: PropertyCell<HorizontalAlignment, TextBoxTextAlignmentCapability<Declaring>> text_alignment
 
-      Default: ``{HorizontalAlignment::near}``.
+      Default: ``{HorizontalAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 

@@ -124,7 +124,7 @@
         text="Ready · BeginInvoke never executes inside the click callback"
         classes="positive emphasis"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="566 36 328 58"/>
   </scaled-group-box>
 </scaled-panel>

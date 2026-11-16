@@ -93,8 +93,8 @@
       "name": "alignment",
       "capability": "LabelAlignment",
       "value": "HorizontalAlignment",
-      "initial": "HorizontalAlignment::near",
-      "comment": "Horizontal placement of the text: near, center or far.",
+      "initial": "HorizontalAlignment::start",
+      "comment": "Horizontal placement of the text: start, center or end.",
       "getter": "alignment",
       "setter": "set_alignment",
       "clear": null,
@@ -105,8 +105,8 @@
       "table": {
         "kind": "enumeration",
         "category": "Appearance",
-        "description": "Horizontal placement of the text: near, center or far.",
-        "default": "BindingValue{PropertyEnumValue{\"horizontal_alignment\", \"near\", 0}}",
+        "description": "Horizontal placement of the text: start, center or end.",
+        "default": "BindingValue{PropertyEnumValue{\"horizontal_alignment\", \"start\", 0}}",
         "effects": "Dirty::paint | Dirty::semantics",
         "subtree": false,
         "bindable": false,
@@ -118,7 +118,7 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::far)) throw std::invalid_argument(\"Label horizontal alignment is invalid\");"
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::end)) throw std::invalid_argument(\"Label horizontal alignment is invalid\");"
       ],
       "sample": "HorizontalAlignment::center"
     },
@@ -127,7 +127,7 @@
       "capability": "LabelVerticalAlignment",
       "value": "VerticalAlignment",
       "initial": "VerticalAlignment::center",
-      "comment": "Vertical placement of the text: near, center or far.",
+      "comment": "Vertical placement of the text: start, center or end.",
       "getter": "vertical_alignment",
       "setter": "set_vertical_alignment",
       "clear": null,
@@ -138,7 +138,7 @@
       "table": {
         "kind": "enumeration",
         "category": "Appearance",
-        "description": "Vertical placement of the text: near, center or far.",
+        "description": "Vertical placement of the text: start, center or end.",
         "default": "BindingValue{PropertyEnumValue{\"vertical_alignment\", \"center\", 1}}",
         "effects": "Dirty::paint | Dirty::semantics",
         "subtree": false,
@@ -151,9 +151,9 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(VerticalAlignment::far)) throw std::invalid_argument(\"Label vertical alignment is invalid\");"
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(VerticalAlignment::end)) throw std::invalid_argument(\"Label vertical alignment is invalid\");"
       ],
-      "sample": "VerticalAlignment::far"
+      "sample": "VerticalAlignment::end"
     },
     {
       "name": "text_wrapping",

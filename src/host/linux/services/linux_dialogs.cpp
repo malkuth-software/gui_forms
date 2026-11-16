@@ -450,7 +450,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     // Either option aligns the text to the right; the dialog's controls
     // have no right-to-left reading order of their own.
     if ((*message).right_align || (*message).rtl_reading)
-      (*message_label).alignment = HorizontalAlignment::far;
+      (*message_label).alignment = HorizontalAlignment::end;
     for (std::size_t i = 0; i < choices.size(); ++i) {
       const HostDialogChoice choice = choices[i];
       // The button's stable ID: the choice's name with '-' for '_' (stable IDs
