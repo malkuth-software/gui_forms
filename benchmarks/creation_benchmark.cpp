@@ -325,7 +325,8 @@ private:
 // The tooltip shown (without a timeout) and hidden in its kept Splash.
 Sample measure_warm_tooltip(WarmRun& run) {
     Measurement measurement;
-    run.model().show_tool_tip(run.anchor(), std::chrono::milliseconds(0));
+    run.model().show_tool_tip(run.anchor(),
+                              stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     run.model().hide_tool_tip();
     const Sample sample = measurement.finish();
     return sample;
