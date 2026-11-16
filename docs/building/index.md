@@ -55,7 +55,6 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_ENABLE_MACOS_HOST` | ON on macOS | Build the AppKit host and `GUIForms::Application` |
 | `GUI_FORMS_ENABLE_WINDOWS_HOST` | ON on Windows | Build the Win32 DIB host |
 | `GUI_FORMS_ENABLE_LINUX_HOST` | OFF | Build the X11 host; requires Linux and Skia |
-| `GUI_FORMS_ENABLE_HARFBUZZ_TEXT` | ON with Skia or Win32 | Build the pinned HarfBuzz/FreeType text engine |
 | `GUI_FORMS_BUILD_AUDIO` | OFF | Build `GUIForms::Audio` |
 | `GUI_FORMS_AUDIO_VORBIS_BACKEND` | `stx` | Ogg decoder: `stx` or `stb` |
 | `GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD` | OFF | Build the fixture-backed explorer consumer |
@@ -72,7 +71,6 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_BUILD_GENERATED_FORM_TESTS` | ON | Build the tests whose form header is generated at build time |
 | `GUI_FORMS_BUILD_GALLERY_MODEL` | as `GUI_FORMS_BUILD_TESTS` | Build the Gallery model (the control specimen catalogue) and the tests that read it |
 | `GUI_FORMS_INSTALL_GALLERY_MODEL`, `GUI_FORMS_INSTALL_LAB` | OFF | Install the Gallery model and the lab controls (`GalleryModel`, `Lab`, `DemoControls` components); `tools/build_sdk.py --features all` sets them |
-| `GUI_FORMS_INSTALL_TEXT_STACK` | OFF | Install and export the pinned FreeType and HarfBuzz (`FreeType`, `HarfBuzz` components) |
 | `GUI_FORMS_LOCALIZABLE_PLUGIN`, `GUI_FORMS_EFFECT_VERIFY` | ON | Build the Clang plugin that records localizable literals and verifies effect programs; without it effects build unverified, with a warning |
 | `GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB` | OFF | Bounded transactional DIB frames in the Windows host (development) |
 
@@ -95,7 +93,7 @@ checkout, whose edits each build brings into the package. The package holds:
 | stx path | Contents |
 |---|---|
 | `stx_skia/` | the CPU renderer, a pruned CPU Skia derivative, with its contract tests in stx's own CI |
-| `third_party/harfbuzz/`, `third_party/freetype/` | HarfBuzz (without `test/` and `perf/`) and FreeType |
+| `third_party/freetype/` | FreeType (GUI.Drawing's face choice; the text engine shapes, measures and draws with STXlib) |
 | `third_party/unicode/` | the Unicode data |
 | `stx_zlib/`, `stx_png/`, `stx_conv/`, `stx_rtf2md/`, `stx_vorbis/` | the first-party compression, PNG, CONV interpolation, rich-text and Ogg Vorbis libraries |
 

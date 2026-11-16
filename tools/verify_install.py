@@ -11,7 +11,7 @@ import tempfile
 import sdk_consumer_link
 
 # The components tools/build_sdk.py --features all adds to the default SDK.
-FEATURE_COMPONENTS: tuple[str, ...] = ("TextMasks", "AudioLoopTransport", "FreeType", "HarfBuzz")
+FEATURE_COMPONENTS: tuple[str, ...] = ("TextMasks", "AudioLoopTransport")
 
 
 def run(command: list[str], expected_success: bool = True) -> str:
@@ -130,8 +130,7 @@ def main() -> None:
             main_source: Path = project / "tests" / "application_text_consumer" / "main.cpp"
             feature_build: Path = scratch_path / "feature-build"
             run(["cmake", "-S", str(features), "-B", str(feature_build),
-                 "-DGUI_FORMS_CONSUMER_MAIN=" + str(main_source),
-                 "-DGUI_FORMS_CONSUMER_FACE=" + str(project / "assets" / "fonts" / "Arimo-Regular.ttf")]
+                 "-DGUI_FORMS_CONSUMER_MAIN=" + str(main_source)]
                 + package_arguments)
             run(["cmake", "--build", str(feature_build), "--parallel", "2"])
             print(run(["ctest", "--test-dir", str(feature_build), "--output-on-failure"]))

@@ -254,9 +254,8 @@ void test_retained_rows(HarfBuzzFontEngine& engine, BoundedShapeWorkspace& works
 
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
 void test_native_failures(HarfBuzzFontEngine& engine, BoundedShapeWorkspace& workspace) {
-    const std::array<TextLayoutFailure, 6U> failures{TextLayoutFailure::empty_font,
-        TextLayoutFailure::unbound_font, TextLayoutFailure::empty_buffer,
-        TextLayoutFailure::after_add, TextLayoutFailure::after_shape, TextLayoutFailure::no_shaper};
+    const std::array<TextLayoutFailure, 4U> failures{TextLayoutFailure::shaper_open,
+        TextLayoutFailure::glyph_storage, TextLayoutFailure::after_shape, TextLayoutFailure::shape_refused};
     const FontSpec font{FontRole::content, 16, 400, false};
     const std::string_view text = "Latin العربية שלום";
     const std::unique_ptr<BoundedShapedText> control = engine.shape_bounded(text, font, {});

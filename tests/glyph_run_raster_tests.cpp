@@ -234,6 +234,70 @@ bool same_coverage(const GlyphRunCoverage& left, const GlyphRunCoverage& right) 
     return same;
 }
 
+// Turned text is STXlib's (rasterize_turned, and rasterize_transformed of an
+// even scale and a turn):
+// - a quarter turn anticlockwise of one glyph placed on a whole pixel is
+//   its fitted upright mask turned pixel for pixel (STXlib draws quarter
+//   turns by quarters): upright pixel (column c, row r) of a w-wide mask at
+//   (left, top) lands at column top + r, row -(left + c) - 1;
+// - rasterize_transformed of that quarter turn ([0 1; -1 0] on the y-down
+//   surface) draws rasterize_turned's bytes, at scale 2 as well;
+// - at 30 degrees (the mask's surface) the run keeps the upright run's ink
+//   within 8%, its ink spans the turned advance, and the drawing repeats.
+void turned_text_is_stxlibs(const char* font_path) {
+    HarfBuzzFontEngine engine;
+    require(engine.register_typeface(FontRole::control, 400, false, read_file(font_path)).has_value(), "font registers");
+    const FontSpec font{FontRole::control, 13.0, 400, false};
+    GlyphRunRasterizer rasterizer(engine);
+
+    const ShapedText letter = engine.shape("H", font);
+    const GlyphRunCoverage upright = rasterizer.rasterize(letter, font, 1.0, 0);
+    GlyphRunOrigin origin{};
+    const GlyphRunCoverage quarter = rasterizer.rasterize_turned(letter, font, 90.0, 1.0, 0.0, 0.0, {}, origin);
+    require(origin.pixel_x == 0 && origin.pixel_y == 0, "a turned run's origin pixel is its floored origin");
+    require(!upright.pixels.empty() && quarter.width == upright.height && quarter.height == upright.width,
+            "a quarter turn swaps the mask's sides");
+    require(quarter.left == upright.top &&
+                quarter.top == -(upright.left + static_cast<std::int32_t>(upright.width)),
+            "a quarter turn places the mask turned about the origin");
+    bool turned_pixel_for_pixel = true;
+    for (std::size_t row = 0; row < upright.height; ++row) {
+        for (std::size_t column = 0; column < upright.width; ++column) {
+            const std::size_t turned_row = upright.width - 1U - column;
+            const std::uint8_t up = upright.pixels[row * upright.width + column];
+            const std::uint8_t turned = quarter.pixels[turned_row * quarter.width + row];
+            if (up != turned) turned_pixel_for_pixel = false;
+        }
+    }
+    require(turned_pixel_for_pixel, "a quarter turn is the fitted upright mask turned pixel for pixel");
+
+    const ShapedText shaped = engine.shape(corpus, font);
+    const GlyphRunCoverage by_angle = rasterizer.rasterize_turned(shaped, font, 90.0, 1.0, 10.25, 20.5, {}, origin);
+    const GlyphRunCoverage by_matrix =
+        rasterizer.rasterize_transformed(shaped, font, {0.0, 1.0, -1.0, 0.0}, 10.25, 20.5, {}, origin);
+    require(same_coverage(by_angle, by_matrix), "an even turn through rasterize_transformed is rasterize_turned");
+    const GlyphRunCoverage doubled_angle = rasterizer.rasterize_turned(shaped, font, 90.0, 2.0, 3.5, 4.75, {}, origin);
+    const GlyphRunCoverage doubled_matrix =
+        rasterizer.rasterize_transformed(shaped, font, {0.0, 2.0, -2.0, 0.0}, 3.5, 4.75, {}, origin);
+    require(same_coverage(doubled_angle, doubled_matrix), "a scaled even turn is the turn at the scaled size");
+
+    const GlyphRunCoverage level = rasterizer.rasterize(shaped, font, 1.0, 0);
+    const GlyphRunCoverage thirty = rasterizer.rasterize_turned(shaped, font, 30.0, 1.0, 0.0, 0.0, {}, origin);
+    require(std::abs(ink(thirty) - ink(level)) / ink(level) < 0.08, "a turn keeps the run's ink");
+    const double reach = static_cast<double>(thirty.width);
+    require(reach > shaped.width * 0.8 && reach < shaped.width + 2.0 * font.size,
+            "a run turned by 30 degrees spans its turned advance");
+    const GlyphRunCoverage again = rasterizer.rasterize_turned(shaped, font, 30.0, 1.0, 0.0, 0.0, {}, origin);
+    require(same_coverage(thirty, again), "turned text repeats");
+    bool refused = false;
+    try {
+        static_cast<void>(rasterizer.rasterize_turned(shaped, font, std::nan(""), 1.0, 0.0, 0.0, {}, origin));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused, "a non-finite turn is refused");
+}
+
 // STXlib's face fits each distinct glyph of a run once and places that
 // outline at each occurrence. The run must equal its glyphs rasterized one
 // by one and combined in run order as documented, c + p * (255 - c) / 255,
@@ -474,6 +538,8 @@ int main() {
     typefaces_are_shared_and_counted(GUI_FORMS_TEST_CARLITO_REGULAR);
     registered_typefaces_serve_every_executor(GUI_FORMS_TEST_CARLITO_REGULAR);
     long_lines_fail_soft_and_window_limits_glyphs(GUI_FORMS_TEST_RAPIDS_REGULAR);
+    turned_text_is_stxlibs(GUI_FORMS_TEST_RAPIDS_REGULAR);
+    turned_text_is_stxlibs(GUI_FORMS_TEST_CARLITO_REGULAR);
     synthesis_and_transforms(GUI_FORMS_TEST_RAPIDS_REGULAR, {0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL});
     synthesis_and_transforms(GUI_FORMS_TEST_CARLITO_REGULAR, {0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL});
     report_identity_hashes("rapids", GUI_FORMS_TEST_RAPIDS_REGULAR);

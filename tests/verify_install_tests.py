@@ -53,14 +53,13 @@ class VerifyInstallTests(unittest.TestCase):
             with patch.object(sys, 'argv', arguments):
                 with patch('verify_install.run', side_effect=recorder.run):
                     verify_install.main()
-            self.assertEqual(len(recorder.commands), 9)
+            self.assertEqual(len(recorder.commands), 7)
             self.assertEqual(recorder.commands[0][0:2], ['cmake', '-S'])
             self.assertEqual(recorder.commands[1][0:2], ['cmake', '--build'])
             self.assertEqual(recorder.commands[2][0:2], ['ctest', '--test-dir'])
-            self.assertEqual(recorder.expected_success, [True, True, True, False, False, False, False, False, False])
+            self.assertEqual(recorder.expected_success, [True, True, True, False, False, False, False])
             rejected: list[str] = [Path(command[command.index('-B') + 1]).name for command in recorder.commands[3:]]
-            self.assertEqual(rejected, ['NotAComponent', 'Application', 'TextMasks', 'AudioLoopTransport',
-                                        'FreeType', 'HarfBuzz'])
+            self.assertEqual(rejected, ['NotAComponent', 'Application', 'TextMasks', 'AudioLoopTransport'])
             self.assertIn('-DCMAKE_CROSSCOMPILING_EMULATOR=wine64;--fixture', recorder.commands[0])
             self.assertEqual(marker.read_text(encoding='utf-8'), 'unchanged fixture')
 

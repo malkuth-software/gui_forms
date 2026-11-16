@@ -239,9 +239,9 @@ void measure(const std::filesystem::path& fonts, std::string_view name, const st
     std::cout.flush();
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
     const double sample_divisor = static_cast<double>(samples);
-    const std::array<const char*, 10> phase_names{
+    const std::array<const char*, 9> phase_names{
         "store_graphemes", "fallback", "bidi", "intersections", "append_total",
-        "ft_size", "hb_font", "buffer_setup", "hb_shape", "glyph_output"};
+        "shaper_open", "buffer_setup", "shape", "glyph_output"};
     static_assert(phase_names.size() == static_cast<std::size_t>(TextLayoutPhase::count));
     for (std::size_t phase = 0; phase < phase_count; ++phase) {
         const double nanoseconds = static_cast<double>(phase_totals.nanoseconds[phase]);

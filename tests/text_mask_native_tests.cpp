@@ -62,10 +62,10 @@ void test_shape_and_scale(const std::span<const std::byte> bytes) {
     const std::shared_ptr<const MaskKey> second = fixture.key({.utf8 = text, .size = 17.0, .device_scale = 2.0});
     NativeFonts first_fonts(*first);
     NativeFonts second_fonts(*second);
-    std::cout << "Fixture coverage: a=" << FT_Get_Char_Index(first_fonts.faces[0].value, 0x61)
-        << " acute=" << FT_Get_Char_Index(first_fonts.faces[0].value, 0x301)
-        << " alef=" << FT_Get_Char_Index(first_fonts.faces[0].value, 0x5D0)
-        << " arabic-beh=" << FT_Get_Char_Index(first_fonts.faces[0].value, 0x628) << '\n';
+    std::cout << "Fixture coverage: a=" << stxlib::glyphs::glyph_of(*first_fonts.faces[0].font, 0x61)
+        << " acute=" << stxlib::glyphs::glyph_of(*first_fonts.faces[0].font, 0x301)
+        << " alef=" << stxlib::glyphs::glyph_of(*first_fonts.faces[0].font, 0x5D0)
+        << " arabic-beh=" << stxlib::glyphs::glyph_of(*first_fonts.faces[0].font, 0x628) << '\n';
     NativeWork first_work{};
     NativeWork second_work{};
     NativeParagraph first_paragraph(fixture.ledger, first_fonts, first_work, text);
@@ -306,7 +306,7 @@ void test_arabic_line_context(const std::span<const std::byte> bytes) {
     const std::string text = "\xD8\xA8\xD8\xA8";
     const std::shared_ptr<const MaskKey> key = fixture.key({.utf8 = text});
     NativeFonts fonts(*key);
-    require(FT_Get_Char_Index(fonts.faces[0].value, 0x628) != 0, "approved Amiri covers Arabic beh");
+    require(stxlib::glyphs::glyph_of(*fonts.faces[0].font, 0x628) != 0, "approved Amiri covers Arabic beh");
     NativeWork work{};
     NativeParagraph paragraph(fixture.ledger, fonts, work, text);
     NativeGlyphBuffer full_glyphs{MaskAllocator<NativeGlyph>(fixture.ledger, MaskResource::shaping)};

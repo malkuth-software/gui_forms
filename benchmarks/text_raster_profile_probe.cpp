@@ -21,8 +21,8 @@
 #include FT_ADVANCES_H
 #include FT_DRIVER_H
 #include FT_MODULE_H
-#include <hb.h>
-#include <hb-ft.h>
+#include <stxlib/glyph_face.hpp>
+#include <stxlib/glyph_shape.hpp>
 
 #include <algorithm>
 #include <array>
@@ -40,6 +40,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -257,28 +258,43 @@ PlacedLine production_line(text::HarfBuzzFontEngine& engine, const double size) 
     return line;
 }
 
-// The chosen shaping: HarfBuzz over FreeType with unhinted advances, at the
-// logical size. Kerning and GPOS remain HarfBuzz's.
-PlacedLine unhinted_line(FT_Face face, const double size) {
-    require(FT_Set_Char_Size(face, 0, static_cast<FT_F26Dot6>(std::lround(size * 64.0)), 72U, 72U) == 0, "shaping size set");
-    hb_font_t* font = hb_ft_font_create_referenced(face);
-    hb_ft_font_set_load_flags(font, FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING);
-    hb_buffer_t* buffer = hb_buffer_create();
-    hb_buffer_add_utf8(buffer, corpus.data(), static_cast<int>(corpus.size()), 0, static_cast<int>(corpus.size()));
-    hb_buffer_guess_segment_properties(buffer);
-    hb_shape(font, buffer, nullptr, 0U);
-    unsigned count{};
-    const hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer, &count);
-    const hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer, &count);
+// The chosen shaping: STXlib's shaper with unhinted advances, at the
+// logical size (HarfBuzz's for a FreeType font at that size, unhinted).
+// Kerning and GPOS are the font's own.
+PlacedLine unhinted_line(const std::vector<std::byte>& font, const double size) {
+    const stxlib::View<stxlib::u8> bytes(reinterpret_cast<const stxlib::u8*>(font.data()), font.size());
+    stxlib::Result<stxlib::Shared<stxlib::glyphs::Typeface>> opened = stxlib::glyphs::open_typeface(bytes, 0U);
+    require(opened.succeeded(), "shaping typeface opened");
+    const stxlib::Shared<stxlib::glyphs::Typeface> typeface = std::move(opened).take_value();
+    stxlib::glyphs::Shaper shaper{};
+    require(shaper.open(typeface).succeeded(), "shaper opened");
+    std::vector<std::uint32_t> characters{};
+    std::size_t offset = 0U;
+    while (offset < corpus.size()) {
+        const unsigned char first = static_cast<unsigned char>(corpus[offset]);
+        std::uint32_t scalar = first;
+        std::size_t following = 0U;
+        if (first >= 0xF0U) { scalar = first & 7U; following = 3U; }
+        else if (first >= 0xE0U) { scalar = first & 15U; following = 2U; }
+        else if (first >= 0xC0U) { scalar = first & 31U; following = 1U; }
+        for (std::size_t index = 1U; index <= following; ++index) {
+            scalar = (scalar << 6U) | (static_cast<unsigned char>(corpus[offset + index]) & 63U);
+        }
+        characters.push_back(scalar);
+        offset += following + 1U;
+    }
+    stxlib::glyphs::TextRun run{};
+    run.characters = stxlib::View<std::uint32_t>(characters.data(), characters.size());
+    run.size = static_cast<std::int64_t>(std::lround(size * 64.0));
+    stxlib::Vector<stxlib::glyphs::ShapedGlyph> glyphs{};
+    require(shaper.shape(run, glyphs).succeeded(), "corpus shaped");
     PlacedLine line{};
     std::int64_t pen = 0;
-    for (unsigned index = 0; index < count; ++index) {
-        line.glyphs.push_back({infos[index].codepoint, pen + positions[index].x_offset, -static_cast<std::int64_t>(positions[index].y_offset)});
-        pen += positions[index].x_advance;
+    for (const stxlib::glyphs::ShapedGlyph& glyph : glyphs) {
+        line.glyphs.push_back({glyph.glyph, pen + glyph.x_offset, -static_cast<std::int64_t>(glyph.y_offset)});
+        pen += glyph.x_advance;
     }
     line.width = pen;
-    hb_buffer_destroy(buffer);
-    hb_font_destroy(font);
     return line;
 }
 
@@ -581,16 +597,11 @@ void probe_font(const FontCase& font_case, const std::filesystem::path& font_dir
     const std::vector<std::byte> font = read_file(font_path);
     text::HarfBuzzFontEngine engine{};
     require(engine.register_typeface(FontRole::control, 400, false, font).has_value(), "engine font registered");
-    FT_Library shaping_library{};
-    FT_Face shaping_face{};
-    require(FT_Init_FreeType(&shaping_library) == 0, "shaping FreeType initialized");
-    require(FT_New_Memory_Face(shaping_library, reinterpret_cast<const FT_Byte*>(font.data()),
-                               static_cast<FT_Long>(font.size()), 0, &shaping_face) == 0, "shaping face opened");
     std::vector<PlacedLine> production;
     std::vector<PlacedLine> unhinted;
     for (const double size : sizes) {
         production.push_back(production_line(engine, size));
-        unhinted.push_back(unhinted_line(shaping_face, size));
+        unhinted.push_back(unhinted_line(font, size));
     }
     for (const double scale : scales) {
         const int width_pixels = static_cast<int>(std::ceil(sheet_width * scale));
@@ -669,8 +680,6 @@ void probe_font(const FontCase& font_case, const std::filesystem::path& font_dir
         std::ofstream order(output / (std::string(font_case.name) + "_row_order.txt"));
         for (const std::string& row_name : row_names) order << row_name << '\n';
     }
-    FT_Done_Face(shaping_face);
-    FT_Done_FreeType(shaping_library);
 }
 
 } // namespace

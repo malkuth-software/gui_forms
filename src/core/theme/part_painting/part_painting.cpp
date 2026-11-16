@@ -1,6 +1,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include "built_in_recipe.hpp"
+#include "../../types/painter/text_turn.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
@@ -709,8 +710,9 @@ void paint_rotated_text(Painter& painter, const PartPaint& part, Color color) {
     const Point centre{part.bounds.x + part.bounds.width * 0.5, part.bounds.y + part.bounds.height * 0.5};
     const double offset_x = part.bounds.x + along - centre.x;
     const double offset_y = part.bounds.y + line_top + ascent - centre.y;
-    // The engine's deterministic sine and cosine, exact at quarter turns.
-    const EngineSineCosine turn = engine_sine_cosine_degrees(part.text_angle);
+    // STXlib's turn, the one draw_rotated_text_utf8 draws through (exact at
+    // quarter turns), so the turned origin and clip agree with the run.
+    const detail::TextTurnEntries turn = detail::text_turn_entries(part.text_angle);
     const double cosine = turn.cosine;
     const double sine = turn.sine;
     const Point origin{centre.x + offset_x * cosine + offset_y * sine, centre.y - offset_x * sine + offset_y * cosine};

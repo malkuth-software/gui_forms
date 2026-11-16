@@ -1544,7 +1544,7 @@ public:
         (*model_).set_framebuffer_painter(fonts_ready ? &painter : nullptr);
         (*model_).metrics().set_renderer(
             fonts_ready
-                ? "Win32 DIB · Skia CPU raster · HarfBuzz/FreeType text · owned PNG · bundled fonts"
+                ? "Win32 DIB · Skia CPU raster · STXlib text · owned PNG · bundled fonts"
                 : "Win32 DIB · Skia CPU raster · incomplete bundled font pack",
             true);
         const HostDispatchResult attached = dispatch(HostAttachEvent{logical, scale_});

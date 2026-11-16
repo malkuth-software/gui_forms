@@ -29,7 +29,6 @@
     {"name": "stxlib-glyphs-NOTICE.txt", "source": "$STXLIB/glyphs-NOTICE", "component": "stxlib::glyphs (the glyph face the text rasterizers draw with, in STXlib)"},
     {"name": "stxlib-markdown-NOTICE.txt", "source": "$STXLIB/markdown-NOTICE", "component": "stxlib::markdown (in STXlib; carries MD4C's licence)"},
     {"name": "whatwg-entities.txt", "source": "$STXLIB/whatwg-entities-LICENSE", "component": "HTML Standard named character references (stxlib::markdown's entity table)"},
-    {"name": "HarfBuzz.txt", "source": "$STX/third_party/harfbuzz/COPYING", "component": "HarfBuzz"},
     {"name": "FreeType-FTL.txt", "source": "$STX/third_party/freetype/docs/FTL.TXT", "component": "FreeType"},
     {"name": "Skia.txt", "source": "$STX/stx_skia/LICENSE-Skia", "component": "Skia (in stx_skia)"},
     {"name": "stx_skia.txt", "source": "$STX/stx_skia/LICENSE", "component": "stx_skia (the CPU renderer derived from Skia)"},

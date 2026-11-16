@@ -223,11 +223,10 @@ void test_glyph_runs_paint_like_text(render::SkiaRaster& raster, render::SkiaRas
 // one warm-up pass over every case. Counted over the 1000, on this thread:
 // - global operator new and operator new[] (replaced above): every C++
 //   allocation, the library's and the standard library's;
-// - HarfBuzzFontEngine::thread_native_allocations(): FreeType's heap calls
-//   through the engine's FT_Memory (a fallback face's glyph ink extents
-//   come from FT_Load_Glyph, which allocates for composite glyphs; the
-//   engine keeps them per glyph and size after the warm-up reads them) and
-//   HarfBuzz's through its hb_malloc_impl hooks (both must stay zero);
+// - shaping is STXlib's and the bidi analysis stxlib::textlayout's, so no
+//   foreign library allocates: STXlib's shapers keep their plans and working
+//   buffers, and a fallback face's ink boxes are kept per glyph and size
+//   after the warm-up reads them;
 // - AllocationScope: the counted text_layout subsystem (the buffers' and
 //   workspace's arrays, and the workspace's bidi analysis, whose
 //   stxlib::textlayout Paragraph and Line count their bytes_held as it
@@ -258,9 +257,6 @@ void test_layout_allocates_nothing(render::SkiaRaster& raster) {
 
     std::size_t failures = 0U;
     std::size_t glyph_count = 0U;
-    using render::text::HarfBuzzFontEngine;
-    using render::text::NativeAllocationCounts;
-    const NativeAllocationCounts native_before = HarfBuzzFontEngine::thread_native_allocations();
     const AllocationScope counted_paths{};
     counted_allocations = 0U;
     counting_allocations = true;
@@ -278,16 +274,11 @@ void test_layout_allocates_nothing(render::SkiaRaster& raster) {
     counting_allocations = false;
     const std::uint64_t operator_new_calls = counted_allocations;
     const AllocationCounts text_layout = counted_paths.counted().of(AllocationSubsystem::text_layout);
-    const NativeAllocationCounts native_after = HarfBuzzFontEngine::thread_native_allocations();
 
     require(failures == 0U, "every paragraph lays out with glyphs");
     require(glyph_count != 0U, "glyphs are written");
     require(operator_new_calls == 0U, "no operator new; counted " + std::to_string(operator_new_calls));
     require(text_layout.allocations == 0U && text_layout.releases == 0U, "the text_layout arrays are not touched");
-    require(native_after.freetype == native_before.freetype,
-            "no FreeType allocation; counted " + std::to_string(native_after.freetype - native_before.freetype));
-    require(native_after.harfbuzz == native_before.harfbuzz,
-            "no HarfBuzz allocation; counted " + std::to_string(native_after.harfbuzz - native_before.harfbuzz));
 }
 
 } // namespace

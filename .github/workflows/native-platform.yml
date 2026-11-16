@@ -334,7 +334,7 @@ jobs:
         if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && inputs.cold_build != true
         with:
           path: .ci/stx-package
-          key: gui-stx-package-v1-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/stx_text_allocation/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
+          key: gui-stx-package-v1-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       # The engine gate test writes its manifest for the engine-gate job (T2 E11).
       # A pull request runs the whole suite but builds only what its tests run
       # (--test-targets-only: no program, example, bundle or package, and no
@@ -405,7 +405,7 @@ jobs:
           if [ -f .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log ]; then
             cp .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/SDKLastTest.log
           fi
-          cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON -DGUI_FORMS_BUILD_TEXT_MASKS=ON -DGUI_FORMS_BUILD_PREPARED_TEXT=ON -DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON
+          cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_BUILD_TEXT_MASKS=ON -DGUI_FORMS_BUILD_PREPARED_TEXT=ON -DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON
           cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_application_text_consumer gui_forms_text_mask_lifecycle_tests gui_forms_text_mask_native_tests gui_forms_text_mask_wrapping_tests gui_forms_prepared_text_service_tests gui_forms_prepared_display_tests gui_forms_prepared_window_input_tests gui_forms_prepared_window_batch_tests gui_forms_prepared_window_shape_tests gui_forms_prepared_window_session_tests --parallel 4
           # In parallel: the two consumer configure tests (about 15 s and 9 s) each
           # configure into their own build directory.
@@ -425,7 +425,7 @@ jobs:
           if [ -f .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log ]; then
             cp .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/SDKLastTest.log
           fi
-          cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON -DGUI_FORMS_BUILD_TEXT_MASKS=ON -DGUI_FORMS_BUILD_PREPARED_TEXT=ON -DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON
+          cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_BUILD_TEXT_MASKS=ON -DGUI_FORMS_BUILD_PREPARED_TEXT=ON -DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON
           cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_application_text_consumer gui_forms_text_mask_lifecycle_tests gui_forms_text_mask_native_tests gui_forms_text_mask_wrapping_tests gui_forms_prepared_text_service_tests gui_forms_prepared_text_raster_tests gui_forms_prepared_display_tests gui_forms_prepared_text_skia_tests gui_forms_opaque_live_surface_raster_tests gui_forms_prepared_window_input_tests gui_forms_prepared_window_batch_tests gui_forms_prepared_window_shape_tests gui_forms_prepared_window_session_tests --parallel 4
           # In parallel: the two consumer configure tests (about 15 s and 9 s) each
           # configure into their own build directory.

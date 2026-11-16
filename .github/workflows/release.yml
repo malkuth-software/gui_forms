@@ -357,7 +357,7 @@ jobs:
         id: stx-package
         with:
           path: .ci/stx-package
-          key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/stx_text_allocation/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
+          key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       - name: Configure the programs
         run: |
           renderer="-DGUI_FORMS_ENABLE_SKIA=ON"
@@ -368,7 +368,7 @@ jobs:
             -DGUI_FORMS_ENABLE_MACOS_HOST=$([ "${{ matrix.host }}" = MACOS ] && echo ON || echo OFF) \
             -DGUI_FORMS_ENABLE_WINDOWS_HOST=$([ "${{ matrix.host }}" = WINDOWS ] && echo ON || echo OFF) \
             -DGUI_FORMS_ENABLE_LINUX_HOST=$([ "${{ matrix.host }}" = LINUX ] && echo ON || echo OFF) \
-            -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON $renderer \
+            $renderer \
             -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_BUILD_AUDIO=ON -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
             -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD=ON \
             -DGUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package"

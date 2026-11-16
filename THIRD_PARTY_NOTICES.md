@@ -31,8 +31,7 @@ source files carry "Copyright (C) 1996-2025".)
 |---|---|---|---|---|---|
 | GUI.Forms | this release | MIT | all | `licenses/GUIForms.txt` | `LICENSE` |
 | threadpool_atomic_fast (the owner's thread pool) | falseywinchnet/backend `6eb51f84` | MIT | all (in the Threading archive, linked into each program) | `licenses/threadpool_atomic_fast.txt` | `threadpool_atomic_fast-LICENSE.txt` |
-| HarfBuzz | 14.6.0, `c7a7457b` | HarfBuzz licence ("Old MIT") | all (the `--features all` SDK also installs the static library and headers) | `licenses/HarfBuzz.txt` | `HarfBuzz-COPYING.txt` |
-| FreeType | 2.14.2, `f4205da1` | FreeType License (FTL), elected from FTL/GPLv2 | all (the `--features all` SDK also installs the static library and headers) | `licenses/FreeType-FTL.txt` | `FreeType-FTL.txt` |
+| FreeType | 2.14.2, `f4205da1` | FreeType License (FTL), elected from FTL/GPLv2 | all (GUI.Drawing's face choice by family and weight; shaping, measurement and glyph drawing are STXlib's) | `licenses/FreeType-FTL.txt` | `FreeType-FTL.txt` |
 | stx_zlib (the owned zlib codec) | in this repository | MIT; the zlib License notices of the puff-derived inflate and the zlib-informed deflate are retained | all | `licenses/stx_zlib.txt`, `licenses/stx_zlib-puff.txt` and `licenses/stx_zlib-zlib.txt` | `stx_zlib-LICENSE.txt`, `stx_zlib-LICENSE-puff.txt` and `stx_zlib-LICENSE-zlib.txt` (and `share/licenses/stx_zlib/`) |
 | stx_png (the owned PNG codec) | in this repository | MIT | all | `licenses/stx_png.txt` | `stx_png-LICENSE.txt` (and `share/licenses/stx_png/`) |
 | stx_conv (the owner's CONV resampler) | in this repository | MIT | all | `licenses/stx_conv.txt` | `stx_conv-LICENSE.txt` (and `share/licenses/stx_conv/`) |

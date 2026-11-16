@@ -28,7 +28,7 @@ def prepare_host(source: Path, fetch_text: bool) -> None:
     """Prepare what a host's configure reads, before configuring source.
 
     Nothing is fetched here any more: the renderer (stx_skia) and the text
-    sources (HarfBuzz, FreeType) are in the stx
+    sources (FreeType) are in the stx
     repository, which cmake/Stx.cmake builds into the stx package at
     stx.lock's commit during the configure, or links already built (a source
     SDK carries the source, tools/build_sdk.py). fetch_text is kept for the
@@ -41,7 +41,7 @@ def host_options(host: str) -> list[str]:
     """The configure options that select host's native host and renderer.
 
     Every host builds the Skia adapters on stx_skia (from the stx package) and uses the
-    HarfBuzz/FreeType text engine.
+    text engine (STXlib).
     """
     options: list[str] = []
     name: str
@@ -50,7 +50,7 @@ def host_options(host: str) -> list[str]:
         if HOST_OPTION_NAMES[name] == host:
             enabled = 'ON'
         options.append(f'-DGUI_FORMS_ENABLE_{name}_HOST={enabled}')
-    options.extend(['-DGUI_FORMS_ENABLE_SKIA=ON', '-DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON'])
+    options.extend(['-DGUI_FORMS_ENABLE_SKIA=ON'])
     return options
 
 

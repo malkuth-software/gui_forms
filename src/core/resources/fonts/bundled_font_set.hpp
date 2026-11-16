@@ -69,17 +69,21 @@ struct BundledFaceUse final {
     std::uint16_t weight{400};
     bool italic{};
     bool required{};
+    // The language a fallback face is drawn for first (FontSpec::language),
+    // or none.
+    TextLanguage language{};
 };
 
 // The bundled faces in registration order: the primaries, then the fallbacks in the order
 // fallback selection tries them. The records and their strings are static.
 [[nodiscard]] std::span<const BundledFaceUse> bundled_face_uses() noexcept;
 
-// The characters a bundled fallback face covers: exactly the Unicode scalars FreeType maps to a
-// glyph in the face's Unicode charmap (the test that the text engine's fallback selection
-// applies), generated from the face whose digest it names. bundled_font_coverage.inc holds the
-// tables; `gui_forms_bundled_font_coverage_tests --write <that file>` regenerates them, and the
-// same program without arguments checks them against FreeType.
+// The characters a bundled fallback face covers: exactly the Unicode scalars the face's Unicode
+// character map maps to a glyph (STXlib's glyph_of: the test that the text engine's fallback
+// selection applies), generated from the face whose digest it names.
+// bundled_font_coverage.inc holds the tables; `gui_forms_bundled_font_coverage_tests --write
+// <that file>` regenerates them, and the same program without arguments checks them against
+// the character maps.
 struct BundledFaceCoverage final {
     std::string_view file_name{};
     std::string_view sha256_hex{};

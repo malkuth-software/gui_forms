@@ -18,33 +18,33 @@ std::uint32_t decode_scalar(const std::string_view text, std::size_t& offset) no
     }
     return scalar;
 }
+// The scalars coverage passes over (as the text engine's cluster coverage
+// does): the joiners and the variation selectors.
 bool coverage_ignorable(const std::uint32_t scalar) noexcept {
-    const hb_unicode_general_category_t category = hb_unicode_general_category(hb_unicode_funcs_get_default(), scalar);
-    const bool ignored = category == HB_UNICODE_GENERAL_CATEGORY_FORMAT ||
-        (scalar >= 0xFE00 && scalar <= 0xFE0F) || (scalar >= 0xE0100 && scalar <= 0xE01EF);
+    const bool ignored = scalar == 0x200C || scalar == 0x200D || (scalar >= 0xFE00 && scalar <= 0xFE0F) ||
+        (scalar >= 0xE0100 && scalar <= 0xE01EF);
     return ignored;
 }
-bool covers(const NativeFace& face, const std::string_view text) noexcept {
+bool nominally_covers(const stxlib::glyphs::Font& font, const std::string_view text) noexcept {
     std::size_t offset = 0;
     while (offset < text.size()) {
         const std::uint32_t scalar = decode_scalar(text, offset);
         if (coverage_ignorable(scalar)) continue;
-        const FT_UInt glyph = FT_Get_Char_Index(face.value, scalar);
+        const std::uint32_t glyph = stxlib::glyphs::glyph_of(font, scalar);
         if (glyph == 0) return false;
     }
     return true;
 }
+// Whether the job shapes with `font`: outlines, a glyph count in range,
+// units per em and a Unicode character map.
+bool shapeable(const stxlib::glyphs::Font& font) noexcept {
+    const bool admitted = font.outlines != stxlib::glyphs::OutlineKind::none && font.glyph_count != 0 &&
+        font.glyph_count <= 1'000'000 && font.units_per_em != 0 && font.character_map.length != 0 &&
+        font.character_map_kind == stxlib::glyphs::character_map_unicode;
+    return admitted;
+}
 }
 
-NativeLibrary::NativeLibrary() {
-    const FT_Error status = FT_Init_FreeType(&value);
-    if (status != 0 || value == nullptr) throw NativeFailure(TextMaskStatus::native_failure);
-}
-NativeLibrary::~NativeLibrary() { if (value != nullptr) FT_Done_FreeType(value); }
-NativeFace::~NativeFace() {
-    if (shaping != nullptr) hb_font_destroy(shaping);
-    if (value != nullptr) FT_Done_Face(value);
-}
 namespace {
 
 // The pool of the key's bank; NativeFailure(unsupported_profile) when the
@@ -61,35 +61,25 @@ NativeFonts::NativeFonts(const MaskKey& key) : raster(mask_face_pool(key)), rast
     const PreparedFontBank& bank = (*key.fonts).bank;
     count = bank.face_count;
     primary = key.options.primary_face;
+    size_64 = static_cast<std::int64_t>(key.options.size_64);
     const double logical_size = static_cast<double>(key.options.size_64) / 64.0;
     for (std::size_t index = 0; index < count; ++index) {
-        const PreparedFontFace& source = bank.faces[index];
         NativeFace& face = faces[index];
-        const FT_Byte* bytes = reinterpret_cast<const FT_Byte*>(source.bytes.get());
-        const FT_Long length = static_cast<FT_Long>(source.size);
-        const FT_Long ordinal = static_cast<FT_Long>(source.index);
-        const FT_Error opened = FT_New_Memory_Face(library.value, bytes, length, ordinal, &face.value);
-        if (opened != 0 || face.value == nullptr) throw NativeFailure(TextMaskStatus::unsupported_profile);
-        const FT_FaceRec& native = *face.value;
-        if (!FT_IS_SCALABLE(face.value) || native.units_per_EM == 0 || native.num_glyphs <= 0 || native.num_glyphs > 1'000'000) {
-            throw NativeFailure(TextMaskStatus::unsupported_profile);
-        }
-        const FT_Error charmap = FT_Select_Charmap(face.value, FT_ENCODING_UNICODE);
-        const FT_Error sized = FT_Set_Char_Size(face.value, 0, static_cast<FT_F26Dot6>(key.options.size_64), 72, 72);
-        if (charmap != 0 || sized != 0) throw NativeFailure(TextMaskStatus::unsupported_profile);
-        const double units = static_cast<double>(native.units_per_EM);
-        face.ascent = std::max(0.0, static_cast<double>(native.ascender) * logical_size / units);
-        face.descent = std::max(0.0, -static_cast<double>(native.descender) * logical_size / units);
-        face.shaping = hb_ft_font_create_referenced(face.value);
-        if (face.shaping == nullptr || face.shaping == hb_font_get_empty() || hb_ft_font_get_ft_face(face.shaping) != face.value) {
-            throw std::bad_alloc{};
-        }
-        hb_ft_font_set_load_flags(face.shaping, FT_LOAD_NO_HINTING | FT_LOAD_NO_AUTOHINT | FT_LOAD_NO_BITMAP);
-        // The raster's face over the bank's typeface (opened with the bank, text_mask_service),
-        // unless an earlier job opened it in this leased set. No keeper: the bank holds the
-        // typeface and the key holds the bank for the job.
+        // The bank's typeface (opened with the bank, text_mask_service). No keeper: the bank
+        // holds the typeface and the key holds the bank for the job.
         const std::shared_ptr<const ProgramTypeface>& typeface = bank.typefaces[index];
         if (!typeface) throw NativeFailure(TextMaskStatus::unsupported_profile);
+        const stxlib::Shared<stxlib::glyphs::Typeface>& shared = (*typeface).typeface();
+        const stxlib::glyphs::Font* const font = (*shared).font();
+        if (font == nullptr || !shapeable(*font)) throw NativeFailure(TextMaskStatus::unsupported_profile);
+        face.font = font;
+        const double units = static_cast<double>((*font).units_per_em);
+        face.ascent = std::max(0.0, static_cast<double>((*font).ascender) * logical_size / units);
+        face.descent = std::max(0.0, -static_cast<double>((*font).descender) * logical_size / units);
+        const stxlib::Status opened = face.shaper.open(shared);
+        if (opened.failed()) throw std::bad_alloc{};
+        // The raster's face over the same typeface, unless an earlier job opened it in this
+        // leased set.
         if (raster_faces[index].is_open()) continue;
         FaceByteLimits limits{};
         limits.mask_width = 4096U;
@@ -99,11 +89,30 @@ NativeFonts::NativeFonts(const MaskKey& key) : raster(mask_face_pool(key)), rast
         if (!raster_faces[index].open(std::move(borrow), limits)) throw std::bad_alloc{};
     }
 }
-std::uint32_t NativeFonts::select_face(const std::string_view cluster) const {
-    if (covers(faces[primary], cluster)) return primary;
+bool NativeFonts::covers(const std::size_t face, const std::string_view cluster) {
+    NativeFace& candidate = faces[face];
+    if (nominally_covers(*candidate.font, cluster)) return true;
+    coverage_characters.clear();
+    std::size_t offset = 0;
+    while (offset < cluster.size()) {
+        const std::uint32_t scalar = decode_scalar(cluster, offset);
+        const stxlib::Status pushed = coverage_characters.push_copy(scalar);
+        if (pushed.failed()) throw std::bad_alloc{};
+    }
+    stxlib::glyphs::TextRun run{};
+    run.characters = coverage_characters.view();
+    const stxlib::Status shaped = candidate.shaper.shape(run, coverage_glyphs);
+    if (shaped.failed()) throw NativeFailure(TextMaskStatus::native_failure);
+    for (const stxlib::glyphs::ShapedGlyph& glyph : coverage_glyphs) {
+        if (glyph.glyph == 0) return false;
+    }
+    return true;
+}
+std::uint32_t NativeFonts::select_face(const std::string_view cluster) {
+    if (covers(primary, cluster)) return primary;
     for (std::size_t index = 0; index < count; ++index) {
         if (index == primary) continue;
-        if (covers(faces[index], cluster)) {
+        if (covers(index, cluster)) {
             const std::uint32_t ordinal = static_cast<std::uint32_t>(index);
             return ordinal;
         }

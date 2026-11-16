@@ -9,8 +9,9 @@ cmake_minimum_required(VERSION 3.25)
 #   checkout in lockstep development);
 # - GUI_FORMS_STX_PACKAGE_SKIA: ON builds stx_skia whole, OFF only its red/blue
 #   swap kernel (GUI_FORMS_ENABLE_SKIA=OFF);
-# - GUI_FORMS_STX_PACKAGE_TEXT: ON adds FreeType and HarfBuzz
-#   (GUI_FORMS_ENABLE_HARFBUZZ_TEXT);
+# - GUI_FORMS_STX_PACKAGE_TEXT: ON adds FreeType (GUI_FORMS_WITH_FREETYPE:
+#   GUI.Drawing's face choice, the metrics differential and the raster
+#   profile probe; HarfBuzz until 2026-11-16, its shaping now STXlib's);
 # - STX_WITH_VORBIS, passed to the stx root as is;
 # - the compilers, build type, flags and toolchain file, which Stx.cmake passes
 #   from GUI.Forms' own configure, so every object is compiled as it was when
@@ -24,8 +25,8 @@ cmake_minimum_required(VERSION 3.25)
 #   prefix whole, as it did before this package existed.
 # - `build`: what only the GUI.Forms build links, installed at <package>/build
 #   and never copied into the SDK whole: the stx_skia package (stx_skia::stx_skia
-#   and stx_skia::swizzle), the stx_text package (stx_text::freetype and
-#   stx_text::harfbuzz, with the text engine; empty without it), the headers
+#   and stx_skia::swizzle), the stx_text package (stx_text::freetype,
+#   with GUI_FORMS_STX_PACKAGE_TEXT; empty without it), the headers
 #   of each, and the data the GUI.Forms build and its packages read from the
 #   stx source otherwise: share/stx_text/rtf2md_corpus (the markdown corpus
 #   test) and share/stx_text/notices (each licence the programs ship, at its
@@ -42,15 +43,15 @@ if(NOT DEFINED GUI_FORMS_STX_SOURCE_DIR OR NOT EXISTS "${GUI_FORMS_STX_SOURCE_DI
     message(FATAL_ERROR "GUI_FORMS_STX_SOURCE_DIR must name an stx checkout")
 endif()
 option(GUI_FORMS_STX_PACKAGE_SKIA "Build stx_skia whole (OFF: only its red/blue swap kernel)" ON)
-option(GUI_FORMS_STX_PACKAGE_TEXT "Build FreeType and HarfBuzz" ON)
+option(GUI_FORMS_STX_PACKAGE_TEXT "Build FreeType" ON)
 set(_stx_third_party "${GUI_FORMS_STX_SOURCE_DIR}/third_party")
 get_filename_component(_stx_gui_cmake "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-# As in GUI.Forms' CMakeLists.txt: HarfBuzz caches -pthread, so the first
-# configure prefers it too.
+# As in GUI.Forms' CMakeLists.txt: the first configure prefers -pthread, so
+# a reconfigure does not change it (HarfBuzz cached it, until 2026-11-16).
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 include(GNUInstallDirs)
@@ -82,9 +83,9 @@ add_subdirectory("${GUI_FORMS_STX_SOURCE_DIR}/stx_skia" stx_skia)
 set(_stx_text_targets "")
 
 if(GUI_FORMS_STX_PACKAGE_TEXT)
-    # FreeType and HarfBuzz with GUI.Forms' options (these were CMakeLists.txt's
-    # until the package existed). Their own install rules are skipped; the
-    # targets are installed into stx_text's export below.
+    # FreeType with GUI.Forms' options (these were CMakeLists.txt's until the
+    # package existed). Its own install rules are skipped; the target is
+    # installed into stx_text's export below.
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
     set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
     set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
@@ -100,33 +101,7 @@ if(GUI_FORMS_STX_PACKAGE_TEXT)
     target_include_directories(freetype BEFORE PRIVATE "${_stx_gui_cmake}/freetype")
     target_compile_definitions(freetype PRIVATE "FT_CONFIG_OPTIONS_H=<gui_forms_ftoption.h>")
 
-    set(HB_HAVE_CAIRO OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_CORETEXT OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_FREETYPE ON CACHE BOOL "" FORCE)
-    set(HB_HAVE_GRAPHITE2 OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_GLIB OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_ICU OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_GOBJECT OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_INTROSPECTION OFF CACHE BOOL "" FORCE)
-    set(HB_BUILD_UTILS OFF CACHE BOOL "" FORCE)
-    set(HB_BUILD_SUBSET OFF CACHE BOOL "" FORCE)
-    set(HB_BUILD_RASTER OFF CACHE BOOL "" FORCE)
-    set(HB_BUILD_VECTOR OFF CACHE BOOL "" FORCE)
-    set(HB_BUILD_GPU OFF CACHE BOOL "" FORCE)
-    add_subdirectory("${_stx_third_party}/harfbuzz" third_party/harfbuzz)
     unset(SKIP_INSTALL_ALL)
-    # HarfBuzz's heap calls go through counting functions linked into its own
-    # archive (cmake/stx_text_allocation/stx_text_allocation.h): the C heap,
-    # counted per thread, so the text engine's tests can show a shaping that
-    # allocates nothing (paragraph layout's zero-allocation test).
-    set(_stx_text_allocation "${_stx_gui_cmake}/stx_text_allocation")
-    target_sources(harfbuzz PRIVATE "${_stx_text_allocation}/stx_harfbuzz_allocation.c")
-    target_include_directories(harfbuzz PRIVATE "${_stx_text_allocation}")
-    target_compile_definitions(harfbuzz PRIVATE
-        hb_malloc_impl=stx_text_hb_malloc hb_calloc_impl=stx_text_hb_calloc
-        hb_realloc_impl=stx_text_hb_realloc hb_free_impl=stx_text_hb_free)
-    # The counters' header, beside HarfBuzz's (the text engine reads them).
-    install(FILES "${_stx_text_allocation}/stx_text_allocation.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/harfbuzz)
 
     # FreeType's headers: the source include tree without its internal headers,
     # then the configured ftconfig.h and ftoption.h the build generated (the
@@ -142,25 +117,11 @@ if(GUI_FORMS_STX_PACKAGE_TEXT)
         "${_stx_freetype_binary_dir}/include/freetype/config/ftconfig.h"
         "${_stx_freetype_binary_dir}/include/freetype/config/ftoption.h"
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/freetype2/freetype/config)
-    # HarfBuzz's public headers: the .h files among the target's sources (its
-    # private headers are .hh), plus hb-cplusplus.hh and hb-ft.h (listed
-    # upstream only for a system FreeType), at include/harfbuzz.
-    get_target_property(_stx_harfbuzz_sources harfbuzz SOURCES)
-    set(_stx_harfbuzz_headers
-        "${_stx_third_party}/harfbuzz/src/hb-cplusplus.hh"
-        "${_stx_third_party}/harfbuzz/src/hb-ft.h")
-    foreach(_stx_harfbuzz_source IN LISTS _stx_harfbuzz_sources)
-        if(_stx_harfbuzz_source MATCHES "/src/hb[^/]*\\.h$")
-            list(APPEND _stx_harfbuzz_headers "${_stx_harfbuzz_source}")
-        endif()
-    endforeach()
-    list(REMOVE_DUPLICATES _stx_harfbuzz_headers)
-    install(FILES ${_stx_harfbuzz_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/harfbuzz)
 
-    list(APPEND _stx_text_targets freetype harfbuzz)
+    list(APPEND _stx_text_targets freetype)
 endif()
 
-# Without the text engine the package is empty but still found, so the
+# Without FreeType the package is empty but still found, so the
 # GUI.Forms configure reads one shape.
 set(_stx_text_include "")
 if(_stx_text_targets)
@@ -190,7 +151,6 @@ install(DIRECTORY "${GUI_FORMS_STX_SOURCE_DIR}/stx_rtf2md/tests/corpus/"
     DESTINATION ${CMAKE_INSTALL_DATADIR}/stx_text/rtf2md_corpus)
 set(_stx_notice_root ${CMAKE_INSTALL_DATADIR}/stx_text/notices)
 install(FILES "${_stx_third_party}/unicode/LICENSE.txt" DESTINATION ${_stx_notice_root}/third_party/unicode)
-install(FILES "${_stx_third_party}/harfbuzz/COPYING" DESTINATION ${_stx_notice_root}/third_party/harfbuzz)
 install(FILES "${_stx_third_party}/freetype/docs/FTL.TXT" DESTINATION ${_stx_notice_root}/third_party/freetype/docs)
 install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/LICENSE" "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/LICENSE-Skia"
     DESTINATION ${_stx_notice_root}/stx_skia)

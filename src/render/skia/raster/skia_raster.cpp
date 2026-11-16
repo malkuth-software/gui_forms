@@ -25,6 +25,7 @@
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 #include "../../../core/theme/theme/material_layers.hpp"
 #include "../../../core/interpolation/interpolation.hpp"
+#include "../../../core/types/painter/text_turn.hpp"
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkBlurTypes.h"
@@ -551,6 +552,8 @@ public:
         std::span<const gui_forms::detail::CodepointRange> coverage;
         text::LazyFaceLoader loader;
         FontFamilyId family;
+        // The language a fallback face is drawn first for, or none.
+        TextLanguage language{};
     };
     std::vector<FontSource> font_sources;
     // The process's bundled font set, held so every window shares it (register_bundled_fonts).
@@ -943,18 +946,29 @@ public:
             role, weight, italic, bytes, owner);
         if (!text_face) return false;
         font_sources.push_back({role, weight, italic, bytes, std::move(owner), {}, {}, {}});
+        last_text_face = *text_face;
         return true;
     }
 
-    // Registers a fallback face that the text engine loads when text first needs it.
+    // Marks the face register_font_bytes registered last as drawn first for text in
+    // `language` (a fallback face only).
+    void mark_last_face_language(const TextLanguage language) noexcept {
+        if (!text_engine.set_face_language(last_text_face, language)) return;
+        font_sources.back().language = language;
+    }
+    FontFaceId last_text_face{};
+
+    // Registers a fallback face that the text engine loads when text first needs it, drawn
+    // first for text in `language` (none: in registration order).
     [[nodiscard]] bool register_lazy_font(std::uint16_t weight, bool italic,
                                           std::span<const gui_forms::detail::CodepointRange> coverage,
-                                          const text::LazyFaceLoader& loader) {
+                                          const text::LazyFaceLoader& loader, const TextLanguage language) {
         font_sources.reserve(font_sources.size() + 1U);
         const std::optional<FontFaceId> text_face =
             text_engine.register_lazy_fallback_typeface(weight, italic, coverage, loader);
         if (!text_face) return false;
-        font_sources.push_back({std::nullopt, weight, italic, {}, {}, coverage, loader, {}});
+        if (language.tag != 0U) static_cast<void>(text_engine.set_face_language(*text_face, language));
+        font_sources.push_back({std::nullopt, weight, italic, {}, {}, coverage, loader, {}, language});
         return true;
     }
 
@@ -1048,7 +1062,7 @@ bool SkiaRaster::register_bundled_fonts(std::shared_ptr<gui_forms::detail::Bundl
             text::lazy_bundled_coverage(use);
         if (coverage) {
             const text::LazyFaceLoader loader = text::BundledFaceLoader{set, use.file_name};
-            if (!(*impl_).register_lazy_font(use.weight, use.italic, *coverage, loader)) return false;
+            if (!(*impl_).register_lazy_font(use.weight, use.italic, *coverage, loader, use.language)) return false;
             continue;
         }
         const gui_forms::detail::FontFaceLoad load = (*set).face(use.file_name);
@@ -1057,6 +1071,7 @@ bool SkiaRaster::register_bundled_fonts(std::shared_ptr<gui_forms::detail::Bundl
         if (face != nullptr) {
             const std::span<const std::byte> bytes = (*(*face)).bytes();
             registered = (*impl_).register_font_bytes(use.role, use.weight, use.italic, bytes, *face);
+            if (registered && !use.role && use.language.tag != 0U) (*impl_).mark_last_face_language(use.language);
         }
         if (!registered && use.required) return false;
     }
@@ -1112,10 +1127,13 @@ std::unique_ptr<PaintFramebuffer> SkiaRaster::create_framebuffer(Size logical_si
                                                                             source.italic, source.loader);
         } else if (source.loader) {
             registered = (*(*result).raster.impl_).register_lazy_font(source.weight, source.italic,
-                                                                     source.coverage, source.loader);
+                                                                     source.coverage, source.loader, source.language);
         } else {
             registered = (*(*result).raster.impl_).register_font_bytes(source.role, source.weight, source.italic,
                                                                       source.bytes, source.owner);
+            if (registered && source.language.tag != 0U) {
+                (*(*result).raster.impl_).mark_last_face_language(source.language);
+            }
         }
         if (!registered) return {};
     }
@@ -2102,8 +2120,11 @@ void SkiaRaster::Impl::draw_rotated_run(SkCanvas& target, const text::ShapedText
     const SkMatrix matrix = target.getTotalMatrix();
     if (matrix.hasPerspective()) return;
     if (!glyph_runs) glyph_runs = std::make_unique<text::GlyphRunRasterizer>(text_engine);
-    // The engine's deterministic sine and cosine, exact at quarter turns.
-    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    // STXlib's turn (exact at quarter turns), the one rotated_text_bounds
+    // and rotated_text_anchor use: under a canvas that only scales evenly
+    // and translates, the run is drawn as STXlib's turned text
+    // (rasterize_transformed) with exactly this turn.
+    const gui_forms::detail::TextTurnEntries turn = gui_forms::detail::text_turn_entries(degrees);
     const double cosine = turn.cosine;
     const double sine = turn.sine;
     // The turn in logical units, x' = cos x + sin y and y' = -sin x + cos y
@@ -2121,9 +2142,14 @@ void SkiaRaster::Impl::draw_rotated_run(SkCanvas& target, const text::ShapedText
     const text::GlyphRunWindow window =
         run_window(target, static_cast<std::int64_t>(std::floor(static_cast<double>(device.x()))),
                    static_cast<std::int64_t>(std::floor(static_cast<double>(device.y()))));
-    const text::GlyphRunCoverage coverage =
-        (*glyph_runs).rasterize_transformed(shaped, font_spec, transform, static_cast<double>(device.x()),
-                                            static_cast<double>(device.y()), {}, placement, window);
+    text::GlyphRunCoverage coverage{};
+    if (matrix.isScaleTranslate() && matrix.getScaleX() > 0.0F && matrix.getScaleX() == matrix.getScaleY()) {
+        coverage = (*glyph_runs).rasterize_turned(shaped, font_spec, degrees, scale_x, static_cast<double>(device.x()),
+                                                  static_cast<double>(device.y()), {}, placement, window);
+    } else {
+        coverage = (*glyph_runs).rasterize_transformed(shaped, font_spec, transform, static_cast<double>(device.x()),
+                                                       static_cast<double>(device.y()), {}, placement, window);
+    }
     note_coverage(coverage);
     if (coverage.pixels.empty()) return;
     const detail::TextCoverage placed{.pixels = coverage.pixels, .width = coverage.width, .height = coverage.height,
