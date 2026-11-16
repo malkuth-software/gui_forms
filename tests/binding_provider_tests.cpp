@@ -398,6 +398,60 @@ void test_cross_thread_notifications_apply_at_a_safe_point() {
             "the posted notification applies on the UI thread, in order");
 }
 
+// Reports three changes from another thread in one posted batch.
+struct ChangeThriceFromThread final {
+    SharedProvider* provider{};
+    void operator()() const {
+        (*provider).count = 13U;
+        (*provider).link.inserted(10U, 1U);
+        (*provider).link.inserted(11U, 1U);
+        (*provider).link.inserted(12U, 1U);
+    }
+};
+
+// Replaces the source's provider at the first list change it hears, then
+// counts the changes raised after the replacement returned.
+struct ReplaceAtFirstChange final : Component {
+    BindingSource* source{};
+    std::shared_ptr<BindingProvider> next;
+    bool replacing{};
+    bool replaced{};
+    std::size_t changes_after{};
+
+    void on_change(const BindingListChange& change) {
+        static_cast<void>(change);
+        if (replacing) return;
+        if (replaced) {
+            ++changes_after;
+            return;
+        }
+        replacing = true;
+        (*source).set_provider(next);
+        replacing = false;
+        replaced = true;
+    }
+};
+
+// A-gf-core-01-F6: a posted batch stops once a handler replaced the provider.
+void test_posted_batch_stops_at_a_replaced_provider() {
+    Host host;
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(host.window);
+    std::shared_ptr<SharedProvider> first = std::make_shared<SharedProvider>();
+    std::shared_ptr<SharedProvider> second = std::make_shared<SharedProvider>();
+    (*source).set_provider(first);
+    ReplaceAtFirstChange replacer;
+    replacer.source = source.get();
+    replacer.next = second;
+    on((*source).list_changed(), replacer, &ReplaceAtFirstChange::on_change);
+    std::thread worker(ChangeThriceFromThread{first.get()});
+    worker.join();
+    static_cast<void>(host.window.drain_posted_work());
+    require(replacer.replaced && (*first).link.revoked() && !(*second).link.revoked(),
+            "the first posted change replaced the provider");
+    require(replacer.changes_after == 0U && (*source).count() == 10U,
+            "the rest of the old provider's batch is not applied to the new provider");
+}
+
 // ---------------------------------------------------------------------------
 // The built-in table.
 
@@ -902,6 +956,7 @@ int main() {
         test_hostile_provider_answers_become_cell_errors();
         test_revocation_on_replacement_and_disposal();
         test_cross_thread_notifications_apply_at_a_safe_point();
+        test_posted_batch_stops_at_a_replaced_provider();
         test_binding_table_checks_whole_and_keeps_errors_by_id();
         test_sort_and_filter_views_match_brute_force_under_changes();
         test_list_changes_replay_to_the_view_and_moves_are_not_resets();

@@ -55,7 +55,7 @@ struct ApplyPostedNotifications final {
         if (source == nullptr) {
             return;
         }
-        (*source).apply_posted(taken);
+        (*source).apply_posted(*state, taken);
     }
 };
 
@@ -1101,12 +1101,17 @@ void BindingSource::receive_notification(const BindingNotification& notification
     apply_notification(notification);
 }
 
-void BindingSource::apply_posted(const std::vector<BindingNotification>& notifications) {
+void BindingSource::apply_posted(const detail::BindingLinkState& state,
+                                 const std::vector<BindingNotification>& notifications) {
     if (!is_alive()) {
         return;
     }
     for (const BindingNotification& notification : notifications) {
-        if (!link_ || !provider_) {
+        // A handler raised by an earlier notification may have replaced the
+        // provider (A-gf-core-01-F6): the rest of the batch describes the old
+        // provider's rows, so it stops once the link it came through is no
+        // longer this source's or has been revoked.
+        if (link_.get() != &state || state.revoked.load() || !provider_) {
             return;
         }
         apply_notification(notification);
