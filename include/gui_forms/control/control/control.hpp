@@ -499,7 +499,7 @@ public:
     // offsets this, never the committed bounds, which already carry its
     // previous offset.
     [[nodiscard]] Rect pending_layout_bounds() const noexcept {
-        return layout_slot_ ? *layout_slot_ : arranged_bounds_;
+        return layout_slot_.value_or(arranged_bounds_);
     }
     [[nodiscard]] Rect client_rectangle() const noexcept {
         return {0.0, 0.0, arranged_bounds_.width, arranged_bounds_.height};
