@@ -136,9 +136,11 @@ ContentFrameSink ContentSurface::open_content(bool opaque) {
     // A running program is stopped (bounded) before its channel goes.
     stop_worker(false);
     failure_.clear();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // New content ends any forwarding; start_hosted_content restores it.
     hosted_input_ = HostedInput{};
     forwarding_ = false;
+#endif
     std::shared_ptr<detail::ContentChannel> fresh = detail::make_content_channel(current.size, opaque);
     if (!fresh) throw std::bad_alloc();
     if (channel_) detail::revoke_content_channel(*channel_);
@@ -164,8 +166,10 @@ ContentFrameSink ContentSurface::open_content(bool opaque) {
 void ContentSurface::close_content() {
     stop_worker(false);
     failure_.clear();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     hosted_input_ = HostedInput{};
     forwarding_ = false;
+#endif
     watchdog_timer_.disconnect();
     watchdog_.stop();
     if (channel_) detail::revoke_content_channel(*channel_);
@@ -190,6 +194,10 @@ void ContentSurface::start_program(std::unique_ptr<ContentProgram> program, bool
     schedule_watchdog();
 }
 
+// Hosted content and its input forwarding are not compiled in a
+// high-integrity build (cmake/HighIntegrity.cmake); the input handlers then
+// only raise the surface's own events.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 HostedInput ContentSurface::start_hosted_content(HostedContentOptions options, bool opaque) {
     require_mutable();
     // Made first: a refused option or platform changes nothing.
@@ -221,52 +229,71 @@ void ContentSurface::forward_pointer(MouseEventArgs& arguments) {
     static_cast<void>(hosted_input_.send_pointer(event, device_position));
     arguments.handled = true;
 }
+#endif
 
 void ContentSurface::on_key_down(KeyEventArgs& arguments) {
     Control::on_key_down(arguments);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     forward_key(arguments, KeyAction::down);
+#endif
 }
 
 void ContentSurface::on_key_up(KeyEventArgs& arguments) {
     Control::on_key_up(arguments);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     forward_key(arguments, KeyAction::up);
+#endif
 }
 
 void ContentSurface::on_text_input(TextInputEvent& event) {
     Control::on_text_input(event);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     if (!forwarding_ || event.handled || !is_alive()) return;
     static_cast<void>(hosted_input_.send_text(event.text_utf8, event.composing));
     event.handled = true;
+#endif
 }
 
 void ContentSurface::on_mouse_down(MouseEventArgs& arguments) {
     Control::on_mouse_down(arguments);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     forward_pointer(arguments);
+#endif
 }
 
 void ContentSurface::on_mouse_up(MouseEventArgs& arguments) {
     Control::on_mouse_up(arguments);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     forward_pointer(arguments);
+#endif
 }
 
 void ContentSurface::on_mouse_move(MouseEventArgs& arguments) {
     Control::on_mouse_move(arguments);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     forward_pointer(arguments);
+#endif
 }
 
 void ContentSurface::on_mouse_wheel(MouseEventArgs& arguments) {
     Control::on_mouse_wheel(arguments);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     forward_pointer(arguments);
+#endif
 }
 
 void ContentSurface::on_got_focus() {
     Control::on_got_focus();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     if (forwarding_ && is_alive()) static_cast<void>(hosted_input_.send_focus(true));
+#endif
 }
 
 void ContentSurface::on_lost_focus() {
     Control::on_lost_focus();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     if (forwarding_) static_cast<void>(hosted_input_.send_focus(false));
+#endif
 }
 
 void ContentSurface::terminate() {

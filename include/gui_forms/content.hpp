@@ -8,8 +8,12 @@
 // See docs/user/content-surfaces.md.
 #include "gui_forms/content/editing/content_text_layout.hpp"
 #include "gui_forms/content/frame_sink/content_frame_sink.hpp"
+// Hosted content is not compiled in a high-integrity build
+// (GUI_FORMS_HIGH_INTEGRITY, cmake/HighIntegrity.cmake).
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 #include "gui_forms/content/hosted/hosted_content.hpp"
 #include "gui_forms/content/hosted/hosted_protocol.hpp"
+#endif
 #include "gui_forms/content/operation/content_operation.hpp"
 #include "gui_forms/content/types/content_types.hpp"
 #include "gui_forms/content/watchdog/content_watchdog.hpp"

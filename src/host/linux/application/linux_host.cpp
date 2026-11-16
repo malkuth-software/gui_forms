@@ -2383,7 +2383,10 @@ HostCapabilities linux_capabilities() {
               HostCapability::transient_surfaces |
               HostCapability::opaque_transient_surfaces |
               HostCapability::window_state_reports |
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+              // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
               HostCapability::hosted_content |
+#endif
               // Relative pointer mode (Services): confinement and warps
               // are core X; the deltas need XI 2 raw motion, which
               // Services drops from its report where the server lacks it.

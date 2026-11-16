@@ -32,3 +32,12 @@ gdi_font_bytes\(
 CTFontDescriptorCreate
 CTFontCopyTable
 GetFontData
+# Hosted content: no other process is started or spoken to.
+gui_forms::make_hosted_content\(
+gui_forms::hosted_content_support\(
+gui_forms::HostedInput::
+gui_forms::ContentSurface::start_hosted_content\(
+content_start_hosted
+content_hosted_input
+shm_open
+socketpair

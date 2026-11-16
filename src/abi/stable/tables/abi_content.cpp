@@ -13,7 +13,9 @@
 
 #include "gui_forms/content/editing/content_text_layout.hpp"
 #include "gui_forms/content/frame_sink/content_frame_sink.hpp"
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 #include "gui_forms/content/hosted/hosted_content.hpp"
+#endif
 #include "gui_forms/content/operation/content_operation.hpp"
 #include "gui_forms/content/types/content_types.hpp"
 #include "gui_forms/content/watchdog/content_watchdog.hpp"
@@ -500,6 +502,10 @@ gf_status GF_CALL content_start_program(gf_object surface, const gf_content_prog
     return call_slot(start_program_slot, content_start_program_body, surface, program);
 }
 
+// Hosted content is not compiled in a high-integrity build
+// (cmake/HighIntegrity.cmake): start_hosted and hosted_input are null slots,
+// and hosted_support reports GF_HOSTED_SUPPORT_NOT_REPORTED.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 gf_status content_start_hosted_body(gf_object surface, const gf_hosted_options* options) {
     if (options == nullptr || (*options).struct_size < hosted_options_size_1_4 || (*options).opaque > 1U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, start_hosted_slot,
@@ -557,6 +563,7 @@ gf_status content_start_hosted_body(gf_object surface, const gf_hosted_options* 
 gf_status GF_CALL content_start_hosted(gf_object surface, const gf_hosted_options* options) noexcept {
     return call_slot(start_hosted_slot, content_start_hosted_body, surface, options);
 }
+#endif
 
 gf_status content_terminate_body(gf_object surface) {
     std::shared_ptr<ContentSurface> found;
@@ -709,6 +716,7 @@ gf_status GF_CALL content_program_running(gf_object surface, std::uint32_t* runn
     return call_slot(program_running_slot, content_program_running_body, surface, running);
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 gf_status content_hosted_input_body(gf_object surface, gf_hosted_input_report* report) {
     if (report == nullptr || (*report).struct_size < hosted_input_report_size_1_4) {
         return fail(GF_STATUS_INVALID_ARGUMENT, hosted_input_slot,
@@ -726,13 +734,18 @@ gf_status content_hosted_input_body(gf_object surface, gf_hosted_input_report* r
 gf_status GF_CALL content_hosted_input(gf_object surface, gf_hosted_input_report* report) noexcept {
     return call_slot(hosted_input_slot, content_hosted_input_body, surface, report);
 }
+#endif
 
 gf_status content_hosted_support_body(gf_hosted_support* support) {
     if (support == nullptr) {
         return fail(GF_STATUS_INVALID_ARGUMENT, hosted_support_slot, "hosted_support needs an output");
     }
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    *support = GF_HOSTED_SUPPORT_NOT_REPORTED;
+#else
     const bool available = hosted_content_support() == HostedContentSupport::available;
     *support = available ? GF_HOSTED_SUPPORT_AVAILABLE : GF_HOSTED_SUPPORT_NOT_REPORTED;
+#endif
     return GF_STATUS_OK;
 }
 
@@ -1370,7 +1383,11 @@ constexpr gf_content_table table{
     .open_content = &content_open_content,
     .close_content = &content_close_content,
     .start_program = &content_start_program,
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    .start_hosted = nullptr,
+#else
     .start_hosted = &content_start_hosted,
+#endif
     .terminate = &content_terminate,
     .set_termination_grace = &content_set_termination_grace,
     .set_stale_interval = &content_set_stale_interval,
@@ -1381,7 +1398,11 @@ constexpr gf_content_table table{
     .set_status_caption = &content_set_status_caption,
     .set_semantics = &content_set_semantics,
     .program_running = &content_program_running,
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    .hosted_input = nullptr,
+#else
     .hosted_input = &content_hosted_input,
+#endif
     .hosted_support = &content_hosted_support,
     .sink_publish = &content_sink_publish,
     .sink_heartbeat = &content_sink_heartbeat,
