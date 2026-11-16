@@ -53,6 +53,7 @@
 // make per shaped run read atomics and take the lock only to copy a family's
 // face list the first time an engine meets the family.
 
+#include "gui_forms/build_profile/build_profile.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
@@ -115,6 +116,11 @@ struct GUI_FORMS_API AppFontValidation final {
         return left.status == right.status && left.table == right.table;
     }
 };
+
+// Validating, loading and unloading are not compiled in a high-integrity build
+// (GUI_FORMS_HIGH_INTEGRITY, cmake/HighIntegrity.cmake): no application font
+// reaches the font reader. The queries below remain and answer for no family.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 
 // Checks `bytes` as one font face, reading only the bytes (no engine). The
 // stated set of checks:
@@ -195,6 +201,7 @@ struct GUI_FORMS_API AppFontLoad final {
     std::size_t face_index{};
     AppFontFamily family{};
 };
+#endif
 
 // Whether `family` is in the application families' number range.
 [[nodiscard]] constexpr bool app_font_family_number(FontFamilyId family) noexcept {

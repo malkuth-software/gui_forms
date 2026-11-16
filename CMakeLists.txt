@@ -650,7 +650,6 @@ add_library(gui_forms_core STATIC
     src/core/resources/fonts/bundled_font_pack.cpp
     ${GUI_FORMS_FONT_PACK_RECORDS}
     src/core/resources/fonts/app_font_registry.cpp
-    src/core/resources/fonts/app_font_validation.cpp
     src/core/resources/fonts/font_family_stacks.cpp
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
     src/core/live_surface/buffer/live_surface_buffer.cpp
@@ -833,6 +832,11 @@ endif()
 # The high-integrity configuration changes the declarations of the public
 # headers (entries are compiled out), so a consumer compiles them the same way
 # (cmake/HighIntegrity.cmake).
+# Application fonts' table checks (validate_app_font), which a high-integrity
+# build does not compile: no application font is loaded there.
+if(NOT GUI_FORMS_HIGH_INTEGRITY)
+    target_sources(gui_forms_core PRIVATE src/core/resources/fonts/app_font_validation.cpp)
+endif()
 if(GUI_FORMS_HIGH_INTEGRITY)
     target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_HIGH_INTEGRITY=1)
     if(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)

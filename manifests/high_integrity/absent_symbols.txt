@@ -20,3 +20,9 @@ GetUserDefaultLocaleName
 GetLocaleInfoEx
 gui_forms::host::read_posix_locale\(
 gui_forms::host::read_macos_locale\(
+# Application fonts: no application font reaches the font reader.
+gui_forms::load_app_font_family\(
+gui_forms::validate_app_font\(
+gui_forms::AppFontFamily::
+fonts_load_family
+fonts_unload_family
