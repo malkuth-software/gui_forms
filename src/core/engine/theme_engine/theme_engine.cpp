@@ -186,12 +186,12 @@ using CompiledTransition = CompiledThemeRules::CompiledTransition;
 
 // The machine state the part's states select: the first whose `when`
 // states they all include, or none.
-std::optional<std::size_t> machine_state(const CompiledTransition& transition, AnatomyStateSet states) noexcept {
+stxlib::Optional<std::size_t> machine_state(const CompiledTransition& transition, AnatomyStateSet states) noexcept {
     for (std::size_t index = 0; index < transition.states.size(); ++index) {
         const std::uint64_t needed = transition.states[index].when.standard_bits();
-        if ((states.standard_bits() & needed) == needed) return index;
+        if ((states.standard_bits() & needed) == needed) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 // A property's range: [0, 1] for opacity and face, the presentational
@@ -325,11 +325,12 @@ PresentedProperties run_transitions(const CompiledThemeRules::Resolution& resolu
         // Without a record a face has nothing to fade from.
         if (transition.property == PresentationProperty::face && motion == nullptr) continue;
         const PropertyRange range = property_range(transition, descriptor);
-        const std::optional<std::size_t> state = machine_state(transition, sources.states);
+        const stxlib::Optional<std::size_t> state = machine_state(transition, sources.states);
         // A value in em is taken at the part's em (P8c).
         double target = rest_value(transition, parameters);
-        if (state) {
-            const CompiledThemeRules::CompiledPresentationState& held = transition.states[*state];
+        const std::size_t* const state_index = state.value();
+        if (state_index != nullptr) {
+            const CompiledThemeRules::CompiledPresentationState& held = transition.states[*state_index];
             target = held.target + sources.em * held.target_em;
         }
         if (motion == nullptr) {
@@ -371,8 +372,9 @@ PresentedProperties run_transitions(const CompiledThemeRules::Resolution& resolu
         std::optional<double> entry{};
         std::array<MotionStop, maximum_motion_stops> taken{};
         std::span<const MotionStop> stops{};
-        if (state) {
-            const CompiledThemeRules::CompiledPresentationState& held = transition.states[*state];
+        const std::size_t* const state_index = state.value();
+        if (state_index != nullptr) {
+            const CompiledThemeRules::CompiledPresentationState& held = transition.states[*state_index];
             if (held.enter_from.present()) entry = *held.enter_from.value() + sources.em * held.enter_from_em;
             const std::size_t count = std::min(held.stops.size(), maximum_motion_stops);
             for (std::size_t stop = 0; stop < count; ++stop) {
@@ -729,7 +731,7 @@ struct UnkeptAssemblies final {
 const SurfaceMaterial& unkept_assembly(UnkeptAssemblies& window, std::uint64_t rules_serial,
                                        const SurfaceMaterial& floor, Rect box, MaterialAssemblyContext context,
                                        const CompiledThemeRules::Resolution& resolution,
-                                       std::optional<ControlVisualRole> darkened) {
+                                       const stxlib::Optional<ControlVisualRole>& darkened) {
     // The box keys the assembly only where a field reads it; so does the em.
     const Size size{box.width, box.height};
     const Size keyed = material_fields_read_box(resolution.materials) ? size : Size{};
@@ -754,7 +756,8 @@ const SurfaceMaterial& unkept_assembly(UnkeptAssemblies& window, std::uint64_t r
     held.current_colour = context.current_colour;
     held.floor = floor;
     assemble_material(floor, resolution.materials, size, context, held.material);
-    if (darkened) detail::darken_material(held.material, *darkened);
+    const ControlVisualRole* const darkened_role = darkened.value();
+    if (darkened_role != nullptr) detail::darken_material(held.material, *darkened_role);
     entry.darkened = darkened;
     entry.filled = true;
     window.metrics.record_engine_material_assembly();
@@ -770,7 +773,7 @@ const SurfaceMaterial& authored_material(UnkeptAssemblies& window, EnginePartRec
                                          const SurfaceMaterial& floor, Rect box, MaterialAssemblyContext context,
                                          const CompiledThemeRules::Resolution& resolution, Metrics& metrics) {
     if (kept == nullptr) {
-        const std::optional<ControlVisualRole> light{};
+        const stxlib::Optional<ControlVisualRole> light{};
         const SurfaceMaterial& unkept = unkept_assembly(window, rules_serial, floor, box, context, resolution, light);
         return unkept;
     }
@@ -914,7 +917,7 @@ bool show_content_in_high_contrast(const Control& control, const PartPaint& part
     }
     relative.current_colour = *part.content_color.value();
     const SurfaceMaterial& content = unkept_assembly(unkept, rules_serial, recipe.recipe().material, part.bounds,
-                                                     relative, resolution, std::nullopt);
+                                                     relative, resolution, stxlib::Optional<ControlVisualRole>::none());
     framed.fills = content.fills;
     framed.shadows.clear();
     framed.glows.clear();
@@ -1528,7 +1531,7 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
     UnkeptAssemblies unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window), detail::SurfaceEngineAccess::unkept_next(*window),
                             (*window).metrics()};
     if (darkened) {
-        const std::optional<ControlVisualRole> darkened_role = part.family;
+        const stxlib::Optional<ControlVisualRole> darkened_role = stxlib::Optional<ControlVisualRole>::of(part.family);
         const SurfaceMaterial& dark = unkept_assembly(unkept, rules_.serial(), floor.recipe().material, part.bounds,
                                                       relative, resolution, darkened_role);
         return &dark;
@@ -1702,7 +1705,8 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
             UnkeptAssemblies unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window), detail::SurfaceEngineAccess::unkept_next(*window),
                                     (*window).metrics()};
             request.target.material = &unkept_assembly(unkept, rules_.serial(), light.material, part.bounds,
-                                                       relative, resolution, *material_role);
+                                                       relative, resolution,
+                                                       stxlib::Optional<ControlVisualRole>::of(*material_role));
         } else if (resolution.materials_authored) {
             // The part's em and text colour, where a field reads them (P8c).
             MaterialAssemblyContext relative{};
@@ -1840,9 +1844,9 @@ void ThemeEngine::bake_part(const PartPaint& part, PartPaintRun& run) const {
     // keyframes queued for idle frames when it first paints and whenever
     // its states change; one it reaches first is baked on demand.
     const bool requeue =
-        run.kept != nullptr && (!(*run.kept).keyframe_states || *(*run.kept).keyframe_states != part.states);
+        run.kept != nullptr && !((*run.kept).keyframe_states == stxlib::Optional<AnatomyStateSet>::of(part.states));
     if (accepted && run.movable != 0U && requeue && !run.margin) {
-        (*run.kept).keyframe_states = part.states;
+        (*run.kept).keyframe_states.set(part.states);
         queue_keyframes(*window, request, run.movable);
     }
     if (run.invisible) return;

@@ -24,6 +24,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // One window's records of the parts the engine has painted with a key (T2
@@ -107,7 +109,7 @@ struct GUI_FORMS_API CachedPartRaster final {
     // Set when `raster` drew a procedural fill's ground because its pattern
     // was not ready (E10): the table's pattern generation then. Such a
     // raster is current only until the table makes another pattern.
-    std::optional<std::uint64_t> awaited_patterns{};
+    stxlib::Optional<std::uint64_t> awaited_patterns{};
     // Whether `raster` is one of the table's shared bakes (a keyframe): it
     // then counts against shared_bake_budget_bytes, not the part cache's,
     // and is never drawn over.
@@ -158,7 +160,7 @@ struct GUI_FORMS_API AssembledPartMaterial final {
 // assembly) and whether it holds one yet.
 struct GUI_FORMS_API UnkeptPartAssembly final {
     AssembledPartMaterial assembled{};
-    std::optional<ControlVisualRole> darkened{};
+    stxlib::Optional<ControlVisualRole> darkened{};
     bool filled{};
 };
 
@@ -181,7 +183,7 @@ struct GUI_FORMS_API PartTransitionChannel final {
     std::size_t parameter{};
     std::uint64_t rules_serial{};
     std::size_t machine{};
-    std::optional<std::size_t> state{};
+    stxlib::Optional<std::size_t> state{};
     std::optional<MotionValue> value{};
 };
 
@@ -267,7 +269,7 @@ struct GUI_FORMS_API EnginePartRecord final {
     AnatomyStateSet face_states{};
     // The states whose keyframes were last queued for idle frames (E7r):
     // queued again when the part's states change.
-    std::optional<AnatomyStateSet> keyframe_states{};
+    stxlib::Optional<AnatomyStateSet> keyframe_states{};
     // Whether the part's last paint had an ambient effect, and whether that
     // effect was refused for its area (E7). An ambient part repaints when
     // ambient motion resumes; a refusal is counted once, when it begins.
@@ -821,14 +823,14 @@ private:
     // (E10), and reset otherwise.
     [[nodiscard]] RasterOutcome draw(const PartRasterRequest& request, PrimitivePreparation& preparation,
                                      const PartRasterView& destination, std::uint64_t paint_sequence, bool refresh,
-                                     std::optional<std::uint64_t>& awaited);
+                                     stxlib::Optional<std::uint64_t>& awaited);
     // The held shared bake answering `request`, or one baked and held now
     // (again in place of the held one when `refresh`); null when the
     // primitive refuses it. `use` chooses the counters. `awaited` is set
     // as draw sets it, from the held bake's record when one answers.
     [[nodiscard]] std::shared_ptr<PartRaster> shared_bake(const PartRasterRequest& request,
                                                           std::uint64_t paint_sequence, bool refresh, SharedUse use,
-                                                          std::optional<std::uint64_t>& awaited);
+                                                          stxlib::Optional<std::uint64_t>& awaited);
     // Evicts the least recently used shared bakes and image variants until
     // `incoming` more bytes fit shared_bake_budget_bytes.
     void make_shared_room(std::size_t incoming) noexcept;
@@ -853,8 +855,8 @@ private:
     // of the window's images are dropped first. A procedural pattern not
     // held is queued instead and not lent (E10). Returns the pattern
     // generation when a pattern was not lent, else none.
-    std::optional<std::uint64_t> lend_image_variants(const PartRasterRequest& request,
-                                                     std::uint64_t paint_sequence, LentImageVariants& lent);
+    stxlib::Optional<std::uint64_t> lend_image_variants(const PartRasterRequest& request,
+                                                        std::uint64_t paint_sequence, LentImageVariants& lent);
     // Counts a bake of `request` whose primitive asked for an image mask's
     // variant (image_mask_variant_layer) that `lent` does not hold: it was
     // drawn unmasked (E9.6).
@@ -901,7 +903,7 @@ private:
     // so lookups scan them. Made from the window's images at
     // image_variant_revision_ (none before the first).
     std::vector<HeldImageVariant> image_variants_;
-    std::optional<std::uint64_t> image_variant_revision_{};
+    stxlib::Optional<std::uint64_t> image_variant_revision_{};
     // Procedural patterns (E10) are held among image_variants_ (their
     // requests' `procedural` set) and are kept when the images or the
     // theme change. Patterns waiting for idle frames, oldest first; the

@@ -687,17 +687,17 @@ void EnginePartTable::bake_backplane_material(const SurfaceMaterial& material, c
     request.target.material = &material;
     request.target.images = images;
     LentImageVariants lent{};
-    const std::optional<std::uint64_t> awaited = lend_image_variants(request, paint_sequence, lent);
-    if (awaited) unrecorded_awaited_ = true;
+    const stxlib::Optional<std::uint64_t> awaited = lend_image_variants(request, paint_sequence, lent);
+    if (awaited.present()) unrecorded_awaited_ = true;
     request.target.variants = &lent;
     engine_primitives::bake_material_region(material, request.target, region.origin, image);
     count_image_mask_fallback(request, lent);
 }
 
-std::optional<std::uint64_t> EnginePartTable::lend_image_variants(const PartRasterRequest& request,
+stxlib::Optional<std::uint64_t> EnginePartTable::lend_image_variants(const PartRasterRequest& request,
                                                                   const std::uint64_t paint_sequence,
                                                                   LentImageVariants& lent) {
-    std::optional<std::uint64_t> awaited{};
+    stxlib::Optional<std::uint64_t> awaited{};
     std::array<ImageVariantRequest, maximum_image_variants> wanted{};
     const std::size_t asked_count = (*request.primitive).image_variants(request.parameters, request.target, wanted);
     const std::size_t count = std::min(asked_count, wanted.size());
@@ -705,9 +705,10 @@ std::optional<std::uint64_t> EnginePartTable::lend_image_variants(const PartRast
     const ImageRegistry* const images = request.target.images;
     if (images != nullptr) {
         const std::uint64_t revision = (*images).snapshot().revision;
-        if (!image_variant_revision_ || *image_variant_revision_ != revision) {
+        const std::uint64_t* const held_revision = image_variant_revision_.value();
+        if (held_revision == nullptr || *held_revision != revision) {
             clear_image_variants();
-            image_variant_revision_ = revision;
+            image_variant_revision_.set(revision);
         }
     }
     for (std::size_t index = 0U; index < count; ++index) {
@@ -733,7 +734,7 @@ std::optional<std::uint64_t> EnginePartTable::lend_image_variants(const PartRast
             // frame, and the fill draws its ground meanwhile.
             queue_pattern(asked);
             statistics_.procedural_placeholders = statistics_.procedural_placeholders + 1U;
-            awaited = pattern_generation_;
+            awaited.set(pattern_generation_);
             continue;
         }
         if (images == nullptr) continue;
@@ -804,7 +805,7 @@ PatternGeneration EnginePartTable::generate_pattern(const std::uint64_t paint_se
         // The shared bakes that drew a ground are no longer current.
         std::size_t index = 0U;
         while (index < shared_bakes_.size()) {
-            if (!shared_bakes_[index].cached.awaited_patterns) {
+            if (shared_bakes_[index].cached.awaited_patterns.absent()) {
                 index = index + 1U;
                 continue;
             }
@@ -828,8 +829,9 @@ bool EnginePartTable::patterns_waiting() const noexcept {
 }
 
 bool EnginePartTable::awaits_pattern(const CachedPartRaster& cached) const noexcept {
-    if (!cached.awaited_patterns) return false;
-    const bool stale = *cached.awaited_patterns != pattern_generation_;
+    const std::uint64_t* const awaited = cached.awaited_patterns.value();
+    if (awaited == nullptr) return false;
+    const bool stale = *awaited != pattern_generation_;
     return stale;
 }
 
@@ -990,7 +992,7 @@ void EnginePartTable::take_finish_tile_waiters(std::vector<PartRecordHandle>& wa
 
 std::shared_ptr<PartRaster> EnginePartTable::shared_bake(const PartRasterRequest& request,
                                                          const std::uint64_t paint_sequence, const bool refresh,
-                                                         const SharedUse use, std::optional<std::uint64_t>& awaited) {
+                                                         const SharedUse use, stxlib::Optional<std::uint64_t>& awaited) {
     awaited.reset();
     std::size_t found = shared_bakes_.size();
     for (std::size_t index = 0U; index < shared_bakes_.size(); ++index) {
@@ -1014,7 +1016,7 @@ std::shared_ptr<PartRaster> EnginePartTable::shared_bake(const PartRasterRequest
     if (!baked) return nullptr;
     // The image variants, lent for the bake.
     LentImageVariants lent{};
-    const std::optional<std::uint64_t> drew_ground = lend_image_variants(request, paint_sequence, lent);
+    const stxlib::Optional<std::uint64_t> drew_ground = lend_image_variants(request, paint_sequence, lent);
     PrimitiveTarget target = request.target;
     target.variants = &lent;
     PrimitivePreparation preparation{};
@@ -1110,7 +1112,7 @@ bool EnginePartTable::bake_idle_keyframe(const ImageRegistry* images, const std:
             if (answers(bake.cached, request)) held = true;
         }
         if (held) continue;
-        std::optional<std::uint64_t> awaited{};
+        stxlib::Optional<std::uint64_t> awaited{};
         static_cast<void>(shared_bake(request, paint_sequence, false, SharedUse::idle_keyframe, awaited));
         break;
     }
@@ -1125,7 +1127,7 @@ bool EnginePartTable::idle_keyframes_waiting() const noexcept {
 
 RasterOutcome EnginePartTable::draw(const PartRasterRequest& request, PrimitivePreparation& preparation,
                                     const PartRasterView& destination, const std::uint64_t paint_sequence,
-                                    const bool refresh, std::optional<std::uint64_t>& awaited) {
+                                    const bool refresh, stxlib::Optional<std::uint64_t>& awaited) {
     awaited.reset();
     const EnginePrimitive& primitive = *request.primitive;
     const PrimitiveSlicePlan plan = primitive.slice_plan(request.parameters, request.target, request.extent);
@@ -1174,13 +1176,13 @@ PartRasterResult EnginePartTable::raster_without_record(const PartRasterRequest&
     std::shared_ptr<PartRaster> storage = PartRaster::create(request.extent, request.target.scale);
     if (!storage) return PartRasterResult{nullptr, PartRasterStatus::refused};
     PrimitivePreparation preparation{};
-    std::optional<std::uint64_t> awaited{};
+    stxlib::Optional<std::uint64_t> awaited{};
     const RasterOutcome outcome = draw(request, preparation, (*storage).view(), paint_sequence, false, awaited);
     if (outcome != RasterOutcome::painted && outcome != RasterOutcome::empty) {
         return PartRasterResult{nullptr, PartRasterStatus::refused};
     }
     (*storage).record_opacity();
-    if (awaited) unrecorded_awaited_ = true;
+    if (awaited.present()) unrecorded_awaited_ = true;
     statistics_.uncached = statistics_.uncached + 1U;
     return PartRasterResult{storage, PartRasterStatus::uncached};
 }
@@ -1213,7 +1215,7 @@ PartRasterResult EnginePartTable::raster_for(const PartRecordHandle handle, cons
             shared_material = *request.target.material;
             if (request.target.images != nullptr) shared_revision = (*request.target.images).snapshot().revision;
         }
-        std::optional<std::uint64_t> awaited{};
+        stxlib::Optional<std::uint64_t> awaited{};
         const std::shared_ptr<PartRaster> held =
             shared_bake(request, paint_sequence, refresh, SharedUse::keyframe, awaited);
         if (!held) return PartRasterResult{nullptr, PartRasterStatus::refused};
@@ -1253,7 +1255,7 @@ PartRasterResult EnginePartTable::raster_for(const PartRecordHandle handle, cons
 
     // Draw, preparing again when the record's preparation is stale.
     const PartRasterView destination = (*storage).view();
-    std::optional<std::uint64_t> awaited{};
+    stxlib::Optional<std::uint64_t> awaited{};
     const RasterOutcome outcome = draw(request, part.preparation, destination, paint_sequence, refresh, awaited);
     if (outcome != RasterOutcome::painted && outcome != RasterOutcome::empty) {
         return PartRasterResult{nullptr, PartRasterStatus::refused};
