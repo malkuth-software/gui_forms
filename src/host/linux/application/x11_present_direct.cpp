@@ -1,4 +1,5 @@
 #include "x11_present_direct.hpp"
+#include "../services/x11_foreign_window.hpp"
 
 #if defined(GUI_FORMS_HAVE_XPRESENT) && defined(GUI_FORMS_HAVE_XSHM)
 #include <X11/Xutil.h>
@@ -28,6 +29,14 @@ int attach_error(Display *, XErrorEvent *) noexcept {
 constexpr std::size_t maximum_pixmap_bytes = 64U * 1024U * 1024U;
 
 } // namespace
+
+int x11_extension_opcode(Display *display, const char *name) noexcept {
+  int opcode = 0;
+  int event_base = 0;
+  int error_base = 0;
+  if (XQueryExtension(display, name, &opcode, &event_base, &error_base) == False) return -1;
+  return opcode;
+}
 
 bool x11_raster_layout(Display *display, Visual *visual, int depth) noexcept {
   if (visual == nullptr || (depth != 24 && depth != 32)) return false;
@@ -88,6 +97,9 @@ bool X11PresentPath::usable() {
   if (XShmPixmapFormat(display_) != ZPixmap) return false;
   if (x11_present_opcode(display_) < 0) return false;
   if (!x11_raster_layout(display_, visual_, depth_)) return false;
+  opcodes_[0] = x11_extension_opcode(display_, "MIT-SHM");
+  opcodes_[1] = x11_extension_opcode(display_, "Present");
+  opcodes_[2] = x11_extension_opcode(display_, "XFIXES");
   selection_ = XPresentSelectInput(display_, window_, PresentIdleNotifyMask);
   checked_ = Check::usable;
   return true;
@@ -125,8 +137,28 @@ bool X11PresentPath::make_slot(PixmapSlot &slot, presentation::PresentExtent ext
     delete segment;
     return false;
   }
-  slot.pixmap = XShmCreatePixmap(display_, window_, (*segment).shmaddr, segment, extent.width, extent.height,
-                                 static_cast<unsigned>(depth_));
+  // The pixmap is checked synchronously too: a refusal (BadAlloc,
+  // BadMatch) is absorbed here and refuses resources, instead of reaching
+  // Xlib's default handler later.
+  bool refused = false;
+  Pixmap pixmap = 0U;
+  {
+    ForeignWindowScope scope(display_, window_, std::span<const int>(opcodes_));
+    pixmap = XShmCreatePixmap(display_, window_, (*segment).shmaddr, segment, extent.width, extent.height,
+                              static_cast<unsigned>(depth_));
+    refused = scope.synchronize();
+    if (refused) {
+      if (pixmap != 0U) XFreePixmap(display_, pixmap);
+      XShmDetach(display_, segment);
+      static_cast<void>(scope.synchronize());
+    }
+  }
+  if (refused) {
+    shmdt((*segment).shmaddr);
+    delete segment;
+    return false;
+  }
+  slot.pixmap = pixmap;
   slot.segment = segment;
   slot.pixels = reinterpret_cast<std::byte *>((*segment).shmaddr);
   slot.row_bytes = row_bytes;
@@ -136,12 +168,16 @@ bool X11PresentPath::make_slot(PixmapSlot &slot, presentation::PresentExtent ext
 }
 
 void X11PresentPath::free_slot(PixmapSlot &slot) noexcept {
-  if (slot.pixmap != 0U) XFreePixmap(display_, slot.pixmap);
+  {
+    // After a loss the server may already have dropped the pixmap or the
+    // segment: those errors are absorbed. The scope's end waits until the
+    // server has detached, before this process unmaps the segment.
+    ForeignWindowScope scope(display_, window_, std::span<const int>(opcodes_));
+    if (slot.pixmap != 0U) XFreePixmap(display_, slot.pixmap);
+    if (slot.segment != nullptr) XShmDetach(display_, static_cast<XShmSegmentInfo *>(slot.segment));
+  }
   if (slot.segment != nullptr) {
     XShmSegmentInfo *segment = static_cast<XShmSegmentInfo *>(slot.segment);
-    XShmDetach(display_, segment);
-    // The server detaches before this process unmaps the segment.
-    XSync(display_, False);
     shmdt((*segment).shmaddr);
     delete segment;
   }
@@ -204,15 +240,25 @@ presentation::PresentOutcome X11PresentPath::present(std::span<const presentatio
     native.height = static_cast<unsigned short>(rect.bottom - rect.top);
     rectangles_.push_back(native);
   }
-  XserverRegion update = XFixesCreateRegion(display_, rectangles_.data(), static_cast<int>(rectangles_.size()));
   // Serial 0 means "not reading" in a slot: skip it.
   ++serial_;
   if (serial_ == 0U) ++serial_;
-  // As soon as possible (target MSC 0), no fences, no notifies.
-  XPresentPixmap(display_, window_, slot.pixmap, serial_, None, update, 0, 0, None, None, None, PresentOptionNone,
-                 0U, 0U, 0U, nullptr, 0);
-  XFixesDestroyRegion(display_, update);
-  XFlush(display_);
+  // The present's requests run inside a scope that absorbs their errors
+  // (a pixmap or window the server rejects, Present withdrawn) and waits
+  // for the server's answer: a rejected present is lost, and the shim
+  // presents the frame on the copy path. Other X errors are not absorbed.
+  bool rejected = false;
+  {
+    ForeignWindowScope scope(display_, window_, std::span<const int>(opcodes_));
+    XserverRegion update =
+        XFixesCreateRegion(display_, rectangles_.data(), static_cast<int>(rectangles_.size()));
+    // As soon as possible (target MSC 0), no fences, no notifies.
+    XPresentPixmap(display_, window_, slot.pixmap, serial_, None, update, 0, 0, None, None, None,
+                   PresentOptionNone, 0U, 0U, 0U, nullptr, 0);
+    XFixesDestroyRegion(display_, update);
+    rejected = scope.synchronize();
+  }
+  if (rejected) return presentation::PresentOutcome::lost;
   slot.reading = serial_;
   ++presents_;
   slot.shown_at = presents_;
@@ -239,6 +285,8 @@ int x11_present_opcode(Display *) noexcept { return -1; }
 bool read_x11_present_event(Display *, int, XEvent &, X11PresentEvent &) { return false; }
 
 bool x11_raster_layout(Display *, Visual *, int) noexcept { return false; }
+
+int x11_extension_opcode(Display *, const char *) noexcept { return -1; }
 
 X11PresentPath::X11PresentPath(Display *display, ::Window window, Visual *visual, int depth) noexcept
     : display_(display), window_(window), visual_(visual), depth_(depth) {}

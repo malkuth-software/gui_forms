@@ -15,7 +15,11 @@
 // byte, little-endian), or a 32-bit (ARGB) window presenting opaque, whose
 // alpha the copy path rewrites. Up to three pixmaps; all of them still read
 // by the server refuses busy; a segment that cannot be made refuses
-// resources. UI thread only, as every Xlib call of the host.
+// resources. A server error on one of the path's own requests (a pixmap
+// refused, a present rejected) is absorbed by a ForeignWindowScope round
+// those requests and becomes a refusal or a lost present, so the shim falls
+// back; every other X error still reaches the host's handler. UI thread
+// only, as every Xlib call of the host.
 #include "../../../core/host/presentation/presentation_shim.hpp"
 #include <X11/Xlib.h>
 #include <array>
@@ -47,6 +51,9 @@ struct X11PresentEvent final {
 // red, green and blue in bytes 2, 1 and 0, read little-endian by the
 // server, so the raster's BGRA rows are its rows unchanged.
 [[nodiscard]] bool x11_raster_layout(Display *display, Visual *visual, int depth) noexcept;
+// The major opcode of the extension `name` on `display`, or -1 without it:
+// what a ForeignWindowScope over a direct path's requests absorbs.
+[[nodiscard]] int x11_extension_opcode(Display *display, const char *name) noexcept;
 
 class X11PresentPath final : public presentation::PresentationDirectPath {
 public:
@@ -99,6 +106,9 @@ private:
   Check checked_{Check::unchecked};
   // The event selection made at the first acquire; 0 before.
   XID selection_{};
+  // MIT-SHM's, Present's and XFixes' major opcodes: the requests whose
+  // errors this path absorbs and maps to a fallback (A-gf-present-01-F1).
+  std::array<int, 3> opcodes_{-1, -1, -1};
   std::array<PixmapSlot, maximum_slots> slots_{};
   std::size_t count_{};
   presentation::PresentExtent extent_{};

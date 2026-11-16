@@ -880,6 +880,42 @@ void test_no_buffer_ready_falls_back_without_waiting() {
     require_trace_valid(trace, "no buffer ready");
 }
 
+// A server error the X11 paths absorb (A-gf-present-01-F1) reaches the shim
+// as a refusal (a pixmap refused while acquiring: resources) or a lost
+// present (a present rejected): either way the frame is presented by the
+// copy path in the same frame, with identical pixels.
+void test_refused_pixmap_or_present_falls_back() {
+    FakeCopyPath copy(16U, 16U, false);
+    PresentTrace trace{};
+    trace.set_enabled(true);
+    std::unique_ptr<FakeDirectPath> owned = std::make_unique<FakeDirectPath>(16U, 16U, 2U);
+    FakeDirectPath& direct = *owned;
+    PresentationShim shim(&copy, std::move(owned), &trace);
+    Image frame = make_image(16U, 16U, 0U);
+    paint_pattern(frame, 31U);
+    const std::array<PresentRect, 1> whole{rect(0, 0, 16, 16)};
+    // The pixmap is refused at the first acquire: nothing direct was shown.
+    direct.refusals.push_back(DirectRefusal::resources);
+    const PresentReport refused = shim.present(frame_of(frame, whole, {}));
+    require(refused.path == PresentPath::copy && refused.outcome == PresentOutcome::presented,
+            "a refused pixmap presents on the copy path");
+    require(same_pixels(copy.window, frame), "with identical pixels");
+    // After the pause the direct path presents, then a present is rejected.
+    for (std::uint32_t index = 0U; index + 1U < PresentationShim::retry_frames; ++index)
+        static_cast<void>(shim.present(frame_of(frame, whole, {})));
+    require(shim.present(frame_of(frame, whole, {})).path == PresentPath::direct, "direct again after the pause");
+    const std::array<PresentRect, 1> small{rect(5, 5, 9, 9)};
+    paint_rect(frame, small[0], std::byte{0x5a});
+    direct.outcomes.push_back(PresentOutcome::lost);
+    const PresentReport rejected = shim.present(frame_of(frame, small, {}));
+    require(rejected.path == PresentPath::copy && rejected.outcome == PresentOutcome::presented,
+            "a rejected present presents on the copy path in the same frame");
+    require(copy.last_rects.size() == 1U && copy.last_rects[0] == whole[0],
+            "the copy writes the whole frame after the direct path showed");
+    require(same_pixels(copy.window, frame), "with identical pixels");
+    require_trace_valid(trace, "refused pixmap or present");
+}
+
 void test_policy_from_environment() {
     // Only the default is checked: the variable is the process's, and a
     // test does not set it.
@@ -927,6 +963,7 @@ int main() {
         test_policy_from_environment();
         test_policy_list_words();
         test_no_buffer_ready_falls_back_without_waiting();
+        test_refused_pixmap_or_present_falls_back();
     } catch (const std::exception& error) {
         std::cerr << "presentation shim tests failed: " << error.what() << '\n';
         return EXIT_FAILURE;

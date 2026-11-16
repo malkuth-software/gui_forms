@@ -1,5 +1,6 @@
 #include "x11_dri3_present.hpp"
 #include "x11_present_direct.hpp"
+#include "../services/x11_foreign_window.hpp"
 
 #include <X11/Xlib-xcb.h>
 #include <X11/extensions/Xfixes.h>
@@ -56,6 +57,9 @@ bool X11Dri3Path::usable() {
   if (connection == nullptr) return false;
   const int descriptor = open_server_device(connection, window_);
   if (!gbm_device_open(descriptor, device_)) return false;
+  opcodes_[0] = x11_extension_opcode(display_, "DRI3");
+  opcodes_[1] = x11_extension_opcode(display_, "Present");
+  opcodes_[2] = x11_extension_opcode(display_, "XFIXES");
   selection_ = XPresentSelectInput(display_, window_, PresentIdleNotifyMask);
   checked_ = Check::usable;
   return true;
@@ -100,7 +104,11 @@ bool X11Dri3Path::make_slot(Dri3Slot &slot, presentation::PresentExtent extent) 
 }
 
 void X11Dri3Path::free_slot(Dri3Slot &slot) noexcept {
-  if (slot.pixmap != 0U) XFreePixmap(display_, slot.pixmap);
+  if (slot.pixmap != 0U) {
+    // After a loss the server may already have dropped the pixmap.
+    const ForeignWindowScope scope(display_, window_, std::span<const int>(opcodes_));
+    XFreePixmap(display_, slot.pixmap);
+  }
   // The server keeps its own reference to the dmabuf while it reads it.
   gbm_buffer_free(slot.buffer);
   slot = Dri3Slot{};
@@ -169,13 +177,21 @@ presentation::PresentOutcome X11Dri3Path::present(std::span<const presentation::
     native.height = static_cast<unsigned short>(rect.bottom - rect.top);
     rectangles_.push_back(native);
   }
-  XserverRegion update = XFixesCreateRegion(display_, rectangles_.data(), static_cast<int>(rectangles_.size()));
   ++serial_;
   if (serial_ == 0U) ++serial_;
-  XPresentPixmap(display_, window_, slot.pixmap, serial_, None, update, 0, 0, None, None, None, PresentOptionNone,
-                 0U, 0U, 0U, nullptr, 0);
-  XFixesDestroyRegion(display_, update);
-  XFlush(display_);
+  // As the Present path: the present's requests inside a scope that absorbs
+  // their errors and waits for the server's answer; a rejection is lost.
+  bool rejected = false;
+  {
+    ForeignWindowScope scope(display_, window_, std::span<const int>(opcodes_));
+    XserverRegion update =
+        XFixesCreateRegion(display_, rectangles_.data(), static_cast<int>(rectangles_.size()));
+    XPresentPixmap(display_, window_, slot.pixmap, serial_, None, update, 0, 0, None, None, None,
+                   PresentOptionNone, 0U, 0U, 0U, nullptr, 0);
+    XFixesDestroyRegion(display_, update);
+    rejected = scope.synchronize();
+  }
+  if (rejected) return presentation::PresentOutcome::lost;
   if (xcb_connection_has_error(XGetXCBConnection(display_)) != 0) return presentation::PresentOutcome::lost;
   slot.reading = serial_;
   ++presents_;

@@ -15,7 +15,10 @@
 // window presenting opaque, are unsupported for the window's life; every
 // pixmap still read by the server is busy (PresentIdleNotify frees one); a
 // buffer or pixmap that cannot be made is resources; a mapping that fails
-// or a broken connection is lost. Up to three buffers. UI thread only.
+// or a broken connection is lost; a present the server rejects is absorbed
+// by a ForeignWindowScope round the present's requests and is lost too
+// (other X errors still reach the host's handler). Up to three buffers. UI
+// thread only.
 #include "../gbm/gbm_buffer.hpp"
 #include "../../../core/host/presentation/presentation_shim.hpp"
 #include <X11/Xlib.h>
@@ -72,6 +75,9 @@ private:
   Check checked_{Check::unchecked};
   GbmDevice device_{};
   XID selection_{};
+  // DRI3's, Present's and XFixes' major opcodes: the requests whose errors
+  // this path absorbs and maps to a fallback (A-gf-present-01-F1).
+  std::array<int, 3> opcodes_{-1, -1, -1};
   std::array<Dri3Slot, maximum_slots> slots_{};
   std::size_t count_{};
   presentation::PresentExtent extent_{};
