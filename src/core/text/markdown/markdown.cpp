@@ -971,7 +971,7 @@ MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& do
     const std::stop_callback<RequestTapeStop> stop_bridge(cancellation, RequestTapeStop{&tape_stop});
     stxlib::markdown::Document tape{};
     const stxlib::View<char> tape_source(source.data(), source.size());
-    const stxlib::Status status = stxlib::markdown::parse(tape_source, options, tape_limits, tape, &tape_stop);
+    const stxlib::OperationStatus status = stxlib::markdown::parse(tape_source, options, tape_limits, tape, &tape_stop);
     if (status.failed()) {
         // interrupted is the token's stop; a reader limit or its allocation
         // failure is a limit, as MarkdownParseError says.

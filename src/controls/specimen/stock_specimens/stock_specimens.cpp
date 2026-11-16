@@ -1622,15 +1622,15 @@ StockSpecimenInstance make_ribbon(const StockSpecimen&, StableId id) {
     clipboard.caption = "Clipboard";
     clipboard.dialog_launcher = true;
     clipboard.commands.push_back(ribbon_button("paste", "Paste", RibbonCommandSize::large, RibbonCommandKind::button));
-    clipboard.commands.push_back(ribbon_button("cut", "Cut", RibbonCommandSize::small, RibbonCommandKind::button));
-    clipboard.commands.push_back(ribbon_button("copy", "Copy", RibbonCommandSize::small, RibbonCommandKind::button));
+    clipboard.commands.push_back(ribbon_button("cut", "Cut", RibbonCommandSize::compact, RibbonCommandKind::button));
+    clipboard.commands.push_back(ribbon_button("copy", "Copy", RibbonCommandSize::compact, RibbonCommandKind::button));
     RibbonGroupSpec format{};
     format.stable_id = "format";
     format.caption = "Format";
-    format.commands.push_back(ribbon_button("bold", "Bold", RibbonCommandSize::small, RibbonCommandKind::toggle));
-    format.commands.push_back(ribbon_button("italic", "Italic", RibbonCommandSize::small, RibbonCommandKind::toggle));
+    format.commands.push_back(ribbon_button("bold", "Bold", RibbonCommandSize::compact, RibbonCommandKind::toggle));
+    format.commands.push_back(ribbon_button("italic", "Italic", RibbonCommandSize::compact, RibbonCommandKind::toggle));
     format.commands.push_back(
-        ribbon_button("underline", "Underline", RibbonCommandSize::small, RibbonCommandKind::toggle));
+        ribbon_button("underline", "Underline", RibbonCommandSize::compact, RibbonCommandKind::toggle));
     RibbonGroupSpec theme{};
     theme.stable_id = "theme";
     theme.caption = "Theme";

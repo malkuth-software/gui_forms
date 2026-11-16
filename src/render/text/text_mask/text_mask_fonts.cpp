@@ -76,7 +76,7 @@ NativeFonts::NativeFonts(const MaskKey& key) : raster(mask_face_pool(key)), rast
         const double units = static_cast<double>((*font).units_per_em);
         face.ascent = std::max(0.0, static_cast<double>((*font).ascender) * logical_size / units);
         face.descent = std::max(0.0, -static_cast<double>((*font).descender) * logical_size / units);
-        const stxlib::Status opened = face.shaper.open(shared);
+        const stxlib::OperationStatus opened = face.shaper.open(shared);
         if (opened.failed()) throw std::bad_alloc{};
         // The raster's face over the same typeface, unless an earlier job opened it in this
         // leased set.
@@ -96,12 +96,12 @@ bool NativeFonts::covers(const std::size_t face, const std::string_view cluster)
     std::size_t offset = 0;
     while (offset < cluster.size()) {
         const std::uint32_t scalar = decode_scalar(cluster, offset);
-        const stxlib::Status pushed = coverage_characters.push_copy(scalar);
+        const stxlib::OperationStatus pushed = coverage_characters.push_copy(scalar);
         if (pushed.failed()) throw std::bad_alloc{};
     }
     stxlib::glyphs::TextRun run{};
     run.characters = coverage_characters.view();
-    const stxlib::Status shaped = candidate.shaper.shape(run, coverage_glyphs);
+    const stxlib::OperationStatus shaped = candidate.shaper.shape(run, coverage_glyphs);
     if (shaped.failed()) throw NativeFailure(TextMaskStatus::native_failure);
     for (const stxlib::glyphs::ShapedGlyph& glyph : coverage_glyphs) {
         if (glyph.glyph == 0) return false;

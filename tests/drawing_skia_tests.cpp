@@ -955,8 +955,8 @@ void laid_out_text_aligns_trims_and_clips() {
     StringFormat near;
     const RectF at_near = laid_out_ink(executor, font, "Name", wide, near);
     StringFormat far;
-    far.set_alignment(StringAlignment::far);
-    far.set_line_alignment(StringAlignment::far);
+    far.set_alignment(StringAlignment::end);
+    far.set_line_alignment(StringAlignment::end);
     const RectF at_far = laid_out_ink(executor, font, "Name", wide, far);
     CHECK(at_near.width > 0.0 && at_near.x >= 20.0 && at_near.x < 30.0);
     CHECK(at_far.x + at_far.width <= 220.0 && at_far.x + at_far.width > 205.0);

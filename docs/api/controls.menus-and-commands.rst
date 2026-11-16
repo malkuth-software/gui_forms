@@ -237,7 +237,7 @@ Related types
    * - :cpp:class:`RibbonGalleryVisibleRowsCapability <gui_forms::RibbonGalleryVisibleRowsCapability>`
      - In-ribbon form: the rows shown (1 to 8).
    * - :cpp:class:`RibbonGroupLayout <gui_forms::RibbonGroupLayout>`
-     - One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many small commands stack in a column.
+     - One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many compact commands stack in a column.
    * - :cpp:class:`RibbonGroupSpec <gui_forms::RibbonGroupSpec>`
      - A group of commands on a tab, with a caption beneath and, when ``dialog_launcher`` is set, a launcher button in the caption's corner.
    * - :cpp:class:`RibbonHelpButtonVisibleCapability <gui_forms::RibbonHelpButtonVisibleCapability>`
@@ -1425,7 +1425,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon.hpp>``
 
-   One command record. ``stable_id`` is unique within the ribbon (across tabs, groups and commands) and names the command in events, semantics and the published anatomy. A button, toggle or split takes its text (when ``text`` is empty), enabled, visible and checked state from its required ``command``, and runs it on a click; a drop-down's command is optional. ``text`` may carry a mnemonic ("&Paste"). Labels are always shown (owner decision 6); a small command with an image may leave its label out (``show_label`` false: an authored icon-only command, decision 30). ``drop_down`` is the menu of a split or drop-down command. A hosted command's ``text`` is its control's accessible name (and a check box's caption); ``choices`` are a combo box's items and ``width`` its field's width in logical units (zero for the default). A text box or numeric up-down also shows its ``text`` as a label part (Office's field label): at the field's left when its group stacks rows, above the field when the group's layout has one row; ``show_label`` false leaves an unlabelled field. A gallery command's ``gallery`` is an in-ribbon RibbonGallery the application made and configured; the ribbon adds it as its child and sets its column count. A font control's ``font_control`` and a colour picker's ``color_picker`` are, likewise, the application's controls, which the ribbon adds and places on one row. ``beside_previous`` places a small or hosted command in the previous command's row, to its right, instead of in a row of its own (the Windows Ribbon Framework's control groups, which stay together in a row): Save over Undo and Redo is Save, then Undo, then Redo beside Undo. A row of commands side by side counts as one of the layout's rows, and the column is as wide as its widest row. It is ignored where the command, or the one before it, is large or a gallery in the layout in force; the group's first command may not set it.
+   One command record. ``stable_id`` is unique within the ribbon (across tabs, groups and commands) and names the command in events, semantics and the published anatomy. A button, toggle or split takes its text (when ``text`` is empty), enabled, visible and checked state from its required ``command``, and runs it on a click; a drop-down's command is optional. ``text`` may carry a mnemonic ("&Paste"). Labels are always shown (owner decision 6); a compact command with an image may leave its label out (``show_label`` false: an authored icon-only command, decision 30). ``drop_down`` is the menu of a split or drop-down command. A hosted command's ``text`` is its control's accessible name (and a check box's caption); ``choices`` are a combo box's items and ``width`` its field's width in logical units (zero for the default). A text box or numeric up-down also shows its ``text`` as a label part (Office's field label): at the field's left when its group stacks rows, above the field when the group's layout has one row; ``show_label`` false leaves an unlabelled field. A gallery command's ``gallery`` is an in-ribbon RibbonGallery the application made and configured; the ribbon adds it as its child and sets its column count. A font control's ``font_control`` and a colour picker's ``color_picker`` are, likewise, the application's controls, which the ribbon adds and places on one row. ``beside_previous`` places a compact or hosted command in the previous command's row, to its right, instead of in a row of its own (the Windows Ribbon Framework's control groups, which stay together in a row): Save over Undo and Redo is Save, then Undo, then Redo beside Undo. A row of commands side by side counts as one of the layout's rows, and the column is as wide as its widest row. It is ignored where the command, or the one before it, is large or a gallery in the layout in force; the group's first command may not set it.
 
    .. cpp:member:: std::string stable_id
 
@@ -1859,7 +1859,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon.hpp>``
 
-   One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many small commands stack in a column. Labels never drop (decision 6), so a layout only changes image sizes and rows. ``command_sizes`` holds one size per command of the group, in command order, or is empty for the commands' own sizes (``RibbonCommandSpec::size``); entries for hosted and gallery commands are ignored. A collapsed layout has no sizes. ``rows`` (1 to 3) is the number of small and hosted command rows per column. The rows stand from the top of the plane at the three-row pitch, so a column of one or two rows aligns with the tops of the large commands beside it rather than centring in the plane.
+   One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many compact commands stack in a column. Labels never drop (decision 6), so a layout only changes image sizes and rows. ``command_sizes`` holds one size per command of the group, in command order, or is empty for the commands' own sizes (``RibbonCommandSpec::size``); entries for hosted and gallery commands are ignored. A collapsed layout has no sizes. ``rows`` (1 to 3) is the number of compact and hosted command rows per column. The rows stand from the top of the plane at the three-row pitch, so a column of one or two rows aligns with the tops of the large commands beside it rather than centring in the plane.
 
    .. cpp:member:: RibbonGroupSize size
 
@@ -2874,7 +2874,7 @@ Enumerations
 
    .. cpp:enumerator:: large
 
-   .. cpp:enumerator:: small
+   .. cpp:enumerator:: compact
 
 .. cpp:namespace:: gui_forms
 
@@ -2896,7 +2896,7 @@ Enumerations
 
    .. cpp:enumerator:: medium
 
-   .. cpp:enumerator:: small
+   .. cpp:enumerator:: compact
 
    .. cpp:enumerator:: collapsed
 

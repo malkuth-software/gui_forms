@@ -66,7 +66,7 @@ void ReusableShapeWorkspace::reserve(const std::size_t text_bytes) {
     ShapeScratch scratch{};
     scratch.characters.reserve(text_bytes);
     scratch.clusters.reserve(text_bytes);
-    const stxlib::Status glyph_room = scratch.glyphs.reserve(scratch_glyphs);
+    const stxlib::OperationStatus glyph_room = scratch.glyphs.reserve(scratch_glyphs);
     if (glyph_room.failed()) throw std::bad_alloc();
     // Nothing below throws.
     graphemes_ = std::move(graphemes);

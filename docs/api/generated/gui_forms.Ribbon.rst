@@ -293,16 +293,16 @@ gui_forms::Ribbon
 
    A large command shows a 32-unit icon over its label and fills the group's
    height; small and hosted commands take one of three rows, stacked in
-   columns. Labels are shown at every size (decision 6); a small command with an
+   columns. Labels are shown at every size (decision 6); a compact command with an
    image may be authored icon-only (decision 30). A large split's face is its
    icon, and its arrow is the label and glyph beneath; a small split's arrow is
    the zone at its right end.
 
    Scaling (the WPF/MFC model, owner decision 5). Each group has layouts
    (:cpp:class:`RibbonGroupLayout <gui_forms::RibbonGroupLayout>`: a size, large, medium, small or collapsed, the image
-   size of each command and the small commands per column, 1 to 3). A group
+   size of each command and the compact commands per column, 1 to 3). A group
    that authors none gets generated layouts: its commands' own sizes, then, one
-   layout per step, the rightmost run of up to three large commands made small,
+   layout per step, the rightmost run of up to three large commands made compact,
    then collapsed, except a group of one command, which never shrinks. Labels
    never drop (decision 6). A tab's reduction ladder starts with every group at
    its largest layout and its gallery at its most columns; each step shrinks one
@@ -438,7 +438,7 @@ gui_forms::Ribbon
       std::shared_ptr<gf::Ribbon> ribbon = gf::make_control<gf::Ribbon>(gf::StableId("main.ribbon"));
       gf::RibbonGroupSpec clipboard{.stable_id = "clipboard", .caption = "Clipboard", .dialog_launcher = true};
       clipboard.commands.push_back({.stable_id = "paste", .command = paste});
-      clipboard.commands.push_back({.stable_id = "copy", .size = gf::RibbonCommandSize::small, .command = paste});
+      clipboard.commands.push_back({.stable_id = "copy", .size = gf::RibbonCommandSize::compact, .command = paste});
       clipboard.layouts = {{.size = gf::RibbonGroupSize::large}, {.size = gf::RibbonGroupSize::collapsed}};
       gf::RibbonTabSpec home{.stable_id = "home", .text = "&Home"};
       home.groups.push_back(std::move(clipboard));

@@ -27,7 +27,7 @@ namespace {
 std::shared_ptr<const PropertyEnumDescriptor> numeric_text_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "horizontal_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
+            "horizontal_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }
 
@@ -912,7 +912,7 @@ void NumericUpDown::written(const decltype(thousands_separator)&) {
 
 void NumericUpDown::prepare_write(const decltype(text_alignment)&, HorizontalAlignment& incoming) {
     require_mutable();
-    if (incoming > HorizontalAlignment::far) {
+    if (incoming > HorizontalAlignment::end) {
         throw std::invalid_argument("NumericUpDown text alignment is unknown");
     }
 }

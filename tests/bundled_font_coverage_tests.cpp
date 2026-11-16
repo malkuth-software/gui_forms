@@ -47,7 +47,7 @@ class Face final {
 public:
     explicit Face(const std::vector<unsigned char>& bytes) {
         const stxlib::View<stxlib::u8> view(bytes.data(), bytes.size());
-        const stxlib::Status opened = stxlib::glyphs::open_font(view, 0U, font_);
+        const stxlib::OperationStatus opened = stxlib::glyphs::open_font(view, 0U, font_);
         open_ = opened.succeeded() && font_.character_map.length != 0U &&
                 font_.character_map_kind == stxlib::glyphs::character_map_unicode;
     }

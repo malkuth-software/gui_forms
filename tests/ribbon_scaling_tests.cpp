@@ -112,19 +112,19 @@ RibbonCommandSpec large_button(const std::string& id, const std::string& text, s
 }
 
 RibbonCommandSpec small_button(const std::string& id, const std::string& text, std::uint32_t image = 1U) {
-    RibbonCommandSpec spec{.stable_id = id, .size = RibbonCommandSize::small, .command = command(id, text),
+    RibbonCommandSpec spec{.stable_id = id, .size = RibbonCommandSize::compact, .command = command(id, text),
                            .image = ImageId{image}};
     return spec;
 }
 
 RibbonCommandSpec icon_toggle(const std::string& id, const std::string& text, std::uint32_t image = 2U) {
-    RibbonCommandSpec spec{.stable_id = id, .kind = RibbonCommandKind::toggle, .size = RibbonCommandSize::small,
+    RibbonCommandSpec spec{.stable_id = id, .kind = RibbonCommandKind::toggle, .size = RibbonCommandSize::compact,
                            .command = command(id, text), .image = ImageId{image}, .show_label = false};
     return spec;
 }
 
 RibbonCommandSpec icon_menu(const std::string& id, const std::string& text) {
-    RibbonCommandSpec spec{.stable_id = id, .kind = RibbonCommandKind::drop_down, .size = RibbonCommandSize::small,
+    RibbonCommandSpec spec{.stable_id = id, .kind = RibbonCommandKind::drop_down, .size = RibbonCommandSize::compact,
                            .text = text, .image = ImageId{3U}, .show_label = false,
                            .drop_down = {MenuItemSpec(id + ".item", MenuItemKind::command, command(id + ".c", "Item"),
                                                       "Item")}};
@@ -205,7 +205,7 @@ RibbonTabSpec wordpad_view() {
     zoom.commands.push_back(large_button("zoom-out", "Zoom out", 41U));
     zoom.commands.push_back(large_button("zoom-100", "100%", 42U));
     RibbonGroupLayout medium = layout_of(RibbonGroupSize::medium);
-    medium.command_sizes = {RibbonCommandSize::small, RibbonCommandSize::small, RibbonCommandSize::small};
+    medium.command_sizes = {RibbonCommandSize::compact, RibbonCommandSize::compact, RibbonCommandSize::compact};
     zoom.layouts = {layout_of(RibbonGroupSize::large), medium, layout_of(RibbonGroupSize::collapsed)};
     RibbonGroupSpec show{.stable_id = "show-hide", .caption = "Show or hide"};
     show.commands.push_back({.stable_id = "ruler", .kind = RibbonCommandKind::check_box, .text = "Ruler"});
@@ -246,7 +246,7 @@ RibbonTabSpec three_groups(std::vector<RibbonReductionStep> order) {
 const char* size_name(RibbonGroupSize size) {
     if (size == RibbonGroupSize::large) return "large";
     if (size == RibbonGroupSize::medium) return "medium";
-    if (size == RibbonGroupSize::small) return "small";
+    if (size == RibbonGroupSize::compact) return "small";
     return "collapsed";
 }
 
@@ -364,19 +364,19 @@ void generated_layouts() {
     const std::span<const RibbonGroupLayout> three = ribbon.group_layouts(0U, 0U);
     require(three.size() == 3U && three[0].size == RibbonGroupSize::large &&
                 three[1].size == RibbonGroupSize::medium && three[1].command_sizes.size() == 3U &&
-                three[1].command_sizes[0] == RibbonCommandSize::small &&
+                three[1].command_sizes[0] == RibbonCommandSize::compact &&
                 three[2].size == RibbonGroupSize::collapsed,
             "three large commands generate large, medium (all small) and collapsed layouts");
     const std::span<const RibbonGroupLayout> mixed_layouts = ribbon.group_layouts(0U, 3U);
     // Alpha L, Beta S, Gamma to Zeta L: Delta to Zeta shrink first, then
     // Gamma (its run stops at the small Beta), then Alpha, then collapsed.
     require(mixed_layouts.size() == 5U && mixed_layouts[1].command_sizes[2] == RibbonCommandSize::large &&
-                mixed_layouts[1].command_sizes[3] == RibbonCommandSize::small &&
-                mixed_layouts[1].command_sizes[5] == RibbonCommandSize::small &&
-                mixed_layouts[2].size == RibbonGroupSize::small &&
+                mixed_layouts[1].command_sizes[3] == RibbonCommandSize::compact &&
+                mixed_layouts[1].command_sizes[5] == RibbonCommandSize::compact &&
+                mixed_layouts[2].size == RibbonGroupSize::compact &&
                 mixed_layouts[2].command_sizes[0] == RibbonCommandSize::large &&
-                mixed_layouts[2].command_sizes[2] == RibbonCommandSize::small &&
-                mixed_layouts[3].command_sizes[0] == RibbonCommandSize::small &&
+                mixed_layouts[2].command_sizes[2] == RibbonCommandSize::compact &&
+                mixed_layouts[3].command_sizes[0] == RibbonCommandSize::compact &&
                 mixed_layouts[4].size == RibbonGroupSize::collapsed,
             "the rightmost run of up to three large commands shrinks first, then the next run");
     const std::span<const RibbonGroupLayout> single_layouts = ribbon.group_layouts(0U, 4U);
@@ -487,7 +487,7 @@ void refusals() {
     std::vector<RibbonTabSpec> count;
     count.push_back(three_groups({}));
     RibbonGroupLayout short_sizes = layout_of(RibbonGroupSize::medium);
-    short_sizes.command_sizes = {RibbonCommandSize::small};
+    short_sizes.command_sizes = {RibbonCommandSize::compact};
     count[0].groups[0].layouts = {layout_of(RibbonGroupSize::large), short_sizes};
     require(refused(ribbon, std::move(count)), "a layout without one size per command is refused");
     std::vector<RibbonTabSpec> rows;

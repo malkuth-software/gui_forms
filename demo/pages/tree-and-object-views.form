@@ -90,7 +90,7 @@
         text="Click a header to sort each folder's children; drag a header to move its column or a divider to resize. Left and Right collapse and expand; * expands a whole folder."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="680 36 228 140"/>
   </scaled-group-box>
 
@@ -106,7 +106,7 @@
         text="Every row starts at an estimated height and is measured when it first comes near the view; the rows on screen keep their place while those above are measured. Up, Down, Page Up, Page Down, Home and End move the selection; Enter activates it."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="680 36 228 200"/>
   </scaled-group-box>
 

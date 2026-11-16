@@ -208,7 +208,7 @@ void test_range_events_checkbox_and_spinner() {
 
 void test_overlay_keyboard_commit_cancel_and_outside_dismissal() {
     Fixture fixture;
-    (*fixture.picker).drop_down_alignment = DateTimeDropDownAlignment::right;
+    (*fixture.picker).drop_down_alignment = DateTimeDropDownAlignment::end;
     std::vector<std::string> events;
     SubscriptionToken values = (*fixture.picker).value_changed().subscribe(
         test_support::PushConstant<std::vector<std::string>, std::string,
@@ -242,7 +242,7 @@ void test_overlay_keyboard_commit_cancel_and_outside_dismissal() {
     }
     require(invalid_alignment &&
                 (*fixture.picker).drop_down_alignment.read() ==
-                    DateTimeDropDownAlignment::right,
+                    DateTimeDropDownAlignment::end,
             "DateTimePicker overlay alignment must reject invalid vocabulary transactionally");
     require(fixture.window.dispatch_key({KeyAction::down, PhysicalKey::right}) &&
                 fixture.window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&

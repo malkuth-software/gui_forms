@@ -95,25 +95,25 @@ void count_held_change(const std::size_t before, const std::size_t after) noexce
 }
 
 // STXlib's typeface of face `face_index` of `bytes`, or its failure.
-[[nodiscard]] stxlib::Result<stxlib::Shared<stxlib::glyphs::Typeface>> open_stxlib_typeface(
+[[nodiscard]] stxlib::OperationResult<stxlib::Shared<stxlib::glyphs::Typeface>> open_stxlib_typeface(
     const std::span<const std::byte> bytes, const std::uint32_t face_index, const TypefaceByteLimits& limits) noexcept {
     stxlib::glyphs::TypefaceLimits typeface_limits{};
     typeface_limits.store.kept_bytes = static_cast<stxlib::usize>(limits.kept_glyph_bytes);
     typeface_limits.store.recent_bytes = static_cast<stxlib::usize>(limits.recent_glyph_bytes);
-    stxlib::Result<stxlib::Shared<stxlib::glyphs::Typeface>> opened =
+    stxlib::OperationResult<stxlib::Shared<stxlib::glyphs::Typeface>> opened =
         stxlib::glyphs::open_typeface(platform::stxlib_bytes(bytes), face_index, typeface_limits);
     return opened;
 }
 
-[[nodiscard]] stxlib::Status disposed_face() noexcept {
-    const stxlib::Status failure =
-        stxlib::Status::failure(stxlib::ErrorRecord::make(stxlib::ErrorKind::disposed, "gf.text.executor_face.draw"));
+[[nodiscard]] stxlib::OperationStatus disposed_face() noexcept {
+    const stxlib::OperationStatus failure =
+        stxlib::OperationStatus::failure(stxlib::ErrorRecord::make(stxlib::ErrorKind::disposed, "gf.text.executor_face.draw"));
     return failure;
 }
 
-[[nodiscard]] stxlib::Status retired_face() noexcept {
-    const stxlib::Status failure =
-        stxlib::Status::failure(stxlib::ErrorRecord::make(stxlib::ErrorKind::revoked, "gf.text.executor_face.draw"));
+[[nodiscard]] stxlib::OperationStatus retired_face() noexcept {
+    const stxlib::OperationStatus failure =
+        stxlib::OperationStatus::failure(stxlib::ErrorRecord::make(stxlib::ErrorKind::revoked, "gf.text.executor_face.draw"));
     return failure;
 }
 
@@ -158,7 +158,7 @@ std::unique_ptr<ProgramTypeface> open_program_typeface(const std::span<const std
                                                        const TypefaceByteLimits& limits) {
     std::unique_ptr<ProgramTypeface> result{};
     if (bytes.empty()) return result;
-    stxlib::Result<stxlib::Shared<stxlib::glyphs::Typeface>> opened = open_stxlib_typeface(bytes, face_index, limits);
+    stxlib::OperationResult<stxlib::Shared<stxlib::glyphs::Typeface>> opened = open_stxlib_typeface(bytes, face_index, limits);
     if (opened.failed()) return result;
     stxlib::Shared<stxlib::glyphs::Typeface> typeface = std::move(opened).take_value();
     result = std::make_unique<ProgramTypeface>(std::shared_ptr<const void>{}, std::move(typeface));
@@ -200,7 +200,7 @@ TypefaceBorrow program_typeface(const std::span<const std::byte> bytes, std::sha
     }
     result = find_locked(table, bytes, face_index, nullptr);
     if (result.typeface != nullptr) return result;
-    stxlib::Result<stxlib::Shared<stxlib::glyphs::Typeface>> opened = open_stxlib_typeface(bytes, face_index, limits);
+    stxlib::OperationResult<stxlib::Shared<stxlib::glyphs::Typeface>> opened = open_stxlib_typeface(bytes, face_index, limits);
     if (opened.failed()) return result;
     stxlib::Shared<stxlib::glyphs::Typeface> typeface = std::move(opened).take_value();
     // Room for the entry first, so that a failure leaves the table as it was.
@@ -239,7 +239,7 @@ bool ExecutorFace::open(TypefaceBorrow borrow, const FaceByteLimits& limits) {
     face_limits.fitted_bytes = static_cast<stxlib::usize>(limits.fitted_bytes);
     face_limits.mask.width = limits.mask_width;
     face_limits.mask.height = limits.mask_height;
-    const stxlib::Status opened = face_.open((*borrow.typeface).typeface(), face_limits);
+    const stxlib::OperationStatus opened = face_.open((*borrow.typeface).typeface(), face_limits);
     if (opened.failed()) {
         face_.release();
         return false;
@@ -257,29 +257,29 @@ bool ExecutorFace::is_open() const noexcept {
 
 const stxlib::glyphs::Font* ExecutorFace::font() const noexcept { return face_.font(); }
 
-stxlib::Status ExecutorFace::admit() noexcept {
+stxlib::OperationStatus ExecutorFace::admit() noexcept {
     if (typeface_ == nullptr) return disposed_face();
     if ((*typeface_).retired()) {
         release();
         return retired_face();
     }
-    return stxlib::Status::success();
+    return stxlib::OperationStatus::success();
 }
 
-stxlib::Status ExecutorFace::measure_run(const stxlib::View<stxlib::glyphs::RunGlyph> glyphs,
+stxlib::OperationStatus ExecutorFace::measure_run(const stxlib::View<stxlib::glyphs::RunGlyph> glyphs,
                                          const stxlib::glyphs::DrawStyle& style, stxlib::glyphs::RunBox& box) {
-    const stxlib::Status admitted = admit();
+    const stxlib::OperationStatus admitted = admit();
     if (admitted.failed()) return admitted;
-    const stxlib::Status measured = face_.measure_run(glyphs, style, box);
+    const stxlib::OperationStatus measured = face_.measure_run(glyphs, style, box);
     account();
     return measured;
 }
 
-stxlib::Status ExecutorFace::draw_run(const stxlib::View<stxlib::glyphs::RunGlyph> glyphs,
+stxlib::OperationStatus ExecutorFace::draw_run(const stxlib::View<stxlib::glyphs::RunGlyph> glyphs,
                                       const stxlib::glyphs::DrawStyle& style, stxlib::glyphs::RunCoverage& coverage) {
-    const stxlib::Status admitted = admit();
+    const stxlib::OperationStatus admitted = admit();
     if (admitted.failed()) return admitted;
-    const stxlib::Status drawn = face_.draw_run(glyphs, style, coverage);
+    const stxlib::OperationStatus drawn = face_.draw_run(glyphs, style, coverage);
     account();
     return drawn;
 }

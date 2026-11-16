@@ -1061,7 +1061,7 @@ struct ResolvedFont final {
 // lower-cased for comparison; empty when it has none.
 [[nodiscard]] std::string lower_family_name(const stxlib::glyphs::Font& font) {
     stxlib::Vector<char> text{};
-    const stxlib::Status read = stxlib::glyphs::family_name(font, text);
+    const stxlib::OperationStatus read = stxlib::glyphs::family_name(font, text);
     if (read.failed()) throw std::bad_alloc();
     std::string name{};
     name.reserve(static_cast<std::size_t>(text.count()));
@@ -1174,7 +1174,7 @@ public:
         const stxlib::u32 count = std::min<stxlib::u32>(stxlib::glyphs::face_count(encoded), 64U);
         for (stxlib::u32 index = 0; index < count; ++index) {
             stxlib::glyphs::Font font{};
-            const stxlib::Status opened = stxlib::glyphs::open_font(encoded, index, font);
+            const stxlib::OperationStatus opened = stxlib::glyphs::open_font(encoded, index, font);
             if (opened.failed() || font.outlines == stxlib::glyphs::OutlineKind::none) continue;
             const bool exact_family = lower_family_name(font) == requested_family;
             const int weight_distance = std::abs(face_weight(font) - requested_weight);
@@ -1350,7 +1350,7 @@ void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
         const double block = line_height * static_cast<double>(lines);
         top = box.y;
         if (command.format.line_alignment == StringAlignment::center) top = box.y + (box.height - block) / 2.0;
-        if (command.format.line_alignment == StringAlignment::far) top = box.y + box.height - block;
+        if (command.format.line_alignment == StringAlignment::end) top = box.y + box.height - block;
     }
     const double first_baseline = top + font.metrics.ascent * size + overhang;
     const gui_forms::detail::TextCompositeClip clip{clip_rect};
@@ -1370,10 +1370,10 @@ void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
             double x = command.first.x + overhang;
             if (laid_out) {
                 if (command.format.alignment == StringAlignment::center) x = box.x + (box.width - shaped.width) / 2.0;
-                if (command.format.alignment == StringAlignment::far) x = box.x + box.width - overhang - shaped.width;
+                if (command.format.alignment == StringAlignment::end) x = box.x + box.width - overhang - shaped.width;
             } else {
                 if (command.format.alignment == StringAlignment::center) x -= shaped.width / 2.0;
-                if (command.format.alignment == StringAlignment::far) x -= shaped.width;
+                if (command.format.alignment == StringAlignment::end) x -= shaped.width;
             }
             const double y = first_baseline + line_height * static_cast<double>(line_index);
             const double device_x = matrix.m11() * x + matrix.m21() * y + matrix.dx();

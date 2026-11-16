@@ -25,7 +25,7 @@ namespace {
 // (stxlib::glyphs::font_name); empty when the font has none.
 std::string face_name(const stxlib::glyphs::Font& font, const stxlib::u32 name_id) {
     stxlib::Vector<char> text{};
-    const stxlib::Status read = stxlib::glyphs::font_name(font, name_id, text);
+    const stxlib::OperationStatus read = stxlib::glyphs::font_name(font, name_id, text);
     if (read.failed()) throw std::bad_alloc();
     std::string name{};
     name.reserve(static_cast<std::size_t>(text.count()));
@@ -175,7 +175,7 @@ FaceMeasurement measure_face(std::string_view file_name, std::span<const std::by
     {
         const stxlib::View<stxlib::u8> bytes(reinterpret_cast<const stxlib::u8*>(encoded.data()), encoded.size());
         stxlib::glyphs::Font font{};
-        const stxlib::Status opened = stxlib::glyphs::open_font(bytes, 0U, font);
+        const stxlib::OperationStatus opened = stxlib::glyphs::open_font(bytes, 0U, font);
         if (opened.failed()) throw InputRejected("the font reader refused the face");
         measurement.facts = read_facts(font, file_name, encoded);
         measurement.advances = read_advances(font);

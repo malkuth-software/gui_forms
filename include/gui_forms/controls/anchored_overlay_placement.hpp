@@ -9,9 +9,9 @@
 namespace gui_forms {
 
 enum class OverlayHorizontalAlignment : std::uint8_t {
-    near,
+    start,
     center,
-    far,
+    end,
 };
 
 enum class OverlayVerticalPreference : std::uint8_t {
@@ -22,7 +22,7 @@ enum class OverlayVerticalPreference : std::uint8_t {
 struct GUI_FORMS_API AnchoredOverlayPlacement final {
     Size preferred_size{};
     OverlayHorizontalAlignment horizontal_alignment{
-        OverlayHorizontalAlignment::near};
+        OverlayHorizontalAlignment::start};
     OverlayVerticalPreference vertical_preference{
         OverlayVerticalPreference::below};
     double gap{};

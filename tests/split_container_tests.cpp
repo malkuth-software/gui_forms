@@ -632,7 +632,7 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
     near_event.position = {hit.x + 0.25, hit.y + 10.0};
     near_event.pointer_id = 7U;
     static_cast<void>(window.dispatch_pointer(near_event));
-    require((*split).splitter_seam_snapshot().state == SplitSeamState::near &&
+    require((*split).splitter_seam_snapshot().state == SplitSeamState::nearby &&
                 (*split).splitter_seam_snapshot().transition_active &&
                 window.focused_control() == field && window.next_wake().present(),
             "quiet proximity must reveal near state without stealing focus and schedule only its bounded transition");

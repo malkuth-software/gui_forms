@@ -73,7 +73,7 @@ void release_raster_thread_record(RasterThreadRecord* record) noexcept {
 }
 
 using RasterThreadRecordType = stxlib::ThreadRecord<RasterThreadRecord>;
-using RasterThreadRecordRegistration = stxlib::Result<RasterThreadRecordType>;
+using RasterThreadRecordRegistration = stxlib::OperationResult<RasterThreadRecordType>;
 
 // Registered once per process, by the first thread that rasterizes;
 // permanent, as the module stays loaded once its service is installed.
@@ -90,7 +90,7 @@ const RasterThreadRecordRegistration& raster_thread_record_registration() noexce
 RasterThreadRecord& raster_thread_record() {
     const RasterThreadRecordType* const type = raster_thread_record_registration().value();
     if (type == nullptr) throw RasterRecordUnavailable(RasterRecordRefusal::not_available);
-    stxlib::Result<RasterThreadRecord*> found = (*type).get();
+    stxlib::OperationResult<RasterThreadRecord*> found = (*type).get();
     if (found.failed()) {
         const bool out_of_memory = (*found.error()).kind() == stxlib::ErrorKind::out_of_memory;
         throw RasterRecordUnavailable(out_of_memory ? RasterRecordRefusal::out_of_memory

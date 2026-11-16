@@ -60,12 +60,12 @@ struct EndingThread final {
     void operator()() const {
         {
             const ThreadRecordsEnd thread_records_end;
-            stxlib::Result<TestRecord*> found = (*type).get();
+            stxlib::OperationResult<TestRecord*> found = (*type).get();
             (*report).created = !found.failed();
             (*report).releases_inside = test_record_releases.load(std::memory_order_acquire);
         }
         (*report).releases_after_end = test_record_releases.load(std::memory_order_acquire);
-        const stxlib::Result<TestRecord*> again = (*type).get();
+        const stxlib::OperationResult<TestRecord*> again = (*type).get();
         (*report).disposed_after_end =
             again.failed() && (*again.error()).kind() == stxlib::ErrorKind::disposed;
         (*report).existing_after_end = (*type).existing() != nullptr;
@@ -78,7 +78,7 @@ struct ExitingThread final {
     bool* created{};
 
     void operator()() const {
-        const stxlib::Result<TestRecord*> found = (*type).get();
+        const stxlib::OperationResult<TestRecord*> found = (*type).get();
         *created = !found.failed();
     }
 };
@@ -87,7 +87,7 @@ struct ExitingThread final {
 
 int main() {
     try {
-        stxlib::Result<TestRecordType> registered =
+        stxlib::OperationResult<TestRecordType> registered =
             TestRecordType::register_type<&initialize_test_record, &release_test_record>();
         require(!registered.failed(), "the test record type registers");
         const TestRecordType type = std::move(registered).take_value();

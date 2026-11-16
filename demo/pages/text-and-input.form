@@ -88,7 +88,7 @@
         text="TextBox + TextStore own editing. HostServices only transports bounded UTF-8 clipboard data; protected fields never export values."
         classes="heading emphasis"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="24 132 830 52"/>
   </scaled-group-box>
 

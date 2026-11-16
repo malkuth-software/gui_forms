@@ -259,7 +259,7 @@ Related types
    * - :cpp:class:`Label::Parts <gui_forms::Label::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
    * - :cpp:class:`LabelAlignmentCapability <gui_forms::LabelAlignmentCapability>`
-     - Horizontal placement of the text: near, center or far.
+     - Horizontal placement of the text: start, center or end.
    * - :cpp:class:`LabelCapabilities <gui_forms::LabelCapabilities>`
      - Every Label capability, in the order the declaring class takes them.
    * - :cpp:class:`LabelFontCapability <gui_forms::LabelFontCapability>`
@@ -277,7 +277,7 @@ Related types
    * - :cpp:class:`LabelUseMnemonicCapability <gui_forms::LabelUseMnemonicCapability>`
      - Whether an ampersand in the text marks the access key (UseMnemonic).
    * - :cpp:class:`LabelVerticalAlignmentCapability <gui_forms::LabelVerticalAlignmentCapability>`
-     - Vertical placement of the text: near, center or far.
+     - Vertical placement of the text: start, center or end.
    * - :cpp:class:`LinearGauge::Parts <gui_forms::LinearGauge::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`PictureBox::Parts <gui_forms::PictureBox::Parts>`
@@ -2148,7 +2148,7 @@ Related types
 
    ``#include <gui_forms/controls/label_capabilities.hpp>``
 
-   Horizontal placement of the text: near, center or far.
+   Horizontal placement of the text: start, center or end.
 
 
    .. rubric:: Methods
@@ -2157,7 +2157,7 @@ Related types
 
    .. cpp:member:: PropertyCell<HorizontalAlignment, LabelAlignmentCapability<Declaring>> alignment
 
-      Default: ``{HorizontalAlignment::near}``.
+      Default: ``{HorizontalAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2180,11 +2180,11 @@ Related types
 
    .. cpp:member:: HorizontalAlignment alignment
 
-      Horizontal placement of the text: near, center or far.
+      Horizontal placement of the text: start, center or end.
 
    .. cpp:member:: VerticalAlignment vertical_alignment
 
-      Vertical placement of the text: near, center or far.
+      Vertical placement of the text: start, center or end.
 
    .. cpp:member:: TextWrapping text_wrapping
 
@@ -2333,7 +2333,7 @@ Related types
 
    ``#include <gui_forms/controls/label_capabilities.hpp>``
 
-   Vertical placement of the text: near, center or far.
+   Vertical placement of the text: start, center or end.
 
 
    .. rubric:: Methods
@@ -4761,11 +4761,11 @@ Enumerations
 
    ``#include <gui_forms/controls/label_values.hpp>``
 
-   .. cpp:enumerator:: near
+   .. cpp:enumerator:: start
 
    .. cpp:enumerator:: center
 
-   .. cpp:enumerator:: far
+   .. cpp:enumerator:: end
 
 .. cpp:namespace:: gui_forms
 
@@ -4979,11 +4979,11 @@ Enumerations
 
    ``#include <gui_forms/controls/label_values.hpp>``
 
-   .. cpp:enumerator:: near
+   .. cpp:enumerator:: start
 
    .. cpp:enumerator:: center
 
-   .. cpp:enumerator:: far
+   .. cpp:enumerator:: end
 
 Functions, constants and aliases
 --------------------------------
@@ -5006,7 +5006,7 @@ Functions, constants and aliases
 
 .. cpp:function:: constexpr HorizontalAlignment directed_alignment(HorizontalAlignment alignment, LayoutDirection direction) noexcept
 
-   The alignment a control resolving ``direction`` places: Windows Forms mirrors a horizontal alignment under RightToLeft, so ``near`` is the right edge and ``far`` the left in right to left (Control:: effective_layout_direction). A value outside the enumeration is kept.
+   The alignment a control resolving ``direction`` places. ``start`` and ``end`` are CSS's logical values (text-align, box alignment): under right to left ``start`` is the right edge and ``end`` the left (Control:: effective_layout_direction), as Windows Forms mirrors a horizontal alignment under RightToLeft. A value outside the enumeration is kept.
 
 .. cpp:namespace:: gui_forms
 

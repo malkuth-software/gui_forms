@@ -264,18 +264,18 @@ void test_failure_snapshot() {
 struct CopyingTarget final {
     StackCopy* seen = nullptr;
 
-    stxlib::Status operator()() const {
+    stxlib::OperationStatus operator()() const {
         *seen = copy_stack();
-        const stxlib::Status result = stxlib::Status::success();
+        const stxlib::OperationStatus result = stxlib::OperationStatus::success();
         return result;
     }
 };
 
 // A gate target that throws two frames below the gate.
 struct ThrowingTarget final {
-    stxlib::Status operator()() const {
+    stxlib::OperationStatus operator()() const {
         throw_two_frames_deep();
-        const stxlib::Status result = stxlib::Status::success();
+        const stxlib::OperationStatus result = stxlib::OperationStatus::success();
         return result;
     }
 };
@@ -292,7 +292,7 @@ void test_gate_frames() {
         .second = 3U,
         .kind = static_cast<stxlib::u32>(ShadowFrameKind::library_call),
     };
-    const stxlib::Status returned = stxlib::call_gate(slot_frame, copying);
+    const stxlib::OperationStatus returned = stxlib::call_gate(slot_frame, copying);
     require(returned.succeeded(), "a returning target passes through its gate");
     require(seen.recorded == 1U && seen.frames[0].kind == ShadowFrameKind::library_call &&
                 seen.frames[0].interface_id == 9U && seen.frames[0].function_index == 3U &&
@@ -300,13 +300,13 @@ void test_gate_frames() {
             "a slot gate is one library_call frame with the slot's numbers");
 
     // A gate described only by its operation is a gate frame named by it.
-    const stxlib::Status plain = stxlib::call_gate(stxlib::Operation("test.gate"), copying);
+    const stxlib::OperationStatus plain = stxlib::call_gate(stxlib::Operation("test.gate"), copying);
     require(plain.succeeded() && seen.recorded == 1U && seen.frames[0].kind == ShadowFrameKind::gate &&
                 name_of(seen.frames[0]) == "test.gate",
             "an operation's gate frame is named by its operation");
     // A gate frame's name field holds 32 bytes (STXlib cda6fb1): a longer
     // operation name is cut there and says so; the record keeps it whole.
-    const stxlib::Status long_name =
+    const stxlib::OperationStatus long_name =
         stxlib::call_gate(stxlib::Operation("windows.MsaaElement.QueryInterface"), copying);
     require(long_name.succeeded() && seen.recorded == 1U && seen.frames[0].kind == ShadowFrameKind::gate &&
                 name_of(seen.frames[0]) == "windows.MsaaElement.QueryInterfa" &&
@@ -326,7 +326,7 @@ void test_gate_failure_snapshot() {
         .second = 7U,
         .kind = static_cast<stxlib::u32>(ShadowFrameKind::library_call),
     };
-    const stxlib::Status failed = stxlib::call_gate(slot_frame, throwing);
+    const stxlib::OperationStatus failed = stxlib::call_gate(slot_frame, throwing);
     require(!failed.succeeded(), "a throwing target fails its gate");
     const stxlib::ErrorRecord& record = *failed.error();
     require(copy_stack().state.depth == 0U, "the gate's failure leaves no frame open");

@@ -141,10 +141,10 @@ struct NumericUpDownThousandsSeparatorCapability {
     }
 };
 
-// Where the editor's text sits (TextAlign): near, center or far.
+// Where the editor's text sits (TextAlign): start, center or end.
 template <typename Declaring>
 struct NumericUpDownTextAlignmentCapability {
-    PropertyCell<HorizontalAlignment, NumericUpDownTextAlignmentCapability<Declaring>> text_alignment{HorizontalAlignment::near};
+    PropertyCell<HorizontalAlignment, NumericUpDownTextAlignmentCapability<Declaring>> text_alignment{HorizontalAlignment::start};
 
     static void assign(NumericUpDownTextAlignmentCapability& capability, HorizontalAlignment incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

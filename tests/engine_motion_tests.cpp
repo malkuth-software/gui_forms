@@ -340,7 +340,7 @@ std::unique_ptr<RibbonFixture> make_ribbon(bool reduced = false) {
     RibbonTabSpec home{.stable_id = "home", .text = "&Home"};
     RibbonGroupSpec clipboard{.stable_id = "clipboard", .caption = "Clipboard"};
     clipboard.commands.push_back({.stable_id = "paste", .command = made.paste});
-    clipboard.commands.push_back({.stable_id = "cut", .size = RibbonCommandSize::small, .command = made.cut});
+    clipboard.commands.push_back({.stable_id = "cut", .size = RibbonCommandSize::compact, .command = made.cut});
     home.groups.push_back(std::move(clipboard));
     tabs.push_back(std::move(home));
     made.ribbon = make_control<Ribbon>(StableId("ribbon"));

@@ -163,7 +163,7 @@ void test_break_opportunities() {
 void test_bidi_analysis() {
     using render::text::TextAnalysis;
     const std::string_view mixed = "abc \xD7\x90\xD7\x91\xD7\x92 def";
-    const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(mixed.data(), mixed.size());
+    const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(mixed.data(), mixed.size());
     require(validated.succeeded(), "the mixed text is UTF-8");
     const stxlib::TextView text = *validated.value();
     TextAnalysis analysis{};

@@ -36,7 +36,7 @@
         text="First click selects. Click the selected row again or press Space to toggle."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="24 332 400 48"/>
   </scaled-group-box>
 
@@ -54,7 +54,7 @@
         text="CheckOnClick toggles immediately; Shift/Ctrl selection remains a separate model."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="24 332 410 48"/>
   </scaled-group-box>
 
@@ -72,7 +72,7 @@
         text="Ready · pre-change event precedes committed state"
         classes="positive note-medium"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="470 38 420 48"/>
   </scaled-group-box>
 
@@ -88,7 +88,7 @@
         text="Click a header to sort through the sort_items helper; drag a divider to resize. Space or a click on the box toggles a check; F2 renames the focused task."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="686 36 220 120"/>
     <button id="gallery.checked.list-view.mark"
         text="Show insertion mark"

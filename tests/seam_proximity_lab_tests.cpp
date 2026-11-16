@@ -173,7 +173,7 @@ void test_trace_scale_state_input_and_inspection() {
     near_pointer.position = {hit.x + 0.25, hit.y + 12.0};
     near_pointer.pointer_id = 4U;
     static_cast<void>((*window).dispatch_pointer(near_pointer));
-    require((*hairline).splitter_seam_snapshot().state == SplitSeamState::near &&
+    require((*hairline).splitter_seam_snapshot().state == SplitSeamState::nearby &&
                 (*window).focused_control() == scale_button,
             "near state must not steal keyboard focus from adjacent commands");
     PointerEvent hot_pointer = near_pointer;

@@ -79,7 +79,7 @@ private:
 // empty) and std::runtime_error for any other refusal.
 [[nodiscard]] inline std::size_t analyse_paragraph_line(const stxlib::TextView text, const std::size_t offset,
                                                         TextAnalysis& analysis) {
-    const stxlib::Status analysed = stxlib::textlayout::analyse_paragraph(
+    const stxlib::OperationStatus analysed = stxlib::textlayout::analyse_paragraph(
         text, offset, stxlib::textlayout::BaseDirection::automatic_left_to_right, analysis.paragraph);
     if (analysed.failed()) {
         analysis.account();
@@ -87,7 +87,7 @@ private:
         throw std::runtime_error("Bidi paragraph analysis refused");
     }
     const std::size_t length = static_cast<std::size_t>(analysis.paragraph.length());
-    const stxlib::Status lined = stxlib::textlayout::analyse_line(analysis.paragraph, offset, length, analysis.line);
+    const stxlib::OperationStatus lined = stxlib::textlayout::analyse_line(analysis.paragraph, offset, length, analysis.line);
     analysis.account();
     if (lined.failed()) {
         if ((*lined.error()).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc();

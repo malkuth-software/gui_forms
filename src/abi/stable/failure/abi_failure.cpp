@@ -93,7 +93,7 @@ stxlib::ShadowReference ParkedFailure::park() noexcept {
         copy.reset(new (std::nothrow) ParkedShadowFrames());
     }
     if (copy) {
-        const stxlib::Result<stxlib::ParkedShadow> parked = stxlib::park_shadow_into(
+        const stxlib::OperationResult<stxlib::ParkedShadow> parked = stxlib::park_shadow_into(
             platform::stxlib_mutable_view((*copy).records), platform::stxlib_mutable_view((*copy).trace));
         if (parked.succeeded()) {
             (*copy).parked = *parked.value();

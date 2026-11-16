@@ -36,18 +36,18 @@
     <label id="gallery.live-surfaces.status"
         classes="positive body-strong"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="524 40 384 60"/>
     <label id="gallery.live-surfaces.telemetry"
         classes="ink small"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="524 108 384 130"/>
     <label id="gallery.live-surfaces.note"
         text="Publishing never blocks: when every buffer is held by readers the producer drops that frame and the counter records it. Reconfigure starts a new epoch; the previous frame stays presentable, scaled, until the first new publication."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="524 244 384 80"/>
   </scaled-group-box>
 
@@ -90,7 +90,7 @@
         text="The write lease preserves the previous publication, so a tick repaints one band and publishes only that rectangle. Hidden pages suspend the producer: the next tick on an invisible presenter stops the Timer."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="366 92 540 66"/>
   </scaled-group-box>
 
@@ -106,7 +106,7 @@
         text="The host starts the sub-surface's thread when it is first shown and stops it when it leaves the window. Its frames never mark the window's tree. Beside it, a ContentSurface shows a frame its consumer rendered itself."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="560 40 348 80"/>
   </scaled-group-box>
 </scaled-panel>

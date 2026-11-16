@@ -97,7 +97,7 @@ public:
             const Size wanted = (*child).measure(client);
             AnchoredOverlayPlacement placement{};
             placement.preferred_size = wanted;
-            placement.horizontal_alignment = OverlayHorizontalAlignment::near;
+            placement.horizontal_alignment = OverlayHorizontalAlignment::start;
             placement.vertical_preference =
                 callout_.prefers_above.read() ? OverlayVerticalPreference::above : OverlayVerticalPreference::below;
             placement.gap = target_gap;
@@ -143,10 +143,10 @@ Callout::Callout(StableId stable_id) : Control(std::move(stable_id)) {
     const std::string prefix((*this).stable_id().value());
     title_label_ = make_control<Label>(StableId(prefix + ".title"));
     (*title_label_).text_wrapping = TextWrapping::word;
-    (*title_label_).vertical_alignment = VerticalAlignment::near;
+    (*title_label_).vertical_alignment = VerticalAlignment::start;
     text_label_ = make_control<Label>(StableId(prefix + ".text"));
     (*text_label_).text_wrapping = TextWrapping::word;
-    (*text_label_).vertical_alignment = VerticalAlignment::near;
+    (*text_label_).vertical_alignment = VerticalAlignment::start;
 }
 
 // add_child needs the shared owner, which make_control has made by now.

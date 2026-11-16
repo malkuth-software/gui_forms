@@ -331,7 +331,7 @@ Related types
 
    .. cpp:member:: OverlayHorizontalAlignment horizontal_alignment
 
-      Default: ``{OverlayHorizontalAlignment::near}``.
+      Default: ``{OverlayHorizontalAlignment::start}``.
 
    .. cpp:member:: OverlayVerticalPreference vertical_preference
 
@@ -1905,11 +1905,11 @@ Enumerations
 
    ``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
 
-   .. cpp:enumerator:: near
+   .. cpp:enumerator:: start
 
    .. cpp:enumerator:: center
 
-   .. cpp:enumerator:: far
+   .. cpp:enumerator:: end
 
 .. cpp:namespace:: gui_forms
 

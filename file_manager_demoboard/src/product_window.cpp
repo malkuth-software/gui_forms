@@ -245,7 +245,7 @@ std::shared_ptr<ScaledPanel> make_title(ProductRefs& refs) {
     (*panel).add_at(title, (*title).requested_bounds());
     std::shared_ptr<Label> state = label("fm.title.state", "LOCAL · GENERATION 86", {1160.0, 5.0, 274.0, 30.0},
                        {FontRole::control, 9.0, 600, false, 0.42});
-    (*state).alignment = HorizontalAlignment::far;
+    (*state).alignment = HorizontalAlignment::end;
     (*state).fore_color = stxlib::Optional<Color>::of(Color::rgba(245, 249, 255));
     (*panel).add_at(state, (*state).requested_bounds());
     return panel;
@@ -1013,7 +1013,7 @@ std::shared_ptr<ScaledPanel> make_status(ProductRefs& refs) {
     refs.status_summary = label("fm.status.summary", "1 selected · 2.8 MB · 14 objects", {8,1,590,22}, {FontRole::content,9.5,400,false});
     (*panel).add_at(refs.status_summary, {8,1,590,22});
     refs.status_authority = label("fm.status.authority", "Local navigation ready · index 86 current", {660,1,520,22}, {FontRole::content,9.5,600,false});
-    (*refs.status_authority).alignment = HorizontalAlignment::far;
+    (*refs.status_authority).alignment = HorizontalAlignment::end;
     (*panel).add_at(refs.status_authority,(*refs.status_authority).requested_bounds());
     refs.status_view = button("fm.status.view", "Icons ▼", {1235,2,205,20}, ButtonVisualStyle::flat);
     (*panel).add_at(refs.status_view, {1235,2,205,20});
@@ -1377,7 +1377,7 @@ private:
         build_overlay();
         AnchoredOverlayPlacement placement;
         placement.preferred_size = {860.0, 424.0};
-        placement.horizontal_alignment = OverlayHorizontalAlignment::far;
+        placement.horizontal_alignment = OverlayHorizontalAlignment::end;
         placement.vertical_preference = OverlayVerticalPreference::below;
         placement.gap = 7.0;
         placement.viewport_margin = 4.0;

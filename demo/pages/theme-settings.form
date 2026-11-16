@@ -23,7 +23,7 @@
       text="Switch the running Gallery's theme and colour scheme, for every window, this window alone, or one preview."
       classes="muted body"
       text-wrapping="word"
-      vertical-alignment="near"
+      vertical-alignment="start"
       bounds="26 52 920 24"/>
 
   <scaled-group-box id="gallery.theme-settings.themes-group"
@@ -39,7 +39,7 @@
         text="gui-forms and windows-professional carry the Gallery's own sheet; the familiar themes show their own look alone."
         classes="muted body"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="16 246 268 70"/>
     <button id="gallery.theme-settings.restore"
         text="Restore the Gallery theme"
@@ -101,7 +101,7 @@
         text="This window keeps its own theme when every window's theme changes."
         classes="muted body"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="16 140 280 42"/>
   </scaled-group-box>
 
@@ -135,7 +135,7 @@
         text="Every stock control here takes the theme the scope selects."
         classes="muted body"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="16 130 598 24"/>
   </scaled-group-box>
 

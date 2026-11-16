@@ -316,7 +316,7 @@ std::shared_ptr<Ribbon> make_ribbon(const std::shared_ptr<RibbonFontControl>& fo
     group.commands.push_back({.stable_id = "colour", .kind = RibbonCommandKind::color_picker, .text = "Colour",
                               .color_picker = colour});
     group.commands.push_back({.stable_id = "bold", .kind = RibbonCommandKind::toggle,
-                              .size = RibbonCommandSize::small, .command = std::make_shared<Command>("bold", "Bold"),
+                              .size = RibbonCommandSize::compact, .command = std::make_shared<Command>("bold", "Bold"),
                               .image = ImageId{2U}, .show_label = false});
     home.groups.push_back(std::move(group));
     RibbonTabSpec view{.stable_id = "view", .text = "&View"};

@@ -387,7 +387,7 @@ std::vector<RibbonTabSpec> ribbon_tabs(const std::shared_ptr<Command>& paste, bo
     RibbonTabSpec home{.stable_id = "home", .text = "&Home"};
     RibbonGroupSpec clipboard{.stable_id = "clipboard", .caption = "Clipboard"};
     clipboard.commands.push_back({.stable_id = "paste", .command = paste, .image = ImageId{5}});
-    clipboard.commands.push_back({.stable_id = "cut", .size = RibbonCommandSize::small, .command = paste, .text = "Cut"});
+    clipboard.commands.push_back({.stable_id = "cut", .size = RibbonCommandSize::compact, .command = paste, .text = "Cut"});
     home.groups.push_back(std::move(clipboard));
     RibbonGroupSpec font{.stable_id = "font", .caption = wide ? "Font and paragraph" : "Font"};
     font.commands.push_back({.stable_id = "strike", .kind = RibbonCommandKind::check_box, .text = "Strike"});

@@ -616,7 +616,7 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     if (palette_open_ || window == nullptr || !enabled_to_use()) return false;
     const Control::Ptr self = shared_from_this();
     AnchoredOverlayPlacement placement;
-    placement.horizontal_alignment = OverlayHorizontalAlignment::near;
+    placement.horizontal_alignment = OverlayHorizontalAlignment::start;
     placement.vertical_preference = OverlayVerticalPreference::below;
     placement.gap = 1.0;
     if (!palette_overlay_) {

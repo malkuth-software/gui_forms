@@ -412,9 +412,9 @@ typedef enum gd_compositing_quality {
 
 /* string_format_set's alignment and line_alignment (across and down). */
 typedef enum gd_string_alignment {
-    GD_STRING_NEAR = 0,
+    GD_STRING_START = 0,
     GD_STRING_CENTER = 1,
-    GD_STRING_FAR = 2
+    GD_STRING_END = 2
 } gd_string_alignment;
 
 typedef enum gd_string_trimming {

@@ -1,6 +1,7 @@
 // The GUI.Forms headers first: linux_host_internal.hpp brings in Xlib.h,
-// whose `#define Status int` would break stxlib::Status (result.hpp, through
-// color_picker.hpp's stxlib::Unique).
+// whose `#define Status int` broke STXlib's Status (result.hpp, through
+// color_picker.hpp's stxlib::Unique) before it became OperationStatus;
+// the order is kept.
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
 #include "gui_forms/controls/color_picker.hpp"
@@ -450,7 +451,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     // Either option aligns the text to the right; the dialog's controls
     // have no right-to-left reading order of their own.
     if ((*message).right_align || (*message).rtl_reading)
-      (*message_label).alignment = HorizontalAlignment::far;
+      (*message_label).alignment = HorizontalAlignment::end;
     for (std::size_t i = 0; i < choices.size(); ++i) {
       const HostDialogChoice choice = choices[i];
       // The button's stable ID: the choice's name with '-' for '_' (stable IDs

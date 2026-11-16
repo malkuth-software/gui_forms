@@ -46,8 +46,8 @@ gui_forms::Label
          ``std::invalid_argument``; writing ``std::nullopt`` returns to the theme's
          font.
 
-      **alignment** : ``HorizontalAlignment``, default ``HorizontalAlignment::near``
-         Horizontal position of each line: near (left), center or far (right).
+      **alignment** : ``HorizontalAlignment``, default ``HorizontalAlignment::start``
+         Horizontal position of each line: start (left; right in right to left), center or end.
 
       **vertical_alignment** : ``VerticalAlignment``, default ``VerticalAlignment::center``
          Vertical position of the block of lines within the label.
@@ -191,7 +191,7 @@ gui_forms::Label
 
    .. cpp:member:: HorizontalAlignment alignment
 
-      Horizontal position of each line: near (left), center or far (right).
+      Horizontal position of each line: start (left; right in right to left), center or end.
 
    .. cpp:member:: VerticalAlignment vertical_alignment
 

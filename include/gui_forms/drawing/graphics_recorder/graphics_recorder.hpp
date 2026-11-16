@@ -150,7 +150,7 @@ public:
                      const StringFormat& format);
     // The string laid out in `layout` (gd_* ABI 0.5, the flame graph
     // demonstrator's D2). Lines break at newlines only. Each line is placed
-    // across the box by the format's alignment (near, center, far) and the
+    // across the box by the format's alignment (start, center, end) and the
     // block of lines down it by its line alignment, with the same side
     // bearing an origin-placed string has. A line wider than the box is
     // trimmed by the format's trimming: character and word cut it at the

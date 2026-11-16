@@ -416,8 +416,8 @@
       "name": "text_alignment",
       "capability": "TextBoxTextAlignment",
       "value": "HorizontalAlignment",
-      "initial": "HorizontalAlignment::near",
-      "comment": "Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.",
+      "initial": "HorizontalAlignment::start",
+      "comment": "Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.",
       "getter": "text_alignment",
       "setter": "set_text_alignment",
       "clear": null,
@@ -428,9 +428,9 @@
       "hooks": "generated",
       "effects": "Dirty::paint | Dirty::semantics",
       "prepare": [
-        "if (incoming > HorizontalAlignment::far) throw std::invalid_argument(\"TextBox text alignment is unknown\");"
+        "if (incoming > HorizontalAlignment::end) throw std::invalid_argument(\"TextBox text alignment is unknown\");"
       ],
-      "sample": "HorizontalAlignment::far",
+      "sample": "HorizontalAlignment::end",
       "table": null
     }
   ],

@@ -77,7 +77,7 @@ struct DirectionRun final { Utf8Range range{}; bool rtl{}; };
 // call holds it.
 std::vector<DirectionRun> visual_direction_runs(std::string_view utf8) {
     std::vector<DirectionRun> runs{};
-    const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
+    const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
     const stxlib::TextView* const text = validated.value();
     if (text == nullptr) throw std::runtime_error("Bidi analysis of invalid UTF-8");
     TextAnalysis analysis{};
@@ -109,7 +109,7 @@ std::vector<DirectionRun> visual_direction_runs(std::string_view utf8) {
 // else std::runtime_error naming `what` (STXlib refused the font, the run or
 // one of its limits). Shaping's callers treat a runtime_error as the face's
 // failure (an application family is quarantined) and bad_alloc as the call's.
-void require_stxlib(const stxlib::Status& status, const char* const what) {
+void require_stxlib(const stxlib::OperationStatus& status, const char* const what) {
     if (status.succeeded()) return;
     const stxlib::ErrorRecord* const record = status.error();
     if (record != nullptr && (*record).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc();
@@ -617,7 +617,7 @@ public:
         }
         stxlib::glyphs::TextRun run{};
         run.characters = stxlib::View<std::uint32_t>(coverage_scratch.characters.data(), coverage_scratch.characters.size());
-        const stxlib::Status shaped = face.shaper.shape(run, coverage_scratch.glyphs);
+        const stxlib::OperationStatus shaped = face.shaper.shape(run, coverage_scratch.glyphs);
         require_stxlib(shaped, "STXlib refused a coverage shaping");
         for (const stxlib::glyphs::ShapedGlyph& glyph : coverage_scratch.glyphs) {
             if (glyph.glyph == 0U) return false;
@@ -628,7 +628,7 @@ public:
     // Opens the face's shaper if it is not open. Throws as require_stxlib does.
     void open_shaper(Face& face) {
         if (face.shaper_open) return;
-        const stxlib::Status opened = face.shaper.open((*face.typeface.typeface).typeface());
+        const stxlib::OperationStatus opened = face.shaper.open((*face.typeface.typeface).typeface());
         require_stxlib(opened, "STXlib refused a face's shaper");
         face.shaper_open = true;
     }
@@ -770,7 +770,7 @@ public:
             return (*kept).available;
         }
         stxlib::glyphs::Typeface& typeface = *(*face.typeface.typeface).typeface();
-        const stxlib::Status measured = typeface.ink_box(glyph, size, box);
+        const stxlib::OperationStatus measured = typeface.ink_box(glyph, size, box);
         const stxlib::ErrorRecord* const record = measured.error();
         if (record != nullptr && (*record).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc();
         const bool available = measured.succeeded();
@@ -846,7 +846,7 @@ public:
         TextLayoutPhaseTimer shape_timer(diagnostics, TextLayoutPhase::shape);
         if (take_failure(TextLayoutFailure::shape_refused)) throw std::runtime_error("Diagnostic shaping refusal");
 #endif
-        const stxlib::Status shaped = face.shaper.shape(run_text, scratch.glyphs);
+        const stxlib::OperationStatus shaped = face.shaper.shape(run_text, scratch.glyphs);
         require_stxlib(shaped, "STXlib shaping failed");
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
         if (take_failure(TextLayoutFailure::after_shape)) { throw std::bad_alloc(); }
@@ -1032,7 +1032,7 @@ public:
 
         // Each paragraph reordered as one line (stxlib::textlayout); the runs'
         // offsets are bytes of the whole text.
-        const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
+        const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
         const stxlib::TextView* const validated_text = validated.value();
         if (validated_text == nullptr) throw std::runtime_error("Bounded bidi analysis of invalid UTF-8");
         std::size_t offset = 0;
@@ -1697,7 +1697,7 @@ FontVerticalMetrics design_line_metrics(const stxlib::glyphs::Font& font, const 
 TextResolutionStatus HarfBuzzFontEngine::fill_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept {
     if (opportunities.size() != utf8.size()) return TextResolutionStatus::invalid_request;
-    const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
+    const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
     const stxlib::TextView* const text = validated.value();
     if (text == nullptr) return TextResolutionStatus::invalid_request;
     if (utf8.empty()) return TextResolutionStatus::exact;
@@ -1719,7 +1719,7 @@ TextResolutionStatus HarfBuzzFontEngine::fill_line_break_opportunities_utf8(
     // The whole text is one piece, as libunibreak read it: its end is
     // mandatory (LB3), so no forcing is needed. CJ is NS, which is what
     // libunibreak's "-strict" gave.
-    const stxlib::Status found = stxlib::textlayout::find_line_breaks(output, *text);
+    const stxlib::OperationStatus found = stxlib::textlayout::find_line_breaks(output, *text);
     // find_line_breaks fails only when the counts differ, which they do not;
     // were it to fail, nothing it wrote is read and every entry is
     // prohibited.

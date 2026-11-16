@@ -22,7 +22,7 @@
       text="Every mouse event the window raises on the target, in order, and the rules that run before the target's subscribers."
       classes="muted body"
       text-wrapping="word"
-      vertical-alignment="near"
+      vertical-alignment="start"
       bounds="26 52 920 24"/>
 
   <scaled-group-box id="gallery.input.target-group"
@@ -34,7 +34,7 @@
         text="Each event the target raises is logged, in order."
         classes="muted body"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="22 36 406 22"/>
     <panel id="gallery.input.target"
         accessible-name="Mouse event target"
@@ -85,7 +85,7 @@
         text="A third rule notes each MouseDoubleClick on the target before its subscribers see it."
         classes="muted body"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="22 180 406 38"/>
   </scaled-group-box>
 

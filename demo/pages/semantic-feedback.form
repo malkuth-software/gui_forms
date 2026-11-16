@@ -35,7 +35,7 @@
         text="Each item borrows an application-owned Command. Arrow keys move along the toolbar's single roving tab stop; Tab leaves it. The cue for each kind is fixed by SemanticFeedback::cue_for."
         classes="muted note"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="22 92 886 44"/>
   </scaled-group-box>
 
@@ -59,7 +59,7 @@
     <label id="gallery.semantic.accounting"
         classes="heading note-strong"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="660 40 248 56"/>
   </scaled-group-box>
 
@@ -72,7 +72,7 @@
         text="No transition announced yet"
         classes="positive emphasis"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="22 40 886 30"/>
     <text-box id="gallery.semantic.trace"
         accessible-name="Semantic feedback trace"

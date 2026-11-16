@@ -2899,7 +2899,7 @@ void example() {
     std::shared_ptr<gf::Ribbon> ribbon = gf::make_control<gf::Ribbon>(gf::StableId("main.ribbon"));
     gf::RibbonGroupSpec clipboard{.stable_id = "clipboard", .caption = "Clipboard", .dialog_launcher = true};
     clipboard.commands.push_back({.stable_id = "paste", .command = paste});
-    clipboard.commands.push_back({.stable_id = "copy", .size = gf::RibbonCommandSize::small, .command = paste});
+    clipboard.commands.push_back({.stable_id = "copy", .size = gf::RibbonCommandSize::compact, .command = paste});
     clipboard.layouts = {{.size = gf::RibbonGroupSize::large}, {.size = gf::RibbonGroupSize::collapsed}};
     gf::RibbonTabSpec home{.stable_id = "home", .text = "&Home"};
     home.groups.push_back(std::move(clipboard));

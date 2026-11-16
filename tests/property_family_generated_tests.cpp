@@ -917,7 +917,7 @@ void test_date_time_picker_properties() {
         expect((*control).show_up_down.read() == sample, "DateTimePicker.show_up_down: a write stores");
     }
     {
-        const DateTimeDropDownAlignment sample = DateTimeDropDownAlignment::right;
+        const DateTimeDropDownAlignment sample = DateTimeDropDownAlignment::end;
         (*control).drop_down_alignment = sample;
         expect((*control).drop_down_alignment.read() == sample, "DateTimePicker.drop_down_alignment: a write stores");
     }
@@ -1201,7 +1201,7 @@ void test_form_layout_properties() {
                "FormLayout.caption_width: the table reads the cell");
     }
     {
-        const HorizontalAlignment sample = HorizontalAlignment::far;
+        const HorizontalAlignment sample = HorizontalAlignment::end;
         (*control).caption_alignment = sample;
         expect((*control).caption_alignment.read() == sample, "FormLayout.caption_alignment: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("caption_alignment");
@@ -1399,7 +1399,7 @@ void test_label_properties() {
                "Label.alignment: the table reads the cell");
     }
     {
-        const VerticalAlignment sample = VerticalAlignment::far;
+        const VerticalAlignment sample = VerticalAlignment::end;
         (*control).vertical_alignment = sample;
         expect((*control).vertical_alignment.read() == sample, "Label.vertical_alignment: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("vertical_alignment");
@@ -1838,7 +1838,7 @@ void test_numeric_up_down_properties() {
                "NumericUpDown.thousands_separator: the table reads the cell");
     }
     {
-        const HorizontalAlignment sample = HorizontalAlignment::far;
+        const HorizontalAlignment sample = HorizontalAlignment::end;
         (*control).text_alignment = sample;
         expect((*control).text_alignment.read() == sample, "NumericUpDown.text_alignment: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("text_alignment");
@@ -3019,7 +3019,7 @@ void test_text_box_properties() {
         expect((*control).auto_complete_case_sensitive.read() == sample, "TextBox.auto_complete_case_sensitive: a write stores");
     }
     {
-        const HorizontalAlignment sample = HorizontalAlignment::far;
+        const HorizontalAlignment sample = HorizontalAlignment::end;
         (*control).text_alignment = sample;
         expect((*control).text_alignment.read() == sample, "TextBox.text_alignment: a write stores");
     }

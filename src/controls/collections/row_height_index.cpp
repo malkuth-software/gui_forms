@@ -57,7 +57,7 @@ namespace {
     }
 }
 
-void require_edit(const stxlib::Status& status) {
+void require_edit(const stxlib::OperationStatus& status) {
     if (status.failed()) throw_refused_edit(*status.error());
 }
 
@@ -71,7 +71,7 @@ void require_edit(const stxlib::Status& status) {
 // A new index estimating rows at `estimated_height`; STXlib's only failure
 // here is out_of_memory, thrown as std::bad_alloc.
 [[nodiscard]] stxlib::RowHeightIndex create_index(double estimated_height) {
-    stxlib::Result<stxlib::RowHeightIndex> created =
+    stxlib::OperationResult<stxlib::RowHeightIndex> created =
         stxlib::RowHeightIndex::create(estimate_units(estimated_height));
     if (created.failed()) throw std::bad_alloc();
     stxlib::RowHeightIndex index = std::move(created).take_value();
@@ -155,7 +155,7 @@ stxlib::i64 RowHeightIndex::offset_units(double offset) const noexcept {
 // -- queries ------------------------------------------------------------------------
 
 void RowHeightIndex::assign(std::size_t count, double estimated_height) {
-    const stxlib::Status assigned = index_.assign(row_index(count), estimate_units(estimated_height));
+    const stxlib::OperationStatus assigned = index_.assign(row_index(count), estimate_units(estimated_height));
     require_edit(assigned);
     ++revision_;
 }
@@ -204,7 +204,7 @@ std::size_t RowHeightIndex::measured_count() const noexcept {
 
 bool RowHeightIndex::set_height(std::size_t row, double height) {
     if (!std::isfinite(height) || height < 0.0 || row >= count()) return false;
-    const stxlib::Result<bool> set = index_.set_height(row_index(row), height_units(height));
+    const stxlib::OperationResult<bool> set = index_.set_height(row_index(row), height_units(height));
     if (set.failed()) return refused_or_throw(*set.error());
     const bool changed = *set.value();
     if (changed) ++revision_;
@@ -247,7 +247,7 @@ bool RowHeightIndex::store_staged(std::size_t row, std::size_t length) {
     } else if (length <= batch_.size() && row < rows && length <= rows - row) {
         const std::span<const stxlib::i64> stage(batch_.data(), length);
         const stxlib::View<stxlib::i64> staged = platform::stxlib_view(stage);
-        const stxlib::Status written = index_.set_heights(row_index(row), staged);
+        const stxlib::OperationStatus written = index_.set_heights(row_index(row), staged);
         if (written.failed()) {
             // The stage is cleared whether it stored or not, even when the
             // refusal throws.
@@ -264,28 +264,28 @@ bool RowHeightIndex::store_staged(std::size_t row, std::size_t length) {
 
 void RowHeightIndex::insert(std::size_t row, std::size_t count) {
     if (count == 0U) return;
-    const stxlib::Status inserted = index_.insert(row_index(row), row_index(count));
+    const stxlib::OperationStatus inserted = index_.insert(row_index(row), row_index(count));
     require_edit(inserted);
     ++revision_;
 }
 
 void RowHeightIndex::erase(std::size_t row, std::size_t rows) {
     if (rows == 0U || row >= count()) return;
-    const stxlib::Status erased = index_.erase(row_index(row), row_index(rows));
+    const stxlib::OperationStatus erased = index_.erase(row_index(row), row_index(rows));
     require_edit(erased);
     ++revision_;
 }
 
 void RowHeightIndex::forget(std::size_t row, std::size_t rows) {
     if (rows == 0U || row >= count()) return;
-    const stxlib::Status forgotten = index_.forget(row_index(row), row_index(rows));
+    const stxlib::OperationStatus forgotten = index_.forget(row_index(row), row_index(rows));
     require_edit(forgotten);
     ++revision_;
 }
 
 void RowHeightIndex::coarsen(std::size_t row, std::size_t rows) {
     if (rows == 0U || row >= count()) return;
-    const stxlib::Status coarsened = index_.coarsen(row_index(row), row_index(rows));
+    const stxlib::OperationStatus coarsened = index_.coarsen(row_index(row), row_index(rows));
     require_edit(coarsened);
     ++revision_;
 }

@@ -342,9 +342,9 @@ void hosted_commands_at(double scale, const std::shared_ptr<const Theme>& theme,
     RibbonTabSpec view{.stable_id = "view", .text = "View"};
     RibbonGroupSpec zoom{.stable_id = "zoom", .caption = "Zoom"};
     zoom.commands.push_back({.stable_id = "zoom-in", .command = zoom_in});
-    zoom.commands.push_back({.stable_id = "zoom-out", .size = RibbonCommandSize::small, .command = zoom_out});
-    zoom.commands.push_back({.stable_id = "actual-size", .size = RibbonCommandSize::small, .command = actual});
-    zoom.commands.push_back({.stable_id = "full-screen", .size = RibbonCommandSize::small, .command = full});
+    zoom.commands.push_back({.stable_id = "zoom-out", .size = RibbonCommandSize::compact, .command = zoom_out});
+    zoom.commands.push_back({.stable_id = "actual-size", .size = RibbonCommandSize::compact, .command = actual});
+    zoom.commands.push_back({.stable_id = "full-screen", .size = RibbonCommandSize::compact, .command = full});
     RibbonGroupSpec show{.stable_id = "show-hide", .caption = "Show/Hide"};
     show.commands.push_back({.stable_id = "rulers", .kind = RibbonCommandKind::check_box, .text = "Rulers"});
     show.commands.push_back({.stable_id = "gridlines", .kind = RibbonCommandKind::check_box, .text = "Gridlines"});

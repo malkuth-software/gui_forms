@@ -689,7 +689,7 @@ static int check_text_and_reuse(const gd_api_v0* api) {
     CHECK((*api).solid_brush_create((gd_color){UINT32_C(0xff102030), 0}, &brush) == GD_OK);
     CHECK((*api).font_create(view_of("Lucida Grande"), 12.0, 0, 3, 1, &font) == GD_OK);
     CHECK((*api).string_format_create(0, &format) == GD_OK);
-    CHECK((*api).string_format_set(format, GD_STRING_CENTER, GD_STRING_FAR, GD_TRIM_ELLIPSIS_CHARACTER, 0) == GD_OK);
+    CHECK((*api).string_format_set(format, GD_STRING_CENTER, GD_STRING_END, GD_TRIM_ELLIPSIS_CHARACTER, 0) == GD_OK);
 
     /* D5: set_clip replaces; the clip is in target coordinates. */
     CHECK((*api).recorder_set_clip(recorder, (gd_rect){0, 0, 100, 50}) == GD_OK);
@@ -998,7 +998,7 @@ int main(void) {
     CHECK(api.release(substituted_font) == GD_OK);
     CHECK(api.font_resolve(substituted_font, &font_resolution) == GD_ERROR_STALE_HANDLE);
     CHECK(api.string_format_create(4, &format) == GD_OK);
-    CHECK(api.string_format_set(format, GD_STRING_CENTER, GD_STRING_NEAR,
+    CHECK(api.string_format_set(format, GD_STRING_CENTER, GD_STRING_START,
                                 GD_TRIM_ELLIPSIS_CHARACTER, 4) == GD_OK);
     CHECK(api.recorder_create(&recorder) == GD_OK);
     CHECK(api.object_kind(recorder, &kind) == GD_OK && kind == GD_OBJECT_RECORDER);

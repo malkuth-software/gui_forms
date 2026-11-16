@@ -1631,7 +1631,7 @@ Types
 
    .. cpp:function:: void draw_string_in_rect(std::string_view utf8, const Font& font, const SolidBrush& brush, RectF layout, const StringFormat& format)
 
-      The string laid out in ``layout`` (gd_* ABI 0.5, the flame graph demonstrator's D2). Lines break at newlines only. Each line is placed across the box by the format's alignment (near, center, far) and the block of lines down it by its line alignment, with the same side bearing an origin-placed string has. A line wider than the box is trimmed by the format's trimming: character and word cut it at the last code point or word that fits, the ellipsis forms add U+2026 after the cut, and ellipsis_path is taken as ellipsis_character; with none it runs on. The text is clipped to the box (within the clip in force) unless the format has the no-clip flag (0x4000). ``layout`` is finite with a non-negative width and height. Records one draw_string.
+      The string laid out in ``layout`` (gd_* ABI 0.5, the flame graph demonstrator's D2). Lines break at newlines only. Each line is placed across the box by the format's alignment (start, center, end) and the block of lines down it by its line alignment, with the same side bearing an origin-placed string has. A line wider than the box is trimmed by the format's trimming: character and word cut it at the last code point or word that fits, the ellipsis forms add U+2026 after the cut, and ellipsis_path is taken as ellipsis_character; with none it runs on. The text is clipped to the box (within the clip in force) unless the format has the no-clip flag (0x4000). ``layout`` is finite with a non-negative width and height. Records one draw_string.
 
    .. cpp:function:: void draw_strings(const Font& font, const StringFormat& format, std::span<const TextItem> items)
 
@@ -3457,11 +3457,11 @@ Types
 
    .. cpp:member:: StringAlignment alignment
 
-      Default: ``{StringAlignment::near}``.
+      Default: ``{StringAlignment::start}``.
 
    .. cpp:member:: StringAlignment line_alignment
 
-      Default: ``{StringAlignment::near}``.
+      Default: ``{StringAlignment::start}``.
 
    .. cpp:member:: StringTrimming trimming
 
@@ -4263,11 +4263,11 @@ Enumerations
 
    ``#include <gui_forms/drawing/types/drawing_types.hpp>``
 
-   .. cpp:enumerator:: near
+   .. cpp:enumerator:: start
 
    .. cpp:enumerator:: center
 
-   .. cpp:enumerator:: far
+   .. cpp:enumerator:: end
 
 .. cpp:namespace:: gui_drawing
 

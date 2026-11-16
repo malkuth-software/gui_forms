@@ -4641,7 +4641,7 @@ Functions, constants and aliases
 
    The host never changes the process locale; that belongs to the program. Input methods named by the environment (XMODIFIERS: ibus, fcitx) and the locale's compose sequences follow the process LC_CTYPE when the host opens its X input method, so a program that wants them calls std::setlocale(LC_CTYPE, "") before run_linux or run_linux_application. In the C locale each key still delivers its own UTF-8 text.
 
-.. cpp:function:: int run_linux_application(std::vector<LinuxApplicationWindow> linux, LinuxApplicationOptions application = {})
+.. cpp:function:: int run_linux_application(std::vector<LinuxApplicationWindow> windows, LinuxApplicationOptions application = {})
 
 .. cpp:type:: LinuxOpenWindow = std::function<HostWindowAdmission(LinuxApplicationWindow)>
 

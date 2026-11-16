@@ -1942,7 +1942,7 @@
       "type": "uint32"
     },
     {
-      "name": "GF_ANCHORED_OVERLAY_ALIGN_FAR",
+      "name": "GF_ANCHORED_OVERLAY_ALIGN_END",
       "value": 2,
       "type": "uint32"
     },

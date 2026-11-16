@@ -77,7 +77,7 @@ private:
             "Drag the seam continuously. Focus it and use arrow keys.\nCollapse and restore preserve allocation.",
             12.0, 400, "ink");
         (*explanation).text_wrapping = TextWrapping::word;
-        (*explanation).vertical_alignment = VerticalAlignment::near;
+        (*explanation).vertical_alignment = VerticalAlignment::start;
         (*explanation).set_requested_bounds({24.0, 62.0, 520.0, 52.0});
         (*second).add_child(explanation);
 

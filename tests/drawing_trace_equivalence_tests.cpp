@@ -111,7 +111,7 @@ std::string via_c() {
     CHECK(api.pen_set_dash_style(pen, GD_DASH_DASH) == GD_OK);
     CHECK(api.font_create(c_view("Lucida Grande"), 12, 1, 3, 1, &font) == GD_OK);
     CHECK(api.string_format_create(4, &format) == GD_OK);
-    CHECK(api.string_format_set(format, GD_STRING_CENTER, GD_STRING_NEAR,
+    CHECK(api.string_format_set(format, GD_STRING_CENTER, GD_STRING_START,
                                 GD_TRIM_ELLIPSIS_CHARACTER, 4) == GD_OK);
     CHECK(api.recorder_create(&recorder) == GD_OK);
     CHECK(api.recorder_clear(recorder, {UINT32_C(0xff000000), 0}) == GD_OK);

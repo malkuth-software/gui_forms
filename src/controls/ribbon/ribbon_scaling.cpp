@@ -51,7 +51,7 @@ namespace ribbon_detail {
 RibbonCommandSize layout_command_size(const RibbonGroupLayout& layout, const RibbonCommandSpec& command,
                                       std::size_t index) noexcept {
     // A label is text in a row at every size.
-    if (text_only(command.kind)) return RibbonCommandSize::small;
+    if (text_only(command.kind)) return RibbonCommandSize::compact;
     if (index < layout.command_sizes.size()) return layout.command_sizes[index];
     return command.size;
 }
@@ -86,7 +86,7 @@ std::vector<RibbonGroupLayout> prepare_group_layouts(const RibbonGroupSpec& grou
             for (std::size_t command = 0; command < count && !collapsed; ++command) {
                 const RibbonCommandSpec& spec = group.commands[command];
                 if (!spec.show_label && !hosted(spec.kind) &&
-                    layout_command_size(layout, spec, command) != RibbonCommandSize::small) {
+                    layout_command_size(layout, spec, command) != RibbonCommandSize::compact) {
                     throw std::invalid_argument("Ribbon icon-only commands must be small in every layout");
                 }
             }
@@ -120,11 +120,11 @@ std::vector<RibbonGroupLayout> prepare_group_layouts(const RibbonGroupSpec& grou
         std::size_t converted = 0U;
         std::size_t index = end;
         while (index > 0U && converted < rows_per_column && convertible(group.commands[index - 1U], sizes[index - 1U])) {
-            sizes[index - 1U] = RibbonCommandSize::small;
+            sizes[index - 1U] = RibbonCommandSize::compact;
             --index;
             ++converted;
         }
-        const RibbonGroupSize size = first_conversion ? RibbonGroupSize::medium : RibbonGroupSize::small;
+        const RibbonGroupSize size = first_conversion ? RibbonGroupSize::medium : RibbonGroupSize::compact;
         layouts.push_back(RibbonGroupLayout{size, sizes, rows_per_column});
         first_conversion = false;
     }
@@ -349,7 +349,7 @@ Ribbon::CommandMetrics Ribbon::measure_command(const RibbonCommandSpec& command,
         }
         metrics.large_width = field;
         metrics.small_width = field;
-        // A labelled field: its label at its left (small) or above it (large).
+        // A labelled field: its label at its left (compact) or above it (large).
         if (field_labelled(command)) {
             const double label = text_width(command_text(command));
             metrics.large_width = std::max(field, label);
@@ -378,7 +378,7 @@ bool Ribbon::labels_next_field(const RibbonGroupSpec& group, const RibbonGroupLa
                                std::size_t command) const {
     const RibbonCommandSpec& item = group.commands[command];
     const bool text_label = !hosted(item.kind) && item.show_label && item.image.value == 0U && !command_text(item).empty();
-    if (!text_label || layout_command_size(group_layout, item, command) != RibbonCommandSize::small) return false;
+    if (!text_label || layout_command_size(group_layout, item, command) != RibbonCommandSize::compact) return false;
     std::size_t next = command + 1U;
     while (next < group.commands.size() && !command_visible(group.commands[next])) ++next;
     if (next == group.commands.size()) return false;

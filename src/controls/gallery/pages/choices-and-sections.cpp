@@ -77,7 +77,7 @@ private:
                                                              const double height) {
         std::shared_ptr<Label> body = label(std::move(id), std::move(text), 11.0, 400, "ink");
         (*body).text_wrapping = TextWrapping::word;
-        (*body).vertical_alignment = VerticalAlignment::near;
+        (*body).vertical_alignment = VerticalAlignment::start;
         (*body).set_requested_bounds({0.0, 0.0, 0.0, height});
         return body;
     }
@@ -136,7 +136,7 @@ private:
             label("gallery.choices.card.title", "Rollout plan", 12.0, 700, "heading")));
         card_body_ = label("gallery.choices.card.body", "", 11.0, 400, "ink");
         (*card_body_).text_wrapping = TextWrapping::word;
-        (*card_body_).vertical_alignment = VerticalAlignment::near;
+        (*card_body_).vertical_alignment = VerticalAlignment::start;
         static_cast<void>((*card_).set_body(card_body_));
         card_footer_ = label("gallery.choices.card.footer", "Click or press Space to select",
                              10.0, 600, "muted");

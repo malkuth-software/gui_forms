@@ -14,7 +14,7 @@
 //
 // The owned forms (D15 V0) convert by named copies, never implicitly:
 // - into STXlib (stxlib_text_copy, stxlib_vector_copy) the copy is STXlib's
-//   allocation and its failure is a value: a Result holding the refusal
+//   allocation and its failure is a value: an OperationResult holding the refusal
 //   (out_of_memory, or invalid_argument for text that is not UTF-8), with
 //   nothing allocated;
 // - out of STXlib (standard_text_copy, standard_vector_copy) the copy is
@@ -54,8 +54,8 @@ namespace gui_forms::platform {
 // well-formed UTF-8, else STXlib's invalid_argument record, whose code is
 // the offset of the first ill-formed byte (u32_max when the offset does not
 // fit), as stxlib::validate_utf8 reports.
-[[nodiscard]] inline stxlib::Result<stxlib::TextView> validated_text(const std::string_view text) noexcept {
-    stxlib::Result<stxlib::TextView> result = stxlib::validate_utf8(text.data(), text.size());
+[[nodiscard]] inline stxlib::OperationResult<stxlib::TextView> validated_text(const std::string_view text) noexcept {
+    stxlib::OperationResult<stxlib::TextView> result = stxlib::validate_utf8(text.data(), text.size());
     return result;
 }
 
@@ -112,13 +112,13 @@ template <typename Element>
 // A copy of standard text as STXlib's owned text: the copy when text is
 // well-formed UTF-8 and the allocation succeeds, else the refusal
 // (validated_text's invalid_argument, or out_of_memory), with nothing held.
-[[nodiscard]] inline stxlib::Result<stxlib::Utf8String> stxlib_text_copy(const std::string_view text) noexcept {
-    const stxlib::Result<stxlib::TextView> validated = validated_text(text);
+[[nodiscard]] inline stxlib::OperationResult<stxlib::Utf8String> stxlib_text_copy(const std::string_view text) noexcept {
+    const stxlib::OperationResult<stxlib::TextView> validated = validated_text(text);
     if (!validated.succeeded()) {
-        stxlib::Result<stxlib::Utf8String> refused = stxlib::Result<stxlib::Utf8String>::failure(*validated.error());
+        stxlib::OperationResult<stxlib::Utf8String> refused = stxlib::OperationResult<stxlib::Utf8String>::failure(*validated.error());
         return refused;
     }
-    stxlib::Result<stxlib::Utf8String> result = stxlib::Utf8String::copy_of(*validated.value());
+    stxlib::OperationResult<stxlib::Utf8String> result = stxlib::Utf8String::copy_of(*validated.value());
     return result;
 }
 
@@ -134,16 +134,16 @@ template <typename Element>
 // the count), or out_of_memory with nothing held. Element needs a
 // non-throwing copy constructor (Vector::copy_of).
 template <typename Element>
-[[nodiscard]] stxlib::Result<stxlib::Vector<Element>> stxlib_vector_copy(const std::span<const Element> elements) noexcept {
+[[nodiscard]] stxlib::OperationResult<stxlib::Vector<Element>> stxlib_vector_copy(const std::span<const Element> elements) noexcept {
     const stxlib::View<Element> source = stxlib_view(elements);
-    stxlib::Result<stxlib::Vector<Element>> result = stxlib::Vector<Element>::copy_of(source);
+    stxlib::OperationResult<stxlib::Vector<Element>> result = stxlib::Vector<Element>::copy_of(source);
     return result;
 }
 
 template <typename Element>
-[[nodiscard]] stxlib::Result<stxlib::Vector<Element>> stxlib_vector_copy(const std::vector<Element>& elements) noexcept {
+[[nodiscard]] stxlib::OperationResult<stxlib::Vector<Element>> stxlib_vector_copy(const std::vector<Element>& elements) noexcept {
     const std::span<const Element> source(elements.data(), elements.size());
-    stxlib::Result<stxlib::Vector<Element>> result = stxlib_vector_copy(source);
+    stxlib::OperationResult<stxlib::Vector<Element>> result = stxlib_vector_copy(source);
     return result;
 }
 

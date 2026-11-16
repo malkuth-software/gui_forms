@@ -30,7 +30,7 @@ void require(bool condition, std::string_view message) {
 
 void text_round_trip() {
     const std::string_view source = "ma\xC3\xAEtre d'h\xC3\xB4tel";
-    const stxlib::Result<stxlib::TextView> validated = gui_forms::platform::validated_text(source);
+    const stxlib::OperationResult<stxlib::TextView> validated = gui_forms::platform::validated_text(source);
     require(validated.succeeded(), "well-formed UTF-8 is accepted");
     if (!validated.succeeded()) {
         return;
@@ -41,7 +41,7 @@ void text_round_trip() {
     const std::string_view back = gui_forms::platform::standard_text(text);
     require(back.data() == source.data() && back == source, "STXlib text converts back losslessly");
 
-    const stxlib::Result<stxlib::TextView> empty = gui_forms::platform::validated_text(std::string_view{});
+    const stxlib::OperationResult<stxlib::TextView> empty = gui_forms::platform::validated_text(std::string_view{});
     require(empty.succeeded() && (*empty.value()).count() == 0U, "empty text is valid and empty");
     require(gui_forms::platform::standard_text(stxlib::TextView{}).empty(), "an empty STXlib view is empty");
 }
@@ -49,7 +49,7 @@ void text_round_trip() {
 void invalid_text_refused() {
     // A lone continuation byte at offset 3, then a truncated sequence.
     const std::string_view ill_formed = "abc\x80" "def";
-    const stxlib::Result<stxlib::TextView> refused = gui_forms::platform::validated_text(ill_formed);
+    const stxlib::OperationResult<stxlib::TextView> refused = gui_forms::platform::validated_text(ill_formed);
     require(!refused.succeeded(), "ill-formed UTF-8 is refused");
     if (!refused.succeeded()) {
         const stxlib::ErrorRecord& record = *refused.error();
@@ -82,7 +82,7 @@ void view_round_trip() {
 
 void owned_text_copies() {
     const std::string source = "na\xC3\xAFve r\xC3\xA9sum\xC3\xA9 and a longer tail past the inline bytes";
-    stxlib::Result<stxlib::Utf8String> copied = gui_forms::platform::stxlib_text_copy(source);
+    stxlib::OperationResult<stxlib::Utf8String> copied = gui_forms::platform::stxlib_text_copy(source);
     require(copied.succeeded(), "well-formed standard text copies into owned text");
     if (copied.succeeded()) {
         const stxlib::Utf8String& owned = *copied.value();
@@ -93,20 +93,20 @@ void owned_text_copies() {
     }
 
     const std::string ill_formed = "ab\xC3";
-    const stxlib::Result<stxlib::Utf8String> refused = gui_forms::platform::stxlib_text_copy(ill_formed);
+    const stxlib::OperationResult<stxlib::Utf8String> refused = gui_forms::platform::stxlib_text_copy(ill_formed);
     require(!refused.succeeded(), "ill-formed text is refused before any copy");
     if (!refused.succeeded()) {
         const stxlib::ErrorRecord& record = *refused.error();
         require(record.kind() == stxlib::ErrorKind::invalid_argument, "the refusal is invalid_argument");
     }
 
-    const stxlib::Result<stxlib::Utf8String> empty = gui_forms::platform::stxlib_text_copy(std::string_view{});
+    const stxlib::OperationResult<stxlib::Utf8String> empty = gui_forms::platform::stxlib_text_copy(std::string_view{});
     require(empty.succeeded() && (*empty.value()).empty(), "empty text copies to empty owned text");
 }
 
 void owned_vector_copies() {
     const std::vector<std::int32_t> source{5, -3, 8, 13};
-    stxlib::Result<stxlib::Vector<std::int32_t>> copied = gui_forms::platform::stxlib_vector_copy(source);
+    stxlib::OperationResult<stxlib::Vector<std::int32_t>> copied = gui_forms::platform::stxlib_vector_copy(source);
     require(copied.succeeded(), "a standard vector copies into an owned vector");
     if (copied.succeeded()) {
         const stxlib::Vector<std::int32_t>& owned = *copied.value();
@@ -117,7 +117,7 @@ void owned_vector_copies() {
     }
 
     const std::vector<std::int32_t> none;
-    const stxlib::Result<stxlib::Vector<std::int32_t>> empty = gui_forms::platform::stxlib_vector_copy(none);
+    const stxlib::OperationResult<stxlib::Vector<std::int32_t>> empty = gui_forms::platform::stxlib_vector_copy(none);
     require(empty.succeeded() && (*empty.value()).empty(), "an empty vector copies to an empty owned vector");
     const std::vector<std::int32_t> empty_back =
         gui_forms::platform::standard_vector_copy(stxlib::View<std::int32_t>{});

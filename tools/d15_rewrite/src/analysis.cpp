@@ -59,7 +59,7 @@ struct Denoted final {
     bool found{false};
     std::string key;
     bool prvalue{false};
-    bool result_call{false};   // V3 with Q1 Result returns: the call yields Result<Utf8String>
+    bool result_call{false};   // V3 with Q1 Result returns: the call yields OperationResult<Utf8String>
 };
 
 // What a flow's source expression is.
@@ -1206,7 +1206,7 @@ private:
         if (shape.kind == SourceKind::converted) out_of_converted(shape, destination, *source);
     }
 
-    // The Result<Utf8String> of a converted V3 call, read with fail-fast.
+    // The OperationResult<Utf8String> of a converted V3 call, read with fail-fast.
     void take_result(const Span& call) {
         wrap(call, "stxlib::take_or_fail_fast(", ")");
         need(call.path, include_fail_fast);
@@ -1238,7 +1238,7 @@ private:
             }
             if (destination.result_return && shape.kind == SourceKind::converted && !shape.denoted.result_call) {
                 if (!editable(span, where)) return;
-                wrap(span, "stxlib::Result<stxlib::Utf8String>::success(", ")");
+                wrap(span, "stxlib::OperationResult<stxlib::Utf8String>::success(", ")");
                 need(span.path, include_result);
             }
             return;
@@ -1437,7 +1437,7 @@ private:
             return;
         }
         if (destination.result_return) {
-            wrap(span, "stxlib::Result<stxlib::Utf8String>::success(" + value_open, value_close + ")");
+            wrap(span, "stxlib::OperationResult<stxlib::Utf8String>::success(" + value_open, value_close + ")");
             headers |= include_result;
         } else {
             wrap(span, value_open, value_close);

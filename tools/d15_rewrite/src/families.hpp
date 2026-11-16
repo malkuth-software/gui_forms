@@ -58,7 +58,7 @@ struct FamilyMatch final {
 // scalars, trivially copyable records, noexcept copy constructors, and
 // records whose implicit copy copies only such members. stxlib's
 // vocabulary is answered by name (owner, 2026-11-16: owned text and
-// vectors copy noexcept; Unique and Result do not copy).
+// vectors copy noexcept; Unique and OperationResult do not copy).
 [[nodiscard]] bool copy_is_nothrow(clang::QualType type, clang::ASTContext& context, unsigned depth);
 
 // True when `declaration` is the standard library entity `name` (any

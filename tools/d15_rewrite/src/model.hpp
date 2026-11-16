@@ -148,7 +148,7 @@ struct Options final {
     std::set<EntityKind> seed_kinds;
     bool propagate_locals{true};
     bool flow_edges{true};
-    bool allocating_returns_result{false};   // V3: Q1's Result<Utf8String> returns
+    bool allocating_returns_result{false};   // V3: Q1's OperationResult<Utf8String> returns
     bool drop_standard_includes{false};
 };
 

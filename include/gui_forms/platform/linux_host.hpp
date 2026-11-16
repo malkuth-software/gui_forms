@@ -108,7 +108,7 @@ struct GUI_FORMS_API LinuxApplicationOptions final {
 // std::setlocale(LC_CTYPE, "") before run_linux or run_linux_application.
 // In the C locale each key still delivers its own UTF-8 text.
 GUI_FORMS_API int run_linux(std::unique_ptr<Window> window, LinuxHostOptions options = {});
-GUI_FORMS_API int run_linux_application(std::vector<LinuxApplicationWindow> linux,
+GUI_FORMS_API int run_linux_application(std::vector<LinuxApplicationWindow> windows,
                           LinuxApplicationOptions application = {});
 
 } // namespace gui_forms::host

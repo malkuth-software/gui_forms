@@ -57,7 +57,7 @@ dropped_down : default ``false``
     Whether the calendar is open. Opening it does nothing when the picker is
     not in a window or is in up-down mode; in a window, opening it while the
     picker is hidden or disabled throws `std::logic_error`.
-drop_down_alignment : default ``DateTimeDropDownAlignment::left``
+drop_down_alignment : default ``DateTimeDropDownAlignment::start``
     Whether the calendar lines up with the left or the right edge of the
     field. Another value throws `std::invalid_argument`.
 font : default ``FontSpec{FontRole::content, 12.0, 400, false}``

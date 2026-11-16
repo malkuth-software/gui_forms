@@ -38,8 +38,8 @@ foreground
     The text colour in use: `Control`'s `fore_color` cell when set, or else
     the theme's text colour. Writing `std::nullopt` to `fore_color` returns
     to the theme's colour.
-alignment : default ``HorizontalAlignment::near``
-    Horizontal position of each line: near (left), center or far (right).
+alignment : default ``HorizontalAlignment::start``
+    Horizontal position of each line: start (left; right in right to left), center or end.
 vertical_alignment : default ``VerticalAlignment::center``
     Vertical position of the block of lines within the label.
 text_wrapping : default ``TextWrapping::no_wrap``

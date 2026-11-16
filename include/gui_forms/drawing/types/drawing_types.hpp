@@ -24,7 +24,7 @@ enum class FontStyle : std::uint32_t {
 };
 
 enum class GraphicsUnit : std::uint8_t { world, display, pixel, point, inch, document, millimeter };
-enum class StringAlignment : std::uint8_t { near, center, far };
+enum class StringAlignment : std::uint8_t { start, center, end };
 enum class StringTrimming : std::uint8_t { none, character, word, ellipsis_character, ellipsis_word, ellipsis_path };
 enum class SmoothingMode : std::uint8_t { default_mode, high_speed, high_quality, none, anti_alias };
 enum class InterpolationMode : std::uint8_t { default_mode, low, high, nearest, bilinear, bicubic, high_quality_bilinear, high_quality_bicubic };

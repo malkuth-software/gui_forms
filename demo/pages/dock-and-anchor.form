@@ -75,7 +75,7 @@
         text="Hidden docked controls consume zero extent. SetChildIndex changes edge order without rewriting preferred bounds."
         classes="positive emphasis"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="652 148 238 70"/>
   </scaled-group-box>
 
@@ -115,7 +115,7 @@
         text="Runtime size and Anchor changes rebase from committed geometry. Authored bounds remain queryable and unchanged."
         classes="positive emphasis"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="758 104 150 104"/>
   </scaled-group-box>
 
@@ -151,7 +151,7 @@
         text="The bar resizes the docked control before it. New code uses SplitContainer; Splitter keeps Windows Forms forms working."
         classes="positive emphasis"
         text-wrapping="word"
-        vertical-alignment="near"
+        vertical-alignment="start"
         bounds="652 52 238 100"/>
   </scaled-group-box>
 </scaled-panel>
