@@ -1002,8 +1002,8 @@ DataGridViewDisplayIndex DataGridView::order_target_at(double x, const GridLayou
     // Positions count the shown columns; the answer is the display index of
     // the shown column the dragged one would take the place of, so hidden
     // columns keep their places around it.
-    const std::size_t from = pressed_column_ && *pressed_column_ < shown_indices_.size()
-        ? shown_indices_[*pressed_column_]
+    const std::size_t from = pressed_column_.present() && *pressed_column_.value() < shown_indices_.size()
+        ? shown_indices_[*pressed_column_.value()]
         : 0U;
     std::size_t boundary = 0U;
     for (std::size_t position = 0; position < shown_order_.size(); ++position) {
@@ -1171,11 +1171,11 @@ DataGridView::Parts DataGridView::grid_parts(const GridLayout& layout) const {
     // A dragged header's destination: a bar on the boundary the column
     // would take, before the column now at its target or, moving right,
     // after it.
-    if (ordering_ && order_target_ && pressed_column_ && *pressed_column_ < columns_.size() &&
+    if (ordering_ && order_target_ && pressed_column_.present() && *pressed_column_.value() < columns_.size() &&
         (*order_target_).value < display_order_.size()) {
         // The target is a display index (order_target_at names a shown
         // column's).
-        const std::size_t from = display_indices_[*pressed_column_];
+        const std::size_t from = display_indices_[*pressed_column_.value()];
         const std::size_t target = (*order_target_).value;
         const std::size_t neighbour = display_order_[target];
         // The neighbour's reading-start edge, or its reading end moving on:
@@ -1517,7 +1517,7 @@ AnatomyStateSet DataGridView::row_states(DataGridViewRowPosition row) const {
     if (is_current_row(row)) states.insert(AnatomyState::current);
     if (read_only.read() || row_read_only(row)) states.insert(AnatomyState::read_only);
     if (!row_error_text(row).empty()) states.insert(AnatomyState::invalid);
-    if (resizing_row_ == row.value) states.insert(AnatomyState::captured);
+    if (resizing_row_ == stxlib::Optional<std::size_t>::of(row.value)) states.insert(AnatomyState::captured);
     return states;
 }
 
@@ -1550,9 +1550,9 @@ AnatomyStateSet DataGridView::cell_states(DataGridViewRowPosition row, std::size
 
 AnatomyStateSet DataGridView::column_states(std::size_t column) const {
     AnatomyStateSet states;
-    if (hot_column_ == column) states.insert(AnatomyState::hot);
-    if (pressed_column_ == column) states.insert(AnatomyState::pressed);
-    if (resizing_column_ == column) states.insert(AnatomyState::captured);
+    if (hot_column_ == stxlib::Optional<std::size_t>::of(column)) states.insert(AnatomyState::hot);
+    if (pressed_column_ == stxlib::Optional<std::size_t>::of(column)) states.insert(AnatomyState::pressed);
+    if (resizing_column_ == stxlib::Optional<std::size_t>::of(column)) states.insert(AnatomyState::captured);
     if (columns_[column].sort_glyph == DataGridViewSortDirection::ascending) {
         states.insert(sorted_ascending_state);
     } else if (columns_[column].sort_glyph == DataGridViewSortDirection::descending) {

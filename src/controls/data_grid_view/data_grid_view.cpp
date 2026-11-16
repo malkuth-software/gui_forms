@@ -671,9 +671,9 @@ void DataGridView::reset_row_state() {
     row_styles_.clear();
     // The rows are no longer in a sort's order; an automatic sort's glyph
     // goes with it.
-    if (sorted_column_ && *sorted_column_ < columns_.size() &&
-        column_sort_mode(*sorted_column_) == DataGridViewColumnSortMode::automatic) {
-        columns_[*sorted_column_].sort_glyph = DataGridViewSortDirection::none;
+    if (sorted_column_.present() && *sorted_column_.value() < columns_.size() &&
+        column_sort_mode(*sorted_column_.value()) == DataGridViewColumnSortMode::automatic) {
+        columns_[*sorted_column_.value()].sort_glyph = DataGridViewSortDirection::none;
     }
     sorted_column_.reset();
     sort_order_ = DataGridViewSortDirection::none;
@@ -815,9 +815,9 @@ std::optional<DataGridView::HitResult> DataGridView::resolve_press(const HitResu
         resolved.row = DataGridViewRowPosition{*row};
     }
     if (pressed.column) {
-        const std::optional<std::size_t> column = column_index(pressed.column_name);
-        if (!column) return std::nullopt;
-        resolved.column = *column;
+        const stxlib::Optional<std::size_t> column = column_index(pressed.column_name);
+        if (column.absent()) return std::nullopt;
+        resolved.column = *column.value();
     }
     return resolved;
 }
@@ -1011,7 +1011,7 @@ void DataGridView::add_column(DataGridViewColumn column) {
     require_mutable();
     require_not_sorting();
     validate_column(column);
-    if (column_index(column.name)) {
+    if (column_index(column.name).present()) {
         throw std::invalid_argument("DataGridView column names must be unique");
     }
     columns_.push_back(std::move(column));
@@ -1034,9 +1034,9 @@ void DataGridView::remove_column_at(std::size_t column) {
     // handler that removed it already did what was asked.
     const std::string name = columns_[column].name;
     reset_row_state();
-    const std::optional<std::size_t> found = column_index(name);
-    if (!found) return;
-    column = *found;
+    const stxlib::Optional<std::size_t> found = column_index(name);
+    if (found.absent()) return;
+    column = *found.value();
     const DataGridViewColumnChangedEvent removed{column, columns_[column].name};
     const std::ptrdiff_t offset = static_cast<std::ptrdiff_t>(column);
     columns_.erase(columns_.begin() + offset);
@@ -1058,7 +1058,7 @@ void DataGridView::insert_column(std::size_t column, DataGridViewColumn inserted
     require_not_sorting();
     if (column > columns_.size()) throw std::out_of_range("DataGridView column insertion is past the end");
     validate_column(inserted);
-    if (column_index(inserted.name)) {
+    if (column_index(inserted.name).present()) {
         throw std::invalid_argument("DataGridView column names must be unique");
     }
     // Validated. The row state is keyed by column index, which the
@@ -1067,7 +1067,7 @@ void DataGridView::insert_column(std::size_t column, DataGridViewColumn inserted
     // that makes the insertion invalid refuses it with the row state reset
     // and the columns as the handlers left them (A-gf-controls-02-F7).
     reset_row_state();
-    if (column > columns_.size() || column_index(inserted.name)) {
+    if (column > columns_.size() || column_index(inserted.name).present()) {
         throw std::logic_error("DataGridView columns changed under the insertion's row reset");
     }
     const std::ptrdiff_t offset = static_cast<std::ptrdiff_t>(column);
@@ -1230,11 +1230,11 @@ void DataGridView::end_column_order() {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-std::optional<std::size_t> DataGridView::column_index(std::string_view name) const noexcept {
+stxlib::Optional<std::size_t> DataGridView::column_index(std::string_view name) const noexcept {
     for (std::size_t index = 0; index < columns_.size(); ++index) {
-        if (columns_[index].name == name) return index;
+        if (columns_[index].name == name) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 void DataGridView::set_column_width(std::size_t column, double width) {
@@ -1841,7 +1841,7 @@ std::string DataGridView::generated_column_name(std::string_view field) const {
     while (!base.empty() && base.back() == '-') base.pop_back();
     if (base.empty()) base = "column";
     std::string name = base;
-    for (std::size_t suffix = 2U; column_index(name); ++suffix) {
+    for (std::size_t suffix = 2U; column_index(name).present(); ++suffix) {
         name = base + "-" + std::to_string(suffix);
     }
     return name;
@@ -1954,7 +1954,7 @@ bool DataGridView::sort(std::size_t column, DataGridViewSortDirection direction)
     for (std::size_t index = 0; index < columns_.size(); ++index) {
         columns_[index].sort_glyph = index == column ? direction : DataGridViewSortDirection::none;
     }
-    sorted_column_ = column;
+    sorted_column_.set(column);
     sort_order_ = direction;
     rows_changed();
     sorted_.emit();
@@ -2030,7 +2030,7 @@ void DataGridView::sort_from_header(std::size_t column) {
     if (!is_alive() || column >= columns_.size() || row_source_ != DataGridViewRowSource::unbound) return;
     if (column_sort_mode(column) != DataGridViewColumnSortMode::automatic) return;
     DataGridViewSortDirection direction = DataGridViewSortDirection::ascending;
-    if (sorted_column_ == column && sort_order_ == DataGridViewSortDirection::ascending) {
+    if (sorted_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == DataGridViewSortDirection::ascending) {
         direction = DataGridViewSortDirection::descending;
     }
     static_cast<void>(sort(column, direction));
@@ -2268,10 +2268,10 @@ double DataGridView::scrolling_left(std::size_t display) const noexcept {
     return left;
 }
 
-std::optional<std::size_t> DataGridView::first_displayed_scrolling_column() const {
+stxlib::Optional<std::size_t> DataGridView::first_displayed_scrolling_column() const {
     const IndexSpan displays = display_span(grid_layout());
-    if (displays.first >= displays.end) return std::nullopt;
-    return shown_order_[displays.first];
+    if (displays.first >= displays.end) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(shown_order_[displays.first]);
 }
 
 double DataGridView::first_displayed_scrolling_column_hidden_width() const {
@@ -4117,8 +4117,8 @@ void DataGridView::handle_pointer(PointerEvent& event) {
     const Point local = point_from_window(event.position);
     if (!raise_cell_mouse(event, local)) return;
     const GridLayout layout = grid_layout();
-    if (resizing_column_ && !has_pointer_capture()) resizing_column_.reset();
-    if (resizing_row_ && !has_pointer_capture() && event.action != PointerAction::up) resizing_row_.reset();
+    if (resizing_column_.present() && !has_pointer_capture()) resizing_column_.reset();
+    if (resizing_row_.present() && !has_pointer_capture() && event.action != PointerAction::up) resizing_row_.reset();
     if (resizing_headers_ && !has_pointer_capture() && event.action != PointerAction::up) resizing_headers_ = false;
     if (resizing_headers_) {
         if (event.action == PointerAction::move) {
@@ -4133,11 +4133,11 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         event.handled = true;
         return;
     }
-    if (resizing_row_) {
-        if (event.action == PointerAction::move && *resizing_row_ < row_count()) {
+    if (resizing_row_.present()) {
+        if (event.action == PointerAction::move && *resizing_row_.value() < row_count()) {
             const double delta = (local.y - resize_start_y_) / layout.scale;
             const double height = std::clamp(resize_start_height_ + delta, minimum_row_height.read(), 4096.0);
-            set_row_height_at(DataGridViewRowPosition{*resizing_row_}, height);
+            set_row_height_at(DataGridViewRowPosition{*resizing_row_.value()}, height);
         } else if (event.action == PointerAction::up) {
             resizing_row_.reset();
             Window* const host = window();
@@ -4153,15 +4153,15 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         end_column_order();
         pressed_column_.reset();
     }
-    if (resizing_column_) {
+    if (resizing_column_.present()) {
         if (event.action == PointerAction::move) {
-            const DataGridViewColumn& column = columns_[*resizing_column_];
+            const DataGridViewColumn& column = columns_[*resizing_column_.value()];
             // Right to left the divider is at the column's left edge, so
             // dragging it left widens the column.
             const double moved = layout.mirrored ? resize_start_x_ - local.x : local.x - resize_start_x_;
             const double delta = moved / layout.scale;
             const double width = std::max(column.minimum_width, resize_start_width_ + delta);
-            set_column_width(*resizing_column_, width);
+            set_column_width(*resizing_column_.value(), width);
         } else if (event.action == PointerAction::up) {
             resizing_column_.reset();
             Window* const host = window();
@@ -4172,7 +4172,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::leave) {
-        if (hot_column_) {
+        if (hot_column_.present()) {
             hot_column_.reset();
             invalidate(Dirty::paint);
         }
@@ -4180,7 +4180,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         return;
     }
     const HitResult hit = hit_test(local);
-    if (event.action == PointerAction::move && pressed_column_ && allow_user_to_order_columns.read() && has_pointer_capture()) {
+    if (event.action == PointerAction::move && pressed_column_.present() && allow_user_to_order_columns.read() && has_pointer_capture()) {
         // A header press becomes a drag once the pointer moves 4 units.
         const double moved = std::abs(local.x - order_start_x_) / layout.scale;
         if (!ordering_ && moved >= 4.0) ordering_ = true;
@@ -4195,8 +4195,8 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
-        std::optional<std::size_t> hot{};
-        if (hit.zone == HitZone::column_header || hit.zone == HitZone::column_divider) hot = hit.column;
+        stxlib::Optional<std::size_t> hot{};
+        if (hit.zone == HitZone::column_header || hit.zone == HitZone::column_divider) hot.set(hit.column);
         if (hot_column_ != hot) {
             hot_column_ = hot;
             invalidate(Dirty::paint);
@@ -4271,7 +4271,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         if (shift) gesture = SelectionGesture::extend;
         else if (control) gesture = SelectionGesture::toggle;
         if (target.zone == HitZone::column_divider && column_resizable(target.column)) {
-            resizing_column_ = target.column;
+            resizing_column_.set(target.column);
             resize_start_x_ = local.x;
             resize_start_width_ = columns_[target.column].width;
             // Read again: the focus change above ran the program's handlers.
@@ -4290,7 +4290,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             return;
         }
         if (target.zone == HitZone::row_divider) {
-            resizing_row_ = target.row.value;
+            resizing_row_.set(target.row.value);
             resize_start_y_ = local.y;
             resize_start_height_ = row_height_at(target.row);
             Window* const capture_host = window();
@@ -4299,7 +4299,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             return;
         }
         if (target.zone == HitZone::column_header || target.zone == HitZone::column_divider) {
-            pressed_column_ = target.column;
+            pressed_column_.set(target.column);
             if (allow_user_to_order_columns.read()) {
                 // Captured, so that a drag can leave the header band.
                 order_start_x_ = local.x;
@@ -4355,8 +4355,8 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::up) {
-        if (pressed_column_) {
-            const std::size_t pressed = *pressed_column_;
+        if (pressed_column_.present()) {
+            const std::size_t pressed = *pressed_column_.value();
             pressed_column_.reset();
             invalidate(Dirty::paint);
             // The drag is read before the capture goes: releasing it may
@@ -4493,7 +4493,7 @@ bool DataGridView::raise_cell_mouse(const PointerEvent& event, Point local) {
                          action == PointerAction::leave || action == PointerAction::down || action == PointerAction::up;
     if (!tracked) return true;
     // A resize or column drag owns the pointer.
-    if (resizing_column_ || resizing_row_ || resizing_headers_ || ordering_) return true;
+    if (resizing_column_.present() || resizing_row_.present() || resizing_headers_ || ordering_) return true;
     MouseTarget target{};
     if (action != PointerAction::leave) target = mouse_target_at(local);
     if (!(target == hovered_target_)) {
@@ -4994,11 +4994,11 @@ std::optional<DataGridViewCellAddress> DataGridView::cell_from_stable_id(std::st
     // Column names hold no '.', so the last '.' separates row and column.
     const std::size_t dot = id.rfind('.');
     if (dot == std::string_view::npos) return std::nullopt;
-    const std::optional<std::size_t> column = column_index(id.substr(dot + 1U));
-    if (!column) return std::nullopt;
+    const stxlib::Optional<std::size_t> column = column_index(id.substr(dot + 1U));
+    if (column.absent()) return std::nullopt;
     const std::optional<std::size_t> row = find_row(id.substr(0U, dot));
     if (!row) return std::nullopt;
-    const DataGridViewCellAddress cell{DataGridViewRowPosition{*row}, *column};
+    const DataGridViewCellAddress cell{DataGridViewRowPosition{*row}, *column.value()};
     return cell;
 }
 
@@ -5183,16 +5183,16 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
                                             std::string_view value) {
     const std::string column_prefix = std::string(stable_id().value()) + ".column.";
     if (id.compare(0U, column_prefix.size(), column_prefix) == 0) {
-        const std::optional<std::size_t> column = column_index(id.substr(column_prefix.size()));
-        if (!column || action != SemanticAction::press) return false;
+        const stxlib::Optional<std::size_t> column = column_index(id.substr(column_prefix.size()));
+        if (column.absent() || action != SemanticAction::press) return false;
         const std::string column_name(id.substr(column_prefix.size()));
-        column_header_click_.emit(*column);
+        column_header_click_.emit(*column.value());
         // The click's handlers may have moved or removed the column: it is
         // found again by its name (A-gf-controls-02-F6).
         if (!is_alive()) return true;
-        const std::optional<std::size_t> clicked = column_index(column_name);
-        if (!clicked) return true;
-        const std::size_t pressed = *clicked;
+        const stxlib::Optional<std::size_t> clicked = column_index(column_name);
+        if (clicked.absent()) return true;
+        const std::size_t pressed = *clicked.value();
         if (header_selects_column()) {
             select_column_from_header(pressed, false);
         } else {

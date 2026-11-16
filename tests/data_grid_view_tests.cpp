@@ -2664,7 +2664,7 @@ void column_order() {
     require(display_order(*grid) == std::vector<std::size_t>{3U, 0U, 1U, 2U}, "the last column is shown first");
     (*grid).insert_column(1U, {.name = "frequency", .header_text = "Frequency"});
     require((*grid).columns().size() == 5U && (*grid).columns()[1].name == "frequency" &&
-                (*grid).column_index("active") == std::optional<std::size_t>{2U},
+                (*grid).column_index("active") == stxlib::Optional<std::size_t>::of(2U),
             "an inserted column takes its index and the later columns move up one");
     require(display_order(*grid) == std::vector<std::size_t>{4U, 1U, 0U, 2U, 3U},
             "an inserted column takes its display index and the others are renumbered");
@@ -2674,7 +2674,7 @@ void column_order() {
                 (*grid).cell_value(row_at(0U), 3U) == BindingValue{std::string("FM")},
             "unbound values move with their columns and the new column starts empty");
     (*grid).insert_column(5U, {.name = "tail", .header_text = "Tail"});
-    require((*grid).column_index("tail") == std::optional<std::size_t>{5U} &&
+    require((*grid).column_index("tail") == stxlib::Optional<std::size_t>::of(5U) &&
                 (*grid).column_display_index(5U) == DataGridViewDisplayIndex{5U},
             "an insertion at the count appends");
     require(throws<std::out_of_range>(InsertColumnPastEnd{grid.get()}), "an insertion past the count is refused");
@@ -2767,7 +2767,7 @@ void sort_modes() {
     require((*grid).column_sort_mode(0U) == DataGridViewColumnSortMode::automatic &&
                 (*grid).column_sort_mode(1U) == DataGridViewColumnSortMode::not_sortable &&
                 (*grid).column_sort_mode(2U) == DataGridViewColumnSortMode::not_sortable &&
-                !(*grid).sorted_column() && (*grid).sort_order() == DataGridViewSortDirection::none,
+                (*grid).sorted_column().absent() && (*grid).sort_order() == DataGridViewSortDirection::none,
             "text columns sort automatically by default, other kinds not at all, and nothing is sorted");
     int sorted_count = 0;
     std::vector<std::size_t> header_clicks;
@@ -2776,7 +2776,7 @@ void sort_modes() {
 
     static_cast<void>((*grid).set_cell_value(row_at(0U), 0U, BindingValue{std::string("Delta")}));
     click(window, centre(*grid, (*grid).realized_columns()[0].parts.column_label.bounds));
-    require(header_clicks.size() == 1U && sorted_count == 1 && (*grid).sorted_column() == 0U &&
+    require(header_clicks.size() == 1U && sorted_count == 1 && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(0U) &&
                 (*grid).sort_order() == DataGridViewSortDirection::ascending &&
                 row_ids(*grid) == std::vector<std::string>{"bravo", "charlie", "alpha"} &&
                 (*grid).columns()[0].sort_glyph == DataGridViewSortDirection::ascending,
@@ -2788,7 +2788,7 @@ void sort_modes() {
             "a second click sorts descending");
     window.perform_layout();
     click(window, centre(*grid, (*grid).realized_columns()[1].parts.column_label.bounds));
-    require(header_clicks.size() == 3U && sorted_count == 2 && (*grid).sorted_column() == 0U,
+    require(header_clicks.size() == 3U && sorted_count == 2 && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(0U),
             "a not_sortable column's click raises the event and leaves the order");
     (*grid).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
     require((*grid).column_sort_mode(0U) == DataGridViewColumnSortMode::programmatic,
@@ -2797,7 +2797,7 @@ void sort_modes() {
     require(sorted_count == 2 && row_ids(*grid) == std::vector<std::string>{"alpha", "charlie", "bravo"},
             "a programmatic column's click leaves the order to the application");
     (*grid).set_column_sort_mode(1U, DataGridViewColumnSortMode::automatic);
-    require((*grid).sort(1U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == 1U &&
+    require((*grid).sort(1U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(1U) &&
                 row_ids(*grid) == std::vector<std::string>{"charlie", "bravo", "alpha"},
             "sort orders by any column whatever its mode: empty, false, true");
 
@@ -2822,7 +2822,7 @@ void sort_modes() {
 
     const IdDescending by_id{};
     require((*grid).sort(by_id) && row_ids(*grid) == std::vector<std::string>{"charlie", "bravo", "alpha"} &&
-                !(*grid).sorted_column() && (*grid).sort_order() == DataGridViewSortDirection::none &&
+                (*grid).sorted_column().absent() && (*grid).sort_order() == DataGridViewSortDirection::none &&
                 (*grid).columns()[0].sort_glyph == DataGridViewSortDirection::none,
             "sort(comparer) orders by the comparer and leaves no sorted column or glyph");
     const AlwaysBefore inconsistent{};
@@ -2832,10 +2832,10 @@ void sort_modes() {
     require(ids == std::vector<std::string>{"alpha", "bravo", "charlie"}, "and the rows are all still there, once");
 
     (*grid).set_column_sort_mode(0U, std::nullopt);
-    require((*grid).sort(0U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == 0U,
+    require((*grid).sort(0U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(0U),
             "sorted again");
     (*grid).clear_rows();
-    require(!(*grid).sorted_column() && (*grid).sort_order() == DataGridViewSortDirection::none &&
+    require((*grid).sorted_column().absent() && (*grid).sort_order() == DataGridViewSortDirection::none &&
                 (*grid).columns()[0].sort_glyph == DataGridViewSortDirection::none,
             "replacing the rows ends an automatic sort and its glyph");
     require(throws<std::invalid_argument>(SetSortMode{grid.get(), static_cast<DataGridViewColumnSortMode>(7)}),
@@ -3752,7 +3752,7 @@ void column_selection_modes() {
     const std::vector<DataGridView::Column> headers = (*grid).realized_columns();
     click(window, centre(*grid, headers[0].parts.column_label.bounds));
     require(header_clicks.size() == 1U && (*grid).selected_columns() == std::vector<std::size_t>{0U} &&
-                !(*grid).sorted_column(),
+                (*grid).sorted_column().absent(),
             "a column header click selects its column alone and does not sort");
     click(window, centre(*grid, headers[1].parts.column_label.bounds), Modifier::control);
     require((*grid).selected_columns() == std::vector<std::size_t>{0U, 1U}, "Control+click adds a column");
@@ -3768,7 +3768,7 @@ void column_selection_modes() {
     require((*grid).selected_columns().empty() && (*grid).selected_cells().size() == 1U,
             "changing the mode selects the current cell alone");
     click(window, centre(*grid, headers[0].parts.column_label.bounds));
-    require((*grid).is_column_selected(0U) && (*grid).is_cell_selected(row_at(2U), 0U) && !(*grid).sorted_column(),
+    require((*grid).is_column_selected(0U) && (*grid).is_cell_selected(row_at(2U), 0U) && (*grid).sorted_column().absent(),
             "column header selection: a header click selects the column");
     require((*grid).set_current_cell(cell_at(2U, 3U)) && (*grid).selected_columns().empty() &&
                 (*grid).is_cell_selected(row_at(2U), 3U) && !(*grid).is_cell_selected(row_at(1U), 3U),
@@ -4270,24 +4270,24 @@ void first_displayed_scrolling_column() {
     std::shared_ptr<DataGridView> grid = make_grid("grid.first.column");
     Window window(grid, {200.0, 160.0});
     window.perform_layout();
-    require((*grid).first_displayed_scrolling_column() == std::optional<std::size_t>{0U} &&
+    require((*grid).first_displayed_scrolling_column() == stxlib::Optional<std::size_t>::of(0U) &&
                 (*grid).first_displayed_scrolling_column_hidden_width() == 0.0,
             "unscrolled, the first column is the first shown");
     (*grid).set_first_displayed_scrolling_column(1U);
     window.perform_layout();
     require((*grid).horizontal_scroll_offset() == 100.0 &&
-                (*grid).first_displayed_scrolling_column() == std::optional<std::size_t>{1U},
+                (*grid).first_displayed_scrolling_column() == stxlib::Optional<std::size_t>::of(1U),
             "a column can be scrolled to the start");
     (*grid).set_horizontal_scroll_offset(110.0);
     window.perform_layout();
-    require((*grid).first_displayed_scrolling_column() == std::optional<std::size_t>{1U} &&
+    require((*grid).first_displayed_scrolling_column() == stxlib::Optional<std::size_t>::of(1U) &&
                 (*grid).first_displayed_scrolling_column_hidden_width() == 10.0,
             "a column scrolled in part is first, with its hidden width");
     (*grid).set_column_frozen(0U, true);
     (*grid).set_first_displayed_scrolling_column(2U);
     window.perform_layout();
     require((*grid).horizontal_scroll_offset() == 50.0 &&
-                (*grid).first_displayed_scrolling_column() == std::optional<std::size_t>{2U},
+                (*grid).first_displayed_scrolling_column() == stxlib::Optional<std::size_t>::of(2U),
             "beside frozen columns the offset counts from their end");
     require(throws<std::logic_error>(ScrollToFrozenColumn{grid.get()}), "a frozen column is not a scrolling column");
 }
@@ -4352,8 +4352,8 @@ struct RemoveColumnOnce final {
     void operator()(std::optional<DataGridViewCellAddress>) const {
         if (*done) return;
         *done = true;
-        const std::optional<std::size_t> column = (*grid).column_index(name);
-        if (column) (*grid).remove_column_at(*column);
+        const stxlib::Optional<std::size_t> column = (*grid).column_index(name);
+        if (column.present()) (*grid).remove_column_at(*column.value());
     }
 };
 
@@ -4397,8 +4397,8 @@ struct RemoveColumnWhileFormatting final {
     void operator()(DataGridViewCellFormattingEvent&) const {
         if (*done) return;
         *done = true;
-        const std::optional<std::size_t> column = (*grid).column_index(name);
-        if (column) (*grid).remove_column_at(*column);
+        const stxlib::Optional<std::size_t> column = (*grid).column_index(name);
+        if (column.present()) (*grid).remove_column_at(*column.value());
     }
 };
 
@@ -4413,7 +4413,7 @@ void semantics_stop_when_a_handler_changes_the_grid() {
     const SubscriptionToken token =
         (*grid).cell_formatting().subscribe(RemoveColumnWhileFormatting{grid.get(), "mode", &removed});
     const SemanticSnapshot snapshot = window.semantic_snapshot();
-    require(removed && (*grid).columns().size() == 3U && !(*grid).column_index("mode"),
+    require(removed && (*grid).columns().size() == 3U && (*grid).column_index("mode").absent(),
             "the handler removed a column during the walk");
     require(!snapshot.roots.empty(), "the snapshot is published");
 }

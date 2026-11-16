@@ -412,11 +412,11 @@ gf_status data_grid_column_index_body(gf_object grid, gf_utf8_view name, std::ui
     if (entered != GF_STATUS_OK) {
         return entered;
     }
-    const std::optional<std::size_t> found = (*typed).column_index(text);
-    if (!found) {
+    const stxlib::Optional<std::size_t> found = (*typed).column_index(text);
+    if (found.absent()) {
         return fail(GF_STATUS_NOT_FOUND, column_index_slot, "no column of the grid has that name");
     }
-    *index = *found;
+    *index = *found.value();
     return GF_STATUS_OK;
 }
 

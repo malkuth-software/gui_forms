@@ -35,6 +35,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 struct FocusedControlChange;
@@ -539,7 +541,7 @@ public:
     // std::out_of_range for an unknown column and std::invalid_argument for
     // invalid UTF-8.
     void set_column_header_text(std::size_t column, std::string text);
-    [[nodiscard]] std::optional<std::size_t> column_index(std::string_view name) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> column_index(std::string_view name) const noexcept;
     // Throws std::out_of_range for an unknown column and std::invalid_argument
     // for a width that is not finite or below the column's minimum. An
     // auto-sized column takes its automatic width again at the next layout.
@@ -648,7 +650,7 @@ public:
     // DataGridViewSortDirection::none) when the rows are not sorted by a
     // column: before any sort, after sort(comparer), and once the rows or
     // columns are replaced or the sorted column removed.
-    [[nodiscard]] std::optional<std::size_t> sorted_column() const noexcept { return sorted_column_; }
+    [[nodiscard]] stxlib::Optional<std::size_t> sorted_column() const noexcept { return sorted_column_; }
     [[nodiscard]] DataGridViewSortDirection sort_order() const noexcept { return sort_order_; }
     // A column's sort mode, its kind's default when its sort_mode is empty.
     // Throws std::out_of_range for an unknown column.
@@ -893,7 +895,7 @@ public:
     // columns (Windows Forms' FirstDisplayedScrollingColumnIndex), or none;
     // and how much of it is scrolled out of view, in logical units at text
     // scale 1 (FirstDisplayedScrollingColumnHiddenWidth).
-    [[nodiscard]] std::optional<std::size_t> first_displayed_scrolling_column() const;
+    [[nodiscard]] stxlib::Optional<std::size_t> first_displayed_scrolling_column() const;
     [[nodiscard]] double first_displayed_scrolling_column_hidden_width() const;
     // Scrolls so that a shown, unfrozen column starts beside the frozen
     // columns (the layout then keeps the offset within the scroll range).
@@ -2056,7 +2058,7 @@ private:
     bool header_auto_size_writing_{false};
     // The last sort by a column, if the rows are still in its order, and
     // whether sort_compare's handlers are deciding comparisons now.
-    std::optional<std::size_t> sorted_column_{};
+    stxlib::Optional<std::size_t> sorted_column_{};
     DataGridViewSortDirection sort_order_{DataGridViewSortDirection::none};
     bool sorting_{};
     // Whether the cell modes' widths need measuring again: set by every
@@ -2098,9 +2100,9 @@ private:
     bool ending_edit_{};
     bool edit_invalid_{};
     bool focused_{};
-    std::optional<std::size_t> hot_column_{};
-    std::optional<std::size_t> pressed_column_{};
-    std::optional<std::size_t> resizing_column_{};
+    stxlib::Optional<std::size_t> hot_column_{};
+    stxlib::Optional<std::size_t> pressed_column_{};
+    stxlib::Optional<std::size_t> resizing_column_{};
     // Display order: display_order_[display index] is a column index and
     // display_indices_[column index] its display index; both have one entry
     // per column.
@@ -2123,7 +2125,7 @@ private:
     double resize_start_width_{};
     // A row header edge drag: the row, by position (rows do not move while
     // the pointer is captured), where the press was and the height then.
-    std::optional<std::size_t> resizing_row_{};
+    stxlib::Optional<std::size_t> resizing_row_{};
     double resize_start_y_{};
     double resize_start_height_{};
     // A drag of the column header band's bottom edge; it shares the start

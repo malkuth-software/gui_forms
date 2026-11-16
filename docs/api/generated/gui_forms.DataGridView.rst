@@ -228,7 +228,7 @@ gui_forms::DataGridView
          and bound rows by their source, so both refuse it with
          ``std::logic_error``.
 
-      **sorted_column** : ``std::optional<std::size_t>``, default none, read-only
+      **sorted_column** : ``stxlib::Optional<std::size_t>``, default none, read-only
          The column the last sort ordered by, while the rows keep its order.
 
       **sort_order** : ``DataGridViewSortDirection``, default ``DataGridViewSortDirection::none``, read-only
@@ -274,7 +274,7 @@ gui_forms::DataGridView
       **horizontal_scroll_offset** : ``double``
          How far the cells are scrolled left, in logical units at text scale 1.
 
-      **first_displayed_scrolling_column** : ``std::optional<std::size_t>``
+      **first_displayed_scrolling_column** : ``stxlib::Optional<std::size_t>``
          The first scrolling column shown, wholly or in part, past the frozen columns (Windows Forms' FirstDisplayedScrollingColumnIndex), or none; and how much of it is scrolled out of view, in logical units at text scale 1 (FirstDisplayedScrollingColumnHiddenWidth).
 
       **first_displayed_scrolling_column_hidden_width** : ``double``, read-only
@@ -1213,7 +1213,7 @@ gui_forms::DataGridView
 
       Sets :cpp:func:`row_count <gui_forms::DataGridView::row_count>`; see the property's description above.
 
-   .. cpp:function:: std::optional<std::size_t> sorted_column() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> sorted_column() const noexcept
 
       The column the last sort ordered by, while the rows keep its order.
 
@@ -1283,7 +1283,7 @@ gui_forms::DataGridView
 
       Sets :cpp:func:`horizontal_scroll_offset <gui_forms::DataGridView::horizontal_scroll_offset>`; see the property's description above.
 
-   .. cpp:function:: std::optional<std::size_t> first_displayed_scrolling_column() const
+   .. cpp:function:: stxlib::Optional<std::size_t> first_displayed_scrolling_column() const
 
       The first scrolling column shown, wholly or in part, past the frozen columns (Windows Forms' FirstDisplayedScrollingColumnIndex), or none; and how much of it is scrolled out of view, in logical units at text scale 1 (FirstDisplayedScrollingColumnHiddenWidth).
 
@@ -1574,7 +1574,7 @@ gui_forms::DataGridView
 
       Inserts a column at an index, at most the column count (the count appends, as add_column does). The columns from that index on move up one index, unbound rows' values move with their columns and the new column's cells start empty; in display order the new column takes display index ``column`` (the last, past it) and the columns from there move up one. As remove_column_at, it ends any edit and clears the selection, the current cell and what the grid keeps by row ID and column index (error text, styles, visited links, a sort). Throws as add_column does, and std::out_of_range for an index past the count; std::logic_error when a handler of the row reset (the events above) changed the columns so that the insertion no longer fits, leaving the row state reset and the columns as the handlers left them.
 
-   .. cpp:function:: std::optional<std::size_t> column_index(std::string_view name) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> column_index(std::string_view name) const noexcept
 
       The position of the column with a name, or none.
 
