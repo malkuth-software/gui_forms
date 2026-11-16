@@ -1964,6 +1964,20 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XPRESENT=1)
         set(GUI_FORMS_XPRESENT_AVAILABLE ON)
     endif()
+    # The X11 DRI3 buffer route (x11_dri3_present.hpp): GBM, xcb-dri3 and
+    # X11-xcb, linked into the X11 host adapter only, and only with this
+    # option. It presents with the Present extension, so it needs it.
+    if(GUI_FORMS_ENABLE_X11_DRI3_PRESENT)
+        if(NOT GUI_FORMS_XPRESENT_AVAILABLE)
+            message(FATAL_ERROR "GUI_FORMS_ENABLE_X11_DRI3_PRESENT requires libXpresent and libXext")
+        endif()
+        pkg_check_modules(GUI_FORMS_X11_DRI3 REQUIRED IMPORTED_TARGET gbm xcb xcb-dri3 x11-xcb)
+        target_sources(gui_forms_host_linux PRIVATE
+            src/host/linux/gbm/gbm_buffer.cpp
+            src/host/linux/application/x11_dri3_present.cpp)
+        target_link_libraries(gui_forms_host_linux PUBLIC PkgConfig::GUI_FORMS_X11_DRI3)
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_X11_DRI3=1)
+    endif()
     # Relative pointer mode (cp34): XI 2 raw motion where libXi is present;
     # without it the host reports no relative_pointer or raw_pointer_motion.
     if(TARGET X11::Xi)
@@ -1996,6 +2010,9 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     endforeach()
     if(GUI_FORMS_XPRESENT_AVAILABLE)
         list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_XPRESENT_LIBRARY})
+    endif()
+    if(GUI_FORMS_ENABLE_X11_DRI3_PRESENT)
+        list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES PkgConfig::GUI_FORMS_X11_DRI3)
     endif()
     gui_forms_application_library(gui_forms_application
         ARCHIVES ${_gf_application_archives}

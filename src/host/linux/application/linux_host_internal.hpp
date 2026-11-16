@@ -1,6 +1,7 @@
 #pragma once
 #include "x11_shm_present.hpp"
 #include "x11_present_direct.hpp"
+#include "x11_dri3_present.hpp"
 #include "../../../core/host/presentation/presentation_shim.hpp"
 #include "../accessibility/linux_accessibility.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
@@ -470,6 +471,10 @@ public:
   // null while the presentation policy leaves it off. Receives the
   // window's PresentIdleNotify events (Runtime::dispatch).
   X11PresentPath *direct_path{};
+  // Or the shim's DRI3 buffer route (observing; owned by `presenter`), in a
+  // build with GUI_FORMS_ENABLE_X11_DRI3_PRESENT whose policy names "dri3";
+  // receives the window's PresentIdleNotify events the same way.
+  X11Dri3Path *dri3_path{};
   // The presentation policy turned host scroll on (set with the shim).
   bool host_scroll_policy{};
   std::vector<presentation::PresentRect> present_rects;

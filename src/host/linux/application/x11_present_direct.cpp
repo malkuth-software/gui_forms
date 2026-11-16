@@ -27,10 +27,9 @@ int attach_error(Display *, XErrorEvent *) noexcept {
 // The largest pixmap made: the copy path's presentation limit (64 MiB).
 constexpr std::size_t maximum_pixmap_bytes = 64U * 1024U * 1024U;
 
-// Whether `visual` at `depth` stores the raster's pixel: 32-bit words with
-// red, green and blue in bytes 2, 1 and 0, read little-endian by the
-// server, so the raster's BGRA rows are its rows unchanged.
-bool raster_layout(Display *display, Visual *visual, int depth) noexcept {
+} // namespace
+
+bool x11_raster_layout(Display *display, Visual *visual, int depth) noexcept {
   if (visual == nullptr || (depth != 24 && depth != 32)) return false;
   if ((*visual).red_mask != 0xFF0000UL || (*visual).green_mask != 0x00FF00UL || (*visual).blue_mask != 0x0000FFUL)
     return false;
@@ -45,8 +44,6 @@ bool raster_layout(Display *display, Visual *visual, int depth) noexcept {
   XFree(formats);
   return found;
 }
-
-} // namespace
 
 int x11_present_opcode(Display *display) noexcept {
   int opcode = 0;
@@ -90,7 +87,7 @@ bool X11PresentPath::usable() {
   if (XShmQueryVersion(display_, &major, &minor, &pixmaps) == False || pixmaps == False) return false;
   if (XShmPixmapFormat(display_) != ZPixmap) return false;
   if (x11_present_opcode(display_) < 0) return false;
-  if (!raster_layout(display_, visual_, depth_)) return false;
+  if (!x11_raster_layout(display_, visual_, depth_)) return false;
   selection_ = XPresentSelectInput(display_, window_, PresentIdleNotifyMask);
   checked_ = Check::usable;
   return true;
@@ -240,6 +237,8 @@ void X11PresentPath::idle(Pixmap pixmap, std::uint32_t serial) noexcept {
 int x11_present_opcode(Display *) noexcept { return -1; }
 
 bool read_x11_present_event(Display *, int, XEvent &, X11PresentEvent &) { return false; }
+
+bool x11_raster_layout(Display *, Visual *, int) noexcept { return false; }
 
 X11PresentPath::X11PresentPath(Display *display, ::Window window, Visual *visual, int depth) noexcept
     : display_(display), window_(window), visual_(visual), depth_(depth) {}

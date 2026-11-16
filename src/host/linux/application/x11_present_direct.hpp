@@ -43,6 +43,10 @@ struct X11PresentEvent final {
 // (`opcode`): returns true and fills `read` for an idle notice; false for
 // any other event, which is left as it was.
 [[nodiscard]] bool read_x11_present_event(Display *display, int opcode, XEvent &event, X11PresentEvent &read);
+// Whether `visual` at `depth` stores the raster's pixel: 32-bit words with
+// red, green and blue in bytes 2, 1 and 0, read little-endian by the
+// server, so the raster's BGRA rows are its rows unchanged.
+[[nodiscard]] bool x11_raster_layout(Display *display, Visual *visual, int depth) noexcept;
 
 class X11PresentPath final : public presentation::PresentationDirectPath {
 public:
