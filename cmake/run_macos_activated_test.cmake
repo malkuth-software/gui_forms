@@ -34,7 +34,15 @@ file(MAKE_DIRECTORY "${launch_directory}")
 set(launch_stdout "${launch_directory}/stdout.txt")
 set(launch_stderr "${launch_directory}/stderr.txt")
 
-set(open_arguments -W -n --stdout "${launch_stdout}" --stderr "${launch_stderr}")
+# Files the program leaves behind (handoff_probe::beside_bundle, such as the
+# focus probe's captures) go to GUI_FORMS_PROBE_FILES in the same directory,
+# and are copied beside the bundle after: a copy by the program itself would
+# be the refused write.
+set(launch_files "${launch_directory}/files")
+file(MAKE_DIRECTORY "${launch_files}")
+
+set(open_arguments -W -n --stdout "${launch_stdout}" --stderr "${launch_stderr}"
+    --env "GUI_FORMS_PROBE_FILES=${launch_files}")
 foreach(variable IN ITEMS ASAN_OPTIONS UBSAN_OPTIONS LSAN_OPTIONS)
     if(DEFINED ENV{${variable}})
         list(APPEND open_arguments --env "${variable}=$ENV{${variable}}")
@@ -51,6 +59,11 @@ foreach(stream IN ITEMS stdout stderr)
         file(COPY_FILE "${launch_directory}/${stream}.txt" "${OUTPUT_DIRECTORY}/${bundle_name}.${stream}.txt")
     endif()
 endforeach()
+file(GLOB launch_kept LIST_DIRECTORIES true "${launch_files}/*")
+if(launch_kept)
+    get_filename_component(bundle_parent "${BUNDLE}" DIRECTORY)
+    file(COPY ${launch_kept} DESTINATION "${bundle_parent}")
+endif()
 file(REMOVE_RECURSE "${launch_directory}")
 set(program_output "")
 set(program_errors "")
