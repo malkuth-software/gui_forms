@@ -1218,7 +1218,7 @@ bool add_loops(const KeyframesDefinition& definition, const AnimationSettings& s
 bool rule_empty(const ThemeRule& rule) noexcept {
     const bool empty = rule.declarations.empty() && rule.transitions.empty() && !rule.ambient.has_value() &&
                        rule.materials.empty() && rule.recipe_fields.empty() && rule.scoped_definitions.empty() &&
-                       !rule.backdrop.has_value() && !rule.band.has_value();
+                       !rule.backdrop.has_value() && rule.band.absent();
     return empty;
 }
 

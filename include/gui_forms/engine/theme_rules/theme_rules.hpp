@@ -1552,7 +1552,7 @@ struct GUI_FORMS_API ThemeRule final {
     // A surface rule's backdrop (`backdrop:`), or none.
     std::optional<BackdropDeclaration> backdrop{};
     // A window rule's band (`band-*`), or none.
-    std::optional<BandDeclaration> band{};
+    stxlib::Optional<BandDeclaration> band{};
     // Where the rule was written. Not compared: two rules that cascade
     // alike are equal wherever they were written.
     RuleProvenance provenance{};
@@ -2142,7 +2142,7 @@ private:
         // A surface rule's checked backdrop.
         std::optional<BackdropDeclaration> backdrop{};
         // A window rule's checked band.
-        std::optional<BandDeclaration> band{};
+        stxlib::Optional<BandDeclaration> band{};
         // Scoped custom properties (P12), by position in scoped_names_.
         std::vector<CompiledScoped> scoped_definitions{};
         std::vector<CompiledScoped> scoped_conditions{};

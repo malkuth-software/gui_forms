@@ -634,7 +634,7 @@ private:
     // The backdrop the rule being lowered declares, or none.
     std::optional<BackdropDeclaration> backdrop_{};
     // The band the rule being lowered declares, or none.
-    std::optional<BandDeclaration> band_{};
+    stxlib::Optional<BandDeclaration> band_{};
     // The palette slots the rule being lowered read, one bit a slot.
     std::uint64_t rule_roles_read_{};
     // Whether a declaration whose var() reads a name no definition of which
@@ -2840,7 +2840,7 @@ bool CompilePass::lower_band(const SyntaxNode& node) {
             band.lit_colour.set(first.colour);
         }
     }
-    band_ = band;
+    band_.set(band);
     return true;
 }
 
@@ -3785,7 +3785,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     // A borrowed selection alone declares nothing of the rule's own.
     const std::size_t owned = emitted.borrowed ? selections : 0U;
     if (lowered.declarations.size() == owned && lowered.transitions.empty() && lowered.materials.empty() &&
-        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop && !lowered.band) {
+        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop && lowered.band.absent()) {
         return true;
     }
     std::size_t bytes = lowered_record_bytes + lowered.label.size();
@@ -3794,7 +3794,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     for (const PropertyTransition& transition : lowered.transitions) bytes += transition_bytes(transition);
     bytes += lowered.recipe_fields.size() * lowered_record_bytes;
     if (lowered.backdrop) bytes += lowered_record_bytes;
-    if (lowered.band) bytes += lowered_record_bytes;
+    if (lowered.band.present()) bytes += lowered_record_bytes;
     for (const ScopedCondition& condition : lowered.scoped_conditions) {
         bytes += lowered_record_bytes + condition.name.size();
     }
