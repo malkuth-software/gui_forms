@@ -41,7 +41,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 94> material_properties{{
+constexpr std::array<NamedMaterialProperty, 95> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -117,6 +117,7 @@ constexpr std::array<NamedMaterialProperty, 94> material_properties{{
     {.name = "outline-width", .property = MaterialProperty::outline_width},
     {.name = "padding-inline", .property = MaterialProperty::padding_inline},
     {.name = "reflection", .property = MaterialProperty::reflection},
+    {.name = "ring-style", .property = MaterialProperty::ring_style},
     {.name = "scrim-color", .property = MaterialProperty::scrim_color},
     {.name = "seat", .property = MaterialProperty::seat},
     {.name = "stripe-angle", .property = MaterialProperty::stripe_angle},
@@ -144,7 +145,7 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 41> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 42> recipe_longhands{{
     {.property = MaterialProperty::height, .field = RecipeField::block_size},
     {.property = MaterialProperty::min_width, .field = RecipeField::minimum_inline_size},
     {.property = MaterialProperty::padding_inline, .field = RecipeField::padding_inline},
@@ -166,6 +167,7 @@ constexpr std::array<RecipeLonghand, 41> recipe_longhands{{
     {.property = MaterialProperty::glyph_color, .field = RecipeField::glyph},
     {.property = MaterialProperty::fill_text_color, .field = RecipeField::fill_text},
     {.property = MaterialProperty::needle_shape, .field = RecipeField::needle_shape},
+    {.property = MaterialProperty::ring_style, .field = RecipeField::ring_style},
     {.property = MaterialProperty::scrim_color, .field = RecipeField::scrim_colour},
     {.property = MaterialProperty::stroke_width, .field = RecipeField::stroke_width},
     {.property = MaterialProperty::stripe_pitch, .field = RecipeField::stripe_pitch},
@@ -995,6 +997,7 @@ private:
     bool lower_default_outline();
     bool lower_stroke_width();
     bool lower_needle_shape();
+    bool lower_ring_style();
     bool lower_outline();
     bool lower_outline_style();
     bool lower_outline_colour();
@@ -3251,6 +3254,28 @@ bool MaterialReader::lower_needle_shape() {
     return true;
 }
 
+// `ring-style`: `dots` or `arc` (RingStyle), how ProgressRing draws its
+// ring where its style property is `theme`.
+bool MaterialReader::lower_ring_style() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one ring style");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "a ring style");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::ring_style);
+    if (keyword(0U, "dots")) {
+        declaration.ring_style = RingStyle::dots;
+    } else if (keyword(0U, "arc")) {
+        declaration.ring_style = RingStyle::arc;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
 // `default-outline`: a width and a colour, each at most once and in any
 // order, the default button's second perimeter; one it omits takes its
 // `initial` (the floor's value).
@@ -4127,6 +4152,7 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::default_outline: static_cast<void>(lower_default_outline()); return;
     case MaterialProperty::stroke_width: static_cast<void>(lower_stroke_width()); return;
     case MaterialProperty::needle_shape: static_cast<void>(lower_needle_shape()); return;
+    case MaterialProperty::ring_style: static_cast<void>(lower_ring_style()); return;
     case MaterialProperty::scrim_color: static_cast<void>(lower_recipe_colour(RecipeField::scrim_colour)); return;
     case MaterialProperty::color: static_cast<void>(lower_text_colour()); return;
     case MaterialProperty::outline: static_cast<void>(lower_outline()); return;
@@ -4316,6 +4342,7 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::default_outline:
     case MaterialProperty::stroke_width:
     case MaterialProperty::needle_shape:
+    case MaterialProperty::ring_style:
     case MaterialProperty::scrim_color:
     case MaterialProperty::color:
     case MaterialProperty::outline:

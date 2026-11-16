@@ -348,8 +348,11 @@ public:
     // contours together by scan rows, as fill_polygon's fallback does.
     virtual void fill_path(PaintPathView path, Color color, PolygonFillRule rule);
     // A curved path stroked with `style`'s width, joins, caps and dashes;
-    // closed contours join at their start instead of capping. An invalid
-    // path or style draws nothing. The base implementation flattens as
+    // closed contours join at their start instead of capping. A trim
+    // (StrokeStyle::trim) strokes only the sub-path trim_paint_path keeps at
+    // stroke_trim_tolerance; every implementation cuts it with that core
+    // function, so all painters stroke the same sub-path (a recording keeps
+    // the whole path and the trim). An invalid path or style draws nothing. The base implementation flattens as
     // fill_path's does and strokes each contour as stroke_polyline's
     // fallback does (solid, no joins of its own).
     virtual void stroke_path(PaintPathView path, const StrokeStyle& style);

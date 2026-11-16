@@ -422,6 +422,8 @@ Related types
      - Whether the ring shows activity without an amount: a turning arc instead of the value.
    * - :cpp:class:`ProgressRingMaximumCapability <gui_forms::ProgressRingMaximumCapability>`
      - The value of a full ring (100 by default).
+   * - :cpp:class:`ProgressRingStyleCapability <gui_forms::ProgressRingStyleCapability>`
+     - How the ring is drawn: as the theme says (the default; every built-in theme draws dots), as forty dots, or as one continuous arc.
    * - :cpp:class:`ProgressRingValueCapability <gui_forms::ProgressRingValueCapability>`
      - The progress, from 0 to maximum; a value outside that range is drawn clamped to it.
    * - :cpp:class:`ProgressStripes <gui_forms::ProgressStripes>`
@@ -3734,7 +3736,7 @@ Related types
 
    ``#include <gui_forms/controls/progress_ring.hpp>``
 
-   Stage T1 anatomy, as dot members (see Control::Parts). ``track`` is the ring's square; ``fill`` the same square while determinate with a positive fraction, ``activity`` while indeterminate.
+   Stage T1 anatomy, as dot members (see Control::Parts). Drawn as dots, ``track`` is the ring's square; ``fill`` the same square while determinate with a positive fraction, ``activity`` while indeterminate. Drawn as an arc, ``arc_track`` is the ring's square and ``value_arc`` the same square while determinate with a positive fraction or indeterminate; the dot parts are then absent.
 
    .. cpp:member:: PartGeometry region
 
@@ -3744,9 +3746,13 @@ Related types
 
    .. cpp:member:: PartGeometry activity
 
+   .. cpp:member:: PartGeometry arc_track
+
+   .. cpp:member:: PartGeometry value_arc
+
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ProgressRingCapabilities : public ProgressRingValueCapability<Declaring>, public ProgressRingMaximumCapability<Declaring>, public ProgressRingIndeterminateCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ProgressRingCapabilities : public ProgressRingValueCapability<Declaring>, public ProgressRingMaximumCapability<Declaring>, public ProgressRingIndeterminateCapability<Declaring>, public ProgressRingStyleCapability<Declaring>
 
    ``#include <gui_forms/controls/progress_ring_capabilities.hpp>``
 
@@ -3766,6 +3772,10 @@ Related types
    .. cpp:member:: bool indeterminate
 
       Whether the ring shows activity without an amount: a turning arc instead of the value.
+
+   .. cpp:member:: ProgressRingStyle ring_style
+
+      How the ring is drawn: as the theme says (the default; every built-in theme draws dots), as forty dots, or as one continuous arc.
 
 .. cpp:namespace:: gui_forms
 
@@ -3800,6 +3810,23 @@ Related types
    .. cpp:member:: PropertyCell<double, ProgressRingMaximumCapability<Declaring>> maximum
 
       Default: ``{100.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressRingStyleCapability
+
+   ``#include <gui_forms/controls/progress_ring_capabilities.hpp>``
+
+   How the ring is drawn: as the theme says (the default; every built-in theme draws dots), as forty dots, or as one continuous arc.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressRingStyleCapability& capability, ProgressRingStyle incoming)
+
+   .. cpp:member:: PropertyCell<ProgressRingStyle, ProgressRingStyleCapability<Declaring>> ring_style
+
+      Default: ``{ProgressRingStyle::theme}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4895,6 +4922,18 @@ Enumerations
    .. cpp:enumerator:: bottom_to_top
 
    .. cpp:enumerator:: top_to_bottom
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ProgressRingStyle
+
+   ``#include <gui_forms/controls/progress_ring_values.hpp>``
+
+   .. cpp:enumerator:: theme
+
+   .. cpp:enumerator:: dots
+
+   .. cpp:enumerator:: arc
 
 .. cpp:namespace:: gui_forms
 

@@ -416,6 +416,9 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
         result += ",join=" + std::to_string(static_cast<unsigned>(pen.join)) + "/" + number(pen.miter_limit);
     }
     if (pen.cap != LineCap::flat) result += ",cap=" + std::to_string(static_cast<unsigned>(pen.cap));
+    if (pen.trim_start != 0.0 || pen.trim_end != 1.0 || pen.trim_offset != 0.0) {
+        result += ",trim=" + number(pen.trim_start) + "/" + number(pen.trim_end) + "/" + number(pen.trim_offset);
+    }
     return result;
 }
 

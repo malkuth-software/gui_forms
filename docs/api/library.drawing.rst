@@ -2979,6 +2979,10 @@ Types
 
    .. cpp:function:: void set_line_cap(LineCap cap)
 
+   .. cpp:function:: void set_trim(double start, double end, double offset)
+
+      Keeps only part of each path and ellipse the pen draws (draw_path, draw_ellipse; owner, 2026-11-16): ``start`` and ``end`` fractions of the figure's whole length, each in [0, 1] and in either order, and ``offset`` (finite) moving the kept part along it, wrapping across its start. The cut is the core's (gui_forms::trim_paint_path at gui_forms::stroke_trim_tolerance), so the raster executor and a Painter replay keep the same sub-path. Start 0 and end 1 keep the whole figure, as before. Rectangles, lines and polylines draw whole. Throws std::invalid_argument, changing nothing, for a value out of range or not finite.
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:struct:: PenSnapshot final
@@ -3010,6 +3014,18 @@ Types
    .. cpp:member:: LineCap cap
 
       Default: ``{LineCap::flat}``.
+
+   .. cpp:member:: double trim_start
+
+      The part of a drawn path or ellipse the pen keeps (set_trim): the defaults keep it whole. Default: ``{0.0}``.
+
+   .. cpp:member:: double trim_end
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double trim_offset
+
+      Default: ``{0.0}``.
 
 .. cpp:namespace:: gui_drawing
 

@@ -1184,6 +1184,11 @@ gd_result set_pen_line_cap(gui_drawing::Pen& pen, std::uint32_t cap) {
     return GD_OK;
 }
 
+gd_result set_pen_trim(gui_drawing::Pen& pen, double start, double end, double offset) {
+    pen.set_trim(start, end, offset);
+    return GD_OK;
+}
+
 gd_result draw_recorder_lines(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Pen& stroke,
                               const std::vector<gui_drawing::PointF>& points) {
     graphics.draw_lines(stroke, points);
@@ -3232,6 +3237,12 @@ gd_result api_radial_gradient_brush_set_radii(gd_handle brush, double radius_x, 
                                                              &set_radial_gradient_radii, radii);
 }
 
+// pen_set_trim (1.1, provisional): Pen::set_trim, whose refusal (a value
+// out of range or not finite) becomes GD_ERROR_INVALID_ARGUMENT.
+gd_result api_pen_set_trim(gd_handle pen, double start, double end, double offset) {
+    return registry().with<gui_drawing::Pen>(pen, GD_OBJECT_PEN, &set_pen_trim, start, end, offset);
+}
+
 // raster_initialize (1.1, provisional): the raster objects' installer, or
 // the absent one in a build without the renderer.
 gd_result api_raster_initialize() {
@@ -3336,6 +3347,7 @@ const gd_api_v0 api_table{
     &api_radial_gradient_brush_create, &api_radial_gradient_brush_set_interpolation,
     &api_radial_gradient_brush_set_focus,
     &api_radial_gradient_brush_set_radii,
+    &api_pen_set_trim,
 };
 
 } // namespace

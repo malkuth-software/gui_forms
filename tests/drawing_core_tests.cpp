@@ -366,6 +366,39 @@ bool trace_has(const std::string& trace, std::string_view entry) {
 
 // The batched commands: one command per call, its span copied, and a
 // display-trace entry naming every field.
+// Pen trims (claude/geometry-1): in range in either order, any finite
+// offset; a refusal changes nothing; the trace names a trim only when its
+// values are not the defaults.
+void pen_trims_are_checked_and_traced() {
+    Pen pen(Color::from_name("red"), 2.0);
+    CHECK(pen.snapshot().trim_start == 0.0 && pen.snapshot().trim_end == 1.0 && pen.snapshot().trim_offset == 0.0);
+    pen.set_trim(0.75, 0.25, -0.5);
+    CHECK(pen.snapshot().trim_start == 0.75 && pen.snapshot().trim_end == 0.25 && pen.snapshot().trim_offset == -0.5);
+    bool refused = false;
+    try {
+        pen.set_trim(0.0, 1.5, 0.0);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    CHECK(refused && pen.snapshot().trim_end == 0.25);
+    refused = false;
+    try {
+        pen.set_trim(0.0, 0.5, std::numeric_limits<double>::infinity());
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    CHECK(refused && pen.snapshot().trim_offset == -0.5);
+    GraphicsRecorder recorder;
+    recorder.draw_ellipse(pen, RectF{0, 0, 10, 10});
+    CHECK(recorder.deterministic_trace().find(",trim=0.75/0.25/-0.5") != std::string::npos);
+    pen.set_trim(1.0, 0.0, 0.0);
+    GraphicsRecorder whole;
+    whole.draw_ellipse(pen, RectF{0, 0, 10, 10});
+    // Reversed, it keeps the whole figure, but the trace keeps the pen's
+    // own values.
+    CHECK(whole.deterministic_trace().find(",trim=1/0/0") != std::string::npos);
+}
+
 void batched_marks_record_one_command_each() {
     Pen pen(Color::from_name("red"), 2.0);
     pen.set_line_join(LineJoin::round, 4.0);
@@ -973,6 +1006,7 @@ int main() {
     curve_polygon_and_pie_paths_are_retained_and_bounded();
     flattened_paths_stay_within_tolerance_in_caller_storage();
     batched_marks_record_one_command_each();
+    pen_trims_are_checked_and_traced();
     gapped_marks_record_runs();
     primitive_brushes_contrast_and_text_over_fill();
     bitmap_storage_and_leases_are_generation_safe();

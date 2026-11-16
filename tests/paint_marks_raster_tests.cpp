@@ -676,6 +676,101 @@ void test_transform_group() {
     require(raster.transform_refusals() == 0U, "valid groups are not refused");
 }
 
+// Rotation tier 1 (claude/geometry-1). A 64 x 64 checkerboard of single
+// black and white pixels, drawn through a quarter turn at a quarter scale:
+// it is area-resampled to 16 x 16 first, every target pixel the mean of a
+// 4 x 4 block (eight black, eight white), so the turned square is an even
+// mid grey rather than an aliased pattern.
+std::shared_ptr<const PartRaster> checkerboard_raster() {
+    std::shared_ptr<PartRaster> raster = PartRaster::create(DeviceExtent{64U, 64U}, DeviceScale{1.0});
+    require(raster != nullptr, "the checkerboard raster must be made");
+    const PartRasterView view = (*raster).view();
+    for (std::size_t y = 0U; y < 64U; ++y) {
+        for (std::size_t x = 0U; x < 64U; ++x) {
+            const std::uint8_t level = ((x + y) % 2U) == 0U ? std::uint8_t{0U} : std::uint8_t{255U};
+            const std::size_t at = y * view.row_bytes + x * 4U;
+            view.pixels[at] = level;
+            view.pixels[at + 1U] = level;
+            view.pixels[at + 2U] = level;
+            view.pixels[at + 3U] = 255U;
+        }
+    }
+    (*raster).record_opacity();
+    return raster;
+}
+
+// The quarter turn at a quarter scale: x' = -y / 4 + 40, y' = x / 4 + 8, so
+// the raster's logical 64 x 64 lands on device x 24 to 40, y 8 to 24.
+PaintTransform quarter_turn_at_quarter_scale() {
+    PaintTransform map{};
+    map.xx = 0.0;
+    map.yx = 0.25;
+    map.xy = -0.25;
+    map.yy = 0.0;
+    map.dx = 40.0;
+    map.dy = 8.0;
+    return map;
+}
+
+void turned_raster_scene(Painter& painter) {
+    const std::shared_ptr<const PartRaster> raster = checkerboard_raster();
+    PaintTransformGroup group{};
+    group.bounds = Rect{0.0, 0.0, 64.0, 64.0};
+    group.transform = quarter_turn_at_quarter_scale();
+    painter.begin_transform(group);
+    painter.draw_part_raster(raster, Point{0.0, 0.0}, 1.0);
+    painter.end_transform();
+}
+
+void test_turned_part_raster_is_area_resampled() {
+    SkiaRaster raster;
+    paint(raster, &turned_raster_scene);
+    require(raster.transformed_resamples() == 1U, "a raster minified through a turning map is resampled first");
+    bool even = true;
+    for (std::size_t y = 11U; y < 21U; ++y) {
+        for (std::size_t x = 27U; x < 37U; ++x) {
+            const Pixel pixel = pixel_at(raster, x, y);
+            const bool grey = pixel.red >= 126U && pixel.red <= 130U && pixel.green == pixel.red &&
+                              pixel.blue == pixel.red;
+            if (!grey) even = false;
+        }
+    }
+    require(even, "the turned checkerboard is an even mid grey inside its square");
+    require(is_white(pixel_at(raster, 20U, 16U)) && is_white(pixel_at(raster, 32U, 28U)),
+            "nothing is drawn beyond the turned square");
+}
+
+// An isolated group inside a turning transform group (rotation tier 1): two
+// overlapping red fills at half opacity show as one half-red bar, turned,
+// where without isolation the group drew them opaque (and was refused).
+void turned_group_scene(Painter& painter) {
+    PaintTransformGroup turn{};
+    turn.bounds = Rect{36.0, 20.0, 24.0, 24.0};
+    turn.transform = paint_rotation_about(Point{48.0, 32.0}, 90.0);
+    painter.begin_transform(turn);
+    PaintGroup group{};
+    group.bounds = Rect{40.0, 30.0, 16.0, 4.0};
+    group.opacity = 0.5;
+    painter.begin_group(group);
+    painter.fill_rect(Rect{40.0, 30.0, 16.0, 4.0}, red);
+    painter.fill_rect(Rect{40.0, 30.0, 10.0, 4.0}, red);
+    painter.end_group();
+    painter.end_transform();
+}
+
+void test_turned_group_is_isolated() {
+    SkiaRaster raster;
+    paint(raster, &turned_group_scene);
+    require(raster.group_refusals() == 0U, "a group under a turning map is isolated, not refused");
+    const Pixel overlapped = pixel_at(raster, 47U, 26U);
+    const Pixel single = pixel_at(raster, 47U, 38U);
+    require(overlapped.red == 255U && overlapped.green >= 120U && overlapped.green <= 136U &&
+                single.red == 255U && single.green == overlapped.green && single.blue == overlapped.blue,
+            "the turned group is composited once at half opacity, its overlap not doubled");
+    require(is_white(pixel_at(raster, 47U, 22U)) && is_white(pixel_at(raster, 41U, 32U)),
+            "the group is clipped to its turned bounds");
+}
+
 // Every new call in one scene, so a recording's replay can be compared with
 // drawing directly.
 void all_marks_scene(Painter& painter) {
@@ -732,6 +827,8 @@ int main() {
         test_hatch();
         test_focal_radial();
         test_transform_group();
+        test_turned_part_raster_is_area_resampled();
+        test_turned_group_is_isolated();
         test_replay_draws_the_same_bytes();
         std::cout << "gui_forms_paint_marks_raster_tests: all tests passed\n";
         return EXIT_SUCCESS;

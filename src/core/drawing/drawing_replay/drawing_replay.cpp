@@ -1,4 +1,5 @@
 #include "gui_forms/drawing/drawing_replay/drawing_replay.hpp"
+#include "drawing_paint_path.hpp"
 
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
@@ -83,6 +84,7 @@ enum class ReplayClass : std::uint8_t { state, drawable, unsupported };
     style.join = join_of(pen.join);
     style.miter_limit = pen.miter_limit;
     style.cap = cap_of(pen.cap);
+    style.trim = StrokeTrim{pen.trim_start, pen.trim_end, pen.trim_offset};
     const double width = pen.width;
     std::array<double, 6> preset{};
     std::size_t preset_count = 0U;
@@ -579,10 +581,12 @@ struct BrushReplay final {
     return result;
 }
 
+} // namespace
+
 // Appends the ellipse inscribed in `bounds` to `path` as a closed contour
 // of its own (a move to its rightmost point, a full-turn arc, a close).
 // An ellipse with no area appends nothing, as the executor draws none.
-void append_ellipse(gui_drawing::RectF bounds, PaintPath& path) {
+void append_drawing_ellipse(gui_drawing::RectF bounds, PaintPath& path) {
     const Size radii{bounds.width * 0.5, bounds.height * 0.5};
     if (!(radii.width > 0.0) || !(radii.height > 0.0)) return;
     const Point centre{bounds.x + radii.width, bounds.y + radii.height};
@@ -597,7 +601,7 @@ void append_ellipse(gui_drawing::RectF bounds, PaintPath& path) {
 // their own; an arc extends the current figure (a straight join from the
 // current point) or starts one at its own start. False for an element
 // outside the enumeration (the executor refuses the path).
-[[nodiscard]] bool write_paint_path(const gui_drawing::PathSnapshot& source, PaintPath& path) {
+bool write_drawing_paint_path(const gui_drawing::PathSnapshot& source, PaintPath& path) {
     path.clear();
     bool has_current = false;
     bool contour_open = false;
@@ -634,7 +638,7 @@ void append_ellipse(gui_drawing::RectF bounds, PaintPath& path) {
             break;
         }
         case gui_drawing::PathVerb::ellipse:
-            append_ellipse(element.rect, path);
+            append_drawing_ellipse(element.rect, path);
             has_current = false;
             contour_open = false;
             break;
@@ -662,6 +666,8 @@ void append_ellipse(gui_drawing::RectF bounds, PaintPath& path) {
     }
     return true;
 }
+
+namespace {
 
 [[nodiscard]] PolygonFillRule rule_of(gui_drawing::FillMode mode) noexcept {
     return mode == gui_drawing::FillMode::winding ? PolygonFillRule::nonzero : PolygonFillRule::even_odd;
@@ -788,9 +794,9 @@ void write_points(std::span<const gui_drawing::PointF> source, std::vector<Point
         PolygonFillRule rule = PolygonFillRule::nonzero;
         if (command.kind == CommandKind::fill_ellipse) {
             scratch.path.clear();
-            append_ellipse(command.rect, scratch.path);
+            append_drawing_ellipse(command.rect, scratch.path);
         } else {
-            if (!write_paint_path(command.path, scratch.path)) return false;
+            if (!write_drawing_paint_path(command.path, scratch.path)) return false;
             rule = rule_of(command.path.fill_mode);
         }
         // An empty path (an ellipse with no area) draws nothing, as the
@@ -809,8 +815,8 @@ void write_points(std::span<const gui_drawing::PointF> source, std::vector<Point
         if (!stroke_of(command.pen, stroke)) return false;
         if (command.kind == CommandKind::draw_ellipse) {
             scratch.path.clear();
-            append_ellipse(command.rect, scratch.path);
-        } else if (!write_paint_path(command.path, scratch.path)) {
+            append_drawing_ellipse(command.rect, scratch.path);
+        } else if (!write_drawing_paint_path(command.path, scratch.path)) {
             return false;
         }
         if (scratch.path.view().verbs.empty()) return true;

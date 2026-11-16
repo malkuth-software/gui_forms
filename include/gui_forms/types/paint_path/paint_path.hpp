@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -106,6 +107,64 @@ inline constexpr double paint_path_flattening_tolerance = 0.25;
                                                              std::span<Point> points,
                                                              std::span<FlattenedContour> contours) noexcept;
 
+// Path length and trimming (owner, 2026-11-16: trim paths in the core).
+// Both measure a path on chords, in + - * / and sqrt only (engine_math), so
+// the same path and tolerance give the same bits on every host. The chord
+// counts are fixed by the geometry: a Bezier curve takes Wang's count for
+// `tolerance` (at most maximum_measured_curve_chords), an arc enough equal
+// angular steps that no chord's sagitta exceeds `tolerance` and none turns
+// more than a quarter (at most maximum_measured_arc_chords). These are
+// counts of their own, finer for arcs than flatten_paint_path's.
+inline constexpr std::size_t maximum_measured_curve_chords = 1024U;
+inline constexpr std::size_t maximum_measured_arc_chords = 4096U;
+
+// The tolerance the painters measure a trimmed stroke at
+// (StrokeStyle::trim), in painter units: a sixteenth, so a cut lies within
+// a small fraction of a device pixel of its exact arc-length position at
+// any display scale up to 4.
+inline constexpr double stroke_trim_tolerance = 1.0 / 16.0;
+
+// The length of `path`: each contour's segments end to end, in order,
+// including the straight joins arc_to makes and each close's closing
+// segment, measured on its chords (above) at `tolerance` (positive,
+// finite). A chord never exceeds the curve it spans, so the result is at
+// most the exact length. Empty for an invalid path or tolerance; 0 for a
+// path of points only.
+[[nodiscard]] GUI_FORMS_API std::optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept;
+
+// The part of a path a stroke keeps (Lottie's and ThorVG's trim path):
+// `start` and `end` are fractions of the path's whole length (every
+// contour end to end, paint_path_length), each in [0, 1], and either may
+// be the larger: the kept part runs from the smaller to the larger.
+// `offset` (any finite value, in the same fractions) moves that part along
+// the path and wraps it across the path's start. Start 0 and end 1 (in
+// either order) keep the whole path whatever the offset; equal start and
+// end keep nothing.
+struct GUI_FORMS_API StrokeTrim final {
+    double start{0.0};
+    double end{1.0};
+    double offset{0.0};
+
+    friend bool operator==(const StrokeTrim& left, const StrokeTrim& right) noexcept {
+        return left.start == right.start && left.end == right.end && left.offset == right.offset;
+    }
+};
+
+// Whether `trim` is valid: start and end finite and within [0, 1], offset
+// finite.
+[[nodiscard]] GUI_FORMS_API bool valid_stroke_trim(StrokeTrim trim) noexcept;
+
+// Whether a valid `trim` keeps the whole path (start and end are 0 and 1).
+[[nodiscard]] GUI_FORMS_API bool stroke_trim_keeps_whole(StrokeTrim trim) noexcept;
+
+// What trim_paint_path did.
+enum class PaintPathTrimResult : std::uint8_t {
+    trimmed, // `kept` holds the kept part
+    whole,   // the trim keeps the whole path: draw `path` itself; `kept` is cleared
+    empty,   // nothing is kept (equal start and end, or a path of length 0); `kept` is cleared
+    refused, // an invalid path, trim or tolerance; `kept` is unchanged
+};
+
 // The fixed storage of the base Painter's path fallbacks (Painter::fill_path,
 // Painter::stroke_path): a flattened path longer than this is drawn from its
 // start.
@@ -142,5 +201,30 @@ private:
     std::vector<PaintPathVerb> verbs_{};
     std::vector<Point> points_{};
 };
+
+// Writes into `kept` the part of `path` that `trim` keeps, measured at
+// `tolerance` (positive, finite; the painters use stroke_trim_tolerance).
+//
+// The kept part is cut from the path's own verbs: a whole segment is
+// copied as it is, and a cut segment becomes the same kind of verb over a
+// sub-range of its parameter (a line's end, a Bezier curve's control
+// points by de Casteljau's blossoms, an arc's start and sweep). Only the
+// cut positions come from the chords: the parameter where the measured
+// length reaches the cut, interpolated within its chord. A contour the
+// kept part covers wholly keeps its close (a stroke joins there); a cut
+// contour is open. Each kept piece starts with move_to.
+//
+// A kept part that wraps across the path's start is two pieces, written in
+// path order (the one from the start first), except for a path of one
+// closed contour, where the piece up to the contour's end continues
+// through its start into the other as one open contour, so a ring's stroke
+// has no cut where it passes the start.
+//
+// Validates everything before clearing `kept`. Reserves `kept` once for
+// the common case (twice the path's verbs and points); a cut into many
+// pieces may grow it. Throws only what PaintPath's builder throws
+// (allocation), leaving `kept` partial.
+[[nodiscard]] GUI_FORMS_API PaintPathTrimResult trim_paint_path(PaintPathView path, StrokeTrim trim, double tolerance,
+                                                                PaintPath& kept);
 
 } // namespace gui_forms

@@ -1919,7 +1919,7 @@ constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "stripe_lean", "stripe_direction", "stripe_speed", "stripe_colour", "stripe_ground_colour", "stripe_gloss",
     "stripe_reduced_motion", "fill_colour", "stroke_colour", "stroke_dash", "stroke_gap", "halo_width",
     "halo_colour", "corner_radius", "grid_spacing", "grid_band", "texture_layers", "flow_style",
-    "flow_speed", "flow_spacing",
+    "flow_speed", "flow_spacing", "ring_style",
 };
 
 } // namespace
@@ -1984,6 +1984,7 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::flow_style:
     case RecipeField::flow_speed:
     case RecipeField::flow_spacing:
+    case RecipeField::ring_style:
     case RecipeField::count:
     default: return ColourPosition::none;
     }
@@ -2113,6 +2114,8 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::needle_shape:
         return declaration.needle_shape == NeedleShape::line || declaration.needle_shape == NeedleShape::tapered ||
                declaration.needle_shape == NeedleShape::dot;
+    case RecipeField::ring_style:
+        return declaration.ring_style == RingStyle::dots || declaration.ring_style == RingStyle::arc;
     case RecipeField::block_size:
     case RecipeField::minimum_inline_size:
     case RecipeField::padding_inline: return in_range(declaration.number, 0.0, maximum_part_metric);

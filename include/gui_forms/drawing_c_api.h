@@ -1066,6 +1066,20 @@ typedef struct gd_api_v0 {
        the new ellipse, fails GD_ERROR_INVALID_ARGUMENT and changes
        nothing. */
     gd_result (*radial_gradient_brush_set_radii)(gd_handle brush, double radius_x, double radius_y);
+    /*
+     * ABI 1.1, provisional: trimmed strokes (owner, 2026-11-16: trim paths
+     * in the core). The pen keeps only part of each path and ellipse it
+     * draws (recorder_draw_path, recorder_draw_ellipse): start and end are
+     * fractions of the figure's whole length, each in [0, 1] and in either
+     * order, and offset (finite) moves the kept part along the figure,
+     * wrapping across its start. Start 0 and end 1 keep the whole figure
+     * (the default); equal start and end keep nothing. The cut is the
+     * GUI.Forms core's own, so the raster and a replay onto a GUI.Forms
+     * painter keep the same sub-path. Rectangles, lines and polylines draw
+     * whole. A value out of range or not finite fails
+     * GD_ERROR_INVALID_ARGUMENT and changes nothing.
+     */
+    gd_result (*pen_set_trim)(gd_handle pen, double start, double end, double offset);
 } gd_api_v0;
 
 /*

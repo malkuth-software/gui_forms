@@ -28,7 +28,7 @@ bool valid_stroke_style(const StrokeStyle& style) noexcept {
                            style.cap == StrokeCap::square;
     if (!known_join || !known_cap || !std::isfinite(style.width) || style.width <= 0.0 ||
         !std::isfinite(style.miter_limit) || style.miter_limit < 1.0 || !std::isfinite(style.dash_phase) ||
-        style.dash_count > maximum_dash_intervals || style.dash_count % 2U != 0U) {
+        style.dash_count > maximum_dash_intervals || style.dash_count % 2U != 0U || !valid_stroke_trim(style.trim)) {
         return false;
     }
     double total = 0.0;

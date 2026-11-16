@@ -775,27 +775,32 @@ Color material_face_colour(const SurfaceMaterial& material, bool top) noexcept {
 // inset by half the stroke so that it lies inside the bounds. An unselected
 // arc (a track, an alarm segment) is stroked in the border's colour, else
 // the glyph's; a selected arc (the value) in the face's colour, the plate a
-// selected progress fill shows. The circle is drawn as straight segments,
-// one per three units of arc length (2 to 128), and a thick stroke's joints
-// are closed with round dots of its width (a translucent colour is
-// therefore slightly deeper at the joints).
-// One circular arc about `centre` stroked `width` wide in chords of about
-// three units, with round joins when the stroke is wider than two.
+// selected progress fill shows.
+//
+// One circular arc of `radius` about `centre`, from `start` through `sweep`
+// (radians clockwise from twelve o'clock; a negative sweep runs
+// anticlockwise, at most a turn either way), stroked `width` wide with butt
+// ends: the closed circle from twelve o'clock, trimmed to the arc
+// (StrokeStyle::trim; claude/geometry-1), so the core cuts the same
+// sub-path for every painter and a whole turn strokes the closed circle
+// with no seam. The circle is a borrowed two-verb path: nothing is
+// allocated here (a painter's trim reuses its own scratch).
 void stroke_circle_arc(Painter& painter, Point centre, double radius, double start, double sweep, Color colour,
                        double width) {
-    const double length = std::abs(sweep) * radius;
-    const double wanted = std::ceil(length / 3.0);
-    const std::size_t segments = static_cast<std::size_t>(std::clamp(wanted, 2.0, 128.0));
-    const double step = sweep / static_cast<double>(segments);
-    const bool joined = width > 2.0;
-    Point from = point_at_angle(centre, radius, start);
-    for (std::size_t index = 1U; index <= segments; ++index) {
-        const double angle = start + step * static_cast<double>(index);
-        const Point to = point_at_angle(centre, radius, angle);
-        painter.draw_line(from, to, colour, width);
-        if (joined && index < segments) fill_round_dot(painter, to, width, colour);
-        from = to;
-    }
+    const std::array<PaintPathVerb, 2> verbs{{PaintPathVerb::arc_to, PaintPathVerb::close}};
+    const std::array<Point, 3> points{{centre, Point{radius, radius}, Point{-90.0, 360.0}}};
+    PaintPathView circle{};
+    circle.verbs = verbs;
+    circle.points = points;
+    const double first = sweep < 0.0 ? start + sweep : start;
+    const double share = std::min(std::abs(sweep) / whole_turn, 1.0);
+    StrokeStyle style{};
+    style.color = colour;
+    style.width = width;
+    style.cap = StrokeCap::butt;
+    style.join = StrokeJoin::round;
+    style.trim = StrokeTrim{0.0, share, first / whole_turn};
+    painter.stroke_path(circle, style);
 }
 
 // An arc band: a selected arc (a gauge's reading) in the material's face

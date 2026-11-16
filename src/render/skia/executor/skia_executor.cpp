@@ -21,6 +21,8 @@
 
 #include "../../../core/image/png_pixels.hpp"
 #include "../../../core/types/paint_marks/grid_lines.hpp"
+#include "../../../core/drawing/drawing_replay/drawing_paint_path.hpp"
+#include "../raster/skia_paint_path.hpp"
 #include "../../../core/image/png_writer.hpp"
 #include "../../../core/text/composite/text_composite.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
@@ -344,6 +346,29 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         paint.setPathEffect(std::move(made.effect));
     }
     return true;
+}
+
+// Whether `pen` keeps only part of the figures it draws (Pen::set_trim).
+[[nodiscard]] bool pen_trims(const PenSnapshot& pen) noexcept {
+    const gui_forms::StrokeTrim trim{pen.trim_start, pen.trim_end, pen.trim_offset};
+    return !gui_forms::stroke_trim_keeps_whole(trim);
+}
+
+// The part of a drawn path or ellipse a trimming pen keeps, cut in the core
+// (trim_paint_path at stroke_trim_tolerance, as a Painter replay of the
+// same command cuts it) and built as a Skia path. `figure` is the command's
+// figure as a Painter path (drawing_paint_path.hpp); `kept` is the caller's
+// scratch. Empty when nothing is kept or the figure is refused.
+[[nodiscard]] std::optional<SkPath> trimmed_figure(const PenSnapshot& pen, const gui_forms::PaintPath& figure,
+                                                   gui_forms::PaintPath& kept) {
+    const gui_forms::StrokeTrim trim{pen.trim_start, pen.trim_end, pen.trim_offset};
+    const gui_forms::PaintPathView view = figure.view();
+    if (view.verbs.empty()) return std::nullopt;
+    const gui_forms::PaintPathTrimResult result =
+        gui_forms::trim_paint_path(view, trim, gui_forms::stroke_trim_tolerance, kept);
+    if (result != gui_forms::PaintPathTrimResult::trimmed) return std::nullopt;
+    SkPath built = gui_forms::skia_paint_path::built_path(kept.view(), SkPathFillType::kWinding);
+    return built;
 }
 
 [[nodiscard]] SkTileMode tile_mode(WrapMode mode) noexcept {
@@ -1643,6 +1668,10 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
         // the canvas as it is. fill_proportion's own clip ends it.
         const GraphicsState* applied = nullptr;
         std::size_t executed{};
+        // A trimming pen's figure and its kept part (Pen::set_trim), reused
+        // by every trimmed command of this execution.
+        gui_forms::PaintPath trim_figure;
+        gui_forms::PaintPath trim_kept;
         for (const DrawingCommand& command : commands.subspan(first_command)) {
             // A command draws inside a save of its own: restoreAll undoes
             // only what lies above the base level, so the state's clip and a
@@ -1709,6 +1738,16 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                 if (!configure_pen(paint, command.pen, command.state)) {
                     return {RasterError::invalid_argument, executed};
                 }
+                if (pen_trims(command.pen)) {
+                    // A trimmed ellipse: the kept part of the figure drawing
+                    // replay builds for it (a full-turn arc from its
+                    // rightmost point); nothing kept draws nothing.
+                    trim_figure.clear();
+                    gui_forms::append_drawing_ellipse(command.rect, trim_figure);
+                    const std::optional<SkPath> kept = trimmed_figure(command.pen, trim_figure, trim_kept);
+                    if (kept) (*canvas).drawPath(*kept, paint);
+                    break;
+                }
                 (*canvas).drawOval(to_sk_rect(command.rect), paint);
                 break;
             case CommandKind::fill_ellipse:
@@ -1737,6 +1776,14 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                 const std::optional<SkPath> path = to_sk_path(command.path);
                 if (!path || !configure_pen(paint, command.pen, command.state)) {
                     return {RasterError::invalid_argument, executed};
+                }
+                if (pen_trims(command.pen)) {
+                    if (!gui_forms::write_drawing_paint_path(command.path, trim_figure)) {
+                        return {RasterError::invalid_argument, executed};
+                    }
+                    const std::optional<SkPath> kept = trimmed_figure(command.pen, trim_figure, trim_kept);
+                    if (kept) (*canvas).drawPath(*kept, paint);
+                    break;
                 }
                 (*canvas).drawPath(*path, paint);
                 break;

@@ -745,6 +745,24 @@ void test_warnings() {
         }
     }
     require(each_refused, "each stripe value outside its range or vocabulary refuses its sheet with one error");
+    // `ring-style` (claude/geometry-1): a progress ring's dots or one
+    // continuous arc, on a control; any other keyword refuses the sheet.
+    const Compilation rings = compile("#a { ring-style: arc }\n#b { ring-style: dots }");
+    bool ring_arc = false;
+    bool ring_dots = false;
+    if (rings.outcome == CompileOutcome::compiled && rings.sheet.rules.size() == 2U) {
+        for (const RecipeDeclaration& field : rings.sheet.rules[0].recipe_fields) {
+            if (field.field == RecipeField::ring_style && field.ring_style == RingStyle::arc) ring_arc = true;
+        }
+        for (const RecipeDeclaration& field : rings.sheet.rules[1].recipe_fields) {
+            if (field.field == RecipeField::ring_style && field.ring_style == RingStyle::dots) ring_dots = true;
+        }
+    }
+    require(rings.diagnostics.empty() && ring_arc && ring_dots, "ring-style lowers arc and dots");
+    const Compilation spiral = compile("#a { ring-style: spiral }");
+    require(spiral.outcome == CompileOutcome::refused && spiral.diagnostics.size() == 1U &&
+                spiral.diagnostics[0].code == DiagnosticCode::keyword_unknown,
+            "an unknown ring style refuses its sheet");
     // The node canvas's properties (cp31) are part fields too: admitted on
     // a named part, range-checked, and refused on a control; the texture is
     // one to three baked layers, procedural or a finish, each multiplied at

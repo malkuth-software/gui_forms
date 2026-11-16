@@ -121,8 +121,8 @@ public:
     // to flatten or beyond the mask's coordinate range) the composites give
     // way to Skia draws that follow the path: text draws its coverage mask
     // through Skia, a part raster draws as a Skia image (source-over at its
-    // opacity), and a paint group that would isolate draws directly, counted
-    // as a refusal (group_refusals).
+    // opacity), and under such a path clip a paint group that would isolate
+    // draws directly, counted as a refusal (group_refusals).
     void clip_path(PaintPathView path, PolygonFillRule rule) override;
     void fill_rect(Rect rect, Color color) override;
     void fill_rounded_rect(Rect rect, double radius, Color color) override;
@@ -299,14 +299,20 @@ public:
     // matrix under a save, and while it is in force the raster's direct
     // composites (text coverage, part rasters, isolated paint groups) give
     // way to Skia draws through the map: text through the transformed glyph
-    // rasterizer, part rasters as images, paint groups drawn directly
-    // (counted in group_refusals).
+    // rasterizer, part rasters as images, first area-resampled down to the
+    // map's minimum scale where the draw would minify them (rotation tier
+    // 1, counted in transformed_resamples), and a paint group that asks for
+    // isolation isolated in device pixels through the map, its image
+    // composited by Skia under the map's clip and the group's bounds.
     void begin_transform(const PaintTransformGroup& group) override;
     void end_transform() override;
     // Transform groups refused: not valid, begun deeper than
     // maximum_paint_transform_depth or inside a refused one. Each drew
     // nothing.
     [[nodiscard]] std::uint64_t transform_refusals() const noexcept;
+    // Part rasters area-resampled (stx_conv, pixel area) to the map's
+    // minimum scale before a draw through a non-translating map.
+    [[nodiscard]] std::uint64_t transformed_resamples() const noexcept;
 
 private:
     [[nodiscard]] bool apply_image_patch(const ImageResourceView& resource);
@@ -320,6 +326,9 @@ private:
     // opaque_live_surface_cover has promised.
     bool direct_patterns_{};
     std::uint64_t covers_promised_{};
+    // stroke_path's trimmed sub-path (StrokeStyle::trim), cleared and
+    // refilled by each trimmed stroke on the painting thread.
+    PaintPath trimmed_stroke_{};
 };
 
 } // namespace gui_forms::render
