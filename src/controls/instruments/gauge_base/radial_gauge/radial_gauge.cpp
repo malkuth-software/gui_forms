@@ -167,13 +167,13 @@ void RadialGauge::on_paint(Painter& painter, Rect) {
     PartPaint alarm{.role = PartRole::arc, .bounds = placed.arc, .states = alarm_states,
                     .family = ControlVisualRole::progress};
     alarm.key = PartKey{"alarm_arc", {}, {}};
-    const std::optional<double> low = low_alarm.read();
-    const std::optional<double> high = high_alarm.read();
-    if (low && ratio_of(*low) > 0.0) {
+    const double* low = low_alarm.read().value();
+    const double* high = high_alarm.read().value();
+    if (low != nullptr && ratio_of(*low) > 0.0) {
         alarm.arc = arc_between(0.0, ratio_of(*low));
         paint_part(painter, *this, alarm);
     }
-    if (high && ratio_of(*high) < 1.0) {
+    if (high != nullptr && ratio_of(*high) < 1.0) {
         alarm.arc = arc_between(ratio_of(*high), 1.0);
         paint_part(painter, *this, alarm);
     }
@@ -226,10 +226,10 @@ void RadialGauge::publish_part_geometry(std::span<PartGeometry> geometry) const 
     record.plot = PartGeometry::from_bounds(placed.plot);
     if (!placed.arc.empty()) {
         record.track = PartGeometry::from_bounds(placed.arc);
-        const std::optional<double> low = low_alarm.read();
-        const std::optional<double> high = high_alarm.read();
-        const bool low_shown = low && ratio_of(*low) > 0.0;
-        const bool high_shown = high && ratio_of(*high) < 1.0;
+        const double* low = low_alarm.read().value();
+        const double* high = high_alarm.read().value();
+        const bool low_shown = low != nullptr && ratio_of(*low) > 0.0;
+        const bool high_shown = high != nullptr && ratio_of(*high) < 1.0;
         if (low_shown || high_shown) record.alarm_arc = PartGeometry::from_bounds(placed.arc);
         if (ratio_of(value.read()) > 0.0) record.value_arc = PartGeometry::from_bounds(placed.arc);
         Rect marks{};

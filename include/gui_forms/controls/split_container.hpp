@@ -204,9 +204,9 @@ private:
     void written(const decltype(first_minimum)& cell);
     void prepare_write(const decltype(second_minimum)& cell, double& incoming);
     void written(const decltype(second_minimum)& cell);
-    void prepare_write(const decltype(first_maximum)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(first_maximum)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(first_maximum)& cell);
-    void prepare_write(const decltype(second_maximum)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(second_maximum)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(second_maximum)& cell);
     void prepare_write(const decltype(splitter_fixed)& cell, bool& incoming);
     void written(const decltype(splitter_fixed)& cell);

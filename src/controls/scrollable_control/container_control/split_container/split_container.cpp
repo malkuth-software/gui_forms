@@ -736,16 +736,16 @@ double SplitContainer::constrained_distance(double requested,
             : available * 0.5;
         lower = upper = compromise;
     }
-    if (first_maximum.read()) upper = std::min(upper, *first_maximum.read());
-    if (second_maximum.read()) {
-        lower = std::max(lower, std::max(0.0, available - *second_maximum.read()));
+    const double* first_limit = first_maximum.read().value();
+    const double* second_limit = second_maximum.read().value();
+    if (first_limit != nullptr) upper = std::min(upper, *first_limit);
+    if (second_limit != nullptr) {
+        lower = std::max(lower, std::max(0.0, available - *second_limit));
     }
     if (lower > upper) {
         double compromise = available * 0.5;
-        if (first_maximum.read() && second_maximum.read() &&
-            *first_maximum.read() + *second_maximum.read() > 0.0) {
-            compromise = available * *first_maximum.read() /
-                         (*first_maximum.read() + *second_maximum.read());
+        if (first_limit != nullptr && second_limit != nullptr && *first_limit + *second_limit > 0.0) {
+            compromise = available * *first_limit / (*first_limit + *second_limit);
         }
         lower = upper = std::clamp(compromise, 0.0, available);
     }
@@ -1027,8 +1027,8 @@ void SplitContainer::append_interactions(std::vector<InteractionDeclaration>& in
 void SplitContainer::prepare_write(const decltype(first_minimum)&, double& incoming) {
     require_mutable();
     require_finite_nonnegative(incoming, "first panel minimum must be finite and nonnegative");
-    const std::optional<double>& maximum = first_maximum.read();
-    if (maximum && incoming > *maximum) {
+    const double* maximum = first_maximum.read().value();
+    if (maximum != nullptr && incoming > *maximum) {
         throw std::invalid_argument("first panel minimum may not exceed its maximum");
     }
 }
@@ -1040,8 +1040,8 @@ void SplitContainer::written(const decltype(first_minimum)&) {
 void SplitContainer::prepare_write(const decltype(second_minimum)&, double& incoming) {
     require_mutable();
     require_finite_nonnegative(incoming, "second panel minimum must be finite and nonnegative");
-    const std::optional<double>& maximum = second_maximum.read();
-    if (maximum && incoming > *maximum) {
+    const double* maximum = second_maximum.read().value();
+    if (maximum != nullptr && incoming > *maximum) {
         throw std::invalid_argument("second panel minimum may not exceed its maximum");
     }
 }
@@ -1050,11 +1050,12 @@ void SplitContainer::written(const decltype(second_minimum)&) {
     invalidate(invalidation::bounds);
 }
 
-void SplitContainer::prepare_write(const decltype(first_maximum)&, std::optional<double>& incoming) {
+void SplitContainer::prepare_write(const decltype(first_maximum)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) {
-        require_finite_nonnegative(*incoming, "first panel maximum must be finite and nonnegative");
-        if (*incoming < first_minimum.read()) {
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) {
+        require_finite_nonnegative(*incoming_value, "first panel maximum must be finite and nonnegative");
+        if (*incoming_value < first_minimum.read()) {
             throw std::invalid_argument("first panel maximum may not be below its minimum");
         }
     }
@@ -1064,11 +1065,12 @@ void SplitContainer::written(const decltype(first_maximum)&) {
     invalidate(invalidation::bounds);
 }
 
-void SplitContainer::prepare_write(const decltype(second_maximum)&, std::optional<double>& incoming) {
+void SplitContainer::prepare_write(const decltype(second_maximum)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) {
-        require_finite_nonnegative(*incoming, "second panel maximum must be finite and nonnegative");
-        if (*incoming < second_minimum.read()) {
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) {
+        require_finite_nonnegative(*incoming_value, "second panel maximum must be finite and nonnegative");
+        if (*incoming_value < second_minimum.read()) {
             throw std::invalid_argument("second panel maximum may not be below its minimum");
         }
     }

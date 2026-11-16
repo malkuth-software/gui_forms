@@ -37,6 +37,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <thread>
 #include <vector>
 
@@ -501,7 +502,7 @@ void test_automatic_accommodation_and_user_override() {
 
 void test_content_aware_maximum_extents() {
     std::shared_ptr<gui_forms::SplitContainer> right_bounded = make_control<SplitContainer>(StableId("split.max.right"));
-    (*right_bounded).second_maximum = 180.0;
+    (*right_bounded).second_maximum = stxlib::Optional<double>::of(180.0);
     (*right_bounded).splitter_distance = 100.0;
     Window right_window(right_bounded, {600.0, 160.0});
     right_window.perform_layout();
@@ -513,7 +514,7 @@ void test_content_aware_maximum_extents() {
             "programmatic and pointer distances must share maximum constraints");
 
     std::shared_ptr<gui_forms::SplitContainer> left_bounded = make_control<SplitContainer>(StableId("split.max.left"));
-    (*left_bounded).first_maximum = 200.0;
+    (*left_bounded).first_maximum = stxlib::Optional<double>::of(200.0);
     (*left_bounded).splitter_distance = 500.0;
     Window left_window(left_bounded, {600.0, 160.0});
     left_window.perform_layout();
@@ -522,7 +523,7 @@ void test_content_aware_maximum_extents() {
 
     bool invalid_rejected{};
     try {
-        (*left_bounded).first_maximum = 10.0;
+        (*left_bounded).first_maximum = stxlib::Optional<double>::of(10.0);
     } catch (const std::invalid_argument&) {
         invalid_rejected = true;
     }

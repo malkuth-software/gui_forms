@@ -2734,12 +2734,12 @@ void test_split_container_properties() {
         expect((*control).second_minimum.read() == sample, "SplitContainer.second_minimum: a write stores");
     }
     {
-        const std::optional<double> sample = std::optional<double>{400.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(400.0);
         (*control).first_maximum = sample;
         expect((*control).first_maximum.read() == sample, "SplitContainer.first_maximum: a write stores");
     }
     {
-        const std::optional<double> sample = std::optional<double>{400.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(400.0);
         (*control).second_maximum = sample;
         expect((*control).second_maximum.read() == sample, "SplitContainer.second_maximum: a write stores");
     }
