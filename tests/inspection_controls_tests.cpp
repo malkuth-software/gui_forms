@@ -6,6 +6,7 @@
 #include "support/typography_painter.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
@@ -875,6 +876,20 @@ void test_nullable_standard_values_culture_and_nested_services() {
     require(localized == "1.234,5" && localized_parse &&
                 binding_value_to_number(*localized_parse) == stxlib::Optional<double>::of(1234.5),
             "numeric conversion context must localize and parse per registry without mutating process locale");
+    // Thirteen or more integer digits put a group separator "." past the
+    // point's old index; it must not become the decimal separator
+    // (A-gf-controls-05-F1).
+    PropertyDescriptor count;
+    count.name = "Bytes";
+    count.kind = BindingValueKind::signed_integer;
+    require((*converters).format(BindingValue{std::int64_t{1234567890123}}, count) == "1.234.567.890.123",
+            "a thirteen-digit integer is grouped with no decimal separator");
+    require((*converters).format(BindingValue{1234567890123.5}, numeric) == "1.234.567.890.123,5",
+            "a thirteen-digit number keeps its one decimal separator after the groups");
+    const std::optional<BindingValue> count_parse = (*converters).parse(
+        "1.234.567.890.123", BindingValue{std::int64_t{0}}, count);
+    require(count_parse && *count_parse == BindingValue{std::int64_t{1234567890123}},
+            "the grouped integer text reads back unchanged");
 
     PropertyValueConverter percent;
     percent.format = format_percent_or_empty;

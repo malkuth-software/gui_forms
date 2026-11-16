@@ -47,26 +47,36 @@ inline void replace_text(std::string& text, std::string_view from,
     }
 }
 
+// Localizes an invariant number text: the decimal point becomes the context's
+// decimal separator, then the integer part is grouped. The point is replaced
+// first, at the index found before any insertion, so a group separator equal
+// to "." is never taken for it (A-gf-controls-05-F1). Only an integer part
+// that is a plain run of digits after an optional sign is grouped, so "1e+20",
+// "inf" and "nan" pass through ungrouped.
 inline std::string localize_number(
     std::string text, const PropertyConversionContext& context) {
     const std::size_t decimal = text.find('.');
     const std::size_t integer_end = decimal == std::string::npos
         ? text.size() : decimal;
-    if (context.use_grouping && !context.group_separator.empty()) {
-        const std::size_t first_digit = !text.empty() &&
-                (text.front() == '-' || text.front() == '+')
-            ? 1U : 0U;
+    if (decimal != std::string::npos && context.decimal_separator != ".") {
+        text.replace(decimal, 1U, context.decimal_separator);
+    }
+    const std::size_t first_digit = !text.empty() &&
+            (text.front() == '-' || text.front() == '+')
+        ? 1U : 0U;
+    bool plain_digits = integer_end > first_digit;
+    for (std::size_t index = first_digit; index < integer_end; ++index) {
+        const char character = text[index];
+        if (character < '0' || character > '9') plain_digits = false;
+    }
+    if (context.use_grouping && !context.group_separator.empty() && plain_digits) {
+        // Insertions go right to left, each before the integer part's end, so
+        // the indices still to be used do not move.
         std::size_t digits = integer_end - first_digit;
         while (digits > 3U) {
             const std::size_t insertion = first_digit + digits - 3U;
             text.insert(insertion, context.group_separator);
             digits -= 3U;
-        }
-    }
-    if (context.decimal_separator != ".") {
-        const std::size_t localized_decimal = text.find('.', integer_end);
-        if (localized_decimal != std::string::npos) {
-            text.replace(localized_decimal, 1U, context.decimal_separator);
         }
     }
     return text;
