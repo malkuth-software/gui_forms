@@ -688,11 +688,11 @@ void test_contextual_tint() {
     (*ribbon).set_tab_set_availability("picture", RibbonTabSetAvailability::available);
     Window window(ribbon, {700.0, 160.0});
     window.perform_layout();
-    const std::optional<AccentIndex> accent = (*ribbon).tab_set_accent("picture");
-    require(accent.has_value(), "the shown set has an accent");
+    const stxlib::Optional<AccentIndex> accent = (*ribbon).tab_set_accent("picture");
+    require(accent.present(), "the shown set has an accent");
     LookPainter painter;
     static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 160.0}));
-    require(accent && painter.filled((*gui_forms_theme()).accent(*accent)),
+    require(accent.present() && painter.filled((*gui_forms_theme()).accent(*accent.value())),
             "the contextual tab's themed face carries its set's tint");
 }
 

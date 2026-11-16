@@ -1449,7 +1449,7 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
         part.role = PartRole::keyline;
         part.bounds = moved(placed.accent, offset);
         part.key = PartKey{"caption_accent", item, {}};
-        part.accent = AccentIndex{0U};
+        part.accent.set(AccentIndex{0U});
         paint_part(painter, surface, part);
         part.accent.reset();
     }

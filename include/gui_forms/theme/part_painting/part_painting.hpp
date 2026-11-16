@@ -270,7 +270,7 @@ struct GUI_FORMS_API PartPaint final {
     // The part's position in the theme's accent ramp (§8.5), or none. A
     // surface part with an accent is tinted from the ramp over its
     // material; text and mark roles ignore it.
-    std::optional<AccentIndex> accent{};
+    stxlib::Optional<AccentIndex> accent{};
     // The colour the part shows as its content (design language 8.5; owner
     // decision W-7), such as a colour picker's sample, or none. Only the
     // fill role honours it: a fill with a content colour is painted that

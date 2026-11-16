@@ -143,7 +143,7 @@ void accents() {
     face.bounds = {0.0, 0.0, 60.0, 24.0};
     RecordingPainter plain;
     paint_part(plain, *control, face);
-    face.accent = AccentIndex{2U};
+    face.accent.set(AccentIndex{2U});
     RecordingPainter tinted;
     paint_part(tinted, *control, face);
     require(tinted.operations.size() == plain.operations.size() + 1U &&
@@ -155,7 +155,7 @@ void accents() {
     label.role = PartRole::label;
     label.bounds = {0.0, 0.0, 60.0, 24.0};
     label.text = lend_paint_text("Format");
-    label.accent = AccentIndex{2U};
+    label.accent.set(AccentIndex{2U});
     RecordingPainter text;
     paint_part(text, *control, label);
     for (const Operation& operation : text.operations) {
@@ -164,7 +164,7 @@ void accents() {
 
     PartGeometry first = PartGeometry::from_bounds({0.0, 0.0, 10.0, 10.0});
     PartGeometry second = first;
-    second.accent = AccentIndex{1U};
+    second.accent.set(AccentIndex{1U});
     require(!(first == second), "published geometry compares its accent");
 
     const std::unique_ptr<ThemeDefinition> held_empty = test_support::professional_definition();

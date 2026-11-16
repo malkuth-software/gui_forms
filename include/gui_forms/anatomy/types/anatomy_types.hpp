@@ -375,7 +375,7 @@ struct GUI_FORMS_API PartGeometry final {
     bool present{};
     AnatomyStateSet states{};
     // The accent the part is tinted with, or none (see AccentIndex).
-    std::optional<AccentIndex> accent{};
+    stxlib::Optional<AccentIndex> accent{};
     // The colour the part shows as its content, or none: a colour swatch's
     // sample (PartPaint::content_color; owner decision W-7).
     stxlib::Optional<Color> content_color{};

@@ -44,8 +44,8 @@ std::optional<std::size_t> Ribbon::find_tab_set(std::string_view set_id) const n
     return std::nullopt;
 }
 
-std::optional<AccentIndex> Ribbon::tab_accent(std::size_t tab) const noexcept {
-    if (tab >= tab_set_of_.size() || !tab_set_of_[tab]) return std::nullopt;
+stxlib::Optional<AccentIndex> Ribbon::tab_accent(std::size_t tab) const noexcept {
+    if (tab >= tab_set_of_.size() || !tab_set_of_[tab]) return stxlib::Optional<AccentIndex>::none();
     return set_states_[*tab_set_of_[tab]].accent;
 }
 
@@ -83,7 +83,7 @@ RibbonTabSetAvailability Ribbon::tab_set_availability(std::string_view set_id) c
     return set_states_[*set].availability;
 }
 
-std::optional<AccentIndex> Ribbon::tab_set_accent(std::string_view set_id) const {
+stxlib::Optional<AccentIndex> Ribbon::tab_set_accent(std::string_view set_id) const {
     const std::optional<std::size_t> set = find_tab_set(set_id);
     if (!set) throw std::out_of_range("Ribbon has no tab set with this ID");
     return set_states_[*set].accent;
@@ -160,26 +160,28 @@ void Ribbon::refresh_accents() {
     std::vector<bool> used(ramp, false);
     for (TabSetState& state : set_states_) {
         const bool visible = state.availability != RibbonTabSetAvailability::not_available;
-        if (!visible && state.accent) {
+        if (!visible && state.accent.present()) {
             state.last_accent = state.accent;
             state.accent.reset();
         }
-        if (visible && state.accent) used[(*state.accent).value % ramp] = true;
+        if (visible && state.accent.present()) used[(*state.accent.value()).value % ramp] = true;
     }
     std::size_t shown_sets = 0U;
     for (const TabSetState& state : set_states_) {
-        if (state.accent) ++shown_sets;
+        if (state.accent.present()) ++shown_sets;
     }
     for (TabSetState& state : set_states_) {
         const bool visible = state.availability != RibbonTabSetAvailability::not_available;
-        if (!visible || state.accent) continue;
+        if (!visible || state.accent.present()) continue;
         std::optional<std::size_t> chosen{};
-        if (state.last_accent && !used[(*state.last_accent).value % ramp]) chosen = (*state.last_accent).value % ramp;
+        if (state.last_accent.present() && !used[(*state.last_accent.value()).value % ramp]) {
+            chosen = (*state.last_accent.value()).value % ramp;
+        }
         for (std::size_t index = 0; !chosen && index < ramp; ++index) {
             if (!used[index]) chosen = index;
         }
         if (!chosen) chosen = shown_sets % ramp;
-        state.accent = AccentIndex{static_cast<std::uint8_t>(*chosen)};
+        state.accent.set(AccentIndex{static_cast<std::uint8_t>(*chosen)});
         used[*chosen] = true;
         ++shown_sets;
     }

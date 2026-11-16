@@ -1005,7 +1005,7 @@ void ToolStripContainer::paint_drag_layer(Painter& painter) {
         part.role = PartRole::drop;
         part.bounds = (*drag_.target).marker;
         part.states.insert(AnatomyState::drop_accepted);
-        part.accent = AccentIndex{0U};
+        part.accent.set(AccentIndex{0U});
         paint_part(painter, *this, part);
         part.accent.reset();
         part.states = {};

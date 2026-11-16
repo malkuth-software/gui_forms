@@ -1374,7 +1374,7 @@ struct AccentFill final {
 };
 
 std::optional<AccentFill> primitive_accent_fill(const Control& control, const PartPaint& part) {
-    if (!part.accent || !surface_role(part.role) || !paintable(part.bounds)) return std::nullopt;
+    if (part.accent.absent() || !surface_role(part.role) || !paintable(part.bounds)) return std::nullopt;
     const Theme& theme = control.effective_theme();
     const ThemeEngine::PartPlan decided = theme.engine().plan(control, part);
     if (decided.drawing != ThemeEngine::PartDrawing::primitive) return std::nullopt;
@@ -1384,7 +1384,7 @@ std::optional<AccentFill> primitive_accent_fill(const Control& control, const Pa
         theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
     AccentFill fill{};
     fill.radius = part_corner_radius(part, resolved.recipe());
-    fill.color = theme.accent(*part.accent);
+    fill.color = theme.accent(*part.accent.value());
     return fill;
 }
 
@@ -1639,11 +1639,11 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
     // window's backdrop included, need not be painted. The window keeps the
     // cover only when the face was drawn untranslated and unclipped.
     if (opaque_face) control.report_opaque_cover(painter, part.bounds);
-    if (!part.accent || !surface_role(part.role)) return;
+    if (part.accent.absent() || !surface_role(part.role)) return;
     // Provisional accent (design language §8.5): the ramp colour, which
     // carries its own translucency, laid over the part's material in the
     // part's shape. T4 replaces this with the engine's tint.
-    const Color tint = theme.accent(*part.accent);
+    const Color tint = theme.accent(*part.accent.value());
     const double radius = part_corner_radius(part, recipe);
     painter.fill_rounded_rect(part.bounds, radius, tint);
 }

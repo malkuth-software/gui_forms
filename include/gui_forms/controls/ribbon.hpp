@@ -406,7 +406,7 @@ public:
     // The accent a shown set is tinted with, or none while it is hidden.
     // A newly shown set takes an index no other shown set has, keeping its
     // previous one when it can. Throws std::out_of_range for an unknown set.
-    [[nodiscard]] std::optional<AccentIndex> tab_set_accent(std::string_view set_id) const;
+    [[nodiscard]] stxlib::Optional<AccentIndex> tab_set_accent(std::string_view set_id) const;
     // Whether a tab shows on the tab row now (its modes, and its set's
     // availability). Throws std::out_of_range for a tab past the end.
     [[nodiscard]] bool tab_shown(std::size_t tab) const;
@@ -876,8 +876,8 @@ private:
     // §5.4), and its tabs' range in tabs_.
     struct TabSetState final {
         RibbonTabSetAvailability availability{RibbonTabSetAvailability::not_available};
-        std::optional<AccentIndex> accent{};
-        std::optional<AccentIndex> last_accent{};
+        stxlib::Optional<AccentIndex> accent{};
+        stxlib::Optional<AccentIndex> last_accent{};
         std::optional<std::size_t> remembered_tab{};
         std::size_t first_tab{};
         std::size_t tab_count{};
@@ -891,7 +891,7 @@ private:
     [[nodiscard]] bool selectable(std::size_t tab) const noexcept;
     [[nodiscard]] bool group_shown(std::size_t tab, std::size_t group) const noexcept;
     [[nodiscard]] std::optional<std::size_t> find_tab_set(std::string_view set_id) const noexcept;
-    [[nodiscard]] std::optional<AccentIndex> tab_accent(std::size_t tab) const noexcept;
+    [[nodiscard]] stxlib::Optional<AccentIndex> tab_accent(std::size_t tab) const noexcept;
     [[nodiscard]] std::optional<std::size_t> fallback_tab() const noexcept;
     // A shown tab's 1-based place among the shown tabs of its kind (the core
     // tabs, or its set's tabs) and how many of them there are.

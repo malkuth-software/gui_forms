@@ -793,7 +793,7 @@ void DockSite::paint_drag_layer(Painter& painter) {
         part.states.insert(AnatomyState::drop_accepted);
         // The translucent blue tint with its edge (T3-1) is the theme's;
         // today's accent ramp gives the tint.
-        part.accent = AccentIndex{0U};
+        part.accent.set(AccentIndex{0U});
         paint_part(painter, *this, part);
         part.accent.reset();
         part.states = {};

@@ -201,38 +201,38 @@ void availability_and_selection_rules() {
 void accents() {
     Fixture fixture = make_fixture();
     Ribbon& ribbon = *fixture.ribbon;
-    require(!ribbon.tab_set_accent("picture"), "a hidden set has no accent");
+    require(ribbon.tab_set_accent("picture").absent(), "a hidden set has no accent");
     ribbon.set_tab_set_availability("picture", RibbonTabSetAvailability::active);
     ribbon.set_tab_set_availability("table", RibbonTabSetAvailability::available);
     (*fixture.window).perform_layout();
-    const std::optional<AccentIndex> picture = ribbon.tab_set_accent("picture");
-    const std::optional<AccentIndex> table = ribbon.tab_set_accent("table");
-    require(picture && table && !(*picture == *table), "shown sets take different accents");
+    const stxlib::Optional<AccentIndex> picture = ribbon.tab_set_accent("picture");
+    const stxlib::Optional<AccentIndex> table = ribbon.tab_set_accent("table");
+    require(picture.present() && table.present() && !(picture == table), "shown sets take different accents");
     const std::vector<Ribbon::Tab> tabs = ribbon.realized_tabs();
     require(tab_named(tabs, "format").parts.tab.accent == picture &&
                 tab_named(tabs, "arrange").parts.tab.accent == picture &&
                 tab_named(tabs, "design").parts.tab.accent == table &&
-                !tab_named(tabs, "home").parts.tab.accent,
+                tab_named(tabs, "home").parts.tab.accent.absent(),
             "a set's tint is on its tabs, and core tabs have none");
     require(ribbon.parts().command_plane.accent == picture, "the selected contextual tab's plane carries its tint");
     click_tab(fixture, "home");
-    require(!ribbon.parts().command_plane.accent, "a core tab's plane carries no tint");
+    require(ribbon.parts().command_plane.accent.absent(), "a core tab's plane carries no tint");
     ribbon.set_tab_set_availability("picture", RibbonTabSetAvailability::not_available);
     ribbon.set_tab_set_availability("chart", RibbonTabSetAvailability::available);
     ribbon.set_tab_set_availability("picture", RibbonTabSetAvailability::available);
-    const std::optional<AccentIndex> chart = ribbon.tab_set_accent("chart");
-    const std::optional<AccentIndex> returned = ribbon.tab_set_accent("picture");
-    require(chart && returned && !(*chart == *table) && !(*returned == *table) && !(*returned == *chart),
+    const stxlib::Optional<AccentIndex> chart = ribbon.tab_set_accent("chart");
+    const stxlib::Optional<AccentIndex> returned = ribbon.tab_set_accent("picture");
+    require(chart.present() && returned.present() && !(chart == table) && !(returned == table) && !(returned == chart),
             "three shown sets have three accents");
-    require(*chart == *picture,
+    require(chart == picture,
             "a newly shown set may take an accent a hidden set gave up, and the returning one takes another");
 
     Fixture second = make_fixture();
     (*second.ribbon).set_tab_set_availability("table", RibbonTabSetAvailability::available);
-    const AccentIndex first_table = *(*second.ribbon).tab_set_accent("table");
+    const AccentIndex first_table = (*second.ribbon).tab_set_accent("table").take();
     (*second.ribbon).set_tab_set_availability("table", RibbonTabSetAvailability::not_available);
     (*second.ribbon).set_tab_set_availability("table", RibbonTabSetAvailability::available);
-    require(*(*second.ribbon).tab_set_accent("table") == first_table, "a returning set keeps its accent when free");
+    require((*second.ribbon).tab_set_accent("table").take() == first_table, "a returning set keeps its accent when free");
 }
 
 // The sets' accents follow the window's theme: a one-colour ramp gives every
@@ -244,18 +244,18 @@ void accents_follow_theme() {
     ribbon.set_tab_set_availability("picture", RibbonTabSetAvailability::available);
     ribbon.set_tab_set_availability("table", RibbonTabSetAvailability::available);
     window.perform_layout();
-    require(!(*ribbon.tab_set_accent("picture") == *ribbon.tab_set_accent("table")),
+    require(!(ribbon.tab_set_accent("picture").take() == ribbon.tab_set_accent("table").take()),
             "shown sets take different accents");
     const std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
     (*held).id = "one-accent";
     (*held).accent_ramp = {Color::rgba(200, 40, 40)};
     window.set_theme(Theme::create(*held));
     window.perform_layout();
-    require((*ribbon.tab_set_accent("picture")).value == 0U && (*ribbon.tab_set_accent("table")).value == 0U,
+    require(ribbon.tab_set_accent("picture").take().value == 0U && ribbon.tab_set_accent("table").take().value == 0U,
             "on a one-colour ramp every shown set takes that colour");
     window.set_theme(default_theme());
     window.perform_layout();
-    require(!(*ribbon.tab_set_accent("picture") == *ribbon.tab_set_accent("table")),
+    require(!(ribbon.tab_set_accent("picture").take() == ribbon.tab_set_accent("table").take()),
             "a wider ramp gives the shown sets different accents again");
 }
 

@@ -718,11 +718,11 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
         // The status rail is a fill; pinned and stale items take the first
         // and second accent indices and an offline item is unavailable
         // (owner decision, 2026-11-02).
-        std::optional<AccentIndex> status_accent{};
+        stxlib::Optional<AccentIndex> status_accent{};
         if (pinned) {
-            status_accent = AccentIndex{0U};
+            status_accent.set(AccentIndex{0U});
         } else if (item.stale && !item.unavailable) {
-            status_accent = AccentIndex{1U};
+            status_accent.set(AccentIndex{1U});
         }
         AnatomyStateSet status_states = item_states;
         if (item.unavailable) status_states.insert(AnatomyState::unavailable);

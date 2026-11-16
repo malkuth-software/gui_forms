@@ -175,7 +175,7 @@ void Ribbon::follow_theme() {
     scaling_key_ = ScalingKey{};
     advance_layout_revision();
     for (TabSetState& state : set_states_) {
-        if (!state.accent) continue;
+        if (state.accent.absent()) continue;
         state.last_accent = state.accent;
         state.accent.reset();
     }
@@ -480,7 +480,7 @@ std::vector<Ribbon::TabSetState> Ribbon::carried_set_states(
         for (std::size_t old = 0; old < tab_sets_.size(); ++old) {
             if (tab_sets_[old].stable_id != sets[set].stable_id) continue;
             states[set].availability = set_states_[old].availability;
-            states[set].last_accent = set_states_[old].accent ? set_states_[old].accent : set_states_[old].last_accent;
+            states[set].last_accent = set_states_[old].accent.present() ? set_states_[old].accent : set_states_[old].last_accent;
         }
     }
     for (std::size_t tab = 0; tab < tab_set_of.size(); ++tab) {
