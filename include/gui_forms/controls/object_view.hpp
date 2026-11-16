@@ -265,9 +265,11 @@ private:
     [[nodiscard]] Rect column_bounds(std::size_t column) const noexcept;
     // Realized rows and realized (visible) details columns. `position`
     // counts visible columns; the result is the column's model index.
+    // realized_column_index throws std::out_of_range for a position past
+    // the visible columns.
     [[nodiscard]] std::size_t realized_row_count() const noexcept;
     [[nodiscard]] std::size_t realized_column_count() const noexcept;
-    [[nodiscard]] std::size_t realized_column_index(std::size_t position) const noexcept;
+    [[nodiscard]] std::size_t realized_column_index(std::size_t position) const;
     [[nodiscard]] ColumnParts column_parts(std::size_t column) const;
     [[nodiscard]] AnatomyStateSet column_states(std::size_t column) const;
     void clamp_horizontal_offset() noexcept;

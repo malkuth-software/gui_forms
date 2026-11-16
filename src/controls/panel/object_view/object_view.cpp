@@ -2215,7 +2215,10 @@ std::size_t ObjectView::realized_column_count() const noexcept {
     return count;
 }
 
-std::size_t ObjectView::realized_column_index(std::size_t position) const noexcept {
+// A position past the visible columns is refused here, where every realized
+// accessor resolves its column, instead of answering a past-the-end index
+// they would use (A-gf-controls-09-F9).
+std::size_t ObjectView::realized_column_index(std::size_t position) const {
     const double viewport_right = std::max(4.0, local_bounds().width - 4.0);
     std::size_t seen = 0U;
     for (std::size_t index = 0U; index < details_columns_.size(); ++index) {
@@ -2224,7 +2227,7 @@ std::size_t ObjectView::realized_column_index(std::size_t position) const noexce
         if (seen == position) return index;
         ++seen;
     }
-    return details_columns_.size();
+    throw std::out_of_range("ObjectView realized item is past the realized items");
 }
 
 std::size_t ObjectView::realized_item_count() const {
