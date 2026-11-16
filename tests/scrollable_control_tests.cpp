@@ -24,6 +24,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 #include "support/clip_tracking_painter.hpp"
+#include "support/frame_wake.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -33,6 +34,8 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 
@@ -310,20 +313,20 @@ void test_scroll_bar_press_and_hold_repeats_on_a_ui_timer() {
             "pressing the increment button must step once");
     const FrameTime after_press = FrameClock::now();
     const FrameInterval initial_delay = (*bar).initial_repeat_delay.read();
-    require(window.next_wake().has_value() && *window.next_wake() >= before_press + initial_delay &&
-                *window.next_wake() <= after_press + initial_delay,
+    require(window.next_wake().present() && armed_wake(window) >= before_press + initial_delay &&
+                armed_wake(window) <= after_press + initial_delay,
             "holding must schedule the first repeat after the initial delay, on a UI timer");
-    const FrameTime first = *window.next_wake();
+    const FrameTime first = armed_wake(window);
     const FramePollResult repeat = window.poll_frame_schedule(first);
     require(repeat.ui_timer_ticks == 1U && near((*bar).value.read(), 2.0) &&
-                *window.next_wake() == first + (*bar).repeat_interval.read(),
+                armed_wake(window) == first + (*bar).repeat_interval.read(),
             "each repeat must step once and schedule the next one an interval later");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     require(near((*bar).value.read(), 3.0), "a held press must keep repeating");
     PointerEvent release = press;
     release.action = PointerAction::up;
     static_cast<void>(window.dispatch_pointer(release));
-    require(!window.next_wake().has_value() && near((*bar).value.read(), 3.0),
+    require(window.next_wake().absent() && near((*bar).value.read(), 3.0),
             "release must stop the repeat timer");
 }
 
@@ -615,16 +618,16 @@ void test_built_in_bars_hover_press_and_repeat() {
                 (*f.panel).parts().scrollable.vertical_increment_arrow.states.contains(AnatomyState::pressed) &&
                 f.window.captured_control() == f.panel,
             "an arrow press must step once, capture and show the arrow pressed");
-    require(f.window.next_wake().has_value(), "holding must schedule the repeat on a UI timer");
-    const FrameTime first = *f.window.next_wake();
+    require(f.window.next_wake().present(), "holding must schedule the repeat on a UI timer");
+    const FrameTime first = armed_wake(f.window);
     const FramePollResult repeat = f.window.poll_frame_schedule(first);
     require(repeat.ui_timer_ticks == 1U && near((*f.panel).scroll_position().y, small * 2.0) &&
-                f.window.next_wake().has_value() &&
-                *f.window.next_wake() == first + scroll_repeat_interval_default,
+                f.window.next_wake().present() &&
+                armed_wake(f.window) == first + scroll_repeat_interval_default,
             "each repeat must step once and schedule the next an interval later");
     const PointerEvent release = pointer_at(PointerAction::up, {92.0, 95.0});
     static_cast<void>(f.window.dispatch_pointer(release));
-    require(!f.window.next_wake().has_value() && !f.window.captured_control() &&
+    require(f.window.next_wake().absent() && !f.window.captured_control() &&
                 !(*f.panel).parts().scrollable.vertical_increment_arrow.states.contains(AnatomyState::pressed) &&
                 near((*f.panel).scroll_position().y, small * 2.0),
             "release must stop the repeat, release capture and clear the press");
@@ -640,12 +643,12 @@ void test_built_in_track_repeat_stops_at_the_pointer() {
                 (*f.panel).parts().scrollable.vertical_track.states.contains(AnatomyState::pressed),
             "a track press must page once and show the track pressed");
     int polls = 0;
-    while (f.window.next_wake().has_value() && polls < 40) {
-        static_cast<void>(f.window.poll_frame_schedule(*f.window.next_wake()));
+    while (f.window.next_wake().present() && polls < 40) {
+        static_cast<void>(f.window.poll_frame_schedule(armed_wake(f.window)));
         ++polls;
     }
     const Rect thumb = (*f.panel).parts().scrollable.vertical_thumb.bounds;
-    require(!f.window.next_wake().has_value() && thumb.bottom() >= 70.0,
+    require(f.window.next_wake().absent() && thumb.bottom() >= 70.0,
             "the track's repeat must stop once the thumb reaches the pointer");
     static_cast<void>(f.window.dispatch_pointer(pointer_at(PointerAction::up, {92.0, 70.0})));
 }

@@ -888,9 +888,9 @@ void run_reveal(Window& window, const ExpandableSections& sections, int frames) 
     for (int frame = 0; frame < frames && sections.revealing(); ++frame) {
         window.perform_layout();
         window.paint(painter);
-        const std::optional<FrameTime> wake = window.next_wake();
-        if (!wake) return;
-        static_cast<void>(window.poll_frame_schedule(*wake));
+        const stxlib::Optional<FrameTime> wake = window.next_wake();
+        if (wake.absent()) return;
+        static_cast<void>(window.poll_frame_schedule(*wake.value()));
     }
 }
 

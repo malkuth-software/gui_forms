@@ -114,16 +114,22 @@ struct PositionBeforeLine final {
 
 } // namespace
 
-std::optional<std::size_t> RibbonGallery::line_of(std::size_t position) const noexcept {
-    if (position >= order_.size()) return std::nullopt;
+bool RibbonGallery::holds_position(const stxlib::Optional<std::size_t>& held, std::size_t position) noexcept {
+    const std::size_t* const value = held.value();
+    const bool result = value != nullptr && *value == position;
+    return result;
+}
+
+stxlib::Optional<std::size_t> RibbonGallery::line_of(std::size_t position) const noexcept {
+    if (position >= order_.size()) return stxlib::Optional<std::size_t>::none();
     const std::vector<Line>::const_iterator after =
         std::upper_bound(lines_.begin(), lines_.end(), position, PositionBeforeLine{});
     std::size_t line = static_cast<std::size_t>(after - lines_.begin());
     while (line > 0U) {
         --line;
-        if (lines_[line].kind == LineKind::items) return line;
+        if (lines_[line].kind == LineKind::items) return stxlib::Optional<std::size_t>::of(line);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 // -- geometry ------------------------------------------------------------------
@@ -190,8 +196,9 @@ bool RibbonGallery::can_scroll_down() const noexcept {
 }
 
 Rect RibbonGallery::cell_bounds(std::size_t position, const Geometry& layout) const noexcept {
-    const std::optional<std::size_t> line = line_of(position);
-    if (!line || first_line_ >= lines_.size()) return {};
+    const stxlib::Optional<std::size_t> found = line_of(position);
+    const std::size_t* const line = found.value();
+    if (line == nullptr || first_line_ >= lines_.size()) return {};
     const Line& row = lines_[*line];
     const double column = static_cast<double>(position - row.first);
     const Rect cell{layout.viewport.x + column * layout.cell.width,
@@ -200,8 +207,9 @@ Rect RibbonGallery::cell_bounds(std::size_t position, const Geometry& layout) co
 }
 
 void RibbonGallery::scroll_into_view(std::size_t position) {
-    const std::optional<std::size_t> line = line_of(position);
-    if (!line) return;
+    const stxlib::Optional<std::size_t> found = line_of(position);
+    const std::size_t* const line = found.value();
+    if (line == nullptr) return;
     const Geometry layout = geometry();
     std::size_t first = first_line_;
     if (*line < first) {
@@ -330,11 +338,11 @@ AnatomyStateSet RibbonGallery::item_states(std::size_t position) const {
     const std::optional<std::string> selected = selected_id.read();
     if (selected && *selected == items_[order_[position]].stable_id) states.insert(AnatomyState::selected);
     if (!item_enabled(position)) states.insert(AnatomyState::disabled);
-    if (hot_ == position) states.insert(AnatomyState::hot);
-    if (pressed_ == position) states.insert(AnatomyState::pressed);
-    if (focused_ == position) states.insert(AnatomyState::current);
+    if (holds_position(hot_, position)) states.insert(AnatomyState::hot);
+    if (holds_position(pressed_, position)) states.insert(AnatomyState::pressed);
+    if (holds_position(focused_, position)) states.insert(AnatomyState::current);
     const Window* const host = attached_window();
-    if (has_focus_ && focused_ == position && host != nullptr && (*host).focus_cue_visible()) {
+    if (has_focus_ && holds_position(focused_, position) && host != nullptr && (*host).focus_cue_visible()) {
         states.insert(AnatomyState::focus_visible);
     }
     return states;

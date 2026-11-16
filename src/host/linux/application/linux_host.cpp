@@ -685,7 +685,7 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
 bool update_prepared_window(NativeWindow& window) {
   render::SkiaRaster& raster = window.raster;
   const std::chrono::steady_clock::time_point started = std::chrono::steady_clock::now();
-  std::optional<PaintReceipt> committed{};
+  stxlib::Optional<PaintReceipt> committed{};
   // A paint tick is housekeeping: a control's exception is not caught (the X
   // event loop is the fail-fast boundary); its budget is the model's
   // paint_within_budget. The one exception taken here is core's typed
@@ -696,16 +696,16 @@ bool update_prepared_window(NativeWindow& window) {
   if (images_ready) {
     const PreparedTextStatus begun = raster.begin_prepared_frame(window.size, window.scale, window.damage);
     if (begun == PreparedTextStatus::success) {
-      std::optional<PaintReceipt> receipt{};
+      stxlib::Optional<PaintReceipt> receipt{};
       try {
         receipt = (*window.entry.model).paint(raster, window.damage.rectangles());
       } catch (const gui_forms::detail::PreparedTextPaintFailure&) {
         receipt.reset();
       }
       raster.end_frame();
-      if (receipt) {
-        const PreparedTextStatus status = raster.commit_prepared_frame(*receipt);
-        if (status == PreparedTextStatus::success) committed = *receipt;
+      if (receipt.present()) {
+        const PreparedTextStatus status = raster.commit_prepared_frame(*receipt.value());
+        if (status == PreparedTextStatus::success) committed.set(*receipt.value());
         else raster.abort_prepared_frame();
       } else raster.abort_prepared_frame();
     } else raster.abort_prepared_frame();
@@ -715,7 +715,7 @@ bool update_prepared_window(NativeWindow& window) {
   bool presented = false;
   PresentedArea copied;
   presented = present_raster_rectangles(window, window.damage.rectangles(), copied);
-  if (!presented || !committed) return false;
+  if (!presented || committed.absent()) return false;
   const std::chrono::steady_clock::time_point finished = std::chrono::steady_clock::now();
   const std::chrono::nanoseconds duration = std::chrono::duration_cast<std::chrono::nanoseconds>(finished - started);
   const std::uint64_t elapsed = static_cast<std::uint64_t>(duration.count());
@@ -1965,7 +1965,7 @@ void NativeWindow::update() {
     for (const Rect clip : applied_copy_clips) damage.add(clip);
   }
   compose_live_frames();
-  std::optional<PaintReceipt> receipt{};
+  stxlib::Optional<PaintReceipt> receipt{};
   if (!damage.empty()) {
     receipt = (*entry.model).paint(raster, damage.rectangles());
     // A fragment that fell back to retained painting is in `damage`.
@@ -1979,7 +1979,7 @@ void NativeWindow::update() {
   live_frames.clear();
   // A declined paint presents nothing; the damage and the lost regions stay,
   // and the copies' clips, moved in the raster only, join the damage.
-  if (!damage.empty() && !receipt) {
+  if (!damage.empty() && receipt.absent()) {
     for (const Rect clip : applied_copy_clips) damage.add(clip);
     return;
   }
@@ -2002,7 +2002,7 @@ void NativeWindow::update() {
           .count());
   if (regions_taken) live_region_lost = false;
   const bool acknowledged = report_presented(receipt, elapsed, copied);
-  if (!receipt) {
+  if (receipt.absent()) {
     frame_capture_if_due(covers_window);
     return;
   }
@@ -2011,8 +2011,8 @@ void NativeWindow::update() {
   // damage is done (as the prepared-text path checks).
   const PaintLeaseSnapshot lease = (*entry.model).paint_lease_snapshot();
   const bool shown = acknowledged ||
-      (lease.surface_epoch == (*receipt).surface_epoch &&
-       lease.presented_revision == (*receipt).rendered_revision);
+      (lease.surface_epoch == (*receipt.value()).surface_epoch &&
+       lease.presented_revision == (*receipt.value()).rendered_revision);
   if (shown) {
     damage.clear();
     frame_capture_if_due(covers_window);
@@ -2114,7 +2114,7 @@ void NativeWindow::compose_live_frames() {
 // frames gathered this tick are its live share, the rest retained, and the
 // duration is split between them by the pixels each copied. A live-only tick
 // has no receipt: its copy time is reported with the first live frame.
-bool NativeWindow::report_presented(const std::optional<PaintReceipt>& receipt,
+bool NativeWindow::report_presented(const stxlib::Optional<PaintReceipt>& receipt,
                                     const std::uint64_t elapsed, const PresentedArea copied) {
   std::uint64_t live_pixels = 0U;
   std::uint64_t live_frames_copied = 0U;
@@ -2127,7 +2127,7 @@ bool NativeWindow::report_presented(const std::optional<PaintReceipt>& receipt,
   bool acknowledged = false;
   std::uint64_t live_elapsed = elapsed;
   std::uint64_t unreported_copy = copied.copy_nanoseconds;
-  if (receipt) {
+  if (receipt.present()) {
     PresentedArea retained;
     retained.device_pixels = copied.device_pixels - live_pixels;
     retained.rectangles = copied.rectangles;
@@ -2138,7 +2138,7 @@ bool NativeWindow::report_presented(const std::optional<PaintReceipt>& receipt,
         static_cast<std::uint64_t>(static_cast<double>(elapsed) *
             static_cast<double>(live_pixels) / static_cast<double>(copied.device_pixels));
     acknowledged =
-        (*entry.model).notify_presented(*receipt, elapsed - live_elapsed, retained);
+        (*entry.model).notify_presented(*receipt.value(), elapsed - live_elapsed, retained);
   }
   const std::uint64_t live_duration =
       live_frames_copied == 0U ? 0U : live_elapsed / live_frames_copied;
@@ -2380,11 +2380,11 @@ void Runtime::step(int maximum_wait) {
     // overlay was just turned off: 33 ms, as the Windows host's timer.
     if (invalidation_overlay_fading(window))
       wait = wait < 0 ? 33 : std::min(wait, 33);
-    const std::optional<FrameTime> deadline = (*window.entry.model).next_wake();
-    if (deadline) {
+    const stxlib::Optional<FrameTime> deadline = (*window.entry.model).next_wake();
+    if (deadline.present()) {
       const long long delay =
           std::chrono::duration_cast<std::chrono::milliseconds>(
-              *deadline - std::chrono::steady_clock::now())
+              *deadline.value() - std::chrono::steady_clock::now())
               .count();
       const int milliseconds = static_cast<int>(std::clamp(
           delay, 0LL, static_cast<long long>(std::numeric_limits<int>::max())));

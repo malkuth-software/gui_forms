@@ -19,6 +19,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 #include "support/named_callbacks.hpp"
+#include "support/frame_wake.hpp"
 
 #include <array>
 #include <chrono>
@@ -28,6 +29,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 
@@ -97,9 +100,9 @@ void paint_damage(Window& window) {
 
 void poll_next(Window& window) {
     paint_damage(window);
-    const std::optional<FrameTime> wake = window.next_wake();
-    require(wake.has_value(), "expected a scheduled provider frame");
-    static_cast<void>(window.poll_frame_schedule(*wake));
+    const stxlib::Optional<FrameTime> wake = window.next_wake();
+    require(wake.present(), "expected a scheduled provider frame");
+    static_cast<void>(window.poll_frame_schedule(*wake.value()));
 }
 
 class ObserveLocalHelpRequest final {
@@ -266,21 +269,21 @@ void test_error_blink_is_bounded_occlusion_aware_and_reduced_motion_safe() {
     ErrorProvider errors(fixture.window);
     errors.blink_rate = 50ms;
     errors.set_error(fixture.target, "Transient validation failure");
-    require(errors.snapshot().icons.front().blink_active && fixture.window.next_wake(),
+    require(errors.snapshot().icons.front().blink_active && fixture.window.next_wake().present(),
             "changed-error blinking must use a scheduled blink timer");
 
     // An occluded window paints nothing, so the blink stops at the tick after
     // its last painted one; the damage it leaves resumes it with the exposed
     // window's next paint.
     fixture.window.set_occluded(true, FrameClock::now());
-    for (std::size_t tick = 0U; tick < 2U && fixture.window.next_wake(); ++tick) {
-        static_cast<void>(fixture.window.poll_frame_schedule(*fixture.window.next_wake()));
+    for (std::size_t tick = 0U; tick < 2U && fixture.window.next_wake().present(); ++tick) {
+        static_cast<void>(fixture.window.poll_frame_schedule(armed_wake(fixture.window)));
     }
-    require(!fixture.window.next_wake(),
+    require(fixture.window.next_wake().absent(),
             "occlusion must suppress provider animation wakeups");
     fixture.window.set_occluded(false, FrameClock::now());
     paint_damage(fixture.window);
-    require(fixture.window.next_wake().has_value(),
+    require(fixture.window.next_wake().present(),
             "exposure must resume the retained blink deadline");
 
     PresentationSettings settings = fixture.window.presentation_settings();
@@ -289,7 +292,7 @@ void test_error_blink_is_bounded_occlusion_aware_and_reduced_motion_safe() {
     ErrorProviderSnapshot reduced = errors.snapshot();
     require(!reduced.icons.front().blink_active &&
                 reduced.icons.front().blink_phase_visible &&
-                !fixture.window.next_wake(),
+                fixture.window.next_wake().absent(),
             "reduced motion must settle the glyph visible and quiescent");
 
     settings.reduced_motion = false;
@@ -297,14 +300,14 @@ void test_error_blink_is_bounded_occlusion_aware_and_reduced_motion_safe() {
     // At most six transitions (one may have run while occluded).
     for (std::size_t index = 0; index < 6U; ++index) {
         paint_damage(fixture.window);
-        if (!fixture.window.next_wake()) break;
+        if (fixture.window.next_wake().absent()) break;
         poll_next(fixture.window);
     }
     paint_damage(fixture.window);
     ErrorProviderSnapshot settled = errors.snapshot();
     require(!settled.icons.front().blink_active &&
                 settled.icons.front().blink_phase_visible &&
-                !fixture.window.next_wake(),
+                fixture.window.next_wake().absent(),
             "BlinkIfDifferentError must finish after a bounded deterministic sequence");
 
     errors.blink_style = ErrorBlinkStyle::always_blink;
@@ -312,7 +315,7 @@ void test_error_blink_is_bounded_occlusion_aware_and_reduced_motion_safe() {
             "AlwaysBlink must retain its blink timer while visible");
     errors.blink_style = ErrorBlinkStyle::never_blink;
     require(!errors.snapshot().icons.front().blink_active &&
-                !fixture.window.next_wake(),
+                fixture.window.next_wake().absent(),
             "NeverBlink must synchronously revoke scheduled work");
 }
 
@@ -424,7 +427,7 @@ void test_multiple_providers_and_disposal_cleanup() {
 
     (*fixture.target).dispose();
     require((*second).snapshot().presented_icons == 0U &&
-                !fixture.window.next_wake(),
+                fixture.window.next_wake().absent(),
             "target disposal must revoke provider overlay and frame work synchronously");
 }
 

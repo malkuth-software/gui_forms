@@ -70,7 +70,7 @@ void capture_profile_windows(CpuProfileWorkload& state,
         value.visible = static_cast<bool>(window.isVisible);
         value.occluded = model.occluded();
         value.focused = static_cast<bool>(model.focused_control());
-        value.deadline = model.next_wake().has_value();
+        value.deadline = model.next_wake().present();
         value.key = static_cast<bool>(window.isKeyWindow);
         value.application_active = static_cast<bool>(NSApp.isActive);
         value.captured = true;

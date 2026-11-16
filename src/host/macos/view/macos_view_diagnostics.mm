@@ -25,10 +25,10 @@ void MacCausalTrace::advance(std::uint64_t& serial) noexcept {
     else ++serial;
 }
 
-void MacCausalTrace::seed(const std::optional<gui_forms::FrameTime>& deadline) noexcept {
+void MacCausalTrace::seed(const stxlib::Optional<gui_forms::FrameTime>& deadline) noexcept {
     if (!enabled) return;
-    has_deadline = deadline.has_value();
-    if (deadline) desired_ns = timestamp(*deadline);
+    has_deadline = deadline.present();
+    if (deadline.present()) desired_ns = timestamp(*deadline.value());
 }
 
 MacCausalRow MacCausalTrace::make_row(const MacCausalKind kind,
@@ -62,12 +62,12 @@ void MacCausalTrace::append(MacCausalRow row) noexcept {
 }
 
 void MacCausalTrace::record_arm(const gui_forms::FrameTime now,
-                                const std::optional<gui_forms::FrameTime>& deadline,
+                                const stxlib::Optional<gui_forms::FrameTime>& deadline,
                                 const std::int64_t requested_delay_ns) noexcept {
     if (!enabled) return;
     advance(arm_serial);
     seed(deadline);
-    if (!deadline) desired_ns = 0U;
+    if (deadline.absent()) desired_ns = 0U;
     if (requested_delay_ns < 0) {
         clock_failure = true;
         delay_ns = 0U;
@@ -89,7 +89,7 @@ void MacCausalTrace::record_wake(const gui_forms::FrameTime now) noexcept {
 }
 
 void MacCausalTrace::record_poll(const gui_forms::FrameTime now, const std::uint64_t fired,
-                                 const std::optional<gui_forms::FrameTime>& next) noexcept {
+                                 const stxlib::Optional<gui_forms::FrameTime>& next) noexcept {
     if (!enabled) return;
     advance(poll_serial);
     if (fired != 0U) {
@@ -102,8 +102,8 @@ void MacCausalTrace::record_poll(const gui_forms::FrameTime now, const std::uint
     }
     MacCausalRow row = make_row(MacCausalKind::poll, now);
     row.fired = fired;
-    if (next) {
-        row.next_ns = timestamp(*next);
+    if (next.present()) {
+        row.next_ns = timestamp(*next.value());
         row.flags |= causal_has_next;
     }
     if (active_wake == 0U) row.flags |= causal_untimed_poll;

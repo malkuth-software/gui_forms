@@ -104,7 +104,7 @@ gui_forms::SurfaceRoot
 
       **invalidation_overlay_setting** : ``stxlib::Optional<bool>``, read-only
 
-      **blend_study_setting** : ``std::optional<BlendStudyMode>``, read-only
+      **blend_study_setting** : ``stxlib::Optional<BlendStudyMode>``, read-only
 
       **blend_study_mode** : ``BlendStudyMode``, read-only
          The mode in force: the window's setting, else the process switch.
@@ -159,10 +159,10 @@ gui_forms::SurfaceRoot
 
       **backdrop_grant** : ``WindowBackdropGrant``, read-only
 
-      **backdrop_chain** : ``std::optional<BackdropChain>``
+      **backdrop_chain** : ``stxlib::Optional<BackdropChain>``
 
-      **backdrop_chain_resolution** : ``std::optional<BackdropChainResolution>``, read-only
-         How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
+      **backdrop_chain_resolution** : ``stxlib::Optional<BackdropChainResolution>``, read-only
+         How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; none without a chain.
 
       **backplane_material** : ``SurfaceMaterial``, read-only
          The window's backplane as the theme shown would draw it now, for the window's activation, colour scheme and contrast (exhibit gap E4): backplane_material() is the material (backplane_base: the window recipe's, the theme's base for a non-opaque grant, or a backdrop chain's tint; no fill when a declared content surface draws everything over a clear grant); backplane_colour() is its one colour (a solid fill's colour, a gradient's first stop, a procedural fill's ground, a finish's paint, else the layer's colour; transparent with no fill), what a consumer compositing a snapshot taken without the backplane lays under it. A copy; UI thread.
@@ -197,7 +197,7 @@ gui_forms::SurfaceRoot
       **needs_frame** : ``bool``, read-only
          Whether painting is pending.
 
-      **next_wake** : ``std::optional<FrameTime>``, read-only
+      **next_wake** : ``stxlib::Optional<FrameTime>``, read-only
          Returns the earliest eligible frame/timer deadline, respecting occlusion.
 
       **occluded** : ``bool``, default ``false``
@@ -792,7 +792,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: stxlib::Optional<bool> invalidation_overlay_setting() const noexcept
 
-   .. cpp:function:: std::optional<BlendStudyMode> blend_study_setting() const noexcept
+   .. cpp:function:: stxlib::Optional<BlendStudyMode> blend_study_setting() const noexcept
 
    .. cpp:function:: BlendStudyMode blend_study_mode() const noexcept
 
@@ -874,15 +874,19 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: const WindowBackdropGrant& backdrop_grant() const noexcept
 
-   .. cpp:function:: const std::optional<BackdropChain>& backdrop_chain() const noexcept
+   .. cpp:function:: const stxlib::Optional<BackdropChain>& backdrop_chain() const noexcept
+
+   .. cpp:function:: void set_backdrop_chain(stxlib::Optional<BackdropChain> chain)
+
+      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; none removes it. A chain with a blur asks for the system material (implied_backdrop_request); GUI.Forms paints only the chain's tint, as the window's base. A change repaints the window. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread. Until the application sets one, the window follows its theme's (Theme::window_backdrop_chain), lowered again when the theme shown, the presentation settings or the scale change; from the first call on, the application's holds.
 
    .. cpp:function:: void set_backdrop_chain(std::optional<BackdropChain> chain)
 
-      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; nullopt removes it. A chain with a blur asks for the system material (implied_backdrop_request); GUI.Forms paints only the chain's tint, as the window's base. A change repaints the window. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread. Until the application sets one, the window follows its theme's (Theme::window_backdrop_chain), lowered again when the theme shown, the presentation settings or the scale change; from the first call on, the application's holds.
+      The standard form, kept for one stage (D15 Q3).
 
-   .. cpp:function:: std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept
+   .. cpp:function:: stxlib::Optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept
 
-      How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
+      How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; none without a chain.
 
    .. cpp:function:: SurfaceMaterial backplane_material() const
 
@@ -929,7 +933,7 @@ gui_forms::SurfaceRoot
 
       Whether painting is pending.
 
-   .. cpp:function:: std::optional<FrameTime> next_wake() const noexcept
+   .. cpp:function:: stxlib::Optional<FrameTime> next_wake() const noexcept
 
    .. cpp:function:: bool occluded() const noexcept
 
@@ -1298,7 +1302,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: std::unique_ptr<PaintFramebuffer> create_framebuffer(Size logical_size, double scale)
 
-   .. cpp:function:: std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale)
+   .. cpp:function:: stxlib::Optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale)
 
       A picture of a control and its descendants as last laid out: their
       retained painting is replayed, every paint plane in order, into an
@@ -1407,12 +1411,12 @@ gui_forms::SurfaceRoot
 
       The same as :cpp:func:`perform_layout <gui_forms::SurfaceRoot::perform_layout>`.
 
-   .. cpp:function:: std::optional<PaintReceipt> paint(Painter& painter, Rect requested_damage = {})
+   .. cpp:function:: stxlib::Optional<PaintReceipt> paint(Painter& painter, Rect requested_damage = {})
 
       Paints pending damage with a :cpp:class:`Painter <gui_forms::Painter>`. Native hosts call it; tests can
       call it with their own painter.
 
-   .. cpp:function:: std::optional<PaintReceipt> paint(Painter& painter, std::span<const Rect> requested_damage)
+   .. cpp:function:: stxlib::Optional<PaintReceipt> paint(Painter& painter, std::span<const Rect> requested_damage)
 
       Paints pending damage with a :cpp:class:`Painter <gui_forms::Painter>`. Native hosts call it; tests can
       call it with their own painter.
@@ -1615,7 +1619,15 @@ gui_forms::SurfaceRoot
       a menu or a drop-down, and returns a :cpp:class:`OverlayToken <gui_forms::OverlayToken>` that closes it. The
       overlay closes on its own when its owner is hidden, disabled or detached.
 
-   .. cpp:function:: void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration = std::nullopt)
+   .. cpp:function:: void show_tool_tip(const Control::Ptr& target, stxlib::Optional<std::chrono::milliseconds> duration = stxlib::Optional<std::chrono::milliseconds>::none())
+
+      ``show_tool_tip(control)`` shows the control's tooltip at once, below it,
+      for the auto-pop delay; ``show_tool_tip(control, duration)`` for
+      ``duration``, where zero means until hidden. It shows even with the
+      switches off. A control without tooltip text throws
+      ``std::invalid_argument``.
+
+   .. cpp:function:: void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration)
 
       ``show_tool_tip(control)`` shows the control's tooltip at once, below it,
       for the auto-pop delay; ``show_tool_tip(control, duration)`` for
@@ -1809,9 +1821,13 @@ gui_forms::SurfaceRoot
 
       The standard form, kept for one stage (D15 Q3).
 
-   .. cpp:function:: void set_blend_study(std::optional<BlendStudyMode> mode)
+   .. cpp:function:: void set_blend_study(stxlib::Optional<BlendStudyMode> mode)
 
       The blend and opaque study (2026-11-16; see blend_study.hpp). The window's own setting: a mode, or none to follow the process switch (set_blend_study_default, read from GUI_FORMS_DEBUG_BLEND at first). While the study is on, each paint counts how its frame's device pixels were written (BlendFrameCounters); turning it off keeps the counts and frees the planes. Neither damages the window. UI thread.
+
+   .. cpp:function:: void set_blend_study(std::optional<BlendStudyMode> mode)
+
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: void set_paint_wake_handler(std::function<void()> wake)
 

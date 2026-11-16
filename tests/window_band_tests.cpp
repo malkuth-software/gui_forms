@@ -192,8 +192,8 @@ bool damage_only_in_band(const DamageRegion& damage, Size client, double width) 
 void paint_all(Window& window) {
     ShapePainter painter{};
     const Size client = window.client_size();
-    const std::optional<PaintReceipt> receipt = window.paint(painter, Rect{0.0, 0.0, client.width, client.height});
-    if (receipt) static_cast<void>(window.notify_presented(*receipt));
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(painter, Rect{0.0, 0.0, client.width, client.height});
+    if (receipt.present()) static_cast<void>(window.notify_presented(*receipt.value()));
     static_cast<void>(window.take_damage());
 }
 
@@ -426,9 +426,9 @@ void test_drawn_above_every_plane() {
     lit.lit_colour.set(band_colour);
     window.set_band_appearance(lit);
     ShapePainter painter{};
-    const std::optional<PaintReceipt> receipt = window.paint(painter, Rect{0.0, 0.0, 120.0, 80.0});
-    require(receipt.has_value(), "the window paints");
-    static_cast<void>(window.notify_presented(*receipt));
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(painter, Rect{0.0, 0.0, 120.0, 80.0});
+    require(receipt.present(), "the window paints");
+    static_cast<void>(window.notify_presented(*receipt.value()));
     std::size_t first_band = painter.shapes.size();
     std::size_t last_other = 0U;
     std::size_t band_fills = 0U;

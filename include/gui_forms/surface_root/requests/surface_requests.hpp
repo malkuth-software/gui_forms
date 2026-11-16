@@ -6,8 +6,9 @@
 
 #include <chrono>
 #include <cstdint>
-#include <optional>
 #include <string>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -29,7 +30,7 @@ struct GUI_FORMS_API ToolTipRequest final {
     Rect anchor{};
     // How long it shows: none, the root's auto-pop delay; zero, until it is
     // withdrawn or replaced.
-    std::optional<std::chrono::milliseconds> duration{};
+    stxlib::Optional<std::chrono::milliseconds> duration{};
 };
 
 // One alert: a message the user acknowledges by choosing one of its

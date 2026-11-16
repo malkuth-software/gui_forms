@@ -40,6 +40,24 @@ namespace {
 using namespace gui_forms;
 using namespace std::chrono_literals;
 
+// D15 Q3: show_tool_tip keeps its deprecated std::optional duration for one
+// stage; a plain duration or {} must not reach it silently. Each plain call
+// below is refused (the deleted overload or an ambiguity), and the stxlib
+// form and the default are accepted.
+template <typename Root>
+concept takes_plain_duration = requires(Root& root, const Control::Ptr& target) {
+    root.show_tool_tip(target, std::chrono::milliseconds(0));
+};
+template <typename Root>
+concept takes_empty_duration = requires(Root& root, const Control::Ptr& target) { root.show_tool_tip(target, {}); };
+template <typename Root>
+concept takes_optional_duration = requires(Root& root, const Control::Ptr& target) {
+    root.show_tool_tip(target, stxlib::Optional<std::chrono::milliseconds>::none());
+    root.show_tool_tip(target);
+};
+static_assert(!takes_plain_duration<Window> && !takes_empty_duration<Window>);
+static_assert(takes_optional_duration<Window>);
+
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
 }
@@ -150,9 +168,9 @@ void press_key(Window& window, std::uint32_t key) {
 }
 
 void fire_next(Window& window) {
-    const std::optional<FrameTime> wake = window.next_wake();
-    require(wake.has_value(), "test expected a scheduled UI deadline");
-    static_cast<void>(window.poll_frame_schedule(*wake));
+    const stxlib::Optional<FrameTime> wake = window.next_wake();
+    require(wake.present(), "test expected a scheduled UI deadline");
+    static_cast<void>(window.poll_frame_schedule(*wake.value()));
 }
 
 std::size_t tool_tip_nodes(Window& window) {
@@ -200,10 +218,10 @@ void test_hover_delay_cancel_and_accessible_overlay() {
         CountTooltipVisibility(shown, hidden));
 
     hover(fixture.window, {60.0, 60.0});
-    require(!tips.visible() && fixture.window.next_wake().has_value(),
+    require(!tips.visible() && fixture.window.next_wake().present(),
             "hover must arm the initial delay without opening synchronously");
     hover(fixture.window, {390.0, 210.0});
-    require(!tips.visible() && !fixture.window.next_wake().has_value(),
+    require(!tips.visible() && fixture.window.next_wake().absent(),
             "leaving before the delay must cancel the pending overlay and wake");
 
     hover(fixture.window, {60.0, 60.0});
@@ -236,19 +254,19 @@ void test_motion_restarts_the_rest() {
     fixture.window.set_tool_tip_settings(settings);
     (*fixture.button).tool_tip_text = "Resting help";
     hover(fixture.window, {60.0, 60.0});
-    const std::optional<FrameTime> first = fixture.window.next_wake();
-    require(first.has_value(), "hover arms a wake");
+    const stxlib::Optional<FrameTime> first = fixture.window.next_wake();
+    require(first.present(), "hover arms a wake");
     hover(fixture.window, {62.0, 61.0});
     // Woken at the first deadline, the presenter sees the later motion.
-    static_cast<void>(fixture.window.poll_frame_schedule(*first));
+    static_cast<void>(fixture.window.poll_frame_schedule(*first.value()));
     if (fixture.window.tool_tip_visible()) {
         // The second motion came within the clock's resolution of the first:
         // the deadline did not move. Nothing else to check.
         return;
     }
-    const std::optional<FrameTime> second = fixture.window.next_wake();
-    require(second.has_value() && *second > *first, "a later motion moves the deadline");
-    static_cast<void>(fixture.window.poll_frame_schedule(*second));
+    const stxlib::Optional<FrameTime> second = fixture.window.next_wake();
+    require(second.present() && *second.value() > *first.value(), "a later motion moves the deadline");
+    static_cast<void>(fixture.window.poll_frame_schedule(*second.value()));
     require(fixture.window.tool_tip_visible() && fixture.window.tool_tip_text() == "Resting help",
             "the tooltip shows once the pointer has rested");
 }
@@ -261,7 +279,7 @@ void test_keyboard_focus_shows_below_and_follows_the_target() {
     tips.set_tool_tip(fixture.button, "Keyboard help");
     // Focus by the program, with no keyboard cue, shows no bubble.
     require(fixture.window.request_focus(fixture.button), "fixture button must accept focus");
-    require(!fixture.window.next_wake().has_value() && !tips.visible(),
+    require(fixture.window.next_wake().absent() && !tips.visible(),
             "focus without the keyboard cue shows nothing");
     require(fixture.window.request_focus(fixture.other), "fixture other button must accept focus");
     ToolTipEvent last{};
@@ -352,7 +370,7 @@ void test_mapping_removal_and_provider_disposal_are_quiescent() {
     require((*tips).remove_tool_tip(*fixture.button) && (*fixture.button).tool_tip_text.read().empty(),
             "removing a mapping clears the target's text");
     hover(fixture.window, {61.0, 60.0});
-    require(!fixture.window.next_wake(), "a target without text arms nothing");
+    require(fixture.window.next_wake().absent(), "a target without text arms nothing");
     require(!(*tips).remove_tool_tip(*fixture.other), "a target the ToolTip never set is refused");
     (*tips).set_tool_tip(fixture.button, "Disposable provider");
     (*tips).show(fixture.button, 0ms);
@@ -364,7 +382,7 @@ void test_mapping_removal_and_provider_disposal_are_quiescent() {
     require(explicit_tip && (*explicit_tip).bounds.x >= (*fixture.button).absolute_bounds().x,
             "programmatic ToolTip show must anchor to its target, not the client origin");
     (*tips).dispose();
-    require(!fixture.window.next_wake() && tool_tip_nodes(fixture.window) == 0U &&
+    require(fixture.window.next_wake().absent() && tool_tip_nodes(fixture.window) == 0U &&
                 (*fixture.button).tool_tip_text.read().empty(),
             "provider disposal clears its text and removes overlay and scheduled work");
 }
@@ -438,13 +456,13 @@ void test_window_and_program_switches() {
     require(!fixture.window.tool_tip_visible(), "turning the window's tooltips off closes the one that shows");
     hover(fixture.window, {390.0, 210.0});
     hover(fixture.window, {60.0, 60.0});
-    require(!fixture.window.next_wake(), "a window with tooltips off waits for nothing");
+    require(fixture.window.next_wake().absent(), "a window with tooltips off waits for nothing");
     fixture.window.set_tool_tips_shown(stxlib::Optional<bool>::none());
     application.set_tool_tips_shown(false);
     require(!fixture.window.tool_tips_shown(), "an unset window follows the program's switch");
     hover(fixture.window, {390.0, 210.0});
     hover(fixture.window, {60.0, 60.0});
-    require(!fixture.window.next_wake(), "the program's switch stops the wait");
+    require(fixture.window.next_wake().absent(), "the program's switch stops the wait");
     fixture.window.set_tool_tips_shown(stxlib::Optional<bool>::of(true));
     require(fixture.window.tool_tips_shown(), "the window's own switch wins over the program's");
     hover(fixture.window, {390.0, 210.0});
@@ -452,7 +470,7 @@ void test_window_and_program_switches() {
     fire_next(fixture.window);
     require(fixture.window.tool_tip_visible(), "a window switched on shows its tooltips");
     application.set_tool_tips_shown(true);
-    fixture.window.show_tool_tip(fixture.button, 0ms);
+    fixture.window.show_tool_tip(fixture.button, stxlib::Optional<std::chrono::milliseconds>::of(0ms));
     fixture.window.set_tool_tips_shown(stxlib::Optional<bool>::of(false));
     require(fixture.window.tool_tip_visible(), "a tooltip the program showed stays whatever the switches");
     fixture.window.hide_tool_tip();
@@ -472,7 +490,7 @@ void test_blank_text_and_open_scopes() {
     settings.initial_delay = 1ms;
     fixture.window.set_tool_tip_settings(settings);
     (*fixture.button).tool_tip_text = " \t\xC2\xA0";
-    fixture.window.show_tool_tip(fixture.button, 0ms);
+    fixture.window.show_tool_tip(fixture.button, stxlib::Optional<std::chrono::milliseconds>::of(0ms));
     require(!fixture.window.tool_tip_visible(), "blank text does not show even when the program asks");
     hover(fixture.window, {60.0, 60.0});
     run_due(fixture.window);
@@ -511,7 +529,7 @@ void test_press_hides_and_text_changes_follow() {
     (*fixture.button).tool_tip_text = "Before";
     hover(fixture.window, {60.0, 60.0});
     fire_next(fixture.window);
-    require(fixture.window.tool_tip_text() == "Before" && !fixture.window.next_wake(),
+    require(fixture.window.tool_tip_text() == "Before" && fixture.window.next_wake().absent(),
             "a zero auto-pop keeps the tooltip without a wake");
     (*fixture.button).tool_tip_text = "After";
     require(fixture.window.tool_tip_visible() && fixture.window.tool_tip_text() == "After",
@@ -524,12 +542,12 @@ void test_press_hides_and_text_changes_follow() {
     static_cast<void>(fixture.window.dispatch_pointer({PointerAction::up, PointerButton::primary, {60.0, 60.0}}));
     require(!fixture.window.tool_tip_visible(), "a press closes the tooltip");
     hover(fixture.window, {61.0, 61.0});
-    require(!fixture.window.next_wake(), "after a press nothing waits until the pointer leaves the thing");
+    require(fixture.window.next_wake().absent(), "after a press nothing waits until the pointer leaves the thing");
     hover(fixture.window, {390.0, 210.0});
     hover(fixture.window, {60.0, 60.0});
-    require(fixture.window.next_wake().has_value(), "back over the thing, its tooltip waits again");
+    require(fixture.window.next_wake().present(), "back over the thing, its tooltip waits again");
     (*fixture.button).tool_tip_text = std::string{};
-    require(!fixture.window.next_wake() && !fixture.window.tool_tip_visible(),
+    require(fixture.window.next_wake().absent() && !fixture.window.tool_tip_visible(),
             "emptying the text of a waiting thing cancels the wait");
     bool refused = false;
     try {
@@ -568,7 +586,7 @@ void test_escape_dismisses() {
     require(!fixture.window.tool_tip_visible() && fixture.window.focused_control() == fixture.button,
             "Escape closes the keyboard's bubble and leaves focus where it was");
     press_key(fixture.window, PhysicalKey::left_shift);
-    require(!fixture.window.next_wake() && !fixture.window.tool_tip_visible(),
+    require(fixture.window.next_wake().absent() && !fixture.window.tool_tip_visible(),
             "another key on the same thing does not show it again");
     static_cast<void>(fixture.window.request_focus(fixture.other));
     hover(fixture.window, {60.0, 60.0});
@@ -577,10 +595,10 @@ void test_escape_dismisses() {
     press_key(fixture.window, PhysicalKey::escape);
     require(!fixture.window.tool_tip_visible(), "Escape closes the pointer's bubble");
     hover(fixture.window, {61.0, 61.0});
-    require(!fixture.window.next_wake(), "after Escape nothing waits until the pointer leaves the thing");
+    require(fixture.window.next_wake().absent(), "after Escape nothing waits until the pointer leaves the thing");
     hover(fixture.window, {390.0, 210.0});
     hover(fixture.window, {60.0, 60.0});
-    require(fixture.window.next_wake().has_value(), "back over the thing, its bubble waits again");
+    require(fixture.window.next_wake().present(), "back over the thing, its bubble waits again");
 }
 
 // A strip's items carry their own tooltips; the presenter finds the one
@@ -617,7 +635,7 @@ void test_strip_item_tooltips() {
             "resting over an item shows the item's tooltip");
     hover(window, {plain_bounds.x + 4.0, plain_bounds.y + 4.0});
     require(!window.tool_tip_visible(), "leaving the item closes its tooltip");
-    if (window.next_wake()) fire_next(window);
+    if (window.next_wake().present()) fire_next(window);
     require(!window.tool_tip_visible(), "an item without a tooltip shows none");
     // An item's tooltip only overrides where it exists: over an item without
     // one, the strip's own text shows.
@@ -627,12 +645,12 @@ void test_strip_item_tooltips() {
     fire_next(window);
     require(window.tool_tip_text() == "Save (Ctrl+S)", "an item's tooltip overrides the strip's");
     hover(window, {plain_bounds.x + 4.0, plain_bounds.y + 4.0});
-    if (window.next_wake()) fire_next(window);
+    if (window.next_wake().present()) fire_next(window);
     require(window.tool_tip_visible() && window.tool_tip_text() == "Commands" && window.tool_tip_item_id().empty(),
             "an item without a tooltip shows the strip's own");
     (*strip).tool_tip_text = "";
     hover(window, {390.0, 150.0});
-    if (window.next_wake()) fire_next(window);
+    if (window.next_wake().present()) fire_next(window);
 
     // The keyboard: focus reaches the strip, and the arrows move between
     // items. The pointer leaves first: the strip's keyboard item starts at
@@ -677,7 +695,7 @@ void test_tab_header_tooltips() {
     window.perform_layout();
     hover(window, {200.0, 160.0});
     require(!window.tool_tip_visible(), "leaving the header closes it");
-    if (window.next_wake()) fire_next(window);
+    if (window.next_wake().present()) fire_next(window);
     require(!window.tool_tip_visible(), "the page's body shows no tooltip");
 }
 

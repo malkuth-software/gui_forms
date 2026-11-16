@@ -74,9 +74,9 @@ inline FramePixel present_once(Painter& factory, Window& window) {
     if (!(*framebuffer).begin(images, window_rect)) return result;
     Painter& painter = (*framebuffer).painter();
     painter.fill_rect(window_rect, stale_frame);
-    const std::optional<PaintReceipt> receipt = window.paint(painter, window_rect);
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(painter, window_rect);
     (*framebuffer).end();
-    if (!receipt.has_value()) return result;
+    if (receipt.absent()) return result;
     const std::size_t column = static_cast<std::size_t>(window_size.width / 2.0);
     const std::size_t row = static_cast<std::size_t>(window_size.height / 2.0);
     const std::span<std::byte> bytes = (*framebuffer).pixels();

@@ -134,12 +134,12 @@ Rect DockSite::drag_stamp() const noexcept {
 }
 
 void DockSite::reset_drag() noexcept {
-    if (drag_.picture && !drag_.guest) {
+    if (drag_.picture.present() && !drag_.guest) {
         Window* const host = attached_window();
         // A release that fails (allocation while marking the repaint) leaves
         // the image to the window's end.
         try {
-            if (host != nullptr) static_cast<void>((*host).release_control_snapshot((*drag_.picture).image));
+            if (host != nullptr) static_cast<void>((*host).release_control_snapshot((*drag_.picture.value()).image));
         } catch (...) {
         }
     }
@@ -820,11 +820,11 @@ void DockSite::paint_drag_layer(Painter& painter) {
         paint_part(painter, *this, part);
         part.text = {};
         part.bounds = drag_image_bounds();
-        if (drag_.picture) {
+        if (drag_.picture.present()) {
             // The panel's picture, scaled with the stamp: content, drawn as
             // given (the image role, T2 GIVEN H1-1).
             part.role = PartRole::image;
-            part.image = (*drag_.picture).image;
+            part.image = (*drag_.picture.value()).image;
             paint_part(painter, *this, part);
             part.image = {};
         } else {

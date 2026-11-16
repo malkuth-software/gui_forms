@@ -1191,14 +1191,14 @@ bool ThemeEngine::paint_material_blocks(Painter& painter, const Control& control
     if (!(*primitive).accepts(request.parameters, request.target)) return false;
     // The record, and where the area was drawn: the window repaints that
     // extent when a pattern the bake awaits is made.
-    const std::optional<PartRecordHandle> record =
+    const stxlib::Optional<PartRecordHandle> record =
         detail::SurfaceEngineAccess::note_part(*window, control, blocks.key, AnatomyStateSet{});
-    if (!record) return false;
+    if (record.absent()) return false;
     const detail::SurfaceEngineAccess::PaintPlace place =
         detail::SurfaceEngineAccess::paint_place(*window, control, painter);
     const Rect extent = part_extent(area, place.origin, Insets{});
-    detail::SurfaceEngineAccess::note_paint(*window, *record, 0U, *place.painted_by, extent);
-    const PartRasterResult drawn = detail::SurfaceEngineAccess::part_raster(*window, *record, request);
+    detail::SurfaceEngineAccess::note_paint(*window, *record.value(), 0U, *place.painted_by, extent);
+    const PartRasterResult drawn = detail::SurfaceEngineAccess::part_raster(*window, *record.value(), request);
     if (!drawn.raster) return false;
     // The lattice corner at or before the area's, then whole blocks to the
     // area's far edges: a count bounded by the area over the block side.
@@ -1241,13 +1241,13 @@ bool ThemeEngine::paint_finish_tiles(Painter& painter, const Control& control, c
     const double display_scale = (*window).scale();
     const double kernel_scale = display_scale * tiles.zoom;
     if (!(std::isfinite(kernel_scale) && kernel_scale > 0.0)) return false;
-    const std::optional<PartRecordHandle> record =
+    const stxlib::Optional<PartRecordHandle> record =
         detail::SurfaceEngineAccess::note_part(*window, control, tiles.key, AnatomyStateSet{});
-    if (!record) return false;
+    if (record.absent()) return false;
     const detail::SurfaceEngineAccess::PaintPlace place =
         detail::SurfaceEngineAccess::paint_place(*window, control, painter);
     const Rect extent = part_extent(area, place.origin, Insets{});
-    detail::SurfaceEngineAccess::note_paint(*window, *record, 0U, *place.painted_by, extent);
+    detail::SurfaceEngineAccess::note_paint(*window, *record.value(), 0U, *place.painted_by, extent);
     // World (0, 0) on the nearest device pixel of the window, so that every
     // tile lands on whole pixels and none is resampled at its edges.
     const double anchor_x_device = std::floor((place.window_origin.x + tiles.anchor.x) * display_scale + 0.5);
@@ -1282,7 +1282,7 @@ bool ThemeEngine::paint_finish_tiles(Painter& painter, const Control& control, c
         for (std::int64_t column = 0; column < columns; ++column) {
             key.column = column_start + column;
             const std::shared_ptr<const PartRaster> tile =
-                detail::SurfaceEngineAccess::finish_tile(*window, *record, key);
+                detail::SurfaceEngineAccess::finish_tile(*window, *record.value(), key);
             if (!tile) {
                 complete = false;
                 continue;
@@ -1306,7 +1306,7 @@ struct ThemeEngine::PartPaintRun final {
 
     const PartPlan& decided;
     SurfaceRoot* window{};
-    std::optional<PartRecordHandle> record{};
+    stxlib::Optional<PartRecordHandle> record{};
     EnginePartRecord* kept{};
     bool primitive_draws{};
     bool samples_backplane{};
@@ -1413,7 +1413,7 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
     run.primitive_draws = run.decided.drawing == PartDrawing::primitive && window != nullptr && !groundless;
     // Where the part lands, and what it reads: the inputs are delivered and
     // damaged only for a part with a record (E6).
-    if (run.record || run.primitive_draws) run.place = detail::SurfaceEngineAccess::paint_place(*window, control, painter);
+    if (run.record.present() || run.primitive_draws) run.place = detail::SurfaceEngineAccess::paint_place(*window, control, painter);
     run.reduced_motion = window != nullptr && (*window).presentation_settings().reduced_motion;
     // Glass (E9-B) samples the window's backplane, the backplane plane
     // alone; a part recorded in the backplane plane would sample itself, so
@@ -1421,7 +1421,7 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
     run.samples_backplane =
         run.primitive_draws && (*resolution.primitive).backplane_margin(resolution.parameters, run.decided.scale) &&
         (*run.place.painted_by).paint_plane() != PaintPlane::backplane;
-    if (run.record) {
+    if (run.record.present()) {
         Insets outsets{};
         std::uint64_t inputs_read = 0U;
         if (run.primitive_draws) {
@@ -1441,14 +1441,14 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
             outsets.bottom = outsets.bottom + part.granted_overflow.bottom;
         }
         run.extent = part_extent(part.bounds, run.place.origin, outsets);
-        detail::SurfaceEngineAccess::note_paint(*window, *run.record, inputs_read, *run.place.painted_by, run.extent);
-        detail::SurfaceEngineAccess::note_backplane_reader(*window, *run.record, run.samples_backplane);
+        detail::SurfaceEngineAccess::note_paint(*window, *run.record.value(), inputs_read, *run.place.painted_by, run.extent);
+        detail::SurfaceEngineAccess::note_backplane_reader(*window, *run.record.value(), run.samples_backplane);
     }
     // The part's record, for its transitions and its ambient effect (E7).
-    run.kept = run.record ? detail::SurfaceEngineAccess::part_record(*window, *run.record) : nullptr;
+    run.kept = run.record.present() ? detail::SurfaceEngineAccess::part_record(*window, *run.record.value()) : nullptr;
     run.transitions.window = window;
     run.transitions.record = run.kept;
-    if (run.record) run.transitions.handle = *run.record;
+    if (run.record.present()) run.transitions.handle = *run.record.value();
     if (run.kept != nullptr) run.transitions.owner = (*window).find(control.stable_id().value());
     run.transitions.states = part.states;
     run.transitions.rules_serial = rules_.serial();
@@ -1461,7 +1461,7 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
 // its presented scale, translation and opacity, in the material its rules
 // author.
 void ThemeEngine::paint_without_primitive(const Control& control, const PartPaint& part, PartPaintRun& run) const {
-    if (run.kept != nullptr) stop_ambient(*run.window, *run.kept, *run.record);
+    if (run.kept != nullptr) stop_ambient(*run.window, *run.kept, *run.record.value());
     PrimitiveParameterBlock unused{};
     const PresentedProperties presented = run_transitions(run.decided.resolution, run.transitions, nullptr, unused);
     run.shown = scaled_part(part, presented.scale);
@@ -1558,7 +1558,7 @@ bool ThemeEngine::prepare_part_request(const Control& control, const PartPaint& 
         const bool area_ok = !everyday || run.extent.area() <= maximum_ambient_window_fraction * window_area;
         run.ambient_time = ambient_seconds(*window, run.kept, run.record, *resolution.ambient, area_ok);
     } else if (run.kept != nullptr) {
-        stop_ambient(*window, *run.kept, *run.record);
+        stop_ambient(*window, *run.kept, *run.record.value());
     }
     PartInputSources sources{};
     sources.window = window;
@@ -1809,7 +1809,7 @@ void ThemeEngine::borrow_part_backplane(const PartPaint& part, PartPaintRun& run
         run.primitive_draws && !run.samples_backplane && lent != nullptr && (*lent).reflection.present() &&
         (*(*lent).reflection.value()).source == MaterialReflectionSource::backplane &&
         (*run.place.painted_by).paint_plane() != PaintPlane::backplane;
-    if (run.record && reflects_backplane) detail::SurfaceEngineAccess::note_backplane_reader(*window, *run.record, true);
+    if (run.record.present() && reflects_backplane) detail::SurfaceEngineAccess::note_backplane_reader(*window, *run.record.value(), true);
     if (run.samples_backplane) {
         run.margin = (*request.primitive).backplane_margin(request.parameters, run.decided.scale);
     }
@@ -1853,8 +1853,8 @@ void ThemeEngine::bake_part(const PartPaint& part, PartPaintRun& run) const {
         run.outcome = PartPaintRun::Outcome::built_in;
         return;
     }
-    if (run.record) {
-        const PartRasterResult drawn = detail::SurfaceEngineAccess::part_raster(*window, *run.record, request);
+    if (run.record.present()) {
+        const PartRasterResult drawn = detail::SurfaceEngineAccess::part_raster(*window, *run.record.value(), request);
         run.raster = drawn.raster;
     } else {
         // A part with no record: a raster of its own, for this paint only
@@ -1982,22 +1982,22 @@ void ThemeEngine::queue_keyframes(SurfaceRoot& window, const PartRasterRequest& 
 }
 
 double ThemeEngine::ambient_seconds(SurfaceRoot& window, EnginePartRecord* record,
-                                    const std::optional<PartRecordHandle>& handle, const AmbientEffect& ambient,
+                                    const stxlib::Optional<PartRecordHandle>& handle, const AmbientEffect& ambient,
                                     bool area_ok) {
     const double pose = std::chrono::duration<double>(ambient.pose).count();
     // A part without a record is drawn statically, at its pose.
-    if (record == nullptr || !handle) return pose;
+    if (record == nullptr || handle.absent()) return pose;
     EnginePartRecord& part = *record;
     part.ambient = true;
     if (!area_ok && !part.ambient_refused) window.metrics().record_engine_ambient_refusal();
     part.ambient_refused = !area_ok;
     if (!area_ok || window.motion_clock().ambient_suppressed()) {
-        detail::SurfaceEngineAccess::stop_ambient(window, *handle);
+        detail::SurfaceEngineAccess::stop_ambient(window, *handle.value());
         return pose;
     }
     const std::chrono::duration<double> frame(1.0 / ambient.frames_per_second);
     const FrameInterval interval = std::chrono::ceil<FrameInterval>(frame);
-    detail::SurfaceEngineAccess::run_ambient(window, *handle, interval);
+    detail::SurfaceEngineAccess::run_ambient(window, *handle.value(), interval);
     // The time in the part's states, wrapped to the period, so the effect
     // cycles, and stepped to the start of its loop frame (E7r), so that each
     // frame's raster is baked once and shown again every period; exact in

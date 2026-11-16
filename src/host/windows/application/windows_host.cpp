@@ -2660,9 +2660,9 @@ private:
             CancelWaitableTimer(scheduler_clock_);
             scheduler_clock_armed_ = false;
         }
-        const std::optional<FrameTime> wake = (*model_).next_wake();
-        if (!wake) return;
-        const FrameInterval remaining = *wake - FrameClock::now();
+        const stxlib::Optional<FrameTime> wake = (*model_).next_wake();
+        if (wake.absent()) return;
+        const FrameInterval remaining = *wake.value() - FrameClock::now();
         const bool soon = remaining < near_wake_limit;
         if (soon && scheduler_clock_ != nullptr && !in_size_move_) {
             // Relative due times are in 100 ns units, negative.
@@ -2935,7 +2935,7 @@ private:
         for (std::size_t index = 0; index < composed_live_rectangles_.size(); ++index) {
             if (composed_live_rectangles_[index] != 0U) ++live_composed;
         }
-        std::optional<PaintReceipt> receipt;
+        stxlib::Optional<PaintReceipt> receipt;
         if (frame_begun && !pending_damage_.empty()) {
             // Clip to the damaged rectangles, not their bounds, as on macOS.
             render::SkiaRaster& painter = raster_.painter();
@@ -2943,7 +2943,7 @@ private:
             painter.clip_damage(pending_damage_);
             receipt = (*model_).paint(painter, pending_damage_.rectangles());
             painter.restore();
-            if (receipt) {
+            if (receipt.present()) {
                 const std::span<const Rect> painted = pending_damage_.rectangles();
                 for (std::size_t index = 0; index < painted.size(); ++index) {
                     screen.add(painted[index]);
@@ -3004,21 +3004,21 @@ private:
         retained.rectangles = copied.rectangles;
         // A tick with a receipt reports the copy time with the retained
         // present; a live-only tick with its first live frame.
-        if (receipt) retained.copy_nanoseconds = copied.copy_nanoseconds;
-        std::uint64_t unreported_copy = receipt ? 0U : copied.copy_nanoseconds;
+        if (receipt.present()) retained.copy_nanoseconds = copied.copy_nanoseconds;
+        std::uint64_t unreported_copy = receipt.present() ? 0U : copied.copy_nanoseconds;
         const std::uint64_t all_pixels = retained.device_pixels + live_pixels;
         const std::uint64_t live_elapsed = all_pixels == 0U ? 0U :
             static_cast<std::uint64_t>(static_cast<double>(elapsed) *
                 static_cast<double>(live_pixels) / static_cast<double>(all_pixels));
-        if (presented && receipt &&
-            (*model_).notify_presented(*receipt, elapsed - live_elapsed, retained)) {
+        if (presented && receipt.present() &&
+            (*model_).notify_presented(*receipt.value(), elapsed - live_elapsed, retained)) {
             pending_damage_.clear();
         }
         // Retained damage the sequence painted with the frames, or left for a
         // later WM_PAINT (a declined paint or a failed copy).
         if (!pending_damage_.empty()) {
             ++live_sequence_retained_deferred_;
-        } else if (receipt) {
+        } else if (receipt.present()) {
             ++live_sequence_retained_presented_;
         }
         if (!presented) {
@@ -3040,7 +3040,7 @@ private:
             (*updates[index].surface).notify_presented(live_frames_[source].generation(), display_timing);
         }
         const std::uint64_t live_duration = live_composed == 0U ? 0U :
-            (receipt ? live_elapsed : elapsed) / live_composed;
+            (receipt.present() ? live_elapsed : elapsed) / live_composed;
         // One report per surface frame; its fragments are its rectangles.
         for (std::size_t index = 0; index < composed_live_pixels_.size(); ++index) {
             if (composed_live_rectangles_[index] == 0U) continue;
@@ -3141,7 +3141,7 @@ private:
             const RECT device = device_rect(painted_rectangles[index]);
             if (device_pixels(device) != 0U) present_rectangles.push_back(device);
         }
-        std::optional<PaintReceipt> receipt{};
+        stxlib::Optional<PaintReceipt> receipt{};
         bool presented = false;
         std::uint64_t transactional_copy_nanoseconds = 0U;
         // A paint tick is housekeeping: nothing is caught. Its budget is the
@@ -3151,10 +3151,10 @@ private:
         const bool images_ready = raster_.synchronize_images((*model_).image_resources());
         const bool begun = images_ready && raster_.begin_frame(pending_damage_);
         if (begun) receipt = (*model_).paint(raster_.painter(), pending_damage_.rectangles());
-        if (receipt) {
+        if (receipt.present()) {
             const std::chrono::steady_clock::time_point copy_started =
                 std::chrono::steady_clock::now();
-            presented = raster_.commit_frame(dc, present_rectangles, *receipt);
+            presented = raster_.commit_frame(dc, present_rectangles, *receipt.value());
             transactional_copy_nanoseconds = static_cast<std::uint64_t>(
                 std::chrono::duration_cast<std::chrono::nanoseconds>(
                     std::chrono::steady_clock::now() - copy_started).count());
@@ -3169,8 +3169,8 @@ private:
                 std::chrono::steady_clock::now() - started);
         if (presented) {
             const PaintLeaseSnapshot current = (*model_).paint_lease_snapshot();
-            bool acknowledged = current.surface_epoch == (*receipt).surface_epoch &&
-                current.presented_revision == (*receipt).rendered_revision;
+            bool acknowledged = current.surface_epoch == (*receipt.value()).surface_epoch &&
+                current.presented_revision == (*receipt.value()).rendered_revision;
             if (!acknowledged) {
                 PresentedArea copied;
                 copied.copy_nanoseconds = transactional_copy_nanoseconds;
@@ -3178,7 +3178,7 @@ private:
                     copied.device_pixels += device_pixels(present_rectangles[index]);
                     ++copied.rectangles;
                 }
-                acknowledged = (*model_).notify_presented(*receipt,
+                acknowledged = (*model_).notify_presented(*receipt.value(),
                     static_cast<std::uint64_t>(elapsed.count()), copied);
             }
             if (acknowledged) {
@@ -3219,7 +3219,7 @@ private:
         const bool copies_pending = !pending_copies_.empty();
         DamageRegion frame_damage = pending_damage_;
         for (const ScrollCopy& copy : pending_copies_) frame_damage.add(copy.clip);
-        std::optional<PaintReceipt> receipt{};
+        stxlib::Optional<PaintReceipt> receipt{};
         const bool frame_begun = raster_.begin_frame(frame_damage);
         apply_scroll_copies(frame_begun);
         if (frame_begun) {
@@ -3250,7 +3250,7 @@ private:
         }
         // With no damage pending there is nothing to paint, and an exposure
         // still copies the raster as it stands.
-        bool presented = receipt.has_value() || (expose_whole && pending_damage_.empty());
+        bool presented = receipt.present() || (expose_whole && pending_damage_.empty());
         const std::chrono::steady_clock::time_point copy_started =
             std::chrono::steady_clock::now();
         // BeginPaint's device context is clipped to the update region, which
@@ -3283,8 +3283,8 @@ private:
             copied.device_pixels += pixels;
             if (pixels != 0U) ++copied.rectangles;
         }
-        if (presented && receipt &&
-            (*model_).notify_presented(*receipt,
+        if (presented && receipt.present() &&
+            (*model_).notify_presented(*receipt.value(),
                                      static_cast<std::uint64_t>(elapsed.count()), copied)) {
             pending_damage_.clear();
             complete_frame_capture_if_due(paint_state.rcPaint);

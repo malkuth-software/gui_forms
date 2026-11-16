@@ -554,7 +554,7 @@ public:
 
     // The live record for `control_id` and `key`, if there is one. For
     // inspection: it builds its lookup text in a string of its own.
-    [[nodiscard]] std::optional<PartRecordHandle> find(std::string_view control_id, const PartKey& key) const;
+    [[nodiscard]] stxlib::Optional<PartRecordHandle> find(std::string_view control_id, const PartKey& key) const;
 
     // The record a handle names, or null when the handle is stale (its
     // record was released) or names no slot. The pointer is valid until the

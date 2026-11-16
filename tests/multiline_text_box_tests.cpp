@@ -173,8 +173,8 @@ void document_scrollbars() {
     ScrollbarPainter painter{};
     f.editor.invalidate(Dirty::paint);
     const DamageRegion damage = f.window.take_damage();
-    const std::optional<PaintReceipt> receipt = f.window.paint(painter, damage.bounds());
-    require(receipt.has_value(), "retained document paint completes");
+    const stxlib::Optional<PaintReceipt> receipt = f.window.paint(painter, damage.bounds());
+    require(receipt.present(), "retained document paint completes");
     const Rect viewport = f.editor.viewport_rectangle();
     const Rect clip{6.0, 4.0, viewport.width - 10.0, viewport.height - 8.0};
     const Rect horizontal_bar{0.0, viewport.height, viewport.width, 16.0};
@@ -612,14 +612,14 @@ public:
 void paint_retained(Fixture& fixture, CaretPainter& painter) {
     fixture.window.perform_layout();
     const DamageRegion damage = fixture.window.take_damage();
-    const std::optional<PaintReceipt> receipt = fixture.window.paint(painter, damage.bounds());
-    require(receipt.has_value(), "retained caret fixture must paint");
+    const stxlib::Optional<PaintReceipt> receipt = fixture.window.paint(painter, damage.bounds());
+    require(receipt.present(), "retained caret fixture must paint");
 }
 
 Rect blink_damage(Fixture& fixture) {
-    const std::optional<FrameTime> deadline = fixture.window.next_wake();
-    require(deadline.has_value(), "focused caret must retain a deadline");
-    const FramePollResult poll = fixture.window.poll_frame_schedule(*deadline);
+    const stxlib::Optional<FrameTime> deadline = fixture.window.next_wake();
+    require(deadline.present(), "focused caret must retain a deadline");
+    const FramePollResult poll = fixture.window.poll_frame_schedule(*deadline.value());
     // ADR-016: the caret blinks on its own UI timer, which damages only the
     // caret; no paint deadline repaints the whole box.
     require(poll.ui_timer_ticks == 1U && poll.deadlines_fired == 0U,
@@ -641,8 +641,8 @@ void caret_blink_follows_settings() {
     fixture.window.set_presentation_settings(fast);
     require(fixture.window.request_focus({}) && fixture.window.request_focus(fixture.field), "refocus succeeds");
     const FrameTime before = FrameClock::now();
-    const std::optional<FrameTime> deadline = fixture.window.next_wake();
-    require(deadline.has_value() && *deadline <= before + std::chrono::milliseconds(200),
+    const stxlib::Optional<FrameTime> deadline = fixture.window.next_wake();
+    require(deadline.present() && *deadline.value() <= before + std::chrono::milliseconds(200),
             "a 200 ms phase times the next blink");
 
     PresentationSettings never = fixture.window.presentation_settings();
@@ -650,17 +650,17 @@ void caret_blink_follows_settings() {
     fixture.window.set_presentation_settings(never);
     static_cast<void>(fixture.window.poll_frame_schedule(*deadline));
     static_cast<void>(fixture.window.take_damage());
-    require(!fixture.window.next_wake().has_value(), "turning blinking off stops the running timer");
+    require(fixture.window.next_wake().absent(), "turning blinking off stops the running timer");
     painter.lines = 0U;
     fixture.editor.invalidate(Dirty::paint);
     paint_retained(fixture, painter);
     require(painter.lines == 1U, "the caret stays shown when blinking stops");
 
     require(fixture.window.request_focus({}) && fixture.window.request_focus(fixture.field), "refocus succeeds");
-    require(!fixture.window.next_wake().has_value(), "a caret that never blinks holds no wake");
+    require(fixture.window.next_wake().absent(), "a caret that never blinks holds no wake");
     painter.lines = 0U;
     paint_retained(fixture, painter);
-    require(painter.lines == 1U && !fixture.window.next_wake().has_value(),
+    require(painter.lines == 1U && fixture.window.next_wake().absent(),
             "it is drawn shown, and painting starts no timer");
 }
 
@@ -685,14 +685,14 @@ void localized_caret_blinks() {
                     hidden_damage.y + hidden_damage.height >= old_end.y,
                 "erase damage must contain the previously recorded caret endpoints");
         painter.lines = 0U;
-        const std::optional<PaintReceipt> hidden = fixture.window.paint(painter, hidden_damage);
-        require(hidden.has_value() && painter.lines == 0U,
+        const stxlib::Optional<PaintReceipt> hidden = fixture.window.paint(painter, hidden_damage);
+        require(hidden.present() && painter.lines == 0U,
                 "hidden blink must remove the recorded caret line");
         const Rect visible_damage = blink_damage(fixture);
         require(visible_damage == hidden_damage,
                 "show and erase must damage the same retained caret pixels");
-        const std::optional<PaintReceipt> visible = fixture.window.paint(painter, visible_damage);
-        require(visible.has_value() && painter.lines == 1U,
+        const stxlib::Optional<PaintReceipt> visible = fixture.window.paint(painter, visible_damage);
+        require(visible.present() && painter.lines == 1U,
                 "visible blink must restore the recorded caret line");
         const MetricsSnapshot metrics = fixture.window.metrics_snapshot();
         require(metrics.display_chunks_rebuilt == 2U && metrics.measure_passes == 0U &&
@@ -705,14 +705,14 @@ void localized_caret_blinks() {
         // after the deadline runs no tick. Shown again, it blinks on, its
         // next tick no earlier than the transition.
         fixture.window.set_occluded(true, FrameClock::now());
-        require(!fixture.window.next_wake().has_value(), "an occluded caret holds no wake");
+        require(fixture.window.next_wake().absent(), "an occluded caret holds no wake");
         const FramePollResult hidden_poll =
             fixture.window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(5));
         require(hidden_poll.ui_timer_ticks == 0U, "an occluded caret does not tick");
         const FrameTime shown = FrameClock::now();
         fixture.window.set_occluded(false, shown);
-        const std::optional<FrameTime> resumed = fixture.window.next_wake();
-        require(resumed.has_value() && *resumed >= shown, "a shown caret blinks again");
+        const stxlib::Optional<FrameTime> resumed = fixture.window.next_wake();
+        require(resumed.present() && *resumed.value() >= shown, "a shown caret blinks again");
     }
 
     Fixture fixture{};
@@ -831,7 +831,7 @@ void caret_geometry_fallbacks() {
     paint_retained(fixture, painter);
     const bool blurred = fixture.window.request_focus({});
     require(blurred, "blur must succeed");
-    require(!fixture.window.next_wake().has_value(), "blur revokes caret scheduling");
+    require(fixture.window.next_wake().absent(), "blur revokes caret scheduling");
     const bool focused = fixture.window.request_focus(fixture.field);
     require(focused, "refocus must succeed");
     require_full_blink_fallback(fixture, "refocus cannot reuse previous caret geometry");

@@ -11,7 +11,6 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <string>
 #include <string_view>
 
@@ -73,16 +72,16 @@ struct MacCausalTrace final {
 
     [[nodiscard]] std::uint64_t timestamp(const gui_forms::FrameTime value) noexcept;
     void advance(std::uint64_t& serial) noexcept;
-    void seed(const std::optional<gui_forms::FrameTime>& deadline) noexcept;
+    void seed(const stxlib::Optional<gui_forms::FrameTime>& deadline) noexcept;
     [[nodiscard]] MacCausalRow make_row(const MacCausalKind kind,
                                        const gui_forms::FrameTime time) noexcept;
     void append(MacCausalRow row) noexcept;
     void record_arm(const gui_forms::FrameTime now,
-                    const std::optional<gui_forms::FrameTime>& deadline,
+                    const stxlib::Optional<gui_forms::FrameTime>& deadline,
                     const std::int64_t requested_delay_ns) noexcept;
     void record_wake(const gui_forms::FrameTime now) noexcept;
     void record_poll(const gui_forms::FrameTime now, const std::uint64_t fired,
-                     const std::optional<gui_forms::FrameTime>& next) noexcept;
+                     const stxlib::Optional<gui_forms::FrameTime>& next) noexcept;
     void record_draw_entry(const gui_forms::FrameTime now) noexcept;
     void record_draw_exit(const gui_forms::FrameTime now) noexcept;
     [[nodiscard]] MacCausalSnapshot snapshot() const noexcept;

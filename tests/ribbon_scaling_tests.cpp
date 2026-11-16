@@ -43,11 +43,12 @@
 #include <iostream>
 #include <map>
 #include <memory>
-#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace {
 using namespace gui_forms;
@@ -288,8 +289,9 @@ std::string number(double value) {
 // and every shown group as "<id> L<layout>|C x+width".
 std::string describe(const Ribbon& ribbon) {
     std::string line = "step=";
-    const std::optional<std::size_t> step = ribbon.ladder_step();
-    line += step ? std::to_string(*step) : std::string("none");
+    const stxlib::Optional<std::size_t> step = ribbon.ladder_step();
+    const std::size_t* const shown_step = step.value();
+    line += shown_step != nullptr ? std::to_string(*shown_step) : std::string("none");
     line += ribbon.scrolling() ? " scroll first=" + std::to_string(ribbon.first_visible_group()) : "";
     for (const Ribbon::Group& group : ribbon.realized_groups()) {
         line += " " + group.stable_id + " " + (group.collapsed ? std::string("C") : "L" + std::to_string(group.layout));
@@ -768,11 +770,11 @@ void golden_ladder() {
         const std::vector<RibbonLadderEntry> ladder = (*fixture.ribbon).reduction_ladder(0U);
         for (std::size_t entry = 0; entry < ladder.size(); ++entry) {
             resize(fixture, {ladder[entry].width, 400.0});
-            require((*fixture.ribbon).ladder_step() == entry && !(*fixture.ribbon).scrolling(),
+            require((*fixture.ribbon).ladder_step() == stxlib::Optional<std::size_t>::of(entry) && !(*fixture.ribbon).scrolling(),
                     "an entry shows at exactly its width");
             resize(fixture, {ladder[entry].width - 1.0, 400.0});
             const bool last = entry + 1U == ladder.size();
-            require(last ? (*fixture.ribbon).scrolling() : (*fixture.ribbon).ladder_step() == entry + 1U,
+            require(last ? (*fixture.ribbon).scrolling() : (*fixture.ribbon).ladder_step() == stxlib::Optional<std::size_t>::of(entry + 1U),
                     "one unit narrower shows the next entry, or scrolls after the last");
         }
     }
@@ -866,7 +868,7 @@ void scrolling_never_hides() {
     require(!ribbon.scrolling(), "approached from wider, the band does not scroll");
     resize(fixture, {narrowest - 2.0, 400.0});
     resize(fixture, {narrowest + 4.0, 400.0});
-    require(ribbon.scrolling() && ribbon.ladder_step() == std::size_t{ladder.size() - 1U} &&
+    require(ribbon.scrolling() && ribbon.ladder_step() == stxlib::Optional<std::size_t>::of(ladder.size() - 1U) &&
                 ribbon.realized_groups().size() < 5U,
             "approached from narrower, the band keeps scrolling with the right button over the last group");
 }

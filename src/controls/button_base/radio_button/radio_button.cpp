@@ -166,11 +166,11 @@ void RadioButton::publish_part_geometry(std::span<PartGeometry> geometry) const 
     record.region = PartGeometry::from_bounds(bounds);
     record.well = PartGeometry::from_bounds(well);
     record.indicator = PartGeometry::from_bounds(mark);
-    if (layout.image.has_value()) {
-        record.icon = PartGeometry::from_bounds(*layout.image);
+    if (layout.image.present()) {
+        record.icon = PartGeometry::from_bounds(*layout.image.value());
     }
-    if (layout.text.has_value()) {
-        record.label = PartGeometry::from_bounds(*layout.text);
+    if (layout.text.present()) {
+        record.label = PartGeometry::from_bounds(*layout.text.value());
     }
     record.focus = PartGeometry::from_bounds(bounds);
     write_parts(anatomy(), radio_button_part_fields, record, geometry);

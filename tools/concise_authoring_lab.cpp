@@ -54,10 +54,10 @@ void paint(Fixture& fixture, gf::render::SkiaRaster& raster) {
     gf::DamageRegion damage{};
     damage.add({0.0, 0.0, 1060.0, 618.0});
     raster.begin_frame(damage);
-    const std::optional<gf::PaintReceipt> receipt =
+    const stxlib::Optional<gf::PaintReceipt> receipt =
         (*fixture.window).paint(raster, {0.0, 0.0, 1060.0, 618.0});
     raster.end_frame();
-    if (!receipt || !(*fixture.window).notify_presented(*receipt)) {
+    if (receipt.absent() || !(*fixture.window).notify_presented(*receipt.value())) {
         throw std::runtime_error("paint did not produce a valid receipt");
     }
 }
@@ -89,7 +89,7 @@ int main(const int argc, const char* const* argv) {
         start = std::chrono::steady_clock::now();
         for (int index = 0; index < 1000000; ++index) {
             const gf::FramePollResult poll = (*fixture.window).poll_frame_schedule(gf::FrameTime{});
-            if (poll.next_wake || poll.deadlines_fired != 0U || poll.ui_timer_ticks != 0U) return 4;
+            if (poll.next_wake.present() || poll.deadlines_fired != 0U || poll.ui_timer_ticks != 0U) return 4;
         }
         const std::int64_t idle_time = elapsed(start);
         std::cout << "idle_poll," << trial << ",1000000," << idle_time << ','

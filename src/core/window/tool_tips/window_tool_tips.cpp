@@ -55,7 +55,7 @@ void SurfaceRoot::set_tool_tip_settings(ToolTipSettings settings) {
     if (width_changed || switches_changed) (*tool_tips_).settings_changed();
 }
 
-void SurfaceRoot::show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) {
+void SurfaceRoot::show_tool_tip(const Control::Ptr& target, stxlib::Optional<std::chrono::milliseconds> duration) {
     require_root_thread("tooltip show");
     if (!target || !(*target).is_alive() || (*target).attached_surface_root() != this) {
         throw std::invalid_argument("GUI.Forms tooltip target must be a live control attached to its Window");
@@ -63,7 +63,7 @@ void SurfaceRoot::show_tool_tip(const Control::Ptr& target, std::optional<std::c
     if ((*target).tool_tip_text.read().empty()) {
         throw std::invalid_argument("GUI.Forms tooltip target has no tooltip text");
     }
-    if (duration && (*duration).count() < 0) {
+    if (duration.present() && (*duration.value()).count() < 0) {
         throw std::invalid_argument("GUI.Forms tooltip duration may not be negative");
     }
     // Blank text (white space only) never shows, whoever asks (owner rule,
@@ -85,7 +85,7 @@ std::uint64_t SurfaceRoot::request_tool_tip(const Control::Ptr& owner, ToolTipRe
     if (!finite_rect(request.anchor)) {
         throw std::invalid_argument("GUI.Forms tooltip request anchor must be finite");
     }
-    if (request.duration && (*request.duration).count() < 0) {
+    if (request.duration.present() && (*request.duration.value()).count() < 0) {
         throw std::invalid_argument("GUI.Forms tooltip duration may not be negative");
     }
     end_tool_tip_request(true);
@@ -174,7 +174,7 @@ void SurfaceRoot::tool_tip_items_changed(Control& control) {
 }
 
 void SurfaceRoot::show_requested_tool_tip(const Control::Ptr& control, std::string item_id, std::string text,
-                                          Rect anchor, std::optional<std::chrono::milliseconds> duration) {
+                                          Rect anchor, stxlib::Optional<std::chrono::milliseconds> duration) {
     require_root_thread("tooltip show");
     (*tool_tips_).show_program_item(control, std::move(item_id), std::move(text), anchor, duration);
 }

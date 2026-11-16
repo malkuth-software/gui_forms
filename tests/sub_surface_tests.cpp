@@ -1535,7 +1535,7 @@ public:
         SurfaceRoot* const root = (*control).attached_surface_root();
         if (root == nullptr) return;
         if (show_) {
-            (*root).show_tool_tip(control, std::chrono::milliseconds(0));
+            (*root).show_tool_tip(control, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
             return;
         }
         (*root).hide_tool_tip();
@@ -1712,7 +1712,7 @@ void window_handles_tool_tip_requests() {
     ToolTipRequest request;
     request.text = "asked";
     request.anchor = Rect{12.0, 12.0, 10.0, 10.0};
-    request.duration = std::chrono::milliseconds(0);
+    request.duration.set(std::chrono::milliseconds(0));
     const std::uint64_t first = window.request_tool_tip(owner, request, answers);
     require(first == 1U, "the first request is 1");
     require(window.tool_tip_visible() && window.tool_tip_text() == "asked", "the window shows it at once");
@@ -1759,7 +1759,7 @@ public:
         ToolTipRequest request;
         request.text = "from inside";
         request.anchor = Rect{10.0, 5.0, 30.0, 15.0};
-        request.duration = std::chrono::milliseconds(0);
+        request.duration.set(std::chrono::milliseconds(0));
         static_cast<void>((*root).request_tool_tip(control, request, answers_));
     }
 

@@ -220,7 +220,7 @@ std::string canonical_lifecycle_trace() {
     clock.advance(1'000);
     const MetricsSnapshot idle = window.metrics_snapshot();
     trace.record("t=1060 idle frame=" + std::to_string(window.needs_frame() ? 1 : 0) +
-                 " wake=" + std::to_string(window.next_wake().has_value() ? 1 : 0) +
+                 " wake=" + std::to_string(window.next_wake().present() ? 1 : 0) +
                  " layout=" + std::to_string(idle.arrange_passes) +
                  " paint=" + std::to_string(idle.paint_passes) +
                  " present=" + std::to_string(idle.frames_presented) +

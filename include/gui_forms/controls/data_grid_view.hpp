@@ -95,7 +95,7 @@ struct GUI_FORMS_API DataGridViewColumn final {
     std::string data_property_name{};
     DataGridViewSortDirection sort_glyph{DataGridViewSortDirection::none};
     DataGridViewCellStyle header_cell_style{};
-    std::optional<DataGridViewColumnSortMode> sort_mode{};
+    stxlib::Optional<DataGridViewColumnSortMode> sort_mode{};
     DataGridViewAutoSizeColumnMode auto_size_mode{DataGridViewAutoSizeColumnMode::not_set};
     // A fill column's share of the width the other columns leave, against
     // the other fill columns' weights; finite and positive.
@@ -103,7 +103,7 @@ struct GUI_FORMS_API DataGridViewColumn final {
     // Whether the user may resize the column (Windows Forms' Resizable):
     // none inherits allow_user_to_resize_columns, a value overrides it. An
     // automatically sized column is never resized by the user.
-    std::optional<bool> resizable{};
+    stxlib::Optional<bool> resizable{};
     // Whether the grid shows the column (Windows Forms' Visible). A hidden
     // column keeps its index, display index, width and values; layout,
     // painting, hit testing, keyboard movement, selection ranges and the
@@ -655,7 +655,17 @@ public:
     // A column's sort mode, its kind's default when its sort_mode is empty.
     // Throws std::out_of_range for an unknown column.
     [[nodiscard]] DataGridViewColumnSortMode column_sort_mode(std::size_t column) const;
-    void set_column_sort_mode(std::size_t column, std::optional<DataGridViewColumnSortMode> mode);
+    void set_column_sort_mode(std::size_t column, stxlib::Optional<DataGridViewColumnSortMode> mode);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<DataGridViewColumnSortMode>")]]
+    void set_column_sort_mode(std::size_t column, std::optional<DataGridViewColumnSortMode> mode) {
+        stxlib::Optional<DataGridViewColumnSortMode> owned{};
+        if (mode.has_value()) owned.set(*mode);
+        set_column_sort_mode(column, owned);
+    }
+    // A plain mode is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<DataGridViewColumnSortMode>::of(mode).
+    void set_column_sort_mode(std::size_t column, DataGridViewColumnSortMode mode) = delete;
 
     // The selection as text (Windows Forms' GetClipboardContent, its text
     // format): one line per row with a selected cell, in order, ending
@@ -1369,7 +1379,7 @@ private:
     [[nodiscard]] PressIdentity press_identity(const HitResult& hit) const;
     // The press at its row's and column's present positions, or none when
     // the handlers removed either.
-    [[nodiscard]] std::optional<HitResult> resolve_press(const HitResult& hit, const PressIdentity& pressed) const;
+    [[nodiscard]] stxlib::Optional<HitResult> resolve_press(const HitResult& hit, const PressIdentity& pressed) const;
     // How a key or click moves the current cell and the selection.
     enum class SelectionGesture : std::uint8_t { replace, extend, toggle };
     // The kind of edit in progress.
@@ -1711,9 +1721,12 @@ private:
         Rect text{};
         Rect underline{};
     };
+    // The face a cell with `style` draws its text in: the style's font, else
+    // the grid's.
+    [[nodiscard]] FontSpec cell_face(const DataGridViewCellStyle& style) const;
     // None for empty text or an empty content area.
-    [[nodiscard]] std::optional<CellLink> cell_link(std::string_view text, PartTextAlignment alignment,
-                                                    FontSpec face, Rect content) const;
+    [[nodiscard]] stxlib::Optional<CellLink> cell_link(std::string_view text, PartTextAlignment alignment,
+                                                       FontSpec face, Rect content) const;
     // Throws std::out_of_range for a cell past the rows or columns and
     // std::invalid_argument for one outside a link column.
     void require_link_cell(DataGridViewRowPosition row, std::size_t column) const;
@@ -1725,8 +1738,8 @@ private:
         ImageId image{};
         Rect bounds{};
     };
-    [[nodiscard]] std::optional<CellImage> cell_image(DataGridViewRowPosition row, std::size_t column,
-                                                      Rect inside) const;
+    [[nodiscard]] stxlib::Optional<CellImage> cell_image(DataGridViewRowPosition row, std::size_t column,
+                                                         Rect inside) const;
     [[nodiscard]] ColumnParts column_parts(std::size_t column, const GridLayout& layout) const;
     [[nodiscard]] AnatomyStateSet row_states(DataGridViewRowPosition row) const;
     [[nodiscard]] AnatomyStateSet cell_states(DataGridViewRowPosition row, std::size_t column) const;

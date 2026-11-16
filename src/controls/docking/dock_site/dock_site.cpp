@@ -812,9 +812,9 @@ void DockSite::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     // The stamp's picture is the former window's image. A release that
     // fails (allocation while marking the repaint) leaves the image to the
     // window's end.
-    if (drag_.picture && !drag_.guest) {
+    if (drag_.picture.present() && !drag_.guest) {
         try {
-            static_cast<void>(former_window.release_control_snapshot((*drag_.picture).image));
+            static_cast<void>(former_window.release_control_snapshot((*drag_.picture.value()).image));
         } catch (...) {
         }
     }
@@ -2790,7 +2790,7 @@ void DockSite::publish_part_geometry(std::span<PartGeometry> geometry) const {
     if (layer) {
         record.drag_stamp = PartGeometry::from_bounds(drag_.stamp);
         record.drag_stamp_label = PartGeometry::from_bounds(drag_label_bounds());
-        if (drag_.picture) record.drag_stamp_image = PartGeometry::from_bounds(drag_image_bounds());
+        if (drag_.picture.present()) record.drag_stamp_image = PartGeometry::from_bounds(drag_image_bounds());
     }
     const std::optional<DockDropTarget> target = drag_target();
     if (target) {

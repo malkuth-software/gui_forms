@@ -196,9 +196,9 @@ void require_smoke_verdict() {
 
     std::unique_ptr<gui_forms::Window> shown = file_manager_demoboard::make_product_window();
     NullPainter painter;
-    const std::optional<gui_forms::PaintReceipt> receipt =
+    const stxlib::Optional<gui_forms::PaintReceipt> receipt =
         (*shown).paint(painter, (*shown).take_damage().bounds());
-    require(receipt.has_value() && (*shown).notify_presented(*receipt),
+    require(receipt.present() && (*shown).notify_presented(*receipt.value()),
             "the product window did not present its first frame");
     const std::shared_ptr<int> shown_closes = std::make_shared<int>(0);
     const std::shared_ptr<file_manager_demoboard::SmokeTest> seen =

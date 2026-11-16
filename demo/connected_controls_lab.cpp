@@ -224,11 +224,11 @@ struct ToggleDropDown final {
 
 bool demonstrate_atomic_rejection(
     const std::array<std::shared_ptr<Button>, 2U>& controls) {
-    (*controls[0]).set_connection_topology(
-        ConnectedControlTopology{ConnectedControlAxis::vertical, 0U, 2U});
-    const std::optional<ConnectedControlTopology> first_before =
+    (*controls[0]).set_connection_topology(stxlib::Optional<ConnectedControlTopology>::of(
+        ConnectedControlTopology{ConnectedControlAxis::vertical, 0U, 2U}));
+    const stxlib::Optional<ConnectedControlTopology> first_before =
         (*controls[0]).connection_topology();
-    const std::optional<ConnectedControlTopology> second_before =
+    const stxlib::Optional<ConnectedControlTopology> second_before =
         (*controls[1]).connection_topology();
     try {
         const std::array<std::shared_ptr<ButtonBase>, 2U> group{
@@ -237,7 +237,7 @@ bool demonstrate_atomic_rejection(
     } catch (const std::invalid_argument&) {
         const bool unchanged = (*controls[0]).connection_topology() == first_before &&
                                (*controls[1]).connection_topology() == second_before;
-        (*controls[0]).set_connection_topology(std::nullopt);
+        (*controls[0]).set_connection_topology(stxlib::Optional<ConnectedControlTopology>::none());
         return unchanged;
     }
     return false;

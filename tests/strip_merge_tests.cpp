@@ -90,10 +90,10 @@ Strips make_strips(std::vector<ToolStripItemSpec> source_items, std::vector<Tool
 
 void test_append_insert_and_revert() {
     ToolStripItemSpec inserted = button("s.first", "First", MergeAction::insert);
-    inserted.merge_index = 0U;
+    inserted.merge_index.set(0U);
     ToolStripItemSpec unplaced = button("s.unplaced", "Unplaced", MergeAction::insert);
     ToolStripItemSpec past = button("s.past", "Past", MergeAction::insert);
-    past.merge_index = 99U;
+    past.merge_index.set(99U);
     Strips strips = make_strips({button("s.append", "Append"), inserted, unplaced, past},
                                 {button("t.one", "One"), button("t.two", "Two")});
     require(merge_strips(*strips.source, *strips.target), "an append merge reports a change");
@@ -108,7 +108,7 @@ void test_append_insert_and_revert() {
 
 void test_replace_remove_and_matching() {
     ToolStripItemSpec by_index = button("s.by-index", "Nothing alike", MergeAction::remove);
-    by_index.merge_index = 2U;
+    by_index.merge_index.set(2U);
     Strips strips = make_strips({button("s.save", "SAVE", MergeAction::replace), button("s.print", "print", MergeAction::remove), by_index,
                                  button("s.none", "Absent", MergeAction::replace)},
                                 {button("t.open", "Open"), button("t.save", "Save"), button("t.print", "Print"),
@@ -127,7 +127,7 @@ void test_match_only_recursion() {
     ToolStripItemSpec source_file = button("s.file", "File", MergeAction::match_only);
     source_file.kind = ToolStripItemKind::drop_down_button;
     MenuItemSpec export_item = menu_command("s.file.export", "Export", MergeAction::insert);
-    export_item.merge_index = 1U;
+    export_item.merge_index.set(1U);
     source_file.drop_down = {export_item, menu_command("s.file.recent", "Recent")};
     ToolStripItemSpec target_file = button("t.file", "file");
     target_file.kind = ToolStripItemKind::drop_down_button;
@@ -213,13 +213,13 @@ void test_menu_strips() {
     child_file.text = "&File";
     child_file.merge_action = MergeAction::match_only;
     MenuItemSpec save = menu_command("c.file.save", "Save", MergeAction::insert);
-    save.merge_index = 1U;
+    save.merge_index.set(1U);
     child_file.items = {save};
     MenuStripItemSpec child_format{};
     child_format.stable_id = "c.format";
     child_format.text = "F&ormat";
     child_format.merge_action = MergeAction::insert;
-    child_format.merge_index = 1U;
+    child_format.merge_index.set(1U);
     child_format.items = {menu_command("c.format.font", "Font")};
     (*child).set_items({child_file, child_format});
     require(merge_strips(*child, *parent), "the child menu merges into the parent");

@@ -1794,7 +1794,7 @@ Related types
 
       Default: ``{SubSurfaceToolTipOrigin::pointer}``.
 
-   .. cpp:member:: std::optional<std::chrono::milliseconds> duration
+   .. cpp:member:: stxlib::Optional<std::chrono::milliseconds> duration
 
       For a program request (SurfaceRoot::show_tool_tip or request_tool_tip on the sub-surface): how long it shows (none: the parent's auto-pop delay; zero: until revoked).
 

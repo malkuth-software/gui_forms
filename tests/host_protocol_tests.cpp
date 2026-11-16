@@ -30,6 +30,7 @@
 #include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 #include "support/routed_input_probe.hpp"
+#include "support/frame_wake.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -41,6 +42,8 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+
+using gui_forms::test_support::wake_at;
 
 namespace {
 
@@ -962,12 +965,12 @@ void test_display_capture_and_occlusion_synchronization() {
     FrameRequestToken active = fixture.window.schedule_paint(
         fixture.probe, base + std::chrono::nanoseconds(10));
     require(fixture.host.dispatch(HostOcclusionEvent{true}, 7).accepted() &&
-                fixture.window.occluded() && !fixture.window.next_wake().has_value() &&
+                fixture.window.occluded() && fixture.window.next_wake().absent() &&
                 active.connected(),
             "host occlusion must pause rather than revoke retained paint work");
     require(fixture.host.dispatch(HostOcclusionEvent{false}, 20).accepted() &&
                 !fixture.window.occluded() &&
-                fixture.window.next_wake() == base + std::chrono::nanoseconds(10),
+                fixture.window.next_wake() == wake_at(base + std::chrono::nanoseconds(10)),
             "host resume must expose the overdue paint deadline once");
     const FramePollResult resumed =
         fixture.window.poll_frame_schedule(base + std::chrono::nanoseconds(20));

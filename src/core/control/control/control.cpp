@@ -54,12 +54,11 @@ Dirty fold_subtree_regions(Control& control) noexcept {
 
 [[nodiscard]] Rect owner_decoration_box(
     const OwnerDecorationRecipe& decoration, Rect owner) noexcept {
-    const double x = decoration.left
-        ? *decoration.left
-        : owner.width - *decoration.right - decoration.size.width;
-    const double y = decoration.top
-        ? *decoration.top
-        : owner.height - *decoration.bottom - decoration.size.height;
+    // set_owned_decorations admitted exactly one offset on each axis.
+    const double from_right = owner.width - decoration.right.value_or(0.0) - decoration.size.width;
+    const double from_bottom = owner.height - decoration.bottom.value_or(0.0) - decoration.size.height;
+    const double x = decoration.left.value_or(from_right);
+    const double y = decoration.top.value_or(from_bottom);
     return {x, y, decoration.size.width, decoration.size.height};
 }
 
@@ -1969,19 +1968,18 @@ void Control::set_owned_decorations(
         const bool valid_layer =
             decoration.layer == OwnerDecorationLayer::before_content ||
             decoration.layer == OwnerDecorationLayer::after_content;
-        const bool horizontal = decoration.left.has_value() !=
-            decoration.right.has_value();
-        const bool vertical = decoration.top.has_value() !=
-            decoration.bottom.has_value();
-        const std::optional<double>* offsets[]{
+        const bool horizontal = decoration.left.present() !=
+            decoration.right.present();
+        const bool vertical = decoration.top.present() !=
+            decoration.bottom.present();
+        const stxlib::Optional<double>* offsets[]{
             &decoration.left, &decoration.top,
             &decoration.right, &decoration.bottom,
         };
         bool valid_offsets = true;
-        for (const std::optional<double>* offset : offsets) {
-            if ((*offset).has_value() &&
-                (!std::isfinite((*offset).value()) ||
-                 std::abs((*offset).value()) > 4096.0)) {
+        for (const stxlib::Optional<double>* offset : offsets) {
+            const double* const given = (*offset).value();
+            if (given != nullptr && (!std::isfinite(*given) || std::abs(*given) > 4096.0)) {
                 valid_offsets = false;
             }
         }

@@ -117,9 +117,9 @@ Frame present(render::SkiaRaster& raster, Window& window) {
     DamageRegion damage;
     damage.add(whole);
     raster.begin_frame(damage);
-    const std::optional<PaintReceipt> receipt = window.paint(raster, whole);
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(raster, whole);
     raster.end_frame();
-    require(receipt.has_value(), "the window renders");
+    require(receipt.present(), "the window renders");
     static_cast<void>(window.take_damage());
 
     Frame frame{};
@@ -408,7 +408,7 @@ void overlay_takes_no_chain(render::SkiaRaster& raster) {
     const std::unique_ptr<Window> window = lab::make_compositor_lab(lab::default_request(), false);
     Window& shown = *window;
     shown.set_compositor_state(make_state(StateCase::every_backdrop, 1U), true);
-    shown.set_backdrop_chain(frosted_chain());
+    shown.set_backdrop_chain(stxlib::Optional<BackdropChain>::of(frosted_chain()));
     const Frame before = present(raster, shown);
     // The window observes an overlay root; the caller owns it while it shows.
     const std::shared_ptr<Panel> overlay = make_overlay();
@@ -425,27 +425,42 @@ void window_chain_resolution(render::SkiaRaster& raster) {
     const std::unique_ptr<Window> window = lab::make_compositor_lab(lab::default_request(), false);
     Window& shown = *window;
     shown.set_compositor_state(make_state(StateCase::every_backdrop, 1U), true);
-    shown.set_backdrop_chain(frosted_chain());
+    shown.set_backdrop_chain(stxlib::Optional<BackdropChain>::of(frosted_chain()));
     require(shown.backdrop_grant().granted == WindowBackdrop::window_material, "the lab is granted its material");
-    const std::optional<BackdropChainResolution> material = shown.backdrop_chain_resolution();
-    require(material.has_value() && (*material).blur_by_material && !(*material).blur_dropped &&
-                (*material).saturate_dropped && !(*material).solid && !(*material).withdrawn &&
-                (*material).tint == frosted_tint,
+    const stxlib::Optional<BackdropChainResolution> material = shown.backdrop_chain_resolution();
+    require(material.present() && (*material.value()).blur_by_material && !(*material.value()).blur_dropped &&
+                (*material.value()).saturate_dropped && !(*material.value()).solid && !(*material.value()).withdrawn &&
+                (*material.value()).tint == frosted_tint,
             "under a material the blur is the system's, saturate is dropped, the tint is ours");
     const Frame granted = present(raster, shown);
     require(near(granted.at(clear_column, clear_row).alpha, 64U), "the clear part is the chain's tint alone");
     // Without a compositor: opaque, the blur dropped, the tint opaque.
     shown.set_compositor_state(make_state(StateCase::no_compositor, 2U), true);
-    const std::optional<BackdropChainResolution> refused = shown.backdrop_chain_resolution();
-    require(refused.has_value() && (*refused).solid && (*refused).blur_dropped && !(*refused).blur_by_material,
+    const stxlib::Optional<BackdropChainResolution> refused = shown.backdrop_chain_resolution();
+    require(refused.present() && (*refused.value()).solid && (*refused.value()).blur_dropped && !(*refused.value()).blur_by_material,
             "without a compositor the chain is its tint, opaque");
     const Pixel flat = present(raster, shown).at(clear_column, clear_row);
     require(flat.red == 255U && flat.green == 255U && flat.blue == 255U && flat.alpha == 255U,
             "the opaque fallback paints the tint opaque");
     shown.set_compositor_state(make_state(StateCase::high_contrast, 3U), true);
-    const std::optional<BackdropChainResolution> contrast = shown.backdrop_chain_resolution();
-    require(contrast.has_value() && (*contrast).withdrawn, "under high contrast the chain is withdrawn");
+    const stxlib::Optional<BackdropChainResolution> contrast = shown.backdrop_chain_resolution();
+    require(contrast.present() && (*contrast.value()).withdrawn, "under high contrast the chain is withdrawn");
 }
+
+// D15 Q3: set_backdrop_chain keeps its deprecated std::optional form for
+// one stage; a plain chain or {} must not reach it silently. Each plain call
+// below is refused (the deleted overload or an ambiguity), and the stxlib
+// form is accepted.
+template <typename Root>
+concept takes_plain_chain = requires(Root& root, const BackdropChain& chain) { root.set_backdrop_chain(chain); };
+template <typename Root>
+concept takes_empty_chain = requires(Root& root) { root.set_backdrop_chain({}); };
+template <typename Root>
+concept takes_optional_chain = requires(Root& root) {
+    root.set_backdrop_chain(stxlib::Optional<BackdropChain>::none());
+};
+static_assert(!takes_plain_chain<Window> && !takes_empty_chain<Window>);
+static_assert(takes_optional_chain<Window>);
 
 void chain_rules() {
     const BackdropChain chain = frosted_chain();
@@ -462,17 +477,17 @@ void chain_rules() {
     Window& shown = *window;
     bool refused = false;
     try {
-        shown.set_backdrop_chain(two_blurs);
+        shown.set_backdrop_chain(stxlib::Optional<BackdropChain>::of(two_blurs));
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && !shown.backdrop_chain().has_value(), "a window refuses an invalid chain, changing nothing");
+    require(refused && shown.backdrop_chain().absent(), "a window refuses an invalid chain, changing nothing");
     // A window following its theme asks for the material once its chain
     // has a blur.
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("lab.backdrop.plain"));
     Window plain(root, Size{200.0, 100.0});
     static_cast<void>(plain.declare_non_opaque());
-    plain.set_backdrop_chain(chain);
+    plain.set_backdrop_chain(stxlib::Optional<BackdropChain>::of(chain));
     require(plain.backdrop_request() ==
                 WindowBackdropRequest::with_fallback(WindowBackdrop::window_material, WindowBackdrop::transparent),
             "a chain with a blur asks for the window material");

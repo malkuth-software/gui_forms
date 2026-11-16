@@ -552,7 +552,7 @@ std::size_t run_frames(Window& window, ManualTime& time) {
         require(result.motion_clock_ticks <= 1U,
                 "the drag's motion runs on the clock's one request");
         frames += result.motion_clock_ticks;
-        if (!result.next_wake) break;
+        if (result.next_wake.absent()) break;
     }
     return frames;
 }

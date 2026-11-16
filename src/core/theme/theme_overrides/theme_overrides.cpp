@@ -162,9 +162,10 @@ ThemeOverrideCheck ThemeOverrides::check_target(const ThemeOverrideTarget& targe
         }
         if (part == nullptr) return ThemeOverrideCheck::unknown_part;
     }
-    if (target.state.has_value()) {
-        const bool control_state = holds_state((*anatomy).states, *target.state);
-        const bool part_state = part != nullptr && holds_state((*part).states, *target.state);
+    if (target.state.present()) {
+        const AnatomyState state = *target.state.value();
+        const bool control_state = holds_state((*anatomy).states, state);
+        const bool part_state = part != nullptr && holds_state((*part).states, state);
         if (!control_state && !part_state) return ThemeOverrideCheck::unknown_state;
     }
     return ThemeOverrideCheck::accepted;
@@ -270,7 +271,7 @@ std::string ThemeOverrides::sheet_text() const {
             append_kebab(out, target.part);
             out.push_back(')');
         }
-        if (target.state.has_value()) append_state(out, *target.state);
+        if (target.state.present()) append_state(out, *target.state.value());
         out.append(" {\n");
         for (std::size_t index = first; index < properties_.size(); ++index) {
             const PropertyEntry& entry = properties_[index];

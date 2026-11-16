@@ -246,9 +246,9 @@ double keyframe_level(double value) {
 
 // The amplitude a keyed face was last drawn with, from its cached raster.
 double drawn_amplitude(const Window& window, std::string_view control) {
-    const std::optional<PartRecordHandle> handle = window.engine_parts().find(control, PartKey{"face", {}, {}});
-    require(handle.has_value(), "the face has a record");
-    const EnginePartRecord* const record = window.engine_parts().record(*handle);
+    const stxlib::Optional<PartRecordHandle> handle = window.engine_parts().find(control, PartKey{"face", {}, {}});
+    require(handle.present(), "the face has a record");
+    const EnginePartRecord* const record = window.engine_parts().record(*handle.value());
     require(record != nullptr && (*record).cached != nullptr && (*(*record).cached).raster != nullptr,
             "the face was drawn by its primitive");
     const PrimitiveDescriptor& descriptor = (*(*(*record).cached).primitive).descriptor();

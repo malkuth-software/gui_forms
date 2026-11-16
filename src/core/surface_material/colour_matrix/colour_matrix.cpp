@@ -310,10 +310,10 @@ MaterialColourTable MaterialColourTable::then_matrix(const MaterialColourMatrix&
 MaterialColourFilter::MaterialColourFilter() noexcept : stages_{} {}
 
 MaterialColourFilter::MaterialColourFilter(const MaterialColourMatrix& matrix)
-    : stages_{new MaterialColourStages{matrix, std::nullopt}} {}
+    : stages_{new MaterialColourStages{matrix, stxlib::Optional<MaterialColourTable>::none()}} {}
 
 MaterialColourFilter::MaterialColourFilter(const MaterialColourMatrix& matrix, const MaterialColourTable& table)
-    : stages_{new MaterialColourStages{matrix, table}} {}
+    : stages_{new MaterialColourStages{matrix, stxlib::Optional<MaterialColourTable>::of(table)}} {}
 
 MaterialColourFilter::MaterialColourFilter(const MaterialColourFilter& other) : stages_{} {
     if (other.stages_) stages_ = new MaterialColourStages(*other.stages_);
@@ -360,8 +360,9 @@ const MaterialColourMatrix& MaterialColourFilter::operator*() const noexcept {
 }
 
 const MaterialColourTable* MaterialColourFilter::table() const noexcept {
-    if (stages_ == nullptr || !(*stages_).table) return nullptr;
-    return &*(*stages_).table;
+    if (stages_ == nullptr) return nullptr;
+    const MaterialColourTable* const held = (*stages_).table.value();
+    return held;
 }
 
 void MaterialColourFilter::reset() noexcept {

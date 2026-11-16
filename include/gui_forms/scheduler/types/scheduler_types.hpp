@@ -5,7 +5,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -36,7 +37,7 @@ struct GUI_FORMS_API FramePollResult final {
     bool reentrant_poll_deferred{};
     bool damage_pending{};
     bool suppressed_by_occlusion{};
-    std::optional<FrameTime> next_wake;
+    stxlib::Optional<FrameTime> next_wake;
 };
 
 } // namespace gui_forms

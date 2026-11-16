@@ -23,6 +23,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
+#include "support/frame_wake.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -37,6 +38,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 using namespace gui_forms;
@@ -137,8 +140,8 @@ void test_pulse_runs_and_rests() {
     require((*made.button).danger_glowing(), "in a window a danger key pulses");
     SilentPainter painter;
     double lowest = 1.0;
-    for (int tick = 0; tick < 24 && (*made.window).next_wake(); ++tick) {
-        static_cast<void>((*made.window).poll_frame_schedule(*(*made.window).next_wake()));
+    for (int tick = 0; tick < 24 && (*made.window).next_wake().present(); ++tick) {
+        static_cast<void>((*made.window).poll_frame_schedule(armed_wake(*made.window)));
         lowest = std::min(lowest, (*made.button).danger_glow());
         (*made.button).on_paint(painter, Rect{0.0, 0.0, 100.0, 30.0});
     }
@@ -146,8 +149,8 @@ void test_pulse_runs_and_rests() {
 
     // Reduced motion: the next tick holds it full and stops the timer.
     set_reduced_motion(*made.window, true);
-    if ((*made.window).next_wake()) {
-        static_cast<void>((*made.window).poll_frame_schedule(*(*made.window).next_wake()));
+    if ((*made.window).next_wake().present()) {
+        static_cast<void>((*made.window).poll_frame_schedule(armed_wake(*made.window)));
     }
     require(!(*made.button).danger_glowing() && (*made.button).danger_glow() == 1.0,
             "under reduced motion the glow is steady and full");

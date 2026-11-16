@@ -323,7 +323,7 @@ public:
   // Reports one present that copied `copied`: the live frames' share as live
   // frames, the rest as the retained present (when `receipt` is set), the
   // duration split by pixels. Returns whether the window accepted the receipt.
-  bool report_presented(const std::optional<PaintReceipt>& receipt, std::uint64_t elapsed,
+  bool report_presented(const stxlib::Optional<PaintReceipt>& receipt, std::uint64_t elapsed,
                         PresentedArea copied);
   HostDispatchResult dispatch(HostEventPayload payload);
   // Reports the compositor's state to this window (stage T5, C4): after

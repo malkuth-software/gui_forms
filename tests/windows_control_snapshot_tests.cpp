@@ -43,13 +43,13 @@ void matches_direct_paint() {
     const std::unique_ptr<PaintFramebuffer> direct = window.create_framebuffer(size, 1.0);
     require(direct != nullptr && (*direct).begin(window.image_resources(), {0.0, 0.0, size.width, size.height}),
             "a direct framebuffer begins");
-    require(window.paint((*direct).painter()).has_value(), "the window paints");
+    require(window.paint((*direct).painter()).present(), "the window paints");
     (*direct).end();
 
-    const std::optional<ControlSnapshot> snapshot = window.snapshot_control(card, 1.0);
-    require(snapshot.has_value() && (*snapshot).pixel_width == 100U && (*snapshot).pixel_height == 60U,
+    const stxlib::Optional<ControlSnapshot> snapshot = window.snapshot_control(card, 1.0);
+    require(snapshot.present() && (*snapshot.value()).pixel_width == 100U && (*snapshot.value()).pixel_height == 60U,
             "the host raster snapshots the card");
-    const std::optional<ImageResourceView> view = window.image_resources().find((*snapshot).image);
+    const std::optional<ImageResourceView> view = window.image_resources().find((*snapshot.value()).image);
     require(view.has_value(), "the picture is registered");
     const std::span<const std::byte> picture = (*view).encoded;
     const std::span<std::byte> painted = (*direct).pixels();
@@ -65,10 +65,10 @@ void matches_direct_paint() {
     std::cout << "snapshot vs direct paint: " << differences << " differing bytes\n";
     require(differences == 0U, "the snapshot matches the window's own paint pixel for pixel");
 
-    const std::optional<ControlSnapshot> half = window.snapshot_control(card, 0.5);
-    require(half.has_value() && (*half).pixel_width == 50U && (*half).pixel_height == 30U,
+    const stxlib::Optional<ControlSnapshot> half = window.snapshot_control(card, 0.5);
+    require(half.present() && (*half.value()).pixel_width == 50U && (*half.value()).pixel_height == 30U,
             "at scale 0.5 the picture is half the size");
-    require(window.release_control_snapshot((*snapshot).image) && window.release_control_snapshot((*half).image),
+    require(window.release_control_snapshot((*snapshot.value()).image) && window.release_control_snapshot((*half.value()).image),
             "the pictures are released");
     window.set_framebuffer_painter(nullptr);
 }
@@ -95,7 +95,7 @@ void capture_matches_presented_frame() {
     const std::unique_ptr<PaintFramebuffer> direct = window.create_framebuffer(size, 1.0);
     require(direct != nullptr && (*direct).begin(window.image_resources(), {0.0, 0.0, size.width, size.height}),
             "a direct framebuffer begins");
-    require(window.paint((*direct).painter()).has_value(), "the window paints");
+    require(window.paint((*direct).painter()).present(), "the window paints");
     (*direct).end();
 
     WindowCaptureOptions options{};

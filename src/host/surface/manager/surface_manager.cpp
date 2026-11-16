@@ -495,14 +495,14 @@ bool FrameChrome::paint(std::vector<Rect>& painted, bool& resized) {
     static_cast<void>(raster_.synchronize_images((*model_).image_resources()));
     DamageRegion screen = damage_;
     raster_.begin_frame(screen);
-    const std::optional<PaintReceipt> receipt = (*model_).paint(raster_, damage_.rectangles());
+    const stxlib::Optional<PaintReceipt> receipt = (*model_).paint(raster_, damage_.rectangles());
     raster_.end_frame();
-    if (!receipt) return false;
+    if (receipt.absent()) return false;
     const std::span<const Rect> changed = damage_.rectangles();
     PresentedArea area;
     for (std::size_t index = 0U; index < changed.size(); ++index) painted.push_back(changed[index]);
     area.rectangles = changed.size();
-    static_cast<void>((*model_).notify_presented(*receipt, 0U, area));
+    static_cast<void>((*model_).notify_presented(*receipt.value(), 0U, area));
     damage_.clear();
     resized = raster_resized_;
     raster_resized_ = false;
@@ -825,7 +825,7 @@ void NativeWindow::paint(DamageRegion& screen, bool regions_taken) {
         for (std::size_t index = 0U; index < applied_copy_clips.size(); ++index) damage.add(applied_copy_clips[index]);
     }
     compose_live_frames();
-    std::optional<PaintReceipt> receipt{};
+    stxlib::Optional<PaintReceipt> receipt{};
     if (!damage.empty()) {
         receipt = (*entry.model).paint(raster, damage.rectangles());
         const std::span<const Rect> painted = damage.rectangles();
@@ -836,7 +836,7 @@ void NativeWindow::paint(DamageRegion& screen, bool regions_taken) {
     }
     raster.end_frame();
     live_frames.clear();
-    if (!damage.empty() && !receipt) {
+    if (!damage.empty() && receipt.absent()) {
         for (std::size_t index = 0U; index < applied_copy_clips.size(); ++index) damage.add(applied_copy_clips[index]);
         return;
     }
@@ -873,10 +873,10 @@ void NativeWindow::paint(DamageRegion& screen, bool regions_taken) {
     // Reported when the raster holds the frame, as the X11 host reports
     // after XPutImage: the manager composes it into the surface from here.
     const bool acknowledged = report_presented(receipt, elapsed, copied);
-    if (!receipt) return;
+    if (receipt.absent()) return;
     const PaintLeaseSnapshot lease = (*entry.model).paint_lease_snapshot();
-    const bool shown = acknowledged || (lease.surface_epoch == (*receipt).surface_epoch &&
-                                        lease.presented_revision == (*receipt).rendered_revision);
+    const bool shown = acknowledged || (lease.surface_epoch == (*receipt.value()).surface_epoch &&
+                                        lease.presented_revision == (*receipt.value()).rendered_revision);
     if (shown) damage.clear();
 }
 
@@ -957,7 +957,7 @@ void NativeWindow::compose_live_frames() {
     }
 }
 
-bool NativeWindow::report_presented(const std::optional<PaintReceipt>& receipt, std::uint64_t elapsed,
+bool NativeWindow::report_presented(const stxlib::Optional<PaintReceipt>& receipt, std::uint64_t elapsed,
                                     PresentedArea copied) {
     std::uint64_t live_pixels = 0U;
     std::uint64_t live_frames_copied = 0U;
@@ -969,7 +969,7 @@ bool NativeWindow::report_presented(const std::optional<PaintReceipt>& receipt, 
     if (live_pixels > copied.device_pixels) live_pixels = copied.device_pixels;
     bool acknowledged = false;
     std::uint64_t live_elapsed = elapsed;
-    if (receipt) {
+    if (receipt.present()) {
         PresentedArea retained;
         retained.device_pixels = copied.device_pixels - live_pixels;
         retained.rectangles = copied.rectangles;
@@ -979,7 +979,7 @@ bool NativeWindow::report_presented(const std::optional<PaintReceipt>& receipt, 
                            : static_cast<std::uint64_t>(static_cast<double>(elapsed) *
                                                         static_cast<double>(live_pixels) /
                                                         static_cast<double>(copied.device_pixels));
-        acknowledged = (*entry.model).notify_presented(*receipt, elapsed - live_elapsed, retained);
+        acknowledged = (*entry.model).notify_presented(*receipt.value(), elapsed - live_elapsed, retained);
     }
     const std::uint64_t live_duration = live_frames_copied == 0U ? 0U : live_elapsed / live_frames_copied;
     for (std::size_t index = 0U; index < live_frame_rectangles.size(); ++index) {
@@ -1174,9 +1174,10 @@ std::optional<std::chrono::steady_clock::time_point> Runtime::next_deadline(bool
     for (std::size_t index = 0U; index < windows.size(); ++index) {
         const NativeWindow& candidate = *windows[index];
         if (candidate.closed) continue;
-        const std::optional<FrameTime> wake = (*candidate.entry.model).next_wake();
-        if (!wake) continue;
-        if (!deadline.has_value() || *wake < *deadline) deadline = *wake;
+        const stxlib::Optional<FrameTime> wake = (*candidate.entry.model).next_wake();
+        if (wake.absent()) continue;
+        const FrameTime armed = *wake.value();
+        if (!deadline.has_value() || armed < *deadline) deadline = armed;
     }
     // The capsule's animation, only while it runs.
     if (capsule.animating()) {

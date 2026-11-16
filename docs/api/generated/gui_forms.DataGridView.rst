@@ -1869,6 +1869,10 @@ gui_forms::DataGridView
       :cpp:func:`cell_value_changed <gui_forms::DataGridView::cell_value_changed>` when it differs. Returns false when a provider or
       binding source refuses it.
 
+   .. cpp:function:: void set_column_sort_mode(std::size_t column, stxlib::Optional<DataGridViewColumnSortMode> mode)
+
+      Sets a column's sort mode, or none for its kind's default.
+
    .. cpp:function:: void set_column_sort_mode(std::size_t column, std::optional<DataGridViewColumnSortMode> mode)
 
       Sets a column's sort mode, or none for its kind's default.

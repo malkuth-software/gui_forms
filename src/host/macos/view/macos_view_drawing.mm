@@ -101,7 +101,7 @@ struct MacDrawPlan final {
 struct MacPaintedFrame final {
     // The model's receipt for the retained paint; none when nothing retained
     // was painted, the frame was not begun or the candidate was aborted.
-    std::optional<PaintReceipt> receipt{};
+    stxlib::Optional<PaintReceipt> receipt{};
     bool live_draws_succeeded{true};
 #if defined(GUI_FORMS_PREPARED_TEXT)
     // The prepared candidate became the front.
@@ -154,7 +154,7 @@ using gui_forms::host::macos::MacPresentedFrame;
                      duration:presentation.elapsed_nanoseconds];
     }
     [self completeFrameCaptureIfDue:dirtyRect
-                          presented:(presentation.presented && painted.receipt) ? YES : NO];
+                          presented:(presentation.presented && painted.receipt.present()) ? YES : NO];
     // Do not collect the next model invalidation from inside AppKit's paint
     // transaction. setNeedsDisplayInRect: may leave the view dirty without
     // enqueueing a second draw when invoked synchronously by drawRect:, which
@@ -459,7 +459,7 @@ using gui_forms::host::macos::MacPresentedFrame;
     const std::chrono::steady_clock::time_point preparedAt =
         std::chrono::steady_clock::now();
     _rasterPreparePhase.record(started, preparedAt);
-    std::optional<PaintReceipt> receipt{};
+    stxlib::Optional<PaintReceipt> receipt{};
     if (frameReady && !_pendingDamage.empty()) {
         const std::chrono::steady_clock::time_point paintStarted =
             std::chrono::steady_clock::now();
@@ -509,10 +509,10 @@ using gui_forms::host::macos::MacPresentedFrame;
     }
 #if defined(GUI_FORMS_PREPARED_TEXT)
     bool committed{false};
-    if (frameReady && liveDrawsSucceeded && (receipt || liveOnly)) {
+    if (frameReady && liveDrawsSucceeded && (receipt.present() || liveOnly)) {
         // Live-only pixels retain the same coherent retained-tree revision.
         // Do not manufacture or acknowledge another model paint transaction.
-        const PaintReceipt publicationReceipt = receipt ? *receipt : plan.previous_receipt;
+        const PaintReceipt publicationReceipt = receipt.present() ? *receipt.value() : plan.previous_receipt;
         const gui_forms::PreparedTextStatus publication = _raster.commit_prepared_frame(publicationReceipt);
         committed = publication == gui_forms::PreparedTextStatus::success;
     }
@@ -525,7 +525,7 @@ using gui_forms::host::macos::MacPresentedFrame;
     static_cast<void>(liveOnly);
 #endif
     // A frame that moved pixels and was not presented repaints the clips.
-    if (!receipt) {
+    if (receipt.absent()) {
         for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
     }
     _appliedCopyClips.clear();
@@ -554,12 +554,12 @@ using gui_forms::host::macos::MacPresentedFrame;
                           painted:(const MacPaintedFrame&)painted
                           started:(std::chrono::steady_clock::time_point)started {
     const GFSize logicalSize = plan.extent.logical_size;
-    const std::optional<PaintReceipt>& receipt = painted.receipt;
+    const stxlib::Optional<PaintReceipt>& receipt = painted.receipt;
     const bool liveDrawsSucceeded = painted.live_draws_succeeded;
     MacPresentedFrame presentation{};
-    if (receipt) {
+    if (receipt.present()) {
         _rasterHasContent = YES;
-        _frontSurfaceEpoch = (*receipt).surface_epoch;
+        _frontSurfaceEpoch = (*receipt.value()).surface_epoch;
     }
     GFSize presentationSize = logicalSize;
 #if defined(GUI_FORMS_PREPARED_TEXT)
@@ -849,7 +849,7 @@ using gui_forms::host::macos::MacPresentedFrame;
     const GFRect nativeDamage = plan.extent.native_damage;
     const NSRect* const drawnRects = plan.drawn_rects;
     const NSInteger drawnCount = plan.drawn_count;
-    const std::optional<PaintReceipt>& receipt = painted.receipt;
+    const stxlib::Optional<PaintReceipt>& receipt = painted.receipt;
     const bool presented = presentation.presented;
     const bool livePresented = presentation.live_presented;
     const std::uint64_t copyNanoseconds = presentation.copy_nanoseconds;
@@ -884,23 +884,23 @@ using gui_forms::host::macos::MacPresentedFrame;
             drawnCount > 0 ? static_cast<std::uint64_t>(drawnCount) : 1U;
         // The window records the copy time with the retained report; a
         // live-only flush reports it with its first live frame.
-        if (receipt) retainedCopied.copy_nanoseconds = copyNanoseconds;
+        if (receipt.present()) retainedCopied.copy_nanoseconds = copyNanoseconds;
     }
-    std::uint64_t unreportedCopy = receipt ? 0U : copyNanoseconds;
+    std::uint64_t unreportedCopy = receipt.present() ? 0U : copyNanoseconds;
     const std::uint64_t elapsedNanoseconds = presentation.elapsed_nanoseconds;
     const double copiedArea = std::max(drawnArea, liveArea);
     const std::uint64_t liveElapsed = copiedArea <= 0.0 ? 0U :
         static_cast<std::uint64_t>(static_cast<double>(elapsedNanoseconds) * liveArea / copiedArea);
     if (presented) {
-        if (receipt &&
-            (*_model).notify_presented(*receipt, elapsedNanoseconds - liveElapsed,
+        if (receipt.present() &&
+            (*_model).notify_presented(*receipt.value(), elapsedNanoseconds - liveElapsed,
                                        retainedCopied)) {
             _pendingDamage.clear();
         }
     }
     if (liveFramesCopied != 0U) {
         const std::uint64_t liveDuration =
-            (receipt ? liveElapsed : elapsedNanoseconds) / liveFramesCopied;
+            (receipt.present() ? liveElapsed : elapsedNanoseconds) / liveFramesCopied;
         for (std::size_t index = 0; index < _liveRegions.size(); ++index) {
             // One report per surface frame, at its first fragment.
             if (_liveFrameSources[index] != index) continue;

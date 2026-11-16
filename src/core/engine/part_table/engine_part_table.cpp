@@ -460,14 +460,15 @@ PartRecordAcquisition EnginePartTable::acquire(std::string_view control_id, cons
     return acquired;
 }
 
-std::optional<PartRecordHandle> EnginePartTable::find(std::string_view control_id, const PartKey& key) const {
+stxlib::Optional<PartRecordHandle> EnginePartTable::find(std::string_view control_id, const PartKey& key) const {
     std::string lookup;
     write_lookup_text(lookup, control_id, key);
     const std::unordered_map<std::string, std::uint32_t>::const_iterator found = index_.find(lookup);
-    if (found == index_.end()) return std::nullopt;
+    if (found == index_.end()) return stxlib::Optional<PartRecordHandle>::none();
     const std::uint32_t slot = (*found).second;
     const PartRecordHandle handle{slot, slots_[slot].generation};
-    return handle;
+    const stxlib::Optional<PartRecordHandle> result = stxlib::Optional<PartRecordHandle>::of(handle);
+    return result;
 }
 
 EnginePartRecord* EnginePartTable::record(PartRecordHandle handle) noexcept {

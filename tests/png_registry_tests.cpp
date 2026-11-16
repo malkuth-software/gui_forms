@@ -509,7 +509,7 @@ void stale_image_identity_refusals() {
     require(static_cast<bool>(loaded), "the raw surface loads");
     (*probe).image = loaded.image;
     ImageCountingPainter painter;
-    require(window.paint(painter).has_value(), "the first frame paints");
+    require(window.paint(painter).present(), "the first frame paints");
     require(painter.images == 1U && painter.last_image == loaded.image &&
                 window.metrics_snapshot().stale_image_refusals == 0U,
             "a held identity draws and refuses nothing");
@@ -537,13 +537,13 @@ void stale_image_identity_refusals() {
 
     // The probe, damaged by the patch, records its paint again with the old
     // identity: the draw is refused and counted.
-    require(window.paint(painter).has_value(), "the frame after the patch paints");
+    require(window.paint(painter).present(), "the frame after the patch paints");
     require(painter.images == 1U && window.metrics_snapshot().stale_image_refusals == 3U,
             "a draw of the old identity is refused and counted");
 
     (*probe).image = patched.image;
     (*probe).invalidate(Dirty::paint);
-    require(window.paint(painter).has_value(), "the frame with the new identity paints");
+    require(window.paint(painter).present(), "the frame with the new identity paints");
     require(painter.images == 2U && painter.last_image == patched.image &&
                 window.metrics_snapshot().stale_image_refusals == 3U,
             "the returned identity draws and refuses nothing");

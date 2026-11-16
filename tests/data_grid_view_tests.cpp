@@ -71,6 +71,18 @@
 namespace {
 using namespace gui_forms;
 
+// A cell style's alignment and padding, as the style records them.
+stxlib::Optional<DataGridViewContentAlignment> aligned(const DataGridViewContentAlignment alignment) noexcept {
+    const stxlib::Optional<DataGridViewContentAlignment> result =
+        stxlib::Optional<DataGridViewContentAlignment>::of(alignment);
+    return result;
+}
+
+stxlib::Optional<Insets> padded(const Insets padding) noexcept {
+    const stxlib::Optional<Insets> result = stxlib::Optional<Insets>::of(padding);
+    return result;
+}
+
 // D15 Q3: set_current_cell keeps its deprecated std::optional form for one
 // stage; a plain address or {} must not reach it silently. Each plain call
 // below is refused (a deleted overload or an ambiguity), and the stxlib form
@@ -85,6 +97,16 @@ concept takes_optional_current_cell =
     requires(Grid& grid) { grid.set_current_cell(stxlib::Optional<DataGridViewCellAddress>::none()); };
 static_assert(!takes_plain_current_cell<DataGridView> && !takes_empty_current_cell<DataGridView>);
 static_assert(takes_optional_current_cell<DataGridView>);
+// The same for set_column_sort_mode.
+template <typename Grid>
+concept takes_plain_sort_mode =
+    requires(Grid& grid) { grid.set_column_sort_mode(0U, DataGridViewColumnSortMode::automatic); };
+template <typename Grid>
+concept takes_empty_sort_mode = requires(Grid& grid) { grid.set_column_sort_mode(0U, {}); };
+template <typename Grid>
+concept takes_optional_sort_mode = requires(Grid& grid) { grid.set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::none()); };
+static_assert(!takes_plain_sort_mode<DataGridView> && !takes_empty_sort_mode<DataGridView>);
+static_assert(takes_optional_sort_mode<DataGridView>);
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -358,7 +380,7 @@ struct AddDuplicateRow final {
      struct SetSortMode final {
          DataGridView* grid{};
          DataGridViewColumnSortMode mode{};
-         void operator()() const { (*grid).set_column_sort_mode(0U, mode); }
+         void operator()() const { (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(mode)); }
      };
      struct SetVirtualRows final {
          DataGridView* grid{};
@@ -927,7 +949,7 @@ void sorting_headers_and_resizing() {
     static_cast<void>((*grid).set_cell_value(row_at(2U), 0U, BindingValue{std::string("Able")}));
     // The header click here only raises the event; sort_modes covers the
     // automatic sort a text column's click makes by default.
-    (*grid).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::programmatic));
     Window window(grid, {360.0, 160.0});
     window.perform_layout();
     std::vector<std::size_t> header_clicks;
@@ -1304,7 +1326,8 @@ void link_cells() {
         {.name = "site", .header_text = "Site", .kind = DataGridViewColumnKind::link, .width = 150.0,
          .link_text = "Open"},
         {.name = "plain", .header_text = "Plain", .kind = DataGridViewColumnKind::link, .width = 100.0,
-         .default_cell_style = {.alignment = DataGridViewContentAlignment::middle_end}, .track_visited_state = false},
+         .default_cell_style = {.alignment = aligned(DataGridViewContentAlignment::middle_end)},
+         .track_visited_state = false},
     });
     Window window(grid, {420.0, 160.0});
     (*grid).rows.append({.stable_id = {"alpha"},
@@ -1908,7 +1931,9 @@ struct SetBadFormat final {
 };
 struct SetNegativePadding final {
     DataGridView* grid{};
-    void operator()() const { (*grid).set_cell_style(row_at(0U), 0U, {.padding = Insets{-1.0, 0.0, 0.0, 0.0}}); }
+    void operator()() const {
+        (*grid).set_cell_style(row_at(0U), 0U, {.padding = padded(Insets{-1.0, 0.0, 0.0, 0.0})});
+    }
 };
 struct StyleCellPastEnd final {
     DataGridView* grid{};
@@ -1925,7 +1950,7 @@ struct FormatNames final {
             event.formatted_value = "B!";
             event.formatting_applied = true;
         }
-        if (event.row_id.value == "alpha") event.cell_style.alignment = DataGridViewContentAlignment::top_start;
+        if (event.row_id.value == "alpha") event.cell_style.alignment.set(DataGridViewContentAlignment::top_start);
     }
 };
 
@@ -1966,29 +1991,36 @@ void cell_styles() {
                 (*grid).inherited_column_header_style(0U) == empty,
             "every style is empty by default: an unstyled grid is the theme's");
     const FontSpec big{FontRole::content, 15.0, 700, false};
-    (*grid).default_cell_style = {.font = big, .alignment = DataGridViewContentAlignment::middle_start};
-    (*grid).set_column_default_cell_style(0U, {.alignment = DataGridViewContentAlignment::middle_end});
-    (*grid).rows_default_cell_style = {.wrap_mode = true};
+    (*grid).default_cell_style = {.font = stxlib::Optional<FontSpec>::of(big),
+                                  .alignment = aligned(DataGridViewContentAlignment::middle_start)};
+    (*grid).set_column_default_cell_style(0U, {.alignment = aligned(DataGridViewContentAlignment::middle_end)});
+    (*grid).rows_default_cell_style = {.wrap_mode = stxlib::Optional<bool>::of(true)};
     (*grid).alternating_rows_default_cell_style = {.fore_color = stxlib::Optional<Color>::of(Color{1, 2, 3, 255})};
-    (*grid).set_row_default_cell_style(row_at(2U), {.alignment = DataGridViewContentAlignment::bottom_center});
-    (*grid).set_cell_style(row_at(2U), 0U, {.padding = Insets{10.0, 2.0, 10.0, 2.0}});
+    (*grid).set_row_default_cell_style(row_at(2U),
+                                       {.alignment = aligned(DataGridViewContentAlignment::bottom_center)});
+    (*grid).set_cell_style(row_at(2U), 0U, {.padding = padded(Insets{10.0, 2.0, 10.0, 2.0})});
     const DataGridViewCellStyle first = (*grid).inherited_cell_style(row_at(0U), 0U);
-    require(first.font == big && first.alignment == DataGridViewContentAlignment::middle_end &&
-                first.wrap_mode == true && first.fore_color.absent(),
+    require(first.font == stxlib::Optional<FontSpec>::of(big) &&
+                first.alignment == aligned(DataGridViewContentAlignment::middle_end) &&
+                first.wrap_mode == stxlib::Optional<bool>::of(true) && first.fore_color.absent(),
             "a cell inherits the column's alignment over the grid's, the rows' wrap mode and the grid's font");
     const DataGridViewCellStyle second = (*grid).inherited_cell_style(row_at(1U), 1U);
-    require(second.fore_color == stxlib::Optional<Color>::of(Color{1, 2, 3, 255}) && second.alignment == DataGridViewContentAlignment::middle_start,
+    require(second.fore_color == stxlib::Optional<Color>::of(Color{1, 2, 3, 255}) &&
+                second.alignment == aligned(DataGridViewContentAlignment::middle_start),
             "odd positions take the alternating rows' style; another column the grid's alignment");
     const DataGridViewCellStyle third = (*grid).inherited_cell_style(row_at(2U), 0U);
-    require(third.alignment == DataGridViewContentAlignment::bottom_center && third.padding &&
-                (*third.padding).left == 10.0 && (*grid).cell_style(row_at(2U), 0U).padding &&
-                !(*grid).cell_style(row_at(2U), 0U).alignment,
+    require(third.alignment == aligned(DataGridViewContentAlignment::bottom_center) && third.padding.present() &&
+                (*third.padding.value()).left == 10.0 && (*grid).cell_style(row_at(2U), 0U).padding.present() &&
+                (*grid).cell_style(row_at(2U), 0U).alignment.absent(),
             "a row's style wins over the column's, a cell's own over its row's");
-    (*grid).column_headers_default_cell_style = {.alignment = DataGridViewContentAlignment::middle_center};
-    (*grid).set_column_header_cell_style(1U, {.alignment = DataGridViewContentAlignment::middle_end});
-    require((*grid).inherited_column_header_style(0U).alignment == DataGridViewContentAlignment::middle_center &&
-                (*grid).inherited_column_header_style(1U).alignment == DataGridViewContentAlignment::middle_end &&
-                (*grid).inherited_column_header_style(0U).font == big && (*grid).inherited_row_header_style().font == big,
+    (*grid).column_headers_default_cell_style = {.alignment = aligned(DataGridViewContentAlignment::middle_center)};
+    (*grid).set_column_header_cell_style(1U, {.alignment = aligned(DataGridViewContentAlignment::middle_end)});
+    require((*grid).inherited_column_header_style(0U).alignment ==
+                    aligned(DataGridViewContentAlignment::middle_center) &&
+                (*grid).inherited_column_header_style(1U).alignment ==
+                    aligned(DataGridViewContentAlignment::middle_end) &&
+                (*grid).inherited_column_header_style(0U).font == stxlib::Optional<FontSpec>::of(big) &&
+                (*grid).inherited_row_header_style().font == stxlib::Optional<FontSpec>::of(big),
             "headers inherit their own style, the headers', then the grid's");
     require(throws<std::invalid_argument>(SetBadFormat{grid.get()}) &&
                 throws<std::invalid_argument>(SetNegativePadding{grid.get()}) &&
@@ -1999,10 +2031,11 @@ void cell_styles() {
     // Styles are kept by row ID: they follow their rows and end with them.
     require((*grid).sort(0U, DataGridViewSortDirection::descending) &&
                 (*grid).row_position(id("charlie")) == present_row(0U) &&
-                (*grid).cell_style(row_at(0U), 0U).padding && (*grid).row_default_cell_style(row_at(0U)).alignment,
+                (*grid).cell_style(row_at(0U), 0U).padding.present() &&
+                (*grid).row_default_cell_style(row_at(0U)).alignment.present(),
             "sorting moves a row's and a cell's styles with the row");
     (*grid).rows.erase(0U, 1U);
-    require(!(*grid).row_default_cell_style(row_at(0U)).alignment, "a removed row's styles end with it");
+    require((*grid).row_default_cell_style(row_at(0U)).alignment.absent(), "a removed row's styles end with it");
 
     // Geometry: padding and alignment place the content part.
     std::shared_ptr<DataGridView> placed = make_grid("grid.styles.placed");
@@ -2013,8 +2046,8 @@ void cell_styles() {
     const DataGridView::Cell* plain = find_cell(before, 0U, 0U);
     require(plain != nullptr && (*plain).parts.cell_content.present, "a text cell's content");
     const Rect plain_content = (*plain).parts.cell_content.bounds;
-    (*placed).set_cell_style(row_at(0U), 0U, {.alignment = DataGridViewContentAlignment::top_start,
-                                              .padding = Insets{12.0, 3.0, 12.0, 3.0}});
+    (*placed).set_cell_style(row_at(0U), 0U, {.alignment = aligned(DataGridViewContentAlignment::top_start),
+                                              .padding = padded(Insets{12.0, 3.0, 12.0, 3.0})});
     placed_window.perform_layout();
     const std::vector<DataGridView::Cell> after = (*placed).realized_cells();
     const DataGridView::Cell* styled = find_cell(after, 0U, 0U);
@@ -2424,7 +2457,7 @@ void wrapped_cells() {
     }
     require(whole, "without wrap_mode the text is one line");
 
-    (*grid).set_column_default_cell_style(0U, {.wrap_mode = true});
+    (*grid).set_column_default_cell_style(0U, {.wrap_mode = stxlib::Optional<bool>::of(true)});
     window.perform_layout();
     CountingPainter wrapped;
     (*grid).on_paint(wrapped, (*grid).client_rectangle());
@@ -2744,7 +2777,7 @@ void column_order() {
     (*dragged).allow_user_to_order_columns = true;
     std::vector<std::size_t> clicks;
     SubscriptionToken click_token = (*dragged).column_header_click().subscribe(RecordIndex{&clicks});
-    (*dragged).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    (*dragged).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::programmatic));
     const Point start = centre(*dragged, (*dragged).realized_columns()[0].parts.column_label.bounds);
     require(drag_window.dispatch_pointer({PointerAction::down, PointerButton::primary, start}),
             "a header press is taken");
@@ -2841,13 +2874,13 @@ void sort_modes() {
     click(window, centre(*grid, (*grid).realized_columns()[1].parts.column_label.bounds));
     require(header_clicks.size() == 3U && sorted_count == 2 && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(0U),
             "a not_sortable column's click raises the event and leaves the order");
-    (*grid).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::programmatic));
     require((*grid).column_sort_mode(0U) == DataGridViewColumnSortMode::programmatic,
             "the sort mode is the column's own once set");
     click(window, centre(*grid, (*grid).realized_columns()[0].parts.column_label.bounds));
     require(sorted_count == 2 && row_ids(*grid) == std::vector<std::string>{"alpha", "charlie", "bravo"},
             "a programmatic column's click leaves the order to the application");
-    (*grid).set_column_sort_mode(1U, DataGridViewColumnSortMode::automatic);
+    (*grid).set_column_sort_mode(1U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::automatic));
     require((*grid).sort(1U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(1U) &&
                 row_ids(*grid) == std::vector<std::string>{"charlie", "bravo", "alpha"},
             "sort orders by any column whatever its mode: empty, false, true");
@@ -2882,7 +2915,7 @@ void sort_modes() {
     std::sort(ids.begin(), ids.end());
     require(ids == std::vector<std::string>{"alpha", "bravo", "charlie"}, "and the rows are all still there, once");
 
-    (*grid).set_column_sort_mode(0U, std::nullopt);
+    (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::none());
     require((*grid).sort(0U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(0U),
             "sorted again");
     (*grid).clear_rows();
@@ -3164,7 +3197,7 @@ void row_auto_sizing() {
     std::shared_ptr<DataGridView> grid = make_grid("grid.row.auto");
     Window window(grid, {360.0, 220.0});
     static_cast<void>((*grid).set_cell_value(row_at(0U), 0U, BindingValue{std::string("Kilo Lima Mike November")}));
-    (*grid).set_column_default_cell_style(0U, {.wrap_mode = true});
+    (*grid).set_column_default_cell_style(0U, {.wrap_mode = stxlib::Optional<bool>::of(true)});
     window.perform_layout();
     require((*grid).auto_size_rows_mode.read() == DataGridViewAutoSizeRowsMode::none &&
                 (*grid).row_height_at(row_at(0U)) == 22.0,
@@ -3398,9 +3431,9 @@ void error_glyph_tool_tips() {
     window.perform_layout();
     const Point over_glyph{glyph.x + glyph.width / 2.0, glyph.y + glyph.height / 2.0};
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, over_glyph}));
-    std::optional<FrameTime> wake = window.next_wake();
-    require(wake.has_value(), "resting over the glyph schedules its tooltip");
-    static_cast<void>(window.poll_frame_schedule(*wake));
+    stxlib::Optional<FrameTime> wake = window.next_wake();
+    require(wake.present(), "resting over the glyph schedules its tooltip");
+    static_cast<void>(window.poll_frame_schedule(*wake.value()));
     require(window.tool_tip_visible() && window.tool_tip_text() == "Name is required" &&
                 window.tool_tip_item_id() == (*cell_glyph).stable_id,
             "the glyph shows its error text");
@@ -3409,7 +3442,7 @@ void error_glyph_tool_tips() {
     const Point over_cell{plain.x + plain.width / 2.0, plain.y + plain.height / 2.0};
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, over_cell}));
     wake = window.next_wake();
-    if (wake) static_cast<void>(window.poll_frame_schedule(*wake));
+    if (wake.present()) static_cast<void>(window.poll_frame_schedule(*wake.value()));
     require(window.tool_tip_visible() && window.tool_tip_text() == "Orders" && window.tool_tip_item_id().empty() &&
                 window.tool_tip_target() == grid,
             "a cell without an error shows the grid's own tooltip");
@@ -3985,7 +4018,7 @@ struct SetMinimumRowHeight final {
 void column_resizable_and_minimum_row_height() {
     std::shared_ptr<DataGridView> grid = make_grid("grid.resizable");
     std::vector<DataGridViewColumn> columns = sample_columns();
-    columns[0].resizable = false;
+    columns[0].resizable.set(false);
     (*grid).set_columns(columns);
     Window window(grid, {360.0, 160.0});
     window.perform_layout();
@@ -3993,7 +4026,7 @@ void column_resizable_and_minimum_row_height() {
     require(headers.size() >= 2U && !headers[0].parts.column_grip.present && headers[1].parts.column_grip.present,
             "a column that is not resizable has no grip while the others keep theirs");
     (*grid).allow_user_to_resize_columns = false;
-    columns[1].resizable = true;
+    columns[1].resizable.set(true);
     (*grid).set_columns(columns);
     window.perform_layout();
     const std::vector<DataGridView::Column> overridden = (*grid).realized_columns();

@@ -35,11 +35,13 @@ struct EntryWiderThan final {
     bool operator()(const RibbonLadderEntry& entry, double width) const noexcept { return entry.width > width; }
 };
 
-std::optional<std::size_t> gallery_of(const RibbonGroupSpec& group) noexcept {
+stxlib::Optional<std::size_t> gallery_of(const RibbonGroupSpec& group) noexcept {
     for (std::size_t command = 0; command < group.commands.size(); ++command) {
-        if (group.commands[command].kind == RibbonCommandKind::gallery) return command;
+        if (group.commands[command].kind == RibbonCommandKind::gallery) {
+            return stxlib::Optional<std::size_t>::of(command);
+        }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 } // namespace
@@ -152,8 +154,9 @@ void validate_reduction_order(const RibbonTabSpec& tab, const std::vector<std::v
             }
             continue;
         }
-        const std::optional<std::size_t> gallery = gallery_of(tab.groups[group]);
-        if (!gallery) throw std::invalid_argument("Ribbon gallery step names a group without a gallery");
+        const stxlib::Optional<std::size_t> found = gallery_of(tab.groups[group]);
+        const std::size_t* const gallery = found.value();
+        if (gallery == nullptr) throw std::invalid_argument("Ribbon gallery step names a group without a gallery");
         if (group_layouts[layout_steps[group]].size == RibbonGroupSize::collapsed) {
             throw std::invalid_argument("Ribbon gallery step follows its group's collapse");
         }
@@ -183,9 +186,10 @@ std::vector<RibbonLadderEntry> Ribbon::reduction_ladder(std::size_t tab) const {
     return ladder;
 }
 
-std::optional<std::size_t> Ribbon::ladder_step() const {
+stxlib::Optional<std::size_t> Ribbon::ladder_step() const {
     const Layout placed = layout();
-    return placed.step;
+    const stxlib::Optional<std::size_t> result = placed.step;
+    return result;
 }
 
 bool Ribbon::scrolling() const {
@@ -272,8 +276,9 @@ const Ribbon::RowMetrics& Ribbon::row_metrics() const {
     row_metrics_.tabs.reserve(tabs_.size());
     for (const RibbonTabSpec& tab : tabs_) {
         double width = 0.0;
-        if (tab.width) {
-            width = *tab.width * scale;
+        const double* const authored = tab.width.value();
+        if (authored != nullptr) {
+            width = *authored * scale;
         } else {
             const std::string label = parse_mnemonic_text(tab.text).display_text;
             const double resting = tab_label_width(label, {});
@@ -293,8 +298,9 @@ const Ribbon::TabScaling& Ribbon::tab_scaling(std::size_t tab) const {
         // A gallery's own range or item size may have changed since.
         const std::vector<RibbonGroupSpec>& groups = tabs_[tab].groups;
         for (std::size_t group = 0; group < groups.size() && scaling.built; ++group) {
-            if (!scaling.galleries[group]) continue;
-            const RibbonGallery& gallery = *groups[group].commands[*scaling.galleries[group]].gallery;
+            const std::size_t* const command = scaling.galleries[group].value();
+            if (command == nullptr) continue;
+            const RibbonGallery& gallery = *groups[group].commands[*command].gallery;
             const GalleryMetrics now{gallery.minimum_columns(), gallery.maximum_columns(),
                                      gallery.width_for_columns(gallery.maximum_columns())};
             if (!(now == scaling.gallery_metrics[group])) scaling.built = false;
@@ -425,7 +431,7 @@ void Ribbon::measure_tab(std::size_t tab, TabScaling& scaling) const {
     scaling.commands.resize(groups.size());
     scaling.captions.assign(groups.size(), 0.0);
     scaling.collapsed.assign(groups.size(), 0.0);
-    scaling.galleries.assign(groups.size(), std::nullopt);
+    scaling.galleries.assign(groups.size(), stxlib::Optional<std::size_t>::none());
     scaling.gallery_metrics.assign(groups.size(), GalleryMetrics{});
     for (std::size_t group = 0; group < groups.size(); ++group) {
         const RibbonGroupSpec& spec = groups[group];
@@ -444,8 +450,9 @@ void Ribbon::measure_tab(std::size_t tab, TabScaling& scaling) const {
         scaling.captions[group] = row;
         scaling.collapsed[group] = std::max(large_minimum_width * scale, caption + large_label_padding * scale);
         scaling.galleries[group] = gallery_of(spec);
-        if (scaling.galleries[group]) {
-            const RibbonGallery& gallery = *spec.commands[*scaling.galleries[group]].gallery;
+        const std::size_t* const gallery_command = scaling.galleries[group].value();
+        if (gallery_command != nullptr) {
+            const RibbonGallery& gallery = *spec.commands[*gallery_command].gallery;
             scaling.gallery_metrics[group] = GalleryMetrics{gallery.minimum_columns(), gallery.maximum_columns(),
                                                             gallery.width_for_columns(gallery.maximum_columns())};
         }
@@ -481,7 +488,7 @@ void Ribbon::build_ladder(std::size_t tab, TabScaling& scaling) const {
     for (std::size_t group = 0; group < groups; ++group) {
         state[group].layout = 0U;
         state[group].size = layouts[group][0].size;
-        if (scaling.galleries[group]) state[group].gallery_columns = scaling.gallery_metrics[group].maximum;
+        if (scaling.galleries[group].present()) state[group].gallery_columns = scaling.gallery_metrics[group].maximum;
     }
     scaling.ladder.clear();
     scaling.ladder.push_back(RibbonLadderEntry{state, state_width(scaling, tab, state)});
@@ -506,7 +513,7 @@ void Ribbon::build_ladder(std::size_t tab, TabScaling& scaling) const {
                 current.layout += 1U;
                 current.size = layouts[group][current.layout].size;
                 stepped = true;
-            } else if (step.kind == RibbonReductionKind::gallery_column && scaling.galleries[group] && !collapsed &&
+            } else if (step.kind == RibbonReductionKind::gallery_column && scaling.galleries[group].present() && !collapsed &&
                        current.gallery_columns > scaling.gallery_metrics[group].minimum) {
                 current.gallery_columns -= 1U;
                 stepped = true;
@@ -519,7 +526,7 @@ void Ribbon::build_ladder(std::size_t tab, TabScaling& scaling) const {
             if (!group_shown(tab, group)) continue;
             RibbonLadderGroupState& current = state[group];
             const bool collapsed = current.size == RibbonGroupSize::collapsed;
-            if (scaling.galleries[group] && !collapsed &&
+            if (scaling.galleries[group].present() && !collapsed &&
                 current.gallery_columns > scaling.gallery_metrics[group].minimum) {
                 current.gallery_columns -= 1U;
                 stepped = true;
@@ -674,7 +681,7 @@ void Ribbon::place_plane(Layout& placed) const {
     }
     const bool band = placed.scrolling && fits;
     const std::size_t step = static_cast<std::size_t>(found - ladder.begin());
-    placed.step = step;
+    placed.step.set(step);
     const RibbonLadderEntry& entry = ladder[step];
     for (std::size_t group = 0; group < groups; ++group) {
         placed.group_layouts[group] = entry.groups[group].layout;
@@ -804,14 +811,14 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
 Ribbon::Layout Ribbon::overlay_layout(Rect panel) const {
     Layout placed;
     placed.overlay = true;
-    if (selected_tab_.absent() || !overlay_group_) return placed;
+    if (selected_tab_.absent() || overlay_group_.absent()) return placed;
     reset_layout_groups(placed);
     const std::size_t tab = *selected_tab_.value();
-    const std::size_t group = *overlay_group_;
+    const std::size_t group = *overlay_group_.value();
     const TabScaling& scaling = tab_scaling(tab);
     placed.plane = panel;
     placed.groups_area = panel;
-    const std::size_t columns = scaling.galleries[group] ? scaling.gallery_metrics[group].maximum : 0U;
+    const std::size_t columns = scaling.galleries[group].present() ? scaling.gallery_metrics[group].maximum : 0U;
     const double top = panel.y + plane_top_padding * effective_text_scale();
     const RibbonGroupLayout& largest = layouts_[tab][group][0];
     const double width = place_group(scaling, tab, group, largest, columns, panel.x, top, placed.commands[group]);
@@ -823,11 +830,11 @@ Ribbon::Layout Ribbon::overlay_layout(Rect panel) const {
 }
 
 Size Ribbon::overlay_panel_size() const {
-    if (selected_tab_.absent() || !overlay_group_) return {};
+    if (selected_tab_.absent() || overlay_group_.absent()) return {};
     const std::size_t tab = *selected_tab_.value();
-    const std::size_t group = *overlay_group_;
+    const std::size_t group = *overlay_group_.value();
     const TabScaling& scaling = tab_scaling(tab);
-    const std::size_t columns = scaling.galleries[group] ? scaling.gallery_metrics[group].maximum : 0U;
+    const std::size_t columns = scaling.galleries[group].present() ? scaling.gallery_metrics[group].maximum : 0U;
     const double width =
         place_group(scaling, tab, group, layouts_[tab][group][0], columns, 0.0, 0.0, scratch_commands_);
     const Size size{width, plane_height()};

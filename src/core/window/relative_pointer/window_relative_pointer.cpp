@@ -187,7 +187,7 @@ RelativePointerGrant SurfaceRoot::begin_relative_pointer(const Control::Ptr& own
     record.press_button = press_button;
     const Rect bounds = (*owner).absolute_bounds();
     const Point centre{bounds.x + bounds.width / 2.0, bounds.y + bounds.height / 2.0};
-    const Point start = record.last_position.has_value() ? *record.last_position : centre;
+    const Point start = record.last_position.value_or(centre);
     record.virtual_position = clamp_to(relative_pointer_area(*owner), start);
     if (!apply_relative_pointer_to_host(true)) {
         // The host refused the mode: free, with its deltas where it has them.
@@ -303,14 +303,14 @@ void SurfaceRoot::suspend_relative_pointer(Point window_position) {
         relative_pointer_support().warp) {
         static_cast<void>((*host_services_).warp_pointer(window_position));
     }
-    record.last_position = window_position;
+    record.last_position.set(window_position);
 }
 
 void SurfaceRoot::resume_relative_pointer() {
     RelativePointerRecord& record = relative_pointer_;
     record.suspended = false;
     ++record.resumptions;
-    if (record.last_position.has_value()) record.virtual_position = *record.last_position;
+    if (record.last_position.present()) record.virtual_position = *record.last_position.value();
     if (!apply_relative_pointer_to_host(true)) {
         record.grant.mode = RelativePointerMode::free;
         record.grant.cursor_hidden = false;
@@ -338,18 +338,18 @@ bool SurfaceRoot::relative_pointer_takes_pointer(const PointerEvent& event) {
         static_cast<void>(end_relative_pointer(RelativePointerEnd::detached));
         return false;
     }
-    const std::optional<Point> previous = relative_pointer_.last_position;
-    if (event.action != PointerAction::leave) relative_pointer_.last_position = event.position;
+    const stxlib::Optional<Point> previous = relative_pointer_.last_position;
+    if (event.action != PointerAction::leave) relative_pointer_.last_position.set(event.position);
     const bool until_release_ends = relative_pointer_.request.until_release && event.action == PointerAction::up &&
                                     event.button == relative_pointer_.press_button;
 
     if (relative_pointer_.grant.mode == RelativePointerMode::free) {
         // The ordinary pointer routes on; without host deltas each move is
         // also a sample, its delta from the last position.
-        if (event.action == PointerAction::move && !relative_pointer_.grant.host_relative && previous.has_value()) {
+        if (event.action == PointerAction::move && !relative_pointer_.grant.host_relative && previous.present()) {
             RelativePointerEventArgs arguments{};
             arguments.kind = RelativePointerSampleKind::motion;
-            arguments.delta = Point{event.position.x - (*previous).x, event.position.y - (*previous).y};
+            arguments.delta = Point{event.position.x - (*previous.value()).x, event.position.y - (*previous.value()).y};
             arguments.modifiers = event.modifiers;
             arguments.timestamp_nanoseconds = event.timestamp_nanoseconds;
             raise_relative_sample(owner, arguments, event.position);
@@ -375,10 +375,10 @@ bool SurfaceRoot::relative_pointer_takes_pointer(const PointerEvent& event) {
         }
         // With host deltas an absolute move is no sample (hosts send none;
         // one that arrives is dropped). Without, the window derives it.
-        if (!relative_pointer_.grant.host_relative && previous.has_value()) {
+        if (!relative_pointer_.grant.host_relative && previous.present()) {
             RelativePointerEventArgs arguments{};
             arguments.kind = RelativePointerSampleKind::motion;
-            arguments.delta = Point{event.position.x - (*previous).x, event.position.y - (*previous).y};
+            arguments.delta = Point{event.position.x - (*previous.value()).x, event.position.y - (*previous.value()).y};
             arguments.modifiers = event.modifiers;
             arguments.timestamp_nanoseconds = event.timestamp_nanoseconds;
             raise_relative_sample(owner, arguments, event.position);
@@ -459,18 +459,16 @@ bool SurfaceRoot::dispatch_relative_motion(const HostRelativeMotionEvent& event)
         break;
     }
     case RelativePointerMode::confined: {
-        const Point base = relative_pointer_.last_position.has_value() ? *relative_pointer_.last_position
-                                                                       : relative_pointer_.virtual_position;
+        const Point base = relative_pointer_.last_position.value_or(relative_pointer_.virtual_position);
         const Point moved = event.position.has_value() ? *event.position
                                                        : Point{base.x + event.delta.x, base.y + event.delta.y};
         at = clamp_to(area, moved);
-        relative_pointer_.last_position = at;
+        relative_pointer_.last_position.set(at);
         break;
     }
     case RelativePointerMode::free:
     default: {
-        const Point base = relative_pointer_.last_position.has_value() ? *relative_pointer_.last_position
-                                                                       : relative_pointer_.virtual_position;
+        const Point base = relative_pointer_.last_position.value_or(relative_pointer_.virtual_position);
         at = event.position.has_value() ? *event.position : Point{base.x + event.delta.x, base.y + event.delta.y};
         break;
     }
@@ -504,7 +502,7 @@ bool SurfaceRoot::warp_pointer(Point position) {
     }
     if (host_services_ == nullptr || !relative_pointer_support().warp) return false;
     const HostServiceStatus status = (*host_services_).warp_pointer(position);
-    if (status.accepted()) relative_pointer_.last_position = position;
+    if (status.accepted()) relative_pointer_.last_position.set(position);
     return status.accepted();
 }
 

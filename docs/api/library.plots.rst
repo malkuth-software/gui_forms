@@ -1108,9 +1108,13 @@ Types
 
       Moves the target so the picture follows the pointer.
 
-   .. cpp:function:: bool zoom_by(double factor, std::optional<Point> about)
+   .. cpp:function:: bool zoom_by(double factor, stxlib::Optional<Point> about)
 
       Multiplies the zoom by ``factor``, keeping the point under ``about`` (logical, from the picture's top left) in place when given.
+
+   .. cpp:function:: bool zoom_by(double factor, std::optional<Point> about)
+
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: static DeviceExtent device_extent(const Plot3DFrame& frame) noexcept
 

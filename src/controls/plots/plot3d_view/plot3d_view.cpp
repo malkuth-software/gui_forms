@@ -513,7 +513,7 @@ void Plot3DView::handle_pointer(PointerEvent& event) {
         case Drag::zoom: {
             // Up zooms in: a doubling per half the plot's height.
             const double factor = std::exp2(-dy / std::max(plot.height * 0.5, 1.0));
-            changed = scene_.zoom_by(factor, std::nullopt);
+            changed = scene_.zoom_by(factor, stxlib::Optional<Point>::none());
             break;
         }
         case Drag::none:
@@ -547,7 +547,7 @@ void Plot3DView::handle_pointer(PointerEvent& event) {
                                                                           : event.wheel_delta.y;
         if (notches == 0.0 || !std::isfinite(notches)) return;
         event.handled = true;
-        if (scene_.zoom_by(std::pow(wheel_zoom_step, notches), inside)) camera_moved();
+        if (scene_.zoom_by(std::pow(wheel_zoom_step, notches), stxlib::Optional<Point>::of(inside))) camera_moved();
         return;
     }
     case PointerAction::leave:
@@ -639,11 +639,11 @@ void Plot3DView::handle_key(KeyEvent& event) {
         break;
     case PhysicalKey::equal:
     case PhysicalKey::keypad_plus:
-        changed = scene_.zoom_by(key_zoom_step, std::nullopt);
+        changed = scene_.zoom_by(key_zoom_step, stxlib::Optional<Point>::none());
         break;
     case PhysicalKey::minus:
     case PhysicalKey::keypad_minus:
-        changed = scene_.zoom_by(1.0 / key_zoom_step, std::nullopt);
+        changed = scene_.zoom_by(1.0 / key_zoom_step, stxlib::Optional<Point>::none());
         break;
     case PhysicalKey::home:
         changed = scene_.reset_camera();

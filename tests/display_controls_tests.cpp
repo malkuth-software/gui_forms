@@ -588,7 +588,7 @@ void test_window_toasts() {
     window.perform_layout();
     require(first_id == 1U && window.toast_visible() && window.toast_content() == first,
             "the first toast shows with ID 1");
-    require(!window.next_wake().has_value(), "a toast without a duration arms no wake");
+    require(window.next_wake().absent(), "a toast without a duration arms no wake");
     const Rect placed = (*first).committed_arranged_bounds();
     require(placed.width > 0.0 && placed.y + placed.height == 400.0 - 16.0 &&
                 placed.x == std::floor((600.0 - placed.width) * 0.5),
@@ -654,18 +654,18 @@ void test_window_toasts() {
 
     const std::shared_ptr<Toast> timed = make_toast("display.toasts.timed", "", true);
     static_cast<void>(window.show_toast(owner, timed, std::chrono::milliseconds{50}));
-    const std::optional<FrameTime> wake = window.next_wake();
-    require(wake.has_value(), "a toast with a duration arms a wake");
-    static_cast<void>(window.poll_frame_schedule(*wake));
+    const stxlib::Optional<FrameTime> wake = window.next_wake();
+    require(wake.present(), "a toast with a duration arms a wake");
+    static_cast<void>(window.poll_frame_schedule(*wake.value()));
     require(!window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::timed_out &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "the wake closes the toast when its duration runs out");
 
     const std::shared_ptr<Toast> hidden = make_toast("display.toasts.hidden", "", true);
     static_cast<void>(window.show_toast(owner, hidden));
     window.hide_toast();
     require(!window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::hidden &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "hide_toast closes the toast and drops its wake");
     const std::size_t before_idle_hide = recorder.seen.size();
     window.hide_toast();
@@ -943,10 +943,10 @@ void test_search_field_in_window() {
     (*field).text = std::string{"r"};
     (*field).text = std::string{"ri"};
     require(recorder.seen.size() == 2U && recorder.seen[1] == "text:ri", "typing does not search before the pause");
-    const std::optional<FrameTime> wake = window.next_wake();
-    require(wake.has_value(), "a change arms the search delay");
-    static_cast<void>(window.poll_frame_schedule(*wake));
-    require(recorder.seen.size() == 3U && recorder.seen[2] == "search:ri" && !window.next_wake().has_value(),
+    const stxlib::Optional<FrameTime> wake = window.next_wake();
+    require(wake.present(), "a change arms the search delay");
+    static_cast<void>(window.poll_frame_schedule(*wake.value()));
+    require(recorder.seen.size() == 3U && recorder.seen[2] == "search:ri" && window.next_wake().absent(),
             "once the pause is over the field searches once, for the latest text");
 
     (*field).busy = true;
@@ -1040,13 +1040,13 @@ void test_toggle_switch_motion() {
 
     (*toggle).checked = true;
     require((*toggle).checked.read() && (*toggle).thumb_position() < 1.0 && clock.moving_count() == 1U &&
-                window.next_wake().has_value(),
+                window.next_wake().present(),
             "turning the switch on starts the thumb's travel; the state changes at once");
     advance(window, time, std::chrono::milliseconds(75));
     const double midway = (*toggle).thumb_position();
     require(midway == 0.5, "halfway through the 150 ms smoothstep the thumb is halfway");
     advance(window, time, std::chrono::milliseconds(75));
-    require((*toggle).thumb_position() == 1.0 && clock.moving_count() == 0U && !window.next_wake().has_value(),
+    require((*toggle).thumb_position() == 1.0 && clock.moving_count() == 0U && window.next_wake().absent(),
             "past the move's end the thumb settles and the window rests");
 
     (*toggle).checked = false;
@@ -1055,7 +1055,7 @@ void test_toggle_switch_motion() {
     require((*toggle).thumb_position() == 0.0 && clock.moving_count() == 0U,
             "turning reduced motion on puts the moving thumb at its end");
     (*toggle).checked = true;
-    require((*toggle).thumb_position() == 1.0 && clock.moving_count() == 0U && !window.next_wake().has_value(),
+    require((*toggle).thumb_position() == 1.0 && clock.moving_count() == 0U && window.next_wake().absent(),
             "under reduced motion the thumb has no travel");
     window.perform_layout();
     const ToggleSwitch::Parts parts = (*toggle).parts();
@@ -1079,13 +1079,13 @@ void test_search_field_busy_motion() {
     const Rect bounds{0.0, 0.0, 300.0, 32.0};
     NullPainter idle_painter;
     (*field).on_paint(idle_painter, bounds);
-    require(!clock.control_ambient(*field) && !window.next_wake().has_value(), "an idle field is not on the clock");
+    require(!clock.control_ambient(*field) && window.next_wake().absent(), "an idle field is not on the clock");
 
     (*field).busy = true;
     NullPainter first;
     (*field).on_paint(first, bounds);
     const SearchField::Parts at_start = (*field).parts();
-    require(clock.control_ambient(*field) && window.next_wake().has_value() && at_start.activity.present &&
+    require(clock.control_ambient(*field) && window.next_wake().present() && at_start.activity.present &&
                 at_start.activity.bounds.width < 296.0,
             "a drawn busy field sweeps a segment on the motion clock");
     advance(window, time, std::chrono::milliseconds(300));
@@ -1156,7 +1156,7 @@ void test_spinner() {
     const Rect bounds{0.0, 0.0, 48.0, 48.0};
     NullPainter first;
     (*spinner).on_paint(first, bounds);
-    require(clock.control_ambient(*spinner) && (*spinner).moving() && window.next_wake().has_value() &&
+    require(clock.control_ambient(*spinner) && (*spinner).moving() && window.next_wake().present() &&
                 (*spinner).phase() == 0U,
             "a drawn spinner turns on the motion clock from twelve o'clock");
     advance(window, time, std::chrono::milliseconds(100));

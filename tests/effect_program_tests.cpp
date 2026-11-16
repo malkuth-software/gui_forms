@@ -52,6 +52,7 @@
 
 #include "../src/core/text/localizable/gui_forms_notes.hpp"
 #include "../src/core/control/control/control_input_access.hpp"
+#include "support/frame_wake.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -67,6 +68,8 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 using namespace gui_forms;
@@ -625,14 +628,14 @@ void progress_bar_hosting() {
     (*bar).value = 50.0;
     Window window(bar, {200.0, 40.0});
     window.perform_layout();
-    require((*bar).effect_instance().entry() == nullptr && !window.next_wake().has_value(),
+    require((*bar).effect_instance().entry() == nullptr && window.next_wake().absent(),
             "a continuous bar hosts no effect and asks for no frames");
     (*bar).visual_style = ProgressBarVisualStyle::laser_etch;
-    require((*bar).effect_instance().entry() == &built_in("progress_laser") && !window.next_wake().has_value(),
+    require((*bar).effect_instance().entry() == &built_in("progress_laser") && window.next_wake().absent(),
             "the laser style hosts the laser effect, and asks for no frame before it is drawn");
     RecordingPainter drawn;
     (*bar).on_paint(drawn, {0.0, 0.0, 200.0, 20.0});
-    require(window.next_wake().has_value(), "the drawn laser animates");
+    require(window.next_wake().present(), "the drawn laser animates");
     (*bar).effect = "progress_bubbles";
     require((*bar).effect_instance().entry() == &built_in("progress_bubbles") &&
                 (*bar).visual_outsets().top == ProgressBubbles::steam_outset,
@@ -681,16 +684,16 @@ void progress_bar_on_the_motion_clock() {
     require(!clock.control_ambient(*bar), "a laser bar not yet drawn is not on the motion clock");
     RecordingPainter first;
     (*bar).on_paint(first, {0.0, 0.0, 200.0, 20.0});
-    require(clock.control_ambient(*bar) && clock.ambient_count() == 1U && window.next_wake().has_value(),
+    require(clock.control_ambient(*bar) && clock.ambient_count() == 1U && window.next_wake().present(),
             "the drawn laser bar is enlisted on the motion clock");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     RecordingPainter second;
     (*bar).on_paint(second, {0.0, 0.0, 200.0, 20.0});
     require((*bar).effect_instance().counters().ticks > 0U, "a clock frame makes ticks due, and the paint runs them");
     require(window.metrics_snapshot().effect_ambient_frames == 1U, "the window counts the effects' ambient frame");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    require(!clock.control_ambient(*bar) && !window.next_wake().has_value(),
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    require(!clock.control_ambient(*bar) && window.next_wake().absent(),
             "a bar not painted between frames is dropped, and the window rests");
     RecordingPainter again;
     (*bar).on_paint(again, {0.0, 0.0, 200.0, 20.0});
@@ -719,7 +722,7 @@ void progress_bar_on_the_motion_clock() {
     (*bar).on_paint(switched_on, {0.0, 0.0, 200.0, 20.0});
     require(clock.control_ambient(*bar), "with the ambient switch on the next paint enlists them again");
     (*bar).visual_style = ProgressBarVisualStyle::continuous;
-    require(!clock.control_ambient(*bar) && !window.next_wake().has_value(), "a style without an effect withdraws");
+    require(!clock.control_ambient(*bar) && window.next_wake().absent(), "a style without an effect withdraws");
 }
 
 // A control whose ambient frame changes the clock's records
@@ -763,18 +766,18 @@ void ambient_frame_changes_the_records() {
     require(clock.enlist_control_ambient(*leaving, std::chrono::milliseconds(4)), "the first control is enlisted");
     (*leaving).withdraw_self = true;
     (*leaving).enlist_on_frame = arriving.get();
-    require(window.next_wake().has_value(), "an enlisted control arms the clock");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require(window.next_wake().present(), "an enlisted control arms the clock");
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     require((*leaving).frames == 1U, "the first control has its frame");
     require(!clock.control_ambient(*leaving), "the control that withdrew itself is off the clock");
     require(clock.control_ambient(*arriving) && clock.ambient_count() == 1U,
             "the control enlisted in the frame stays, and the count is taken down once");
-    require(window.next_wake().has_value(), "the enlisted control keeps the clock armed");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require(window.next_wake().present(), "the enlisted control keeps the clock armed");
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     require((*arriving).frames == 1U && clock.control_ambient(*arriving) && clock.ambient_count() == 1U,
             "the control enlisted in the frame has its own frames");
     clock.withdraw_control_ambient(*arriving);
-    require(clock.ambient_count() == 0U && !window.next_wake().has_value(), "withdrawn, the window rests");
+    require(clock.ambient_count() == 0U && window.next_wake().absent(), "withdrawn, the window rests");
 }
 
 // The effect properties set what the methods set, and a granted pointer

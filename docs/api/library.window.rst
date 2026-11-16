@@ -990,7 +990,7 @@ Related types
 
    .. cpp:member:: bool suppressed_by_occlusion
 
-   .. cpp:member:: std::optional<FrameTime> next_wake
+   .. cpp:member:: stxlib::Optional<FrameTime> next_wake
 
 .. cpp:namespace:: gui_forms
 
@@ -1259,7 +1259,7 @@ Related types
 
       Declared per popup; there is no global rule (owner, 2026-11-04). Default: ``{HostPopupFocus::passive}``.
 
-   .. cpp:member:: std::optional<BackdropChain> backdrop
+   .. cpp:member:: stxlib::Optional<BackdropChain> backdrop
 
       The popup window's backdrop chain (Window::set_backdrop_chain): a blur is the system material granted to the popup window, and GUI.Forms paints only the tint. None by default.
 
@@ -2054,7 +2054,7 @@ Related types
 
       The thing the tooltip is about, in the root's coordinates; the bubble shows below it.
 
-   .. cpp:member:: std::optional<std::chrono::milliseconds> duration
+   .. cpp:member:: stxlib::Optional<std::chrono::milliseconds> duration
 
       How long it shows: none, the root's auto-pop delay; zero, until it is withdrawn or replaced.
 

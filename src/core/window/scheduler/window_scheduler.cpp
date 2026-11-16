@@ -23,16 +23,16 @@ bool SurfaceRoot::needs_frame() const noexcept {
     return paint_pending();
 }
 
-std::optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
-    std::optional<FrameTime> result;
+stxlib::Optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
+    stxlib::Optional<FrameTime> result;
     for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
         if (!(*request).connected()) {
             continue;
         }
         if ((*request).kind == detail::FrameRequestKind::ui_timer) {
             const bool resting = occluded_ && (*request).rests_while_occluded;
-            if (!resting && (!result || (*request).deadline < *result)) {
-                result = (*request).deadline;
+            if (!resting && (result.absent() || (*request).deadline < *result.value())) {
+                result.set((*request).deadline);
             }
             continue;
         }
@@ -41,8 +41,8 @@ std::optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
         }
         if ((*request).kind == detail::FrameRequestKind::motion_clock ||
             (*request).kind == detail::FrameRequestKind::engine_idle) {
-            if (!result || (*request).deadline < *result) {
-                result = (*request).deadline;
+            if (result.absent() || (*request).deadline < *result.value()) {
+                result.set((*request).deadline);
             }
             continue;
         }
@@ -51,8 +51,8 @@ std::optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
             !(*target).effectively_visible()) {
             continue;
         }
-        if (!result || (*request).deadline < *result) {
-            result = (*request).deadline;
+        if (result.absent() || (*request).deadline < *result.value()) {
+            result.set((*request).deadline);
         }
     }
     return result;

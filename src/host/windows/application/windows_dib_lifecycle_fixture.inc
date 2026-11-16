@@ -218,7 +218,7 @@ struct DibHostFixture final {
         raster.set_frame_alpha(kept);
         require(raster.begin_frame(), "frame alpha DIB begun");
         raster.painter().fill_rect({0.0, 0.0, 40.0, 30.0}, Color::rgba(250, 0, 0, 255));
-        require(model.paint(raster.painter(), Rect{0.0, 0.0, 40.0, 30.0}).has_value(), "frame alpha window painted");
+        require(model.paint(raster.painter(), Rect{0.0, 0.0, 40.0, 30.0}).present(), "frame alpha window painted");
         commit_offscreen(raster, 40, 30);
         const std::uint32_t pixel = raster.frames_.front().pixels[15U * 40U + 20U];
         return pixel;

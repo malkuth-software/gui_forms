@@ -6,9 +6,10 @@
 #include <cstdint>
 
 #include <chrono>
-#include <optional>
 #include <string>
 #include <string_view>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms::detail {
 
@@ -49,12 +50,12 @@ public:
 
     // SurfaceRoot::show_tool_tip and hide_tool_tip; the root validated the
     // target and the duration.
-    virtual void show_program(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) = 0;
+    virtual void show_program(const Control::Ptr& target, stxlib::Optional<std::chrono::milliseconds> duration) = 0;
     // Shows `control`'s part `item_id` with `text` below `anchor` (root
     // coordinates) for `duration`: a request a sub-surface made through its
     // host. A root that cannot show one ignores it.
     virtual void show_program_item(const Control::Ptr& control, std::string item_id, std::string text,
-                                   Rect anchor, std::optional<std::chrono::milliseconds> duration) = 0;
+                                   Rect anchor, stxlib::Optional<std::chrono::milliseconds> duration) = 0;
     // SurfaceRoot::request_tool_tip: request `id`, current from now on, as
     // `owner`'s part `item_id`. A window shows it at once; a sub-surface
     // forwards it to its parent. The route answers through the root's

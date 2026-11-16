@@ -2471,13 +2471,13 @@ bool MaterialReader::lower_filter() {
                             "#" + clipped_theme_detail(component.text));
             }
             const MaterialColourStages& stages = (*found).stages;
-            if (stages.table && (table || shadowed)) {
+            if (stages.table.present() && (table || shadowed)) {
                 return fail(DiagnosticCode::value_form_not_admitted, component.token,
                             table ? "a second colour table" : "a component-transfer after drop-shadow()");
             }
-            if (stages.table) {
+            if (stages.table.present()) {
                 composed = composed.then(stages.matrix);
-                table = *stages.table;
+                table = *stages.table.value();
             } else if (!table) {
                 composed = composed.then(stages.matrix);
                 if (shadowed) after_shadow = after_shadow.then(stages.matrix);
@@ -4797,7 +4797,7 @@ bool FilterRuleReader::function_numbers(const std::size_t index, const std::size
 }
 
 bool FilterRuleReader::colour_matrix() {
-    if (filter_.stages.table) {
+    if (filter_.stages.table.present()) {
         return fail(DiagnosticCode::value_form_not_admitted, start_, "color-matrix after component-transfer");
     }
     const std::vector<ValueComponent>& components = value_.components;
@@ -4880,7 +4880,7 @@ bool FilterRuleReader::transfer_function(const std::size_t index, MaterialTransf
 }
 
 bool FilterRuleReader::component_transfer() {
-    if (filter_.stages.table) return fail(DiagnosticCode::value_form_not_admitted, start_, "a second component-transfer");
+    if (filter_.stages.table.present()) return fail(DiagnosticCode::value_form_not_admitted, start_, "a second component-transfer");
     const std::vector<ValueComponent>& components = value_.components;
     std::array<MaterialTransferFunction, 4> functions{};
     std::array<bool, 4> named{};
@@ -4906,7 +4906,7 @@ bool FilterRuleReader::component_transfer() {
         if (!transfer_function(function, functions[position])) return false;
         index = after(function);
     }
-    filter_.stages.table = MaterialColourTable::transfer(functions[0], functions[1], functions[2], functions[3]);
+    filter_.stages.table.set(MaterialColourTable::transfer(functions[0], functions[1], functions[2], functions[3]));
     return true;
 }
 

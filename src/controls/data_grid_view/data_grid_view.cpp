@@ -492,10 +492,10 @@ bool valid_alignment(DataGridViewContentAlignment alignment) noexcept {
 // Fills the properties `style` leaves unset from `from` (one step of a cell
 // style's inheritance chain).
 void inherit_unset(DataGridViewCellStyle& style, const DataGridViewCellStyle& from) {
-    if (!style.font) style.font = from.font;
-    if (!style.alignment) style.alignment = from.alignment;
-    if (!style.padding) style.padding = from.padding;
-    if (!style.wrap_mode) style.wrap_mode = from.wrap_mode;
+    if (style.font.absent()) style.font = from.font;
+    if (style.alignment.absent()) style.alignment = from.alignment;
+    if (style.padding.absent()) style.padding = from.padding;
+    if (style.wrap_mode.absent()) style.wrap_mode = from.wrap_mode;
     if (!style.format) style.format = from.format;
     if (!style.null_value) style.null_value = from.null_value;
     if (!style.data_source_null_value) style.data_source_null_value = from.data_source_null_value;
@@ -806,20 +806,20 @@ DataGridView::PressIdentity DataGridView::press_identity(const HitResult& hit) c
     return pressed;
 }
 
-std::optional<DataGridView::HitResult> DataGridView::resolve_press(const HitResult& hit,
-                                                                   const PressIdentity& pressed) const {
+stxlib::Optional<DataGridView::HitResult> DataGridView::resolve_press(const HitResult& hit,
+                                                                      const PressIdentity& pressed) const {
     HitResult resolved = hit;
     if (pressed.row) {
         const stxlib::Optional<std::size_t> row = find_row(pressed.row_id);
-        if (row.absent()) return std::nullopt;
+        if (row.absent()) return stxlib::Optional<HitResult>::none();
         resolved.row = DataGridViewRowPosition{*row.value()};
     }
     if (pressed.column) {
         const stxlib::Optional<std::size_t> column = column_index(pressed.column_name);
-        if (column.absent()) return std::nullopt;
+        if (column.absent()) return stxlib::Optional<HitResult>::none();
         resolved.column = *column.value();
     }
-    return resolved;
+    return stxlib::Optional<HitResult>::of(resolved);
 }
 
 stxlib::Optional<std::size_t> DataGridView::current_position() const {
@@ -2010,16 +2010,17 @@ void DataGridView::require_not_sorting() const {
 DataGridViewColumnSortMode DataGridView::column_sort_mode(std::size_t column) const {
     require_column(column);
     const DataGridViewColumn& definition = columns_[column];
-    if (definition.sort_mode) return *definition.sort_mode;
+    if (definition.sort_mode.present()) return *definition.sort_mode.value();
     if (definition.kind == DataGridViewColumnKind::text) return DataGridViewColumnSortMode::automatic;
     return DataGridViewColumnSortMode::not_sortable;
 }
 
-void DataGridView::set_column_sort_mode(std::size_t column, std::optional<DataGridViewColumnSortMode> mode) {
+void DataGridView::set_column_sort_mode(std::size_t column, stxlib::Optional<DataGridViewColumnSortMode> mode) {
     require_mutable();
     require_column(column);
-    if (mode && *mode != DataGridViewColumnSortMode::not_sortable && *mode != DataGridViewColumnSortMode::automatic &&
-        *mode != DataGridViewColumnSortMode::programmatic) {
+    const DataGridViewColumnSortMode* const given = mode.value();
+    if (given != nullptr && *given != DataGridViewColumnSortMode::not_sortable &&
+        *given != DataGridViewColumnSortMode::automatic && *given != DataGridViewColumnSortMode::programmatic) {
         throw std::invalid_argument("DataGridView column sort mode is outside the enumeration");
     }
     columns_[column].sort_mode = mode;
@@ -3887,11 +3888,13 @@ void DataGridView::set_row_error_text(DataGridViewRowPosition row, std::string t
 // -- cell styles ---------------------------------------------------------------
 
 void DataGridView::validate_cell_style(const DataGridViewCellStyle& style) {
-    if (style.alignment && !valid_alignment(*style.alignment)) {
+    const DataGridViewContentAlignment* const alignment = style.alignment.value();
+    if (alignment != nullptr && !valid_alignment(*alignment)) {
         throw std::invalid_argument("DataGridView cell style alignment is outside the enumeration");
     }
-    if (style.padding) {
-        const Insets& padding = *style.padding;
+    const Insets* const authored_padding = style.padding.value();
+    if (authored_padding != nullptr) {
+        const Insets& padding = *authored_padding;
         const bool finite = std::isfinite(padding.left) && std::isfinite(padding.top) &&
                             std::isfinite(padding.right) && std::isfinite(padding.bottom);
         if (!finite || padding.left < 0.0 || padding.top < 0.0 || padding.right < 0.0 || padding.bottom < 0.0) {
@@ -4262,9 +4265,9 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         Window* const host = window();
         if (host != nullptr) static_cast<void>((*host).request_focus(lifetime));
         if (!is_alive()) return;
-        const std::optional<HitResult> resolved = resolve_press(hit, pressed);
-        if (!resolved) return;
-        const HitResult target = *resolved;
+        const stxlib::Optional<HitResult> resolved = resolve_press(hit, pressed);
+        if (resolved.absent()) return;
+        const HitResult target = *resolved.value();
         const bool shift = has_modifier(event.modifiers, Modifier::shift);
         const bool control = has_modifier(event.modifiers, Modifier::control);
         SelectionGesture gesture = SelectionGesture::replace;
@@ -4326,8 +4329,9 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         // removed the row or the column: the cell is found again by identity
         // and kept by it until the release.
         if (!is_alive()) return;
-        const std::optional<HitResult> moved = resolve_press(target, pressed);
-        if (!moved) return;
+        const stxlib::Optional<HitResult> found = resolve_press(target, pressed);
+        const HitResult* const moved = found.value();
+        if (moved == nullptr) return;
         const DataGridViewCellAddress cell{(*moved).row, (*moved).column};
         pressed_cell_ = key_of(cell);
         pressed_cell_double_ = event.click_count >= 2U;

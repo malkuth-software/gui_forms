@@ -32,9 +32,30 @@
 #include "../src/core/image/png_writer.hpp"
 #include "../src/core/image/resource_pixels.hpp"
 
+#include <stxlib/optional.hpp>
+
 namespace {
 
 using namespace gui_forms;
+
+// D15 Q3: set_blend_study keeps its deprecated std::optional form for one
+// stage; a plain mode or {} must not reach it silently.
+template <typename Root>
+concept takes_plain_study = requires(Root& root) { root.set_blend_study(BlendStudyMode::off); };
+template <typename Root>
+concept takes_empty_study = requires(Root& root) { root.set_blend_study({}); };
+template <typename Root>
+concept takes_optional_study = requires(Root& root) {
+    root.set_blend_study(stxlib::Optional<BlendStudyMode>::none());
+};
+static_assert(!takes_plain_study<Window> && !takes_empty_study<Window>);
+static_assert(takes_optional_study<Window>);
+
+// A window's own study setting.
+stxlib::Optional<BlendStudyMode> study(const BlendStudyMode mode) noexcept {
+    const stxlib::Optional<BlendStudyMode> result = stxlib::Optional<BlendStudyMode>::of(mode);
+    return result;
+}
 
 class NullPainter : public Painter {
 public:
@@ -211,12 +232,12 @@ void window_counts() {
     window.perform_layout();
     NullPainter painter;
 
-    window.set_blend_study(BlendStudyMode::off);
+    window.set_blend_study(study(BlendStudyMode::off));
     static_cast<void>(window.paint(painter, {0.0, 0.0, 200.0, 120.0}));
     expect(window.blend_study_snapshot().frames == 0U, "off, a window counts nothing");
     expect(window.blend_heat_map().mode == BlendStudyMode::off, "off, a window shows no heat map");
 
-    window.set_blend_study(BlendStudyMode::counters);
+    window.set_blend_study(study(BlendStudyMode::counters));
     static_cast<void>(window.paint(painter, {0.0, 0.0, 200.0, 120.0}));
     const BlendStudySnapshot one = window.blend_study_snapshot();
     expect(one.frames == 1U && one.mode == BlendStudyMode::counters, "on, a paint counts one frame");
@@ -253,7 +274,7 @@ void window_counts() {
     expect(window.blend_study_snapshot().last.opaque_images_blended == 0U,
            "an opaque image drawn as a copy is not counted");
 
-    window.set_blend_study(BlendStudyMode::overdraw_heat_map);
+    window.set_blend_study(study(BlendStudyMode::overdraw_heat_map));
     static_cast<void>(window.paint(painter, {0.0, 0.0, 200.0, 120.0}));
     const BlendHeatMapView view = window.blend_heat_map();
     expect(view.mode == BlendStudyMode::overdraw_heat_map && view.width == 400U && view.height == 240U,
@@ -261,7 +282,7 @@ void window_counts() {
 
     window.reset_blend_study();
     expect(window.blend_study_snapshot().frames == 0U, "a reset zeroes the frames");
-    window.set_blend_study(BlendStudyMode::off);
+    window.set_blend_study(study(BlendStudyMode::off));
     expect(window.blend_heat_map().mode == BlendStudyMode::off, "turned off, the planes are released");
 }
 
@@ -271,7 +292,7 @@ void process_switch() {
     Window following(root, Size{40.0, 30.0});
     std::shared_ptr<Panel> other = make_control<Panel>(StableId("blend.opted"));
     Window opted_out(other, Size{40.0, 30.0});
-    opted_out.set_blend_study(BlendStudyMode::off);
+    opted_out.set_blend_study(study(BlendStudyMode::off));
     set_blend_study_default(BlendStudyMode::counters);
     expect(blend_study_default() == BlendStudyMode::counters, "the process switch reads counters");
     expect(following.blend_study_mode() == BlendStudyMode::counters,
@@ -280,7 +301,7 @@ void process_switch() {
     NullPainter painter;
     static_cast<void>(following.paint(painter, {0.0, 0.0, 40.0, 30.0}));
     expect(following.blend_study_snapshot().frames == 1U, "a following window counts");
-    opted_out.set_blend_study(std::nullopt);
+    opted_out.set_blend_study(stxlib::Optional<BlendStudyMode>::none());
     expect(opted_out.blend_study_mode() == BlendStudyMode::counters, "a cleared setting follows the switch again");
     set_blend_study_default(before);
 }

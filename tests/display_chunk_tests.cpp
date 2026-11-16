@@ -219,7 +219,7 @@ void test_disposal_removes_cache_entry_and_returns_idle() {
     (*fixture.window).reset_activity_metrics();
     require((*fixture.window).metrics_snapshot().display_cache_entries == 2,
             "disposed control must leave exactly two retained cache entries");
-    require(!(*fixture.window).needs_frame() && !(*fixture.window).next_wake().has_value(),
+    require(!(*fixture.window).needs_frame() && (*fixture.window).next_wake().absent(),
             "completed disposal paint must return the window to idle");
 }
 

@@ -650,7 +650,7 @@ public:
     // The image lives until release_control_snapshot or the window's end.
     // The window is painting while it records and replays, as
     // capture_window says.
-    [[nodiscard]] std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale);
+    [[nodiscard]] stxlib::Optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale);
     // The whole window as it presents itself (owner request 2026-11-09):
     // its backplane (the theme's window material, cleared where a
     // non-opaque backdrop is granted), every paint plane of its content,
@@ -736,8 +736,18 @@ public:
     // While the study is on, each paint counts how its frame's device
     // pixels were written (BlendFrameCounters); turning it off keeps the
     // counts and frees the planes. Neither damages the window. UI thread.
-    void set_blend_study(std::optional<BlendStudyMode> mode);
-    [[nodiscard]] std::optional<BlendStudyMode> blend_study_setting() const noexcept { return blend_study_setting_; }
+    void set_blend_study(stxlib::Optional<BlendStudyMode> mode);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<BlendStudyMode>")]]
+    void set_blend_study(std::optional<BlendStudyMode> mode) {
+        stxlib::Optional<BlendStudyMode> owned{};
+        if (mode.has_value()) owned.set(*mode);
+        set_blend_study(owned);
+    }
+    // A plain mode is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<BlendStudyMode>::of(mode).
+    void set_blend_study(BlendStudyMode mode) = delete;
+    [[nodiscard]] stxlib::Optional<BlendStudyMode> blend_study_setting() const noexcept { return blend_study_setting_; }
     // The mode in force: the window's setting, else the process switch.
     [[nodiscard]] BlendStudyMode blend_study_mode() const noexcept;
     // The frames counted since the window was made or the last reset, the
@@ -885,7 +895,7 @@ public:
     // The window's backdrop chain (owner, 2026-11-05;
     // gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme
     // engine from the theme's `backdrop:` property, or by the application;
-    // nullopt removes it. A chain with a blur asks for the system material
+    // none removes it. A chain with a blur asks for the system material
     // (implied_backdrop_request); GUI.Forms paints only the chain's tint,
     // as the window's base. A change repaints the window.
     // std::invalid_argument, changing nothing, for a chain
@@ -893,12 +903,22 @@ public:
     // one, the window follows its theme's (Theme::window_backdrop_chain),
     // lowered again when the theme shown, the presentation settings or the
     // scale change; from the first call on, the application's holds.
-    void set_backdrop_chain(std::optional<BackdropChain> chain);
-    [[nodiscard]] const std::optional<BackdropChain>& backdrop_chain() const noexcept { return backdrop_chain_; }
+    void set_backdrop_chain(stxlib::Optional<BackdropChain> chain);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<BackdropChain>")]]
+    void set_backdrop_chain(std::optional<BackdropChain> chain) {
+        stxlib::Optional<BackdropChain> owned{};
+        if (chain.has_value()) owned.set(*chain);
+        set_backdrop_chain(owned);
+    }
+    // A plain chain is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<BackdropChain>::of(chain).
+    void set_backdrop_chain(BackdropChain chain) = delete;
+    [[nodiscard]] const stxlib::Optional<BackdropChain>& backdrop_chain() const noexcept { return backdrop_chain_; }
     // How the chain is carried under the grant in force: what the material
-    // gives, what is dropped and how the tint is drawn; nullopt without a
+    // gives, what is dropped and how the tint is drawn; none without a
     // chain.
-    [[nodiscard]] std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept;
+    [[nodiscard]] stxlib::Optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept;
     // The window's backplane as the theme shown would draw it now, for the
     // window's activation, colour scheme and contrast (exhibit gap E4):
     // backplane_material() is the material (backplane_base: the window
@@ -955,7 +975,7 @@ public:
     // Returns an exact presentation receipt only when a complete candidate
     // replay remains current for its surface epoch. Ignoring the result is
     // valid for renderer-neutral inspection; a native host must require it.
-    std::optional<PaintReceipt> paint(
+    stxlib::Optional<PaintReceipt> paint(
         Painter& painter, Rect requested_damage = {});
     // Damage-preserving paint (stage DP): one lease and one receipt for a
     // bounded set of rectangles, each painted under its own clip so pixels
@@ -963,7 +983,7 @@ public:
     // merged first; more than DamageRegion::maximum_rectangles collapse to
     // their bounds. An empty set paints the accumulated damage rectangles
     // rather than their bounding box.
-    std::optional<PaintReceipt> paint(
+    stxlib::Optional<PaintReceipt> paint(
         Painter& painter, std::span<const Rect> requested_damage);
     // Preferred host release. Returns false for a duplicate, out-of-order, or
     // replaced-epoch receipt and never advances the presentation revision in
@@ -1020,7 +1040,7 @@ public:
     // cover over the visible area (Control::report_opaque_cover).
     [[nodiscard]] bool request_content_scroll(Control& owner, Rect local_area, Point offset);
     [[nodiscard]] bool needs_frame() const noexcept;
-    [[nodiscard]] std::optional<FrameTime> next_wake() const noexcept;
+    [[nodiscard]] stxlib::Optional<FrameTime> next_wake() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
                                                    FrameTime deadline);
     [[nodiscard]] FrameRequestToken schedule_ui_timer(
@@ -1359,8 +1379,17 @@ public:
     // hidden). Throws std::invalid_argument for a target that is not a live
     // control attached to this window or whose tooltip text is empty, and
     // for a negative duration.
-    void show_tool_tip(const Control::Ptr& target,
-                       std::optional<std::chrono::milliseconds> duration = std::nullopt);
+    void show_tool_tip(const Control::Ptr& target, stxlib::Optional<std::chrono::milliseconds> duration = stxlib::Optional<std::chrono::milliseconds>::none());
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<std::chrono::milliseconds>")]]
+    void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) {
+        stxlib::Optional<std::chrono::milliseconds> owned{};
+        if (duration.has_value()) owned.set(*duration);
+        show_tool_tip(target, owned);
+    }
+    // A plain duration is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::chrono::milliseconds>::of(duration).
+    void show_tool_tip(const Control::Ptr& target, std::chrono::milliseconds duration) = delete;
     // Closes the tooltip that shows, and cancels one waiting to show.
     void hide_tool_tip();
     [[nodiscard]] bool tool_tip_visible() const noexcept;
@@ -1728,7 +1757,7 @@ private:
     // `control`'s part `item_id` with `text` below `anchor` (window
     // coordinates), whatever the switches, as show_tool_tip does.
     void show_requested_tool_tip(const Control::Ptr& control, std::string item_id, std::string text, Rect anchor,
-                                 std::optional<std::chrono::milliseconds> duration);
+                                 stxlib::Optional<std::chrono::milliseconds> duration);
     // Called by RibbonToolTip: while covered, the plain presenter shows no
     // tooltip for `control`'s part `item_id` (empty: the control itself),
     // because the enhanced one describes it. Covers count, so two providers
@@ -1910,7 +1939,7 @@ private:
     // Called by ThemeEngine::paint for a part painted with a key: makes or
     // updates its record and counts a new record's index fallback. Returns
     // the record's handle, or none when the table has no record for it.
-    std::optional<PartRecordHandle> note_engine_part(const Control& control, const PartKey& key,
+    stxlib::Optional<PartRecordHandle> note_engine_part(const Control& control, const PartKey& key,
                                                      AnatomyStateSet states);
     // Called by Control::report_opaque_cover: marks the cover on the
     // display chunk being recorded, when `control` is recording it into
@@ -2346,7 +2375,7 @@ private:
     bool dispatch_text_in_frame(TextInputEvent event);
     DragDispatchResult dispatch_drag_in_frame(DragEvent event);
     void flush_layout_in_frame();
-    std::optional<PaintReceipt> paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
+    stxlib::Optional<PaintReceipt> paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
                                                           bool explicit_request);
     void leave_update_scope();
     void flush_if_outermost();
@@ -2698,7 +2727,7 @@ private:
         bool suspended{};
         bool escape_taken{};
         Point virtual_position{};
-        std::optional<Point> last_position{};
+        stxlib::Optional<Point> last_position{};
         PointerButton press_button{PointerButton::none};
         std::array<Rect, maximum_pointer_release_regions> regions{};
         std::size_t region_count{};
@@ -2883,7 +2912,7 @@ private:
     void abandon_paint(std::uint64_t generation_before);
     // paint_rectangles timed against the paint budget
     // (HousekeepingExpectation::paint_within_budget).
-    std::optional<PaintReceipt> paint_timed(Painter& painter, std::span<const Rect> rectangles,
+    stxlib::Optional<PaintReceipt> paint_timed(Painter& painter, std::span<const Rect> rectangles,
                                             bool explicit_request);
     // The blend study's count of the frame just replayed into `painter`
     // (count_display_blend): the frame's painted rectangles (window
@@ -2898,7 +2927,7 @@ private:
     // paint_timed adds its duration) and the sums.
     std::unique_ptr<BlendStudyPlanes> blend_planes_{};
     std::vector<DevicePixelRect> blend_painted_{};
-    std::optional<BlendStudyMode> blend_study_setting_{};
+    stxlib::Optional<BlendStudyMode> blend_study_setting_{};
     std::uint64_t blend_frames_{};
     BlendFrameCounters blend_last_{};
     BlendFrameCounters blend_totals_{};
@@ -2906,7 +2935,7 @@ private:
     // One paint pass over `rectangles` (window coordinates, disjoint after
     // merging). With `explicit_request`, every plane paints each rectangle;
     // otherwise each plane paints only where it holds damage.
-    std::optional<PaintReceipt> paint_rectangles(
+    stxlib::Optional<PaintReceipt> paint_rectangles(
         Painter& painter, std::span<const Rect> rectangles,
         bool explicit_request);
     [[nodiscard]] Rect plane_paint_bounds(std::size_t index, Rect rectangle,
@@ -3132,7 +3161,7 @@ private:
     WindowBackdropGrant backdrop_grant_{};
     Event<const WindowBackdropGrant&> backdrop_changed_;
     // The chain in force (set_backdrop_chain); none by default.
-    std::optional<BackdropChain> backdrop_chain_{};
+    stxlib::Optional<BackdropChain> backdrop_chain_{};
     // This window's state in its application run, while it is a ready
     // window of one (detail::attach_application_window); observed, never
     // owned. Empty for a window outside a run.
@@ -3142,7 +3171,7 @@ private:
     bool application_backdrop_chain_{};
     // Puts `chain`, valid or none, in force: the implied request, the
     // backplane and the repaint (set_backdrop_chain's effects).
-    void apply_backdrop_chain(const std::optional<BackdropChain>& chain);
+    void apply_backdrop_chain(const stxlib::Optional<BackdropChain>& chain);
     // The theme's chain for this window (Theme::window_backdrop_chain), put
     // in force unless the application set its own.
     void lower_theme_backdrop_chain();

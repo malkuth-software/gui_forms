@@ -1596,7 +1596,7 @@ Types
 
    .. cpp:member:: Rect paint_bounds
 
-   .. cpp:member:: std::optional<ConnectedControlSeam> leading_seam
+   .. cpp:member:: stxlib::Optional<ConnectedControlSeam> leading_seam
 
 .. cpp:namespace:: gui_forms
 
@@ -2724,7 +2724,7 @@ Types
 
       The record for ``control_id`` and ``key``, made if there is none, and marked the most recently painted item record when it is an item's. A new record reuses a released slot before the table grows; a new item record beyond the cap evicts the least recently painted settled item record (O(1) unless records with unsettled motion are passed over). If an allocation fails, std::bad_alloc propagates and the table is unchanged.
 
-   .. cpp:function:: std::optional<PartRecordHandle> find(std::string_view control_id, const PartKey& key) const
+   .. cpp:function:: stxlib::Optional<PartRecordHandle> find(std::string_view control_id, const PartKey& key) const
 
       The live record for ``control_id`` and ``key``, if there is one. For inspection: it builds its lookup text in a string of its own.
 
@@ -3932,7 +3932,7 @@ Types
 
    .. cpp:member:: MaterialColourMatrix matrix
 
-   .. cpp:member:: std::optional<MaterialColourTable> table
+   .. cpp:member:: stxlib::Optional<MaterialColourTable> table
 
 .. cpp:namespace:: gui_forms
 
@@ -6725,7 +6725,7 @@ Types
 
       Whether the rules matching ``control`` at rest (its type, classes and stable ID, no part or role, the window's media and the control's user theme and inline style) declare it clear (owner decision 2026-11-04): ``background: transparent``, a background colour of alpha 0 and no visible background layer, so that the surface's backdrop shows through it. A colour or layer left to the floor is not clear.
 
-   .. cpp:function:: std::optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept
+   .. cpp:function:: stxlib::Optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept
 
       The backdrop chain the rules selecting ``window`` declare (``window { backdrop: ... }``, owner decisions 2026-11-05): the winning ``backdrop:`` among the theme's and the user theme's rules, matched against the window's media and its root control's classes and stable ID, lowered operation by operation. A role colour in tint() is the colour the matching rules give it under the window's scheme. Nullopt where no rule declares one or the winner is ``none``. ``popup`` rules are not read here: they wait for native popup windows (stage T5).
 
@@ -7193,7 +7193,7 @@ Types
 
    .. cpp:member:: std::string part
 
-   .. cpp:member:: std::optional<AnatomyState> state
+   .. cpp:member:: stxlib::Optional<AnatomyState> state
 
 .. cpp:namespace:: gui_forms
 
@@ -9762,9 +9762,19 @@ Functions, constants and aliases
 
 .. cpp:function:: bool valid_connected_control_topology(ConnectedControlTopology topology) noexcept
 
-.. cpp:function:: ConnectedControlSegment connected_control_segment(std::optional<ConnectedControlTopology> topology) noexcept
+.. cpp:function:: ConnectedControlSegment connected_control_segment(stxlib::Optional<ConnectedControlTopology> topology) noexcept
 
-.. cpp:function:: ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
+.. cpp:function:: ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology) noexcept
+
+.. cpp:function:: inline stxlib::Optional<ConnectedControlTopology> connected_topology_from_standard(const std::optional<ConnectedControlTopology>& topology) noexcept
+
+   The standard topology, as the forms above take it: the deprecated std::optional overloads below convert through it.
+
+.. cpp:function:: inline ConnectedControlSegment connected_control_segment(std::optional<ConnectedControlTopology> topology) noexcept
+
+   The standard forms, kept for one stage (D15 Q3). A plain topology is refused rather than routed to them: pass stxlib::Optional<ConnectedControlTopology>::of(topology).
+
+.. cpp:function:: inline ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -9776,15 +9786,23 @@ Functions, constants and aliases
 
 .. cpp:function:: void disconnect_button_group(std::span<const std::shared_ptr<ButtonBase>> controls)
 
-.. cpp:function:: void paint_connected_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology)
+.. cpp:function:: void paint_connected_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology)
 
    Renderer-neutral material composition used by ButtonBase and available to custom controls which need the same explicit connected physical grammar.
 
-.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
+.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology) noexcept
 
-.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology, Size box) noexcept
+.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology, Size box) noexcept
 
    As above for a material drawn over a box of ``box``: its reach includes the material's own transform (surface_material_visual_outsets with a size).
+
+.. cpp:function:: inline void paint_connected_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology)
+
+   The standard forms, kept for one stage (D15 Q3); a plain topology is refused: pass stxlib::Optional<ConnectedControlTopology>::of(topology).
+
+.. cpp:function:: inline Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
+
+.. cpp:function:: inline Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology, Size box) noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -11456,7 +11474,7 @@ Functions, constants and aliases
 
    Fills ``points`` and ``contours``, which the caller owns, with ``path`` flattened to polylines: lines as they are, curves and arcs subdivided into chords no farther than ``tolerance`` (positive, finite) from the curve. Writes nothing and returns zeros for an invalid path or a tolerance that is not positive and finite. When either array fills, the last contour is ended where the storage ran out and ``truncated`` is set. The arrays must not overlap the path's (they cannot: different types).
 
-.. cpp:function:: std::optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept
+.. cpp:function:: stxlib::Optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept
 
    The length of ``path``: each contour's segments end to end, in order, including the straight joins arc_to makes and each close's closing segment, measured on its chords (above) at ``tolerance`` (positive, finite). A chord never exceeds the curve it spans, so the result is at most the exact length. Empty for an invalid path or tolerance; 0 for a path of points only.
 

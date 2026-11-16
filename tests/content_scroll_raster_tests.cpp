@@ -127,7 +127,7 @@ std::vector<std::uint32_t> pixels_of(const SkiaRaster& raster) {
 void paint_into(SkiaRaster& raster, Window& window, const DamageRegion& damage) {
     require(raster.synchronize_images(window.image_resources()), "the images synchronize");
     raster.begin_frame(damage);
-    require(window.paint(raster, damage.rectangles()).has_value(), "the window paints");
+    require(window.paint(raster, damage.rectangles()).present(), "the window paints");
     raster.end_frame();
 }
 

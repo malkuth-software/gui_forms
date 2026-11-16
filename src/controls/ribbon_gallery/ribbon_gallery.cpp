@@ -138,7 +138,7 @@ void RibbonGallery::set_items(std::vector<RibbonGalleryCategory> categories, std
     pressed_.reset();
     focused_.reset();
     first_line_ = 0U;
-    if (own_selection_ && !position_of(*own_selection_)) own_selection_.reset();
+    if (own_selection_ && position_of(*own_selection_).absent()) own_selection_.reset();
     model_changed();
     if (more_gallery_) (*more_gallery_).set_items(categories_, items_);
 }
@@ -148,11 +148,11 @@ void RibbonGallery::model_changed() {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-std::optional<std::size_t> RibbonGallery::position_of(std::string_view item_id) const noexcept {
+stxlib::Optional<std::size_t> RibbonGallery::position_of(std::string_view item_id) const noexcept {
     for (std::size_t position = 0; position < order_.size(); ++position) {
-        if (items_[order_[position]].stable_id == item_id) return position;
+        if (items_[order_[position]].stable_id == item_id) return stxlib::Optional<std::size_t>::of(position);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 bool RibbonGallery::item_enabled(std::size_t position) const noexcept {
@@ -190,22 +190,27 @@ std::optional<std::string> RibbonGallery::read_view(const decltype(selected_id)&
 
 void RibbonGallery::write_view(const decltype(selected_id)&, std::optional<std::string> item_id) {
     require_mutable();
-    if (item_id && !position_of(*item_id)) throw std::invalid_argument("RibbonGallery has no item with this ID");
+    if (item_id && position_of(*item_id).absent()) throw std::invalid_argument("RibbonGallery has no item with this ID");
     if (command.read()) {
         (*command.read()).set_value(std::move(item_id));
         return;
     }
     if (own_selection_ == item_id) return;
     own_selection_ = std::move(item_id);
-    if (own_selection_) scroll_into_view(*position_of(*own_selection_));
+    if (own_selection_) {
+        const stxlib::Optional<std::size_t> found = position_of(*own_selection_);
+        const std::size_t* const position = found.value();
+        if (position != nullptr) scroll_into_view(*position);
+    }
     invalidate(Dirty::paint | Dirty::semantics);
     selection_changed_.emit(own_selection_);
 }
 
 void RibbonGallery::on_command_value(const std::optional<std::string>& value) {
     if (value) {
-        const std::optional<std::size_t> position = position_of(*value);
-        if (position) scroll_into_view(*position);
+        const stxlib::Optional<std::size_t> found = position_of(*value);
+        const std::size_t* const position = found.value();
+        if (position != nullptr) scroll_into_view(*position);
     }
     invalidate(Dirty::paint | Dirty::semantics);
     selection_changed_.emit(value);
@@ -269,7 +274,8 @@ void RibbonGallery::write_view(const decltype(columns)&, std::size_t incoming) {
     if (columns_ == incoming) return;
     columns_ = incoming;
     model_changed();
-    if (focused_) scroll_into_view(*focused_);
+    const std::size_t* const focused = focused_.value();
+    if (focused != nullptr) scroll_into_view(*focused);
 }
 
 std::size_t RibbonGallery::read_view(const decltype(columns)&) const {
@@ -361,10 +367,11 @@ void RibbonGallery::stop_dwell() noexcept {
 void RibbonGallery::dwell_elapsed(const std::string& item_id) {
     if (dwell_item_ != item_id) return;
     stop_dwell();
-    const std::optional<std::size_t> position = position_of(item_id);
-    if (!command.read() || !position || !item_enabled(*position)) return;
+    const stxlib::Optional<std::size_t> found = position_of(item_id);
+    const std::size_t* const position = found.value();
+    if (!command.read() || position == nullptr || !item_enabled(*position)) return;
     // The pointer or the keyboard must still rest on the item.
-    const bool resting = hot_ == position || (has_focus_ && focused_ == position);
+    const bool resting = holds_position(hot_, *position) || (has_focus_ && holds_position(focused_, *position));
     if (!resting) return;
     const std::shared_ptr<GalleryCommand> bound = command.read();
     static_cast<void>((*bound).preview(item_id, source_of(*this)));
@@ -380,13 +387,14 @@ void RibbonGallery::cancel_preview() {
 // -- focus and keyboard ---------------------------------------------------------------
 
 std::optional<std::string> RibbonGallery::focused_id() const {
-    if (!focused_ || *focused_ >= order_.size()) return std::nullopt;
-    return items_[order_[*focused_]].stable_id;
+    const std::size_t* const focused = focused_.value();
+    if (focused == nullptr || *focused >= order_.size()) return std::nullopt;
+    return items_[order_[*focused]].stable_id;
 }
 
 void RibbonGallery::focus_position(std::size_t position) {
     if (position >= order_.size()) return;
-    focused_ = position;
+    focused_.set(position);
     scroll_into_view(position);
     invalidate(Dirty::paint | Dirty::semantics);
     if (has_focus_) start_dwell(position);
@@ -397,20 +405,22 @@ void RibbonGallery::on_focus_changed(bool focused) {
     // Focus a press gave (defect 9): the pressed item takes focus where it
     // stands, and nothing scrolls, so that the press acts on the item under
     // the pointer.
-    if (focused && press_hit_) {
-        const HitResult pressed = *press_hit_;
-        if (pressed.zone == HitZone::item && item_enabled(pressed.position)) focused_ = pressed.position;
-        if (!focused_ && !order_.empty()) focused_ = 0U;
+    if (focused && press_hit_.present()) {
+        const HitResult pressed = *press_hit_.value();
+        if (pressed.zone == HitZone::item && item_enabled(pressed.position)) focused_.set(pressed.position);
+        if (focused_.absent() && !order_.empty()) focused_.set(0U);
         invalidate(Dirty::paint | Dirty::semantics);
         return;
     }
     if (focused) {
-        if (!focused_ && !order_.empty()) {
+        if (focused_.absent() && !order_.empty()) {
             const std::optional<std::string> selected = selected_id.read();
-            const std::optional<std::size_t> position = selected ? position_of(*selected) : std::nullopt;
-            focused_ = position ? *position : 0U;
+            stxlib::Optional<std::size_t> position{};
+            if (selected) position = position_of(*selected);
+            focused_.set(position.value_or(0U));
         }
-        if (focused_) scroll_into_view(*focused_);
+        const std::size_t* const current = focused_.value();
+        if (current != nullptr) scroll_into_view(*current);
     } else {
         press_hit_.reset();
         cancel_preview();
@@ -435,8 +445,9 @@ bool RibbonGallery::navigate(std::uint32_t key) {
                key == PhysicalKey::page_down) {
         // Up and Down move one item row, Page Up and Page Down a viewport of
         // lines, keeping the column where the target row has one.
-        const std::optional<std::size_t> line = line_of(current);
-        if (!line) return false;
+        const stxlib::Optional<std::size_t> found_line = line_of(current);
+        const std::size_t* const line = found_line.value();
+        if (line == nullptr) return false;
         const std::size_t column = current - lines_[*line].first;
         const bool upward = key == PhysicalKey::up || key == PhysicalKey::page_up;
         const bool paging = key == PhysicalKey::page_up || key == PhysicalKey::page_down;
@@ -475,7 +486,8 @@ void RibbonGallery::on_key_down(KeyEventArgs& arguments) {
     if (arguments.handled || !has_focus_) return;
     const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::enter || key == PhysicalKey::space) {
-        if (focused_) commit(*focused_);
+        const std::size_t* const focused = focused_.value();
+        if (focused != nullptr) commit(*focused);
         arguments.handled = true;
         return;
     }
@@ -502,7 +514,7 @@ void RibbonGallery::on_pointer_preview(PointerEvent& event) {
     const bool press = event.action == PointerAction::down && event.button == PointerButton::primary;
     if (!press) return;
     const Point local = point_from_window(event.position);
-    press_hit_ = hit_test(local);
+    press_hit_.set(hit_test(local));
 }
 
 void RibbonGallery::on_mouse_down(MouseEventArgs& arguments) {
@@ -529,7 +541,7 @@ void RibbonGallery::on_mouse_leave() {
     // Any event but the press ends the press's hit from before its focus
     // move.
     press_hit_.reset();
-    if (hot_ || hot_zone_ != HitZone::none) {
+    if (hot_.present() || hot_zone_ != HitZone::none) {
         hot_.reset();
         hot_zone_ = HitZone::none;
         invalidate(Dirty::paint);
@@ -544,21 +556,22 @@ void RibbonGallery::on_mouse_leave() {
 void RibbonGallery::handle_mouse(MouseEventArgs& arguments) {
     const Point local = point_from_window(arguments.window_position);
     // The press's hit from before its focus move; any other event ends it.
-    const std::optional<HitResult> before_focus = press_hit_;
+    const stxlib::Optional<HitResult> before_focus = press_hit_;
     press_hit_.reset();
     const bool press = arguments.action == PointerAction::down && arguments.button == PointerButton::primary;
-    const HitResult hit = press && before_focus ? *before_focus : hit_test(local);
+    const HitResult* const held_hit = before_focus.value();
+    const HitResult hit = press && held_hit != nullptr ? *held_hit : hit_test(local);
     if (arguments.action == PointerAction::move) {
-        const std::optional<std::size_t> hot =
-            hit.zone == HitZone::item && item_enabled(hit.position) ? std::optional<std::size_t>(hit.position)
-                                                                    : std::nullopt;
+        stxlib::Optional<std::size_t> hot{};
+        if (hit.zone == HitZone::item && item_enabled(hit.position)) hot.set(hit.position);
         if (hot != hot_ || hit.zone != hot_zone_) {
             hot_ = hot;
             hot_zone_ = hit.zone;
             invalidate(Dirty::paint);
-            if (hot_) {
-                start_dwell(*hot_);
-            } else if (!(has_focus_ && focused_)) {
+            const std::size_t* const hot_position = hot_.value();
+            if (hot_position != nullptr) {
+                start_dwell(*hot_position);
+            } else if (!(has_focus_ && focused_.present())) {
                 cancel_preview();
             } else {
                 stop_dwell();
@@ -587,7 +600,7 @@ void RibbonGallery::handle_mouse(MouseEventArgs& arguments) {
     if (arguments.action == PointerAction::down) {
         pressed_zone_ = hit.zone;
         pressed_.reset();
-        if (hit.zone == HitZone::item && item_enabled(hit.position)) pressed_ = hit.position;
+        if (hit.zone == HitZone::item && item_enabled(hit.position)) pressed_.set(hit.position);
         if (hit.zone == HitZone::scroll_up && can_scroll_up()) scroll_to_line(first_line_ - 1U);
         if (hit.zone == HitZone::scroll_down && can_scroll_down()) scroll_to_line(first_line_ + 1U);
         if (hit.zone == HitZone::more) static_cast<void>(show_more());
@@ -596,13 +609,14 @@ void RibbonGallery::handle_mouse(MouseEventArgs& arguments) {
         return;
     }
     if (arguments.action == PointerAction::up) {
-        const std::optional<std::size_t> pressed = pressed_;
+        const stxlib::Optional<std::size_t> released = pressed_;
         pressed_.reset();
         pressed_zone_ = HitZone::none;
         invalidate(Dirty::paint);
         // A click is a press and release on the same item.
-        if (pressed && hit.zone == HitZone::item && hit.position == *pressed) commit(*pressed);
-        arguments.handled = pressed.has_value();
+        const std::size_t* const pressed = released.value();
+        if (pressed != nullptr && hit.zone == HitZone::item && hit.position == *pressed) commit(*pressed);
+        arguments.handled = pressed != nullptr;
     }
 }
 
@@ -763,8 +777,10 @@ SemanticDescriptor RibbonGallery::semantic_descriptor() const {
     descriptor.name = accessible_name.read().empty() ? "Gallery" : accessible_name.read();
     descriptor.description = accessible_description.read();
     const std::optional<std::string> selected = selected_id.read();
-    const std::optional<std::size_t> position = selected ? position_of(*selected) : std::nullopt;
-    if (position) descriptor.value = items_[order_[*position]].label;
+    stxlib::Optional<std::size_t> found{};
+    if (selected) found = position_of(*selected);
+    const std::size_t* const position = found.value();
+    if (position != nullptr) descriptor.value = items_[order_[*position]].label;
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;
@@ -811,7 +827,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
             node.states = SemanticState::visible | SemanticState::focusable;
             if (item_enabled(position)) node.states |= SemanticState::enabled;
             if (selected && *selected == item.stable_id) node.states |= SemanticState::selected;
-            if (has_focus_ && focused_ == position) node.states |= SemanticState::focused;
+            if (has_focus_ && holds_position(focused_, position)) node.states |= SemanticState::focused;
             node.actions = {SemanticAction::focus, SemanticAction::select, SemanticAction::press};
             if (grouped && !groups.empty()) {
                 SemanticNode& group = groups.back();
@@ -885,8 +901,9 @@ bool RibbonGallery::on_semantic_child_action(std::string_view id, SemanticAction
         if (!up && can_scroll_down()) scroll_to_line(first_line_ + 1U);
         return true;
     }
-    const std::optional<std::size_t> position = position_of(id);
-    if (!position) return false;
+    const stxlib::Optional<std::size_t> found = position_of(id);
+    const std::size_t* const position = found.value();
+    if (position == nullptr) return false;
     if (action == SemanticAction::focus || action == SemanticAction::select) {
         if (attached_window() != nullptr) static_cast<void>((*attached_window()).request_focus(shared_from_this()));
         focus_position(*position);

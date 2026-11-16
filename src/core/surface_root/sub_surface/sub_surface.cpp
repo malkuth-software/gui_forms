@@ -289,11 +289,11 @@ private:
     // The next publication copies the whole framebuffer (first frame of a
     // LiveSurface epoch).
     bool publish_whole_{};
-    std::optional<FrameTime> retry_at_{};
+    stxlib::Optional<FrameTime> retry_at_{};
     // Publishes at most one frame per display frame: the next paint waits
     // until the window showed the last one, or one and a half refreshes.
     LiveSurfacePacer pacer_;
-    std::optional<FrameTime> pacing_wake_{};
+    stxlib::Optional<FrameTime> pacing_wake_{};
     // The display time the frame schedule was last polled at.
     FrameTime motion_time_{};
     // The input wait() took from the channel; empty between turns.
@@ -416,18 +416,18 @@ void SubSurfaceLoop::run_tree() {
 }
 
 bool SubSurfaceLoop::wait(const SubSurface& root, std::optional<SubSurfaceConfiguration>& configuration) {
-    std::optional<FrameTime> deadline = root.next_wake();
-    if (retry_at_ && (!deadline || *retry_at_ < *deadline)) deadline = retry_at_;
-    if (pacing_wake_ && (!deadline || *pacing_wake_ < *deadline)) deadline = pacing_wake_;
+    stxlib::Optional<FrameTime> deadline = root.next_wake();
+    if (retry_at_.present() && (deadline.absent() || *retry_at_.value() < *deadline.value())) deadline = retry_at_;
+    if (pacing_wake_.present() && (deadline.absent() || *pacing_wake_.value() < *deadline.value())) deadline = pacing_wake_;
     std::unique_lock<std::mutex> lock((*channel_).mutex);
     detail::SubSurfaceChannel& channel = *channel_;
     while (!channel.stop_requested && !channel.pending && !channel.signalled && channel.inputs.empty() &&
            channel.outcomes.empty()) {
-        if (!deadline) {
+        if (deadline.absent()) {
             channel.wake.wait(lock);
             continue;
         }
-        if (channel.wake.wait_until(lock, *deadline) == std::cv_status::timeout) break;
+        if (channel.wake.wait_until(lock, *deadline.value()) == std::cv_status::timeout) break;
     }
     if (channel.stop_requested) return false;
     ++channel.statistics.loop_turns;
@@ -595,7 +595,7 @@ void SubSurfaceLoop::produce(SubSurface& root) {
         if (pace.outcome == LivePacingOutcome::pending && !epoch_due_) {
             // The dirt stays; a presentation report or the deadline wakes
             // the loop for it.
-            pacing_wake_ = pace.wake_at;
+            pacing_wake_.set(pace.wake_at);
             // Only pixels already painted may go out meanwhile (a lease
             // that failed earlier). A frame of a new LiveSurface epoch waits
             // for its paint: published now it would carry the new content
@@ -613,14 +613,14 @@ void SubSurfaceLoop::produce(SubSurface& root) {
         }
         const DamageRegion taken = root.take_damage();
         if (!taken.empty() && (*framebuffer_).begin(root.image_resources(), taken.bounds())) {
-            const std::optional<PaintReceipt> receipt = root.paint((*framebuffer_).painter(), taken.rectangles());
+            const stxlib::Optional<PaintReceipt> receipt = root.paint((*framebuffer_).painter(), taken.rectangles());
             (*framebuffer_).end();
             const PixelRectangle painted =
                 device_pixels_of(taken.bounds(), scale_, (*framebuffer_).width(), (*framebuffer_).height());
             unpublished_ = unite_pixels(unpublished_, painted);
             // The framebuffer is this root's screen: the paint is presented
             // once it is there, whether or not a LiveSurface buffer is free.
-            if (receipt) static_cast<void>(root.notify_presented(*receipt));
+            if (receipt.present()) static_cast<void>(root.notify_presented(*receipt.value()));
         }
     }
     if (unpublished_.empty() && !publish_whole_) return;
@@ -682,7 +682,7 @@ void SubSurfaceLoop::publish_semantics(SubSurface& root) {
 void SubSurfaceLoop::publish() {
     LiveSurfaceWriteLease lease = (*surface_).try_acquire_write(true);
     if (!lease) {
-        retry_at_ = FrameClock::now() + publish_retry_interval;
+        retry_at_.set(FrameClock::now() + publish_retry_interval);
         const std::lock_guard<std::mutex> lock((*channel_).mutex);
         ++(*channel_).statistics.publish_retries;
         return;

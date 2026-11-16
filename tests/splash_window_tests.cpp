@@ -158,7 +158,7 @@ void tooltip_shows_in_a_splash_window() {
     // with room for the tooltip's shadow.
     (*desk.application).simulate_compositor_state(compositing_desktop());
     desk.windowing().clear_trace();
-    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    (*desk.model).show_tool_tip(desk.anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     require((*desk.model).tool_tip_visible(), "the tooltip shows");
     const std::optional<HostWindowId> splash = desk.splash();
     require(splash.has_value() && desk.windowing().window_count() == 2U, "the tooltip has its own window");
@@ -183,11 +183,11 @@ void tooltip_shows_in_a_splash_window() {
 
 void a_warm_show_reuses_the_window() {
     Desk desk;
-    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    (*desk.model).show_tool_tip(desk.anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     const std::optional<HostWindowId> first = desk.splash();
     (*desk.model).hide_tool_tip();
     // One more round settles the text engine's and the lines' storage.
-    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    (*desk.model).show_tool_tip(desk.anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     (*desk.model).hide_tool_tip();
     desk.windowing().set_tracing(false);
     // The rounds after measure the warm path.
@@ -195,7 +195,7 @@ void a_warm_show_reuses_the_window() {
     for (int round = 0; round < 2; ++round) {
         counted_allocations = 0U;
         counting_allocations = true;
-        (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+        (*desk.model).show_tool_tip(desk.anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
         counting_allocations = false;
         warm[round] = counted_allocations;
         const std::uint64_t recorded = counted_allocations < 16U ? counted_allocations : 16U;
@@ -216,7 +216,7 @@ void a_warm_show_reuses_the_window() {
 void falls_back_to_the_overlay() {
     Desk desk;
     desk.windowing().set_splash_windows(false);
-    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    (*desk.model).show_tool_tip(desk.anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     require((*desk.model).tool_tip_visible(), "the tooltip shows without Splash windows");
     require(desk.windowing().window_count() == 1U, "as an overlay in its window");
     (*desk.model).hide_tool_tip();
@@ -224,7 +224,7 @@ void falls_back_to_the_overlay() {
 
 void closes_with_its_control() {
     Desk desk;
-    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    (*desk.model).show_tool_tip(desk.anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     const std::optional<HostWindowId> splash = desk.splash();
     (*desk.anchor).visible = false;
     (*desk.model).perform_layout();
@@ -234,12 +234,12 @@ void closes_with_its_control() {
 
 void survives_the_host_closing_it() {
     Desk desk;
-    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    (*desk.model).show_tool_tip(desk.anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     const std::optional<HostWindowId> splash = desk.splash();
     require(splash.has_value(), "the Splash window is open");
     require(desk.windowing().destroy_window(*splash).accepted(), "the host may destroy it");
     require(!(*desk.model).tool_tip_visible(), "the tooltip closes with it");
-    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    (*desk.model).show_tool_tip(desk.anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     const std::optional<HostWindowId> again = desk.splash();
     require(again.has_value() && *again != *splash, "the next show opens a new Splash window");
     (*desk.model).hide_tool_tip();
@@ -438,7 +438,7 @@ void error_message_shows_in_the_splash_window() {
     const Control::Ptr hit = (*desk.model).hit_test(Point{glyph.x + glyph.width * 0.5, glyph.y + glyph.height * 0.5});
     require(hit != nullptr && (*hit).tool_tip_text.read() == "Server address is not reachable",
             "the glyph carries the message as its tooltip text");
-    (*desk.model).show_tool_tip(hit, std::chrono::milliseconds(0));
+    (*desk.model).show_tool_tip(hit, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     const std::optional<HostWindowId> splash = desk.splash();
     require(splash.has_value() && desk.windowing().native_visible(*splash) &&
                 desk.windowing().kind(*splash) == HostWindowKind::popup,
@@ -469,7 +469,7 @@ Rect tool_tip_window(const bool translucent) {
     (*desk.application).simulate_compositor_state(compositing_desktop());
     desk.windowing().set_transient_windows_translucent(translucent);
     require((*desk.model).popup_windows_translucent() == translucent, "the window reports its popup windows");
-    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    (*desk.model).show_tool_tip(desk.anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     const std::optional<HostWindowId> splash = desk.splash();
     require(splash.has_value() && desk.windowing().native_visible(*splash), "the tooltip has its own window");
     const std::optional<Rect> content = desk.windowing().native_content(*splash);
@@ -522,7 +522,7 @@ void refused_popup_alpha_sizes_to_the_face() {
     (*desk.application).refuse_popup_alpha();
     desk.windowing().set_transient_windows_translucent(true);
     require((*desk.model).popup_windows_translucent(), "before a popup opened, the prediction says translucent");
-    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    (*desk.model).show_tool_tip(desk.anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     const std::optional<HostWindowId> splash = desk.splash();
     require(splash.has_value() && desk.windowing().native_visible(*splash), "the tooltip has its own window");
     const std::optional<Rect> content = desk.windowing().native_content(*splash);

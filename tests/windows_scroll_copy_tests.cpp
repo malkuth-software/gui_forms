@@ -94,7 +94,7 @@ struct ScrollCopyHostFixture final {
         require(raster.resize(scene_size, scale), "the reference raster is allocated");
         require(raster.synchronize_images(window.image_resources()), "reference images synchronize");
         require(raster.begin_frame(), "the reference frame begins");
-        require(window.paint(raster.painter()).has_value(), "the reference paints");
+        require(window.paint(raster.painter()).present(), "the reference paints");
         raster.end_frame();
         return pixels_of(raster.painter());
     }

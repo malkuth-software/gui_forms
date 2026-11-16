@@ -471,7 +471,7 @@ private:
         std::size_t hidden{};
         // The selected page's position when the layout was computed (the
         // set's revision, part of the key, moves with every selection).
-        std::optional<std::size_t> selected{};
+        stxlib::Optional<std::size_t> selected{};
         // The label font the tabs' measured widths were made with, and
         // whether those widths are held (see measured_widths_current).
         FontSpec measured_font{};
@@ -496,7 +496,7 @@ private:
     void layout_scroll(bool scroll_only) const;
     void layout_shrink() const;
     [[nodiscard]] double shrink_cap(std::size_t begin, std::size_t end, double area,
-                                    std::optional<std::size_t> extra) const;
+                                    const stxlib::Optional<std::size_t>& extra) const;
     // The band a tab or button occupies, `length` along the row from
     // `start` (see placement).
     [[nodiscard]] Rect band_rect(double start, double length) const;
@@ -545,8 +545,8 @@ private:
     // the same batch.
     bool choose_from_list(std::size_t position);
     void move_keyboard(std::size_t position);
-    [[nodiscard]] std::optional<std::size_t> keyboard_position() const;
-    [[nodiscard]] std::optional<std::size_t> selected_position() const;
+    [[nodiscard]] stxlib::Optional<std::size_t> keyboard_position() const;
+    [[nodiscard]] stxlib::Optional<std::size_t> selected_position() const;
     bool scroll_by(int direction);
     void reveal(std::size_t position);
     void freeze_widths();
@@ -554,7 +554,7 @@ private:
     void request_pin(std::size_t position, bool pinned);
     void on_pointer_release(PointerEvent& event, Hit hit);
     void on_middle_button(PointerEvent& event, Hit hit);
-    [[nodiscard]] std::optional<std::size_t> position_of_tab_identity(std::string_view identity) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> position_of_tab_identity(std::string_view identity) const;
 
     // -- dragging --
     // A live drag: armed by a press on a tab, then claimed by an owner or

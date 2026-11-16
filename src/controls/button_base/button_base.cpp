@@ -231,20 +231,23 @@ bool ButtonBase::should_serialize_image() const noexcept {
 
 void ButtonBase::set_style(BasicControlStyle style) {
     require_mutable();
-    if (style_override_ && *style_override_ == style) {
+    const BasicControlStyle* const current = style_override_.value();
+    if (current != nullptr && *current == style) {
         return;
     }
-    style_override_ = std::move(style);
+    style_override_.set(style);
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
 const BasicControlStyle& ButtonBase::style() const noexcept {
-    return style_override_ ? *style_override_ : effective_theme().basic_style();
+    const BasicControlStyle* const own = style_override_.value();
+    if (own != nullptr) return *own;
+    return effective_theme().basic_style();
 }
 
 void ButtonBase::clear_style() {
     require_mutable();
-    if (!style_override_) return;
+    if (style_override_.absent()) return;
     style_override_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -269,9 +272,10 @@ void ButtonBase::clear_visual_recipes() {
 }
 
 void ButtonBase::set_connection_topology(
-    std::optional<ConnectedControlTopology> topology) {
+    stxlib::Optional<ConnectedControlTopology> topology) {
     require_mutable();
-    if (topology && !valid_connected_control_topology(*topology)) {
+    const ConnectedControlTopology* const authored = topology.value();
+    if (authored != nullptr && !valid_connected_control_topology(*authored)) {
         throw std::invalid_argument(
             "ButtonBase connection topology requires count >= 2 and index < count");
     }
@@ -599,26 +603,26 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
                                                : group.x + text_size.width + gap;
             const double text_x = image_first ? group.x + image_size.width + gap
                                               : group.x;
-            layout.image = Rect{image_x,
-                                group.y + (group.height - image_size.height) * 0.5,
-                                image_size.width, image_size.height};
-            layout.text = Rect{text_x,
-                               group.y + (group.height - text_size.height) * 0.5,
-                               text_size.width, text_size.height};
+            layout.image.set(Rect{image_x,
+                                   group.y + (group.height - image_size.height) * 0.5,
+                                   image_size.width, image_size.height});
+            layout.text.set(Rect{text_x,
+                                  group.y + (group.height - text_size.height) * 0.5,
+                                  text_size.width, text_size.height});
         } else {
             const bool image_first = relation == TextImageRelation::image_above_text;
             const double image_y = image_first ? group.y
                                                : group.y + text_size.height + gap;
             const double text_y = image_first ? group.y + image_size.height + gap
                                               : group.y;
-            layout.image = Rect{group.x + (group.width - image_size.width) * 0.5,
-                                image_y, image_size.width, image_size.height};
-            layout.text = Rect{group.x + (group.width - text_size.width) * 0.5,
-                               text_y, text_size.width, text_size.height};
+            layout.image.set(Rect{group.x + (group.width - image_size.width) * 0.5,
+                                   image_y, image_size.width, image_size.height});
+            layout.text.set(Rect{group.x + (group.width - text_size.width) * 0.5,
+                                  text_y, text_size.width, text_size.height});
         }
     } else {
-        if (has_image) layout.image = aligned_rect(content, image_size, placed_image_alignment);
-        if (has_text) layout.text = aligned_text_block(content, text_size, group_alignment);
+        if (has_image) layout.image.set(aligned_rect(content, image_size, placed_image_alignment));
+        if (has_text) layout.text.set(aligned_text_block(content, text_size, group_alignment));
     }
     return layout;
 }
@@ -665,7 +669,7 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
     const Rect text_rect = layout.text.value_or(Rect{});
     const double line_height = layout.line_height;
 
-    if (layout.image.has_value() && !image_rect.empty()) {
+    if (layout.image.present() && !image_rect.empty()) {
         const ImageListResolution image = resolved_button_image(selected);
         // The icon role dims a disabled button's image; an image list's own
         // disabled image is already the disabled look, so it is drawn as
@@ -679,7 +683,7 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
         if (!effectively_enabled()) icon.states.insert(AnatomyState::disabled);
         paint_part(painter, *this, icon);
     }
-    if (layout.text.has_value() && !text_rect.empty()) {
+    if (layout.text.present() && !text_rect.empty()) {
         // Each line within the block, aligned as layout_content placed the
         // block (mirrored under RightToLeft).
         const ContentAlignment authored_alignment = text_alignment.read();
@@ -776,11 +780,11 @@ ButtonBase::Parts ButtonBase::push_button_parts(bool selected,
     Parts record;
     record.region = PartGeometry::from_bounds(bounds);
     record.face = PartGeometry::from_bounds(bounds);
-    if (layout.image.has_value()) {
-        record.icon = PartGeometry::from_bounds(*layout.image);
+    if (layout.image.present()) {
+        record.icon = PartGeometry::from_bounds(*layout.image.value());
     }
-    if (layout.text.has_value()) {
-        record.label = PartGeometry::from_bounds(*layout.text);
+    if (layout.text.present()) {
+        record.label = PartGeometry::from_bounds(*layout.text.value());
     }
     // A cue part publishes the face it marks. Where the ring is stroked
     // relative to it is a theme recipe parameter until the engine (T2)
@@ -834,7 +838,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
                                      bool default_cue,
                                      bool command_alignment,
                                      bool selected,
-                                     std::optional<AuthoredButtonColours> authored) const {
+                                     stxlib::Optional<AuthoredButtonColours> authored) const {
     const ControlVisualContext context = visual_context({.hovered = hovered_, .pressed = pressed_visual(), .selected = selected, .focused = focus_cue_visible(), .defaulted = default_cue});
     const ControlVisualRecipe& recipe = resolve_visual_recipe(role, context);
     const Rect visual_bounds{
@@ -843,10 +847,11 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         bounds.width,
         bounds.height,
     };
-    if (style_override_ && !authored) {
-        authored = AuthoredButtonColours{(*style_override_).face, (*style_override_).text};
+    const BasicControlStyle* const own = style_override_.value();
+    if (own != nullptr && authored.absent()) {
+        authored.set(AuthoredButtonColours{(*own).face, (*own).text});
     }
-    const bool engine_drawn = !visual_recipes_override_ && !connection_topology_;
+    const bool engine_drawn = !visual_recipes_override_ && connection_topology_.absent();
     // The face, the cues and the content are parts the theme's engine draws,
     // so a theme's `::part(face)`, `::part(label)` and `::part(focus)` rules
     // select them; the states give the recipe context above.
@@ -860,7 +865,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     const FaceLayer layer = face_layer();
     // Drawn by the program's own recipes or joined, the face takes no
     // layer, but the cues and content still take its state.
-    if (!engine_drawn && layer.state) states.insert(*layer.state);
+    if (!engine_drawn && layer.state.present()) states.insert(*layer.state.value());
     if (engine_drawn) {
         PartPaint face;
         face.family = role;
@@ -868,16 +873,17 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         face.bounds = visual_bounds;
         face.states = states;
         face.key.set(PartKey{"face", {}, {}});
-        if (authored) {
-            face.authored_background.set((*authored).face);
-            face.authored_foreground.set((*authored).text);
+        const AuthoredButtonColours* const colours = authored.value();
+        if (colours != nullptr) {
+            face.authored_background.set((*colours).face);
+            face.authored_foreground.set((*colours).text);
         }
         paint_part(painter, *this, face);
-        if (layer.state) {
+        if (layer.state.present()) {
             // The face in the layer's state over the plain face, at the
             // layer's level, bounded by the face; it keeps its own record
             // so that the plain face's transitions stay.
-            states.insert(*layer.state);
+            states.insert(*layer.state.value());
             PartPaint lit = face;
             lit.states = states;
             lit.key.set(PartKey{"face", "layer", {}});
@@ -907,7 +913,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         // the program's own recipes when it set them, else as parts.
         if (visual_recipes_override_) {
             ControlVisualRecipe cue_recipe = recipe;
-            if (connection_topology_) cue_recipe.material.corner_radius = 0.0;
+            if (connection_topology_.present()) cue_recipe.material.corner_radius = 0.0;
             paint_theme_cues(painter, visual_bounds, cue_recipe, context);
         } else {
             PartPaint cue;
@@ -929,8 +935,9 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     ButtonContentInk ink;
     ink.family = role;
     ink.states = states;
-    if (authored) {
-        ink.authored.set((*authored).text);
+    const AuthoredButtonColours* const authored_colours = authored.value();
+    if (authored_colours != nullptr) {
+        ink.authored.set((*authored_colours).text);
     } else if (!engine_drawn) {
         ink.authored.set(recipe.text);
     }
@@ -944,16 +951,17 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     // The face: the control's own back colour, else the style override's
     // light face, else none. The ink: its fore colour, else the override's
     // text, else the theme's.
-    const bool authored = style_override_.has_value();
+    const BasicControlStyle* const override_style = style_override_.value();
+    const bool authored = override_style != nullptr;
     const BasicControlStyle& colours = style();
     const Color* own_face = back_color.read().value();
     const Color* own_ink = fore_color.read().value();
     if (own_face != nullptr) {
         painter.fill_rect(bounds, *own_face);
-    } else if (authored && (*style_override_).face_light.alpha != 0U) {
-        painter.fill_rect(bounds, (*style_override_).face_light);
+    } else if (authored && (*override_style).face_light.alpha != 0U) {
+        painter.fill_rect(bounds, (*override_style).face_light);
     }
-    const Color ink = own_ink != nullptr ? *own_ink : authored ? (*style_override_).text : colours.text;
+    const Color ink = own_ink != nullptr ? *own_ink : authored ? (*override_style).text : colours.text;
     // WinForms derives the hover and pressed faces from the face; a veil of
     // the ink stands for both (12% hot, 24% pressed).
     if (effectively_enabled() && (hovered_ || pressed_visual())) {
@@ -988,7 +996,7 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     // A flat button draws no face to light; its content and mark still
     // take the layer's state.
     const FaceLayer layer = face_layer();
-    if (layer.state) content_ink.states.insert(*layer.state);
+    if (layer.state.present()) content_ink.states.insert(*layer.state.value());
     paint_leading_mark(painter, bounds, layer.leading_mark, false, ControlVisualRole::button, content_ink.states,
                        Point{});
     const std::string display = display_text();

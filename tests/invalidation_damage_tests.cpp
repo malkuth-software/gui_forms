@@ -384,7 +384,7 @@ public:
         require(window_.dispatch_pointer(std::move(pointer)),
                 "synthetic pointer must be retained at the replay boundary");
         for (std::size_t nested = 0U; nested < 8U; ++nested) {
-            require(!window_.paint(painter_).has_value(),
+            require(window_.paint(painter_).absent(),
                     "native-style replay reentry must not obtain a receipt");
         }
     }
@@ -755,7 +755,7 @@ void test_idle_remains_quiescent_after_compacted_damage() {
     }
     fixture.paint_pending();
     (*fixture.window).reset_activity_metrics();
-    require(!(*fixture.window).needs_frame() && !(*fixture.window).next_wake().has_value(),
+    require(!(*fixture.window).needs_frame() && (*fixture.window).next_wake().absent(),
             "painted retained damage must return to frame-and-wake quiescence");
     const MetricsSnapshot idle = (*fixture.window).metrics_snapshot();
     require(idle.measure_passes == 0 && idle.arrange_passes == 0 &&
@@ -1022,13 +1022,13 @@ void test_slow_replay_pressure_coalesces_to_latest_state_and_exact_receipt() {
 
     ReplayBoundaryPainter slow;
     slow.on_first_command = ApplyReplayPressure(*root, window, slow);
-    const std::optional<PaintReceipt> first =
+    const stxlib::Optional<PaintReceipt> first =
         window.paint(slow, initial.bounds());
     const PaintLeaseSnapshot pressured = window.paint_lease_snapshot();
     const DeferredInputSnapshot pending_input = window.deferred_input_snapshot();
-    require(first.has_value() && (*root).last_painted_value == 0U &&
-                pressured.content_revision > (*first).rendered_revision &&
-                pressured.rendered_revision == (*first).rendered_revision &&
+    require(first.present() && (*root).last_painted_value == 0U &&
+                pressured.content_revision > (*first.value()).rendered_revision &&
+                pressured.rendered_revision == (*first.value()).rendered_revision &&
                 pressured.leases_started == 1U &&
                 pressured.leases_completed == 1U &&
                 pressured.reentrant_requests_deferred == 8U &&
@@ -1046,14 +1046,14 @@ void test_slow_replay_pressure_coalesces_to_latest_state_and_exact_receipt() {
 
     const DamageRegion latest_damage = window.take_damage();
     NullPainter latest_painter;
-    const std::optional<PaintReceipt> latest =
+    const stxlib::Optional<PaintReceipt> latest =
         window.paint(latest_painter, latest_damage.bounds());
-    require(latest.has_value() && (*root).last_painted_value == 100U &&
-                (*latest).rendered_revision ==
+    require(latest.present() && (*root).last_painted_value == 100U &&
+                (*latest.value()).rendered_revision ==
                     window.paint_lease_snapshot().content_revision,
             "one follow-up must render the latest state without intermediate jobs");
-    require(window.notify_presented(*latest, 50U) &&
-                !window.notify_presented(*first, 500U),
+    require(window.notify_presented(*latest.value(), 50U) &&
+                !window.notify_presented(*first.value(), 500U),
             "an out-of-order slow-presenter receipt must not move presentation backward");
     const PaintLeaseSnapshot idle = window.paint_lease_snapshot();
     require(idle.state == PaintLeaseState::clean &&
@@ -1073,29 +1073,29 @@ void test_resize_during_backend_replay_withholds_stale_receipt() {
     Window& window = *held_window;
     NullPainter initial_painter;
     const DamageRegion initial_damage = window.take_damage();
-    const std::optional<PaintReceipt> initial = window.paint(initial_painter, initial_damage.bounds());
-    require(initial.has_value() && window.notify_presented(*initial),
+    const stxlib::Optional<PaintReceipt> initial = window.paint(initial_painter, initial_damage.bounds());
+    require(initial.present() && window.notify_presented(*initial.value()),
             "baseline surface must present before the stale-epoch probe");
 
     (*root).set_value(1U);
     const DamageRegion damage = window.take_damage();
     ReplayBoundaryPainter resizing;
     resizing.on_first_command = ResizeDuringReplay(*root, window);
-    const std::optional<PaintReceipt> stale = window.paint(resizing, damage.bounds());
+    const stxlib::Optional<PaintReceipt> stale = window.paint(resizing, damage.bounds());
     const PaintLeaseSnapshot abandoned = window.paint_lease_snapshot();
-    require(!stale.has_value() && abandoned.leases_abandoned == 1U &&
-                abandoned.presented_revision == (*initial).rendered_revision &&
-                abandoned.surface_epoch != (*initial).surface_epoch &&
-                !window.notify_presented(*initial),
+    require(stale.absent() && abandoned.leases_abandoned == 1U &&
+                abandoned.presented_revision == (*initial.value()).rendered_revision &&
+                abandoned.surface_epoch != (*initial.value()).surface_epoch &&
+                !window.notify_presented(*initial.value()),
             "a resize entered by backend replay must withhold the stale receipt and preserve the last presentation revision");
 
     const DamageRegion replacement_damage = window.take_damage();
     NullPainter replacement_painter;
-    const std::optional<PaintReceipt> replacement =
+    const stxlib::Optional<PaintReceipt> replacement =
         window.paint(replacement_painter, replacement_damage.bounds());
-    require(replacement.has_value() && (*root).last_painted_value == 2U &&
-                (*replacement).surface_epoch == abandoned.surface_epoch &&
-                window.notify_presented(*replacement) && !window.needs_frame(),
+    require(replacement.present() && (*root).last_painted_value == 2U &&
+                (*replacement.value()).surface_epoch == abandoned.surface_epoch &&
+                window.notify_presented(*replacement.value()) && !window.needs_frame(),
             "the replacement epoch must render and release only the latest state");
 }
 
@@ -1106,8 +1106,8 @@ void test_occluded_mutation_storm_has_one_exposure_wake() {
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{120.0, 80.0});
     Window& window = *held_window;
     NullPainter painter;
-    const std::optional<PaintReceipt> initial = window.paint(painter, window.take_damage().bounds());
-    require(initial.has_value() && window.notify_presented(*initial),
+    const stxlib::Optional<PaintReceipt> initial = window.paint(painter, window.take_damage().bounds());
+    require(initial.present() && window.notify_presented(*initial.value()),
             "occlusion probe requires a clean baseline surface");
     std::uint64_t wakes{};
     window.set_paint_wake_handler(
@@ -1121,7 +1121,7 @@ void test_occluded_mutation_storm_has_one_exposure_wake() {
     require(window.occluded() && wakes == 0U && window.needs_frame() &&
                 window.paint_lease_snapshot().state ==
                     PaintLeaseState::occluded_dirty &&
-                !window.paint(painter).has_value() &&
+                window.paint(painter).absent() &&
                 (*root).paint_calls == paint_calls_before,
             "occlusion must merge a mutation storm without waking or painting");
 
@@ -1129,10 +1129,10 @@ void test_occluded_mutation_storm_has_one_exposure_wake() {
     require(wakes == 1U &&
                 window.paint_lease_snapshot().render_wake_queued,
             "exposure must request exactly one latest-state render");
-    const std::optional<PaintReceipt> exposed = window.paint(painter, window.take_damage().bounds());
-    require(exposed.has_value() && (*root).last_painted_value == 100U &&
+    const stxlib::Optional<PaintReceipt> exposed = window.paint(painter, window.take_damage().bounds());
+    require(exposed.present() && (*root).last_painted_value == 100U &&
                 (*root).paint_calls == paint_calls_before + 1U &&
-                window.notify_presented(*exposed) && !window.needs_frame() &&
+                window.notify_presented(*exposed.value()) && !window.needs_frame() &&
                 !window.paint_lease_snapshot().render_wake_queued,
             "exposure must render one latest revision and return idle");
 }
@@ -1157,9 +1157,9 @@ void test_backend_replay_fault_and_retirement_never_issue_receipt() {
                 fault_window.needs_frame(),
             "a backend replay fault must abandon without a complete revision");
     NullPainter retry_painter;
-    const std::optional<PaintReceipt> retry =
+    const stxlib::Optional<PaintReceipt> retry =
         fault_window.paint(retry_painter, fault_window.take_damage().bounds());
-    require(retry.has_value() && fault_window.notify_presented(*retry),
+    require(retry.present() && fault_window.notify_presented(*retry.value()),
             "a later clean replay must replace the failed candidate");
 
     std::shared_ptr<ReplayPressureControl> retiring_root =
@@ -1171,11 +1171,11 @@ void test_backend_replay_fault_and_retirement_never_issue_receipt() {
     ReplayBoundaryPainter retiring;
     retiring.on_first_command =
         RetireDuringReplay(*retiring_root, retiring_window);
-    const std::optional<PaintReceipt> retired =
+    const stxlib::Optional<PaintReceipt> retired =
         retiring_window.paint(retiring, retiring_damage.bounds());
     const DeferredInputSnapshot retired_input =
         retiring_window.deferred_input_snapshot();
-    require(!retired.has_value() && !(*retiring_root).is_alive() &&
+    require(retired.absent() && !(*retiring_root).is_alive() &&
                 retired_input.pending == 0U && retired_input.abandoned == 1U &&
                 (*retiring_root).key_calls == 0U &&
                 retiring_window.paint_lease_snapshot().leases_abandoned == 1U,

@@ -98,7 +98,7 @@ NativePopupToken Window::open_native_popup(const Control::Ptr& owner, const Cont
     if (!owner_available) throw std::logic_error("GUI.Forms native popup requires a visible attached owner");
     if (!detached_root(content)) throw std::logic_error("GUI.Forms native popup content must be a live detached root");
     if (!popup_bounds_valid(bounds)) throw std::invalid_argument("GUI.Forms native popup bounds are out of range");
-    if (options.backdrop.has_value() && !backdrop_chain_valid(*options.backdrop)) {
+    if (options.backdrop.present() && !backdrop_chain_valid(*options.backdrop.value())) {
         throw std::invalid_argument("GUI.Forms native popup backdrop chain is not valid");
     }
 

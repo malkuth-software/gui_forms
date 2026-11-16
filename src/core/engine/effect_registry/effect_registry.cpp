@@ -499,12 +499,12 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
     if (declaration.time_model != EffectTimeModel::ambient) {
         PartKey key{};
         key.part = declaration.name;
-        const std::optional<PartRecordHandle> record =
+        const stxlib::Optional<PartRecordHandle> record =
             detail::SurfaceEngineAccess::note_part(*root, host, key, AnatomyStateSet{});
-        if (record) {
+        if (record.present()) {
             const Rect extent{layer.x + place.origin.x, layer.y + place.origin.y, layer.width, layer.height};
-            detail::SurfaceEngineAccess::note_paint(*root, *record, 0U, *place.painted_by, extent);
-            detail::SurfaceEngineAccess::note_backplane_reader(*root, *record, true);
+            detail::SurfaceEngineAccess::note_paint(*root, *record.value(), 0U, *place.painted_by, extent);
+            detail::SurfaceEngineAccess::note_backplane_reader(*root, *record.value(), true);
         }
     }
     const std::optional<std::uint32_t> width = device_side(layer.width, scale);
