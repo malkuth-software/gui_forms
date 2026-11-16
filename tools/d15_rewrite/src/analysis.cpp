@@ -231,6 +231,38 @@ struct Destination final {
     return expression;
 }
 
+// The offset of a `const` keyword (and the blanks after it) that directly
+// precedes `begin` in `buffer`, or `begin` when none does.
+[[nodiscard]] unsigned leading_const_start(const llvm::StringRef buffer, const unsigned begin) {
+    unsigned position = begin;
+    while (position > 0U && (buffer[position - 1U] == ' ' || buffer[position - 1U] == '\t')) --position;
+    const llvm::StringRef keyword("const");
+    const unsigned length = static_cast<unsigned>(keyword.size());
+    if (position == begin || position < length) return begin;
+    if (buffer.slice(position - length, position) != keyword) return begin;
+    const unsigned start = position - length;
+    if (start > 0U) {
+        const char before = buffer[start - 1U];
+        const bool identifier = (before >= 'a' && before <= 'z') || (before >= 'A' && before <= 'Z') ||
+                                (before >= '0' && before <= '9') || before == '_';
+        if (identifier) return begin;
+    }
+    return start;
+}
+
+// The type an expression has before the implicit layers above it: a
+// method inherited from a base of std::optional (libc++'s has_value and
+// reset) is reached through a derived-to-base cast, whose type is the base.
+[[nodiscard]] clang::QualType written_type(const clang::Expr& expression) {
+    const clang::Expr* current = &expression;
+    for (unsigned guard = 0U; guard < 64U; ++guard) {
+        const clang::Expr* const next = (*(*current).IgnoreImplicit()).IgnoreParens();
+        if (next == current) break;
+        current = next;
+    }
+    return (*current).getType();
+}
+
 [[nodiscard]] bool is_transparent_parent(const clang::Expr& parent, const Stage stage) {
     if (llvm::isa<clang::ImplicitCastExpr>(parent)) return true;
     if (llvm::isa<clang::ParenExpr>(parent)) return true;
@@ -342,8 +374,9 @@ private:
     [[nodiscard]] Span span_of(const clang::SourceRange range) {
         Span span;
         if (range.isInvalid()) return span;
-        const clang::CharSourceRange characters = clang::Lexer::makeFileCharRange(
+        clang::CharSourceRange characters = clang::Lexer::makeFileCharRange(
             clang::CharSourceRange::getTokenRange(range), sources_, language_);
+        if (characters.isInvalid()) characters = macro_argument_range(range);
         if (characters.isInvalid()) return span;
         const std::pair<clang::FileID, unsigned> begin = sources_.getDecomposedLoc(characters.getBegin());
         const std::pair<clang::FileID, unsigned> end = sources_.getDecomposedLoc(characters.getEnd());
@@ -354,6 +387,37 @@ private:
         span.end = end.second;
         span.valid = true;
         return span;
+    }
+
+    // A range lying wholly inside one macro argument whose text the macro
+    // expands as written (REQUIRE(x.has_value())): the argument's spelling
+    // in the file. A range that reaches into the macro's body, spans two
+    // arguments, or whose spelling is not one contiguous run of a file
+    // (token pasting, nested bodies) stays invalid.
+    [[nodiscard]] clang::CharSourceRange macro_argument_range(const clang::SourceRange range) {
+        const clang::CharSourceRange invalid;
+        const clang::SourceLocation first = range.getBegin();
+        const clang::SourceLocation last = range.getEnd();
+        if (!first.isMacroID() || !last.isMacroID()) return invalid;
+        if (!sources_.isMacroArgExpansion(first) || !sources_.isMacroArgExpansion(last)) return invalid;
+        // Both ends must come from the same expansion of the same argument.
+        const clang::SourceLocation first_expansion = sources_.getImmediateExpansionRange(first).getBegin();
+        const clang::SourceLocation last_expansion = sources_.getImmediateExpansionRange(last).getBegin();
+        if (first_expansion != last_expansion) return invalid;
+        const clang::SourceLocation spelled_first = sources_.getSpellingLoc(first);
+        const clang::SourceLocation spelled_last = sources_.getSpellingLoc(last);
+        if (!spelled_first.isFileID() || !spelled_last.isFileID()) return invalid;
+        if (sources_.getFileID(spelled_first) != sources_.getFileID(spelled_last)) return invalid;
+        if (sources_.isWrittenInScratchSpace(spelled_first)) return invalid;
+        // The spelling must lie in a macro invocation's argument list, not in
+        // a #define: the argument is spelled where the macro is used.
+        const clang::SourceLocation use = sources_.getExpansionLoc(first);
+        if (sources_.getFileID(use) != sources_.getFileID(spelled_first)) return invalid;
+        const clang::SourceLocation end = clang::Lexer::getLocForEndOfToken(spelled_last, 0U, sources_, language_);
+        if (end.isInvalid() || sources_.getFileOffset(end) < sources_.getFileOffset(spelled_first)) return invalid;
+        if (sources_.getFileOffset(spelled_first) < sources_.getFileOffset(use)) return invalid;
+        const clang::CharSourceRange result = clang::CharSourceRange::getCharRange(spelled_first, end);
+        return result;
     }
 
     [[nodiscard]] Span span_of(const clang::Expr* expression) {
@@ -761,8 +825,11 @@ private:
             return;
         }
         if (match.family == Family::text_reference || (match.family == Family::text_view && match.reference)) {
-            const Span whole_span = span_of(whole.getSourceRange());
+            Span whole_span = span_of(whole.getSourceRange());
             if (!editable(whole_span, where)) return;
+            // `const std::string& name` becomes `stxlib::TextView name`:
+            // the view is passed by value, so the const before it goes too.
+            whole_span.begin = leading_const_start(buffer_of(whole_span.file), whole_span.begin);
             replace_span(whole_span, "stxlib::TextView");
             need(whole_span.path, include_text_view);
             return;
@@ -1038,6 +1105,15 @@ private:
             return shape;
         }
         if (llvm::isa<clang::CXXNullPtrLiteralExpr>(expression)) {
+            shape.kind = SourceKind::null_pointer;
+            return shape;
+        }
+        // operator=(nullopt_t) takes the tag by value: a copy of std::nullopt.
+        if (is_nullopt_type((*expression).getType())) {
+            shape.kind = SourceKind::absent_literal;
+            return shape;
+        }
+        if (is_nullptr_type((*expression).getType())) {
             shape.kind = SourceKind::null_pointer;
             return shape;
         }
@@ -2017,7 +2093,7 @@ void Analysis::use_member(const clang::Expr& top, const Denoted& entity, const b
     const Span whole = span_of(call);
     if (!editable(object, top.getBeginLoc()) || !name_token.valid || !whole.valid) return;
     const Family family = stage_ == Stage::v2_text_view ? Family::text_view
-                                                         : expression_family(top.getType(), stage_);
+                                                         : expression_family(written_type(top), stage_);
     const unsigned arguments = (*call).getNumArgs();
 
     switch (family) {
@@ -2176,7 +2252,7 @@ void Analysis::use_operator(const clang::Expr& top, const Denoted& entity, const
     if (plan_) return;
     const Span object = span_of(&top);
     if (!editable(object, top.getBeginLoc())) return;
-    const Family family = expression_family(top.getType(), stage_);
+    const Family family = expression_family(written_type(top), stage_);
     const Span operator_span = token_span(operation.getOperatorLoc());
 
     if (kind == clang::OO_Arrow && operation.getArg(0U) == &top) {
@@ -2294,7 +2370,7 @@ void Analysis::use_comparison(const clang::Expr& top, const Denoted& entity,
         owned_family((*other_plain).getType()) == owned_family(top.getType())) {
         return;
     }
-    const Family family = stage_ == Stage::v2_text_view ? Family::text_view : expression_family(top.getType(), stage_);
+    const Family family = stage_ == Stage::v2_text_view ? Family::text_view : expression_family(written_type(top), stage_);
 
     // nullopt and nullptr: absence tests.
     const bool absent_literal = is_nullopt_type((*other_plain).getType());

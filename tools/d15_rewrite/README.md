@@ -48,7 +48,8 @@ Eligibility, by rule (each refusal is a residue line):
 - vectors need the standard allocator, spans a dynamic extent, `unique_ptr`
   the default deleter and a non-array type;
 - template-dependent code and macro bodies are not rewritten (macro
-  *arguments* are);
+  *arguments* are, at their spelling, when the range lies within one
+  argument written at the macro's use);
 - a declaration with a deprecated D15 compatibility overload (Q3), or one
   whose rewrite would collide with a sibling overload, stays as it is;
 - ordering comparisons (`<` on an optional) are reported, not guessed.
@@ -203,7 +204,9 @@ m4ws integration python3 -B tools/ci_build.py --sanitize
 
 `tests/fixtures/<name>/{input,expected}/` hold small gui_forms-shaped trees
 as `.in` files (kept out of the house-style scan), with `args` (the tool
-arguments) and an optional `residue` (substrings the report must contain).
+arguments), an optional `residue` (substrings the report must contain) and
+an optional `skip-compile` (the reason the expected result keeps residue that
+cannot compile; `--compile-results` skips that fixture).
 They cover the D15 V1 queue entry's miss list:
 
 | miss pattern | fixture |
@@ -217,8 +220,8 @@ They cover the D15 V1 queue entry's miss list:
 | virtual overrides change together | v1_flows |
 | test helpers taking the optional | v1_basics |
 | default arguments, `make_optional`, `emplace`, aggregate initialisation | v1_flows |
-| macro-argument conditions (`REQUIRE(...)`) | v1_flows |
-| ordering comparisons reported | v1_flows |
+| macro-argument conditions (`REQUIRE(...)`), rewritten at their spelling | v1_flows |
+| ordering comparisons reported, left as written | v1_ordering |
 | throwing value copies and templates left alone | v1_guards |
 | text parameters and the validated bridge | v2_text_parameters |
 | owned text: assignment, comparison, size, copies out | v3_owned_text |

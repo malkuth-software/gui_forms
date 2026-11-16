@@ -4,7 +4,8 @@
 Each fixture directory holds input/ and expected/ trees of `.in` files (the
 suffix keeps the fixtures out of the house-style scan of tools/), an `args`
 file of tool arguments and, optionally, a `residue` file of substrings that
-must each appear in the residue report. For each fixture the runner copies
+must each appear in the residue report, and a `skip-compile` file (its
+reason) when the expected result keeps residue that cannot compile. For each fixture the runner copies
 input/ into a fresh gui_forms-shaped root with the `.in` suffix removed,
 adds the real src/platform/stxlib_bridge.hpp, writes compile_commands.json
 for every .cpp, runs the tool in apply mode, compares every file with
@@ -147,7 +148,7 @@ def run_fixture(options, name, scratch):
     if checked.returncode != 0:
         failures.append(f'{name}: second run is not idempotent (check exited {checked.returncode})\n'
                         f'{checked.stdout}{checked.stderr}')
-    if options.compile_results:
+    if options.compile_results and not os.path.exists(os.path.join(fixture, 'skip-compile')):
         failures.extend(compile_results(options, root, units, name))
     return failures
 

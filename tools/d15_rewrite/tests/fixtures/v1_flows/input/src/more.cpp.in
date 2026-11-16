@@ -15,7 +15,7 @@ Holder::Holder(const int start) noexcept : limit_(start) {
 
 void Holder::set_limit(const std::optional<int> limit) noexcept {
     limit_ = limit;
-    if (limit_ < 3) limit_.emplace(3);
+    if (limit_.value_or(0) < 3) limit_.emplace(3);
 }
 
 std::optional<int> pick(const bool first) noexcept {

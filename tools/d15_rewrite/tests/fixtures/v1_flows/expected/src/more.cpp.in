@@ -16,7 +16,7 @@ Holder::Holder(const int start) noexcept : limit_(stxlib::Optional<int>::of(star
 
 void Holder::set_limit(const stxlib::Optional<int> limit) noexcept {
     limit_ = limit;
-    if (limit_ < 3) limit_.set(3);
+    if (limit_.value_or(0) < 3) limit_.set(3);
 }
 
 stxlib::Optional<int> pick(const bool first) noexcept {
