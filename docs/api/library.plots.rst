@@ -959,7 +959,7 @@ Types
 
    .. cpp:member:: std::span<const double> z
 
-   .. cpp:member:: std::optional<Color> color
+   .. cpp:member:: stxlib::Optional<Color> color
 
    .. cpp:member:: double width
 
@@ -1009,7 +1009,7 @@ Types
 
    .. cpp:member:: std::span<const double> z
 
-   .. cpp:member:: std::optional<Color> color
+   .. cpp:member:: stxlib::Optional<Color> color
 
    .. cpp:member:: double size
 
@@ -1168,7 +1168,7 @@ Types
 
       Default: ``{BuiltInColormap::viridis}``.
 
-   .. cpp:member:: std::optional<Color> color
+   .. cpp:member:: stxlib::Optional<Color> color
 
       One colour instead of the colour map over z, when set.
 

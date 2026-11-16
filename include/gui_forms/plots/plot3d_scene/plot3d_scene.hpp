@@ -46,6 +46,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -171,7 +172,7 @@ struct GUI_FORMS_API Plot3DSurfaceSpec final {
     Plot3DInterpolation interpolation{Plot3DInterpolation::conv};
     BuiltInColormap colormap{BuiltInColormap::viridis};
     // One colour instead of the colour map over z, when set.
-    std::optional<Color> color{};
+    stxlib::Optional<Color> color{};
     Plot3DLighting lighting{Plot3DLighting::fixed};
     std::string_view label{};
 };
@@ -182,7 +183,7 @@ struct GUI_FORMS_API Plot3DLineSpec final {
     std::span<const double> x{};
     std::span<const double> y{};
     std::span<const double> z{};
-    std::optional<Color> color{};
+    stxlib::Optional<Color> color{};
     // In logical units, above 0 and at most 32.
     double width{1.5};
     std::string_view label{};
@@ -193,7 +194,7 @@ struct GUI_FORMS_API Plot3DScatterSpec final {
     std::span<const double> x{};
     std::span<const double> y{};
     std::span<const double> z{};
-    std::optional<Color> color{};
+    stxlib::Optional<Color> color{};
     // The marker's size in logical units, above 0 and at most 64.
     double size{6.0};
     Plot3DMarker marker{Plot3DMarker::circle};

@@ -80,7 +80,7 @@ struct SceneItem final {
     std::size_t column_stride{1U};
     Plot3DInterpolation interpolation{Plot3DInterpolation::conv};
     BuiltInColormap colormap{BuiltInColormap::viridis};
-    std::optional<Color> color{};
+    stxlib::Optional<Color> color{};
     Plot3DLighting lighting{Plot3DLighting::fixed};
     double width{1.5};
     double size{6.0};
@@ -364,7 +364,7 @@ void fill_surface_material(State& state, std::size_t slot, Color color) {
     stx_raster3d::Material& material = state.materials[pane_parts + slot];
     material = stx_raster3d::Material{};
     material.lighting.mode = lighting_mode(item.lighting);
-    if (item.color.has_value()) {
+    if (item.color.present()) {
         material.source = stx_raster3d::ColorSource::uniform;
         material.color = raster_color(color);
         return;
@@ -553,7 +553,7 @@ void build_scatter(State& state, std::size_t slot, Color color) {
     std::size_t series = 0U;
     for (std::size_t slot = 0U; slot < count; ++slot) {
         const SceneItem& item = state.items[slot];
-        const Color color = item.color.has_value() ? *item.color : state.colors.series[series % Plot3DColors::series_count];
+        const Color color = item.color.value_or(state.colors.series[series % Plot3DColors::series_count]);
         series = series + 1U;
         switch (item.kind) {
         case ItemKind::surface: {
