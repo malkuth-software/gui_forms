@@ -228,6 +228,33 @@ void test_paragraph_bidi(const std::span<const std::byte> bytes) {
         "empty line uses primary face metrics with no glyph or ink");
 }
 
+// The paragraph's bidi analysis (stxlib::textlayout's Paragraph and Line,
+// on STXlib's allocator) is charged to the mask ledger as workspace, in
+// bytes, while the paragraph holds it, and released with it.
+void test_paragraph_bidi_charge(const std::span<const std::byte> bytes) {
+    NativeFixture fixture(bytes);
+    const std::string text = "abc \xD7\x90\xD7\x91\xD7\x92 def";
+    const std::shared_ptr<const MaskKey> key = fixture.key({.utf8 = text});
+    NativeFonts fonts(*key);
+    NativeWork work{};
+    NativeGlyphBuffer glyphs{MaskAllocator<NativeGlyph>(fixture.ledger, MaskResource::shaping)};
+    const std::size_t workspace = static_cast<std::size_t>(MaskResource::workspace);
+    const std::size_t before = (*fixture.ledger).usage[workspace].live;
+    std::size_t analysed = 0;
+    std::size_t shaped = 0;
+    {
+        NativeParagraph paragraph(fixture.ledger, fonts, work, text);
+        analysed = (*fixture.ledger).usage[workspace].live;
+        static_cast<void>(paragraph.shape(0, text.size(), glyphs));
+        shaped = (*fixture.ledger).usage[workspace].live;
+        static_cast<void>(paragraph.shape(0, text.size(), glyphs));
+        require((*fixture.ledger).usage[workspace].live == shaped, "a line analysed again is charged once");
+    }
+    require(analysed > before, "the paragraph analysis is charged as workspace");
+    require(shaped >= analysed, "the line analysis adds to the charge");
+    require((*fixture.ledger).usage[workspace].live == before, "the charge goes with the paragraph");
+}
+
 void test_mono_native_oracle(const std::span<const std::byte> bytes) {
     NativeFixture fixture(bytes);
     const std::shared_ptr<const MaskKey> key = fixture.key({.utf8 = "j", .size = 13.0, .device_scale = 2.0, .raster = TextMaskRaster::true_mono});
@@ -311,6 +338,7 @@ int main(const int argc, char** const argv) {
         std::cout << "native group: failures and work bounds\n";
         test_native_failure_and_work(bytes);
         test_paragraph_bidi(bytes);
+        test_paragraph_bidi_charge(bytes);
         test_mono_native_oracle(bytes);
         test_arabic_line_context(arabic);
         std::cout << "text mask native components: six groups passed\n";
