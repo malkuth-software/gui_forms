@@ -331,7 +331,7 @@ std::size_t app_font_family_faces(FontFamilyId family, std::span<AppFontFaceSour
 }
 
 FontSpec admit_font(FontSpec font, FontContext context) noexcept {
-    if (context != FontContext::interface) return font;
+    if (context != FontContext::toolkit) return font;
     bool changed = false;
     if (app_font_family_number(font.family)) {
         log_refused_use(font.family);
