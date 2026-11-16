@@ -399,6 +399,16 @@ void test_scrollbar_geometry_capture_repeat_and_orientation() {
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary,
                                          vertical_increment_point}),
             "vertical scrollbar lower arrow must increment the same retained model");
+
+    // A held arrow whose capture is taken away stops repeating
+    // (A-gf-controls-11-F4).
+    const double before_hold = (*horizontal).value.read();
+    require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, decrement_point}) &&
+                (*horizontal).value.read() == before_hold - 2.0 && window.next_wake().present(),
+            "a held arrow steps and schedules its repeat");
+    (*horizontal).set_pointer_capture(false);
+    require(window.next_wake().absent() && (*horizontal).value.read() == before_hold - 2.0,
+            "a held arrow that loses its capture stops repeating");
 }
 
 void test_disposal_and_ui_thread_guard() {

@@ -373,9 +373,10 @@ void ScrollBar::on_mouse_move(MouseEventArgs& arguments) {
     RangeControl::on_mouse_move(arguments);
 }
 
+// The release ends a press whatever the bar's eligibility: a bar disabled
+// while an arrow is held stops repeating (A-gf-controls-11-F4).
 void ScrollBar::on_mouse_up(MouseEventArgs& arguments) {
-    if (eligible_for_input() && arguments.button == PointerButton::primary &&
-        pressed_part_ != ScrollBarPart::none) {
+    if (arguments.button == PointerButton::primary && pressed_part_ != ScrollBarPart::none) {
         const bool was_thumb = tracking_thumb_;
         if (has_pointer_capture()) set_pointer_capture(false);
         stop_interaction();
@@ -456,7 +457,25 @@ void ScrollBar::on_focus_changed(bool focused) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
+// The window ends a primary press's capture after its release, when the
+// press has already ended; any other loss ends it here (A-gf-controls-11-F4).
+void ScrollBar::on_mouse_capture_changed() {
+    RangeControl::on_mouse_capture_changed();
+    if (pressed_part_ == ScrollBarPart::none) return;
+    const bool was_thumb = tracking_thumb_;
+    stop_interaction();
+    if (was_thumb) invalidate(Dirty::paint | Dirty::semantics);
+    else invalidate(Dirty::paint);
+}
+
 void ScrollBar::repeat_step() {
+    // A repeat outlives neither the press's capture nor the bar's
+    // eligibility for input (A-gf-controls-11-F4).
+    if (!eligible_for_input() || !has_pointer_capture()) {
+        stop_interaction();
+        invalidate(Dirty::paint);
+        return;
+    }
     if (pressed_part_ == ScrollBarPart::decrement_track ||
         pressed_part_ == ScrollBarPart::increment_track) {
         if (part_at(repeat_pointer_) != pressed_part_) {
