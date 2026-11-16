@@ -137,7 +137,8 @@ void test_field_names() {
         "colour_filter",
         "drop_shadow",   "filter_blur",       "finish",
         "mask",          "reflection",        "seat",              "gradient_dither",
-        "transform",     "clip_path"};
+        "transform",     "clip_path",
+        "mask_modes",    "mask_composites",   "mask_positions",    "mask_sizes",        "mask_repeats"};
     for (std::size_t index = 0U; index < material_field_count; ++index) {
         require(material_field_name(static_cast<MaterialField>(index)) == expected[index],
                 "each material field has its name, in enum order");

@@ -2594,6 +2594,78 @@ typedef struct gf_relative_pointer_state {
 } gf_relative_pointer_state;
 
 /*
+ * Content effects (since 1.6): a filter and mask on a control and its
+ * descendants together, as the theme's filter and mask on a control rule
+ * (C++ Control::set_content_effect, PaintGroupEffect). The control's chunk
+ * and its descendants' chunks, a custom control's painted pixels among
+ * them, draw into one group; the group's image passes the colour matrix,
+ * then the colour table, then the blur, then the mask layers, and is
+ * composited where the control's window paints. A damage under an effect
+ * spreads by its reach (ceil(1.5 x blur) + 3 logical units).
+ *
+ * gf_effect_mask_mode: how a mask layer's colour becomes its weight
+ * (CSS mask-mode; the inverse modes are house extensions).
+ * gf_effect_mask_composite: how a layer joins the layers beneath it
+ * (CSS mask-composite).
+ */
+typedef uint32_t gf_effect_mask_mode;
+#define GF_EFFECT_MASK_MODE_ALPHA 0u
+#define GF_EFFECT_MASK_MODE_LUMINANCE 1u
+#define GF_EFFECT_MASK_MODE_INVERSE_ALPHA 2u
+#define GF_EFFECT_MASK_MODE_INVERSE_LUMINANCE 3u
+typedef uint32_t gf_effect_mask_composite;
+#define GF_EFFECT_MASK_COMPOSITE_ADD 0u
+#define GF_EFFECT_MASK_COMPOSITE_SUBTRACT 1u
+#define GF_EFFECT_MASK_COMPOSITE_INTERSECT 2u
+#define GF_EFFECT_MASK_COMPOSITE_EXCLUDE 3u
+
+/* The most mask layers of a content effect, and its largest blur in
+ * logical units (the standard deviation is half of it, as CSS blur()'s
+ * radius is read). */
+#define GF_CONTENT_EFFECT_MAXIMUM_MASKS 4u
+#define GF_CONTENT_EFFECT_MAXIMUM_BLUR 16.0
+
+/*
+ * One mask layer: a linear ramp from start_rgba at start to end_rgba at
+ * end, both 0xRRGGBBAA, the points in the group's normalized box (0,0 its
+ * top left, 1,1 its bottom right; any finite value). Equal points give a
+ * solid layer of start_rgba. reserved is 0. struct_size is the caller's
+ * sizeof, the stride of an array of layers.
+ */
+typedef struct gf_effect_mask_layer {
+    uint32_t struct_size;
+    gf_effect_mask_mode mode;
+    gf_effect_mask_composite composite;
+    uint32_t start_rgba;
+    uint32_t end_rgba;
+    uint32_t reserved;
+    gf_logical_point start;
+    gf_logical_point end;
+} gf_effect_mask_layer;
+
+/*
+ * A content effect. has_colour_matrix and has_colour_table are 0 or 1;
+ * colour_matrix is row-major 4 x 5 on straight colour with channels in
+ * [0, 1] (rows red, green, blue, alpha; the fifth column a constant; each
+ * result clamped), the identity when has_colour_matrix is 0 and only the
+ * table is given; colour_table is 256 entries each of red, green, blue and
+ * alpha in that order, applied after the matrix (CSS feComponentTransfer's
+ * table). blur is 0 to GF_CONTENT_EFFECT_MAXIMUM_BLUR. masks is mask_count
+ * (at most GF_CONTENT_EFFECT_MAXIMUM_MASKS) layers, bottom first, null for
+ * none; the library copies everything during the call.
+ */
+typedef struct gf_content_effect {
+    uint32_t struct_size;
+    uint32_t has_colour_matrix;
+    uint32_t has_colour_table;
+    uint32_t mask_count;
+    double colour_matrix[20];
+    uint8_t colour_table[1024];
+    double blur;
+    const gf_effect_mask_layer* masks;
+} gf_content_effect;
+
+/*
  * GF_TABLE_CONTROLS: operations on a control that are not state: layout
  * transactions, window-relative bounds, pointer capture and scrolling. A
  * control's state (a range's bounds, the cursor, the auto-scroll settings,
@@ -2680,6 +2752,15 @@ typedef struct gf_controls_table {
      * INVALID_ARGUMENT, changing nothing. */
     gf_status (GF_CALL* set_pointer_release_regions)(gf_object object, const gf_logical_rect* regions,
                                                      uint32_t count);
+    /* Sets the control's content effect (since 1.6), or clears it when
+     * effect is null; a cleared control shows its theme's effect, if any.
+     * An effect smaller than its 1.6 size, a flag that is not 0 or 1, a
+     * value that is not finite, a blur out of range, more than 4 layers,
+     * a layer array whose strides differ, or a layer with an unknown mode
+     * or composite or a nonzero reserved gives INVALID_ARGUMENT, changing
+     * nothing. A custom control's painted pixels are inside its group too:
+     * this is the group effect for custom paint. UI thread. */
+    gf_status (GF_CALL* set_content_effect)(gf_object object, const gf_content_effect* effect);
 } gf_controls_table;
 
 /* gf_text_ink_role: a theme ink for decorated text (C++ TextInkRole): the

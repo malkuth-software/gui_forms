@@ -69,16 +69,28 @@ constexpr std::array<std::string_view, 13> not_admitted_families{
 // and the colour and font roles): refused with not_yet_built until their
 // phases, so that no interim meaning ships. Sorted. A family's members the
 // material lowering lists (P6b, P6c) are lowered before these are consulted.
-constexpr std::array<std::string_view, 1> later_properties{
-    "backdrop-filter",
-};
+// None at present: `backdrop-filter` is the standard spelling of a
+// surface's backdrop chain (capability review, owner 2026-11-16).
+constexpr std::array<std::string_view, 0> later_properties{};
 static_assert(std::is_sorted(later_properties.begin(), later_properties.end()), "binary_search needs the table sorted");
+
+// CSS filter functions a backdrop chain does not take: refused as forms
+// not admitted rather than as values of the wrong kind. Sorted.
+constexpr std::array<std::string_view, 9> backdrop_filter_functions_not_admitted{
+    "brightness", "contrast", "drop-shadow", "grayscale", "hue-rotate", "invert", "opacity", "sepia", "url",
+};
+static_assert(std::is_sorted(backdrop_filter_functions_not_admitted.begin(),
+                             backdrop_filter_functions_not_admitted.end()),
+              "binary_search needs the table sorted");
 
 constexpr std::array<std::string_view, 5> later_families{
     "background", "border", "mask", "outline", "transition",
 };
 
-constexpr std::array<std::string_view, 3> blend_modes{"normal", "multiply", "screen"};
+// The CSS names of PartBlend, in its order.
+constexpr std::array<std::string_view, 12> blend_modes{
+    "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion",
+};
 
 // The primitive a rule of material fields selects when it names none
 // (owner C7).
@@ -98,6 +110,19 @@ constexpr std::string_view material_primitive_name = "material";
         if (prefixed) return true;
     }
     return false;
+}
+
+// Whether `component` is a CSS filter function, or a url() reference, that
+// a backdrop chain does not take (backdrop_filter_functions_not_admitted).
+[[nodiscard]] bool css_filter_function_not_backdrop(const ValueComponent& component) {
+    if (component.kind == ValueComponentKind::resource) return true;
+    if (component.kind != ValueComponentKind::function) return false;
+    std::string folded(component.text);
+    for (char& character : folded) {
+        if (character >= 'A' && character <= 'Z') character = static_cast<char>(character - 'A' + 'a');
+    }
+    const bool found = listed(backdrop_filter_functions_not_admitted, folded);
+    return found;
 }
 
 enum class PropertyClass : std::uint8_t {
@@ -146,7 +171,7 @@ enum class PropertyClass : std::uint8_t {
     if (name == font_property) return PropertyClass::font;
     if (name == effect_property) return PropertyClass::effect;
     if (name == "effect-primary" || name == "effect-secondary") return PropertyClass::effect_colour;
-    if (name == "backdrop") return PropertyClass::backdrop;
+    if (name == "backdrop" || name == "backdrop-filter") return PropertyClass::backdrop;
     if (name == "band-width" || name == "band-color" || name == "band-lit-color" || name == "band-effect") {
         return PropertyClass::band;
     }
@@ -512,6 +537,16 @@ private:
     // Reports material_lowering_'s problem; true where the declaration is
     // only dropped.
     [[nodiscard]] bool report_material_problem();
+    // A control rule's `filter` or `mask-*` (owner 2026-11-16): moves
+    // material_lowering_'s declarations of the content effect's fields
+    // into content_effect_. A drop shadow, an image mask layer, an em
+    // length or currentcolor is refused (value_form_not_admitted, naming
+    // ::part(face), where the material's own filter and mask are written).
+    [[nodiscard]] bool lower_content_effect(std::uint32_t value_token, bool relative);
+    void add_content_effect(MaterialDeclaration declaration);
+    // Whether the rule selects controls themselves: no selector names a
+    // part, a role or an item (a surface rule takes no control property).
+    [[nodiscard]] bool rule_selects_controls() const noexcept;
     // The em coefficients (P8c, D4) of the declarations material_lowering_
     // holds, lowered at an em of 0 and the current colour black, where the
     // value has an em length at `em_token`, and their current colours
@@ -541,6 +576,9 @@ private:
     // A `@keyframes` rule's definition into motion_.keyframes; false after
     // an error.
     [[nodiscard]] bool collect_keyframes(std::size_t index);
+    // One `@filter` rule at node `index` into filters_ (lower_theme_filter_
+    // declaration); false, reporting, when it refuses the sheet.
+    [[nodiscard]] bool collect_filter(std::size_t index);
     // The offsets a keyframe block's selectors name, into `offsets`.
     [[nodiscard]] bool keyframe_offsets(const SyntaxNode& block, std::vector<double>& offsets);
     // One keyframe declaration's values into `definition` at `offsets`;
@@ -633,6 +671,13 @@ private:
     std::optional<ColourRoleSide> bare_side_{};
     // The backdrop the rule being lowered declares, or none.
     std::optional<BackdropDeclaration> backdrop_{};
+    // The content effect the rule being lowered declares (ThemeRule::
+    // content_effect), at most one declaration per field; cleared with
+    // materials_ for each level of the rule.
+    std::vector<MaterialDeclaration> content_effect_{};
+    // The sheet's `@filter` rules, in order, collected before its style
+    // rules so that a filter may be named before it is declared.
+    std::vector<NamedThemeFilter> filters_{};
     // The band the rule being lowered declares, or none.
     std::optional<BandDeclaration> band_{};
     // The palette slots the rule being lowered read, one bit a slot.
@@ -774,6 +819,18 @@ CompileOutcome CompilePass::run() {
     }
     if (!palette) return CompileOutcome::refused;
     const std::vector<SyntaxNode>& nodes = tree_.nodes;
+    // The filters first, as the keyframes: `filter: url(#id)` may name a
+    // filter declared after its rule.
+    filters_.clear();
+    for (std::size_t index = 1U; index < nodes.size(); index = nodes[index].subtree_end.value) {
+        if (nodes[index].kind != SyntaxNodeKind::filter_rule) continue;
+        if (filters_.size() == maximum_theme_filters) {
+            report(DiagnosticCode::value_out_of_range, nodes[index].tokens.first.value,
+                   "more than " + std::to_string(maximum_theme_filters) + " @filter rules");
+            return CompileOutcome::refused;
+        }
+        if (!collect_filter(index)) return CompileOutcome::refused;
+    }
     // The keyframes first: an animation may name keyframes defined after
     // its rule, as in CSS.
     std::size_t keyframes_rules = 0U;
@@ -2172,6 +2229,7 @@ bool CompilePass::lower_declarations(std::size_t rule_index, bool important, con
     const std::size_t end = tree_.nodes[rule_index].subtree_end.value;
     declarations_.clear();
     materials_.clear();
+    content_effect_.clear();
     recipe_fields_.clear();
     backdrop_.reset();
     band_.reset();
@@ -2714,6 +2772,12 @@ bool CompilePass::lower_effect_colour(const SyntaxNode& node) {
     return true;
 }
 
+// `backdrop-filter:` (capability review, owner 2026-11-16) is the same
+// declaration in CSS's spelling, the two sharing one chain, so that the
+// later of the two in a rule wins. CSS's other filter functions
+// (brightness() to sepia(), drop-shadow(), url()) are refused with
+// value_form_not_admitted: a host material takes none of them.
+//
 // `backdrop:` (owner decision 2026-11-04): `none` (or `initial`), or an
 // ordered list of blur(<length>), saturate(<number> | <percentage>) and
 // tint(<colour> [/ <alpha>]), the chain applied in order over what lies
@@ -2752,6 +2816,10 @@ bool CompilePass::lower_backdrop(const SyntaxNode& node) {
             if (equals_ascii_folded(component.text, "blur")) kind = BackdropStepKind::blur;
             if (equals_ascii_folded(component.text, "saturate")) kind = BackdropStepKind::saturate;
             if (equals_ascii_folded(component.text, "tint")) kind = BackdropStepKind::tint;
+        }
+        if (!kind && css_filter_function_not_backdrop(component)) {
+            report(DiagnosticCode::value_form_not_admitted, component.token, clipped_theme_detail(component.text));
+            return false;
         }
         if (!kind) {
             report(DiagnosticCode::value_wrong_kind, component.token, "blur(), saturate() or tint()");
@@ -2972,6 +3040,15 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_);
         return true;
     }
+    // A control's content effect has no image layer, so the mask's image
+    // placement is a part's alone (owner 2026-11-16).
+    const bool mask_placement = property == MaterialProperty::mask_position ||
+                                property == MaterialProperty::mask_size || property == MaterialProperty::mask_repeat;
+    if (mask_placement && rule_selects_controls()) {
+        report(DiagnosticCode::property_not_admitted, node.tokens.first.value,
+               property_ + " on a control; write it on ::part(face)");
+        return true;
+    }
     const bool part_geometry = property == MaterialProperty::stroke_width ||
                                property == MaterialProperty::needle_shape ||
                                property == MaterialProperty::scrim_color;
@@ -3054,13 +3131,25 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
     material_lowering_.current_colour = Color::rgba(0, 0, 0, 255);
     material_lowering_.admit_app_fonts = input_.admit_app_fonts;
     material_lowering_.keep_gradients = em_token.has_value() || names_current_colour(value_);
+    // The sheet's @filter rules, lent for the one lowering.
+    material_lowering_.filters = filters_;
     lower_material_value(property, value_, node.content.first.value, input_.images, material_lowering_);
+    material_lowering_.filters = {};
     if (material_lowering_.outcome != MaterialLoweringOutcome::lowered) return report_material_problem();
     for (MaterialLoweringProblem& warning : material_lowering_.warnings) {
         report(warning.code, warning.token, std::move(warning.detail));
     }
     material_lowering_.warnings.clear();
     const bool reads_current = material_lowering_.read_current_colour;
+    // `filter` and `mask-*` on a control rule are the control's content
+    // effect, as CSS's filter and mask are the element's with its
+    // descendants (owner 2026-11-16).
+    const bool content_property = property == MaterialProperty::filter || property == MaterialProperty::mask_image ||
+                                  property == MaterialProperty::mask_mode ||
+                                  property == MaterialProperty::mask_composite;
+    if (content_property && rule_selects_controls()) {
+        return lower_content_effect(value_.components[0].token, em_token.has_value() || reads_current);
+    }
     if ((em_token || reads_current) &&
         !lower_relative(property, node.content.first.value, em_token, reads_current)) {
         return material_lowering_.outcome == MaterialLoweringOutcome::dropped;
@@ -3088,6 +3177,46 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         report(DiagnosticCode::literal_colour_unremappable, literal, clipped_theme_detail(token_text(literal)));
     }
     return true;
+}
+
+bool CompilePass::lower_content_effect(std::uint32_t value_token, bool relative) {
+    if (relative) {
+        report(DiagnosticCode::value_form_not_admitted, value_token,
+               "an em length or currentcolor in a control's content effect");
+        return false;
+    }
+    // Checked whole before any is kept.
+    for (const MaterialDeclaration& declaration : material_lowering_.declarations) {
+        if (declaration.field == MaterialField::drop_shadow && declaration.drop_shadow) {
+            report(DiagnosticCode::value_form_not_admitted, value_token,
+                   "drop-shadow() on a control's content effect; write it on ::part(face)");
+            return false;
+        }
+        if (declaration.field != MaterialField::mask) continue;
+        for (const MaterialFillLayer& layer : declaration.masks) {
+            if (layer.kind != MaterialFillKind::image) continue;
+            report(DiagnosticCode::value_form_not_admitted, value_token,
+                   "an image mask on a control's content effect; write it on ::part(face)");
+            return false;
+        }
+    }
+    // `filter: none` and a filter without a drop shadow clear the drop
+    // shadow, which the effect does not have: that declaration is left.
+    for (MaterialDeclaration& declaration : material_lowering_.declarations) {
+        if (!content_effect_field(declaration.field)) continue;
+        add_content_effect(std::move(declaration));
+    }
+    return true;
+}
+
+void CompilePass::add_content_effect(MaterialDeclaration declaration) {
+    // As add_material: the later declaration of a field wins.
+    for (std::size_t index = 0U; index < content_effect_.size(); ++index) {
+        if (content_effect_[index].field != declaration.field) continue;
+        content_effect_.erase(content_effect_.begin() + static_cast<std::ptrdiff_t>(index));
+        break;
+    }
+    content_effect_.push_back(std::move(declaration));
 }
 
 bool CompilePass::report_material_problem() {
@@ -3129,7 +3258,10 @@ bool CompilePass::lower_relative(MaterialProperty property, std::uint32_t start,
 // that em changes is not admitted.
 bool CompilePass::lower_em_pass(MaterialProperty property, std::uint32_t start) {
     material_lowering_.em = 1.0;
+    // The sheet's @filter rules, lent for the one lowering.
+    material_lowering_.filters = filters_;
     lower_material_value(property, value_, start, input_.images, material_lowering_);
+    material_lowering_.filters = {};
     material_lowering_.em = 0.0;
     if (material_lowering_.outcome != MaterialLoweringOutcome::lowered) {
         static_cast<void>(report_material_problem());
@@ -3170,7 +3302,10 @@ bool CompilePass::lower_em_pass(MaterialProperty property, std::uint32_t start) 
 // (material_declaration_colours) that changes is not admitted.
 bool CompilePass::lower_current_colour_pass(MaterialProperty property, std::uint32_t start) {
     material_lowering_.current_colour = Color::rgba(255, 255, 255, 255);
+    // The sheet's @filter rules, lent for the one lowering.
+    material_lowering_.filters = filters_;
     lower_material_value(property, value_, start, input_.images, material_lowering_);
+    material_lowering_.filters = {};
     material_lowering_.current_colour = Color::rgba(0, 0, 0, 255);
     if (material_lowering_.outcome != MaterialLoweringOutcome::lowered) {
         static_cast<void>(report_material_problem());
@@ -3443,6 +3578,38 @@ bool CompilePass::apply_loop(const DeclaredLoop& loop, ThemeRule& lowered) {
     return true;
 }
 
+bool CompilePass::collect_filter(std::size_t index) {
+    const SyntaxNode& rule = tree_.nodes[index];
+    rule_ = clipped_theme_detail(range_text(TokenRange{rule.tokens.first, rule.content.end}));
+    property_.clear();
+    NamedThemeFilter filter{};
+    filter.name = token_text(rule.content.first.value);
+    filters_.reserve(filters_.size() + 1U);
+    const std::size_t end = rule.subtree_end.value;
+    std::string property_name{};
+    for (std::size_t child = index + 1U; child < end; child = tree_.nodes[child].subtree_end.value) {
+        const SyntaxNode& node = tree_.nodes[child];
+        const std::uint32_t property = node.tokens.first.value;
+        property_ = clipped_theme_detail(token_text(property));
+        fold_ascii(token_text(property), property_name);
+        if (property_name != "color-matrix" && property_name != "component-transfer") {
+            report(DiagnosticCode::property_not_admitted, property, property_ + " in @filter");
+            continue;
+        }
+        parameter_names_.clear();
+        if (!read_value(node)) return false;
+        const std::uint32_t at = node.content.first.value < node.content.end.value ? node.content.first.value : property;
+        MaterialLoweringProblem problem{};
+        if (!lower_theme_filter_declaration(property_name, value_, at, filter, problem)) {
+            report(problem.code, problem.token, std::move(problem.detail));
+            return false;
+        }
+    }
+    property_.clear();
+    filters_.push_back(std::move(filter));
+    return true;
+}
+
 bool CompilePass::collect_keyframes(std::size_t index) {
     const SyntaxNode& rule = tree_.nodes[index];
     const std::uint32_t keyword = rule.tokens.first.value;
@@ -3684,6 +3851,16 @@ bool CompilePass::rule_selects_part() const noexcept {
     return false;
 }
 
+bool CompilePass::rule_selects_controls() const noexcept {
+    if (lowered_selectors_.empty()) return false;
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        const RuleSelector& selector = lowered.selector;
+        if (!selector.part.empty() || selector.role.has_value()) return false;
+        if (!selector.item_id.empty() || !selector.item_classes.empty()) return false;
+    }
+    return true;
+}
+
 // Whether every selector of the rule names a part (not a role alone).
 bool CompilePass::rule_names_parts_only() const noexcept {
     if (lowered_selectors_.empty()) return false;
@@ -3775,6 +3952,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     lowered.recipe_fields = recipe_fields_;
     lowered.backdrop = backdrop_;
     lowered.band = band_;
+    lowered.content_effect = content_effect_;
     lowered.scoped_conditions = variations_.copy_conditions;
     // An inline style's own rules (P12b: alone, or lowered after a theme)
     // are not the theme's readers.
@@ -3785,12 +3963,14 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     // A borrowed selection alone declares nothing of the rule's own.
     const std::size_t owned = emitted.borrowed ? selections : 0U;
     if (lowered.declarations.size() == owned && lowered.transitions.empty() && lowered.materials.empty() &&
-        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop && !lowered.band) {
+        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop && !lowered.band &&
+        lowered.content_effect.empty()) {
         return true;
     }
     std::size_t bytes = lowered_record_bytes + lowered.label.size();
     for (const RuleDeclaration& declaration : lowered.declarations) bytes += declaration_bytes(declaration);
     for (const MaterialDeclaration& declaration : lowered.materials) bytes += material_bytes(declaration);
+    for (const MaterialDeclaration& declaration : lowered.content_effect) bytes += material_bytes(declaration);
     for (const PropertyTransition& transition : lowered.transitions) bytes += transition_bytes(transition);
     bytes += lowered.recipe_fields.size() * lowered_record_bytes;
     if (lowered.backdrop) bytes += lowered_record_bytes;

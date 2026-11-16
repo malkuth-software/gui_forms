@@ -16,6 +16,8 @@
 
 namespace gui_forms {
 
+struct PaintGroupEffect;
+
 class LiveSurface;
 class PaintFramebuffer;
 class PartRaster;
@@ -56,7 +58,34 @@ struct GUI_FORMS_API RetainedDrawCache final {
 //   beneath. A window granted a non-opaque backdrop paints its backplane in
 //   a copy group, so that its frame starts clear. Theme data never selects
 //   it.
-enum class PaintGroupComposite : std::uint8_t { source_over, plus, multiply, screen, copy };
+// - overlay, darken, lighten, color_dodge, color_burn, hard_light,
+//   soft_light, difference and exclusion (capability review, owner
+//   2026-11-16; CSS `mix-blend-mode`): the rest of CSS's separable blend
+//   modes, composited as multiply is: each colour channel
+//   s × (1 − αd) + d × (1 − αs) + αs × αd × B(d / αd, s / αs), with B the
+//   mode's function of the straight colours as Compositing and Blending
+//   Level 1 defines it, and alpha αs + αd − αs × αd. They are appended
+//   after copy so that recorded enumerators keep their values.
+enum class PaintGroupComposite : std::uint8_t {
+    source_over,
+    plus,
+    multiply,
+    screen,
+    copy,
+    overlay,
+    darken,
+    lighten,
+    color_dodge,
+    color_burn,
+    hard_light,
+    soft_light,
+    difference,
+    exclusion,
+};
+
+// The last enumerator of PaintGroupComposite, for range checks of recorded
+// values.
+inline constexpr PaintGroupComposite paint_group_composite_last = PaintGroupComposite::exclusion;
 
 // A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that
 // group layer may be needed for"): commands drawn as one image, then
@@ -76,11 +105,21 @@ enum class PaintGroupComposite : std::uint8_t { source_over, plus, multiply, scr
 //   is isolated at any opacity: a group holding a plus group must be, so
 //   that the sum is formed before it meets what lies beneath. A painter
 //   that cannot isolate (no storage) draws the group directly.
+// - `effect` (capability review decision 1, owner 2026-11-16), when set,
+//   filters and masks the group's image before it is composited
+//   (PaintGroupEffect, declared in surface_material/paint_group_effect,
+//   which this header does not include). A group with an effect is
+//   isolated at any opacity, and its image reaches past `bounds` by the
+//   effect's reach (paint_group_effect_reach): its commands are still
+//   limited to `bounds`, and the blur spreads into the margin. An invalid
+//   effect (valid_paint_group_effect) is ignored and counted as a group
+//   refusal. Shared read-only: a recording keeps it alive.
 struct GUI_FORMS_API PaintGroup final {
     Rect bounds{};
     double opacity{1.0};
     PaintGroupComposite composite{PaintGroupComposite::source_over};
     bool isolated{false};
+    std::shared_ptr<const PaintGroupEffect> effect{};
 };
 
 // The deepest groups nest (T2, coordinator decision Q2/Q3). A group begun

@@ -2,6 +2,7 @@
 
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
+#include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstddef>
@@ -35,11 +36,29 @@ void blend_over(Unit& target, Unit source) noexcept;
 // screen gives s + d − s × d per channel; alpha is αs + αd − αs × αd.
 void blend_multiply(Unit& target, Unit source) noexcept;
 void blend_screen(Unit& target, Unit source) noexcept;
+// `source` joined to `target` by one of the other separable modes
+// (MaterialBlendMode overlay to exclusion; capability review, owner
+// 2026-11-16), both premultiplied: each colour channel
+// s × (1 − αd) + d × (1 − αs) + αs × αd × B(d / αd, s / αs), with B the
+// mode's function of the straight colours (Compositing and Blending
+// Level 1; soft-light's root is sqrt, exact in IEEE arithmetic), and alpha
+// αs + αd − αs × αd. A straight colour of a transparent pixel is 0. Normal,
+// multiply and screen join as blend_over, blend_multiply and blend_screen.
+void blend_separable(Unit& target, Unit source, MaterialBlendMode mode) noexcept;
+// B(backdrop, source) of blend_separable's `mode` on straight colours in
+// [0, 1]: normal gives source, multiply and screen their products.
+[[nodiscard]] double separable_blend_function(double backdrop, double source, MaterialBlendMode mode) noexcept;
 
 // `pixel` (premultiplied) through `matrix` (E9.6): unpremultiplied, each
 // row applied and clamped to [0, 1], and premultiplied again. A pixel of
 // alpha 0 is read as transparent black.
 [[nodiscard]] Unit colour_filtered(const MaterialColourMatrix& matrix, Unit pixel) noexcept;
+// `pixel` through `matrix`, then, when `table` is not null, each clamped
+// straight channel quantized once to 8 bits and looked up in `table`
+// (MaterialColourTable), before premultiplying again. With a null table,
+// colour_filtered's bits.
+[[nodiscard]] Unit colour_staged(const MaterialColourMatrix& matrix, const MaterialColourTable* table,
+                                 Unit pixel) noexcept;
 
 // One channel quantized once: floor(clamp(v, 0, 1) × 255 + 0.5).
 [[nodiscard]] std::uint8_t to_byte(double value) noexcept;

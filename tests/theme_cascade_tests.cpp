@@ -14,6 +14,7 @@
 #include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
 
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -680,6 +681,76 @@ void item_rules() {
             "an item class that is not a style class name is refused");
 }
 
+// A control rule's content effect (owner 2026-11-16) stands only on a rule
+// naming no part, role or surface, and only as fields a group effect takes;
+// each field resolves from the last matching rule that sets it.
+void content_effect_rules() {
+    const std::vector<std::string> none{};
+    MaterialDeclaration filter{};
+    filter.field = MaterialField::colour_filter;
+    filter.colour_filter = MaterialColourMatrix::grayscale(1.0);
+    MaterialDeclaration blur{};
+    blur.field = MaterialField::filter_blur;
+    blur.number = 2.0;
+    MaterialDeclaration later_blur = blur;
+    later_blur.number = 4.0;
+    MaterialDeclaration shadow{};
+    shadow.field = MaterialField::drop_shadow;
+    MaterialDeclaration image{};
+    image.field = MaterialField::mask;
+    image.masks.push_back(MaterialFillLayer::stretched_image(ImageId{1U}, Size{4.0, 4.0}));
+
+    ThemeRuleSheet sheet{};
+    ThemeRule control = rule("control", CascadeLevel::theme_sheet, by_type(), {});
+    control.content_effect = {filter, blur};
+    sheet.rules.push_back(control);
+    ThemeRule later = rule("later", CascadeLevel::theme_sheet, by_type(), {});
+    later.content_effect = {later_blur};
+    sheet.rules.push_back(later);
+    RuleSelector face = by_type();
+    face.part = "face";
+    ThemeRule on_part = rule("on_part", CascadeLevel::theme_sheet, face, {});
+    on_part.content_effect = {blur};
+    sheet.rules.push_back(on_part);
+    ThemeRule shadowed = rule("shadowed", CascadeLevel::theme_sheet, by_type(), {});
+    shadowed.content_effect = {shadow};
+    sheet.rules.push_back(shadowed);
+    ThemeRule imaged = rule("imaged", CascadeLevel::theme_sheet, by_type(), {});
+    imaged.content_effect = {image};
+    sheet.rules.push_back(imaged);
+    const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(rules.has_content_effects(), "the rules have a content effect");
+    require(has_diagnostic(rules, RuleDiagnosticKind::material_field_invalid, "on_part", "content effect"),
+            "a content effect on a part is dropped");
+    require(has_diagnostic(rules, RuleDiagnosticKind::material_field_invalid, "shadowed", "content effect"),
+            "a drop shadow is no content-effect field");
+    require(has_diagnostic(rules, RuleDiagnosticKind::material_field_invalid, "imaged", "content effect"),
+            "an image mask is not admitted");
+    require(!has_diagnostic(rules, RuleDiagnosticKind::material_field_invalid, "control", "content effect"),
+            "a control rule's filter and blur stand");
+
+    CompiledThemeRules::PartFacts facts{};
+    facts.control_type = "button";
+    facts.classes = none;
+    std::array<const MaterialDeclaration*, material_field_count> fields{};
+    rules.resolve_content_effect(facts, fields);
+    const MaterialDeclaration* const resolved_filter = fields[static_cast<std::size_t>(MaterialField::colour_filter)];
+    const MaterialDeclaration* const resolved_blur = fields[static_cast<std::size_t>(MaterialField::filter_blur)];
+    require(resolved_filter != nullptr && (*resolved_filter).colour_filter.has_value(),
+            "the filter resolves from the rule setting it");
+    require(resolved_blur != nullptr && (*resolved_blur).number == 4.0, "the later rule's blur wins");
+    require(fields[static_cast<std::size_t>(MaterialField::drop_shadow)] == nullptr &&
+                fields[static_cast<std::size_t>(MaterialField::mask)] == nullptr,
+            "the dropped fields resolve to nothing");
+    CompiledThemeRules::PartFacts part = face_of("x", none);
+    rules.resolve_content_effect(part, fields);
+    require(fields[static_cast<std::size_t>(MaterialField::filter_blur)] == nullptr,
+            "a part's facts have no content effect");
+    require(content_effect_field(MaterialField::mask_modes) && !content_effect_field(MaterialField::mask_sizes) &&
+                !content_effect_field(MaterialField::drop_shadow),
+            "the content effect's fields are the filter's colour stages and blur and the mask's layers");
+}
+
 int main() {
     levels_in_order();
     families_and_exclusions();
@@ -691,6 +762,7 @@ int main() {
     style_classes();
     paint_path();
     surface_rules();
+    content_effect_rules();
     item_rules();
     std::cout << "theme cascade: levels, specificity, diagnostics, budgets, engine versions, classes and the paint "
                  "path, item rules passed\n";

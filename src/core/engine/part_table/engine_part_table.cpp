@@ -81,8 +81,10 @@ bool material_reads_images(const SurfaceMaterial& material) noexcept {
     for (const MaterialFillLayer& layer : material.fills) {
         if (layer.kind == MaterialFillKind::image) return true;
     }
-    const bool image_mask = material.mask && (*material.mask).kind == MaterialFillKind::image;
-    return image_mask;
+    for (const MaterialMaskLayer& layer : material.masks) {
+        if (layer.source.kind == MaterialFillKind::image) return true;
+    }
+    return false;
 }
 
 // Whether a material primitive's lent material, and the images it reads,

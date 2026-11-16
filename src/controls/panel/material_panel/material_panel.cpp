@@ -23,11 +23,11 @@ void MaterialPanel::on_attached_to_window() {
 void MaterialPanel::validate_window_images(
     const SurfaceMaterial& recipe) const {
     if (window() == nullptr) return;
-    // The fills, then an image mask (E9.6).
+    // The fills, then the mask's layers (E9.6).
     std::vector<const MaterialFillLayer*> layers{};
-    layers.reserve(recipe.fills.size() + 1U);
+    layers.reserve(recipe.fills.size() + recipe.masks.size());
     for (const MaterialFillLayer& fill : recipe.fills) layers.push_back(&fill);
-    if (recipe.mask) layers.push_back(&*recipe.mask);
+    for (const MaterialMaskLayer& mask : recipe.masks) layers.push_back(&mask.source);
     for (const MaterialFillLayer* layer : layers) {
         const MaterialFillLayer& fill = *layer;
         if (fill.kind != MaterialFillKind::image) continue;

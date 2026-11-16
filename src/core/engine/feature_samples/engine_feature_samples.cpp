@@ -434,20 +434,21 @@ void finish(const FeatureSampleInputs&, ThemeDefinition& definition) {
 void mask_solid(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
     material.shadows.push_back(MaterialShadow{Point{0.0, 2.0}, 3.0, 0.0, Color::rgba(20, 30, 42, 96), false});
-    material.mask = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 144));
+    material.masks.push_back(MaterialMaskLayer{.source = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 144))});
     draw_material(definition, material, "mask_solid");
 }
 
 void mask_linear(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
-    material.mask = MaterialFillLayer::linear(Point{0.0, 0.0}, Point{1.0, 0.0},
-                                              two_stops(Color::rgba(0, 0, 0, 255), Color::rgba(0, 0, 0, 0)));
+    const MaterialFillLayer fade = MaterialFillLayer::linear(Point{0.0, 0.0}, Point{1.0, 0.0},
+                                                             two_stops(Color::rgba(0, 0, 0, 255), Color::rgba(0, 0, 0, 0)));
+    material.masks.push_back(MaterialMaskLayer{.source = fade});
     draw_material(definition, material, "mask_linear");
 }
 
 void mask_image(const FeatureSampleInputs& inputs, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
-    material.mask = MaterialFillLayer::stretched_image(inputs.image, image_size);
+    material.masks.push_back(MaterialMaskLayer{.source = MaterialFillLayer::stretched_image(inputs.image, image_size)});
     draw_material(definition, material, "mask_image");
 }
 

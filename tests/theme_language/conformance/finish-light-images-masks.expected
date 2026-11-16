@@ -16,8 +16,8 @@ rule 2 theme_sheet type=button part=glyph
   label button::part(glyph)
   decl primitive = name material
   material mask mask colours=[#000000ff]
-rule 3 theme_sheet type=track_bar
-  label track-bar
+rule 3 theme_sheet type=track_bar part=track
+  label track-bar::part(track)
   decl primitive = name material
   material mask mask colours=[#000000ff]
 rule 4 theme_sheet type=button part=face

@@ -206,7 +206,9 @@ bool GlassPrimitive::accepts(const PrimitiveParameterBlock& parameters, const Pr
     for (const MaterialFillLayer& layer : material.fills) {
         if (lent_only_to_materials(layer)) return false;
     }
-    if (material.mask && lent_only_to_materials(*material.mask)) return false;
+    for (const MaterialMaskLayer& mask : material.masks) {
+        if (lent_only_to_materials(mask.source)) return false;
+    }
     // The authored material bounds the layers drawn, which are fewer.
     const BakeEffort effort = material_bake_effort(material, target, 0.0);
     const bool within = effort <= maximum_material_bake_effort;
@@ -283,6 +285,7 @@ void GlassPrimitive::fill(const PrimitiveParameterBlock& parameters, const Primi
     // The backdrop's colour filter, from the recipe's material (E9.6).
     const bool filtered = lent != nullptr && (*lent).colour_filter.has_value();
     const MaterialColourMatrix filter = filtered ? *(*lent).colour_filter : MaterialColourMatrix{};
+    const MaterialColourTable* const table = filtered ? (*lent).colour_filter.table() : nullptr;
     const Unit over = premultiply(tint, 1.0);
     for (std::size_t row = 0U; row < height; ++row) {
         const std::size_t start = row * destination.row_bytes;
@@ -292,11 +295,11 @@ void GlassPrimitive::fill(const PrimitiveParameterBlock& parameters, const Primi
                 const std::size_t at = row * blurred.stride + column * lanes;
                 pixel = Unit{unit_lane(blurred.pixels[at + 2U]), unit_lane(blurred.pixels[at + 1U]),
                              unit_lane(blurred.pixels[at]), unit_lane(blurred.pixels[at + 3U])};
-                if (filtered) pixel = colour_filtered(filter, pixel);
+                if (filtered) pixel = colour_staged(filter, table, pixel);
             }
             if (flattened_over_backplane) {
                 pixel = backplane_pixel(*target.backplane, margin, column, row);
-                if (filtered) pixel = colour_filtered(filter, pixel);
+                if (filtered) pixel = colour_staged(filter, table, pixel);
             }
             if (!material_layers) blend_over(pixel, over);
             if (flattened) pixel = opaque_of(pixel);

@@ -1,0 +1,7 @@
+compiled
+rule 0 theme_sheet type=button
+  label button
+  content material colour_filter colours=[#000000ff]
+  content material filter_blur number=2 lengths=[2] colours=[#000000ff]
+  content material mask mask colours=[#000000ff]
+  content material mask_modes mode(1) colours=[#000000ff]

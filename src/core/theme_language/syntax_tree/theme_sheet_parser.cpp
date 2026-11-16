@@ -43,13 +43,14 @@ enum class GroupScan : std::uint8_t { component_values, any_balanced };
     return TokenKind::right_paren;
 }
 
-enum class AtRuleName : std::uint8_t { import_rule, media, keyframes, theme, unknown };
+enum class AtRuleName : std::uint8_t { import_rule, media, keyframes, theme, filter, unknown };
 
 [[nodiscard]] AtRuleName at_rule_name(std::string_view name) noexcept {
     if (equals_ascii_folded(name, "import")) return AtRuleName::import_rule;
     if (equals_ascii_folded(name, "media")) return AtRuleName::media;
     if (equals_ascii_folded(name, "keyframes")) return AtRuleName::keyframes;
     if (equals_ascii_folded(name, "theme")) return AtRuleName::theme;
+    if (equals_ascii_folded(name, "filter")) return AtRuleName::filter;
     return AtRuleName::unknown;
 }
 
@@ -79,6 +80,8 @@ private:
     void parse_unknown_at_rule(std::uint32_t at);
     // `@theme { ... }`: first in the sheet, and once.
     void parse_theme_header(std::uint32_t at);
+    // `@filter <id> { <declarations> }`: the prelude one identifier.
+    void parse_filter_rule(std::uint32_t at);
     void parse_rule(SyntaxNodeKind kind, bool top_level);
     void parse_rule_list_block(SyntaxNodeKind child_kind);
     void parse_declaration_block(bool in_keyframes);
@@ -264,6 +267,10 @@ void SheetParser::parse_at_rule() {
         parse_block_at_rule(at, SyntaxNodeKind::keyframes_rule);
         return;
     }
+    if (known == AtRuleName::filter) {
+        parse_filter_rule(at);
+        return;
+    }
     parse_unknown_at_rule(at);
 }
 
@@ -348,6 +355,36 @@ void SheetParser::parse_theme_header(std::uint32_t at) {
         if (prelude.end.value != prelude.first.value) {
             fail_at_token(DiagnosticCode::unexpected_token, prelude.first.value,
                           std::string(token_kind_name(tokens_[prelude.first.value].kind)));
+        } else {
+            tree_.nodes[node].content = prelude;
+            if (push(next_)) {
+                ++next_;
+                parse_declaration_block(false);
+            }
+        }
+    } else if (end == ItemEnd::semicolon) {
+        fail_at_token(DiagnosticCode::unexpected_token, next_, "semicolon");
+    } else if (end == ItemEnd::right_brace) {
+        fail_at_token(DiagnosticCode::unbalanced_block, next_, "no opening");
+    } else if (end == ItemEnd::end_of_sheet) {
+        fail_at_end_of_sheet();
+    }
+    close_node(node, next_);
+}
+
+void SheetParser::parse_filter_rule(std::uint32_t at) {
+    const std::uint32_t node = open_node(SyntaxNodeKind::filter_rule, at);
+    ++next_;
+    const std::uint32_t prelude_first = next_;
+    const ItemEnd end = scan_to_item_end();
+    if (end == ItemEnd::left_brace) {
+        const TokenRange prelude = trimmed(prelude_first, next_);
+        const std::uint32_t written = prelude.end.value - prelude.first.value;
+        const bool one_name = written == 1U && tokens_[prelude.first.value].kind == TokenKind::ident;
+        if (!one_name) {
+            const std::uint32_t offending = written == 0U ? next_ : prelude.first.value;
+            fail_at_token(DiagnosticCode::unexpected_token, offending,
+                          std::string(token_kind_name(tokens_[offending].kind)));
         } else {
             tree_.nodes[node].content = prelude;
             if (push(next_)) {

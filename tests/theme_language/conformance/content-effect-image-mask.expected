@@ -1,0 +1,2 @@
+refused
+E405 value_form_not_admitted 2:25 rule=track-bar property=mask-image detail=an image mask on a control's content effect; write it on ::part(face)

@@ -599,6 +599,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/effect_registry/effect_registry.cpp
     src/core/surface_material/colour_matrix/colour_matrix.cpp
     src/core/surface_material/material_fill_layer/material_fill_layer.cpp
+    src/core/surface_material/paint_group_effect/paint_group_effect.cpp
     src/core/surface_material/presets/material_presets.cpp
     src/core/surface_material/types/surface_material_types.cpp
     src/core/text/markdown/markdown.cpp
@@ -741,6 +742,7 @@ add_library(gui_forms_core STATIC
     src/core/feedback/semantic_feedback/semantic_feedback.cpp
     src/core/display/chunk/display_chunk.cpp
     src/core/display/recording_painter/recording_painter.cpp
+    src/core/display/group_effect/group_effect.cpp
     src/core/display/replay/replay_display_chunk.cpp
     src/core/display/snapshot/display_snapshot.cpp
     src/core/display/snapshot/splash_baker.cpp
@@ -4245,6 +4247,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_paint_group_tests tests/paint_group_tests.cpp)
     target_link_libraries(gui_forms_paint_group_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_paint_group_tests COMMAND gui_forms_paint_group_tests)
+    add_executable(gui_forms_group_effect_tests tests/group_effect_tests.cpp)
+    target_link_libraries(gui_forms_group_effect_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_group_effect_tests COMMAND gui_forms_group_effect_tests)
     add_executable(gui_forms_text_composite_tests tests/text_composite_tests.cpp)
     target_link_libraries(gui_forms_text_composite_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_text_composite_tests COMMAND gui_forms_text_composite_tests)

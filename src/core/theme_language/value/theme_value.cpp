@@ -446,6 +446,10 @@ private:
     [[nodiscard]] bool read_component();
     [[nodiscard]] bool number_of(std::size_t at, NumberRead& number);
     [[nodiscard]] bool read_resource(std::size_t at);
+    // Pushes a fragment component for `id` (url(#id)), `next_` after
+    // `close`; false, reporting at `argument_token`, for an empty id.
+    [[nodiscard]] bool push_fragment(std::uint32_t token, std::uint32_t argument_token, std::string_view id,
+                                     std::size_t close);
     [[nodiscard]] bool open_function(std::size_t at);
     [[nodiscard]] bool close_function();
     [[nodiscard]] bool children_of(std::uint32_t function, ChildList& children);
@@ -641,14 +645,23 @@ bool ValuePass::read_resource(std::size_t at) {
     const std::uint32_t token = stream_[at].token;
     const std::size_t argument = at + 1U;
     const std::size_t close = at + 2U;
-    const bool shaped = close < stream_.size() && is_sheet(argument) && is_sheet(close) &&
-                        kind_of(argument) == TokenKind::string && kind_of(close) == TokenKind::right_paren;
+    const bool closed = close < stream_.size() && is_sheet(argument) && is_sheet(close) &&
+                        kind_of(close) == TokenKind::right_paren;
+    // url(#id), unquoted: a fragment reference.
+    if (closed && kind_of(argument) == TokenKind::hash) {
+        const std::string_view hashed = text_of(argument);
+        return push_fragment(token, stream_[argument].token, hashed.substr(1U), close);
+    }
+    const bool shaped = closed && kind_of(argument) == TokenKind::string;
     if (!shaped) {
         report(DiagnosticCode::value_syntax, token, "url() takes one string");
         return false;
     }
     const std::string_view quoted = text_of(argument);
     const std::string_view written = quoted.substr(1U, quoted.size() - 2U);
+    if (!written.empty() && written[0] == '#') {
+        return push_fragment(token, stream_[argument].token, written.substr(1U), close);
+    }
     constexpr std::string_view scheme = "resource:";
     if (written.substr(0U, scheme.size()) != scheme) {
         report(DiagnosticCode::value_form_not_admitted, stream_[argument].token, clipped_theme_detail(written));
@@ -666,6 +679,21 @@ bool ValuePass::read_resource(std::size_t at) {
     ValueComponent component{};
     component.kind = ValueComponentKind::resource;
     component.text = name;
+    component.token = token;
+    push_component(component);
+    next_ = close + 1U;
+    return true;
+}
+
+bool ValuePass::push_fragment(const std::uint32_t token, const std::uint32_t argument_token, const std::string_view id,
+                              const std::size_t close) {
+    if (id.empty()) {
+        report(DiagnosticCode::value_syntax, argument_token, "url(#) names no filter");
+        return false;
+    }
+    ValueComponent component{};
+    component.kind = ValueComponentKind::fragment;
+    component.text = id;
     component.token = token;
     push_component(component);
     next_ = close + 1U;

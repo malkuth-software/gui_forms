@@ -796,8 +796,9 @@ void RecordingPainter::fill_image_pattern(
 }
 
 void RecordingPainter::begin_group(const PaintGroup& group) {
-    // A copy group replaces what lies beneath it, transparent included.
-    if (group.composite == PaintGroupComposite::copy) opaque_cover_.reset();
+    // A copy group replaces what lies beneath it, transparent included; an
+    // effect may make what it covers translucent.
+    if (group.composite == PaintGroupComposite::copy || group.effect) opaque_cover_.reset();
     OpenGroup opened{};
     opened.save_depth = save_depth_;
     if (group_depth_ >= maximum_paint_group_depth) {
@@ -817,6 +818,7 @@ void RecordingPainter::begin_group(const PaintGroup& group) {
     command.scalar = group.opacity;
     command.secondary_scalar = static_cast<double>(group.composite);
     command.tertiary_scalar = group.isolated ? 1.0 : 0.0;
+    command.group_effect = group.effect;
     open_groups_.reserve(open_groups_.size() + 1U);
     commands_.push_back(std::move(command));
     open_groups_.push_back(opened);

@@ -41,7 +41,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 95> material_properties{{
+constexpr std::array<NamedMaterialProperty, 100> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -106,7 +106,12 @@ constexpr std::array<NamedMaterialProperty, 95> material_properties{{
     {.name = "letter-spacing", .property = MaterialProperty::letter_spacing},
     {.name = "margin-bottom", .property = MaterialProperty::margin_bottom},
     {.name = "margin-top", .property = MaterialProperty::margin_top},
+    {.name = "mask-composite", .property = MaterialProperty::mask_composite},
     {.name = "mask-image", .property = MaterialProperty::mask_image},
+    {.name = "mask-mode", .property = MaterialProperty::mask_mode},
+    {.name = "mask-position", .property = MaterialProperty::mask_position},
+    {.name = "mask-repeat", .property = MaterialProperty::mask_repeat},
+    {.name = "mask-size", .property = MaterialProperty::mask_size},
     {.name = "min-width", .property = MaterialProperty::min_width},
     {.name = "muted-color", .property = MaterialProperty::muted_color},
     {.name = "needle-shape", .property = MaterialProperty::needle_shape},
@@ -192,9 +197,15 @@ constexpr std::array<RecipeLonghand, 42> recipe_longhands{{
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
 // Sorted.
-constexpr std::array<std::string_view, 15> blend_modes_not_admitted{
-    "color", "color-burn", "color-dodge", "darken", "difference", "exclusion", "hard-light", "hue",
-    "lighten", "luminosity", "overlay", "plus-darker", "plus-lighter", "saturation", "soft-light",
+// The non-separable modes and the plus- modes are left out; the separable
+// ones are admitted (capability review, owner 2026-11-16).
+constexpr std::array<std::string_view, 6> blend_modes_not_admitted{
+    "color", "hue", "luminosity", "plus-darker", "plus-lighter", "saturation",
+};
+
+// The CSS names of MaterialBlendMode, in its order.
+constexpr std::array<std::string_view, 12> material_blend_names{
+    "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion",
 };
 static_assert(std::is_sorted(blend_modes_not_admitted.begin(), blend_modes_not_admitted.end()),
               "binary_search needs the table sorted");
@@ -750,6 +761,10 @@ enum class FilterFunction : std::uint8_t {
     opacity,
     saturate,
     sepia,
+    // The theme language's colour stages (owner 2026-11-16; not CSS).
+    fill,
+    duotone,
+    tritone,
 };
 
 struct NamedFilter final {
@@ -757,7 +772,7 @@ struct NamedFilter final {
     FilterFunction function{FilterFunction::blur};
 };
 
-constexpr std::array<NamedFilter, 10> filter_functions{{
+constexpr std::array<NamedFilter, 13> filter_functions{{
     {.name = "blur", .function = FilterFunction::blur},
     {.name = "brightness", .function = FilterFunction::brightness},
     {.name = "contrast", .function = FilterFunction::contrast},
@@ -768,6 +783,9 @@ constexpr std::array<NamedFilter, 10> filter_functions{{
     {.name = "opacity", .function = FilterFunction::opacity},
     {.name = "saturate", .function = FilterFunction::saturate},
     {.name = "sepia", .function = FilterFunction::sepia},
+    {.name = "fill", .function = FilterFunction::fill},
+    {.name = "duotone", .function = FilterFunction::duotone},
+    {.name = "tritone", .function = FilterFunction::tritone},
 }};
 
 [[nodiscard]] const NamedFilter* filter_function(std::string_view name) noexcept {
@@ -954,6 +972,7 @@ private:
     bool read_shadow(ComponentRange range, MaterialShadow& shadow);
     bool read_amount(std::size_t function, double& amount);
     bool read_colour_function(std::size_t function, FilterFunction kind, MaterialColourMatrix& matrix);
+    bool read_function_colours(std::size_t function, std::span<Color> colours);
     bool read_blur(std::size_t function, double& deviation);
     bool read_drop_shadow(std::size_t function, MaterialDropShadow& shadow);
     bool read_glow(ComponentRange range, MaterialGlow& glow);
@@ -963,9 +982,9 @@ private:
     bool lower_background_colour();
     bool lower_background_image();
     bool lower_blend_modes();
-    bool lower_positions();
-    bool lower_sizes();
-    bool lower_repeats();
+    bool lower_positions(MaterialField field, std::size_t maximum_layers);
+    bool lower_sizes(MaterialField field, std::size_t maximum_layers);
+    bool lower_repeats(MaterialField field, std::size_t maximum_layers);
     bool lower_background();
     bool lower_edges(std::size_t first_edge, std::size_t edge_count);
     bool lower_sides(std::size_t part);
@@ -987,6 +1006,8 @@ private:
     bool lower_glows();
     bool lower_glow_placements();
     bool lower_mask();
+    bool lower_mask_modes();
+    bool lower_mask_composites();
     bool lower_reflection();
     bool lower_keylines();
     [[nodiscard]] bool outline_style_word(std::size_t index) const noexcept;
@@ -1741,14 +1762,16 @@ bool MaterialReader::read_image_repeat(ComponentRange range, MaterialImageRepeat
     return true;
 }
 
-bool MaterialReader::lower_positions() {
+// `background-position` or `mask-position` (as `field` says): one entry
+// per layer, at most `maximum_layers`.
+bool MaterialReader::lower_positions(MaterialField field, std::size_t maximum_layers) {
     std::vector<ComponentRange> layers{};
     split(ComponentRange{0U, value_.components.size()}, layers);
-    if (layers.size() > SurfaceMaterial::maximum_fill_layers) {
-        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_fill_layers));
+    if (layers.size() > maximum_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(maximum_layers));
     }
     MaterialDeclaration declaration{};
-    declaration.field = MaterialField::fill_positions;
+    declaration.field = field;
     declaration.image_positions.resize(layers.size());
     for (std::size_t layer = 0U; layer < layers.size(); ++layer) {
         if (!read_image_position(layers[layer], declaration.image_positions[layer])) return false;
@@ -1757,14 +1780,16 @@ bool MaterialReader::lower_positions() {
     return true;
 }
 
-bool MaterialReader::lower_sizes() {
+// `background-size` or `mask-size` (as `field` says): one entry per
+// layer, at most `maximum_layers`.
+bool MaterialReader::lower_sizes(MaterialField field, std::size_t maximum_layers) {
     std::vector<ComponentRange> layers{};
     split(ComponentRange{0U, value_.components.size()}, layers);
-    if (layers.size() > SurfaceMaterial::maximum_fill_layers) {
-        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_fill_layers));
+    if (layers.size() > maximum_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(maximum_layers));
     }
     MaterialDeclaration declaration{};
-    declaration.field = MaterialField::fill_sizes;
+    declaration.field = field;
     declaration.image_sizes.resize(layers.size());
     for (std::size_t layer = 0U; layer < layers.size(); ++layer) {
         if (!read_image_size(layers[layer], declaration.image_sizes[layer])) return false;
@@ -1773,14 +1798,16 @@ bool MaterialReader::lower_sizes() {
     return true;
 }
 
-bool MaterialReader::lower_repeats() {
+// `background-repeat` or `mask-repeat` (as `field` says): one entry per
+// layer, at most `maximum_layers`.
+bool MaterialReader::lower_repeats(MaterialField field, std::size_t maximum_layers) {
     std::vector<ComponentRange> layers{};
     split(ComponentRange{0U, value_.components.size()}, layers);
-    if (layers.size() > SurfaceMaterial::maximum_fill_layers) {
-        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_fill_layers));
+    if (layers.size() > maximum_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(maximum_layers));
     }
     MaterialDeclaration declaration{};
-    declaration.field = MaterialField::fill_repeats;
+    declaration.field = field;
     declaration.image_repeats.resize(layers.size());
     for (std::size_t layer = 0U; layer < layers.size(); ++layer) {
         if (!read_image_repeat(layers[layer], declaration.image_repeats[layer])) return false;
@@ -2284,7 +2311,36 @@ bool MaterialReader::read_amount(std::size_t function, double& amount) {
     return true;
 }
 
+// A house colour function's colours (fill(), duotone(), tritone()):
+// exactly colours.size() comma-separated colours.
+bool MaterialReader::read_function_colours(std::size_t function, std::span<Color> colours) {
+    const ValueComponent& written = value_.components[function];
+    std::vector<ComponentRange> arguments{};
+    split(ComponentRange{function + 1U, written.subtree_end}, arguments);
+    if (arguments.size() != colours.size()) {
+        return fail(DiagnosticCode::value_syntax, written.token,
+                    std::to_string(colours.size()) + " comma-separated colours");
+    }
+    for (std::size_t index = 0U; index < colours.size(); ++index) {
+        if (count(arguments[index]) != 1U) return fail(DiagnosticCode::value_syntax, written.token, "one colour");
+        if (!read_colour(arguments[index].first, colours[index])) return false;
+    }
+    return true;
+}
+
 bool MaterialReader::read_colour_function(std::size_t function, FilterFunction kind, MaterialColourMatrix& matrix) {
+    if (kind == FilterFunction::fill) {
+        std::array<Color, 1> colour{};
+        if (!read_function_colours(function, colour)) return false;
+        matrix = MaterialColourMatrix::fill(colour[0]);
+        return true;
+    }
+    if (kind == FilterFunction::duotone) {
+        std::array<Color, 2> pair{};
+        if (!read_function_colours(function, pair)) return false;
+        matrix = MaterialColourMatrix::duotone(pair[0], pair[1]);
+        return true;
+    }
     if (kind == FilterFunction::hue_rotate) {
         const ValueComponent& written = value_.components[function];
         const ComponentRange arguments{function + 1U, written.subtree_end};
@@ -2307,7 +2363,10 @@ bool MaterialReader::read_colour_function(std::size_t function, FilterFunction k
     case FilterFunction::sepia: matrix = MaterialColourMatrix::sepia(amount); return true;
     case FilterFunction::blur:
     case FilterFunction::drop_shadow:
-    case FilterFunction::hue_rotate: break;
+    case FilterFunction::hue_rotate:
+    case FilterFunction::fill:
+    case FilterFunction::duotone:
+    case FilterFunction::tritone: break;
     // A value outside the enumeration is no colour function: the matrix
     // is left as it is.
     default: break;
@@ -2371,7 +2430,14 @@ bool MaterialReader::read_drop_shadow(std::size_t function, MaterialDropShadow& 
 // blur(), whose colour the colour functions after it also turn. A
 // drop-shadow() after blur(), a second drop-shadow(), opacity() after a
 // drop-shadow() (which would fade the shadow twice) and an SVG filter
-// reference are not admitted.
+// reference are not admitted. The theme language's fill(<colour>),
+// duotone(<dark>, <light>) and tritone(<shadow>, <midtone>, <highlight>)
+// (owner 2026-11-16) are colour functions too: fill and duotone one matrix
+// each, tritone the luminance matrix and then a colour table
+// (MaterialColourTable). After a table, a colour function that reads only
+// its own channel (brightness(), contrast(), invert(), opacity()) folds
+// into the table; one that mixes channels, a second tritone(), and a
+// tritone() after drop-shadow() are not admitted.
 bool MaterialReader::lower_filter() {
     MaterialDeclaration colour{};
     colour.field = MaterialField::colour_filter;
@@ -2388,10 +2454,41 @@ bool MaterialReader::lower_filter() {
     bool blurred = false;
     MaterialDropShadow shadow{};
     bool shadowed = false;
+    std::optional<MaterialColourTable> table{};
     for (std::size_t index = 0U; index < whole.end && !none; index = next(index)) {
         const ValueComponent& component = value_.components[index];
         if (component.kind == ValueComponentKind::resource) {
             return fail(DiagnosticCode::value_form_not_admitted, component.token, "an SVG filter reference");
+        }
+        if (component.kind == ValueComponentKind::fragment) {
+            // url(#id): a theme-declared @filter, the last of its name.
+            const NamedThemeFilter* found = nullptr;
+            for (const NamedThemeFilter& declared : lowering_.filters) {
+                if (declared.name == component.text) found = &declared;
+            }
+            if (found == nullptr) {
+                return fail(DiagnosticCode::resource_unknown, component.token,
+                            "#" + clipped_theme_detail(component.text));
+            }
+            const MaterialColourStages& stages = (*found).stages;
+            if (stages.table && (table || shadowed)) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            table ? "a second colour table" : "a component-transfer after drop-shadow()");
+            }
+            if (stages.table) {
+                composed = composed.then(stages.matrix);
+                table = *stages.table;
+            } else if (!table) {
+                composed = composed.then(stages.matrix);
+                if (shadowed) after_shadow = after_shadow.then(stages.matrix);
+            } else if (stages.matrix.per_channel()) {
+                table = (*table).then_matrix(stages.matrix);
+            } else {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            "#" + clipped_theme_detail(component.text) + " after a colour table");
+            }
+            filtered = true;
+            continue;
         }
         const NamedFilter* const named =
             component.kind == ValueComponentKind::function ? filter_function(component.text) : nullptr;
@@ -2414,13 +2511,36 @@ bool MaterialReader::lower_filter() {
         if (kind == FilterFunction::opacity && shadowed) {
             return fail(DiagnosticCode::value_form_not_admitted, component.token, "opacity() after drop-shadow()");
         }
+        if (kind == FilterFunction::tritone) {
+            if (table) return fail(DiagnosticCode::value_form_not_admitted, component.token, "a second tritone()");
+            if (shadowed) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token, "tritone() after drop-shadow()");
+            }
+            std::array<Color, 3> tones{};
+            if (!read_function_colours(index, tones)) return false;
+            composed = composed.then(MaterialColourMatrix::luminance());
+            table = MaterialColourTable::tritone(tones[0], tones[1], tones[2]);
+            filtered = true;
+            continue;
+        }
         MaterialColourMatrix matrix{};
         if (!read_colour_function(index, kind, matrix)) return false;
-        composed = composed.then(matrix);
+        if (!table) {
+            composed = composed.then(matrix);
+        } else if (matrix.per_channel()) {
+            table = (*table).then_matrix(matrix);
+        } else {
+            return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                        clipped_theme_detail(component.text) + "() after tritone()");
+        }
         filtered = true;
         if (shadowed) after_shadow = after_shadow.then(matrix);
     }
-    if (filtered) colour.colour_filter = composed;
+    if (filtered && table) {
+        colour.colour_filter = MaterialColourFilter(composed, *table);
+    } else if (filtered) {
+        colour.colour_filter = composed;
+    }
     if (shadowed) {
         shadow.color = filtered_colour(after_shadow, shadow.color);
         drop.drop_shadow = shadow;
@@ -2834,10 +2954,13 @@ bool MaterialReader::lower_keylines() {
     return true;
 }
 
-// `mask-image`: none, one gradient or one image, whose alpha the engine
-// multiplies the finished part by; an image tiled at its own size (CSS's
-// initial mask size and repetition), a fixed gradient resolved now, the
-// others when the material is assembled for a part.
+// `mask-image`: none, or up to SurfaceMaterial::maximum_mask_layers
+// layers in CSS's order (the top layer first), each one gradient or one
+// image, at most one of them an image; an image tiled at its own size
+// (CSS's initial mask size and repetition), a fixed gradient resolved now,
+// the others when the material is assembled for a part. The layers are
+// stored bottom first, read by alpha and added until `mask-mode` and
+// `mask-composite` say otherwise.
 bool MaterialReader::lower_mask() {
     MaterialDeclaration declaration{};
     declaration.field = MaterialField::mask;
@@ -2848,20 +2971,106 @@ bool MaterialReader::lower_mask() {
     }
     std::vector<ComponentRange> layers{};
     split(whole, layers);
-    if (layers.size() > 1U) return fail(DiagnosticCode::too_many_layers, start_, "1 mask layer");
-    if (count(layers[0]) != 1U) return fail(DiagnosticCode::value_syntax, start_, "one image");
-    WrittenLayer written{};
-    if (!read_image(0U, written)) return false;
-    MaterialFillLayer layer = written.image;
-    if (!written.imaged) resolve_authored_gradient(written.gradient, Size{100.0, 100.0}, layer);
+    if (layers.size() > SurfaceMaterial::maximum_mask_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_,
+                    std::to_string(SurfaceMaterial::maximum_mask_layers) + " mask layers");
+    }
+    const std::size_t layer_count = layers.size();
+    declaration.masks.resize(layer_count);
+    std::vector<AuthoredGradient> gradients(layer_count);
+    bool deferred = false;
     SurfaceMaterial checked{};
-    checked.mask = layer;
+    checked.masks.resize(layer_count);
+    for (std::size_t from_top = 0U; from_top < layer_count; ++from_top) {
+        const ComponentRange range = layers[from_top];
+        if (count(range) != 1U) return fail(DiagnosticCode::value_syntax, start_, "one image in each mask layer");
+        WrittenLayer written{};
+        if (!read_image(range.first, written)) return false;
+        const std::size_t bottom_first = layer_count - 1U - from_top;
+        MaterialFillLayer layer = written.image;
+        if (!written.imaged) resolve_authored_gradient(written.gradient, Size{100.0, 100.0}, layer);
+        checked.masks[bottom_first].source = layer;
+        if (written.imaged || fixed_gradient(written.gradient)) {
+            declaration.masks[bottom_first] = layer;
+            continue;
+        }
+        declaration.masks[bottom_first] = MaterialFillLayer{};
+        gradients[bottom_first] = std::move(written.gradient);
+        deferred = true;
+    }
     if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a mask");
-    if (written.imaged || fixed_gradient(written.gradient)) {
-        declaration.mask = layer;
-    } else {
-        declaration.mask = MaterialFillLayer{};
-        declaration.gradients.push_back(std::move(written.gradient));
+    // One authored gradient per layer when any waits for the part's box;
+    // a layer kept as written has a solid entry (MaterialDeclaration).
+    if (deferred) declaration.gradients = std::move(gradients);
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// `mask-mode`: one keyword per layer, in CSS's order: `alpha`,
+// `luminance`, `match-source` (an image's alpha, as CSS reads an image
+// layer), or the theme language's `inverse-alpha` and `inverse-luminance`
+// (owner 2026-11-16; not CSS).
+bool MaterialReader::lower_mask_modes() {
+    std::vector<ComponentRange> layers{};
+    split(ComponentRange{0U, value_.components.size()}, layers);
+    if (layers.size() > SurfaceMaterial::maximum_mask_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_mask_layers));
+    }
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::mask_modes;
+    declaration.mask_modes.reserve(layers.size());
+    for (const ComponentRange range : layers) {
+        const ValueComponent& component = value_.components[range.first];
+        if (count(range) != 1U) return fail(DiagnosticCode::value_syntax, component.token, "one mask mode");
+        MaterialMaskMode mode = MaterialMaskMode::alpha;
+        if (keyword(range.first, "alpha") || keyword(range.first, "match-source")) {
+            mode = MaterialMaskMode::alpha;
+        } else if (keyword(range.first, "luminance")) {
+            mode = MaterialMaskMode::luminance;
+        } else if (keyword(range.first, "inverse-alpha")) {
+            mode = MaterialMaskMode::inverse_alpha;
+        } else if (keyword(range.first, "inverse-luminance")) {
+            mode = MaterialMaskMode::inverse_luminance;
+        } else if (component.kind == ValueComponentKind::keyword) {
+            return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+        } else {
+            return fail(DiagnosticCode::value_wrong_kind, component.token, "a mask mode");
+        }
+        declaration.mask_modes.push_back(mode);
+    }
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// `mask-composite`: one keyword per layer, in CSS's order: `add`,
+// `subtract`, `intersect` or `exclude` (MaterialMaskComposite).
+bool MaterialReader::lower_mask_composites() {
+    std::vector<ComponentRange> layers{};
+    split(ComponentRange{0U, value_.components.size()}, layers);
+    if (layers.size() > SurfaceMaterial::maximum_mask_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_mask_layers));
+    }
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::mask_composites;
+    declaration.mask_composites.reserve(layers.size());
+    for (const ComponentRange range : layers) {
+        const ValueComponent& component = value_.components[range.first];
+        if (count(range) != 1U) return fail(DiagnosticCode::value_syntax, component.token, "one mask composite");
+        MaterialMaskComposite composite = MaterialMaskComposite::add;
+        if (keyword(range.first, "add")) {
+            composite = MaterialMaskComposite::add;
+        } else if (keyword(range.first, "subtract")) {
+            composite = MaterialMaskComposite::subtract;
+        } else if (keyword(range.first, "intersect")) {
+            composite = MaterialMaskComposite::intersect;
+        } else if (keyword(range.first, "exclude")) {
+            composite = MaterialMaskComposite::exclude;
+        } else if (component.kind == ValueComponentKind::keyword) {
+            return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+        } else {
+            return fail(DiagnosticCode::value_wrong_kind, component.token, "a mask composite");
+        }
+        declaration.mask_composites.push_back(composite);
     }
     lowering_.declarations.push_back(std::move(declaration));
     return true;
@@ -2995,12 +3204,13 @@ bool MaterialReader::lower_blend_modes() {
     for (const ComponentRange& mode : modes) {
         if (count(mode) != 1U) return fail(DiagnosticCode::value_syntax, start_, "one blend mode per layer");
         const ValueComponent& component = value_.components[mode.first];
-        if (keyword(mode.first, "normal")) {
-            declaration.blend_modes.push_back(MaterialBlendMode::normal);
-        } else if (keyword(mode.first, "multiply")) {
-            declaration.blend_modes.push_back(MaterialBlendMode::multiply);
-        } else if (keyword(mode.first, "screen")) {
-            declaration.blend_modes.push_back(MaterialBlendMode::screen);
+        std::optional<MaterialBlendMode> named{};
+        for (std::size_t position = 0U; position < material_blend_names.size(); ++position) {
+            if (!keyword(mode.first, material_blend_names[position])) continue;
+            named = static_cast<MaterialBlendMode>(static_cast<std::uint8_t>(position));
+        }
+        if (named) {
+            declaration.blend_modes.push_back(*named);
         } else if (component.kind == ValueComponentKind::keyword && css_blend_mode_not_admitted(component.text)) {
             return fail(DiagnosticCode::value_form_not_admitted, component.token, clipped_theme_detail(component.text));
         } else if (component.kind == ValueComponentKind::keyword) {
@@ -4105,9 +4315,15 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::background_color: static_cast<void>(lower_background_colour()); return;
     case MaterialProperty::background_image: static_cast<void>(lower_background_image()); return;
     case MaterialProperty::background_blend_mode: static_cast<void>(lower_blend_modes()); return;
-    case MaterialProperty::background_position: static_cast<void>(lower_positions()); return;
-    case MaterialProperty::background_size: static_cast<void>(lower_sizes()); return;
-    case MaterialProperty::background_repeat: static_cast<void>(lower_repeats()); return;
+    case MaterialProperty::background_position:
+        static_cast<void>(lower_positions(MaterialField::fill_positions, SurfaceMaterial::maximum_fill_layers));
+        return;
+    case MaterialProperty::background_size:
+        static_cast<void>(lower_sizes(MaterialField::fill_sizes, SurfaceMaterial::maximum_fill_layers));
+        return;
+    case MaterialProperty::background_repeat:
+        static_cast<void>(lower_repeats(MaterialField::fill_repeats, SurfaceMaterial::maximum_fill_layers));
+        return;
     case MaterialProperty::border: static_cast<void>(lower_edges(0U, 4U)); return;
     case MaterialProperty::border_top: static_cast<void>(lower_edges(0U, 1U)); return;
     case MaterialProperty::border_right: static_cast<void>(lower_edges(1U, 1U)); return;
@@ -4139,6 +4355,17 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::glow: static_cast<void>(lower_glows()); return;
     case MaterialProperty::glow_placement: static_cast<void>(lower_glow_placements()); return;
     case MaterialProperty::mask_image: static_cast<void>(lower_mask()); return;
+    case MaterialProperty::mask_mode: static_cast<void>(lower_mask_modes()); return;
+    case MaterialProperty::mask_composite: static_cast<void>(lower_mask_composites()); return;
+    case MaterialProperty::mask_position:
+        static_cast<void>(lower_positions(MaterialField::mask_positions, SurfaceMaterial::maximum_mask_layers));
+        return;
+    case MaterialProperty::mask_size:
+        static_cast<void>(lower_sizes(MaterialField::mask_sizes, SurfaceMaterial::maximum_mask_layers));
+        return;
+    case MaterialProperty::mask_repeat:
+        static_cast<void>(lower_repeats(MaterialField::mask_repeats, SurfaceMaterial::maximum_mask_layers));
+        return;
     case MaterialProperty::reflection: static_cast<void>(lower_reflection()); return;
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
     case MaterialProperty::seat: static_cast<void>(lower_seat()); return;
@@ -4329,6 +4556,11 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::glow: fields.push_back(MaterialField::glows); return;
     case MaterialProperty::glow_placement: fields.push_back(MaterialField::glow_placements); return;
     case MaterialProperty::mask_image: fields.push_back(MaterialField::mask); return;
+    case MaterialProperty::mask_mode: fields.push_back(MaterialField::mask_modes); return;
+    case MaterialProperty::mask_composite: fields.push_back(MaterialField::mask_composites); return;
+    case MaterialProperty::mask_position: fields.push_back(MaterialField::mask_positions); return;
+    case MaterialProperty::mask_size: fields.push_back(MaterialField::mask_sizes); return;
+    case MaterialProperty::mask_repeat: fields.push_back(MaterialField::mask_repeats); return;
     case MaterialProperty::reflection: fields.push_back(MaterialField::reflection); return;
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
     case MaterialProperty::seat: fields.push_back(MaterialField::seat); return;
@@ -4487,6 +4719,214 @@ void lower_material_value(MaterialProperty property, const ThemeValue& value, st
                           std::span<const ThemeImageResource> images, MaterialLowering& lowering) {
     MaterialReader reader(value, start, images, lowering);
     reader.lower(property);
+}
+
+// -- @filter declarations --------------------------------------------------------
+
+namespace {
+
+// Reads one @filter declaration's value (see lower_theme_filter_declaration).
+class FilterRuleReader final {
+public:
+    FilterRuleReader(const ThemeValue& value, std::uint32_t start, NamedThemeFilter& filter,
+                     MaterialLoweringProblem& problem) noexcept
+        : value_(value), start_(start), filter_(filter), problem_(problem) {}
+
+    [[nodiscard]] bool colour_matrix();
+    [[nodiscard]] bool component_transfer();
+
+private:
+    [[nodiscard]] bool fail(DiagnosticCode code, std::uint32_t token, std::string detail);
+    // The plain number at component `index`; false, failing, for another
+    // component.
+    [[nodiscard]] bool plain_number(std::size_t index, double& number);
+    // The plain numbers that are the arguments of the function at `index`,
+    // between `least` and `most` of them.
+    [[nodiscard]] bool function_numbers(std::size_t index, std::size_t least, std::size_t most,
+                                        std::vector<double>& numbers);
+    // The component after `index` (past a function's arguments).
+    [[nodiscard]] std::size_t after(std::size_t index) const noexcept;
+    [[nodiscard]] bool transfer_function(std::size_t index, MaterialTransferFunction& function);
+
+    const ThemeValue& value_;
+    std::uint32_t start_{};
+    NamedThemeFilter& filter_;
+    MaterialLoweringProblem& problem_;
+};
+
+bool FilterRuleReader::fail(const DiagnosticCode code, const std::uint32_t token, std::string detail) {
+    problem_.code = code;
+    problem_.token = token;
+    problem_.detail = std::move(detail);
+    return false;
+}
+
+std::size_t FilterRuleReader::after(const std::size_t index) const noexcept {
+    const ValueComponent& component = value_.components[index];
+    if (component.kind == ValueComponentKind::function) return component.subtree_end;
+    return index + 1U;
+}
+
+bool FilterRuleReader::plain_number(const std::size_t index, double& number) {
+    const ValueComponent& component = value_.components[index];
+    const bool plain = component.kind == ValueComponentKind::number && component.unit == ValueUnit::none;
+    if (!plain) return fail(DiagnosticCode::value_wrong_kind, component.token, "a number");
+    if (!std::isfinite(component.number)) return fail(DiagnosticCode::value_out_of_range, component.token, "a number");
+    number = component.number;
+    return true;
+}
+
+bool FilterRuleReader::function_numbers(const std::size_t index, const std::size_t least, const std::size_t most,
+                                        std::vector<double>& numbers) {
+    const ValueComponent& function = value_.components[index];
+    numbers.clear();
+    for (std::size_t argument = index + 1U; argument < function.subtree_end; argument = after(argument)) {
+        if (value_.components[argument].kind == ValueComponentKind::comma) continue;
+        if (numbers.size() == most) {
+            return fail(DiagnosticCode::value_syntax, value_.components[argument].token,
+                        "at most " + std::to_string(most) + " numbers");
+        }
+        double number = 0.0;
+        if (!plain_number(argument, number)) return false;
+        numbers.push_back(number);
+    }
+    if (numbers.size() < least) {
+        return fail(DiagnosticCode::value_syntax, function.token, "at least " + std::to_string(least) + " numbers");
+    }
+    return true;
+}
+
+bool FilterRuleReader::colour_matrix() {
+    if (filter_.stages.table) {
+        return fail(DiagnosticCode::value_form_not_admitted, start_, "color-matrix after component-transfer");
+    }
+    const std::vector<ValueComponent>& components = value_.components;
+    MaterialColourMatrix matrix{};
+    const ValueComponent& first = components[0];
+    if (first.kind == ValueComponentKind::keyword && equals_ascii_folded(first.text, "luminance-to-alpha")) {
+        if (components.size() != 1U) return fail(DiagnosticCode::value_syntax, components[1].token, "one keyword");
+        // SVG's luminanceToAlpha: colour 0, alpha the luminance.
+        matrix.values = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0, 0.0, 0.0, 0.2125, 0.7154, 0.0721, 0.0, 0.0};
+    } else if (first.kind == ValueComponentKind::function && equals_ascii_folded(first.text, "saturate")) {
+        std::vector<double> numbers{};
+        if (!function_numbers(0U, 1U, 1U, numbers)) return false;
+        if (after(0U) != components.size()) {
+            return fail(DiagnosticCode::value_syntax, components[after(0U)].token, "one function");
+        }
+        matrix = MaterialColourMatrix::saturate(numbers[0]);
+    } else if (first.kind == ValueComponentKind::function && equals_ascii_folded(first.text, "hue-rotate")) {
+        if (first.subtree_end != 2U || components.size() != 2U) {
+            return fail(DiagnosticCode::value_syntax, first.token, "one angle");
+        }
+        const ValueComponent& angle = components[1];
+        const bool degrees = angle.kind == ValueComponentKind::number &&
+                             (angle.unit == ValueUnit::degrees || (angle.unit == ValueUnit::none && angle.number == 0.0));
+        if (!degrees) return fail(DiagnosticCode::value_wrong_kind, angle.token, "an angle");
+        matrix = MaterialColourMatrix::hue_rotate(angle.number);
+    } else {
+        std::size_t written = 0U;
+        for (std::size_t index = 0U; index < components.size(); index = after(index)) {
+            if (components[index].kind == ValueComponentKind::comma) continue;
+            if (written == matrix.values.size()) {
+                return fail(DiagnosticCode::value_syntax, components[index].token, "20 numbers");
+            }
+            double number = 0.0;
+            if (!plain_number(index, number)) return false;
+            matrix.values[written] = number;
+            written = written + 1U;
+        }
+        if (written != matrix.values.size()) return fail(DiagnosticCode::value_syntax, start_, "20 numbers");
+    }
+    if (!valid_colour_matrix(matrix)) return fail(DiagnosticCode::value_out_of_range, start_, "a colour matrix");
+    filter_.stages.matrix = filter_.stages.matrix.then(matrix);
+    return true;
+}
+
+bool FilterRuleReader::transfer_function(const std::size_t index, MaterialTransferFunction& function) {
+    const ValueComponent& written = value_.components[index];
+    if (written.kind == ValueComponentKind::keyword && equals_ascii_folded(written.text, "identity")) {
+        function = MaterialTransferFunction{};
+        return true;
+    }
+    if (written.kind != ValueComponentKind::function) {
+        return fail(DiagnosticCode::value_wrong_kind, written.token, "a transfer function");
+    }
+    std::vector<double> numbers{};
+    function = MaterialTransferFunction{};
+    if (equals_ascii_folded(written.text, "table") || equals_ascii_folded(written.text, "discrete")) {
+        if (!function_numbers(index, 1U, MaterialTransferFunction::maximum_values, numbers)) return false;
+        function.kind = equals_ascii_folded(written.text, "table") ? MaterialTransferKind::table
+                                                                     : MaterialTransferKind::discrete;
+        function.values = numbers;
+    } else if (equals_ascii_folded(written.text, "linear")) {
+        if (!function_numbers(index, 2U, 2U, numbers)) return false;
+        function.kind = MaterialTransferKind::linear;
+        function.slope = numbers[0];
+        function.intercept = numbers[1];
+    } else if (equals_ascii_folded(written.text, "gamma")) {
+        if (!function_numbers(index, 3U, 3U, numbers)) return false;
+        function.kind = MaterialTransferKind::gamma;
+        function.amplitude = numbers[0];
+        function.exponent = numbers[1];
+        function.offset = numbers[2];
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, written.token, clipped_theme_detail(written.text));
+    }
+    if (!valid_transfer_function(function)) {
+        return fail(DiagnosticCode::value_out_of_range, written.token, clipped_theme_detail(written.text));
+    }
+    return true;
+}
+
+bool FilterRuleReader::component_transfer() {
+    if (filter_.stages.table) return fail(DiagnosticCode::value_form_not_admitted, start_, "a second component-transfer");
+    const std::vector<ValueComponent>& components = value_.components;
+    std::array<MaterialTransferFunction, 4> functions{};
+    std::array<bool, 4> named{};
+    constexpr std::array<std::string_view, 4> channel_names{"red", "green", "blue", "alpha"};
+    std::size_t index = 0U;
+    while (index < components.size()) {
+        const ValueComponent& channel = components[index];
+        std::size_t position = channel_names.size();
+        for (std::size_t candidate = 0U; candidate < channel_names.size(); ++candidate) {
+            const bool matches =
+                channel.kind == ValueComponentKind::keyword && equals_ascii_folded(channel.text, channel_names[candidate]);
+            if (matches) position = candidate;
+        }
+        if (position == channel_names.size()) {
+            return fail(DiagnosticCode::value_wrong_kind, channel.token, "red, green, blue or alpha");
+        }
+        if (named[position]) return fail(DiagnosticCode::value_syntax, channel.token, "a channel named twice");
+        named[position] = true;
+        const std::size_t function = index + 1U;
+        if (function >= components.size()) {
+            return fail(DiagnosticCode::value_syntax, channel.token, "a transfer function after the channel");
+        }
+        if (!transfer_function(function, functions[position])) return false;
+        index = after(function);
+    }
+    filter_.stages.table = MaterialColourTable::transfer(functions[0], functions[1], functions[2], functions[3]);
+    return true;
+}
+
+} // namespace
+
+bool lower_theme_filter_declaration(const std::string_view property, const ThemeValue& value, const std::uint32_t start,
+                                    NamedThemeFilter& filter, MaterialLoweringProblem& problem) {
+    if (value.components.empty()) {
+        problem.code = DiagnosticCode::value_syntax;
+        problem.token = start;
+        problem.detail = "a value";
+        return false;
+    }
+    FilterRuleReader reader(value, start, filter, problem);
+    if (property == "color-matrix") return reader.colour_matrix();
+    if (property == "component-transfer") return reader.component_transfer();
+    problem.code = DiagnosticCode::property_not_admitted;
+    problem.token = start;
+    problem.detail = std::string(property) + " in @filter";
+    return false;
 }
 
 } // namespace gui_forms::theme_language

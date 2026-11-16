@@ -421,12 +421,15 @@ void SheetTokenizer::consume_ident_like() {
     const bool url = name.size() == 3U && (name[0] == 'u' || name[0] == 'U') && (name[1] == 'r' || name[1] == 'R') &&
                      (name[2] == 'l' || name[2] == 'L');
     if (url) {
-        // Only url("...") is admitted (PLAN.md section 1.2): after the
-        // parenthesis and any whitespace, a quote must follow.
+        // Only url("...") is admitted (PLAN.md section 1.2), and url(#id),
+        // a reference to a theme-declared @filter (capability review,
+        // owner 2026-11-16): after the parenthesis and any whitespace, a
+        // quote or a '#' must follow.
         std::size_t next = end + 1U;
         while (next < text_.size() && whitespace_byte(text_[next])) ++next;
         const bool quoted = next < text_.size() && (text_[next] == '"' || text_[next] == '\'');
-        if (!quoted) {
+        const bool fragment = next < text_.size() && text_[next] == '#';
+        if (!quoted && !fragment) {
             consume_bad_url(first);
             return;
         }

@@ -2,6 +2,7 @@
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 #include "tool_tips/tool_tip_presenter.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
@@ -3818,7 +3819,10 @@ void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
         // Audit B5: no fallback to requested_bounds_ (parent-relative, not a
         // window rectangle). Empty bounds are a control that paints nothing
         // or is not arranged; the arrange that places it damages where it
-        // lands.
+        // lands. The theme's content effect is resolved first, so the
+        // damage spreads by its reach (the walk is pre-order: an ancestor's
+        // is already current).
+        control.refresh_theme_content_effect();
         const Rect bounds = paint_damage_bounds_of(control);
         // Structural invalidation recomposes every plane so vacated pixels
         // cannot survive beneath a transparent or detached control.
@@ -4425,10 +4429,11 @@ PaintLeaseState SurfaceRoot::paint_lease_state() const noexcept {
 
 void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
     const DamageCauseScope cause(*this, InvalidationCause::control, control.get());
+    (*control).refresh_theme_content_effect();
     const Rect covered = paint_damage_bounds_of(*control);
     add_damage_all_planes(covered);
     const Rect placed = absolute_bounds_of(*control);
-    add_descendant_damage(*control, Point{placed.x, placed.y}, covered);
+    add_descendant_damage(*control, Point{placed.x, placed.y}, covered, effect_reach_above(*control));
 }
 
 // Each descendant's paint bounds, placed from its parent's origin; a
@@ -4436,17 +4441,26 @@ void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
 // adds nothing to the damage's union, so only those leaving it are added.
 // Recurses once per control level: bounded by maximum_control_tree_depth
 // (control.hpp), within its stack budget of 4 KiB per level.
-void SurfaceRoot::add_descendant_damage(const Control& parent, Point parent_origin, Rect covered) {
+void SurfaceRoot::add_descendant_damage(const Control& parent, Point parent_origin, Rect covered,
+                                        double parent_reach) {
     for (const std::shared_ptr<gui_forms::Control>& child : parent.children_) {
         if (!child) continue;
         const Control& current = *child;
         const Rect placed{parent_origin.x + current.arranged_bounds_.x,
                           parent_origin.y + current.arranged_bounds_.y,
                           current.arranged_bounds_.width, current.arranged_bounds_.height};
-        const Rect damage = Rect::united(visual_bounds_at(placed, current.effective_visual_outsets()),
+        const Rect united = Rect::united(visual_bounds_at(placed, current.effective_visual_outsets()),
                                          visual_bounds_at(placed, current.last_painted_visual_outsets_));
+        // Spread by the effects above and at the child, as
+        // paint_damage_bounds_of spreads a damage.
+        const double reach = parent_reach + own_effect_reach(current);
+        Rect damage = united;
+        if (reach > 0.0 && !united.empty()) {
+            damage = Rect{united.x - reach, united.y - reach, united.width + 2.0 * reach,
+                          united.height + 2.0 * reach};
+        }
         if (!covered.contains(damage)) add_damage_all_planes(damage);
-        add_descendant_damage(current, Point{placed.x, placed.y}, covered);
+        add_descendant_damage(current, Point{placed.x, placed.y}, covered, reach);
     }
 }
 
@@ -4487,7 +4501,8 @@ void SurfaceRoot::settle_touch(Control& control, detail::PendingTouch owed) {
     }
     if (owed.damages_bounds) {
         // Audit B5: as in mark_subtree's paint, no requested_bounds_
-        // fallback.
+        // fallback. The theme's content effect first, as there.
+        control.refresh_theme_content_effect();
         const Rect bounds = paint_damage_bounds_of(control);
         const DamageCauseScope cause(*this, InvalidationCause::control, &control);
         add_damage(bounds, control.paint_plane_);
@@ -4552,8 +4567,10 @@ void SurfaceRoot::settle_dirty() {
         const Control* const control = control_table_.control_at(pending.slot);
         if (control == nullptr) continue;
         const Rect bounds = absolute_bounds_of(*control);
-        const Rect window_damage{bounds.x + pending.local_damage.x, bounds.y + pending.local_damage.y,
-                                 pending.local_damage.width, pending.local_damage.height};
+        // Spread by the content effects above it, as paint_damage_bounds_of.
+        const double reach = effect_reach_above(*control);
+        const Rect window_damage{bounds.x + pending.local_damage.x - reach, bounds.y + pending.local_damage.y - reach,
+                                 pending.local_damage.width + 2.0 * reach, pending.local_damage.height + 2.0 * reach};
         const DamageCauseScope cause(*this, InvalidationCause::control, control);
         add_damage(window_damage, (*control).paint_plane_);
         metrics_.record_requested_damage(window_damage.area());
@@ -5268,6 +5285,9 @@ bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Point pare
         (*control).layout_collapsed_) {
         return false;
     }
+    // A content effect needs its whole subtree drawn inside its group: no
+    // cover path passes through it.
+    if ((*control).shown_content_effect()) return false;
     const Rect bounds = placed_bounds(*control, parent_origin);
     const Rect local_viewport = (*control).child_viewport_rectangle();
     const Rect child_viewport{bounds.x + local_viewport.x, bounds.y + local_viewport.y, local_viewport.width,
@@ -5402,6 +5422,19 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         return;
     }
     const Rect visual_bounds = visual_bounds_at(bounds, current_outsets);
+    // A content effect in this plane (Control::set_content_effect): the
+    // control and its descendants draw inside one group carrying it, and
+    // what they draw within the damage grown by the effect's reach is
+    // drawn, since the blur reads that far; the group composites within
+    // the painter's clip, the damage itself.
+    const std::shared_ptr<const PaintGroupEffect> content_effect =
+        (*control).paint_plane_ == plane ? painted_content_effect(*control) : nullptr;
+    const double effect_reach = content_effect ? paint_group_effect_reach(*content_effect) : 0.0;
+    const Rect shown_damage = window_damage;
+    if (effect_reach > 0.0) {
+        window_damage = Rect{window_damage.x - effect_reach, window_damage.y - effect_reach,
+                             window_damage.width + 2.0 * effect_reach, window_damage.height + 2.0 * effect_reach};
+    }
     const Rect paint_intersection = Rect::intersection(visual_bounds, window_damage);
     const Rect local_child_viewport = (*control).child_viewport_rectangle();
     if (!(*control).is_alive() || (*control).surface_root_ != this ||
@@ -5416,6 +5449,18 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         child_viewport, window_damage);
     if (paint_intersection.empty() && child_intersection.empty()) {
         return;
+    }
+    // Every return below, until the group ends, ends it first.
+    const bool grouped = content_effect != nullptr;
+    if (grouped) {
+        // The composite stays within the damage as it came: the margin the
+        // reach adds is drawn into the group, never shown past the damage.
+        painter.save();
+        painter.clip_rect(shown_damage);
+        PaintGroup group{};
+        group.bounds = Rect::united(visual_bounds, child_viewport);
+        group.effect = content_effect;
+        painter.begin_group(group);
     }
 
     if ((*control).paint_plane_ == plane && !paint_intersection.empty()) {
@@ -5452,6 +5497,10 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             (*control).on_paint_background(background);
             if (!(*control).is_alive() || (*control).surface_root_ != this ||
                 (*control).parent_.lock().get() != retained_parent) {
+                if (grouped) {
+                    painter.end_group();
+                    painter.restore();
+                }
                 return;
             }
             (*control).paint_owned_decorations(
@@ -5460,11 +5509,19 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             (*control).on_paint(recorder, logical_bounds);
             if (!(*control).is_alive() || (*control).surface_root_ != this ||
                 (*control).parent_.lock().get() != retained_parent) {
+                if (grouped) {
+                    painter.end_group();
+                    painter.restore();
+                }
                 return;
             }
             (*control).on_paint_overlay(recorder, logical_bounds);
             if (!(*control).is_alive() || (*control).surface_root_ != this ||
                 (*control).parent_.lock().get() != retained_parent) {
+                if (grouped) {
+                    painter.end_group();
+                    painter.restore();
+                }
                 return;
             }
             (*control).paint_owned_decorations(
@@ -5505,6 +5562,9 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         if (!transient) (*control).last_painted_visual_outsets_ = current_outsets;
         ++painted_controls;
     }
+    if ((*control).paint_plane_ == plane && transient_recording_scale_ <= 0.0) {
+        (*control).last_painted_effect_reach_ = effect_reach;
+    }
 
     if (!child_intersection.empty()) {
         const Point origin{bounds.x, bounds.y};
@@ -5520,6 +5580,10 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             }
             position = next_child_position(*control, child.get(), position, revision);
         }
+    }
+    if (grouped) {
+        painter.end_group();
+        painter.restore();
     }
 
     if (!(*control).is_alive() || (*control).surface_root_ != this ||
@@ -5621,9 +5685,47 @@ Rect SurfaceRoot::paint_damage_bounds_of(const Control& control) const {
         placed.x += (*ancestor).arranged_bounds_.x;
         placed.y += (*ancestor).arranged_bounds_.y;
     }
-    const Rect result = Rect::united(visual_bounds_at(placed, control.effective_visual_outsets()),
+    const Rect united = Rect::united(visual_bounds_at(placed, control.effective_visual_outsets()),
                                      visual_bounds_at(placed, control.last_painted_visual_outsets_));
+    // An ancestor's content effect spreads the damage by its blur's reach.
+    const double reach = effect_reach_above(control);
+    if (!(reach > 0.0) || united.empty()) return united;
+    const Rect result{united.x - reach, united.y - reach, united.width + 2.0 * reach, united.height + 2.0 * reach};
     return result;
+}
+
+double SurfaceRoot::effect_reach_above(const Control& control) noexcept {
+    double reach = 0.0;
+    for (const Control* level = &control; level != nullptr; level = (*level).parent_link_) {
+        reach = reach + own_effect_reach(*level);
+    }
+    return reach;
+}
+
+double SurfaceRoot::own_effect_reach(const Control& control) noexcept {
+    const std::shared_ptr<const PaintGroupEffect>& effect = control.shown_content_effect();
+    const double shown = effect ? paint_group_effect_reach(*effect) : 0.0;
+    const double reach = std::max(shown, control.last_painted_effect_reach_);
+    return reach;
+}
+
+std::shared_ptr<const PaintGroupEffect> SurfaceRoot::painted_content_effect(Control& control) {
+    const std::shared_ptr<const PaintGroupEffect>& shown = control.shown_content_effect();
+    if (!shown || !presentation_settings_.high_contrast || !(*shown).colour_filter) return shown;
+    if (control.contrast_effect_source_ != shown) {
+        // Under forced high contrast the colour stages are suppressed; the
+        // blur and masks keep their reach and shape.
+        std::shared_ptr<const PaintGroupEffect> suppressed{};
+        if ((*shown).blur > 0.0 || !(*shown).masks.empty()) {
+            PaintGroupEffect copy{};
+            copy.blur = (*shown).blur;
+            copy.masks = (*shown).masks;
+            suppressed = std::make_shared<const PaintGroupEffect>(std::move(copy));
+        }
+        control.contrast_content_effect_ = std::move(suppressed);
+        control.contrast_effect_source_ = shown;
+    }
+    return control.contrast_content_effect_;
 }
 
 bool SurfaceRoot::eligible(const Control::Ptr& control) const noexcept {

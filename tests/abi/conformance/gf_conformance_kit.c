@@ -205,6 +205,7 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
         gf_kit_window_properties_refusals(&kit);
         gf_kit_focus_refusals(&kit);
         gf_kit_relative_pointer(&kit);
+        gf_kit_content_effect(&kit);
         gf_kit_band(&kit);
         gf_kit_splashscreen_refusals(&kit);
         gf_kit_diagnostics(&kit);

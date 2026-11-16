@@ -1,0 +1,9 @@
+compiled
+rule 0 theme_sheet type=track_bar
+  label track-bar
+  decl blend = name color-dodge
+rule 1 theme_sheet type=track_bar part=thumb
+  label track-bar::part(thumb)
+  decl primitive = name material
+  material fills fills=2 colours=[#000000ff] origin=literal
+  material fill_blend_modes blends=2 blend(9) blend(10) colours=[#000000ff]

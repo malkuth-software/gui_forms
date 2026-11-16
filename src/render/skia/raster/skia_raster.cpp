@@ -21,6 +21,8 @@
 #include "../../../core/image/png_writer.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../core/engine/primitives/material/material_raster.hpp"
+#include "../../../core/display/group_effect/group_effect.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 #include "../../../core/theme/theme/material_layers.hpp"
 #include "../../../core/interpolation/interpolation.hpp"
 
@@ -844,12 +846,22 @@ public:
         std::vector<TextClipState> parent_text_clips;
         int parent_text_clip_base{};
         int parent_save_floor{};
+        // A valid effect (PaintGroup::effect), applied at end_group, with
+        // the group's bounds in the surface's device pixels and their
+        // logical size at `effect_scale`; null for none.
+        std::shared_ptr<const PaintGroupEffect> effect{};
+        std::int64_t effect_left{};
+        std::int64_t effect_top{};
+        Size effect_size{};
+        double effect_scale{1.0};
     };
     std::array<GroupLevel, maximum_paint_group_depth> groups{};
     // An isolated group drawn under a turning map (begin_group): its image,
     // in the parent's device pixels, composited by Skia under the parent's
     // clip and the group's bounds, at its opacity and composite.
     static void composite_turned_group(SkCanvas& parent, const GroupLevel& level);
+    // The effect stage's storage, reused from one group to the next.
+    detail::GroupEffectWork effect_work{};
     std::size_t group_depth{};
     std::size_t refused_open{};
     std::uint64_t group_refusals{};
@@ -2617,14 +2629,27 @@ void SkiaRaster::begin_group(const PaintGroup& group) {
     level.isolated = false;
     level.opacity = group.opacity;
     level.composite = group.composite;
+    level.effect.reset();
+    // An invalid effect is ignored, counted as a refusal. A valid one's
+    // image reaches past the bounds by its reach: the parent's clip takes
+    // the grown bounds, and the group's own commands the bounds alone.
+    const bool effective = group.effect && valid_paint_group_effect(*group.effect);
+    if (group.effect && !effective) impl.group_refusals = impl.group_refusals + 1U;
+    const double reach = effective ? paint_group_effect_reach(*group.effect) : 0.0;
+    const Rect reached{group.bounds.x - reach, group.bounds.y - reach, group.bounds.width + 2.0 * reach,
+                       group.bounds.height + 2.0 * reach};
     save();
-    clip_rect(group.bounds);
+    clip_rect(reached);
     const bool visible = group.opacity > 0.0;
     if (!visible) clip_rect(Rect{});
     impl.group_depth = impl.group_depth + 1U;
     SkCanvas* const parent = impl.canvas();
-    const bool isolate = group.opacity < 1.0 || group.isolated || group.composite != PaintGroupComposite::source_over;
-    if (!visible || !isolate || parent == nullptr) return;
+    const bool isolate =
+        group.opacity < 1.0 || group.isolated || group.composite != PaintGroupComposite::source_over || effective;
+    if (!visible || !isolate || parent == nullptr) {
+        if (effective && visible) impl.group_refusals = impl.group_refusals + 1U;
+        return;
+    }
     // The group covers the recorded clip, which now includes its bounds, in
     // the parent's device pixels. A parent whose clips or pixels are unknown,
     // or an isolation surface that cannot be allocated, draws the group
@@ -2649,6 +2674,19 @@ void SkiaRaster::begin_group(const PaintGroup& group) {
     }
     const SkPixmap& parent_pixels = *parent_view;
     SkIRect device = (*state).rect.roundOut();
+    const SkMatrix parent_matrix = (*parent).getTotalMatrix();
+    const SkRect bounds_device = parent_matrix.mapRect(to_sk_rect(group.bounds));
+    if (effective) {
+        // The blur reads its reach beyond what is shown: the surface covers
+        // the shown clip grown by the reach, within the grown bounds, so
+        // that the damage clip's edge blurs what lies past it.
+        const SkScalar spread = static_cast<SkScalar>(reach) * parent_matrix.getScaleX();
+        SkRect around = (*state).rect;
+        around.outset(spread, spread);
+        SkRect grown = parent_matrix.mapRect(to_sk_rect(reached));
+        if (!grown.intersect(around)) return;
+        device = grown.roundOut();
+    }
     if (!device.intersect(SkIRect::MakeWH(parent_pixels.width(), parent_pixels.height()))) return;
     if ((*state).mask) {
         const detail::ClipMaskBounds& reach = (*(*state).mask).bounds;
@@ -2697,6 +2735,15 @@ void SkiaRaster::begin_group(const PaintGroup& group) {
     level.turned = turned;
     level.bounds = group.bounds;
     level.isolated = true;
+    if (effective) {
+        level.effect = group.effect;
+        level.effect_left = static_cast<std::int64_t>(std::floor(bounds_device.left())) - device.left();
+        level.effect_top = static_cast<std::int64_t>(std::floor(bounds_device.top())) - device.top();
+        level.effect_size = Size{group.bounds.width, group.bounds.height};
+        level.effect_scale = static_cast<double>(parent_matrix.getScaleX());
+        // The group's own commands stay within its bounds.
+        clip_rect(group.bounds);
+    }
 }
 
 void SkiaRaster::end_group() {
@@ -2734,6 +2781,22 @@ void SkiaRaster::end_group() {
     const std::size_t width = static_cast<std::size_t>(level.device.width());
     const std::size_t height = static_cast<std::size_t>(level.device.height());
     const std::size_t length = (height - 1U) * pixmap.rowBytes() + width * 4U;
+    if (level.effect) {
+        // The effect stage, in place on the group's image, before the
+        // composite; a refusal composites the image as drawn.
+        const std::span<std::uint8_t> writable(static_cast<std::uint8_t*>(pixmap.writable_addr()), length);
+        const detail::GroupEffectImage image{.pixels = writable, .width = static_cast<std::uint32_t>(width),
+                                             .height = static_cast<std::uint32_t>(height),
+                                             .row_bytes = pixmap.rowBytes()};
+        const detail::GroupEffectPlacement placement{.bounds_left = level.effect_left,
+                                                     .bounds_top = level.effect_top,
+                                                     .bounds_size = level.effect_size,
+                                                     .scale = DeviceScale{level.effect_scale}};
+        const detail::GroupEffectStatus status =
+            detail::apply_group_effect(level.effect, image, placement, impl.effect_work);
+        if (status == detail::GroupEffectStatus::refused) impl.group_refusals = impl.group_refusals + 1U;
+        level.effect.reset();
+    }
     const std::span<const std::uint8_t> bytes(static_cast<const std::uint8_t*>(pixmap.addr()), length);
     const detail::PartRasterSource source{.pixels = bytes, .width = static_cast<std::uint32_t>(width),
                                           .height = static_cast<std::uint32_t>(height),

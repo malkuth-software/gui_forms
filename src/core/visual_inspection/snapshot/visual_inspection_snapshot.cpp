@@ -1,4 +1,5 @@
 #include "gui_forms/visual_inspection.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -217,6 +218,26 @@ const char* material_edge_name(MaterialEdge edge) noexcept {
     return "unknown";
 }
 
+const char* material_mask_mode_name(MaterialMaskMode mode) noexcept {
+    switch (mode) {
+    case MaterialMaskMode::alpha: return "alpha";
+    case MaterialMaskMode::luminance: return "luminance";
+    case MaterialMaskMode::inverse_alpha: return "inverse_alpha";
+    case MaterialMaskMode::inverse_luminance: return "inverse_luminance";
+    }
+    return "unknown";
+}
+
+const char* material_mask_composite_name(MaterialMaskComposite composite) noexcept {
+    switch (composite) {
+    case MaterialMaskComposite::add: return "add";
+    case MaterialMaskComposite::subtract: return "subtract";
+    case MaterialMaskComposite::intersect: return "intersect";
+    case MaterialMaskComposite::exclude: return "exclude";
+    }
+    return "unknown";
+}
+
 const char* border_style_name(MaterialBorderStyle value) noexcept {
     switch (value) {
     case MaterialBorderStyle::solid: return "solid";
@@ -256,6 +277,15 @@ const char* blend_mode_name(MaterialBlendMode value) noexcept {
     case MaterialBlendMode::normal: return "normal";
     case MaterialBlendMode::multiply: return "multiply";
     case MaterialBlendMode::screen: return "screen";
+    case MaterialBlendMode::overlay: return "overlay";
+    case MaterialBlendMode::darken: return "darken";
+    case MaterialBlendMode::lighten: return "lighten";
+    case MaterialBlendMode::color_dodge: return "color-dodge";
+    case MaterialBlendMode::color_burn: return "color-burn";
+    case MaterialBlendMode::hard_light: return "hard-light";
+    case MaterialBlendMode::soft_light: return "soft-light";
+    case MaterialBlendMode::difference: return "difference";
+    case MaterialBlendMode::exclusion: return "exclusion";
     }
     return "unknown";
 }
@@ -422,15 +452,43 @@ void append_material(std::ostringstream& output,
     }
     output << "],\"colour_filter\":";
     append_colour_filter(output, material.colour_filter);
+    // The colour filter's table stage, only when set, so that other
+    // materials' snapshots are unchanged: 1024 levels, red's first.
+    const MaterialColourTable* const colour_table = material.colour_filter.table();
+    if (colour_table != nullptr) {
+        output << ",\"colour_table\":[";
+        for (std::size_t index = 0U; index < (*colour_table).entries.size(); ++index) {
+            if (index != 0U) output << ',';
+            output << static_cast<unsigned int>((*colour_table).entries[index]);
+        }
+        output << ']';
+    }
     output << ",\"drop_shadow\":";
     append_drop_shadow(output, material.drop_shadow);
     output << ",\"filter_blur\":" << material.filter_blur;
     // A finish and a mask (E9.6), only when set, so that other materials'
     // snapshots are unchanged.
     if (material.finish != 0.0) output << ",\"finish\":" << material.finish;
-    if (material.mask) {
+    // One alpha layer keeps the single "mask" it always had; several
+    // layers, or another mode, are listed bottom first under "masks".
+    const bool lone_alpha_mask = material.masks.size() == 1U && material.masks.front().mode == MaterialMaskMode::alpha;
+    if (lone_alpha_mask) {
         output << ",\"mask\":";
-        append_fill(output, *material.mask);
+        append_fill(output, material.masks.front().source);
+    } else if (!material.masks.empty()) {
+        output << ",\"masks\":[";
+        for (std::size_t index = 0U; index < material.masks.size(); ++index) {
+            const MaterialMaskLayer& layer = material.masks[index];
+            if (index != 0U) output << ',';
+            output << "{\"source\":";
+            append_fill(output, layer.source);
+            output << ",\"mode\":";
+            append_json_string(output, material_mask_mode_name(layer.mode));
+            output << ",\"composite\":";
+            append_json_string(output, material_mask_composite_name(layer.composite));
+            output << '}';
+        }
+        output << ']';
     }
     // A reflection (T5 C7), likewise only when set.
     if (material.reflection) {
@@ -489,6 +547,14 @@ void append_operation(std::ostringstream& output,
     // Written only for a rotated run, so other snapshots keep their bytes.
     if (operation.text_degrees != 0.0) output << ",\"text_degrees\":" << operation.text_degrees;
     if (operation.element_count != 0U) output << ",\"element_count\":" << operation.element_count;
+    // Written only for a group with an effect, so other snapshots keep
+    // their bytes.
+    if (operation.group_effect) {
+        const PaintGroupEffect& effect = *operation.group_effect;
+        output << ",\"group_effect\":{\"colour_filter\":" << (effect.colour_filter ? "true" : "false")
+               << ",\"colour_table\":" << (effect.colour_filter.table() != nullptr ? "true" : "false")
+               << ",\"blur\":" << effect.blur << ",\"masks\":" << effect.masks.size() << '}';
+    }
     output << '}';
 }
 

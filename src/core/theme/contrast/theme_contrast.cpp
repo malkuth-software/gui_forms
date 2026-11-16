@@ -2,6 +2,8 @@
 
 #include "theme_contrast.hpp"
 
+#include "../../engine/primitives/kernel/pixel_kernel.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -34,12 +36,44 @@ std::uint8_t channel_byte(double value) noexcept {
     return static_cast<std::uint8_t>(rounded);
 }
 
+// The material mode of a ContrastBlend past screen; normal for the rest.
+MaterialBlendMode separable_mode(ContrastBlend blend) noexcept {
+    switch (blend) {
+    case ContrastBlend::overlay: return MaterialBlendMode::overlay;
+    case ContrastBlend::darken: return MaterialBlendMode::darken;
+    case ContrastBlend::lighten: return MaterialBlendMode::lighten;
+    case ContrastBlend::color_dodge: return MaterialBlendMode::color_dodge;
+    case ContrastBlend::color_burn: return MaterialBlendMode::color_burn;
+    case ContrastBlend::hard_light: return MaterialBlendMode::hard_light;
+    case ContrastBlend::soft_light: return MaterialBlendMode::soft_light;
+    case ContrastBlend::difference: return MaterialBlendMode::difference;
+    case ContrastBlend::exclusion: return MaterialBlendMode::exclusion;
+    case ContrastBlend::normal:
+    case ContrastBlend::multiply:
+    case ContrastBlend::screen: break;
+    }
+    return MaterialBlendMode::normal;
+}
+
 // One channel of `top` blended over `ground` (both 0..255) before coverage.
 double blended_channel(double top, double ground, ContrastBlend blend) noexcept {
     switch (blend) {
     case ContrastBlend::multiply: return top * ground / 255.0;
     case ContrastBlend::screen: return 255.0 - (255.0 - top) * (255.0 - ground) / 255.0;
     case ContrastBlend::normal: return top;
+    case ContrastBlend::overlay:
+    case ContrastBlend::darken:
+    case ContrastBlend::lighten:
+    case ContrastBlend::color_dodge:
+    case ContrastBlend::color_burn:
+    case ContrastBlend::hard_light:
+    case ContrastBlend::soft_light:
+    case ContrastBlend::difference:
+    case ContrastBlend::exclusion: {
+        const double blended =
+            engine_primitives::separable_blend_function(ground / 255.0, top / 255.0, separable_mode(blend));
+        return blended * 255.0;
+    }
     }
     return top;
 }
@@ -49,6 +83,15 @@ ContrastBlend blend_of(MaterialBlendMode mode) noexcept {
     case MaterialBlendMode::multiply: return ContrastBlend::multiply;
     case MaterialBlendMode::screen: return ContrastBlend::screen;
     case MaterialBlendMode::normal: return ContrastBlend::normal;
+    case MaterialBlendMode::overlay: return ContrastBlend::overlay;
+    case MaterialBlendMode::darken: return ContrastBlend::darken;
+    case MaterialBlendMode::lighten: return ContrastBlend::lighten;
+    case MaterialBlendMode::color_dodge: return ContrastBlend::color_dodge;
+    case MaterialBlendMode::color_burn: return ContrastBlend::color_burn;
+    case MaterialBlendMode::hard_light: return ContrastBlend::hard_light;
+    case MaterialBlendMode::soft_light: return ContrastBlend::soft_light;
+    case MaterialBlendMode::difference: return ContrastBlend::difference;
+    case MaterialBlendMode::exclusion: return ContrastBlend::exclusion;
     }
     return ContrastBlend::normal;
 }

@@ -407,6 +407,11 @@ gui_forms::Control
 
       **display_chunk_info** : ``std::optional<DisplayChunkInfo>``, read-only
 
+      **content_effect** : ``std::shared_ptr<const PaintGroupEffect>``
+
+      **shown_content_effect** : ``std::shared_ptr<const PaintGroupEffect>``, read-only
+         The effect the window draws: the one set, else the theme's.
+
       **initializing** : ``bool``, read-only
          Whether the control is between :cpp:func:`begin_init <gui_forms::Control::begin_init>` and :cpp:func:`end_init <gui_forms::Control::end_init>`.
 
@@ -1314,6 +1319,16 @@ gui_forms::Control
       Sets :cpp:func:`paint_plane <gui_forms::Control::paint_plane>`; see the property's description above.
 
    .. cpp:function:: std::optional<DisplayChunkInfo> display_chunk_info() const noexcept
+
+   .. cpp:function:: const std::shared_ptr<const PaintGroupEffect>& content_effect() const& noexcept
+
+   .. cpp:function:: void set_content_effect(std::shared_ptr<const PaintGroupEffect> effect)
+
+      The control's content effect (capability review decision 1, owner 2026-11-16): PaintGroupEffect's colour stages, blur and masks applied to what this control and its descendants paint, as one image. The window draws the control's display chunk and its descendants' chunks in its paint plane inside one paint group carrying the effect, over the control's visual bounds and child viewport, and grows every damage of the control and its descendants by the effect's reach (paint_group_effect_reach), so that the blur's spread repaints. An effect set here wins over the theme's (``filter`` and ``mask-*`` on a control rule). Null for none. Throws std::invalid_argument, changing nothing, for an effect valid_paint_group_effect refuses. Shared read-only: the window's recordings keep it alive. Under forced high contrast the window paints it without its colour stages (SurfaceRoot::painted_content_effect).
+
+   .. cpp:function:: const std::shared_ptr<const PaintGroupEffect>& shown_content_effect() const& noexcept
+
+      The effect the window draws: the one set, else the theme's.
 
    .. cpp:function:: bool initializing() const noexcept
 

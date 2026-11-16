@@ -64,6 +64,11 @@ enum class SyntaxNodeKind : std::uint8_t {
     // `<property>: <value> [!important] [;]`. The property is the node's
     // first token. Content: the value, without `!important`.
     declaration,
+    // `@filter <id> { <declarations> }` (capability review, owner
+    // 2026-11-16): a theme-declared filter that `filter: url(#<id>)`
+    // names, its declarations `color-matrix` and `component-transfer`.
+    // Content: the id.
+    filter_rule,
 };
 
 [[nodiscard]] std::string_view syntax_node_kind_name(SyntaxNodeKind kind) noexcept;

@@ -269,9 +269,13 @@ Types
    * - :cpp:class:`MaterialClipPoint <gui_forms::MaterialClipPoint>`
      - A clip path point in the box: x = box.x + x_units + x_fraction * box.width, and y likewise (a CSS length or percentage of the box).
    * - :cpp:class:`MaterialColourFilter <gui_forms::MaterialColourFilter>`
-     - A material's colour filter: none, or one matrix held out of line.
+     - A material's colour filter: none, or its stages held out of line: one matrix, then optionally one per-channel table (MaterialColourTable).
    * - :cpp:class:`MaterialColourMatrix <gui_forms::MaterialColourMatrix>`
      - A colour filter (E9.6; CSS ``filter`` and ``backdrop-filter`` colour functions): a 4 × 5 matrix on straight (not premultiplied) colour with each channel in [0, 1].
+   * - :cpp:class:`MaterialColourStages <gui_forms::MaterialColourStages>`
+     - A filter's stages: the matrix, then, if present, the table.
+   * - :cpp:class:`MaterialColourTable <gui_forms::MaterialColourTable>`
+     - A per-channel colour table (owner 2026-11-16: feComponentTransfer, the second colour stage after MaterialColourMatrix): each straight channel, quantized once to 8 bits (floor(C × 255 + 0.5)), is looked up in its channel's 256 entries, an entry e giving e / 255.
    * - :cpp:class:`MaterialCornerRadii <gui_forms::MaterialCornerRadii>`
      - A material's four corner radii (E9.6, CSS ``border-*-radius``), in logical units: top-left, top-right, bottom-right and bottom-left.
    * - :cpp:class:`MaterialDeclaration <gui_forms::MaterialDeclaration>`
@@ -288,10 +292,14 @@ Types
      -  
    * - :cpp:class:`MaterialKeyline <gui_forms::MaterialKeyline>`
      - One ordered physical keyline.
+   * - :cpp:class:`MaterialMaskLayer <gui_forms::MaterialMaskLayer>`
+     - One layer of a material's mask (E9.6, CSS ``mask-image`` with its longhands): a solid, gradient or image fill, read by ``mode`` and joined to the layers beneath by ``composite``.
    * - :cpp:class:`MaterialReflection <gui_forms::MaterialReflection>`
      - A reflection (stage T5, C7; owner T5-Q14, T5-Q15): ``source`` within the part's box, mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end.
    * - :cpp:class:`MaterialShadow <gui_forms::MaterialShadow>`
      - MaterialShadow specifies offset, blur, spread, and color for one bounded surface shadow.
+   * - :cpp:class:`MaterialTransferFunction <gui_forms::MaterialTransferFunction>`
+     -  
    * - :cpp:class:`MaterialTransform <gui_forms::MaterialTransform>`
      - A material's own linear transform (theme ``transform: rotate() | scale()``, owner 2026-11-16) about its box's centre: a point p of the face is drawn at c + L (p - c), where c is the centre and L maps (x, y) to (xx x + xy y, yx x + yy y).
    * - :cpp:class:`MediaCondition <gui_forms::MediaCondition>`
@@ -318,6 +326,8 @@ Types
      - Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
    * - :cpp:class:`PaintGroup <gui_forms::PaintGroup>`
      - A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once.
+   * - :cpp:class:`PaintGroupEffect <gui_forms::PaintGroupEffect>`
+     - A paint group's effect stage (capability review decision 1, owner 2026-11-16): the filter and mask of a part surface's material, applied to a paint group's image (PaintGroup::effect), so that content drawn by many commands (a control's face and what it paints inside it) is filtered and masked as one, through the same kernels a material uses.
    * - :cpp:class:`PaintPath <gui_forms::PaintPath>`
      - An owned path built verb by verb, for callers that do not keep their own arrays.
    * - :cpp:class:`PaintPathView <gui_forms::PaintPathView>`
@@ -1225,6 +1235,10 @@ Types
 
       How many inputs the sheet's expressions are evaluated with: the engine inputs and the sheet's published values.
 
+   .. cpp:function:: bool has_content_effects() const noexcept
+
+      Whether any rule, or the user theme's, has a content effect.
+
    .. cpp:function:: std::uint64_t serial() const noexcept
 
       This compilation's serial number, unique among the compilations of the process: a cache keyed by the addresses of the rules' declarations (an assembled material, EC1) compares it first. A copy takes a new one, since its declarations lie elsewhere; a move keeps it with the declarations.
@@ -1271,6 +1285,10 @@ Types
    .. cpp:function:: BandDeclaration resolve_band(const PartFacts& facts) const noexcept
 
       The band of the window ``facts`` name (PartFacts::surface window, its root control's classes and ID): each field from the last matching rule that sets it, among the compiled rules and the user theme's. Empty where none does, and for any surface but a window. Linear in the number of rules.
+
+   .. cpp:function:: void resolve_content_effect(const PartFacts& facts, std::array<const MaterialDeclaration*, material_field_count>& fields) const noexcept
+
+      The content effect of the control ``facts`` name (no part, no surface): each content-effect field (content_effect_field) from the last matching rule that sets it, among the compiled rules and the user theme's, written into ``fields`` at the field's position; every other position, and every field no rule sets, is null. Linear in the number of rules; returns at once where no rule has a content effect (has_content_effects).
 
    .. cpp:function:: Resolution resolve(const PartFacts& facts) const noexcept
 
@@ -3791,7 +3809,7 @@ Types
 
    ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
 
-   A material's colour filter: none, or one matrix held out of line. Every recipe of every theme holds a SurfaceMaterial, so a matrix held inline (160 bytes) would grow a theme definition by tens of kilobytes; this holder is one pointer. It owns its matrix; a copy copies the matrix, a move leaves the source empty, and two filters are equal when both are empty or their matrices are equal.
+   A material's colour filter: none, or its stages held out of line: one matrix, then optionally one per-channel table (MaterialColourTable). Every recipe of every theme holds a SurfaceMaterial, so stages held inline would grow a theme definition by tens of kilobytes; this holder is one pointer. It owns its stages; a copy copies them, a move leaves the source empty, and two filters are equal when both are empty or their stages are equal.
 
 
    .. rubric:: Construction
@@ -3802,6 +3820,10 @@ Types
 
       Implicit, as std::optional's is: ``material.colour_filter = matrix;``. Throws std::bad_alloc when the matrix cannot be held.
 
+   .. cpp:function:: MaterialColourFilter(const MaterialColourMatrix& matrix, const MaterialColourTable& table)
+
+      The matrix, then the table. Throws std::bad_alloc when they cannot be held.
+
    .. cpp:function:: MaterialColourFilter(const MaterialColourFilter& other)
 
    .. cpp:function:: MaterialColourFilter(MaterialColourFilter&& other) noexcept
@@ -3810,6 +3832,10 @@ Types
    .. rubric:: Properties
 
    .. cpp:function:: bool has_value() const noexcept
+
+   .. cpp:function:: const MaterialColourTable* table() const noexcept
+
+      The table after the matrix, or null for none (or no filter).
 
 
    .. rubric:: Methods
@@ -3825,6 +3851,13 @@ Types
    ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
 
    A colour filter (E9.6; CSS ``filter`` and ``backdrop-filter`` colour functions): a 4 × 5 matrix on straight (not premultiplied) colour with each channel in [0, 1]. Its rows give red, green, blue and alpha; its columns read red, green, blue and alpha, and the fifth is a constant. Each result is clamped to [0, 1]. The factories are the CSS functions, with CSS's matrices (Filter Effects Level 1). A list of functions composes into one matrix with :cpp:func:`then <gui_forms::MaterialColourMatrix::then>`, in source order. CSS clamps between the functions of a list; one matrix does not, which differs only where an intermediate colour leaves [0, 1].
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool per_channel() const noexcept
+
+      Whether each row reads only its own channel and the constant, as a colour table can (MaterialColourTable::then_matrix).
 
 
    .. rubric:: Methods
@@ -3849,6 +3882,14 @@ Types
 
       Turns hues by ``degrees`` (any finite angle), with the engine's sine and cosine so that the matrix has the same bits on every host.
 
+   .. cpp:function:: static MaterialColourMatrix fill(Color colour) noexcept
+
+      The theme language's colour stages (owner 2026-11-16; not CSS): - fill: every colour channel ``colour``'s, and alpha the pixel's times the colour's (a covered pixel recoloured, its coverage kept); - duotone (tint): with L = 0.2126 R + 0.7152 G + 0.0722 B, each colour channel dark + L (light - dark); alpha kept, the colours' own alpha not read; - luminance: each colour channel L (the first stage of tritone, whose second is MaterialColourTable::tritone); alpha kept.
+
+   .. cpp:function:: static MaterialColourMatrix duotone(Color dark, Color light) noexcept
+
+   .. cpp:function:: static MaterialColourMatrix luminance() noexcept
+
    .. cpp:function:: MaterialColourMatrix then(const MaterialColourMatrix& after) const noexcept
 
       This filter, then ``after``: one matrix applying both.
@@ -3864,6 +3905,57 @@ Types
    .. cpp:member:: std::array<double, rows * columns> values
 
       Row-major: values[row × 5 + column]. The identity by default. Default: ``{detail::identity_colour_entries}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialColourStages final
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   A filter's stages: the matrix, then, if present, the table.
+
+   .. cpp:member:: MaterialColourMatrix matrix
+
+   .. cpp:member:: std::optional<MaterialColourTable> table
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialColourTable final
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   A per-channel colour table (owner 2026-11-16: feComponentTransfer, the second colour stage after MaterialColourMatrix): each straight channel, quantized once to 8 bits (floor(C × 255 + 0.5)), is looked up in its channel's 256 entries, an entry e giving e / 255. Red's levels first, then green's, blue's and alpha's. The identity by default. The table is made once, from transfer functions evaluated at each level; drawing it is a lookup, the same on every host.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static MaterialColourTable transfer(const MaterialTransferFunction& red, const MaterialTransferFunction& green, const MaterialTransferFunction& blue, const MaterialTransferFunction& alpha)
+
+      The four channels' functions, each evaluated at level / 255 and stored floor(clamp(f, 0, 1) × 255 + 0.5). An invalid function throws std::invalid_argument.
+
+   .. cpp:function:: static MaterialColourTable tritone(Color shadow, Color midtone, Color highlight)
+
+      Tritone's table (after MaterialColourMatrix::luminance()): each colour channel a table of the shadow's, the midtone's and the highlight's value; alpha kept.
+
+   .. cpp:function:: MaterialColourTable then(const MaterialColourTable& after) const noexcept
+
+      This table, then ``after``: one table applying both.
+
+   .. cpp:function:: MaterialColourTable then_matrix(const MaterialColourMatrix& matrix) const noexcept
+
+      This table, then ``matrix``, which must be per_channel(): each entry e becomes floor(clamp(m e / 255 + c, 0, 1) × 255 + 0.5) with its row's own coefficient m and constant c.
+
+   .. cpp:member:: constexpr std::size_t channels
+
+      Default: ``4U``.
+
+   .. cpp:member:: constexpr std::size_t levels
+
+      Default: ``256U``.
+
+   .. cpp:member:: std::array<std::uint8_t, channels * levels> entries
+
+      Default: ``{detail::identity_colour_table_entries()}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3887,7 +3979,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``); - transform: ``transform`` (MaterialTransform), the identity for none; - clip_path: ``clip_path`` (MaterialClipPath), empty for none. ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
+   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``masks``, the mask's layers, bottom first, at most SurfaceMaterial::maximum_mask_layers, empty for none, and ``gradients``, empty or one per layer, as for the fills; - mask_modes, mask_composites: ``mask_modes`` and ``mask_composites``, in CSS's order (the top layer's first), repeated over the mask's layers; - mask_positions, mask_sizes, mask_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, likewise, read by an image layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``); - transform: ``transform`` (MaterialTransform), the identity for none; - clip_path: ``clip_path`` (MaterialClipPath), empty for none. ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
 
    .. cpp:member:: MaterialField field
 
@@ -3933,7 +4025,11 @@ Types
 
    .. cpp:member:: std::optional<MaterialDropShadow> drop_shadow
 
-   .. cpp:member:: std::optional<MaterialFillLayer> mask
+   .. cpp:member:: std::vector<MaterialFillLayer> masks
+
+   .. cpp:member:: std::vector<MaterialMaskMode> mask_modes
+
+   .. cpp:member:: std::vector<MaterialMaskComposite> mask_composites
 
    .. cpp:member:: std::optional<MaterialReflection> reflection
 
@@ -4200,6 +4296,24 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: MaterialMaskLayer final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   One layer of a material's mask (E9.6, CSS ``mask-image`` with its longhands): a solid, gradient or image fill, read by ``mode`` and joined to the layers beneath by ``composite``. An image layer's size, position and repetition are its fill's image_scale, image_anchor, image_offset and image_mode, as a background image's are.
+
+   .. cpp:member:: MaterialFillLayer source
+
+   .. cpp:member:: MaterialMaskMode mode
+
+      Default: ``{MaterialMaskMode::alpha}``.
+
+   .. cpp:member:: MaterialMaskComposite composite
+
+      Default: ``{MaterialMaskComposite::add}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MaterialReflection final
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
@@ -4249,6 +4363,42 @@ Types
       Default: ``{Color::rgba(20, 30, 42, 72)}``.
 
    .. cpp:member:: bool inset
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialTransferFunction final
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   .. cpp:member:: constexpr std::size_t maximum_values
+
+      Default: ``32U``.
+
+   .. cpp:member:: MaterialTransferKind kind
+
+      Default: ``{MaterialTransferKind::identity}``.
+
+   .. cpp:member:: std::vector<double> values
+
+   .. cpp:member:: double slope
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double intercept
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double amplitude
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double exponent
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double offset
+
+      Default: ``{0.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4843,7 +4993,7 @@ Types
 
    ``#include <gui_forms/types/painter/painter.hpp>``
 
-   A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once. - ``bounds``, in the current coordinates when the group begins, limits the group. It is given up front so that a painter sizes its storage once: nothing the group draws outside ``bounds`` (or outside the clip in force at its beginning) is shown. - ``opacity`` in [0, 1] multiplies the group's whole image. Below 1 the group is isolated: its commands draw into a transparent premultiplied image the size of its clipped bounds, which is composited once at ``opacity`` by ``composite``, so overlapping commands never show through one another. At 1 (or above) the commands draw directly under clip_rect(bounds), which is exactly what isolation would give for source-over. At 0 (or NaN) nothing is drawn. - A group whose ``composite`` is not source-over, or that sets ``isolated``, is isolated at any opacity: a group holding a plus group must be, so that the sum is formed before it meets what lies beneath. A painter that cannot isolate (no storage) draws the group directly.
+   A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once. - ``bounds``, in the current coordinates when the group begins, limits the group. It is given up front so that a painter sizes its storage once: nothing the group draws outside ``bounds`` (or outside the clip in force at its beginning) is shown. - ``opacity`` in [0, 1] multiplies the group's whole image. Below 1 the group is isolated: its commands draw into a transparent premultiplied image the size of its clipped bounds, which is composited once at ``opacity`` by ``composite``, so overlapping commands never show through one another. At 1 (or above) the commands draw directly under clip_rect(bounds), which is exactly what isolation would give for source-over. At 0 (or NaN) nothing is drawn. - A group whose ``composite`` is not source-over, or that sets ``isolated``, is isolated at any opacity: a group holding a plus group must be, so that the sum is formed before it meets what lies beneath. A painter that cannot isolate (no storage) draws the group directly. - ``effect`` (capability review decision 1, owner 2026-11-16), when set, filters and masks the group's image before it is composited (PaintGroupEffect, declared in surface_material/paint_group_effect, which this header does not include). A group with an effect is isolated at any opacity, and its image reaches past ``bounds`` by the effect's reach (paint_group_effect_reach): its commands are still limited to ``bounds``, and the blur spreads into the margin. An invalid effect (valid_paint_group_effect) is ignored and counted as a group refusal. Shared read-only: a recording keeps it alive.
 
    .. cpp:member:: Rect bounds
 
@@ -4858,6 +5008,24 @@ Types
    .. cpp:member:: bool isolated
 
       Default: ``{false}``.
+
+   .. cpp:member:: std::shared_ptr<const PaintGroupEffect> effect
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintGroupEffect final
+
+   ``#include <gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>``
+
+   A paint group's effect stage (capability review decision 1, owner 2026-11-16): the filter and mask of a part surface's material, applied to a paint group's image (PaintGroup::effect), so that content drawn by many commands (a control's face and what it paints inside it) is filtered and masked as one, through the same kernels a material uses. In order, over the group's premultiplied image: 1. ``colour_filter``: each pixel through the colour stages (matrix, then table), as a material's colour filter is (pixel_kernel's colour_staged), rounded once to bytes. 2. ``blur``: the engine's integer three-box blur (box_blur), radius in logical units as a material's filter_blur (2σ), 0 to maximum_paint_group_effect_blur. The image spreads past the group's bounds by up to paint_group_effect_reach logical units: the group draws there too, beneath its content's own limit. 3. ``masks``: the mask layers of a material (SurfaceMaterial::masks), laid over the group's bounds as a material's masks are over its box (mask positions and sizes are relative to the bounds), each pixel's alpha weighted by the joined mask. Image masks are refused: a painter holds no window resources. Beyond the bounds the mask is 0. Then the image is composited by the group's opacity and composite. A painter that cannot isolate the group, or whose mask bake exceeds the material bake budget, draws the group without its effect and counts a group refusal (Painter::begin_group).
+
+   .. cpp:member:: MaterialColourFilter colour_filter
+
+   .. cpp:member:: double blur
+
+   .. cpp:member:: std::vector<MaterialMaskLayer> masks
+
+      Up to SurfaceMaterial::maximum_mask_layers layers, bottom first.
 
 .. cpp:namespace:: gui_forms
 
@@ -6359,6 +6527,14 @@ Types
 
       The farthest a reflection reaches outside the box, gap and reach together, in logical units (T5-Q15: the blur and glow cap). Default: ``8.0``.
 
+   .. cpp:member:: constexpr std::size_t maximum_mask_layers
+
+      The most mask layers, and the most of them that are images: an image mask's resampled variant has one slot (image_mask_variant_layer). Default: ``4U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_image_mask_layers
+
+      Default: ``1U``.
+
    .. cpp:member:: std::vector<MaterialFillLayer> fills
 
       Default: ``{MaterialFillLayer::solid(Color::rgba(255, 255, 255))}``.
@@ -6393,9 +6569,9 @@ Types
 
       The surface finish (E9.6, CSS coverage row 9), from 0, the material as authored, to 1, a full gloss derived from its first fill (finished_surface_material, which both paths draw). A finish above 0 needs a solid or linear first fill and room for one more keyline.
 
-   .. cpp:member:: std::optional<MaterialFillLayer> mask
+   .. cpp:member:: std::vector<MaterialMaskLayer> masks
 
-      An alpha mask (E9.6, CSS ``mask-image``): a solid, gradient or image fill whose alpha, times its opacity for an image, multiplies the whole finished part, its shadows and glows included; outside the box it extends at its edge value, so that a shadow fades with the face beside it. The engine's material primitive draws it; the built-in path, paint_surface_material, draws the material unmasked.
+      The mask (E9.6, CSS ``mask-image``, ``mask-mode``, ``mask-composite``): up to maximum_mask_layers layers, bottom first (CSS lists the top layer first), at most maximum_image_mask_layers of them images. Each layer's weight at a pixel is its fill's sample there read by its mode (an image's times its opacity); the weights combine from the bottom up by each upper layer's composite, and the result multiplies the whole finished part, its shadows and glows included. Outside the box each layer extends at its edge value, so that a shadow fades with the face beside it. Empty for none. The engine's material primitive draws it; the built-in path, paint_surface_material, draws the material unmasked.
 
    .. cpp:member:: std::optional<MaterialReflection> reflection
 
@@ -6512,6 +6688,10 @@ Types
    .. cpp:function:: BandDeclaration window_band(const Window& window) const noexcept
 
       The band the rules selecting ``window`` declare (``window { band-width: ...; band-color: ...; band-lit-color: ...; band-effect: ... }``; owner, 2026-11-08): each field from the last matching rule that sets it, among the theme's and the user theme's rules, matched as window_backdrop_chain matches. Empty where no rule sets one.
+
+   .. cpp:function:: std::shared_ptr<const PaintGroupEffect> control_content_effect(const Control& control) const
+
+      The content effect the rules give ``control`` (a rule with no part writing ``filter`` or ``mask-*``; owner 2026-11-16), among the theme's, the window's user theme's, the control's inline style's and its look's rules (CompiledThemeRules::resolve_content_effect), with its gradient masks resolved for the control's arranged size. Null where no rule sets one, where the fields give no filter, blur or mask, or where the result is not a valid group effect. Allocates the effect.
 
    .. cpp:function:: bool supports(ColourScheme scheme) const noexcept
 
@@ -7070,6 +7250,10 @@ Types
    .. cpp:member:: std::optional<BandDeclaration> band
 
       A window rule's band (``band-*``), or none.
+
+   .. cpp:member:: std::vector<MaterialDeclaration> content_effect
+
+      A control rule's content effect (owner 2026-11-16): what a rule with no part, role or surface writes as ``filter`` and ``mask-*``, a filter and mask on the control and its descendants together (Control::set_content_effect). Material declarations of the content effect's fields only (content_effect_field), at most one per field; empty for none.
 
    .. cpp:member:: RuleProvenance provenance
 
@@ -8183,6 +8367,24 @@ Enumerations
 
    .. cpp:enumerator:: screen
 
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: darken
+
+   .. cpp:enumerator:: lighten
+
+   .. cpp:enumerator:: color_dodge
+
+   .. cpp:enumerator:: color_burn
+
+   .. cpp:enumerator:: hard_light
+
+   .. cpp:enumerator:: soft_light
+
+   .. cpp:enumerator:: difference
+
+   .. cpp:enumerator:: exclusion
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: MaterialBorderStyle
@@ -8351,6 +8553,16 @@ Enumerations
 
    .. cpp:enumerator:: clip_path
 
+   .. cpp:enumerator:: mask_modes
+
+   .. cpp:enumerator:: mask_composites
+
+   .. cpp:enumerator:: mask_positions
+
+   .. cpp:enumerator:: mask_sizes
+
+   .. cpp:enumerator:: mask_repeats
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -8445,6 +8657,34 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: MaterialMaskComposite
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: add
+
+   .. cpp:enumerator:: subtract
+
+   .. cpp:enumerator:: intersect
+
+   .. cpp:enumerator:: exclude
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialMaskMode
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: alpha
+
+   .. cpp:enumerator:: luminance
+
+   .. cpp:enumerator:: inverse_alpha
+
+   .. cpp:enumerator:: inverse_luminance
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: MaterialReflectionSource
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
@@ -8452,6 +8692,22 @@ Enumerations
    .. cpp:enumerator:: face
 
    .. cpp:enumerator:: backplane
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialTransferKind
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   .. cpp:enumerator:: identity
+
+   .. cpp:enumerator:: table
+
+   .. cpp:enumerator:: discrete
+
+   .. cpp:enumerator:: linear
+
+   .. cpp:enumerator:: gamma
 
 .. cpp:namespace:: gui_forms
 
@@ -8553,6 +8809,24 @@ Enumerations
 
    .. cpp:enumerator:: copy
 
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: darken
+
+   .. cpp:enumerator:: lighten
+
+   .. cpp:enumerator:: color_dodge
+
+   .. cpp:enumerator:: color_burn
+
+   .. cpp:enumerator:: hard_light
+
+   .. cpp:enumerator:: soft_light
+
+   .. cpp:enumerator:: difference
+
+   .. cpp:enumerator:: exclusion
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: PaintPathTrimResult
@@ -8628,6 +8902,24 @@ Enumerations
    .. cpp:enumerator:: multiply
 
    .. cpp:enumerator:: screen
+
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: darken
+
+   .. cpp:enumerator:: lighten
+
+   .. cpp:enumerator:: color_dodge
+
+   .. cpp:enumerator:: color_burn
+
+   .. cpp:enumerator:: hard_light
+
+   .. cpp:enumerator:: soft_light
+
+   .. cpp:enumerator:: difference
+
+   .. cpp:enumerator:: exclusion
 
 .. cpp:namespace:: gui_forms
 
@@ -10074,6 +10366,10 @@ Functions, constants and aliases
 
    Whether ``band`` is one the engine admits: a width, if set, finite from 0 to maximum_theme_band_width; an effect, if set, in the enumeration.
 
+.. cpp:function:: PaintGroupComposite part_blend_composite(PartBlend blend) noexcept
+
+   The paint group composite that draws a part of ``blend``; source-over for normal. PaintGroupComposite is declared opaquely here (painter.hpp defines it), so that this header does not include the painter's, which reaches back through gui_forms/types.hpp; a caller that reads the result includes painter.hpp.
+
 .. cpp:function:: std::string_view text_role_name(TextRole role) noexcept
 
    The role's name in a sheet: ``ui``, ``field``, ``caption``, ``heading``, ``title``, ``monospace``.
@@ -10121,6 +10417,10 @@ Functions, constants and aliases
    With ``context``, each declaration's em lengths are first added at the part's em (add_material_em) and its current colours set (set_material_current_colour); the overload without it assembles at an em of 0, its current colours as written.
 
 .. cpp:function:: void assemble_material(const SurfaceMaterial& floor, const std::array<const MaterialDeclaration*, material_field_count>& fields, Size box, SurfaceMaterial& material)
+
+.. cpp:function:: bool content_effect_field(MaterialField field) noexcept
+
+   Whether ``field`` is one a control's content effect takes (ThemeRule::content_effect): the colour filter, the filter blur, the mask's layers and their modes and composites. A drop shadow and the image placement longhands are not.
 
 .. cpp:function:: bool material_fields_read_em(const std::array<const MaterialDeclaration*, material_field_count>& fields) noexcept
 
@@ -10246,7 +10546,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::string_view blend_property
 
-   The engine's blend property (E9.6): a declaration of this name, whose value is the name ``normal``, ``multiply`` or ``screen``, draws the part through a paint group of that composite (PaintGroupComposite), whatever draws it, so that it multiplies or screens what was painted beneath it. Like opacity it is no atom and no primitive parameter, and a rule that declares it needs no primitive; the last matching rule that declares it wins. The group's bounds are the part's extent (its bounds grown by its primitive's outsets and its granted overflow): nothing the part draws beyond them is shown. The forced high-contrast pass draws no blend. Value: ``"blend"``.
+   The engine's blend property (E9.6): a declaration of this name, whose value is a mode's CSS name (``normal``, ``multiply``, ``screen``, ``overlay``, ``darken``, ``lighten``, ``color-dodge``, ``color-burn``, ``hard-light``, ``soft-light``, ``difference`` or ``exclusion``), draws the part through a paint group of that composite (PaintGroupComposite), whatever draws it, so that it blends with what was painted beneath it. Like opacity it is no atom and no primitive parameter, and a rule that declares it needs no primitive; the last matching rule that declares it wins. The group's bounds are the part's extent (its bounds grown by its primitive's outsets and its granted overflow): nothing the part draws beyond them is shown. The forced high-contrast pass draws no blend. Value: ``"blend"``.
 
 .. cpp:var:: constexpr std::string_view effect_property
 
@@ -10520,6 +10820,8 @@ Functions, constants and aliases
 
    Every entry finite and at most 256 in magnitude.
 
+.. cpp:function:: bool valid_transfer_function(const MaterialTransferFunction& function) noexcept
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
@@ -10539,6 +10841,34 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::int32_t maximum_finish_elevation_degrees
 
    Value: ``90``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
+
+.. cpp:var:: constexpr MaterialBlendMode material_blend_mode_last
+
+   The last enumerator of MaterialBlendMode, for range checks. Value: ``MaterialBlendMode::exclusion``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>``
+
+.. cpp:function:: bool valid_paint_group_effect(const PaintGroupEffect& effect) noexcept
+
+   Whether ``effect`` is valid: a finite blur from 0 to the cap, and colour stages and masks a material could hold (valid_surface_material), with no image mask layer.
+
+.. cpp:function:: double paint_group_effect_reach(const PaintGroupEffect& effect) noexcept
+
+   How far, in logical units on every side, a valid effect's image reaches past the group's bounds: 1.5 × blur rounded up, plus 3, or 0 without a blur. Three boxes of half width h reach 3h device pixels, and h, rounded from √(blur² × scale² + 1) / 2 − 1/2, is at most blur × scale / 2 + 1/2; the 3 covers that half pixel's 1.5 device pixels at any scale from minimum_device_scale (1/2). A control that paints an effect group grants that overflow and invalidates its changed content grown by it, so that damage covers the blur's spread.
+
+.. cpp:function:: SurfaceMaterial paint_group_effect_mask_material(const PaintGroupEffect& effect)
+
+   The material whose baked alpha is ``effect``'s joined mask over a box: one opaque white fill under ``effect.masks``. Throws std::bad_alloc when it cannot be held.
+
+.. cpp:var:: constexpr double maximum_paint_group_effect_blur
+
+   The largest effect blur, in logical units (glass's cap of 8 doubled for a group's larger content). Value: ``16.0``.
 
 .. cpp:namespace:: gui_forms
 
@@ -11215,6 +11545,10 @@ Functions, constants and aliases
 .. cpp:function:: Point rotated_text_anchor(Point centre, const RotatedTextBox& box) noexcept
 
    The anchor that centres the turned box on ``centre`` (a label placed by its middle, such as an axis title along its edge). Non-finite input gives ``centre``.
+
+.. cpp:var:: constexpr PaintGroupComposite paint_group_composite_last
+
+   The last enumerator of PaintGroupComposite, for range checks of recorded values. Value: ``PaintGroupComposite::exclusion``.
 
 .. cpp:var:: constexpr std::size_t maximum_paint_group_depth
 

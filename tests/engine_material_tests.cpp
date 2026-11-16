@@ -1493,11 +1493,11 @@ void measure() {
     // solid mask, which costs a solid fill's evaluation. A linear and an
     // image mask are measured to check the charge of their kinds.
     SurfaceMaterial solid_masked = base;
-    solid_masked.mask = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 128));
+    solid_masked.masks = {MaterialMaskLayer{.source = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 128))}};
     SurfaceMaterial linear_masked = base;
-    linear_masked.mask = MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 1.0}, two, 2U);
+    linear_masked.masks = {MaterialMaskLayer{.source = MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 1.0}, two, 2U)}};
     SurfaceMaterial image_masked = base;
-    image_masked.mask = MaterialFillLayer::stretched_image(small_image.image, Size{64.0, 64.0});
+    image_masked.masks = {MaterialMaskLayer{.source = MaterialFillLayer::stretched_image(small_image.image, Size{64.0, 64.0})}};
     // A reflection (T5, C7) at its dearest: the whole reach of 8 past the
     // bottom edge, every line drawn; charged per reflected pixel, of which
     // there are 8 lines of the 240-pixel box's width.
@@ -1654,7 +1654,7 @@ void surface_mask() {
     const TestRaster plain = draw(material, logical, 1.0);
 
     SurfaceMaterial halved = material;
-    halved.mask = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 128));
+    halved.masks = {MaterialMaskLayer{.source = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 128))}};
     require(valid_surface_material(halved), "a solid mask is valid");
     const TestRaster half = draw(halved, logical, 1.0);
     bool scaled = true;
@@ -1670,8 +1670,9 @@ void surface_mask() {
 
     // Opaque at the top, clear at the bottom.
     SurfaceMaterial faded = material;
-    faded.mask = MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 1.0},
-                                           std::vector<GradientStop>{{0.0, black}, {1.0, clear}});
+    const MaterialFillLayer top_to_bottom =
+        MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 1.0}, std::vector<GradientStop>{{0.0, black}, {1.0, clear}});
+    faded.masks = {MaterialMaskLayer{.source = top_to_bottom}};
     const TestRaster fade = draw(faded, logical, 1.0);
     require(channel(plain, 18U, 31U, 3U) > 50 && fade.pixel(18U, 31U) == (std::array<std::uint8_t, 4>{0U, 0U, 0U, 0U}),
             "below the box the mask extends at its clear bottom edge");
@@ -1690,7 +1691,7 @@ void surface_mask() {
     const ImageLoadResult loaded = registry.load_bgra32_premultiplied(2U, 1U, 8U, halves);
     require(static_cast<bool>(loaded), "the mask image loads");
     SurfaceMaterial imaged = material;
-    imaged.mask = MaterialFillLayer::stretched_image(loaded.image, Size{2.0, 1.0});
+    imaged.masks = {MaterialMaskLayer{.source = MaterialFillLayer::stretched_image(loaded.image, Size{2.0, 1.0})}};
     require(valid_surface_material(imaged), "an image mask is valid");
     require(!material_primitive().accepts(recipe("button"), target_for(logical, 1.0, &imaged, nullptr)),
             "an image mask without the window's images is refused");
@@ -1723,11 +1724,64 @@ void surface_mask() {
     SurfaceMaterial refused = material;
     MaterialFillLayer pattern{};
     pattern.kind = MaterialFillKind::procedural;
-    refused.mask = pattern;
+    refused.masks = {MaterialMaskLayer{.source = pattern}};
     require(!valid_surface_material(refused), "a procedural pattern is not a mask");
-    refused.mask = MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 0.0},
-                                             std::vector<GradientStop>{{0.0, black}, {1.0, clear}});
+    const MaterialFillLayer flat = MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 0.0},
+                                                             std::vector<GradientStop>{{0.0, black}, {1.0, clear}});
+    refused.masks = {MaterialMaskLayer{.source = flat}};
     require(!valid_surface_material(refused), "a mask is validated as a fill");
+    const MaterialMaskLayer image_layer = imaged.masks.front();
+    refused.masks = {image_layer, image_layer};
+    require(!valid_surface_material(refused), "at most one mask layer is an image");
+    const MaterialMaskLayer solid_layer{.source = MaterialFillLayer::solid(black)};
+    refused.masks = {solid_layer, solid_layer, solid_layer, solid_layer, solid_layer};
+    require(!valid_surface_material(refused), "at most four mask layers");
+}
+
+// Mask modes and composites (E9.6, owner 2026-11-16), exactly: on an
+// opaque red face, a weight w leaves red and alpha at round(255 w).
+void mask_modes_and_composites() {
+    const Size logical{20.0, 20.0};
+    const SurfaceMaterial face = solid_material(red);
+    struct MaskCase final {
+        std::vector<MaterialMaskLayer> layers{};
+        std::uint8_t expected{};
+        const char* what{};
+    };
+    const MaterialFillLayer green = MaterialFillLayer::solid(Color::rgba(0, 255, 0, 255));
+    const MaterialFillLayer quarter = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 64));
+    const MaterialFillLayer half = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 128));
+    const MaterialMaskLayer beneath{.source = half};
+    // w = 0.7152 (green's luminance): 182.376; 1 - w: 72.624; 1 - 64/255:
+    // 191; and over 128/255 beneath, 64/255 joined by add (40768/255 =
+    // 159.875), subtract (8128/255 = 31.875), intersect (8192/255 =
+    // 32.125) and exclude (32576/255 = 127.75).
+    const std::array<MaskCase, 7> cases{{
+        {{MaterialMaskLayer{.source = green, .mode = MaterialMaskMode::luminance}}, 182U, "luminance"},
+        {{MaterialMaskLayer{.source = green, .mode = MaterialMaskMode::inverse_luminance}}, 73U, "inverse luminance"},
+        {{MaterialMaskLayer{.source = quarter, .mode = MaterialMaskMode::inverse_alpha}}, 191U, "inverse alpha"},
+        {{beneath, MaterialMaskLayer{.source = quarter, .composite = MaterialMaskComposite::add}}, 160U, "add"},
+        {{beneath, MaterialMaskLayer{.source = quarter, .composite = MaterialMaskComposite::subtract}}, 32U, "subtract"},
+        {{beneath, MaterialMaskLayer{.source = quarter, .composite = MaterialMaskComposite::intersect}}, 32U,
+         "intersect"},
+        {{beneath, MaterialMaskLayer{.source = quarter, .composite = MaterialMaskComposite::exclude}}, 128U, "exclude"},
+    }};
+    for (const MaskCase& mask_case : cases) {
+        SurfaceMaterial masked = face;
+        masked.masks = mask_case.layers;
+        require(valid_surface_material(masked), std::string("a ") + mask_case.what + " mask is valid");
+        const TestRaster drawn = draw(masked, logical, 1.0);
+        const std::array<std::uint8_t, 4> expected{mask_case.expected, 0U, 0U, mask_case.expected};
+        require(drawn.pixel(18U, 18U) == expected, std::string("the ") + mask_case.what + " mask's exact weight");
+    }
+    // The bottom layer's composite is not read: one layer that subtracts
+    // is the plain alpha mask.
+    SurfaceMaterial lone = face;
+    lone.masks = {MaterialMaskLayer{.source = half, .composite = MaterialMaskComposite::subtract}};
+    SurfaceMaterial plain = face;
+    plain.masks = {MaterialMaskLayer{.source = half}};
+    require(raster_hash(draw(lone, logical, 1.0)) == raster_hash(draw(plain, logical, 1.0)),
+            "the bottom layer's composite is not read");
 }
 
 } // namespace
@@ -1840,6 +1894,7 @@ int main(int argc, char** argv) {
     bake_spans_match_every_pixel();
     surface_finish();
     surface_mask();
+    mask_modes_and_composites();
     image_fills();
     image_variant_made_once();
     image_variant_outside_the_budget();

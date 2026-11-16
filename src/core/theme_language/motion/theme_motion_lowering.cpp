@@ -1214,11 +1214,11 @@ bool add_loops(const KeyframesDefinition& definition, const AnimationSettings& s
 }
 
 // Whether `rule` declares nothing: no value, no scoped custom property
-// definition (P12), no backdrop and no band.
+// definition (P12), no backdrop, no band and no content effect.
 bool rule_empty(const ThemeRule& rule) noexcept {
     const bool empty = rule.declarations.empty() && rule.transitions.empty() && !rule.ambient.has_value() &&
                        rule.materials.empty() && rule.recipe_fields.empty() && rule.scoped_definitions.empty() &&
-                       !rule.backdrop.has_value() && !rule.band.has_value();
+                       !rule.backdrop.has_value() && !rule.band.has_value() && rule.content_effect.empty();
     return empty;
 }
 

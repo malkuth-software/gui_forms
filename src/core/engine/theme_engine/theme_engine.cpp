@@ -1156,7 +1156,7 @@ void ThemeEngine::paint_clipped(Painter& painter, const Control& control, const 
     PaintGroup group{};
     group.bounds = Rect{part.bounds.x - grown.left, part.bounds.y - grown.top,
                         part.bounds.width + grown.left + grown.right, part.bounds.height + grown.top + grown.bottom};
-    group.composite = blend == PartBlend::multiply ? PaintGroupComposite::multiply : PaintGroupComposite::screen;
+    group.composite = part_blend_composite(blend);
     paint_planned(painter, control, part, decided, clips, &group);
 }
 

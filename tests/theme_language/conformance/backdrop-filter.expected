@@ -1,0 +1,7 @@
+compiled
+rule 0 theme_sheet surface=window
+  label window
+  backdrop blur(12) saturate(1.4)
+rule 1 theme_sheet surface=popup class=alert
+  label popup.alert
+  backdrop none

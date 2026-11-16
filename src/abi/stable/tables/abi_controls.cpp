@@ -9,10 +9,13 @@
 
 #include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
 
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <span>
 #include <memory>
 #include <optional>
@@ -50,6 +53,14 @@ constexpr SlotIdentity release_relative_pointer_slot{GF_TABLE_CONTROLS, 14U};
 constexpr SlotIdentity relative_pointer_state_slot{GF_TABLE_CONTROLS, 15U};
 constexpr SlotIdentity warp_pointer_slot{GF_TABLE_CONTROLS, 16U};
 constexpr SlotIdentity set_pointer_release_regions_slot{GF_TABLE_CONTROLS, 17U};
+constexpr SlotIdentity set_content_effect_slot{GF_TABLE_CONTROLS, 18U};
+
+// The content effect's C limits are the C++ ones.
+static_assert(GF_CONTENT_EFFECT_MAXIMUM_MASKS == SurfaceMaterial::maximum_mask_layers);
+static_assert(GF_CONTENT_EFFECT_MAXIMUM_BLUR == maximum_paint_group_effect_blur);
+static_assert(sizeof(gf_content_effect::colour_table) == MaterialColourTable::channels * MaterialColourTable::levels);
+static_assert(sizeof(gf_content_effect::colour_matrix) / sizeof(double) ==
+              MaterialColourMatrix::rows * MaterialColourMatrix::columns);
 
 constexpr std::uint32_t layout_transaction_size_1_0 = 32U;
 constexpr std::uint32_t scroll_snapshot_size_1_0 = 248U;
@@ -623,6 +634,115 @@ gf_status GF_CALL controls_set_pointer_release_regions(gf_object object, const g
     return call_slot(set_pointer_release_regions_slot, controls_set_pointer_release_regions_body, object, regions, count);
 }
 
+// One caller mask layer as the engine's, or nothing for an unknown mode or
+// composite, a nonzero reserved or a point that is not finite.
+std::optional<MaterialMaskLayer> mask_layer_from(const gf_effect_mask_layer& layer) {
+    if (layer.reserved != 0U || !std::isfinite(layer.start.x) || !std::isfinite(layer.start.y) ||
+        !std::isfinite(layer.end.x) || !std::isfinite(layer.end.y)) {
+        return std::nullopt;
+    }
+    MaterialMaskLayer result{};
+    switch (layer.mode) {
+    case GF_EFFECT_MASK_MODE_ALPHA: result.mode = MaterialMaskMode::alpha; break;
+    case GF_EFFECT_MASK_MODE_LUMINANCE: result.mode = MaterialMaskMode::luminance; break;
+    case GF_EFFECT_MASK_MODE_INVERSE_ALPHA: result.mode = MaterialMaskMode::inverse_alpha; break;
+    case GF_EFFECT_MASK_MODE_INVERSE_LUMINANCE: result.mode = MaterialMaskMode::inverse_luminance; break;
+    default: return std::nullopt;
+    }
+    switch (layer.composite) {
+    case GF_EFFECT_MASK_COMPOSITE_ADD: result.composite = MaterialMaskComposite::add; break;
+    case GF_EFFECT_MASK_COMPOSITE_SUBTRACT: result.composite = MaterialMaskComposite::subtract; break;
+    case GF_EFFECT_MASK_COMPOSITE_INTERSECT: result.composite = MaterialMaskComposite::intersect; break;
+    case GF_EFFECT_MASK_COMPOSITE_EXCLUDE: result.composite = MaterialMaskComposite::exclude; break;
+    default: return std::nullopt;
+    }
+    const Color start_colour = unpacked_color(layer.start_rgba);
+    const bool solid = layer.start.x == layer.end.x && layer.start.y == layer.end.y;
+    if (solid) {
+        result.source = MaterialFillLayer::solid(start_colour);
+        return result;
+    }
+    const std::array<GradientStop, 2> stops{GradientStop{0.0, start_colour},
+                                            GradientStop{1.0, unpacked_color(layer.end_rgba)}};
+    result.source = MaterialFillLayer::linear(Point{layer.start.x, layer.start.y}, Point{layer.end.x, layer.end.y},
+                                              stops.data(), stops.size(), MaterialCoordinateSpace::normalized);
+    return result;
+}
+
+gf_status controls_set_content_effect_body(gf_object object, const gf_content_effect* effect) {
+    const SlotIdentity slot = set_content_effect_slot;
+    // Everything the caller lends is read and checked before the control
+    // changes.
+    std::shared_ptr<const PaintGroupEffect> shared{};
+    if (effect != nullptr) {
+        const gf_content_effect& given = *effect;
+        if (given.struct_size < sizeof(gf_content_effect)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the effect is smaller than its 1.6 size");
+        }
+        if (given.has_colour_matrix > 1U || given.has_colour_table > 1U) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "has_colour_matrix and has_colour_table are 0 or 1");
+        }
+        if (given.mask_count > GF_CONTENT_EFFECT_MAXIMUM_MASKS) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "at most 4 mask layers");
+        }
+        if (!std::isfinite(given.blur) || given.blur < 0.0 || given.blur > GF_CONTENT_EFFECT_MAXIMUM_BLUR) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the blur is not finite or is out of range");
+        }
+        std::uint32_t stride = 0U;
+        const gf_status arrayed =
+            check_array(given.masks, given.mask_count, static_cast<std::uint32_t>(sizeof(gf_effect_mask_layer)), slot,
+                        stride);
+        if (arrayed != GF_STATUS_OK) {
+            return arrayed;
+        }
+        PaintGroupEffect built{};
+        built.blur = given.blur;
+        if (given.has_colour_matrix == 1U || given.has_colour_table == 1U) {
+            MaterialColourMatrix matrix{};
+            if (given.has_colour_matrix == 1U) {
+                for (std::size_t index = 0U; index < matrix.values.size(); ++index) {
+                    const double value = given.colour_matrix[index];
+                    if (!std::isfinite(value)) {
+                        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a colour matrix value is not finite");
+                    }
+                    matrix.values[index] = value;
+                }
+            }
+            if (given.has_colour_table == 1U) {
+                MaterialColourTable table{};
+                std::memcpy(table.entries.data(), given.colour_table, table.entries.size());
+                built.colour_filter = MaterialColourFilter(matrix, table);
+            } else {
+                built.colour_filter = MaterialColourFilter(matrix);
+            }
+        }
+        built.masks.reserve(given.mask_count);
+        for (std::uint32_t index = 0U; index < given.mask_count; ++index) {
+            const std::optional<MaterialMaskLayer> layer = mask_layer_from(element_at(given.masks, stride, index));
+            if (!layer) {
+                return fail(GF_STATUS_INVALID_ARGUMENT, slot,
+                            "a mask layer's mode, composite, reserved or points are invalid");
+            }
+            built.masks.push_back(*layer);
+        }
+        if (!valid_paint_group_effect(built)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the effect is not valid");
+        }
+        shared = std::make_shared<const PaintGroupEffect>(std::move(built));
+    }
+    Control::Ptr control;
+    const gf_status entered = enter_live_control(object, slot, control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    (*control).set_content_effect(std::move(shared));
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL controls_set_content_effect(gf_object object, const gf_content_effect* effect) noexcept {
+    return call_slot(set_content_effect_slot, controls_set_content_effect_body, object, effect);
+}
+
 constexpr gf_controls_table table{
     .struct_size = sizeof(gf_controls_table),
     .abi_minor = GF_ABI_MINOR,
@@ -644,6 +764,7 @@ constexpr gf_controls_table table{
     .relative_pointer_state = &controls_relative_pointer_state,
     .warp_pointer = &controls_warp_pointer,
     .set_pointer_release_regions = &controls_set_pointer_release_regions,
+    .set_content_effect = &controls_set_content_effect,
 };
 
 } // namespace

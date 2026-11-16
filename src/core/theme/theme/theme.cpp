@@ -5,6 +5,7 @@
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 
 #include "ancestor_facts.hpp"
 #include "floor_sheet.hpp"
@@ -1135,10 +1136,7 @@ bool valid_fill_layer(const MaterialFillLayer& fill) noexcept {
         fill.coordinate_space != MaterialCoordinateSpace::logical) {
         return false;
     }
-    if (fill.blend != MaterialBlendMode::normal && fill.blend != MaterialBlendMode::multiply &&
-        fill.blend != MaterialBlendMode::screen) {
-        return false;
-    }
+    if (static_cast<std::uint8_t>(fill.blend) > static_cast<std::uint8_t>(material_blend_mode_last)) return false;
     switch (fill.kind) {
     case MaterialFillKind::solid:
         if (fill.linear_geometry != MaterialLinearGeometry::endpoints ||
@@ -1478,13 +1476,24 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         const bool derivable = first == MaterialFillKind::solid || first == MaterialFillKind::linear_gradient;
         if (!derivable || material.keylines.size() >= SurfaceMaterial::maximum_keylines) return false;
     }
-    // A mask (E9.6) is a solid, gradient or image layer; a procedural
-    // pattern or a finish is not a mask.
-    if (material.mask) {
-        const MaterialFillLayer& mask = *material.mask;
+    // A mask (E9.6) is up to maximum_mask_layers solid, gradient or image
+    // layers, at most maximum_image_mask_layers of them images; a
+    // procedural pattern or a finish is not a mask.
+    if (material.masks.size() > SurfaceMaterial::maximum_mask_layers) return false;
+    std::size_t image_masks = 0U;
+    for (const MaterialMaskLayer& layer : material.masks) {
+        const MaterialFillLayer& mask = layer.source;
         const bool textured = mask.kind == MaterialFillKind::procedural || mask.kind == MaterialFillKind::finish;
         if (textured || !valid_fill_layer(mask)) return false;
+        if (static_cast<std::uint8_t>(layer.mode) > static_cast<std::uint8_t>(MaterialMaskMode::inverse_luminance)) {
+            return false;
+        }
+        if (static_cast<std::uint8_t>(layer.composite) > static_cast<std::uint8_t>(MaterialMaskComposite::exclude)) {
+            return false;
+        }
+        if (mask.kind == MaterialFillKind::image) image_masks = image_masks + 1U;
     }
+    if (image_masks > SurfaceMaterial::maximum_image_mask_layers) return false;
     if (material.reflection && !valid_material_reflection(*material.reflection)) return false;
     if (static_cast<std::uint8_t>(material.dither) > static_cast<std::uint8_t>(MaterialDither::blue_noise)) {
         return false;
@@ -1666,7 +1675,7 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
     if (surface_material_shaped(material)) return false;
     if (material.corner_radius != 0.0 || material.corner_radii) return false;
     if (!(surface_material_visual_outsets(material) == Insets{})) return false;
-    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask ||
+    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || !material.masks.empty() ||
         material.reflection) {
         return false;
     }
@@ -1690,7 +1699,7 @@ std::optional<double> surface_material_resize_band(const SurfaceMaterial& materi
     if (!material.shadows.empty() || !material.glows.empty() || !material.keylines.empty()) return std::nullopt;
     if (!material.border_edges.empty()) return std::nullopt;
     if (!(surface_material_visual_outsets(material) == Insets{})) return std::nullopt;
-    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask ||
+    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || !material.masks.empty() ||
         material.reflection) {
         return std::nullopt;
     }
@@ -1860,6 +1869,11 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
         case MaterialField::finish:
         case MaterialField::gradient_dither:
         case MaterialField::mask:
+        case MaterialField::mask_modes:
+        case MaterialField::mask_composites:
+        case MaterialField::mask_positions:
+        case MaterialField::mask_sizes:
+        case MaterialField::mask_repeats:
         case MaterialField::reflection:
         case MaterialField::seat:
         case MaterialField::count:
@@ -2546,6 +2560,43 @@ BandDeclaration Theme::window_band(const Window& window) const noexcept {
     facts.user_rules = window.user_theme_rules();
     const BandDeclaration declared = engine_.rules().resolve_band(facts);
     return declared;
+}
+
+std::shared_ptr<const PaintGroupEffect> Theme::control_content_effect(const Control& control) const {
+    CompiledThemeRules::PartFacts facts{};
+    facts.control_type = control.anatomy().control_id;
+    facts.stable_id = control.stable_id().value();
+    facts.classes = control.classes.read();
+    facts.inline_rules = control.inline_style_rules();
+    facts.look_rules = control.look_rules();
+    facts.states = control.anatomy_states();
+    const SurfaceRoot* const window = control.attached_surface_root();
+    if (window != nullptr) facts.media = window_media_facts(*window);
+    if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    const CompiledThemeRules& rules = engine_.rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, rules, ancestors, facts);
+    std::array<const MaterialDeclaration*, material_field_count> fields{};
+    rules.resolve_content_effect(facts, fields);
+    bool declared = false;
+    for (const MaterialDeclaration* const field : fields) {
+        if (field != nullptr && !(*field).initial) declared = true;
+    }
+    if (!declared) return nullptr;
+    // The masks' gradients are resolved for the control's size, the
+    // group's box in its usual case (a subtree overflowing the control
+    // widens the group, not the gradients).
+    const Rect bounds = control.committed_arranged_bounds();
+    SurfaceMaterial material{};
+    assemble_material(SurfaceMaterial{}, fields, Size{bounds.width, bounds.height}, material);
+    PaintGroupEffect effect{};
+    effect.colour_filter = material.colour_filter;
+    effect.blur = material.filter_blur;
+    effect.masks = material.masks;
+    const bool empty = !effect.colour_filter && !(effect.blur > 0.0) && effect.masks.empty();
+    if (empty || !valid_paint_group_effect(effect)) return nullptr;
+    const std::shared_ptr<const PaintGroupEffect> shared = std::make_shared<const PaintGroupEffect>(std::move(effect));
+    return shared;
 }
 
 bool Theme::declares_clarity(const Control& control) const noexcept {

@@ -893,6 +893,15 @@ std::string_view fill_blend_name(MaterialBlendMode blend) {
     case MaterialBlendMode::normal: return "normal";
     case MaterialBlendMode::multiply: return "multiply";
     case MaterialBlendMode::screen: return "screen";
+    case MaterialBlendMode::overlay: return "overlay";
+    case MaterialBlendMode::darken: return "darken";
+    case MaterialBlendMode::lighten: return "lighten";
+    case MaterialBlendMode::color_dodge: return "color-dodge";
+    case MaterialBlendMode::color_burn: return "color-burn";
+    case MaterialBlendMode::hard_light: return "hard-light";
+    case MaterialBlendMode::soft_light: return "soft-light";
+    case MaterialBlendMode::difference: return "difference";
+    case MaterialBlendMode::exclusion: return "exclusion";
     }
     return {};
 }
@@ -1070,7 +1079,9 @@ void add_material_features(std::vector<std::string>& keys, const SurfaceMaterial
     if (material.drop_shadow) add_key(keys, "drop_shadow");
     if (material.filter_blur > 0.0) add_key(keys, "filter_blur");
     if (material.finish > 0.0) add_key(keys, "finish");
-    if (material.mask) add_key(keys, "mask." + std::string(fill_kind_name((*material.mask).kind)));
+    for (const MaterialMaskLayer& mask : material.masks) {
+        add_key(keys, "mask." + std::string(fill_kind_name(mask.source.kind)));
+    }
 }
 
 PresentationProperty transition_property(const PropertyTransition& transition) {

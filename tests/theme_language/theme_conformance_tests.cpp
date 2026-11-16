@@ -340,7 +340,14 @@ std::string material_text(const MaterialDeclaration& declaration) {
     }
     if (declaration.border_image) text += " border-image";
     if (declaration.drop_shadow) text += " drop-shadow";
-    if (declaration.mask) text += " mask";
+    if (declaration.masks.size() == 1U) text += " mask";
+    if (declaration.masks.size() > 1U) text += " masks=" + std::to_string(declaration.masks.size());
+    for (const MaterialMaskMode mode : declaration.mask_modes) {
+        text += " mode(" + std::to_string(static_cast<unsigned int>(mode)) + ")";
+    }
+    for (const MaterialMaskComposite composite : declaration.mask_composites) {
+        text += " composite(" + std::to_string(static_cast<unsigned int>(composite)) + ")";
+    }
     if (declaration.reflection) {
         const MaterialReflection& reflection = *declaration.reflection;
         text += " reflection edge=" + std::to_string(static_cast<unsigned int>(reflection.edge)) + " opacities=" +
@@ -457,6 +464,11 @@ std::string rule_text(std::size_t index, const ThemeRule& rule) {
     for (const MaterialDeclaration& declaration : rule.materials) text += material_text(declaration);
     for (const RecipeDeclaration& declaration : rule.recipe_fields) text += recipe_text(declaration);
     if (rule.backdrop) text += backdrop_text(*rule.backdrop);
+    // A control's content effect: its declarations as material_text
+    // prints them, after "content".
+    for (const MaterialDeclaration& declaration : rule.content_effect) {
+        text += "  content" + material_text(declaration).substr(1U);
+    }
     for (const ScopedDefinition& definition : rule.scoped_definitions) {
         text += "  defines " + definition.name + " #" + std::to_string(definition.definition) + "\n";
     }

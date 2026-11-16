@@ -913,6 +913,30 @@ public:
     [[nodiscard]] PaintPlane paint_plane() const noexcept { return paint_plane_; }
     void set_paint_plane(PaintPlane plane);
     [[nodiscard]] std::optional<DisplayChunkInfo> display_chunk_info() const noexcept;
+    // The control's content effect (capability review decision 1, owner
+    // 2026-11-16): PaintGroupEffect's colour stages, blur and masks applied
+    // to what this control and its descendants paint, as one image. The
+    // window draws the control's display chunk and its descendants' chunks
+    // in its paint plane inside one paint group carrying the effect, over
+    // the control's visual bounds and child viewport, and grows every
+    // damage of the control and its descendants by the effect's reach
+    // (paint_group_effect_reach), so that the blur's spread repaints. An
+    // effect set here wins over the theme's (`filter` and `mask-*` on a
+    // control rule). Null for none. Throws std::invalid_argument, changing
+    // nothing, for an effect valid_paint_group_effect refuses. Shared
+    // read-only: the window's recordings keep it alive. Under forced high
+    // contrast the window paints it without its colour stages
+    // (SurfaceRoot::painted_content_effect).
+    void set_content_effect(std::shared_ptr<const PaintGroupEffect> effect);
+    [[nodiscard]] const std::shared_ptr<const PaintGroupEffect>& content_effect() const& noexcept {
+        return content_effect_;
+    }
+    const std::shared_ptr<const PaintGroupEffect>& content_effect() const&& = delete;
+    // The effect the window draws: the one set, else the theme's.
+    [[nodiscard]] const std::shared_ptr<const PaintGroupEffect>& shown_content_effect() const& noexcept {
+        return content_effect_ ? content_effect_ : theme_content_effect_;
+    }
+    const std::shared_ptr<const PaintGroupEffect>& shown_content_effect() const&& = delete;
     void invalidate(Dirty dirty);
     // Marks only a local client rectangle for repaint. The retained display
     // chunk remains the authoritative complete presentation, while host
@@ -1725,6 +1749,12 @@ private:
     // primary font, and returns Dirty::layout where it resolves differently
     // now (a font is a layout input), else Dirty::none.
     [[nodiscard]] Dirty refresh_text_font() noexcept;
+    // Resolves the theme's content effect for the control again
+    // (Theme::control_content_effect) into theme_content_effect_, keeping
+    // the shared effect where the new one is equal. Called by the window
+    // where the control's paint damage is owed, before the damage is
+    // measured, so the damage spreads by the new reach.
+    void refresh_theme_content_effect();
     // Whether the control's theme or its window's user theme has rules with
     // ancestor compounds (CompiledThemeRules::uses_ancestors).
     [[nodiscard]] bool reads_ancestors() const noexcept;
@@ -2154,6 +2184,19 @@ private:
     PaintPlane paint_plane_{PaintPlane::control};
     std::shared_ptr<const detail::DisplayChunk> display_chunk_;
     Insets last_painted_visual_outsets_{};
+    // The content effects (set_content_effect): the one set in code, the
+    // theme's (refresh_theme_content_effect, where the control's paint
+    // damage is owed),
+    // and the reach of the one last painted, so that a smaller or removed
+    // effect still damages what the larger one spread over.
+    std::shared_ptr<const PaintGroupEffect> content_effect_{};
+    std::shared_ptr<const PaintGroupEffect> theme_content_effect_{};
+    // Under forced high contrast, the shown effect without its colour
+    // stages (SurfaceRoot::painted_content_effect), and the shown effect it
+    // was made from; replaced when that changes.
+    std::shared_ptr<const PaintGroupEffect> contrast_content_effect_{};
+    std::shared_ptr<const PaintGroupEffect> contrast_effect_source_{};
+    double last_painted_effect_reach_{};
     bool layout_collapsed_{};
     // Whether this is its window's hovered control, the one the pointer was
     // last over (stage T4, hot states). Only the window sets it, before the
