@@ -66,6 +66,28 @@ jobs:
           restore-keys: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-
       - name: Install LLVM 22 with its development headers, and Ninja
         run: sh gui_forms/tools/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
+      - name: Identify and verify LLVM release compiler
+        id: compiler
+        run: python template_harness/harness/compiler_identity.py
+      # Linux links the harness's static position-independent C++ runtime
+      # (template_harness build_linux_runtimes.py; cmake/llvm22.cmake refuses
+      # a configure without it), cached under the native jobs' key.
+      - name: Select the Linux runtime prefix
+        id: linux-runtime
+        run: |
+          directory="$(python template_harness/harness/linux_runtime_manifest.py --directory-name)"
+          echo "GUI_FORMS_LLVM_RUNTIME=$PWD/.build/toolchain/$directory" >> "$GITHUB_ENV"
+          echo "directory=$directory" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: .build/toolchain/${{ steps.linux-runtime.outputs.directory }}
+          key: gui-linux-runtimes-v1-${{ steps.linux-runtime.outputs.directory }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('template_harness/harness/build_linux_runtimes.py', 'template_harness/harness/linux_runtime_manifest.py', 'template_harness/harness/macos_runtime_manifest.py') }}
+      - name: Build the static Linux runtimes
+        run: |
+          if [ ! -f "$GUI_FORMS_LLVM_RUNTIME/runtime-manifest.json" ]; then
+            python template_harness/harness/build_linux_runtimes.py --work "$RUNNER_TEMP/llvm-runtimes" --prefix "$GUI_FORMS_LLVM_RUNTIME" --jobs 4
+          fi
+          python template_harness/harness/linux_runtime_manifest.py "$GUI_FORMS_LLVM_RUNTIME"
       # GUI_FORMS_LLVM_ROOT is the compiler's prefix by default
       # (cmake/LocalizablePlugin.cmake), /usr/lib/llvm-22 here.
       - name: Configure the tree
