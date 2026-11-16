@@ -1361,7 +1361,12 @@ std::size_t CorrespondenceView::realized_item_count() const {
     return range.second - range.first;
 }
 
+// Control's rule for realized items: one past realized_item_count() is
+// refused before it indexes the items.
 std::string CorrespondenceView::realized_item_stable_id(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("CorrespondenceView realized item is past the realized cards");
+    }
     return items_[realized_range().first + item].stable_id;
 }
 
@@ -1393,6 +1398,9 @@ void CorrespondenceView::publish_realized_item_geometry(std::size_t item,
 }
 
 AnatomyStateSet CorrespondenceView::realized_item_anatomy_states(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("CorrespondenceView realized item is past the realized cards");
+    }
     AnatomyStateSet states;
     const std::size_t index = realized_range().first + item;
     const CorrespondenceItem& entry = items_[index];

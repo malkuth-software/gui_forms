@@ -558,7 +558,7 @@ std::size_t BackstageView::realized_item_count() const {
 }
 
 std::string BackstageView::realized_item_stable_id(std::size_t item) const {
-    if (item >= items_.size()) return {};
+    if (item >= items_.size()) throw std::out_of_range("BackstageView realized item is past the items");
     return node_id(stable_id().value(), items_[item].stable_id);
 }
 
@@ -573,7 +573,7 @@ void BackstageView::publish_realized_item_geometry(std::size_t item, std::span<P
 }
 
 AnatomyStateSet BackstageView::realized_item_anatomy_states(std::size_t item) const {
-    if (item >= items_.size()) return AnatomyStateSet{};
+    if (item >= items_.size()) throw std::out_of_range("BackstageView realized item is past the items");
     return item_states(item);
 }
 

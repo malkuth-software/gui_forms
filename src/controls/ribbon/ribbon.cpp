@@ -3544,6 +3544,9 @@ std::size_t Ribbon::realized_item_count() const {
 
 std::string Ribbon::realized_item_stable_id(std::size_t item) const {
     const RealizedItem located = locate_realized(layout(), item);
+    if (located.kind == RealizedItem::Kind::none) {
+        throw std::out_of_range("Ribbon realized item is past the realized items");
+    }
     const std::string ribbon_id(stable_id().value());
     if (located.kind == RealizedItem::Kind::tab) return node_identity(ribbon_id, "tab", tabs_[located.index].stable_id);
     if (located.kind == RealizedItem::Kind::group) {
@@ -3591,6 +3594,9 @@ void Ribbon::publish_realized_item_geometry(std::size_t item, std::span<PartGeom
 
 AnatomyStateSet Ribbon::realized_item_anatomy_states(std::size_t item) const {
     const RealizedItem located = locate_realized(layout(), item);
+    if (located.kind == RealizedItem::Kind::none) {
+        throw std::out_of_range("Ribbon realized item is past the realized items");
+    }
     if (located.kind == RealizedItem::Kind::tab) return tab_states(located.index);
     if (located.kind == RealizedItem::Kind::command) return command_states(located.command);
     return AnatomyStateSet{};

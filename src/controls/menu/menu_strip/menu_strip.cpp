@@ -707,14 +707,16 @@ MenuStrip::Parts MenuStrip::parts() const {
     return record;
 }
 
-std::size_t MenuStrip::realized_item_index(std::size_t item) const noexcept {
+// As ToolStrip's: an item past the realized ones is refused here rather than
+// answered with a past-the-end index the accessors would use.
+std::size_t MenuStrip::realized_item_index(std::size_t item) const {
     std::size_t seen = 0U;
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (!items_[index].visible) continue;
         if (seen == item) return index;
         ++seen;
     }
-    return items_.size();
+    throw std::out_of_range("MenuStrip realized item is past the realized items");
 }
 
 std::size_t MenuStrip::realized_item_count() const {

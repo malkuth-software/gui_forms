@@ -5330,7 +5330,13 @@ std::size_t Control::realized_item_count() const {
     return 0U;
 }
 
-std::string Control::realized_item_stable_id(std::size_t) const {
+// A control with realized items overrides these; the base has none to name,
+// so every item past realized_item_count() is refused, as the overrides
+// refuse it.
+std::string Control::realized_item_stable_id(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("realized item index is past the realized items");
+    }
     return {};
 }
 
@@ -5362,7 +5368,10 @@ void Control::fill_realized_item_geometry(std::size_t item,
     std::copy(parts.begin(), parts.end(), geometry.begin());
 }
 
-AnatomyStateSet Control::realized_item_anatomy_states(std::size_t) const {
+AnatomyStateSet Control::realized_item_anatomy_states(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("realized item index is past the realized items");
+    }
     AnatomyStateSet states;
     return states;
 }
