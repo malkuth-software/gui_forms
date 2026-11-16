@@ -185,6 +185,32 @@ private:
     static void ignore_invalid_property(const BindingValue&) {}
 };
 
+// A-gf-core-03-F4: a property whose getter removes every bindable
+// registration, its own included.
+class SelfRemovingPropertyProbe final : public Control {
+public:
+    explicit SelfRemovingPropertyProbe(StableId stable_id)
+        : Control(std::move(stable_id)) {
+        PropertyDescriptor vanishing;
+        vanishing.name = "Vanishing";
+        vanishing.kind = BindingValueKind::number;
+        vanishing.writable = false;
+        vanishing.bindable = false;
+        PropertyRegistration registration;
+        registration.descriptor = std::move(vanishing);
+        registration.get = detail::BoundMemberFunction<
+            BindingValue (SelfRemovingPropertyProbe::*)()>(
+                *this, &SelfRemovingPropertyProbe::vanish);
+        define_bindable_property(std::move(registration));
+    }
+
+private:
+    [[nodiscard]] BindingValue vanish() {
+        clear_bindable_properties();
+        return BindingValue{1.0};
+    }
+};
+
 PropertyObjectValue make_endpoint_value() {
     return make_property_object("Endpoint", {
         {"Host", "Server host", BindingValue{std::string("127.0.0.1")}},
@@ -635,6 +661,17 @@ void test_property_metadata_defaults_reset_and_serialization() {
     }
     require(invalid_default_rejected,
             "property registration must reject a default incompatible with its declared kind");
+
+    const std::shared_ptr<SelfRemovingPropertyProbe> vanishing =
+        make_control<SelfRemovingPropertyProbe>(StableId("property.vanishing"));
+    bool removed_refused = false;
+    try {
+        static_cast<void>((*vanishing).property_value("Vanishing"));
+    } catch (const std::logic_error&) {
+        removed_refused = true;
+    }
+    require(removed_refused && !(*vanishing).property_value("Vanishing"),
+            "a getter that removes its own registration is refused, not read through a stale entry");
 }
 
 void test_property_enum_schema_bounds_and_unicode() {
