@@ -5178,6 +5178,21 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_list_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_list_view_tests COMMAND gui_forms_list_view_tests)
 
+    # Hostile handlers (house style 5, commit then notify; owner decision
+    # 2026-11-16): handlers that clear or replace the items, detach the
+    # control, drop its last reference or destroy the window from inside a
+    # notification. One test per subject, and the last-reference drop as its
+    # own test, so a finding names its control; the sanitizer tree runs them.
+    add_executable(gui_forms_hostile_handlers_tests tests/hostile_handlers/hostile_handlers_tests.cpp)
+    target_link_libraries(gui_forms_hostile_handlers_tests PRIVATE gui_forms_controls)
+    foreach(_gui_hostile_subject IN ITEMS list_view list_box checked_list_box combo_box tree_view tab_control
+            split_container track_bar h_scroll_bar numeric_up_down data_grid_view menu_strip context_menu)
+        add_test(NAME gui_forms_hostile_handlers_${_gui_hostile_subject}
+                 COMMAND gui_forms_hostile_handlers_tests --subject ${_gui_hostile_subject} --actions mutate)
+        add_test(NAME gui_forms_hostile_handlers_${_gui_hostile_subject}_release
+                 COMMAND gui_forms_hostile_handlers_tests --subject ${_gui_hostile_subject} --actions release)
+    endforeach()
+
     add_executable(gui_forms_kept_layout_tests tests/kept_layout_tests.cpp)
     target_link_libraries(gui_forms_kept_layout_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_kept_layout_tests COMMAND gui_forms_kept_layout_tests)
