@@ -5,13 +5,12 @@
 #include "gui_forms/controls/color_picker_capabilities.hpp"
 
 #include <cstdint>
-#include <memory>
 #include <span>
 #include <vector>
 
-namespace gui_forms {
+#include <stxlib/unique.hpp>
 
-class PartRaster;
+namespace gui_forms {
 
 // The parts of a ColorPicker a pointer press or the keyboard edits.
 enum class ColorPickerPart : std::uint8_t { none, field, hue, alpha };
@@ -150,13 +149,12 @@ private:
     bool focused_{};
     // Set while apply writes the value, so written keeps the HSV position.
     bool picking_{};
-    // The saturation-brightness field's pixels for field_pixels_hue_, and the
-    // hue strip's, at the display scale they were drawn for. Each is written
-    // again only while this picker holds its last reference (a recording of
-    // an earlier paint may still show it); null until the first paint.
-    std::shared_ptr<PartRaster> field_pixels_;
-    double field_pixels_hue_{-1.0};
-    std::shared_ptr<PartRaster> hue_pixels_;
+    // The saturation-brightness field's and the hue strip's pixels, at the
+    // display scale they were drawn for (defined in color_picker.cpp, since
+    // the rasters are shared with the paint recordings that show them).
+    // Empty until the first paint makes it.
+    struct HsvPixels;
+    stxlib::Unique<HsvPixels> hsv_pixels_;
     Event<Color> value_changed_;
     Event<Color> value_committed_;
     // property_codemod begin ColorPicker (tools/property_families/color_picker.json; generated, do not edit)

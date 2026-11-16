@@ -29,6 +29,7 @@
 #include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
+#include "gui_forms/types/linear_light/linear_light_stops.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
 #if defined(_WIN32)
@@ -518,7 +519,9 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         stops.push_back(gui_forms::GradientStop{brush.positions[index], forms_color_of(brush.colors[index])});
     }
     std::vector<gui_forms::GradientStop> expanded(stops.size() + gui_forms::maximum_linear_light_stops);
-    const std::size_t count = gui_forms::expand_linear_light_stops(stops, expanded);
+    const stxlib::View<gui_forms::GradientStop> stop_view(stops.data(), stops.size());
+    const stxlib::MutableView<gui_forms::GradientStop> expanded_view(expanded.data(), expanded.size());
+    const std::size_t count = gui_forms::expand_linear_light_stops(stop_view, expanded_view);
     std::vector<SkColor4f> colors;
     std::vector<float> positions;
     colors.reserve(count);

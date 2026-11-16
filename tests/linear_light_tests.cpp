@@ -7,6 +7,7 @@
 
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
+#include "gui_forms/types/linear_light/linear_light_stops.hpp"
 
 #include <array>
 #include <cmath>
@@ -17,6 +18,8 @@
 #include <limits>
 #include <span>
 
+#include <stxlib/view.hpp>
+
 namespace {
 using namespace gui_forms;
 
@@ -25,6 +28,26 @@ void require(bool condition, const char* message) {
     std::cerr << message << '\n';
     std::exit(1);
 }
+
+// Borrows of a test's stop arrays for expand_linear_light_stops; a
+// temporary array would end before the borrow, so those are refused.
+template <std::size_t Count>
+stxlib::View<GradientStop> stops_of(const std::array<GradientStop, Count>& stops) noexcept {
+    const stxlib::View<GradientStop> view(stops.data(), stops.size());
+    return view;
+}
+
+template <std::size_t Count>
+stxlib::View<GradientStop> stops_of(const std::array<GradientStop, Count>&& stops) = delete;
+
+template <std::size_t Count>
+stxlib::MutableView<GradientStop> room_of(std::array<GradientStop, Count>& room) noexcept {
+    const stxlib::MutableView<GradientStop> view(room.data(), room.size());
+    return view;
+}
+
+template <std::size_t Count>
+stxlib::MutableView<GradientStop> room_of(std::array<GradientStop, Count>&& room) = delete;
 
 bool same_colour(Color observed, Color expected) {
     const bool same = observed == expected;
@@ -119,7 +142,7 @@ double chord_channel(std::span<const GradientStop> stops, double t, std::size_t 
 void test_expansion_follows(Color from, Color to, std::size_t expected_count) {
     const std::array<GradientStop, 2> stops{{{0.0, from}, {1.0, to}}};
     std::array<GradientStop, maximum_linear_light_stops> expanded{};
-    const std::size_t count = expand_linear_light_stops(stops, expanded);
+    const std::size_t count = expand_linear_light_stops(stops_of(stops), room_of(expanded));
     require(count == expected_count, "the expansion's stop count");
     require(expanded[0] == stops[0] && expanded[count - 1U] == stops[1], "the original stops are kept");
     for (std::size_t index = 1U; index < count; ++index) {
@@ -145,7 +168,7 @@ void test_expansion() {
     // Black to white: 17 stops, the dark end densest.
     const std::array<GradientStop, 2> grey{{{0.0, black}, {1.0, white}}};
     std::array<GradientStop, maximum_linear_light_stops> expanded{};
-    const std::size_t count = expand_linear_light_stops(grey, expanded);
+    const std::size_t count = expand_linear_light_stops(stops_of(grey), room_of(expanded));
     require(count == 17U, "black to white expands to 17 stops");
     require(expanded[14].offset == 0.5 && same_colour(expanded[14].color, Color{188U, 188U, 188U, 255U}),
             "the middle stop is 188 grey at 0.5");
@@ -158,16 +181,16 @@ void test_expansion() {
 
     // Hard stops and solid spans add nothing.
     const std::array<GradientStop, 4> hard{{{0.0, red}, {0.5, red}, {0.5, blue}, {1.0, blue}}};
-    require(expand_linear_light_stops(hard, expanded) == 4U, "hard stops and solid spans add no stops");
+    require(expand_linear_light_stops(stops_of(hard), room_of(expanded)) == 4U, "hard stops and solid spans add no stops");
     require(expanded[1] == hard[1] && expanded[2] == hard[2], "the hard stop pair is kept");
 
     // Too little room for the stops themselves, or none: nothing written.
     std::array<GradientStop, 1> short_room{};
-    require(expand_linear_light_stops(grey, short_room) == 0U, "too little room writes nothing");
-    require(expand_linear_light_stops(std::span<const GradientStop>{}, expanded) == 0U, "no stops write nothing");
+    require(expand_linear_light_stops(stops_of(grey), room_of(short_room)) == 0U, "too little room writes nothing");
+    require(expand_linear_light_stops(stxlib::View<GradientStop>{}, room_of(expanded)) == 0U, "no stops write nothing");
     // Exactly the stops' own room: they are copied, none added.
     std::array<GradientStop, 2> exact_room{};
-    require(expand_linear_light_stops(grey, exact_room) == 2U, "the stops' own room copies them");
+    require(expand_linear_light_stops(stops_of(grey), room_of(exact_room)) == 2U, "the stops' own room copies them");
 
     // 32 alternating stops fill the capacity; every original stop is kept,
     // in order.
@@ -176,7 +199,7 @@ void test_expansion() {
         const double offset = static_cast<double>(index) / static_cast<double>(alternating.size() - 1U);
         alternating[index] = GradientStop{offset, index % 2U == 0U ? black : white};
     }
-    const std::size_t filled = expand_linear_light_stops(alternating, expanded);
+    const std::size_t filled = expand_linear_light_stops(stops_of(alternating), room_of(expanded));
     require(filled == maximum_linear_light_stops, "alternating stops fill the capacity");
     std::size_t found = 0U;
     for (std::size_t index = 0U; index < filled; ++index) {

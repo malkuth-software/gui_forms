@@ -2,6 +2,7 @@
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
+#include "gui_forms/types/linear_light/linear_light_stops.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 
 #include "gui_forms/live_surface.hpp"
@@ -171,7 +172,9 @@ struct SkGradientData final {
 // so the stop colours are the same on every host.
 SkGradientData to_sk_gradient(std::span<const GradientStop> stops) {
     std::array<GradientStop, maximum_linear_light_stops> expanded{};
-    const std::size_t count = expand_linear_light_stops(stops, expanded);
+    const stxlib::View<GradientStop> stop_view(stops.data(), stops.size());
+    const stxlib::MutableView<GradientStop> expanded_view(expanded.data(), expanded.size());
+    const std::size_t count = expand_linear_light_stops(stop_view, expanded_view);
     SkGradientData result{};
     result.count = count;
     for (std::size_t index = 0U; index < count; ++index) {

@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <span>
 
 namespace gui_forms {
 
@@ -120,32 +119,9 @@ namespace detail {
     return mixed;
 }
 
-// The capacity expand_linear_light_stops needs for any valid stops
+// The capacity expand_linear_light_stops (linear_light_stops.hpp) needs for any valid stops
 // (valid_gradient_stops: at most maximum_gradient_stops): the stops
 // themselves and the stops added between them.
 inline constexpr std::size_t maximum_linear_light_stops = 256U;
-
-// For a renderer that interpolates its stops in sRGB-encoded space (Skia's
-// gradient shaders, set to premultiplied sRGB interpolation): writes into
-// `expanded` the stops of `stops` with stops added between each two of
-// different colour, so that interpolating the expanded stops in sRGB follows
-// interpolating `stops` in linear light. Returns the number written.
-//
-// Between two stops, the span is halved where its middle colour (exact, by
-// interpolate_linear_light) differs from the premultiplied sRGB chord of its
-// ends by more than half a step in any colour channel, at most eight times
-// deep; added stops lie strictly between the two and keep their order, so
-// hard stops (two at one offset), solid spans and the spread outside [0, 1]
-// are kept. A black-to-white span takes 17 stops, red to blue 29; sampled
-// at 1001 points the expanded gradient stays within 1.3 steps of the exact
-// colour (half a step of which is the exact colour's own rounding). Stops are added
-// only while `expanded` keeps room for every remaining original stop, from
-// the first span on; with maximum_linear_light_stops of room only gradients
-// of very many contrasting stops reach that bound, and their later spans
-// then follow less closely. Writes nothing and returns 0 when `stops` is
-// empty or `expanded` is shorter than `stops`. `stops` and `expanded` must
-// not overlap.
-[[nodiscard]] GUI_FORMS_API std::size_t expand_linear_light_stops(std::span<const GradientStop> stops,
-                                                                  std::span<GradientStop> expanded) noexcept;
 
 } // namespace gui_forms

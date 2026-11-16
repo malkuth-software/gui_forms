@@ -11,7 +11,11 @@
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
+#include <memory>
 #include <utility>
+
+#include <stxlib/result.hpp>
+#include <stxlib/unique.hpp>
 
 namespace gui_forms {
 
@@ -407,6 +411,17 @@ void ColorPicker::on_focus_changed(bool focused) {
 
 // -- paint ----------------------------------------------------------------------
 
+// The field's pixels for field_hue, and the hue strip's. Each raster is
+// written again only while this picker holds its last reference (a
+// recording of an earlier paint may still show it); null until it is first
+// drawn. PartPaint and Painter take rasters as shared owners, so they are
+// shared here, inside the source.
+struct ColorPicker::HsvPixels final {
+    std::shared_ptr<PartRaster> field{};
+    double field_hue{-1.0};
+    std::shared_ptr<PartRaster> hue{};
+};
+
 // The saturation-brightness field and the hue strip are drawn pixel by
 // pixel from HSV, never as gradients: a picker must show the exact colour it
 // picks under the pointer, and every gradient mixes in linear light (owner,
@@ -421,12 +436,20 @@ void ColorPicker::paint_hsv_areas(Painter& painter, const Layout& layout, const 
     const double scale = root != nullptr ? (*root).scale() : 1.0;
     const DeviceScale device{scale};
     PartPaint pixels{.role = PartRole::image, .states = states, .family = ControlVisualRole::editor};
+    // Made at the first paint; when it cannot be, neither area is drawn and
+    // the well shows its transparent background until a later paint.
+    if (hsv_pixels_.empty()) {
+        stxlib::Result<stxlib::Unique<HsvPixels>> made = stxlib::Unique<HsvPixels>::make();
+        if (made.failed()) return;
+        hsv_pixels_ = std::move(made).take_value();
+    }
+    HsvPixels& areas = *hsv_pixels_;
 
     const DeviceExtent field_extent = device_extent_of(layout.field, scale);
-    const bool field_kept = field_pixels_ && field_pixels_hue_ == hsv_.hue && (*field_pixels_).extent() == field_extent &&
-                            (*field_pixels_).scale() == device;
+    const bool field_kept = areas.field && areas.field_hue == hsv_.hue && (*areas.field).extent() == field_extent &&
+                            (*areas.field).scale() == device;
     if (!field_kept && field_extent.width > 0U && field_extent.height > 0U) {
-        std::shared_ptr<PartRaster> target = writable_raster(field_pixels_, field_extent, device);
+        std::shared_ptr<PartRaster> target = writable_raster(areas.field, field_extent, device);
         if (target) {
             const PartRasterView view = (*target).view();
             const double width = static_cast<double>(field_extent.width);
@@ -441,20 +464,20 @@ void ColorPicker::paint_hsv_areas(Painter& painter, const Layout& layout, const 
                 }
             }
             (*target).record_opacity();
-            field_pixels_ = std::move(target);
-            field_pixels_hue_ = hsv_.hue;
+            areas.field = std::move(target);
+            areas.field_hue = hsv_.hue;
         }
     }
-    if (field_pixels_ && (*field_pixels_).extent() == field_extent && (*field_pixels_).scale() == device) {
+    if (areas.field && (*areas.field).extent() == field_extent && (*areas.field).scale() == device) {
         pixels.bounds = layout.field;
-        pixels.raster = field_pixels_;
+        pixels.raster = areas.field;
         paint_part(painter, *this, pixels);
     }
 
     const DeviceExtent hue_extent = device_extent_of(layout.hue_track, scale);
-    const bool hue_kept = hue_pixels_ && (*hue_pixels_).extent() == hue_extent && (*hue_pixels_).scale() == device;
+    const bool hue_kept = areas.hue && (*areas.hue).extent() == hue_extent && (*areas.hue).scale() == device;
     if (!hue_kept && hue_extent.width > 0U && hue_extent.height > 0U) {
-        std::shared_ptr<PartRaster> target = writable_raster(hue_pixels_, hue_extent, device);
+        std::shared_ptr<PartRaster> target = writable_raster(areas.hue, hue_extent, device);
         if (target) {
             const PartRasterView view = (*target).view();
             const double height = static_cast<double>(hue_extent.height);
@@ -467,12 +490,12 @@ void ColorPicker::paint_hsv_areas(Painter& painter, const Layout& layout, const 
                 }
             }
             (*target).record_opacity();
-            hue_pixels_ = std::move(target);
+            areas.hue = std::move(target);
         }
     }
-    if (hue_pixels_ && (*hue_pixels_).extent() == hue_extent && (*hue_pixels_).scale() == device) {
+    if (areas.hue && (*areas.hue).extent() == hue_extent && (*areas.hue).scale() == device) {
         pixels.bounds = layout.hue_track;
-        pixels.raster = hue_pixels_;
+        pixels.raster = areas.hue;
         paint_part(painter, *this, pixels);
     }
 }

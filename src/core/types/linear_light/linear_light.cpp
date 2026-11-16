@@ -1,8 +1,11 @@
+#include "gui_forms/types/linear_light/linear_light_stops.hpp"
+
 #include "gui_forms/types/linear_light/linear_light.hpp"
 
 #include <cstddef>
 #include <cstdint>
-#include <span>
+
+#include <stxlib/view.hpp>
 
 // Integer arithmetic throughout, apart from linear_light_weight's exact
 // scaling and the added stops' offsets: no fused multiply-add can change a
@@ -55,13 +58,13 @@ bool chord_follows(Color low, Color middle, Color high) noexcept {
 // The expanded stops being written: `count` written so far into `out`, and
 // `reserved` original stops still to come, for which room is always kept.
 struct StopWriter final {
-    std::span<GradientStop> out{};
+    stxlib::MutableView<GradientStop> out{};
     std::size_t count{};
     std::size_t reserved{};
 };
 
 bool room_to_add(const StopWriter& writer) noexcept {
-    const bool room = writer.count + writer.reserved < writer.out.size();
+    const bool room = writer.count + writer.reserved < writer.out.count();
     return room;
 }
 
@@ -98,14 +101,14 @@ void split_span(const GradientStop& low, const GradientStop& high, SpanPart part
 
 } // namespace
 
-std::size_t expand_linear_light_stops(std::span<const GradientStop> stops,
-                                      std::span<GradientStop> expanded) noexcept {
-    if (stops.empty() || expanded.size() < stops.size()) return 0U;
-    StopWriter writer{expanded, 0U, stops.size()};
+std::size_t expand_linear_light_stops(stxlib::View<GradientStop> stops,
+                                      stxlib::MutableView<GradientStop> expanded) noexcept {
+    if (stops.empty() || expanded.count() < stops.count()) return 0U;
+    StopWriter writer{expanded, 0U, stops.count()};
     writer.out[0] = stops[0];
     writer.count = 1U;
-    writer.reserved = stops.size() - 1U;
-    for (std::size_t index = 1U; index < stops.size(); ++index) {
+    writer.reserved = stops.count() - 1U;
+    for (std::size_t index = 1U; index < stops.count(); ++index) {
         const GradientStop& low = stops[index - 1U];
         const GradientStop& high = stops[index];
         const bool varies = high.offset > low.offset && !(low.color == high.color);
