@@ -327,15 +327,15 @@ NSPopUpButton* file_filter_popup(NSSavePanel* panel,
 }
 
 // The request's filter a popup ended on, or none without a popup.
-std::optional<std::size_t> chosen_file_filter(NSPopUpButton* popup, std::size_t filter_count) {
+stxlib::Optional<std::size_t> chosen_file_filter(NSPopUpButton* popup, std::size_t filter_count) {
     if (popup == nil) {
-        if (filter_count == 1U) return std::size_t{0};
-        return std::nullopt;
+        if (filter_count == 1U) return stxlib::Optional<std::size_t>::of(0U);
+        return stxlib::Optional<std::size_t>::none();
     }
     const NSInteger index = popup.indexOfSelectedItem;
-    if (index < 0 || static_cast<std::size_t>(index) >= filter_count) return std::nullopt;
+    if (index < 0 || static_cast<std::size_t>(index) >= filter_count) return stxlib::Optional<std::size_t>::none();
     const std::size_t chosen = static_cast<std::size_t>(index);
-    return chosen;
+    return stxlib::Optional<std::size_t>::of(chosen);
 }
 
 HostPathDialogResult native_path_result(NSModalResponse response,

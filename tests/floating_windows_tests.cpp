@@ -15,8 +15,23 @@
 #include <string>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace {
 using namespace gui_forms;
+
+// forward_input_to_popup_window takes stxlib::Optional (the std::optional
+// form is deprecated for one stage); a plain slot or {} must not reach it.
+template <typename Model>
+concept forwards_plain_slot = requires(Model& model) { model.forward_input_to_popup_window(std::size_t{0}); };
+template <typename Model>
+concept forwards_empty_slot = requires(Model& model) { model.forward_input_to_popup_window({}); };
+template <typename Model>
+concept forwards_optional_slot = requires(Model& model) {
+    model.forward_input_to_popup_window(stxlib::Optional<std::size_t>::none());
+};
+static_assert(!forwards_plain_slot<Window> && !forwards_empty_slot<Window>);
+static_assert(forwards_optional_slot<Window>);
 
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
@@ -349,7 +364,7 @@ void test_session_end_is_its_own_close_reason() {
     require(reasons.size() == 1U && reasons[0] == HostCloseReason::session_end,
             "the closing handler was not asked with the session-end reason");
     require(main.active() && tool.active() && closed == 0, "a refused session end closed a window");
-    require(!(*main_model).host_close_reason().has_value(), "an open window reports a close reason");
+    require((*main_model).host_close_reason().absent(), "an open window reports a close reason");
 
     application.simulate_user_close(main.id());
     require(reasons.size() == 2U && reasons[1] == HostCloseReason::user,
@@ -358,8 +373,8 @@ void test_session_end_is_its_own_close_reason() {
     refuse = false;
     require(application.simulate_session_end(), "an accepted session end reported as refused");
     require(!main.active() && !tool.active() && closed == 1, "an accepted session end left a window open");
-    require((*main_model).host_close_reason() == HostCloseReason::session_end &&
-                (*tool_model).host_close_reason() == HostCloseReason::session_end,
+    require((*main_model).host_close_reason() == stxlib::Optional<HostCloseReason>::of(HostCloseReason::session_end) &&
+                (*tool_model).host_close_reason() == stxlib::Optional<HostCloseReason>::of(HostCloseReason::session_end),
             "the closed windows do not report the session-end reason");
 }
 

@@ -86,9 +86,10 @@ HostSaveFileDialogRequest SaveFileDialog::request() const {
 // first extension, as Windows Forms takes it, unless that filter is any file
 // or the host did not tell which was chosen; then default_ext. The view
 // borrows the dialog's own settings.
-std::string_view SaveFileDialog::added_extension(std::optional<std::size_t> chosen_filter) const noexcept {
-    if (chosen_filter && *chosen_filter < filters_.size()) {
-        const HostFileDialogFilter& offered = filters_[*chosen_filter];
+std::string_view SaveFileDialog::added_extension(const stxlib::Optional<std::size_t>& chosen_filter) const noexcept {
+    const std::size_t* const chosen = chosen_filter.value();
+    if (chosen != nullptr && *chosen < filters_.size()) {
+        const HostFileDialogFilter& offered = filters_[*chosen];
         const bool concrete = !offered.extensions.empty() && offered.extensions.front() != "*" &&
                               detail::file_dialog_extension_valid(offered.extensions.front());
         if (concrete) return offered.extensions.front();
@@ -148,7 +149,8 @@ DialogResult SaveFileDialog::show_dialog(Window& owner) {
         if (presence.expired() || !is_alive()) return DialogResult::cancel;
         if (!ok.cancel) {
             file_names_ = std::move(chosen);
-            if ((*paths).chosen_filter) filter_index = *(*paths).chosen_filter;
+            const std::size_t* const chosen_filter = (*paths).chosen_filter.value();
+            if (chosen_filter != nullptr) filter_index = *chosen_filter;
             return DialogResult::ok;
         }
         // A cancelled file_ok shows the dialog again, while its window lives.

@@ -170,8 +170,8 @@ bool valid_pointer_report(const HostEventPayload& payload) noexcept {
     }
     if (const HostRelativeMotionEvent* motion = std::get_if<HostRelativeMotionEvent>(&payload)) {
         const bool delta = std::isfinite((*motion).delta.x) && std::isfinite((*motion).delta.y);
-        const bool position = !(*motion).position.has_value() ||
-                              (std::isfinite((*(*motion).position).x) && std::isfinite((*(*motion).position).y));
+        const Point* const at = (*motion).position.value();
+        const bool position = at == nullptr || (std::isfinite((*at).x) && std::isfinite((*at).y));
         return delta && position;
     }
     return true;
@@ -358,7 +358,7 @@ void HostSession::DispatchVisitor::operator()(
         }
     } else if constexpr (std::is_same_v<Payload, HostClosedEvent>) {
         (*session).snapshot_.phase = HostLifecyclePhase::closed;
-        (*window).host_close_reason_ = payload.reason;
+        (*window).host_close_reason_.set(payload.reason);
         (*session).snapshot_.attached = false;
         (*session).snapshot_.closed = true;
         (*session).snapshot_.active = false;

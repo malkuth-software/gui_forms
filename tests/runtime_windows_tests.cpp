@@ -16,6 +16,8 @@
 #include <thread>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace {
 using namespace gui_forms;
 
@@ -142,9 +144,9 @@ void test_initial_windows_are_admitted_in_ownership_order() {
     host::HeadlessApplication application(std::move(windows));
     HostWindowing& windowing = application.windowing();
     require(main.id().value == 1U && tool.id().value == 2U, "identities not assigned in ownership order");
-    require(windowing.kind(main.id()) == HostWindowKind::primary, "primary kind lost");
-    require(windowing.kind(tool.id()) == HostWindowKind::tool, "tool kind lost");
-    require(windowing.owner(tool.id()) == main.id(), "owner lost");
+    require(windowing.kind(main.id()) == stxlib::Optional<HostWindowKind>::of(HostWindowKind::primary), "primary kind lost");
+    require(windowing.kind(tool.id()) == stxlib::Optional<HostWindowKind>::of(HostWindowKind::tool), "tool kind lost");
+    require(windowing.owner(tool.id()) == stxlib::Optional<HostWindowId>::of(main.id()), "owner lost");
     require(windowing.primary() == main.id(), "primary identity lost");
     require(main.windows().window_count() == 2U, "window count wrong");
     // Frames reported before a window is ready are not published to it.

@@ -2121,7 +2121,7 @@ int run_surface_application(SurfaceHost& host, std::vector<SurfaceApplicationWin
             for (std::size_t index = 0U; index < windows.size(); ++index) {
                 if (opened[index]) continue;
                 if (!windows[index].owner_id.empty() &&
-                    !(*runtime.windowing).find(windows[index].owner_id).has_value())
+                    (*runtime.windowing).find(windows[index].owner_id).absent())
                     continue;
                 const HostWindowAdmission admission = (*runtime.windowing).open(std::move(windows[index]), false);
                 if (!admission.status.accepted()) return 2;

@@ -460,8 +460,7 @@ bool SurfaceRoot::dispatch_relative_motion(const HostRelativeMotionEvent& event)
     }
     case RelativePointerMode::confined: {
         const Point base = relative_pointer_.last_position.value_or(relative_pointer_.virtual_position);
-        const Point moved = event.position.has_value() ? *event.position
-                                                       : Point{base.x + event.delta.x, base.y + event.delta.y};
+        const Point moved = event.position.value_or(Point{base.x + event.delta.x, base.y + event.delta.y});
         at = clamp_to(area, moved);
         relative_pointer_.last_position.set(at);
         break;
@@ -469,7 +468,7 @@ bool SurfaceRoot::dispatch_relative_motion(const HostRelativeMotionEvent& event)
     case RelativePointerMode::free:
     default: {
         const Point base = relative_pointer_.last_position.value_or(relative_pointer_.virtual_position);
-        at = event.position.has_value() ? *event.position : Point{base.x + event.delta.x, base.y + event.delta.y};
+        at = event.position.value_or(Point{base.x + event.delta.x, base.y + event.delta.y});
         break;
     }
     }

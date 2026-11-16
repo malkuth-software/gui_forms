@@ -304,7 +304,7 @@ struct DialogResultValidator final {
                 return false;
             }
             if ((*value).outcome == HostDialogOutcome::cancelled) {
-                return (*value).paths.empty() && !(*value).chosen_filter;
+                return (*value).paths.empty() && (*value).chosen_filter.absent();
             }
             bool multiple = false;
             if constexpr (
@@ -315,10 +315,10 @@ struct DialogResultValidator final {
             // dialog has none.
             if constexpr (
                 std::is_same_v<Request, HostFolderDialogRequest>) {
-                if ((*value).chosen_filter) return false;
+                if ((*value).chosen_filter.present()) return false;
             } else {
-                if ((*value).chosen_filter &&
-                    *(*value).chosen_filter >= request.filters.size()) {
+                const std::size_t* const chosen = (*value).chosen_filter.value();
+                if (chosen != nullptr && *chosen >= request.filters.size()) {
                     return false;
                 }
             }

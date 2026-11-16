@@ -383,11 +383,11 @@ void HostWindowing::query_monitors_into_impl(HostMonitorResult& result) {
     result = query_monitors_impl();
 }
 
-std::optional<HostWindowId> HostWindowing::find(std::string_view stable_id) const noexcept {
+stxlib::Optional<HostWindowId> HostWindowing::find(std::string_view stable_id) const noexcept {
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
-        if (windows_[index].stable_id == stable_id) return windows_[index].id;
+        if (windows_[index].stable_id == stable_id) return stxlib::Optional<HostWindowId>::of(windows_[index].id);
     }
-    return std::nullopt;
+    return stxlib::Optional<HostWindowId>::none();
 }
 
 bool HostWindowing::live(HostWindowId window) const noexcept {
@@ -395,16 +395,16 @@ bool HostWindowing::live(HostWindowId window) const noexcept {
     return result;
 }
 
-std::optional<HostWindowKind> HostWindowing::kind(HostWindowId window) const noexcept {
+stxlib::Optional<HostWindowKind> HostWindowing::kind(HostWindowId window) const noexcept {
     const WindowRecord* entry = record(window);
-    if (entry == nullptr) return std::nullopt;
-    return (*entry).kind;
+    if (entry == nullptr) return stxlib::Optional<HostWindowKind>::none();
+    return stxlib::Optional<HostWindowKind>::of((*entry).kind);
 }
 
-std::optional<HostWindowId> HostWindowing::owner(HostWindowId window) const noexcept {
+stxlib::Optional<HostWindowId> HostWindowing::owner(HostWindowId window) const noexcept {
     const WindowRecord* entry = record(window);
-    if (entry == nullptr) return std::nullopt;
-    return (*entry).owner;
+    if (entry == nullptr) return stxlib::Optional<HostWindowId>::none();
+    return stxlib::Optional<HostWindowId>::of((*entry).owner);
 }
 
 HostWindowingSnapshot HostWindowing::snapshot() const {
@@ -419,7 +419,7 @@ void HostWindowing::shutdown() noexcept {
 }
 
 bool HostWindowing::admission_valid(const HostWindowDescription& description) const noexcept {
-    if (!valid_stable_id(description.stable_id) || find(description.stable_id).has_value()) return false;
+    if (!valid_stable_id(description.stable_id) || find(description.stable_id).present()) return false;
     const bool has_owner = description.owner.valid();
     if (has_owner && record(description.owner) == nullptr) return false;
     if (description.kind == HostWindowKind::primary) {
@@ -516,7 +516,7 @@ void HostWindowing::report_frame(HostWindowId window, const HostWindowFrame& fra
     if (std::this_thread::get_id() != ui_thread_ || snapshot_.shutdown) return;
     WindowRecord* entry = record(window);
     if (entry == nullptr || !valid_frame(frame)) return;
-    (*entry).frame = frame;
+    (*entry).frame.set(frame);
     ++snapshot_.frame_reports;
     const HostWindowFrameEvent event{window, frame};
     frame_changed_.emit(event);
@@ -655,13 +655,13 @@ void HostWindowing::follow_primary(WindowRecord& primary) {
     HostWindowFrame main_frame = (*main).frame.value_or(HostWindowFrame{});
     if (current.status.accepted()) main_frame = current.frame;
     const Point main_origin{main_frame.content.x, main_frame.content.y};
-    (*main).followed_origin = main_origin;
+    (*main).followed_origin.set(main_origin);
 
     std::array<HostWindowId, maximum_floating_windows> followers{};
     std::size_t count = 0U;
     for (std::size_t index = 0U; index < windows_.size() && count < followers.size(); ++index) {
         const WindowRecord& candidate = windows_[index];
-        if (candidate.owner != primary_id || !candidate.frame.has_value() || !candidate.offset.has_value()) continue;
+        if (candidate.owner != primary_id || candidate.frame.absent() || candidate.offset.absent()) continue;
         if (!host_window_kind_traits(candidate.kind).follows_main_window) continue;
         followers[count] = candidate.id;
         ++count;
@@ -710,7 +710,7 @@ void HostWindowing::remember_policy_target(WindowRecord& follower, Point origin)
 void HostWindowing::learn_offset(WindowRecord& follower) {
     const HostWindowId follower_id = follower.id;
     const WindowRecord* main = record(follower.owner);
-    if (main == nullptr || !(*main).frame.has_value() || (*main).minimized) return;
+    if (main == nullptr || (*main).frame.absent() || (*main).minimized) return;
     const HostWindowId primary_id = (*main).id;
     const HostWindowFrameResult main_now = frame_impl(primary_id);
     main = record(primary_id);
@@ -721,7 +721,8 @@ void HostWindowing::learn_offset(WindowRecord& follower) {
     // The primary window has moved since its followers were placed: this
     // move is the platform carrying the follower (macOS child windows), and
     // the primary window's own report places it.
-    if ((*main).followed_origin.has_value() && !same_point(main_origin, *(*main).followed_origin)) return;
+    const Point* const followed = (*main).followed_origin.value();
+    if (followed != nullptr && !same_point(main_origin, *followed)) return;
     const HostWindowFrameResult follower_now = frame_impl(follower_id);
     WindowRecord* entry = record(follower_id);
     if (entry == nullptr) return;
@@ -734,8 +735,9 @@ void HostWindowing::learn_offset(WindowRecord& follower) {
         if (same_point(origin, (*entry).recent_targets[slot])) return;
     }
     const Point offset{origin.x - main_origin.x, origin.y - main_origin.y};
-    if ((*entry).offset.has_value() && same_point(offset, *(*entry).offset)) return;
-    (*entry).offset = offset;
+    const Point* const known_offset = (*entry).offset.value();
+    if (known_offset != nullptr && same_point(offset, *known_offset)) return;
+    (*entry).offset.set(offset);
     (*entry).recent_target_count = 0U;
 }
 

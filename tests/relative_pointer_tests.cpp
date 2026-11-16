@@ -139,7 +139,7 @@ struct HostedScene final {
     HostDispatchResult motion_at(Point delta, Point position) {
         HostRelativeMotionEvent event{};
         event.delta = delta;
-        event.position = position;
+        event.position.set(position);
         const HostDispatchResult result = host.dispatch(event, next());
         return result;
     }

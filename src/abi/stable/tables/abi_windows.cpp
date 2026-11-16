@@ -174,8 +174,10 @@ struct RunClosed {
         // became ready reports the program's close.
         std::optional<HostCloseReason> reason{HostCloseReason::application};
         Window* const model = (*callbacks).model.get();
-        if (model != nullptr && (*model).host_close_reason().has_value()) {
-            reason = (*model).host_close_reason();
+        if (model != nullptr) {
+            const stxlib::Optional<HostCloseReason> held = (*model).host_close_reason();
+            const HostCloseReason* const host_reason = held.value();
+            if (host_reason != nullptr) reason = *host_reason;
         }
         (*callbacks).model.reset();
         static_cast<void>(call_run_callback(*callbacks, (*callbacks).closed.get(), "closed", reason));

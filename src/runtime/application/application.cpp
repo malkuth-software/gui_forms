@@ -295,17 +295,17 @@ HostServiceError runtime_entry_refusal(const ApplicationWindow& entry, const Hos
         !windowing.supports_splash_windows()) {
         return HostServiceError::unsupported;
     }
-    std::optional<HostWindowId> owner{};
+    stxlib::Optional<HostWindowId> owner{};
     if (!entry.owner_id.empty()) {
         owner = windowing.find(entry.owner_id);
-        if (!owner.has_value()) return HostServiceError::invalid_argument;
+        if (owner.absent()) return HostServiceError::invalid_argument;
     }
     const bool floating = entry.floating != HostWindowFloating::none;
     // A floating window is owned by the primary window itself.
-    if (floating && !(owner.has_value() && *owner == windowing.primary())) {
+    if (floating && !(owner == stxlib::Optional<HostWindowId>::of(windowing.primary()))) {
         return HostServiceError::invalid_argument;
     }
-    if (windowing.find(entry.stable_id).has_value()) return HostServiceError::invalid_argument;
+    if (windowing.find(entry.stable_id).present()) return HostServiceError::invalid_argument;
     if (windowing.window_count() >= HostWindowing::maximum_windows) return HostServiceError::too_large;
     const bool floating_full =
         floating && windowing.floating_window_count() >= HostWindowing::maximum_floating_windows;

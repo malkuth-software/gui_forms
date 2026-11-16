@@ -296,11 +296,11 @@ DWORD native_filter_index(const std::vector<HostFileDialogFilter>& filters,
     return index;
 }
 
-std::optional<std::size_t> chosen_filter(
+stxlib::Optional<std::size_t> chosen_filter(
     const std::vector<HostFileDialogFilter>& filters, DWORD native_index) {
-    if (native_index == 0U || native_index > filters.size()) return std::nullopt;
+    if (native_index == 0U || native_index > filters.size()) return stxlib::Optional<std::size_t>::none();
     const std::size_t chosen = static_cast<std::size_t>(native_index) - 1U;
-    return chosen;
+    return stxlib::Optional<std::size_t>::of(chosen);
 }
 
 HostDialogResult path_dialog_failure(std::uint64_t request_id,
@@ -428,11 +428,11 @@ HostDialogResult path_dialog_cancelled(std::uint64_t request_id) {
 }
 
 // The request's filter the dialog ended on.
-std::optional<std::size_t> dialog_chosen_filter(IFileDialog& dialog,
-                                                const std::vector<HostFileDialogFilter>& filters) {
+stxlib::Optional<std::size_t> dialog_chosen_filter(IFileDialog& dialog,
+                                                   const std::vector<HostFileDialogFilter>& filters) {
     UINT index = 0U;
-    if (FAILED(dialog.GetFileTypeIndex(&index))) return std::nullopt;
-    const std::optional<std::size_t> chosen = chosen_filter(filters, static_cast<DWORD>(index));
+    if (FAILED(dialog.GetFileTypeIndex(&index))) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> chosen = chosen_filter(filters, static_cast<DWORD>(index));
     return chosen;
 }
 
@@ -4480,7 +4480,7 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
         for (std::size_t index = 0; index < windows.size() && failure == 0; ++index) {
             if (created[index]) continue;
             WindowsApplicationWindow& entry = windows[index];
-            if (!entry.owner_id.empty() && !(*run).find(entry.owner_id).has_value()) continue;
+            if (!entry.owner_id.empty() && (*run).find(entry.owner_id).absent()) continue;
             const WindowsApplicationRun::OpenOutcome outcome = (*run).open(std::move(entry), false);
             if (!outcome.admission.status.accepted()) {
                 failure = outcome.failure_code == 0 ? 2 : outcome.failure_code;

@@ -326,7 +326,7 @@ void filter_index_and_extension() {
     dialog.default_ext = "log";
     dialog.filter_index = 2U;
     HostPathDialogResult answer = accepted("/tmp/notes");
-    answer.chosen_filter = 1U;
+    answer.chosen_filter.set(1U);
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::ok, "the dialog is accepted");
     const HostSaveFileDialogRequest* const sent = save_request(script.requests[0]);
@@ -334,7 +334,7 @@ void filter_index_and_extension() {
                 dialog.file_name.read() == "/tmp/notes.md",
             "the chosen filter's first extension is added and its index taken");
 
-    answer.chosen_filter = 2U;
+    answer.chosen_filter.set(2U);
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/tmp/notes.log" &&
                 dialog.filter_index.read() == 2U,
@@ -345,7 +345,7 @@ void filter_index_and_extension() {
                 dialog.filter_index.read() == 2U,
             "a host that does not tell the filter adds the default extension and keeps the index");
 
-    answer.chosen_filter = 0U;
+    answer.chosen_filter.set(0U);
     script.answers.push_back(answer);
     dialog.add_extension = false;
     require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/tmp/notes" &&

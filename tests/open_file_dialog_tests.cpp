@@ -423,7 +423,7 @@ void filter_index() {
     dialog.filter = "Logs|*.log|Text|*.txt|All files|*.*";
     dialog.filter_index = 1U;
     HostPathDialogResult answer = accepted({"/tmp/a.txt"});
-    answer.chosen_filter = 2U;
+    answer.chosen_filter.set(2U);
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::ok, "the dialog is accepted");
     const HostOpenFileDialogRequest* const first = open_request(script.requests[0]);
@@ -437,7 +437,7 @@ void filter_index() {
     require(second != nullptr && (*second).initial_filter == 0U && dialog.filter_index.read() == 7U,
             "an index past the filters starts on the first, and a host that does not tell keeps the index");
 
-    answer.chosen_filter = 3U;
+    answer.chosen_filter.set(3U);
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::none && !dialog.status().accepted() &&
                 dialog.filter_index.read() == 7U && dialog.file_name.read() == "/tmp/b.log",

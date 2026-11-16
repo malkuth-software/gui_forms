@@ -591,8 +591,9 @@ gf_status host_show_dialog_body(const gf_dialog_request* request, gf_dialog_resu
         complete.outcome = abi_outcome(chosen.outcome);
         paths = chosen.paths;
         complete.path_count = paths.size();
-        if (chosen.chosen_filter.has_value()) {
-            complete.chosen_filter = *chosen.chosen_filter;
+        const std::size_t* const chosen_filter = chosen.chosen_filter.value();
+        if (chosen_filter != nullptr) {
+            complete.chosen_filter = *chosen_filter;
         }
     } else {
         const HostColorDialogResult& colour = std::get<HostColorDialogResult>(shown.payload);

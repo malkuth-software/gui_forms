@@ -767,7 +767,8 @@ HostServiceStatus WindowsApplicationRun::run_modal_impl(HostWindowId window) {
         EnableWindow(native_window, FALSE);
         disabled.push_back(native_window);
     }
-    const std::optional<HostWindowId> owner_id = owner(window);
+    const stxlib::Optional<HostWindowId> owner_held = owner(window);
+    const HostWindowId* const owner_id = owner_held.value();
     MSG quit_message{};
     bool quit = false;
     while (!quit && slot(window) != nullptr) {
@@ -779,7 +780,7 @@ HostServiceStatus WindowsApplicationRun::run_modal_impl(HostWindowId window) {
     for (std::size_t index = 0; index < disabled.size(); ++index) {
         if (IsWindow(disabled[index])) EnableWindow(disabled[index], TRUE);
     }
-    if (owner_id.has_value() && !quit) {
+    if (owner_id != nullptr && !quit) {
         const HWND owner_native = native(*owner_id);
         if (owner_native != nullptr) {
             SetActiveWindow(owner_native);
