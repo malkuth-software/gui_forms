@@ -8,7 +8,7 @@
 #include "gui_forms/controls/text_block_capabilities.hpp"
 
 #include <cstddef>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -44,9 +44,9 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     // The first line's baseline, from the top of the border box; none for a
     // block with no text, which has no line box.
-    [[nodiscard]] std::optional<double> first_baseline(double width) override;
+    [[nodiscard]] stxlib::Optional<double> first_baseline(double width) override;
     // The last line's baseline at `width` (the border box's width).
-    [[nodiscard]] std::optional<double> last_baseline(double width) override;
+    [[nodiscard]] stxlib::Optional<double> last_baseline(double width) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;

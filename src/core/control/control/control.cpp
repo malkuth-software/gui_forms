@@ -4564,14 +4564,14 @@ Size Control::measure_for_layout(const LayoutConstraint& constraint) {
     return measured;
 }
 
-std::optional<double> Control::first_baseline(double width) {
+stxlib::Optional<double> Control::first_baseline(double width) {
     static_cast<void>(width);
-    return std::nullopt;
+    return stxlib::Optional<double>::none();
 }
 
-std::optional<double> Control::last_baseline(double width) {
+stxlib::Optional<double> Control::last_baseline(double width) {
     static_cast<void>(width);
-    return std::nullopt;
+    return stxlib::Optional<double>::none();
 }
 
 Size Control::measure_intrinsic(const LayoutConstraint& constraint) {

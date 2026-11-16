@@ -1117,8 +1117,8 @@ public:
     // in lines (TextBlock) and the CSS containers override them. Flex and
     // grid alignment use the first baseline; an inline item in BlockPanel
     // uses the last, as an inline-block does.
-    [[nodiscard]] virtual std::optional<double> first_baseline(double width);
-    [[nodiscard]] virtual std::optional<double> last_baseline(double width);
+    [[nodiscard]] virtual stxlib::Optional<double> first_baseline(double width);
+    [[nodiscard]] virtual stxlib::Optional<double> last_baseline(double width);
     // Advances whenever this control becomes measure-dirty; a cache entry
     // stored under an earlier generation is never answered. Settles first
     // (see dirty()): a descendant's touch advances it at the settle.

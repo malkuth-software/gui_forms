@@ -185,7 +185,7 @@ void test_design_metrics_and_line_boxes(const std::filesystem::path& fonts) {
     const Size measured = (*block).measure_for_layout(widest);
     require_near(measured.width, resolved.logical_size.width, 0.0, "the block is as wide as its shaped line");
     require_near(measured.height, 15.0, 0.0, "and one line box tall");
-    require_near((*block).first_baseline(measured.width).value(), 12.0, 0.0, "its baseline is Chromium's");
+    require_near((*block).first_baseline(measured.width).take(), 12.0, 0.0, "its baseline is Chromium's");
 }
 
 } // namespace

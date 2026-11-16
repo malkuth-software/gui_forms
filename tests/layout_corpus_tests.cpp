@@ -1483,9 +1483,9 @@ std::optional<double> leaf_baseline(const BuiltIdentity& built) {
     if (!built.text_leaf) return std::nullopt;
     Control& control = *built.control;
     const Rect bounds = control.absolute_bounds();
-    const std::optional<double> baseline = control.first_baseline(bounds.width);
-    if (!baseline) return std::nullopt;
-    return bounds.y + *baseline;
+    const stxlib::Optional<double> baseline = control.first_baseline(bounds.width);
+    if (baseline.absent()) return std::nullopt;
+    return bounds.y + *baseline.value();
 }
 
 std::map<std::string, std::string> expected_differences(const XmlElement& element) {

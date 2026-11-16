@@ -228,12 +228,12 @@ gui_forms::TextBlock
 
    .. cpp:function:: Size measure(Size available) override
 
-   .. cpp:function:: std::optional<double> first_baseline(double width) override
+   .. cpp:function:: stxlib::Optional<double> first_baseline(double width) override
 
       The baseline of the first line, from the top of the block, or none when
       the block has no text.
 
-   .. cpp:function:: std::optional<double> last_baseline(double width) override
+   .. cpp:function:: stxlib::Optional<double> last_baseline(double width) override
 
       The baseline of the last line when the block is laid out at the given
       width, or none when the block has no text.

@@ -398,9 +398,9 @@ void BlockPanel::resolve_item_inputs(const SolveRequest& request) {
         if (!block) {
             // An inline item sits on the line by its last line box's
             // baseline, as an inline-block does.
-            const std::optional<double> baseline = child.last_baseline(width);
+            const stxlib::Optional<double> baseline = child.last_baseline(width);
             if (!is_alive()) return;
-            if (baseline) input.baseline = *baseline;
+            if (baseline.present()) input.baseline = *baseline.value();
             continue;
         }
 

@@ -172,7 +172,7 @@ void test_white_space_collapses() {
     const Size empty = measured_at(*block, widest);
     require_near(empty.width, 0.0, "white space only has no width");
     require_near(empty.height, 0.0, "and no line box");
-    require(!(*block).first_baseline(100.0).has_value(), "and no baseline");
+    require((*block).first_baseline(100.0).absent(), "and no baseline");
 }
 
 void test_intrinsic_sizes_and_padding() {
@@ -189,8 +189,8 @@ void test_intrinsic_sizes_and_padding() {
     require_near(maximum.height, 15.0 + 8.0, "one line");
     const Size narrowed = measured_at(*block, width_query(minimum.width));
     require_near(narrowed.height, 45.0 + 8.0, "handed back its min-content width it keeps every word whole");
-    require_near((*block).first_baseline(100.0).value(), 3.0 + 12.0, "the first baseline is below the top padding");
-    require_near((*block).last_baseline(minimum.width).value(), 3.0 + 30.0 + 12.0,
+    require_near((*block).first_baseline(100.0).take(), 3.0 + 12.0, "the first baseline is below the top padding");
+    require_near((*block).last_baseline(minimum.width).take(), 3.0 + 30.0 + 12.0,
                  "the last baseline is on the third line");
 }
 
@@ -206,7 +206,7 @@ void test_text_scale() {
     require_near(measured.height, 30.0, "a set line height scales with it");
     (*block).line_height = stxlib::Optional<double>::none();
     require_near(measured_at(*block, width_query(200.0)).height, 24.0, "19.5 px's line box is 19 + 5");
-    require_near((*block).first_baseline(200.0).value(), 19.0, "its baseline is its rounded ascent");
+    require_near((*block).first_baseline(200.0).take(), 19.0, "its baseline is its rounded ascent");
 }
 
 // A set line height's leading goes half above the text, rounded down.
@@ -216,11 +216,11 @@ void test_half_leading() {
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{800.0, 600.0});
     (*held).set_text_metrics_provider(&metrics);
     (*block).line_height = stxlib::Optional<double>::of(20.0);
-    require_near((*block).first_baseline(100.0).value(), 14.0, "5 px of leading puts 2 above");
+    require_near((*block).first_baseline(100.0).take(), 14.0, "5 px of leading puts 2 above");
     (*block).line_height = stxlib::Optional<double>::of(21.0);
-    require_near((*block).first_baseline(100.0).value(), 15.0, "6 px puts 3 above");
+    require_near((*block).first_baseline(100.0).take(), 15.0, "6 px puts 3 above");
     (*block).line_height = stxlib::Optional<double>::of(12.0);
-    require_near((*block).first_baseline(100.0).value(), 10.0, "-3 px puts -2 above");
+    require_near((*block).first_baseline(100.0).take(), 10.0, "-3 px puts -2 above");
 }
 
 void test_breaks_come_from_the_provider() {

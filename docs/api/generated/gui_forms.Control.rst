@@ -1826,11 +1826,11 @@ gui_forms::Control
       container that places its own children calls ``arrange_self`` and
       ``set_child_layout`` instead.
 
-   .. cpp:function:: virtual std::optional<double> first_baseline(double width)
+   .. cpp:function:: virtual stxlib::Optional<double> first_baseline(double width)
 
       The baselines a layout container aligns this control by (stage L, PLAN.md section 12.3): its first and last line boxes' baselines, as offsets from the top of its border box when laid out at :cpp:func:`width <gui_forms::Control::width>`. None means it has no line box; the container then synthesizes one from the border box, as CSS does. The defaults answer none. Text that lays out in lines (TextBlock) and the CSS containers override them. Flex and grid alignment use the first baseline; an inline item in BlockPanel uses the last, as an inline-block does.
 
-   .. cpp:function:: virtual std::optional<double> last_baseline(double width)
+   .. cpp:function:: virtual stxlib::Optional<double> last_baseline(double width)
 
    .. cpp:function:: virtual bool size_depends_on_content() const noexcept
 

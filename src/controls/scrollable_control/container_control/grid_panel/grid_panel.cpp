@@ -1107,9 +1107,9 @@ void GridPanel::measure_row_contributions(const GridContainerInput& container,
         }
         // Its first baseline at its column size, for baseline alignment in
         // its row.
-        const std::optional<double> baseline = child.first_baseline(width);
+        const stxlib::Optional<double> baseline = child.first_baseline(width);
         if (!is_alive()) return;
-        if (baseline) contribution.baseline = *baseline;
+        if (baseline.present()) contribution.baseline = *baseline.value();
         const double outer = clamp_content(height, bounds) + margins;
         contribution.min_content = outer;
         contribution.max_content = outer;

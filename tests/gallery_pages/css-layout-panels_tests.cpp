@@ -119,11 +119,11 @@ void test_css_layout_panels(gui_forms::Window& window) {
     require(caption && value && paragraph, "the page must retain its TextBlock specimens");
     const Rect caption_bounds = (*caption).arranged_bounds();
     const Rect value_bounds = (*value).arranged_bounds();
-    const double caption_baseline = caption_bounds.y + (*caption).first_baseline(caption_bounds.width).value();
-    const double value_baseline = value_bounds.y + (*value).first_baseline(value_bounds.width).value();
+    const double caption_baseline = caption_bounds.y + (*caption).first_baseline(caption_bounds.width).take();
+    const double value_baseline = value_bounds.y + (*value).first_baseline(value_bounds.width).take();
     require(std::abs(caption_baseline - value_baseline) < 1.0e-6 && caption_bounds.y > value_bounds.y,
             "the caption must drop to the larger value's baseline");
-    require((*paragraph).last_baseline(476.0).value() > (*paragraph).first_baseline(476.0).value(),
+    require((*paragraph).last_baseline(476.0).take() > (*paragraph).first_baseline(476.0).take(),
             "the paragraph must wrap to more than one line");
     const Control::Ptr text_group = window.find("gallery.css-layout.text.group");
     require(text_group && (*text_group).arranged_bounds().y + (*text_group).arranged_bounds().height <= 660.0,

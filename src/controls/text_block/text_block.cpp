@@ -13,6 +13,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -285,23 +286,23 @@ Size TextBlock::measure_intrinsic(const LayoutConstraint& constraint) {
     return measured;
 }
 
-std::optional<double> TextBlock::first_baseline(double width) {
+stxlib::Optional<double> TextBlock::first_baseline(double width) {
     // The first line's baseline does not depend on the width; a block with
     // no text has no line box and so no baseline.
     static_cast<void>(width);
-    if (!has_visible_text(text.read())) return std::nullopt;
+    if (!has_visible_text(text.read())) return stxlib::Optional<double>::none();
     const LineBoxMetrics metrics = line_metrics(text_font(resolved_font()));
     const double baseline = padding.read().top + metrics.baseline;
-    return baseline;
+    return stxlib::Optional<double>::of(baseline);
 }
 
-std::optional<double> TextBlock::last_baseline(double width) {
+stxlib::Optional<double> TextBlock::last_baseline(double width) {
     const Insets inset = padding.read();
     const Size content = content_size(std::max(0.0, width - (inset.left + inset.right)), workspace_);
-    if (workspace_.lines.empty()) return std::nullopt;
+    if (workspace_.lines.empty()) return stxlib::Optional<double>::none();
     const LineBoxMetrics metrics = line_metrics(text_font(resolved_font()));
     const double baseline = inset.top + content.height - metrics.height + metrics.baseline;
-    return baseline;
+    return stxlib::Optional<double>::of(baseline);
 }
 
 double TextBlock::line_x(const TextLine& line, double content_width) const noexcept {
