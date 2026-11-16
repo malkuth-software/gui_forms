@@ -852,12 +852,27 @@ std::vector<SemanticNode> TabControl::semantic_virtual_children() const {
     return nodes;
 }
 
+namespace {
+
+// The index of the page of `tabs` whose tab is the semantic child
+// "<page id>.tab", or none.
+stxlib::Optional<std::size_t> find_semantic_tab(const TabControl& tabs, std::string_view child_stable_id) {
+    const std::vector<std::shared_ptr<TabPage>> live = tabs.pages();
+    for (std::size_t index = 0U; index < live.size(); ++index) {
+        if (child_stable_id != std::string((*live[index]).stable_id().value()) + ".tab") continue;
+        return stxlib::Optional<std::size_t>::of(index);
+    }
+    return stxlib::Optional<std::size_t>::none();
+}
+
+} // namespace
+
 bool TabControl::on_semantic_child_action(std::string_view child_stable_id,
                                           SemanticAction action,
                                           std::string_view) {
     if (action != SemanticAction::focus && action != SemanticAction::select &&
         action != SemanticAction::press) return false;
-    if (find_semantic_tab(child_stable_id).absent()) return false;
+    if (find_semantic_tab(*this, child_stable_id).absent()) return false;
     // Focus first: its handlers may remove or reorder the pages, so the tab
     // is found again after it (commit, then notify; house style 5), and
     // `lifetime` keeps the control alive across them.
@@ -866,20 +881,12 @@ bool TabControl::on_semantic_child_action(std::string_view child_stable_id,
         static_cast<void>((*window()).request_focus(lifetime));
     }
     if (!is_alive()) return true;
-    const stxlib::Optional<std::size_t> found = find_semantic_tab(child_stable_id);
+    const stxlib::Optional<std::size_t> found = find_semantic_tab(*this, child_stable_id);
     if (found.absent()) return true;
     selected_index = found;
     return true;
 }
 
-stxlib::Optional<std::size_t> TabControl::find_semantic_tab(std::string_view child_stable_id) const {
-    const std::vector<std::shared_ptr<TabPage>> live = pages();
-    for (std::size_t index = 0U; index < live.size(); ++index) {
-        if (child_stable_id != std::string((*live[index]).stable_id().value()) + ".tab") continue;
-        return stxlib::Optional<std::size_t>::of(index);
-    }
-    return stxlib::Optional<std::size_t>::none();
-}
 
 namespace {
 
