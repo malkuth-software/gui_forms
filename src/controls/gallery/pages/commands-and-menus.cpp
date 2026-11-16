@@ -328,17 +328,17 @@ private:
         document.commands.push_back({.stable_id = prefix + ".new", .command = new_});
         document.commands.push_back({.stable_id = prefix + ".save", .kind = RibbonCommandKind::split,
                                      .command = save_, .drop_down = export_items(prefix + ".save.export")});
-        document.commands.push_back({.stable_id = prefix + ".delete", .size = RibbonCommandSize::small,
+        document.commands.push_back({.stable_id = prefix + ".delete", .size = RibbonCommandSize::compact,
                                      .command = delete_});
         document.commands.push_back({.stable_id = prefix + ".wrap", .kind = RibbonCommandKind::toggle,
-                                     .size = RibbonCommandSize::small, .command = wrap_command_});
+                                     .size = RibbonCommandSize::compact, .command = wrap_command_});
         RibbonGroupSpec styles{.stable_id = prefix + ".styles", .caption = "Styles"};
         styles.commands.push_back({.stable_id = prefix + ".gallery", .kind = RibbonCommandKind::gallery,
                                    .text = "Styles", .gallery = gallery});
         styles.commands.push_back({.stable_id = prefix + ".about", .command = about_});
         RibbonGroupSpec view{.stable_id = prefix + ".view", .caption = "View"};
-        view.commands.push_back({.stable_id = prefix + ".icons", .size = RibbonCommandSize::small, .command = icons_});
-        view.commands.push_back({.stable_id = prefix + ".details", .size = RibbonCommandSize::small,
+        view.commands.push_back({.stable_id = prefix + ".icons", .size = RibbonCommandSize::compact, .command = icons_});
+        view.commands.push_back({.stable_id = prefix + ".details", .size = RibbonCommandSize::compact,
                                  .command = details_});
         view.commands.push_back({.stable_id = prefix + ".zoom", .kind = RibbonCommandKind::combo_box,
                                  .text = "Zoom", .choices = {"50%", "100%", "200%"}, .width = 80.0});
@@ -411,7 +411,7 @@ private:
         font_group.commands.push_back({.stable_id = "file-area.colour", .kind = RibbonCommandKind::color_picker,
                                        .text = "Font colour", .color_picker = colour});
         font_group.commands.push_back({.stable_id = "file-area.wrap", .kind = RibbonCommandKind::toggle,
-                                       .size = RibbonCommandSize::small, .command = wrap_command_});
+                                       .size = RibbonCommandSize::compact, .command = wrap_command_});
         RibbonGroupSpec document{.stable_id = "file-area.document", .caption = "Document"};
         document.commands.push_back({.stable_id = "file-area.save", .command = save_});
         home.groups.push_back(std::move(font_group));
@@ -496,7 +496,7 @@ private:
     }
 
     // A Ribbon over the same Commands (stage RB, phases 1 and 5): Home with a
-    // launcher, a large split, small commands and a toggle; Insert with
+    // launcher, a large split, compact commands and a toggle; Insert with
     // hosted controls, its text and number fields labelled at their left and,
     // in the one-row Spacing group, above; Palette, a panel tab whose body is
     // the page's own control; the File tab's application menu; and a
@@ -510,16 +510,16 @@ private:
         document.commands.push_back({.stable_id = "ribbon.new", .command = new_});
         document.commands.push_back({.stable_id = "ribbon.save", .kind = RibbonCommandKind::split, .command = save_,
                                      .drop_down = export_items("ribbon.save.export")});
-        document.commands.push_back({.stable_id = "ribbon.delete", .size = RibbonCommandSize::small,
+        document.commands.push_back({.stable_id = "ribbon.delete", .size = RibbonCommandSize::compact,
                                      .command = delete_});
         document.commands.push_back({.stable_id = "ribbon.wrap", .kind = RibbonCommandKind::toggle,
-                                     .size = RibbonCommandSize::small, .command = wrap_command_});
+                                     .size = RibbonCommandSize::compact, .command = wrap_command_});
         document.commands.push_back({.stable_id = "ribbon.export", .kind = RibbonCommandKind::drop_down,
-                                     .size = RibbonCommandSize::small, .text = "Export",
+                                     .size = RibbonCommandSize::compact, .text = "Export",
                                      .drop_down = export_items("ribbon.export")});
         RibbonGroupSpec view{.stable_id = "ribbon.view", .caption = "View"};
-        view.commands.push_back({.stable_id = "ribbon.icons", .size = RibbonCommandSize::small, .command = icons_});
-        view.commands.push_back({.stable_id = "ribbon.details", .size = RibbonCommandSize::small,
+        view.commands.push_back({.stable_id = "ribbon.icons", .size = RibbonCommandSize::compact, .command = icons_});
+        view.commands.push_back({.stable_id = "ribbon.details", .size = RibbonCommandSize::compact,
                                  .command = details_});
         view.commands.push_back({.stable_id = "ribbon.zoom", .kind = RibbonCommandKind::combo_box, .text = "Zoom",
                                  .choices = {"50%", "100%", "200%"}, .width = 80.0});
@@ -551,7 +551,7 @@ private:
         RibbonTabSpec format{.stable_id = "ribbon.format", .text = "Format", .tab_set = "ribbon.picture"};
         RibbonGroupSpec arrange{.stable_id = "ribbon.arrange", .caption = "Arrange"};
         arrange.commands.push_back({.stable_id = "ribbon.format.about", .command = about_});
-        arrange.commands.push_back({.stable_id = "ribbon.format.delete", .size = RibbonCommandSize::small,
+        arrange.commands.push_back({.stable_id = "ribbon.format.delete", .size = RibbonCommandSize::compact,
                                     .command = delete_});
         format.groups.push_back(std::move(arrange));
         tabs.push_back(std::move(home));

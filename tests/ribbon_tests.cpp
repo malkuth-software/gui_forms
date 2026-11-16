@@ -134,10 +134,10 @@ std::vector<RibbonTabSpec> sample_tabs(const Commands& commands) {
                                   .command = commands.paste, .image = commands.paste_image,
                                   .drop_down = {MenuItemSpec("paste.special", MenuItemKind::command, commands.choice,
                                                              "Paste special")}});
-    clipboard.commands.push_back({.stable_id = "cut", .size = RibbonCommandSize::small, .command = commands.cut});
-    clipboard.commands.push_back({.stable_id = "copy", .size = RibbonCommandSize::small, .command = commands.copy});
+    clipboard.commands.push_back({.stable_id = "cut", .size = RibbonCommandSize::compact, .command = commands.cut});
+    clipboard.commands.push_back({.stable_id = "copy", .size = RibbonCommandSize::compact, .command = commands.copy});
     clipboard.commands.push_back({.stable_id = "bold", .kind = RibbonCommandKind::toggle,
-                                  .size = RibbonCommandSize::small, .command = commands.bold,
+                                  .size = RibbonCommandSize::compact, .command = commands.bold,
                                   .image = commands.bold_image, .show_label = false});
     RibbonGroupSpec font{.stable_id = "font", .caption = "Font"};
     font.commands.push_back({.stable_id = "font-name", .kind = RibbonCommandKind::combo_box, .text = "Font",
@@ -685,15 +685,15 @@ void labels_and_rows() {
     RibbonTabSpec home{.stable_id = "home", .text = "Home"};
     RibbonGroupSpec history{.stable_id = "history", .caption = "History"};
     history.commands.push_back({.stable_id = "paste", .command = commands.paste});
-    history.commands.push_back({.stable_id = "save", .size = RibbonCommandSize::small, .command = save});
-    history.commands.push_back({.stable_id = "undo", .size = RibbonCommandSize::small, .command = undo});
+    history.commands.push_back({.stable_id = "save", .size = RibbonCommandSize::compact, .command = save});
+    history.commands.push_back({.stable_id = "undo", .size = RibbonCommandSize::compact, .command = undo});
     history.commands.push_back(
-        {.stable_id = "redo", .size = RibbonCommandSize::small, .command = redo, .beside_previous = true});
+        {.stable_id = "redo", .size = RibbonCommandSize::compact, .command = redo, .beside_previous = true});
     history.commands.push_back({.stable_id = "hint", .kind = RibbonCommandKind::label, .text = "Click to place"});
     RibbonGroupSpec pair{.stable_id = "pair", .caption = "Pair"};
     pair.commands.push_back({.stable_id = "cut", .command = commands.cut});
-    pair.commands.push_back({.stable_id = "copy", .size = RibbonCommandSize::small, .command = commands.copy});
-    pair.commands.push_back({.stable_id = "bold", .size = RibbonCommandSize::small, .command = commands.bold});
+    pair.commands.push_back({.stable_id = "copy", .size = RibbonCommandSize::compact, .command = commands.copy});
+    pair.commands.push_back({.stable_id = "bold", .size = RibbonCommandSize::compact, .command = commands.bold});
     pair.layouts.push_back(RibbonGroupLayout{RibbonGroupSize::large, {}, 2U});
     home.groups.push_back(std::move(history));
     home.groups.push_back(std::move(pair));
@@ -762,7 +762,7 @@ void labels_and_rows() {
     first.push_back(RibbonTabSpec{.stable_id = "home", .text = "Home"});
     RibbonGroupSpec leading{.stable_id = "leading", .caption = "Leading"};
     leading.commands.push_back(
-        {.stable_id = "save", .size = RibbonCommandSize::small, .command = save, .beside_previous = true});
+        {.stable_id = "save", .size = RibbonCommandSize::compact, .command = save, .beside_previous = true});
     first[0].groups.push_back(std::move(leading));
     threw = false;
     try {

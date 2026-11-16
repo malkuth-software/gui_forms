@@ -340,7 +340,7 @@ void validate_command(const RibbonCommandSpec& command, std::unordered_set<std::
     // no label part to leave out.
     const bool unlabelled_field = labelled_field_kind(command.kind) && !command.show_label;
     if (!command.show_label && !unlabelled_field &&
-        (command.size != RibbonCommandSize::small || command.image.value == 0U || hosted(command.kind))) {
+        (command.size != RibbonCommandSize::compact || command.image.value == 0U || hosted(command.kind))) {
         throw std::invalid_argument("Ribbon icon-only commands must be small and have an image");
     }
     if (text_only(command.kind) && (command.command || command.image.value != 0U || !command.show_label ||
@@ -1149,7 +1149,7 @@ Ribbon::GroupParts Ribbon::group_parts(const Layout& placed, std::size_t group) 
 
 // A command's parts within its bounds. A large command shows its icon over
 // its label; a large split's face is the icon, its arrow the label and the
-// glyph beneath. A small command shows its icon, label and, for a split or
+// glyph beneath. A compact command shows its icon, label and, for a split or
 // drop-down, an arrow zone at its right end. A hosted command or gallery is
 // its control.
 Ribbon::CommandParts Ribbon::command_parts(const Layout& placed, CommandAddress address) const {
@@ -1175,7 +1175,7 @@ Ribbon::CommandParts Ribbon::command_parts(const Layout& placed, CommandAddress 
         return parts;
     }
     if (text_only(spec.kind)) {
-        // A label is its text alone, inset as a small command's label is.
+        // A label is its text alone, inset as a compact command's label is.
         const double inset = icon_gap * scale * 2.0;
         const Rect label{bounds.x + inset, bounds.y, std::max(0.0, bounds.width - inset), bounds.height};
         parts.command_label = PartGeometry::from_bounds(Rect::intersection(label, visible));

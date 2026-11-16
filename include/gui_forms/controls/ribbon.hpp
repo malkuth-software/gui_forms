@@ -71,10 +71,10 @@ enum class RibbonCommandKind : std::uint8_t {
 };
 
 // A button-family command's image size: large (a 32-unit icon over its
-// label, the group's full height) or small (a 16-unit icon beside its label,
+// label, the group's full height) or compact (a 16-unit icon beside its label,
 // stacked in rows). `RibbonCommandSpec::size` is the size at the group's
-// largest layout; the group's layouts may make it small (phase 2b).
-enum class RibbonCommandSize : std::uint8_t { large, small };
+// largest layout; the group's layouts may make it compact (phase 2b).
+enum class RibbonCommandSize : std::uint8_t { large, compact };
 
 // One command record. `stable_id` is unique within the ribbon (across tabs,
 // groups and commands) and names the command in events, semantics and the
@@ -83,7 +83,7 @@ enum class RibbonCommandSize : std::uint8_t { large, small };
 // A button, toggle or split takes its text (when `text` is empty), enabled,
 // visible and checked state from its required `command`, and runs it on a
 // click; a drop-down's command is optional. `text` may carry a mnemonic
-// ("&Paste"). Labels are always shown (owner decision 6); a small command
+// ("&Paste"). Labels are always shown (owner decision 6); a compact command
 // with an image may leave its label out (`show_label` false: an authored
 // icon-only command, decision 30). `drop_down` is the menu of a split or
 // drop-down command. A hosted command's `text` is its control's accessible
@@ -99,7 +99,7 @@ enum class RibbonCommandSize : std::uint8_t { large, small };
 // likewise, the application's controls, which the ribbon adds and places on
 // one row.
 //
-// `beside_previous` places a small or hosted command in the previous
+// `beside_previous` places a compact or hosted command in the previous
 // command's row, to its right, instead of in a row of its own (the Windows
 // Ribbon Framework's control groups, which stay together in a row): Save
 // over Undo and Redo is Save, then Undo, then Redo beside Undo. A row of
@@ -128,15 +128,15 @@ struct GUI_FORMS_API RibbonCommandSpec final {
 // Framework's group sizes, largest first. A collapsed group shows one button
 // (its icon, caption and a chevron, owner decision 27) that opens the group
 // at its largest layout in an overlay.
-enum class RibbonGroupSize : std::uint8_t { large, medium, small, collapsed };
+enum class RibbonGroupSize : std::uint8_t { large, medium, compact, collapsed };
 
 // One layout of a group (the WPF/MFC model, owner decision 5): the image size
-// of each command and how many small commands stack in a column. Labels
+// of each command and how many compact commands stack in a column. Labels
 // never drop (decision 6), so a layout only changes image sizes and rows.
 // `command_sizes` holds one size per command of the group, in command order,
 // or is empty for the commands' own sizes (`RibbonCommandSpec::size`);
 // entries for hosted and gallery commands are ignored. A collapsed layout
-// has no sizes. `rows` (1 to 3) is the number of small and hosted command
+// has no sizes. `rows` (1 to 3) is the number of compact and hosted command
 // rows per column. The rows stand from the top of the plane at the
 // three-row pitch, so a column of one or two rows aligns with the tops of
 // the large commands beside it rather than centring in the plane.
@@ -376,7 +376,7 @@ public:
     // for an empty or repeated ID (IDs are one namespace across tabs, groups
     // and commands), invalid UTF-8, a button, toggle or split without a
     // command, a menu on a kind that has none or a split without one, an
-    // icon-only command that is not small (in any layout) or has no image,
+    // icon-only command that is not compact (in any layout) or has no image,
     // choices on a command that is not a combo box, a width outside 0 to
     // 1024, an invalid menu, a gallery command without an in-ribbon gallery
     // (or with one used twice or owned by another parent), two galleries in
@@ -414,7 +414,7 @@ public:
     [[nodiscard]] bool tab_shown(std::size_t tab) const;
     // A group's layouts, largest first: as authored, or generated when none
     // were (each step makes the rightmost run of up to three large commands
-    // small, then the group collapses unless it holds one command). Throws
+    // compact, then the group collapses unless it holds one command). Throws
     // std::out_of_range for a tab or group past the end.
     [[nodiscard]] std::span<const RibbonGroupLayout> group_layouts(std::size_t tab, std::size_t group) const;
     // A tab's reduction ladder at the current font, text scale and theme,
@@ -806,10 +806,10 @@ private:
         }
     };
     // One command's widths at each image size, measured once. A hosted
-    // command's row width is its small width; a gallery's width depends on
+    // command's row width is its compact width; a gallery's width depends on
     // its columns and is read from the gallery.
     // A command's widths: as a large command (or a labelled field with its
-    // label above) and as a small command (or a field with its label at its
+    // label above) and as a compact command (or a field with its label at its
     // left).
     struct CommandMetrics final {
         double large_width{};
@@ -982,8 +982,8 @@ private:
     // is measured in the CheckBox's own text font, not the ribbon's.
     [[nodiscard]] CommandMetrics measure_command(const RibbonCommandSpec& command, const CheckBox* box) const;
     [[nodiscard]] bool field_labelled(const RibbonCommandSpec& command) const;
-    // Whether command `command` of `group` in `group_layout` is a small text
-    // label for the field after it: a small button-family command with a
+    // Whether command `command` of `group` in `group_layout` is a compact text
+    // label for the field after it: a compact button-family command with a
     // label and no image (or a label command), followed by a visible hosted
     // command other than a check box (which carries its own label) or a
     // gallery, not beside it.
