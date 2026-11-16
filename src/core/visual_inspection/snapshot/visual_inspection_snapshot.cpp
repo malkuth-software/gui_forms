@@ -1,30 +1,15 @@
 #include "gui_forms/visual_inspection.hpp"
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 
-#include <iomanip>
+#include "../../json/json_text/json_text.hpp"
+
 #include <sstream>
 #include <type_traits>
 
 namespace gui_forms {
 namespace {
 
-void append_json_string(std::ostringstream& output, std::string_view value) {
-    output << '"';
-    for (const unsigned char character : value) {
-        switch (character) {
-        case '"': output << "\\\""; break;
-        case '\\': output << "\\\\"; break;
-        case '\n': output << "\\n"; break;
-        case '\r': output << "\\r"; break;
-        case '\t': output << "\\t"; break;
-        default:
-            if (character < 0x20U) output << '?';
-            else output << static_cast<char>(character);
-            break;
-        }
-    }
-    output << '"';
-}
+using detail::append_json_string;
 
 void append_point(std::ostringstream& output, Point value) {
     output << '[' << value.x << ',' << value.y << ']';
@@ -784,8 +769,11 @@ const VisualControlInspection* VisualInspectionSnapshot::find(
 
 std::string VisualInspectionSnapshot::to_json() const {
     std::ostringstream output;
-    output << std::setprecision(17)
-           << "{\"content_revision\":" << content_revision
+    // Numbers in the classic locale whatever the program's global one,
+    // doubles as their shortest round-trip text, and non-finite ones null
+    // (A-gf-core-16-F2; the facet replaces the former 17-digit precision).
+    detail::imbue_json_numbers(output);
+    output << "{\"content_revision\":" << content_revision
            << ",\"display_generation\":" << display_generation
            << ",\"client_size\":";
     append_size(output, client_size);

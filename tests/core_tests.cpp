@@ -22,6 +22,7 @@
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/value/value.hpp"
+#include "gui_forms/visual_inspection.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/update_scope/update_scope.hpp"
 #include "gui_forms/window/window.hpp"
@@ -505,6 +506,23 @@ void test_semantic_snapshot_json_ignores_the_global_locale() {
     require(json.find("\"numeric_value\":null") != std::string::npos, "a non-finite number is null");
     require(json.find("\"name\":\"bad\\ufffdname\\u0001\"") != std::string::npos,
             "an ill-formed byte is U+FFFD and a control byte is escaped");
+}
+
+// A-gf-core-16-F2: the visual inspection snapshot's JSON, likewise.
+void test_visual_inspection_json_ignores_the_global_locale() {
+    VisualInspectionSnapshot snapshot{};
+    snapshot.content_revision = 1234567U;
+    snapshot.client_size = Size{1234.5, 0.25};
+    snapshot.device_scale = std::numeric_limits<double>::quiet_NaN();
+    snapshot.theme_id = std::string("theme\x02\xC3");
+    const GlobalLocaleScope scope(std::locale(std::locale::classic(), new GroupingCommaPunctuation()));
+    const std::string json = snapshot.to_json();
+    require(json.find("\"content_revision\":1234567,") != std::string::npos &&
+                json.find("\"client_size\":[1234.5,0.25]") != std::string::npos,
+            "inspection JSON numbers are not grouped and use a decimal point");
+    require(json.find("\"device_scale\":null") != std::string::npos, "a non-finite scale is null");
+    require(json.find("\"theme\\u0002\\ufffd\"") != std::string::npos,
+            "a control byte is escaped and a truncated sequence is U+FFFD");
 }
 
 void test_nested_scopes_and_read_barrier() {
@@ -1560,6 +1578,7 @@ int main() {
     try {
         test_nested_scopes_and_read_barrier();
         test_semantic_snapshot_json_ignores_the_global_locale();
+        test_visual_inspection_json_ignores_the_global_locale();
         test_per_control_layout_transactions();
         test_layout_fault_releases_reentry_guard();
         test_layout_callbacks_may_mutate_retained_tree();
