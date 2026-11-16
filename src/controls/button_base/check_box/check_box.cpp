@@ -1,4 +1,5 @@
 #include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/commands/command/command.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "../choice_indicator_property.hpp"
 #include "gui_forms/text.hpp"
@@ -27,7 +28,12 @@ std::shared_ptr<const PropertyEnumDescriptor> check_state_enum() {
 
 } // namespace
 
+// ButtonBase::bind's refusals are checked before the value binding is
+// retired, so a refused bind leaves the box as it was (A-gf-controls-01-F5);
+// the value binding still goes before the command's state is applied.
 void CheckBox::bind(Command& command) {
+    require_mutable();
+    if (!command.is_alive()) throw std::invalid_argument("cannot bind a disposed Command");
     unbind();
     ButtonBase::bind(command);
 }

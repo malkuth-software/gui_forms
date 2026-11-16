@@ -1,4 +1,6 @@
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/value/value.hpp"
 #include "gui_forms/controls/scaled_group_box.hpp"
 #include "gui_forms/controls/scaled_panel.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -891,6 +893,24 @@ void test_checkbox_state_and_click_order() {
     require((*check).check_state.read() == CheckState::unchecked &&
                 order == "state:other\nclick\n",
             "indeterminate CheckBox must return to unchecked without duplicate bool change");
+}
+
+// A refused command bind leaves the value binding in place (A-gf-controls-01-F5).
+void test_checkbox_refused_command_bind_keeps_its_value_binding() {
+    Value<bool> model(true);
+    std::shared_ptr<CheckBox> check = make_control<CheckBox>(StableId("check.refused-command"), "Bound");
+    (*check).bind(model);
+    const std::shared_ptr<Command> gone = std::make_shared<Command>("gone", "Gone");
+    (*gone).dispose();
+    bool refused = false;
+    try {
+        (*check).bind(*gone);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    model.set(false);
+    require(refused && !(*check).checked.read(),
+            "a refused command bind keeps the CheckBox's value binding");
 }
 
 void test_radio_group_scope_and_order() {
@@ -2212,6 +2232,7 @@ int main() {
         test_nested_authored_surfaces_are_control_background_layers();
         test_mnemonics_and_dialog_buttons_are_retained_commands();
         test_checkbox_state_and_click_order();
+    test_checkbox_refused_command_bind_keeps_its_value_binding();
         test_radio_group_scope_and_order();
         test_radio_clear_survives_a_handler_editing_the_parent();
         test_link_and_callback_disposal();
