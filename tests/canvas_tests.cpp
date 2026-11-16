@@ -86,7 +86,7 @@ void derived_canvas_keeps_routing_presentation_and_resource_lifetime() {
     Window window(root, {100, 100});
     window.perform_layout();
     CapturePainter painter;
-    CHECK(window.paint(painter).has_value());
+    CHECK(window.paint(painter).present());
     CHECK(painter.sampled_images == 1 && (*canvas).overlays == 1);
     CHECK(window.dispatch_pointer({PointerAction::down, PointerButton::primary, {12, 12}}));
     CHECK((*canvas).has_pointer_capture());
@@ -181,7 +181,7 @@ void canvas_projects_bitmap_changes_as_local_window_damage() {
           (Rect{2, 2, 4, 4}));
 
     CapturePainter painter;
-    CHECK(window.paint(painter).has_value());
+    CHECK(window.paint(painter).present());
     CHECK(painter.sampled_images == 1U);
     CHECK(painter.last_sampling == ImageSampling::nearest);
     CHECK(painter.last_source == (Rect{0, 0, 4, 4}));

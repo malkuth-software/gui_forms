@@ -806,7 +806,7 @@ void SurfaceRoot::note_opaque_cover(const Control& control, const Painter& paint
     (*recording_painter_).mark_opaque_cover(local);
 }
 
-std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
+stxlib::Optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
                                           Rect requested_damage) {
     settle_dirty();
     // One rectangle: the request, or else the bounds of all damage.
@@ -824,7 +824,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
     return paint_timed(painter, bounds, false);
 }
 
-std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
+stxlib::Optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
                                           std::span<const Rect> requested_damage) {
     settle_dirty();
     if (!requested_damage.empty()) {
@@ -840,10 +840,10 @@ std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
 
 // One paint tick, checked against the paint budget (paint_within_budget):
 // a tick that took longer is a missed expectation, never a fault.
-std::optional<PaintReceipt> SurfaceRoot::paint_timed(Painter& painter, std::span<const Rect> rectangles,
+stxlib::Optional<PaintReceipt> SurfaceRoot::paint_timed(Painter& painter, std::span<const Rect> rectangles,
                                                      bool explicit_request) {
     const FrameTime started = FrameClock::now();
-    std::optional<PaintReceipt> receipt = paint_rectangles(painter, rectangles, explicit_request);
+    stxlib::Optional<PaintReceipt> receipt = paint_rectangles(painter, rectangles, explicit_request);
     const FrameInterval elapsed = FrameClock::now() - started;
     const std::uint64_t nanoseconds = static_cast<std::uint64_t>(
         std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count());
@@ -862,7 +862,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_timed(Painter& painter, std::span
     return receipt;
 }
 
-std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
+stxlib::Optional<PaintReceipt> SurfaceRoot::paint_rectangles(
     Painter& painter, std::span<const Rect> rectangles, bool explicit_request) {
     require_root_thread("paint");
     if (in_paint_) {
@@ -881,31 +881,31 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
             }
         }
         request_paint_wake();
-        return std::nullopt;
+        return stxlib::Optional<PaintReceipt>::none();
     }
-    if (occluded_) return std::nullopt;
+    if (occluded_) return stxlib::Optional<PaintReceipt>::none();
     // The lease this paint starts, when it paints anything.
     ShadowFrameCall shadow_frame(ShadowFrameKind::paint_pass, (*root_).stable_id().value(), std::string_view{},
                                  paint_leases_started_ + 1U);
-    std::optional<PaintReceipt> receipt = paint_rectangles_in_frame(painter, rectangles, explicit_request);
+    stxlib::Optional<PaintReceipt> receipt = paint_rectangles_in_frame(painter, rectangles, explicit_request);
     shadow_frame.returned();
     return receipt;
 }
 
 // The paint pass itself, inside paint_rectangles' frame.
-std::optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
+stxlib::Optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
                                                                    bool explicit_request) {
     ensure_layout(true);
 
     if (!(*root_).is_alive()) {
-        return std::nullopt;
+        return stxlib::Optional<PaintReceipt>::none();
     }
 
     const Rect window_bounds{0.0, 0.0, client_size_.width, client_size_.height};
     std::vector<Rect>& painted = painted_rectangles_;
     merge_paint_rectangles(rectangles, window_bounds, scale_, painted);
     if (painted.empty()) {
-        return std::nullopt;
+        return stxlib::Optional<PaintReceipt>::none();
     }
     Rect paint_bounds = painted.front();
     double painted_area = 0.0;
@@ -1032,7 +1032,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& pain
             display_generation_, PaintPlane::control, window_bounds);
         if (lease_epoch != surface_epoch_ || !(*root_).is_alive()) {
             abandon_paint(generation_before);
-            return std::nullopt;
+            return stxlib::Optional<PaintReceipt>::none();
         }
         // The frame's recording is replayed into the terminal painter, which
         // alone can say whether an opaque live surface hides what lies
@@ -1047,7 +1047,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& pain
         // The host receives no receipt and therefore cannot publish it.
         if (lease_epoch != surface_epoch_ || !(*root_).is_alive()) {
             abandon_paint(generation_before);
-            return std::nullopt;
+            return stxlib::Optional<PaintReceipt>::none();
         }
     } catch (...) {
         abandon_paint(generation_before);
@@ -1091,7 +1091,9 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& pain
     // pass is over, their damage requests the next frame (never throws).
     if (resources_) (*resources_).apply_deferred_image_fills();
     schedule_deferred_input_drain();
-    return PaintReceipt{lease_revision, lease_epoch};
+    const PaintReceipt receipt{lease_revision, lease_epoch};
+    const stxlib::Optional<PaintReceipt> result = stxlib::Optional<PaintReceipt>::of(receipt);
+    return result;
 }
 
 bool SurfaceRoot::notify_presented(PaintReceipt receipt,

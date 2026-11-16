@@ -757,7 +757,7 @@ std::vector<std::uint32_t> scroll_copy_reference(const Point position, const std
           "Reference raster not allocated");
   require(raster.synchronize_images(window.image_resources()), "Reference images not synchronized");
   raster.begin_frame(DamageRegion{});
-  require(window.paint(raster).has_value(), "Reference did not paint");
+  require(window.paint(raster).present(), "Reference did not paint");
   raster.end_frame();
   std::vector<std::uint32_t> pixels(width * height);
   const unsigned char *const base = static_cast<const unsigned char *>(raster.pixels());

@@ -54,10 +54,10 @@ void paint(Fixture& fixture, gf::render::SkiaRaster& raster) {
     gf::DamageRegion damage{};
     damage.add({0.0, 0.0, 1060.0, 618.0});
     raster.begin_frame(damage);
-    const std::optional<gf::PaintReceipt> receipt =
+    const stxlib::Optional<gf::PaintReceipt> receipt =
         (*fixture.window).paint(raster, {0.0, 0.0, 1060.0, 618.0});
     raster.end_frame();
-    if (!receipt || !(*fixture.window).notify_presented(*receipt)) {
+    if (receipt.absent() || !(*fixture.window).notify_presented(*receipt.value())) {
         throw std::runtime_error("paint did not produce a valid receipt");
     }
 }

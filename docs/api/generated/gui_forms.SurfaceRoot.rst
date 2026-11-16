@@ -1411,12 +1411,12 @@ gui_forms::SurfaceRoot
 
       The same as :cpp:func:`perform_layout <gui_forms::SurfaceRoot::perform_layout>`.
 
-   .. cpp:function:: std::optional<PaintReceipt> paint(Painter& painter, Rect requested_damage = {})
+   .. cpp:function:: stxlib::Optional<PaintReceipt> paint(Painter& painter, Rect requested_damage = {})
 
       Paints pending damage with a :cpp:class:`Painter <gui_forms::Painter>`. Native hosts call it; tests can
       call it with their own painter.
 
-   .. cpp:function:: std::optional<PaintReceipt> paint(Painter& painter, std::span<const Rect> requested_damage)
+   .. cpp:function:: stxlib::Optional<PaintReceipt> paint(Painter& painter, std::span<const Rect> requested_damage)
 
       Paints pending damage with a :cpp:class:`Painter <gui_forms::Painter>`. Native hosts call it; tests can
       call it with their own painter.

@@ -80,9 +80,9 @@ inline bool paint_headless_frame(Window& window, PaintFramebuffer& framebuffer) 
     static_cast<void>(window.take_damage());
     const Rect whole{0.0, 0.0, window.client_size().width, window.client_size().height};
     if (!framebuffer.begin(window.image_resources(), whole)) return false;
-    const std::optional<PaintReceipt> receipt = window.paint(framebuffer.painter(), whole);
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(framebuffer.painter(), whole);
     framebuffer.end();
-    const bool painted = receipt.has_value();
+    const bool painted = receipt.present();
     return painted;
 }
 

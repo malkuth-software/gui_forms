@@ -965,7 +965,7 @@ public:
     // Returns an exact presentation receipt only when a complete candidate
     // replay remains current for its surface epoch. Ignoring the result is
     // valid for renderer-neutral inspection; a native host must require it.
-    std::optional<PaintReceipt> paint(
+    stxlib::Optional<PaintReceipt> paint(
         Painter& painter, Rect requested_damage = {});
     // Damage-preserving paint (stage DP): one lease and one receipt for a
     // bounded set of rectangles, each painted under its own clip so pixels
@@ -973,7 +973,7 @@ public:
     // merged first; more than DamageRegion::maximum_rectangles collapse to
     // their bounds. An empty set paints the accumulated damage rectangles
     // rather than their bounding box.
-    std::optional<PaintReceipt> paint(
+    stxlib::Optional<PaintReceipt> paint(
         Painter& painter, std::span<const Rect> requested_damage);
     // Preferred host release. Returns false for a duplicate, out-of-order, or
     // replaced-epoch receipt and never advances the presentation revision in
@@ -2356,7 +2356,7 @@ private:
     bool dispatch_text_in_frame(TextInputEvent event);
     DragDispatchResult dispatch_drag_in_frame(DragEvent event);
     void flush_layout_in_frame();
-    std::optional<PaintReceipt> paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
+    stxlib::Optional<PaintReceipt> paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
                                                           bool explicit_request);
     void leave_update_scope();
     void flush_if_outermost();
@@ -2893,7 +2893,7 @@ private:
     void abandon_paint(std::uint64_t generation_before);
     // paint_rectangles timed against the paint budget
     // (HousekeepingExpectation::paint_within_budget).
-    std::optional<PaintReceipt> paint_timed(Painter& painter, std::span<const Rect> rectangles,
+    stxlib::Optional<PaintReceipt> paint_timed(Painter& painter, std::span<const Rect> rectangles,
                                             bool explicit_request);
     // The blend study's count of the frame just replayed into `painter`
     // (count_display_blend): the frame's painted rectangles (window
@@ -2916,7 +2916,7 @@ private:
     // One paint pass over `rectangles` (window coordinates, disjoint after
     // merging). With `explicit_request`, every plane paints each rectangle;
     // otherwise each plane paints only where it holds damage.
-    std::optional<PaintReceipt> paint_rectangles(
+    stxlib::Optional<PaintReceipt> paint_rectangles(
         Painter& painter, std::span<const Rect> rectangles,
         bool explicit_request);
     [[nodiscard]] Rect plane_paint_bounds(std::size_t index, Rect rectangle,

@@ -152,10 +152,10 @@ void ribbon_faces_at(double scale, double window_scale, const std::shared_ptr<co
     raster.begin_frame(damage);
     raster.save();
     raster.clip_damage(damage);
-    const std::optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
     raster.restore();
     raster.end_frame();
-    if (receipt) static_cast<void>(window.notify_presented(*receipt));
+    if (receipt.present()) static_cast<void>(window.notify_presented(*receipt.value()));
     const Ribbon::Parts parts = (*ribbon).parts();
     const std::vector<Ribbon::Tab> realized = (*ribbon).realized_tabs();
     require(realized.size() == 2U, "both tabs are realized");
@@ -237,10 +237,10 @@ void gallery_ribbon_at(double scale, double window_scale) {
     raster.begin_frame(damage);
     raster.save();
     raster.clip_damage(damage);
-    const std::optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
     raster.restore();
     raster.end_frame();
-    if (receipt) static_cast<void>(window.notify_presented(*receipt));
+    if (receipt.present()) static_cast<void>(window.notify_presented(*receipt.value()));
     const Rect placed = (*ribbon).absolute_bounds();
     const Ribbon::Parts parts = (*ribbon).parts();
     const Point rail{placed.x + placed.width - 12.0, placed.y + 8.0};
@@ -276,10 +276,10 @@ void paint_whole(Window& window, render::SkiaRaster& raster, Size size) {
     raster.begin_frame(damage);
     raster.save();
     raster.clip_damage(damage);
-    const std::optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
     raster.restore();
     raster.end_frame();
-    if (receipt) static_cast<void>(window.notify_presented(*receipt));
+    if (receipt.present()) static_cast<void>(window.notify_presented(*receipt.value()));
 }
 
 // Every label of the selected tab's commands fits its part, measured by

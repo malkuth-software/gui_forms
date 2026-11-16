@@ -173,8 +173,8 @@ void document_scrollbars() {
     ScrollbarPainter painter{};
     f.editor.invalidate(Dirty::paint);
     const DamageRegion damage = f.window.take_damage();
-    const std::optional<PaintReceipt> receipt = f.window.paint(painter, damage.bounds());
-    require(receipt.has_value(), "retained document paint completes");
+    const stxlib::Optional<PaintReceipt> receipt = f.window.paint(painter, damage.bounds());
+    require(receipt.present(), "retained document paint completes");
     const Rect viewport = f.editor.viewport_rectangle();
     const Rect clip{6.0, 4.0, viewport.width - 10.0, viewport.height - 8.0};
     const Rect horizontal_bar{0.0, viewport.height, viewport.width, 16.0};
@@ -612,8 +612,8 @@ public:
 void paint_retained(Fixture& fixture, CaretPainter& painter) {
     fixture.window.perform_layout();
     const DamageRegion damage = fixture.window.take_damage();
-    const std::optional<PaintReceipt> receipt = fixture.window.paint(painter, damage.bounds());
-    require(receipt.has_value(), "retained caret fixture must paint");
+    const stxlib::Optional<PaintReceipt> receipt = fixture.window.paint(painter, damage.bounds());
+    require(receipt.present(), "retained caret fixture must paint");
 }
 
 Rect blink_damage(Fixture& fixture) {
@@ -685,14 +685,14 @@ void localized_caret_blinks() {
                     hidden_damage.y + hidden_damage.height >= old_end.y,
                 "erase damage must contain the previously recorded caret endpoints");
         painter.lines = 0U;
-        const std::optional<PaintReceipt> hidden = fixture.window.paint(painter, hidden_damage);
-        require(hidden.has_value() && painter.lines == 0U,
+        const stxlib::Optional<PaintReceipt> hidden = fixture.window.paint(painter, hidden_damage);
+        require(hidden.present() && painter.lines == 0U,
                 "hidden blink must remove the recorded caret line");
         const Rect visible_damage = blink_damage(fixture);
         require(visible_damage == hidden_damage,
                 "show and erase must damage the same retained caret pixels");
-        const std::optional<PaintReceipt> visible = fixture.window.paint(painter, visible_damage);
-        require(visible.has_value() && painter.lines == 1U,
+        const stxlib::Optional<PaintReceipt> visible = fixture.window.paint(painter, visible_damage);
+        require(visible.present() && painter.lines == 1U,
                 "visible blink must restore the recorded caret line");
         const MetricsSnapshot metrics = fixture.window.metrics_snapshot();
         require(metrics.display_chunks_rebuilt == 2U && metrics.measure_passes == 0U &&

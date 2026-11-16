@@ -128,9 +128,9 @@ struct Fixture {
     void paint(Painter& painter) {
         window.perform_layout();
         const DamageRegion damage = window.take_damage();
-        const std::optional<PaintReceipt> receipt = window.paint(painter, {0, 0, 200, 88});
+        const stxlib::Optional<PaintReceipt> receipt = window.paint(painter, {0, 0, 200, 88});
         static_cast<void>(damage);
-        require(receipt.has_value(), "the fixture paints");
+        require(receipt.present(), "the fixture paints");
     }
 };
 

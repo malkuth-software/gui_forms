@@ -42,7 +42,7 @@ static void check_caption(const std::string& text, double scale, std::uint16_t w
     window.set_text_metrics_provider(&painter.painter());
     window.perform_layout();
     painter.begin_frame();
-    require_text(window.paint(painter.painter()).has_value(), "Retained caption did not paint");
+    require_text(window.paint(painter.painter()).present(), "Retained caption did not paint");
     require_text(painter.save_bmp(L"windows-text-test.bmp"), "Capture failed");
     if (text == "Главная" && scale == 1.5 && weight == 700) {
         require_text(painter.save_bmp(L"windows-russian-tab.bmp"), "Russian evidence capture failed");
@@ -55,7 +55,7 @@ static void check_caption(const std::string& text, double scale, std::uint16_t w
     fresh.set_bundled_fonts(fixture_fonts);
     fresh.begin_frame();
     (*button).invalidate(Dirty::paint);
-    require_text(window.paint(fresh.painter()).has_value(), "Cold caption did not paint");
+    require_text(window.paint(fresh.painter()).present(), "Cold caption did not paint");
     GdiFlush();
     require_text(fresh.save_bmp(L"windows-text-cold.bmp"), "Cold capture failed");
     std::ifstream cold_stream("windows-text-cold.bmp", std::ios::binary);

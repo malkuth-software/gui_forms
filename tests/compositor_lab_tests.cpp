@@ -117,9 +117,9 @@ Frame present(render::SkiaRaster& raster, Window& window) {
     DamageRegion damage;
     damage.add(whole);
     raster.begin_frame(damage);
-    const std::optional<PaintReceipt> receipt = window.paint(raster, whole);
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(raster, whole);
     raster.end_frame();
-    require(receipt.has_value(), "the window renders");
+    require(receipt.present(), "the window renders");
     static_cast<void>(window.take_damage());
 
     Frame frame{};

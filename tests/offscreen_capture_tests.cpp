@@ -372,9 +372,9 @@ std::array<std::uint8_t, 4> presented_pixel(Window& window, Size size, std::size
     const std::unique_ptr<PaintFramebuffer> framebuffer = window.create_framebuffer(size, 1.0);
     require(framebuffer != nullptr, "the attached window makes a framebuffer");
     require((*framebuffer).begin(window.image_resources(), whole), "the framebuffer begins");
-    const std::optional<PaintReceipt> receipt = window.paint((*framebuffer).painter(), whole);
+    const stxlib::Optional<PaintReceipt> receipt = window.paint((*framebuffer).painter(), whole);
     (*framebuffer).end();
-    require(receipt.has_value(), "the frame completes");
+    require(receipt.present(), "the frame completes");
     const std::span<std::byte> bytes = (*framebuffer).pixels();
     const std::size_t offset = y * (*framebuffer).row_bytes() + x * 4U;
     require(offset + 4U <= bytes.size(), "the pixel is inside the frame");

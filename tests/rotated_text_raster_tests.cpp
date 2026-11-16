@@ -335,10 +335,10 @@ DamageRegion paint_damage(Window& window, render::SkiaRaster& raster) {
     raster.begin_frame(damage);
     raster.save();
     raster.clip_damage(damage);
-    const std::optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
     raster.restore();
     raster.end_frame();
-    if (receipt) static_cast<void>(window.notify_presented(*receipt));
+    if (receipt.present()) static_cast<void>(window.notify_presented(*receipt.value()));
     return damage;
 }
 

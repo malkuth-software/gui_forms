@@ -337,7 +337,7 @@ public:
 private:
     bool gather_live_frames();
     void compose_live_frames();
-    bool report_presented(const std::optional<PaintReceipt>& receipt, std::uint64_t elapsed, PresentedArea copied);
+    bool report_presented(const stxlib::Optional<PaintReceipt>& receipt, std::uint64_t elapsed, PresentedArea copied);
     void paint(DamageRegion& screen, bool regions_taken);
 };
 

@@ -44,7 +44,7 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
     DamageRegion damage;
     damage.add({0, 0, size.width, size.height});
     tiled.begin_frame(damage);
-    require(window.paint(tiled).has_value());
+    require(window.paint(tiled).present());
     tiled.end_frame();
     if (edited) {
         // Two patches, synchronized one at a time: the first finds the record
@@ -57,7 +57,7 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
         require((*canvas).synchronize_bitmap());
         require(tiled.synchronize_images(window.image_resources()));
         tiled.begin_frame(damage);
-        require(window.paint(tiled).has_value());
+        require(window.paint(tiled).present());
         tiled.end_frame();
         const std::uint64_t patches_first = tiled.image_patches_applied();
         require(patches_first > patches_before);
@@ -65,7 +65,7 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
         require((*canvas).synchronize_bitmap());
         require(tiled.synchronize_images(window.image_resources()));
         tiled.begin_frame(damage);
-        require(window.paint(tiled).has_value());
+        require(window.paint(tiled).present());
         tiled.end_frame();
         require(tiled.image_patches_applied() > patches_first);
     }
@@ -114,7 +114,7 @@ void large_native_probe() {
     DamageRegion damage;
     damage.add({0, 0, 1200, 800});
     raster.begin_frame(damage);
-    require(window.paint(raster).has_value());
+    require(window.paint(raster).present());
     raster.end_frame();
     const std::chrono::steady_clock::time_point initial = std::chrono::steady_clock::now();
     (*bitmap).set_pixel(333, 333, gui_drawing::Color::from_name("red"));
@@ -123,7 +123,7 @@ void large_native_probe() {
     require(raster.synchronize_images(window.image_resources()));
     const std::chrono::steady_clock::time_point cached = std::chrono::steady_clock::now();
     raster.begin_frame(damage);
-    require(window.paint(raster).has_value());
+    require(window.paint(raster).present());
     raster.end_frame();
     const std::chrono::steady_clock::time_point painted = std::chrono::steady_clock::now();
     const unsigned char* pixels = static_cast<const unsigned char*>(raster.pixels());

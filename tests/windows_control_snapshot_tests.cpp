@@ -43,7 +43,7 @@ void matches_direct_paint() {
     const std::unique_ptr<PaintFramebuffer> direct = window.create_framebuffer(size, 1.0);
     require(direct != nullptr && (*direct).begin(window.image_resources(), {0.0, 0.0, size.width, size.height}),
             "a direct framebuffer begins");
-    require(window.paint((*direct).painter()).has_value(), "the window paints");
+    require(window.paint((*direct).painter()).present(), "the window paints");
     (*direct).end();
 
     const stxlib::Optional<ControlSnapshot> snapshot = window.snapshot_control(card, 1.0);
@@ -95,7 +95,7 @@ void capture_matches_presented_frame() {
     const std::unique_ptr<PaintFramebuffer> direct = window.create_framebuffer(size, 1.0);
     require(direct != nullptr && (*direct).begin(window.image_resources(), {0.0, 0.0, size.width, size.height}),
             "a direct framebuffer begins");
-    require(window.paint((*direct).painter()).has_value(), "the window paints");
+    require(window.paint((*direct).painter()).present(), "the window paints");
     (*direct).end();
 
     WindowCaptureOptions options{};

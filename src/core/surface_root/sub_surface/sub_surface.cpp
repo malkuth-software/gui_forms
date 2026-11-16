@@ -613,14 +613,14 @@ void SubSurfaceLoop::produce(SubSurface& root) {
         }
         const DamageRegion taken = root.take_damage();
         if (!taken.empty() && (*framebuffer_).begin(root.image_resources(), taken.bounds())) {
-            const std::optional<PaintReceipt> receipt = root.paint((*framebuffer_).painter(), taken.rectangles());
+            const stxlib::Optional<PaintReceipt> receipt = root.paint((*framebuffer_).painter(), taken.rectangles());
             (*framebuffer_).end();
             const PixelRectangle painted =
                 device_pixels_of(taken.bounds(), scale_, (*framebuffer_).width(), (*framebuffer_).height());
             unpublished_ = unite_pixels(unpublished_, painted);
             // The framebuffer is this root's screen: the paint is presented
             // once it is there, whether or not a LiveSurface buffer is free.
-            if (receipt) static_cast<void>(root.notify_presented(*receipt));
+            if (receipt.present()) static_cast<void>(root.notify_presented(*receipt.value()));
         }
     }
     if (unpublished_.empty() && !publish_whole_) return;
