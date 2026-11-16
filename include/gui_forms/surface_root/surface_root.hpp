@@ -1490,7 +1490,7 @@ public:
     // only.
     bool publish_value(std::string_view name, double value);
     void withdraw_value(std::string_view name);
-    [[nodiscard]] std::optional<double> published_value(std::string_view name) const;
+    [[nodiscard]] stxlib::Optional<double> published_value(std::string_view name) const;
     // Nonfatal layout diagnostics (stage L, phase L5; PLAN section 2.5), in
     // the order the layout passes recorded them: at most
     // maximum_layout_diagnostics, the later ones counted in
@@ -1956,7 +1956,7 @@ private:
     [[nodiscard]] std::uint64_t backplane_generation() const noexcept { return backplane_generation_; }
     // The pointer's window position for the engine's pointer inputs, or
     // none while it is outside the window.
-    [[nodiscard]] const std::optional<Point>& engine_pointer() const noexcept { return engine_pointer_; }
+    [[nodiscard]] const stxlib::Optional<Point>& engine_pointer() const noexcept { return engine_pointer_; }
     // Damage by dependency (E6): invalidates the extent of every keyed part
     // reading any of `inputs` (only hot parts when `hot_only`), or reading
     // the published value `name`, on the control that recorded it, and
@@ -2919,7 +2919,7 @@ private:
         double value{};
     };
     std::vector<PublishedValue> published_values_;
-    std::optional<Point> engine_pointer_{};
+    stxlib::Optional<Point> engine_pointer_{};
     // The control whose display chunk is being recorded and its recorder,
     // while one is (E6); null otherwise. Observing: both live on the stack
     // of the paint that records.

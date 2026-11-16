@@ -84,7 +84,7 @@ struct PartInputSources final {
     // reads only the two scales: it is drawn statically.
     const EnginePartRecord* record{};
     // The pointer in window coordinates, or none outside the window.
-    std::optional<Point> pointer{};
+    stxlib::Optional<Point> pointer{};
     // The part's top-left corner in window coordinates.
     Point part_origin{};
     AnatomyStateSet states{};
@@ -114,8 +114,8 @@ void gather_inputs(const CompiledThemeRules& rules, std::uint64_t read, const Pa
     inputs[input_slot(EngineInput::time_in_state)] = sources.time_in_state.value_or(in_state);
     // The pointer only while the part is hot (GIVEN B1-1), in part-local
     // logical units (B2-1).
-    if (sources.states.contains(AnatomyState::hot) && sources.pointer) {
-        const Point pointer = *sources.pointer;
+    if (sources.states.contains(AnatomyState::hot) && sources.pointer.present()) {
+        const Point pointer = *sources.pointer.value();
         inputs[input_slot(EngineInput::pointer_x)] = pointer.x - sources.part_origin.x;
         inputs[input_slot(EngineInput::pointer_y)] = pointer.y - sources.part_origin.y;
     }
@@ -123,8 +123,8 @@ void gather_inputs(const CompiledThemeRules& rules, std::uint64_t read, const Pa
     for (std::size_t value = 0; value < names.size(); ++value) {
         const ExpressionInputIndex position = published_value_position(value);
         if ((read & expression_input_bit(position)) == 0U) continue;
-        const std::optional<double> published = window.published_value(names[value]);
-        if (published) inputs[position.value] = *published;
+        const stxlib::Optional<double> published = window.published_value(names[value]);
+        if (published.present()) inputs[position.value] = *published.value();
     }
 }
 

@@ -1705,7 +1705,7 @@ gui_forms::SurfaceRoot
       Withdraws a published value; its readers then read it as not published
       and give their expressions' fallbacks.
 
-   .. cpp:function:: std::optional<double> published_value(std::string_view name) const
+   .. cpp:function:: stxlib::Optional<double> published_value(std::string_view name) const
 
       The value published under a name, or none.
 

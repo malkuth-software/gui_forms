@@ -356,10 +356,10 @@ void published_value_reaches_only_its_readers() {
             "three changes, two parts damaged");
     window.withdraw_value("level");
     static_cast<void>(repaint(*fixture));
-    require(drawn_amplitude(window, "level-reader") == 0.125 && !window.published_value("level"),
+    require(drawn_amplitude(window, "level-reader") == 0.125 && window.published_value("level").absent(),
             "a withdrawn value reads as unpublished");
     require(!window.publish_value("Level", 1.0) && !window.publish_value("level", std::nan("")) &&
-                !window.publish_value("", 1.0) && !window.published_value("Level"),
+                !window.publish_value("", 1.0) && window.published_value("Level").absent(),
             "an invalid name or a value that is not finite is refused");
     metrics = window.metrics_snapshot();
     require(metrics.engine_input_damaged_parts == 3U, "the withdrawal damaged its reader");

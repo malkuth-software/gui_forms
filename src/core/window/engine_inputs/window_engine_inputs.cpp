@@ -67,11 +67,11 @@ void SurfaceRoot::withdraw_value(std::string_view name) {
     }
 }
 
-std::optional<double> SurfaceRoot::published_value(std::string_view name) const {
+stxlib::Optional<double> SurfaceRoot::published_value(std::string_view name) const {
     for (const PublishedValue& published : published_values_) {
-        if (published.name == name) return published.value;
+        if (published.name == name) return stxlib::Optional<double>::of(published.value);
     }
-    return std::nullopt;
+    return stxlib::Optional<double>::none();
 }
 
 SurfaceRoot::EnginePaintPlace SurfaceRoot::engine_paint_place(const Control& control, const Painter& painter) const {
@@ -99,8 +99,8 @@ void SurfaceRoot::note_engine_pointer(const PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::wheel) return;
-    if (engine_pointer_ && *engine_pointer_ == event.position) return;
-    engine_pointer_ = event.position;
+    if (engine_pointer_ == stxlib::Optional<Point>::of(event.position)) return;
+    engine_pointer_.set(event.position);
     metrics_.record_engine_input_change();
     damage_engine_readers(pointer_input_bits, true);
 }
