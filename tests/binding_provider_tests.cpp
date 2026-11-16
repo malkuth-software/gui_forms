@@ -367,6 +367,10 @@ void test_revocation_on_replacement_and_disposal() {
     (*other).set_provider(second);
     (*other).dispose();
     require((*second).link.revoked() && (*second).detached == 1U, "disposing the source revokes the link");
+    // A-gf-core-01-F5: the currency manager outlives disposal with its source.
+    CurrencyManager& manager = (*other).currency_manager();
+    require(manager.count() == 0U && manager.position() == -1 && &manager.source() == other.get(),
+            "a disposed source's currency manager still answers, through its source");
 }
 
 // Reports an insertion from another thread.

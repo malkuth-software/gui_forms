@@ -299,6 +299,8 @@ private:
     mutable std::uint64_t provider_reads_{};
     // Raw column spellings already looked up, found without allocating.
     mutable std::map<std::string, std::size_t, std::less<>> column_lookup_;
+    // Made with the source and kept until it is destroyed, disposal included,
+    // since currency_manager() hands out references to it.
     std::unique_ptr<CurrencyManager> currency_manager_;
     std::vector<BindingValue> edit_values_;
     bool editing_{};

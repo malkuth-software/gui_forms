@@ -1567,7 +1567,9 @@ void BindingSource::on_dispose() noexcept {
     provider_count_ = 0U;
     editing_ = false;
     edit_values_.clear();
-    currency_manager_.reset();
+    // The currency manager stays for the source's whole life (A-gf-core-01-F5):
+    // currency_manager() hands out a reference, and the manager only forwards
+    // to this source, whose members answer a disposed source as they would.
     window_lifetime_.reset();
     position_ = -1;
     current_identity_.clear();
