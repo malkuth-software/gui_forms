@@ -1,0 +1,11 @@
+#pragma once
+
+#include <optional>
+
+namespace gui_forms {
+
+struct Totals final {
+    std::optional<int> count;
+};
+
+} // namespace gui_forms

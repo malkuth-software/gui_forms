@@ -1,0 +1,71 @@
+{
+ "schema": "gui.forms.d15-rewrite-edits/v1",
+ "files": [
+  {
+   "path": "src/overlap.cpp",
+   "edits": [
+    {
+     "offset": 23,
+     "length": 3,
+     "text": "long",
+     "role": 0,
+     "span": 0,
+     "group": "type:a"
+    },
+    {
+     "offset": 35,
+     "length": 0,
+     "text": "(",
+     "role": 1,
+     "span": 5,
+     "group": "wrap:sum"
+    },
+    {
+     "offset": 40,
+     "length": 0,
+     "text": ")",
+     "role": 2,
+     "span": 5,
+     "group": "wrap:sum"
+    },
+    {
+     "offset": 46,
+     "length": 0,
+     "text": "<",
+     "role": 1,
+     "span": 7,
+     "group": "wrap:return"
+    },
+    {
+     "offset": 53,
+     "length": 0,
+     "text": ">",
+     "role": 2,
+     "span": 7,
+     "group": "wrap:return"
+    },
+    {
+     "offset": 52,
+     "length": 0,
+     "text": "[",
+     "role": 1,
+     "span": 6,
+     "group": "wrap:value"
+    },
+    {
+     "offset": 58,
+     "length": 0,
+     "text": "]",
+     "role": 2,
+     "span": 6,
+     "group": "wrap:value"
+    }
+   ]
+  }
+ ],
+ "includes": [],
+ "residue": [],
+ "seen": [
+  "src/overlap.cpp"
+ ]
+}

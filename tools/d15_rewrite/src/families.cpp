@@ -349,8 +349,18 @@ FamilyMatch match_family(const clang::QualType declared, const EntityKind kind, 
             match.unsupported = "the element type is not a type argument";
         } else if (!copy_is_nothrow(match.value_type, context, 0U)) {
             match.unsupported = family == Family::optional
-                ? "the value type's copy can throw, so stxlib::Optional of it would not copy (waits for V3/V4/V5)"
-                : "the element type's copy can throw, so stxlib::Vector of it would not copy (waits for V3/V5)";
+                ? "the value type's copy can throw (or is deleted), so stxlib::Optional of it would not copy "
+                  "(waits for V3/V4/V5)"
+                : "the element type's copy can throw (or is deleted), so stxlib::Vector of it would not copy "
+                  "(waits for V3/V5)";
+        } else if (!move_is_nothrow(match.value_type, context, 0U) || !destruction_is_nothrow(match.value_type)) {
+            // stxlib::Optional static_asserts a nothrow move and destructor
+            // (defect 2 of the 2026-11-16 V1 run: MotionValue).
+            match.unsupported = family == Family::optional
+                ? "the value type's move or destruction can throw (or is deleted), and stxlib::Optional requires "
+                  "both nothrow"
+                : "the element type's move or destruction can throw (or is deleted), and stxlib::Vector requires "
+                  "both nothrow";
         }
         if (family == Family::vector) {
             const clang::TemplateArgumentList& arguments = (*specialization).getTemplateArgs();
@@ -373,6 +383,30 @@ FamilyMatch match_family(const clang::QualType declared, const EntityKind kind, 
     }
     return match;
 }
+
+namespace {
+
+// The exception specification of a special member, when Sema resolved it:
+// `known` is false for an unevaluated or uninstantiated one.
+struct NothrowAnswer final {
+    bool known{false};
+    bool nothrow{false};
+};
+
+[[nodiscard]] NothrowAnswer resolved_nothrow(const clang::FunctionDecl& function) {
+    NothrowAnswer answer;
+    const clang::FunctionProtoType* const prototype = (*function.getType()).getAs<clang::FunctionProtoType>();
+    if (prototype == nullptr) return answer;
+    const clang::ExceptionSpecificationType specification = (*prototype).getExceptionSpecType();
+    const bool unresolved = specification == clang::EST_Unevaluated ||
+        specification == clang::EST_Uninstantiated || specification == clang::EST_Unparsed;
+    if (unresolved) return answer;
+    answer.known = true;
+    answer.nothrow = (*prototype).isNothrow(false);
+    return answer;
+}
+
+} // namespace
 
 bool copy_is_nothrow(const clang::QualType type, clang::ASTContext& context, const unsigned depth) {
     if (type.isNull() || depth > 8U) return false;
@@ -403,21 +437,23 @@ bool copy_is_nothrow(const clang::QualType type, clang::ASTContext& context, con
         }
         return true;
     }
+
+    // A deleted copy is no copy, though Clang calls a copy constructor
+    // deleted on its first declaration trivial when the members are.
+    for (const clang::CXXConstructorDecl* constructor : (*record).ctors()) {
+        if ((*constructor).isCopyConstructor() && (*constructor).isDeleted()) return false;
+    }
+    if (!(*record).hasUserDeclaredCopyConstructor()) {
+        // The implicit copy is deleted by a declared move, or by a member.
+        if ((*record).hasUserDeclaredMoveConstructor() || (*record).hasUserDeclaredMoveAssignment()) return false;
+        if ((*record).defaultedCopyConstructorIsDeleted()) return false;
+    }
     if ((*record).hasTrivialCopyConstructor()) return true;
 
     for (const clang::CXXConstructorDecl* constructor : (*record).ctors()) {
         if (!(*constructor).isCopyConstructor()) continue;
-        if ((*constructor).isDeleted()) return false;
-        const clang::FunctionProtoType* const prototype =
-            (*(*constructor).getType()).getAs<clang::FunctionProtoType>();
-        if (prototype == nullptr) return false;
-        const clang::ExceptionSpecificationType specification = (*prototype).getExceptionSpecType();
-        const bool unresolved = specification == clang::EST_Unevaluated ||
-            specification == clang::EST_Uninstantiated || specification == clang::EST_Unparsed;
-        if (!unresolved) {
-            const bool result = (*prototype).isNothrow(false);
-            return result;
-        }
+        const NothrowAnswer answer = resolved_nothrow(*constructor);
+        if (answer.known) return answer.nothrow;
         if (!(*constructor).isDefaulted()) return false;
         break;
     }
@@ -429,6 +465,87 @@ bool copy_is_nothrow(const clang::QualType type, clang::ASTContext& context, con
     for (const clang::FieldDecl* field : (*record).fields()) {
         if (!copy_is_nothrow((*field).getType(), context, depth + 1U)) return false;
     }
+    return true;
+}
+
+bool move_is_nothrow(const clang::QualType type, clang::ASTContext& context, const unsigned depth) {
+    if (type.isNull() || depth > 8U) return false;
+    const clang::QualType canonical = type.getCanonicalType().getUnqualifiedType();
+    if ((*canonical).isReferenceType()) return true;
+    if ((*canonical).isScalarType()) return true;
+    const clang::ConstantArrayType* const array = context.getAsConstantArrayType(canonical);
+    if (array != nullptr) {
+        const bool result = move_is_nothrow((*array).getElementType(), context, depth + 1U);
+        return result;
+    }
+    const clang::CXXRecordDecl* const declared = (*canonical).getAsCXXRecordDecl();
+    if (declared == nullptr || !(*declared).hasDefinition()) return false;
+    const clang::CXXRecordDecl* const record = (*declared).getDefinition();
+
+    // stxlib's vocabulary moves without throwing; an Optional moves its value.
+    if (owned_record(canonical) != nullptr) {
+        const clang::ClassTemplateSpecializationDecl* const owned =
+            llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(record);
+        if ((*record).getName() == "Optional" && owned != nullptr) {
+            const clang::TemplateArgumentList& arguments = (*owned).getTemplateArgs();
+            if (arguments.size() > 0U && arguments[0].getKind() == clang::TemplateArgument::Type) {
+                const bool result = move_is_nothrow(arguments[0].getAsType(), context, depth + 1U);
+                return result;
+            }
+        }
+        return true;
+    }
+
+    // A declared move constructor decides (a deleted one makes the value
+    // immovable: overload resolution picks it and fails).
+    for (const clang::CXXConstructorDecl* constructor : (*record).ctors()) {
+        if (!(*constructor).isMoveConstructor()) continue;
+        if ((*constructor).isDeleted()) return false;
+        if ((*constructor).isImplicit() && (*record).hasTrivialMoveConstructor()) return true;
+        const NothrowAnswer answer = resolved_nothrow(*constructor);
+        if (answer.known) return answer.nothrow;
+        if (!(*constructor).isDefaulted()) return false;
+        for (const clang::CXXBaseSpecifier& base : (*record).bases()) {
+            if (!move_is_nothrow(base.getType(), context, depth + 1U)) return false;
+        }
+        for (const clang::FieldDecl* field : (*record).fields()) {
+            if (!move_is_nothrow((*field).getType(), context, depth + 1U)) return false;
+        }
+        return true;
+    }
+    if ((*record).hasUserDeclaredMoveConstructor()) return false;
+
+    // No move constructor is declared. A declared copy operation or
+    // destructor suppresses the implicit one, and a defaulted one that
+    // would be deleted is not declared: a move is then the copy.
+    const bool suppressed = (*record).hasUserDeclaredCopyConstructor() ||
+        (*record).hasUserDeclaredCopyAssignment() || (*record).hasUserDeclaredMoveAssignment() ||
+        (*record).hasUserDeclaredDestructor() || (*record).defaultedMoveConstructorIsDeleted();
+    if (suppressed) {
+        const bool result = copy_is_nothrow(type, context, depth);
+        return result;
+    }
+    if ((*record).hasTrivialMoveConstructor()) return true;
+    for (const clang::CXXBaseSpecifier& base : (*record).bases()) {
+        if (!move_is_nothrow(base.getType(), context, depth + 1U)) return false;
+    }
+    for (const clang::FieldDecl* field : (*record).fields()) {
+        if (!move_is_nothrow((*field).getType(), context, depth + 1U)) return false;
+    }
+    return true;
+}
+
+bool destruction_is_nothrow(const clang::QualType type) {
+    if (type.isNull()) return false;
+    const clang::QualType canonical = type.getCanonicalType().getUnqualifiedType();
+    const clang::CXXRecordDecl* const declared = (*canonical).getAsCXXRecordDecl();
+    if (declared == nullptr) return true;
+    if (!(*declared).hasDefinition()) return false;
+    const clang::CXXDestructorDecl* const destructor = (*(*declared).getDefinition()).getDestructor();
+    if (destructor == nullptr) return true;
+    if ((*destructor).isDeleted()) return false;
+    const NothrowAnswer answer = resolved_nothrow(*destructor);
+    if (answer.known) return answer.nothrow;
     return true;
 }
 

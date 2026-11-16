@@ -65,6 +65,9 @@ struct EntityFact final {
     std::string name;          // the simple name (a function's for returns and parameters)
     std::string qualified_name;
     bool seeded{false};
+    // On the consumer surface (--surface-headers, --surface-exports), or
+    // every entity when no surface is given. Locals are always on it.
+    bool surface{true};
     std::string ineligible;
 };
 
@@ -73,16 +76,25 @@ struct EntityFact final {
 // change, neither can the other. A soft edge (a V1 value flow) only joins
 // the component; a soft edge to an entity that does not change becomes a
 // bridged or residual boundary site in the rewrite.
+// `flow` marks a value flow (an initialisation, assignment, argument,
+// return or comparison) as against a structural tie (an override, an
+// alias, an auto local's type): with a consumer surface, a flow that
+// reaches a non-local entity off the surface is dropped, and that site
+// becomes a bridged boundary.
 struct EdgeFact final {
     std::string first;
     std::string second;
     bool strict{false};
+    bool flow{false};
 };
 
 // One edit to one file, by byte offset into the file as it was read.
 // Replacements must not overlap each other; insertions (length 0) at one
 // offset are ordered by role and span so that wrappers nest: openers of
-// longer spans first, closers of shorter spans first.
+// longer spans first, closers of shorter spans first. `group` names the
+// rewrite of one site (its rule and anchor offset): the edits of a group
+// are applied together or not at all, so a conflict never leaves half a
+// wrapper behind.
 enum class EditRole : std::uint8_t {
     replace,
     open,
@@ -95,6 +107,7 @@ struct Edit final {
     std::string text;
     EditRole role{EditRole::replace};
     std::uint64_t span{0U};    // length of the wrapped expression, for openers and closers
+    std::string group;
 };
 
 // Something the rewriter could not rewrite, with the reason. Residue is the
@@ -150,6 +163,12 @@ struct Options final {
     bool flow_edges{true};
     bool allocating_returns_result{false};   // V3: Q1's Result<Utf8String> returns
     bool drop_standard_includes{false};
+    // The consumer surface (V2 onwards: the owner limited D15 to it). When
+    // set, only entities on it are seeded, and value flows do not carry a
+    // conversion to non-local declarations off it.
+    bool surface_mode{false};
+    std::vector<std::string> surface_headers;   // relative paths (files or directories)
+    std::set<std::string> surface_names;        // qualified names a module exports (gui_forms::Name)
 };
 
 [[nodiscard]] const char* stage_name(Stage stage) noexcept;

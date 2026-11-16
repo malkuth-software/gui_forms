@@ -1,0 +1,36 @@
+#pragma once
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+namespace gui_forms {
+
+// Never copied or moved, with members that copy trivially (MotionValue's
+// shape: Clang calls a copy deleted on its first declaration trivial).
+class Motion final {
+public:
+    explicit Motion(int start) noexcept;
+    ~Motion();
+    Motion(const Motion&) = delete;
+    Motion& operator=(const Motion&) = delete;
+
+private:
+    int start_{0};
+};
+
+// Copies without throwing; its move constructor may throw.
+struct Heavy final {
+    Heavy() noexcept;
+    Heavy(const Heavy& other) noexcept;
+    Heavy(Heavy&& other);
+    Heavy& operator=(const Heavy& other) noexcept;
+    Heavy& operator=(Heavy&& other) noexcept;
+};
+
+struct Channel final {
+    std::optional<Motion> value{};
+    std::optional<Heavy> heavy{};
+    stxlib::Optional<int> state{};
+};
+
+} // namespace gui_forms

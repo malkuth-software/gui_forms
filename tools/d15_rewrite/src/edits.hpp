@@ -25,9 +25,12 @@ public:
     // units (a header seen by each) collapse in resolve().
     void merge(const TranslationUnitHarvest& harvest);
 
-    // Sorts and dedupes every file's edits and removes conflicting ones
-    // (overlapping replacements, or an insertion inside a replacement),
-    // each reported as residue. Reads each file to place its residue.
+    // Sorts and merges every file's edits (identical edits apply once, and
+    // their sites are joined) and refuses conflicting sites whole:
+    // overlapping replacements, an insertion inside a replacement, or
+    // crossing wrapped ranges drop every edit of each site involved (its
+    // group), never one half of it, each site reported once as residue.
+    // Reads each file to place its residue.
     void resolve(const std::string& source_root, std::vector<Residue>& residue);
 
     // Computes every file's new text, adds the header includes it needs

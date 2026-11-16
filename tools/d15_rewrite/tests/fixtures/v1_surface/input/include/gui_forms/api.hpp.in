@@ -1,0 +1,13 @@
+#pragma once
+
+#include <optional>
+
+namespace gui_forms {
+
+struct Api final {
+    std::optional<int> limit;
+};
+
+[[nodiscard]] std::optional<int> read_limit(const Api& api) noexcept;
+
+} // namespace gui_forms

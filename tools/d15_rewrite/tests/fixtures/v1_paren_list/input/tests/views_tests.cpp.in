@@ -1,0 +1,26 @@
+#include <gui_forms/views.hpp>
+
+#include <array>
+#include <cstddef>
+
+#include <stxlib/view.hpp>
+
+namespace {
+
+// A direct initialisation from a dependent parenthesised list (the V1 run
+// wrote a bridge call over the list, after the declarator's name).
+template <std::size_t Count>
+stxlib::View<int> view_of(const std::array<int, Count>& values) noexcept {
+    const stxlib::View<int> view(values.data(), values.size());
+    return view;
+}
+
+} // namespace
+
+int main() {
+    const std::array<int, 3> values{1, 2, 3};
+    const stxlib::View<int> view = view_of(values);
+    gui_forms::Totals totals;
+    totals.count = static_cast<int>(view.count());
+    return totals.count.has_value() ? 0 : 1;
+}

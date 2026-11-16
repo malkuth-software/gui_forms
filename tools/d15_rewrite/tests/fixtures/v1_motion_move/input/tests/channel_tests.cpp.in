@@ -1,0 +1,8 @@
+#include <gui_forms/channel.hpp>
+
+int main() {
+    gui_forms::Channel channel;
+    channel.state = 2;
+    const bool moving = channel.value.has_value() || channel.heavy.has_value();
+    return channel.state.has_value() && !moving ? 0 : 1;
+}

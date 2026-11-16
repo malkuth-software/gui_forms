@@ -1,0 +1,7 @@
+#include <gui_forms/bridge.hpp>
+
+int main() {
+    gui_forms::Segment segment;
+    segment.topology = gui_forms::Topology::first;
+    return segment.topology.has_value() ? 0 : 1;
+}

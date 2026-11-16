@@ -1,0 +1,15 @@
+#include <gui_forms/finder.hpp>
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+namespace gui_forms {
+
+int count_found(const int key) noexcept {
+    int found = 0;
+    if (const stxlib::Optional<int> match = find_value(key); match.present()) found += (*match.value());
+    if (auto again = find_value(key + 1); again.present()) found += (*again.value());
+    return found;
+}
+
+} // namespace gui_forms

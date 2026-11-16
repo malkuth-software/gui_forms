@@ -1,0 +1,30 @@
+#pragma once
+
+#include <optional>
+
+#include <stxlib/optional.hpp>
+
+namespace gui_forms {
+
+enum class Topology : unsigned char { solo, first, last };
+
+// The standard topology, as the stxlib form takes it (a D15 Q3 bridge,
+// connected_topology_from_standard's shape): its parameter stays standard.
+[[nodiscard]] inline stxlib::Optional<Topology> topology_from_standard(
+    const std::optional<Topology>& topology) noexcept {
+    stxlib::Optional<Topology> result{};
+    if (topology.has_value()) result.set(*topology);
+    return result;
+}
+
+void set_topology(stxlib::Optional<Topology> topology) noexcept;
+[[deprecated("pass stxlib::Optional<Topology>")]] inline void set_topology(std::optional<Topology> topology) noexcept {
+    set_topology(topology_from_standard(topology));
+}
+void set_topology(Topology topology) = delete;
+
+struct Segment final {
+    stxlib::Optional<Topology> topology;
+};
+
+} // namespace gui_forms

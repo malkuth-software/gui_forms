@@ -1,0 +1,31 @@
+{
+ "schema": "gui.forms.d15-rewrite-edits/v1",
+ "files": [
+  {
+   "path": "src/overlap.cpp",
+   "edits": [
+    {
+     "offset": 23,
+     "length": 3,
+     "text": "long",
+     "role": 0,
+     "span": 0,
+     "group": "type:b"
+    },
+    {
+     "offset": 33,
+     "length": 3,
+     "text": "{1",
+     "role": 0,
+     "span": 0,
+     "group": "brace"
+    }
+   ]
+  }
+ ],
+ "includes": [],
+ "residue": [],
+ "seen": [
+  "src/overlap.cpp"
+ ]
+}

@@ -1,0 +1,1 @@
+-Xclang -include-pch -Xclang {root}/pch/stale.pch -Xclang -include -Xclang {root}/pch/cmake_pch.hxx -include {root}/pch/cmake_pch.hxx

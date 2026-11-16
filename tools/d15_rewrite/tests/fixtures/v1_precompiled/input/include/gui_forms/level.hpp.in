@@ -1,0 +1,13 @@
+#pragma once
+
+#include <optional>
+
+namespace gui_forms {
+
+struct Level final {
+    std::optional<int> value;
+};
+
+[[nodiscard]] bool level_set(const Level& level) noexcept;
+
+} // namespace gui_forms
