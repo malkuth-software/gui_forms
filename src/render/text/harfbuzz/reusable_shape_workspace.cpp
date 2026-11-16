@@ -1,7 +1,5 @@
 #include "reusable_shape_workspace.hpp"
 
-#include <hb.h>
-
 #include <algorithm>
 #include <limits>
 #include <new>
@@ -34,7 +32,7 @@ constexpr std::size_t glyph_margin = 64U;
 } // namespace
 
 ReusableShapeWorkspace::ReusableShapeWorkspace(const std::uint64_t engine_identity)
-    : engine_(engine_identity), buffer_(nullptr, hb_buffer_destroy) {}
+    : engine_(engine_identity) {}
 
 ReusableShapeWorkspace::~ReusableShapeWorkspace() = default;
 
@@ -48,10 +46,7 @@ void ReusableShapeWorkspace::reserve(const std::size_t text_bytes) {
     // leaves the workspace as it was.
     const std::size_t visual_capacity = checked_product(text_bytes, 2U);
     const std::size_t glyph_capacity = checked_sum(checked_product(text_bytes, glyphs_per_text_byte), glyph_margin);
-    const std::size_t buffer_glyphs = checked_product(text_bytes, 2U);
-    if (buffer_glyphs > static_cast<std::size_t>(std::numeric_limits<unsigned int>::max())) {
-        throw std::length_error("Shaping workspace exceeds HarfBuzz's buffer length");
-    }
+    const std::size_t scratch_glyphs = checked_product(text_bytes, 2U);
     const detail::GraphemeStorageRequirement grapheme = detail::grapheme_workspace_requirement(text_bytes);
     if (grapheme.status != detail::GraphemeStorageStatus::success) {
         throw std::length_error("Shaping workspace grapheme capacity arithmetic overflow");
@@ -68,11 +63,11 @@ void ReusableShapeWorkspace::reserve(const std::size_t text_bytes) {
     CountedArray<WorkspaceVisualSegment> visual(visual_capacity);
     CountedArray<BoundedFontRun> runs(visual_capacity);
     CountedArray<ShapedGlyph> glyphs(glyph_capacity);
-    std::unique_ptr<hb_buffer_t, void (*)(hb_buffer_t*)> buffer(hb_buffer_create(), hb_buffer_destroy);
-    if (!buffer || !hb_buffer_allocation_successful(buffer.get()) ||
-        !hb_buffer_pre_allocate(buffer.get(), static_cast<unsigned int>(buffer_glyphs))) {
-        throw std::bad_alloc();
-    }
+    ShapeScratch scratch{};
+    scratch.characters.reserve(text_bytes);
+    scratch.clusters.reserve(text_bytes);
+    const stxlib::Status glyph_room = scratch.glyphs.reserve(scratch_glyphs);
+    if (glyph_room.failed()) throw std::bad_alloc();
     // Nothing below throws.
     graphemes_ = std::move(graphemes);
     scalars_ = std::move(scalars);
@@ -81,7 +76,7 @@ void ReusableShapeWorkspace::reserve(const std::size_t text_bytes) {
     visual_ = std::move(visual);
     runs_ = std::move(runs);
     glyphs_ = std::move(glyphs);
-    buffer_ = std::move(buffer);
+    scratch_ = std::move(scratch);
     staged_ = StagedShaping{};
     staged_.runs = runs_.data();
     staged_.glyphs = glyphs_.data();

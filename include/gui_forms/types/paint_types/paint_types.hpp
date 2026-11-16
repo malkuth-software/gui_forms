@@ -129,6 +129,31 @@ struct GUI_FORMS_API FontFamilyStackId {
     }
 };
 
+// The language text is written in, as an OpenType language system tag:
+// four letters as one number, the first highest ('K','O','R',' ' for
+// Korean; text_language makes one). Zero is none. Shaping applies the
+// tag's language system where a face has one (Korean forms, Turkish
+// dotted i), and fallback prefers the faces registered for the language
+// (the Korean CJK face over the Japanese one for Han characters in Korean
+// text); none keeps each script's default forms and the registered order.
+struct GUI_FORMS_API TextLanguage {
+    std::uint32_t tag{};
+    friend constexpr bool operator==(const TextLanguage& left,
+                                     const TextLanguage& right) noexcept {
+        return left.tag == right.tag;
+    }
+};
+
+[[nodiscard]] constexpr TextLanguage text_language(const char first, const char second, const char third,
+                                                   const char fourth) noexcept {
+    const std::uint32_t tag = (static_cast<std::uint32_t>(static_cast<unsigned char>(first)) << 24U) |
+                              (static_cast<std::uint32_t>(static_cast<unsigned char>(second)) << 16U) |
+                              (static_cast<std::uint32_t>(static_cast<unsigned char>(third)) << 8U) |
+                              static_cast<std::uint32_t>(static_cast<unsigned char>(fourth));
+    const TextLanguage language{tag};
+    return language;
+}
+
 struct GUI_FORMS_API FontSpec {
     FontRole role{FontRole::control};
     double size{13.0};
@@ -144,12 +169,16 @@ struct GUI_FORMS_API FontSpec {
     // faces could not be loaded is passed over.
     FontFamilyId family{};
     FontFamilyStackId stack{};
+    // The paragraph's language (TextLanguage): it reaches every run shaped
+    // in this font. A layout input, as letter_spacing is.
+    TextLanguage language{};
     friend constexpr bool operator==(const FontSpec& left,
                                      const FontSpec& right) noexcept {
         return left.role == right.role && left.size == right.size &&
                left.weight == right.weight && left.italic == right.italic &&
                left.letter_spacing == right.letter_spacing &&
-               left.family == right.family && left.stack == right.stack;
+               left.family == right.family && left.stack == right.stack &&
+               left.language == right.language;
     }
 };
 

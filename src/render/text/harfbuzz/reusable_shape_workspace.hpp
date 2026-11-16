@@ -7,17 +7,32 @@
 #include "gui_forms/allocation/counted_allocator/counted_allocator.hpp"
 #include "gui_forms/typography/shaping_workspace/shaping_workspace.hpp"
 
+#include <stxlib/glyph_shape.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
 #include <vector>
 
-struct hb_buffer_t;
 
 namespace gui_forms::render::text {
 
 class HarfBuzzFontEngine;
+
+// One shape call's working storage for STXlib's shaper: a run's characters
+// and, for each, its cluster (the byte offset of its first byte in the
+// shaped text), counted under AllocationSubsystem::text_layout, and the
+// glyphs the shaper returns (STXlib's storage). Reused from run to run. A
+// reusable workspace holds one, reserved for its capacity, and lends it to
+// each call by moving it (ScratchLoan), which allocates nothing.
+struct ShapeScratch final {
+    using CountedScalars =
+        std::vector<std::uint32_t, gui_forms::detail::CountedAllocator<std::uint32_t, AllocationSubsystem::text_layout>>;
+    CountedScalars characters{};
+    CountedScalars clusters{};
+    stxlib::Vector<stxlib::glyphs::ShapedGlyph> glyphs{};
+};
 
 // One shaping's runs and glyphs, in the workspace's arrays: the record the
 // engine's bounded shaping fills (BoundedShapedText's members, over arrays
@@ -47,8 +62,9 @@ struct StagedShaping final {
 //   capacity, capacity and twice capacity elements);
 // - the staged runs (twice capacity: at most one a visual segment) and
 //   glyphs (four a byte, plus 64);
-// - the HarfBuzz buffer, kept across calls (allocated to twice capacity
-//   glyphs at reserve) and lent to each shape call;
+// - the shaping scratch (ShapeScratch: capacity characters and clusters,
+//   and room for twice capacity glyphs), kept across calls and lent to each
+//   shape call;
 // - the bidi analysis (stxlib::textlayout's Paragraph and Line, one
 //   TextAnalysis), reused for each call. It cannot be reserved: it grows to
 //   the largest paragraph it has held (about 6 bytes a byte of one-level
@@ -56,8 +72,9 @@ struct StagedShaping final {
 //   explicit formatting character) and keeps that storage.
 // The arrays and the analysis (its bytes_held) are counted under
 // AllocationSubsystem::text_layout; the grapheme workspace's own arrays and
-// the HarfBuzz buffer are not (the buffer is HarfBuzz's, counted by
-// stx_text_harfbuzz_allocations). Single-threaded: one shaping at a time.
+// the scratch's glyphs are not (the glyphs are STXlib's storage). Each
+// face's shaper keeps its own working buffer, grown to the longest run it
+// has shaped. Single-threaded: one shaping at a time.
 class ReusableShapeWorkspace final : public ShapingWorkspace {
 public:
     explicit ReusableShapeWorkspace(std::uint64_t engine_identity);
@@ -93,7 +110,7 @@ private:
     CountedArray<ShapedGlyph> glyphs_{};
     // The bidi analysis each shaping reuses.
     TextAnalysis analysis_{};
-    std::unique_ptr<hb_buffer_t, void (*)(hb_buffer_t*)> buffer_;
+    ShapeScratch scratch_{};
     // Pointers into runs_ and glyphs_, refreshed at reserve.
     StagedShaping staged_{};
     // The last shaping: whether there is one, its text's size and the face

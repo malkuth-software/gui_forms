@@ -45,11 +45,12 @@ constexpr BundledFaceUse face_uses[] = {
     // The fallback faces, in the order fallback selection tries them (tools/fallback_font_subsets.py,
     // FALLBACK_ORDER): the Japanese and Korean faces, then the minimal Chinese face (only the
     // GB 2312 level 1 hanzi those two lack), Arabic, Hebrew and the minimal Indic faces, then
-    // emoji. A character both CJK faces hold draws from the Japanese face: the text engine has
-    // no text language to choose by yet.
-    {"NotoSansCJKjp-Subset.otf", std::nullopt, 400, false, false},
-    {"NotoSansCJKkr-Subset.otf", std::nullopt, 400, false, false},
-    {"NotoSansCJKsc-Minimal.otf", std::nullopt, 400, false, false},
+    // emoji. A character both CJK faces hold draws from the Japanese face, unless the text's
+    // language (FontSpec::language) is one a face is drawn for first: Korean text takes Han
+    // characters from the Korean face, in its Korean forms.
+    {"NotoSansCJKjp-Subset.otf", std::nullopt, 400, false, false, text_language('J', 'A', 'N', ' ')},
+    {"NotoSansCJKkr-Subset.otf", std::nullopt, 400, false, false, text_language('K', 'O', 'R', ' ')},
+    {"NotoSansCJKsc-Minimal.otf", std::nullopt, 400, false, false, text_language('Z', 'H', 'S', ' ')},
     {"NotoSansArabic-Minimal.ttf", std::nullopt, 400, false, false},
     {"NotoSansHebrew-Regular.ttf", std::nullopt, 400, false, false},
     {"NotoSansDevanagari-Minimal.ttf", std::nullopt, 400, false, false},

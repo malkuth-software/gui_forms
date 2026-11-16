@@ -69,6 +69,9 @@ struct BundledFaceUse final {
     std::uint16_t weight{400};
     bool italic{};
     bool required{};
+    // The language a fallback face is drawn for first (FontSpec::language),
+    // or none.
+    TextLanguage language{};
 };
 
 // The bundled faces in registration order: the primaries, then the fallbacks in the order

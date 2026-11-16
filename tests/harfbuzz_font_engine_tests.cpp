@@ -343,8 +343,11 @@ void test_public_resolution_record_names_actual_bundled_runs() {
     bool emoji_fallback = false;
     for (const ResolvedFontRun& run : resolved.runs) {
         if (!run.fallback) continue;
-        if (run.family == "Noto Sans CJK JP") cjk_fallback = true;
-        if (run.family == "Noto Emoji") emoji_fallback = true;
+        // STXlib reads no name table yet: a fallback face has no registry family and is
+        // named by the empty string; its run is told apart by the text it draws.
+        if (!run.family.empty()) continue;
+        if (run.utf8_start == sample.find("日本語")) cjk_fallback = true;
+        if (run.utf8_start == sample.find("🚀")) emoji_fallback = true;
     }
     require(resolved.status == TextResolutionStatus::exact &&
                 resolved.primary_family == "Carlito" &&
@@ -668,13 +671,11 @@ void test_call_failure_preserves_caller_and_recovers() {
         std::uint64_t run{};
         bool allocation_failure{};
     };
-    constexpr std::array<FailureCase, 6> failures{
-        FailureCase{TextLayoutFailure::empty_font, 1, true},
-        FailureCase{TextLayoutFailure::unbound_font, 1, true},
-        FailureCase{TextLayoutFailure::empty_buffer, 1, true},
-        FailureCase{TextLayoutFailure::after_add, 2, true},
+    constexpr std::array<FailureCase, 4> failures{
+        FailureCase{TextLayoutFailure::shaper_open, 1, true},
+        FailureCase{TextLayoutFailure::glyph_storage, 1, true},
         FailureCase{TextLayoutFailure::after_shape, 2, true},
-        FailureCase{TextLayoutFailure::no_shaper, 2, false}};
+        FailureCase{TextLayoutFailure::shape_refused, 2, false}};
     const std::size_t failure_count = failures.size();
     for (std::size_t index = 0; index < failure_count; ++index) {
         const FailureCase failure = failures[index];
@@ -765,8 +766,58 @@ void test_advances_are_unhinted_and_scale_linearly() {
     }
 }
 
+// The paragraph's language (FontSpec::language) reaches fallback and shaping:
+// Korean text takes the Han character 韓 (U+97D3, in KS X 1001 and in JIS X
+// 0208, so both bundled CJK faces have it) from the Korean face, which is
+// registered after the Japanese one; text in no language, or in Japanese,
+// keeps the registered order. Only fallback faces take a language.
+void test_language_selects_the_korean_face() {
+    HarfBuzzFontEngine engine;
+    const std::vector<std::byte> carlito = read_file(GUI_FORMS_TEST_CARLITO_REGULAR);
+    const std::vector<std::byte> japanese = read_file(GUI_FORMS_TEST_NOTO_CJK_REGULAR);
+    const std::vector<std::byte> korean = read_file(GUI_FORMS_TEST_NOTO_CJK_KOREAN);
+    const std::optional<FontFaceId> content = engine.register_typeface(FontRole::content, 400, false, carlito);
+    const std::optional<FontFaceId> japanese_face = engine.register_fallback_typeface(400, false, japanese);
+    const std::optional<FontFaceId> korean_face = engine.register_fallback_typeface(400, false, korean);
+    require(content && japanese_face && korean_face, "Korean fixture registers");
+    const TextLanguage japanese_language = text_language('J', 'A', 'N', ' ');
+    const TextLanguage korean_language = text_language('K', 'O', 'R', ' ');
+    require(!engine.set_face_language(*content, korean_language), "a role face takes no language");
+    require(engine.set_face_language(*japanese_face, japanese_language) &&
+                engine.set_face_language(*korean_face, korean_language),
+            "fallback faces take their languages");
+    const std::string text = "\xed\x95\x9c \xe9\x9f\x93";
+    FontSpec plain{FontRole::content, 16.0, 400, false};
+    FontSpec in_korean = plain;
+    in_korean.language = korean_language;
+    FontSpec in_japanese = plain;
+    in_japanese.language = japanese_language;
+    require(!(plain == in_korean), "the language is part of the font");
+    const ShapedText unmarked = engine.shape(text, plain);
+    const ShapedText marked = engine.shape(text, in_korean);
+    const ShapedText japanese_text = engine.shape(text, in_japanese);
+    require(unmarked.missing_clusters == 0U && marked.missing_clusters == 0U, "Korean text is covered");
+    const std::size_t han = text.find("\xe9\x9f\x93");
+    FontFaceId unmarked_han{};
+    FontFaceId marked_han{};
+    FontFaceId japanese_han{};
+    for (const ShapedFontRun& run : unmarked.runs) {
+        if (run.source_range.start.value() <= han && han < run.source_range.end.value()) unmarked_han = run.face;
+    }
+    for (const ShapedFontRun& run : marked.runs) {
+        if (run.source_range.start.value() <= han && han < run.source_range.end.value()) marked_han = run.face;
+    }
+    for (const ShapedFontRun& run : japanese_text.runs) {
+        if (run.source_range.start.value() <= han && han < run.source_range.end.value()) japanese_han = run.face;
+    }
+    require(unmarked_han == *japanese_face, "with no language the Japanese face draws Han first");
+    require(japanese_han == *japanese_face, "Japanese text draws Han from the Japanese face");
+    require(marked_han == *korean_face, "Korean text draws Han from the Korean face");
+}
+
 int main() {
     try {
+        test_language_selects_the_korean_face();
         test_advances_are_unhinted_and_scale_linearly();
         test_canonical_pair_coverage_preserves_source();
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
