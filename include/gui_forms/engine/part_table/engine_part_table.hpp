@@ -431,6 +431,9 @@ struct GUI_FORMS_API RasterCacheStatistics final {
     std::size_t finish_tiles{};
     std::size_t finish_tile_bytes{};
     std::size_t finish_tiles_queued{};
+    // Idle frames whose finish tiles were painted on the bake pool, two
+    // tiles or more at once (EnginePartTable::set_finish_bake_threads).
+    std::uint64_t finish_tile_parallel_batches{};
 };
 
 // One backplane image's region (E9-B): `extent` device pixels at `scale`,
@@ -504,6 +507,11 @@ inline constexpr std::uint64_t finish_tile_idle_effort = 16'000'000U;
 // The most parts waiting for finish tiles at once; a part beyond it is
 // repainted when the window next repaints it.
 inline constexpr std::size_t maximum_finish_tile_waiters = 32U;
+// The most threads a window's finish-tile bake pool runs (claude/geometry-1,
+// parallel material bakes). By default the pool has one thread per
+// hardware thread less one, at most this many; fewer than two bakes
+// serially on the window's thread.
+inline constexpr std::uint32_t maximum_finish_bake_threads = 4U;
 
 // What EnginePartTable::generate_pattern did (E10): nothing was queued
 // (none); a pattern was made, and the parts whose rasters drew a ground
@@ -528,6 +536,12 @@ public:
     // The table keeps at most `item_record_cap` item-part records (at least
     // 1); the window's table uses maximum_item_part_records.
     explicit EnginePartTable(std::size_t item_record_cap = maximum_item_part_records) noexcept;
+    // Joins the finish-tile bake pool's idle threads, if one was made.
+    ~EnginePartTable();
+    EnginePartTable(const EnginePartTable&) = delete;
+    EnginePartTable& operator=(const EnginePartTable&) = delete;
+    EnginePartTable(EnginePartTable&&) = delete;
+    EnginePartTable& operator=(EnginePartTable&&) = delete;
 
     // The record for `control_id` and `key`, made if there is none, and
     // marked the most recently painted item record when it is an item's. A
@@ -621,10 +635,34 @@ public:
     // it returns true when it held a tile and the queue is then empty: the
     // waiters are to be repainted (take_finish_tile_waiters), once for the
     // whole queue rather than once a tile. Allocation failure propagates
-    // as std::bad_alloc and leaves the tile being painted unheld.
+    // as std::bad_alloc and leaves this frame's tiles unheld (their keys
+    // are queued again when a paint next asks for them).
+    //
+    // Parallel material bakes (claude/geometry-1): an idle frame's tiles
+    // are chosen, their rasters made and their room found first, in queue
+    // order, on the window's thread; then each is painted with its own
+    // scratch rows, on the table's bake pool when two or more are chosen
+    // and a pool runs, else in turn on the window's thread; then they are
+    // held in queue order. A tile's pixels depend on its key alone, so the
+    // tiles held, their order and their bytes are the same however the
+    // frame was painted. While the pool paints, each task reads only its
+    // tile's key and writes only its tile's raster and scratch; the window's
+    // thread waits for every task (AtomicThreadPool::run returns after the
+    // last), and nothing else in the table is read or written meanwhile.
+    // A pool that cannot start or run paints the frame on the window's
+    // thread instead.
     [[nodiscard]] std::shared_ptr<const PartRaster> finish_tile(const FinishTileKey& key, PartRecordHandle waiter,
                                                                 std::uint64_t paint_sequence);
     bool generate_finish_tiles(std::uint64_t paint_sequence);
+    // The bake pool's threads: 0 chooses the default (one per hardware
+    // thread less one, at most maximum_finish_bake_threads); 1 paints every
+    // tile on the window's thread; more are capped at
+    // maximum_finish_bake_threads. The pool is made when a frame first
+    // needs it and kept for the table's life; a change joins and drops a
+    // pool already made (no batch is in flight then, since a batch ends
+    // before generate_finish_tiles returns). Shutdown: the table's
+    // destructor joins the pool's idle threads.
+    void set_finish_bake_threads(std::uint32_t threads);
     [[nodiscard]] bool finish_tiles_waiting() const noexcept;
     // Moves the parts waiting for finish tiles into `waiters` (cleared
     // first) and forgets them.
@@ -897,6 +935,13 @@ private:
     std::deque<FinishTileKey> finish_tile_queue_;
     std::vector<PartRecordHandle> finish_tile_waiters_;
     bool finish_tile_made_{};
+    // The finish-tile bake batch: its pool, its tiles' rasters and scratch
+    // rows and its tasks, kept and reused across idle frames (defined in
+    // engine_part_table.cpp); null until a frame first paints a tile.
+    struct FinishBakeBatch;
+    std::unique_ptr<FinishBakeBatch> finish_batch_;
+    // set_finish_bake_threads; 0 is the default.
+    std::uint32_t finish_bake_threads_{};
     // Keyframes waiting for idle frames, oldest first; each a request kept
     // as a cached raster's description, its raster null.
     std::deque<CachedPartRaster> idle_keyframes_;

@@ -10,7 +10,10 @@
 // - the window's tile cache (EnginePartTable::finish_tile) queues a tile
 //   it does not hold, paints it in generate_finish_tiles, notes the part
 //   that waited, and lends the same bytes; a tile outside the world's
-//   reach, or at a scale that does not draw, is never queued.
+//   reach, or at a scale that does not draw, is never queued;
+// - parallel material bakes (claude/geometry-1): a table painting its idle
+//   frames on a bake pool holds the same tiles, in the same order, with
+//   the same bytes, as one painting them in turn on its own thread.
 
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/part_table/engine_part_table.hpp"
@@ -24,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <span>
@@ -208,11 +212,75 @@ void cached_tiles_join() {
     require(table.finish_tile(rescaled, waiter, 3U) == nullptr, "a tile at another scale is another tile");
 }
 
+// Queues the same tiles on `table`: twelve, of two finishes, in a fixed
+// order, so that idle frames paint batches of several.
+void queue_mixed_tiles(EnginePartTable& table, const PartRecordHandle waiter) {
+    for (std::int64_t index = 0; index < 12; ++index) {
+        FinishTileKey key{};
+        key.finish = fill_of(index % 3 == 0 ? FinishKind::hammertone : FinishKind::orange_peel);
+        key.display_scale = 1.0;
+        key.scale = 2.0;
+        key.column = index - 6;
+        key.row = (index % 4) - 2;
+        static_cast<void>(table.finish_tile(key, waiter, 1U));
+    }
+}
+
+void parallel_bakes_match_serial() {
+    const PartRecordHandle waiter{5U, 1U};
+    EnginePartTable serial{};
+    serial.set_finish_bake_threads(1U);
+    EnginePartTable pooled{};
+    pooled.set_finish_bake_threads(maximum_finish_bake_threads);
+    queue_mixed_tiles(serial, waiter);
+    queue_mixed_tiles(pooled, waiter);
+    std::size_t serial_frames = 0U;
+    while (serial.finish_tiles_waiting() && serial_frames < 32U) {
+        static_cast<void>(serial.generate_finish_tiles(2U));
+        ++serial_frames;
+    }
+    std::size_t pooled_frames = 0U;
+    while (pooled.finish_tiles_waiting() && pooled_frames < 32U) {
+        static_cast<void>(pooled.generate_finish_tiles(2U));
+        ++pooled_frames;
+    }
+    const RasterCacheStatistics serial_counts = serial.cache_statistics();
+    const RasterCacheStatistics pooled_counts = pooled.cache_statistics();
+    require(serial_frames == pooled_frames && serial_counts.finish_tiles == 12U && pooled_counts.finish_tiles == 12U,
+            "both tables paint all twelve tiles in the same idle frames");
+    require(serial_counts.finish_tile_parallel_batches == 0U,
+            "a table set to one thread paints every tile on its own thread");
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
+    require(pooled_counts.finish_tile_parallel_batches > 0U, "a table with a bake pool paints its batches on it");
+#endif
+    bool same = true;
+    for (std::int64_t index = 0; index < 12; ++index) {
+        FinishTileKey key{};
+        key.finish = fill_of(index % 3 == 0 ? FinishKind::hammertone : FinishKind::orange_peel);
+        key.display_scale = 1.0;
+        key.scale = 2.0;
+        key.column = index - 6;
+        key.row = (index % 4) - 2;
+        const std::shared_ptr<const PartRaster> in_turn = serial.finish_tile(key, waiter, 3U);
+        const std::shared_ptr<const PartRaster> at_once = pooled.finish_tile(key, waiter, 3U);
+        if (in_turn == nullptr || at_once == nullptr) {
+            same = false;
+            continue;
+        }
+        const std::span<const std::uint8_t> left = (*in_turn).pixels();
+        const std::span<const std::uint8_t> right = (*at_once).pixels();
+        const bool equal = left.size() == right.size() && std::memcmp(left.data(), right.data(), left.size()) == 0;
+        if (!equal) same = false;
+    }
+    require(same, "every tile painted on the pool is byte for byte the tile painted in turn");
+}
+
 } // namespace
 
 int main() {
     adjacent_tiles_join();
     cached_tiles_join();
+    parallel_bakes_match_serial();
     std::cout << "gui_forms_engine_finish_tile_tests passed\n";
     return 0;
 }

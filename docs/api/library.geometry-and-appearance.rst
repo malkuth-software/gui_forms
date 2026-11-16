@@ -2736,7 +2736,7 @@ Types
 
    .. cpp:function:: std::shared_ptr<const PartRaster> finish_tile(const FinishTileKey& key, PartRecordHandle waiter, std::uint64_t paint_sequence)
 
-      World finish tiles (cp31). finish_tile returns the tile held for ``key``, marked used by ``paint_sequence``, or null after queueing it (unless queued already or the queue is full) and noting ``waiter``, the part that asked, to be repainted. Nothing is painted inside a paint. generate_finish_tiles paints queued tiles, oldest first, until an idle frame's effort (finish_tile_idle_effort) is spent, at least one; it returns true when it held a tile and the queue is then empty: the waiters are to be repainted (take_finish_tile_waiters), once for the whole queue rather than once a tile. Allocation failure propagates as std::bad_alloc and leaves the tile being painted unheld.
+      World finish tiles (cp31). finish_tile returns the tile held for ``key``, marked used by ``paint_sequence``, or null after queueing it (unless queued already or the queue is full) and noting ``waiter``, the part that asked, to be repainted. Nothing is painted inside a paint. generate_finish_tiles paints queued tiles, oldest first, until an idle frame's effort (finish_tile_idle_effort) is spent, at least one; it returns true when it held a tile and the queue is then empty: the waiters are to be repainted (take_finish_tile_waiters), once for the whole queue rather than once a tile. Allocation failure propagates as std::bad_alloc and leaves this frame's tiles unheld (their keys are queued again when a paint next asks for them). Parallel material bakes (claude/geometry-1): an idle frame's tiles are chosen, their rasters made and their room found first, in queue order, on the window's thread; then each is painted with its own scratch rows, on the table's bake pool when two or more are chosen and a pool runs, else in turn on the window's thread; then they are held in queue order. A tile's pixels depend on its key alone, so the tiles held, their order and their bytes are the same however the frame was painted. While the pool paints, each task reads only its tile's key and writes only its tile's raster and scratch; the window's thread waits for every task (AtomicThreadPool::run returns after the last), and nothing else in the table is read or written meanwhile. A pool that cannot start or run paints the frame on the window's thread instead.
 
    .. cpp:function:: bool generate_finish_tiles(std::uint64_t paint_sequence)
 
@@ -2783,6 +2783,10 @@ Types
    .. cpp:function:: const EnginePartRecord* record_in_slot(std::size_t slot) const noexcept
 
       The live record in ``slot`` (below slot_count()), or null for a free slot: for scans over the table. Valid until the next acquire() or release.
+
+   .. cpp:function:: void set_finish_bake_threads(std::uint32_t threads)
+
+      The bake pool's threads: 0 chooses the default (one per hardware thread less one, at most maximum_finish_bake_threads); 1 paints every tile on the window's thread; more are capped at maximum_finish_bake_threads. The pool is made when a frame first needs it and kept for the table's life; a change joins and drops a pool already made (no batch is in flight then, since a batch ends before generate_finish_tiles returns). Shutdown: the table's destructor joins the pool's idle threads.
 
 .. cpp:namespace:: gui_forms
 
@@ -5802,6 +5806,10 @@ Types
    .. cpp:member:: std::size_t finish_tile_bytes
 
    .. cpp:member:: std::size_t finish_tiles_queued
+
+   .. cpp:member:: std::uint64_t finish_tile_parallel_batches
+
+      Idle frames whose finish tiles were painted on the bake pool, two tiles or more at once (EnginePartTable::set_finish_bake_threads).
 
 .. cpp:namespace:: gui_forms
 
@@ -9935,6 +9943,10 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_finish_tile_waiters
 
    The most parts waiting for finish tiles at once; a part beyond it is repainted when the window next repaints it. Value: ``32U``.
+
+.. cpp:var:: constexpr std::uint32_t maximum_finish_bake_threads
+
+   The most threads a window's finish-tile bake pool runs (claude/geometry-1, parallel material bakes). By default the pool has one thread per hardware thread less one, at most this many; fewer than two bakes serially on the window's thread. Value: ``4U``.
 
 .. cpp:namespace:: gui_forms
 
