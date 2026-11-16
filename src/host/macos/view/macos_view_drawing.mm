@@ -13,6 +13,9 @@
 #include "macos_view.hpp"
 #include "../application/macos_main_work.hpp"
 #include "../application/macos_values.hpp"
+#if defined(GUI_FORMS_HAVE_METAL_PRESENT)
+#include "macos_metal_present.hpp"
+#endif
 
 // NSTimer retains its target: this proxy observes the view weakly, so the
 // invalidation overlay's fade timer cannot keep a closed window's view
@@ -605,11 +608,18 @@ using gui_forms::host::macos::MacPresentedFrame;
             static_cast<std::int32_t>(std::ceil((dirtyRect.origin.y + dirtyRect.size.height) * frameScale)),
             box.top, frameHeight);
         const std::byte* const source = static_cast<const std::byte*>(pixels);
-        const std::size_t rowOffset = static_cast<std::size_t>(box.left) * 4U;
-        const std::size_t rowLength = static_cast<std::size_t>(box.right - box.left) * 4U;
-        for (std::int32_t y = box.top; y < box.bottom; ++y) {
-            const std::size_t offset = static_cast<std::size_t>(y) * rowBytes + rowOffset;
-            std::memcpy(_overlayScratch.data() + offset, source + offset, rowLength);
+        if (_presenter && (*_presenter).direct_available()) {
+            // The direct path writes from the frame outside the dirty
+            // rectangle too (an older buffer's missing damage): the scratch
+            // frame is the whole raster while the overlay is on.
+            std::memcpy(_overlayScratch.data(), source, frameBytes);
+        } else {
+            const std::size_t rowOffset = static_cast<std::size_t>(box.left) * 4U;
+            const std::size_t rowLength = static_cast<std::size_t>(box.right - box.left) * 4U;
+            for (std::int32_t y = box.top; y < box.bottom; ++y) {
+                const std::size_t offset = static_cast<std::size_t>(y) * rowBytes + rowOffset;
+                std::memcpy(_overlayScratch.data() + offset, source + offset, rowLength);
+            }
         }
         gui_forms::InvalidationOverlayTarget target{};
         target.pixels = std::span<std::byte>(_overlayScratch);
@@ -627,62 +637,37 @@ using gui_forms::host::macos::MacPresentedFrame;
     // Native exposure/snapshot callbacks can precede unocclusion. The model
     // intentionally declines painting then; the last complete raster is still
     // valid and must be copied into AppKit's newly supplied backing context.
+    // The copy goes through the presentation shim; its copy path is the
+    // CoreGraphics draw below (copyFramePixels:), which AppKit clips to the
+    // rectangles being drawn, so the whole raster is named as the damage.
+    // The direct path (macos_iosurface_present.hpp) writes only the damage
+    // into its surface, so while it is usable the damage is the rectangles
+    // AppKit is drawing, in device pixels, outward.
     if (_rasterHasContent == YES && pixels != nullptr && liveDrawsSucceeded) {
-        const std::chrono::steady_clock::time_point setupStarted =
-            std::chrono::steady_clock::now();
-        CGDataProviderRef provider = CGDataProviderCreateWithData(
-            nullptr, pixels, _raster.byte_size(), nullptr);
-        CGColorSpaceRef colorSpace = _presentColorSpace;
-        // An opaque window presents opaque pixels, as the other hosts do: the
-        // frame's alpha reaches the window server only while a non-opaque
-        // backdrop is granted (stage T5).
-        const bool windowOpaque = self.window == nil || self.window.opaque == YES;
-        const CGImageAlphaInfo alphaInfo =
-            windowOpaque ? kCGImageAlphaNoneSkipFirst : kCGImageAlphaPremultipliedFirst;
-        // The raster is premultiplied BGRA8 (SK2): read as 32-bit
-        // little-endian words with alpha first, the window server's own
-        // order, so the copy into the backing store needs no swizzle.
-        const CGBitmapInfo bitmapInfo = static_cast<CGBitmapInfo>(
-            static_cast<CGBitmapInfo>(alphaInfo) |
-            static_cast<CGBitmapInfo>(kCGBitmapByteOrder32Little));
-        CGImageRef image = CGImageCreate(
-            _raster.pixel_width(), _raster.pixel_height(), 8, 32,
-            _raster.row_bytes(), colorSpace, bitmapInfo, provider,
-            nullptr, false, kCGRenderingIntentDefault);
-        const std::chrono::steady_clock::time_point setupEnded =
-            std::chrono::steady_clock::now();
-        _cgSetupPhase.record(setupStarted, setupEnded);
-        if (image != nullptr) {
-            CGContextRef context = NSGraphicsContext.currentContext.CGContext;
-            const CGRect clipBounds = CGContextGetClipBoundingBox(context);
-            _lastCGClipBoundsArea = std::max(0.0, clipBounds.size.width) *
-                std::max(0.0, clipBounds.size.height);
-            _lastCGDestinationArea = presentationSize.width * presentationSize.height;
-            _lastCGSourceBytes = _raster.byte_size();
-            const std::chrono::steady_clock::time_point drawStarted =
-                std::chrono::steady_clock::now();
-            CGContextSaveGState(context);
-            CGContextSetBlendMode(context, kCGBlendModeCopy);
-            CGContextTranslateCTM(context, 0.0, presentationSize.height);
-            CGContextScaleCTM(context, 1.0, -1.0);
-            CGContextDrawImage(context,
-                               CGRectMake(0.0, 0.0, presentationSize.width, presentationSize.height),
-                               image);
-            CGContextRestoreGState(context);
-            const std::chrono::steady_clock::time_point drawEnded =
-                std::chrono::steady_clock::now();
-            _cgDrawPhase.record(drawStarted, drawEnded);
-            copyNanoseconds = static_cast<std::uint64_t>(
-                std::chrono::duration_cast<std::chrono::nanoseconds>(drawEnded - drawStarted).count());
-            presented = true;
+        gui_forms::host::presentation::PresentationShim& presenter = [self presenter];
+        gui_forms::host::presentation::PresentFrame frame{};
+        frame.source.pixels = static_cast<const std::byte*>(pixels);
+        frame.source.row_bytes = _raster.row_bytes();
+        frame.source.extent = gui_forms::host::presentation::PresentExtent{_raster.pixel_width(),
+                                                                            _raster.pixel_height()};
+        _presentRects.clear();
+        if (presenter.direct_available() && presentationSize.width > 0.0) {
+            [self appendDrawnDeviceRects:frame.source.extent
+                                   scale:static_cast<double>(_raster.pixel_width()) / presentationSize.width];
+            if (_directPath != nullptr) {
+                (*_directPath).opaque = self.window == nil || self.window.opaque == YES;
+                (*_directPath).scale = static_cast<double>(_raster.pixel_width()) / presentationSize.width;
+            }
+        } else {
+            _presentRects.push_back(gui_forms::host::presentation::present_extent_rect(frame.source.extent));
         }
-        const std::chrono::steady_clock::time_point releaseStarted =
-            std::chrono::steady_clock::now();
-        if (image != nullptr) CGImageRelease(image);
-        CGDataProviderRelease(provider);
-        const std::chrono::steady_clock::time_point releaseEnded =
-            std::chrono::steady_clock::now();
-        _cgReleasePhase.record(releaseStarted, releaseEnded);
+        frame.damage = _presentRects;
+        (*_copyPath).presentation_width = presentationSize.width;
+        (*_copyPath).presentation_height = presentationSize.height;
+        (*_copyPath).copy_nanoseconds = 0U;
+        const gui_forms::host::presentation::PresentReport report = presenter.present(frame);
+        presented = report.outcome == gui_forms::host::presentation::PresentOutcome::presented;
+        copyNanoseconds = (*_copyPath).copy_nanoseconds;
     }
     const std::chrono::duration<long long, std::ratio<1, 1000000000>> elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - started);
@@ -718,6 +703,137 @@ using gui_forms::host::macos::MacPresentedFrame;
     presentation.copy_nanoseconds = copyNanoseconds;
     presentation.elapsed_nanoseconds = static_cast<std::uint64_t>(elapsed.count());
     return presentation;
+}
+
+// The copy path's draw: the raster's pixels (or the overlay's scratch frame
+// in the same layout) as a CGImage drawn into the current context.
+- (BOOL)copyFramePixels:(const void*)pixels
+       presentationSize:(GFSize)presentationSize
+        copyNanoseconds:(std::uint64_t&)copyNanoseconds {
+    BOOL drawn = NO;
+    const std::chrono::steady_clock::time_point setupStarted =
+        std::chrono::steady_clock::now();
+    CGDataProviderRef provider = CGDataProviderCreateWithData(
+        nullptr, pixels, _raster.byte_size(), nullptr);
+    CGColorSpaceRef colorSpace = _presentColorSpace;
+    // An opaque window presents opaque pixels, as the other hosts do: the
+    // frame's alpha reaches the window server only while a non-opaque
+    // backdrop is granted (stage T5).
+    const bool windowOpaque = self.window == nil || self.window.opaque == YES;
+    const CGImageAlphaInfo alphaInfo =
+        windowOpaque ? kCGImageAlphaNoneSkipFirst : kCGImageAlphaPremultipliedFirst;
+    // The raster is premultiplied BGRA8 (SK2): read as 32-bit
+    // little-endian words with alpha first, the window server's own
+    // order, so the copy into the backing store needs no swizzle.
+    const CGBitmapInfo bitmapInfo = static_cast<CGBitmapInfo>(
+        static_cast<CGBitmapInfo>(alphaInfo) |
+        static_cast<CGBitmapInfo>(kCGBitmapByteOrder32Little));
+    CGImageRef image = CGImageCreate(
+        _raster.pixel_width(), _raster.pixel_height(), 8, 32,
+        _raster.row_bytes(), colorSpace, bitmapInfo, provider,
+        nullptr, false, kCGRenderingIntentDefault);
+    const std::chrono::steady_clock::time_point setupEnded =
+        std::chrono::steady_clock::now();
+    _cgSetupPhase.record(setupStarted, setupEnded);
+    if (image != nullptr) {
+        CGContextRef context = NSGraphicsContext.currentContext.CGContext;
+        const CGRect clipBounds = CGContextGetClipBoundingBox(context);
+        _lastCGClipBoundsArea = std::max(0.0, clipBounds.size.width) *
+            std::max(0.0, clipBounds.size.height);
+        _lastCGDestinationArea = presentationSize.width * presentationSize.height;
+        _lastCGSourceBytes = _raster.byte_size();
+        const std::chrono::steady_clock::time_point drawStarted =
+            std::chrono::steady_clock::now();
+        CGContextSaveGState(context);
+        CGContextSetBlendMode(context, kCGBlendModeCopy);
+        CGContextTranslateCTM(context, 0.0, presentationSize.height);
+        CGContextScaleCTM(context, 1.0, -1.0);
+        CGContextDrawImage(context,
+                           CGRectMake(0.0, 0.0, presentationSize.width, presentationSize.height),
+                           image);
+        CGContextRestoreGState(context);
+        const std::chrono::steady_clock::time_point drawEnded =
+            std::chrono::steady_clock::now();
+        _cgDrawPhase.record(drawStarted, drawEnded);
+        copyNanoseconds = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(drawEnded - drawStarted).count());
+        drawn = YES;
+    }
+    const std::chrono::steady_clock::time_point releaseStarted =
+        std::chrono::steady_clock::now();
+    if (image != nullptr) CGImageRelease(image);
+    CGDataProviderRelease(provider);
+    const std::chrono::steady_clock::time_point releaseEnded =
+        std::chrono::steady_clock::now();
+    _cgReleasePhase.record(releaseStarted, releaseEnded);
+    return drawn;
+}
+
+// The shim: the copy path always, and a direct path where the presentation
+// policy turns it on (GUI_FORMS_PRESENT=direct): the Metal route where it
+// is built and the policy also names "metal", the IOSurface path
+// otherwise. The shim owns the direct path; _directPath observes it to set
+// its opacity and scale.
+- (gui_forms::host::presentation::PresentationShim&)presenter {
+    if (_presenter) return *_presenter;
+    _copyPath = std::make_unique<gui_forms::host::macos::MacViewCopyPath>(self);
+    std::unique_ptr<gui_forms::host::presentation::PresentationDirectPath> direct{};
+    _directPath = nullptr;
+    const gui_forms::host::presentation::PresentPolicy policy =
+        gui_forms::host::presentation::present_policy_from_environment();
+#if defined(GUI_FORMS_HAVE_METAL_PRESENT)
+    if (policy.direct && gui_forms::host::presentation::present_policy_names("metal")) {
+        std::unique_ptr<gui_forms::host::macos::MacMetalPath> drawables =
+            std::make_unique<gui_forms::host::macos::MacMetalPath>(self, _presentColorSpace);
+        _directPath = drawables.get();
+        direct = std::move(drawables);
+    }
+#endif
+    if (policy.direct && !direct) {
+        std::unique_ptr<gui_forms::host::macos::MacIOSurfacePath> surfaces =
+            std::make_unique<gui_forms::host::macos::MacIOSurfacePath>(self, _presentColorSpace);
+        _directPath = surfaces.get();
+        direct = std::move(surfaces);
+    }
+    _presenter = std::make_unique<gui_forms::host::presentation::PresentationShim>(
+        _copyPath.get(), std::move(direct), nullptr);
+    return *_presenter;
+}
+
+// The rectangles AppKit is drawing (inside drawRect:), in device pixels at
+// `scale` device pixels per point, rounded outward and clipped to `extent`,
+// appended to _presentRects. The view is flipped, so its rows are the
+// raster's. None drawn names the whole extent.
+- (void)appendDrawnDeviceRects:(gui_forms::host::presentation::PresentExtent)extent scale:(double)scale {
+    const NSRect* drawnRects = nullptr;
+    NSInteger drawnCount = 0;
+    [self getRectsBeingDrawn:&drawnRects count:&drawnCount];
+    const gui_forms::host::presentation::PresentRect bounds =
+        gui_forms::host::presentation::present_extent_rect(extent);
+    for (NSInteger index = 0; index < drawnCount; ++index) {
+        const NSRect rect = drawnRects[index];
+        const double left = std::floor(rect.origin.x * scale);
+        const double top = std::floor(rect.origin.y * scale);
+        const double right = std::ceil((rect.origin.x + rect.size.width) * scale);
+        const double bottom = std::ceil((rect.origin.y + rect.size.height) * scale);
+        const double limit = static_cast<double>(gui_forms::host::presentation::maximum_present_side);
+        gui_forms::host::presentation::PresentRect device{};
+        device.left = static_cast<std::int32_t>(std::clamp(left, 0.0, limit));
+        device.top = static_cast<std::int32_t>(std::clamp(top, 0.0, limit));
+        device.right = static_cast<std::int32_t>(std::clamp(right, 0.0, limit));
+        device.bottom = static_cast<std::int32_t>(std::clamp(bottom, 0.0, limit));
+        const gui_forms::host::presentation::PresentRect clipped =
+            gui_forms::host::presentation::present_rect_intersection(device, bounds);
+        if (!clipped.empty()) _presentRects.push_back(clipped);
+    }
+    if (drawnCount == 0) _presentRects.push_back(bounds);
+}
+
+// Asks for the whole view to be drawn again: the direct path gave its
+// surfaces back and the backing store beneath them is stale. Sent by
+// MacIOSurfacePath::release after the current draw.
+- (void)markPresentationDirty {
+    [self setNeedsDisplay:YES];
 }
 
 // What this flush copied to the screen (stage DP). AppKit clips the copy
@@ -987,4 +1103,22 @@ using gui_forms::host::macos::MacPresentedFrame;
 // the Drawing category is linked wherever GUIFormsView is.
 namespace gui_forms::host::macos {
 void gui_forms_macos_view_drawing_anchor() noexcept {}
+} // namespace gui_forms::host::macos
+
+namespace gui_forms::host::macos {
+
+bool MacViewCopyPath::scroll(const presentation::PresentScrollPlan& plan) {
+    static_cast<void>(plan);
+    return false;
+}
+
+presentation::PresentOutcome MacViewCopyPath::copy(const presentation::PresentSourcePixels& source,
+                                                   std::span<const presentation::PresentRect> rects) {
+    static_cast<void>(rects);
+    const GFSize size{presentation_width, presentation_height};
+    const BOOL drawn = [view_ copyFramePixels:source.pixels presentationSize:size copyNanoseconds:copy_nanoseconds];
+    if (drawn == YES) return presentation::PresentOutcome::presented;
+    return presentation::PresentOutcome::failed;
+}
+
 } // namespace gui_forms::host::macos

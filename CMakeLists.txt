@@ -144,6 +144,13 @@ option(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB
 option(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT
        "Let a Windows program that opts in (host::accept_automation_environment) turn on automation from GUI_FORMS_WINDOWS_AUTOMATION=1" ON)
 option(GUI_FORMS_ENABLE_LINUX_HOST "Build the native X11 host with the private CPU renderer" OFF)
+option(GUI_FORMS_ENABLE_WAYLAND_PRESENT "Build the Wayland wl_shm presentation path (no Wayland host yet)" OFF)
+# The presentation shim's buffer routes that use a platform graphics API
+# only to obtain and present a buffer (docs/user/presentation.md; owner,
+# 2026-11-16). Each is linked inside its host adapter only.
+option(GUI_FORMS_ENABLE_METAL_PRESENT "Build the macOS CAMetalLayer buffer route" OFF)
+option(GUI_FORMS_ENABLE_X11_DRI3_PRESENT "Build the X11 DRI3 (GBM dmabuf) buffer route" OFF)
+option(GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT "Build the Wayland linux-dmabuf (GBM) buffer route (no Wayland host yet)" OFF)
 # The browser host (owner decisions, 2026-11-15): Emscripten only, through
 # cmake/emscripten.cmake; WebGL2 is its present backend and nothing else.
 option(GUI_FORMS_ENABLE_WEB_HOST "Build the browser host (Emscripten) with the private CPU renderer" ${EMSCRIPTEN})
@@ -734,6 +741,9 @@ add_library(gui_forms_core STATIC
     src/core/host/types/host_services_snapshot/host_services_snapshot.cpp
     src/core/host/types/host_session_snapshot/host_session_snapshot.cpp
     src/core/host/services/host_services.cpp
+    src/core/host/presentation/presentation_geometry.cpp
+    src/core/host/presentation/presentation_trace.cpp
+    src/core/host/presentation/presentation_shim.cpp
     src/core/host/cursor_interaction/cursor_interaction.cpp
     src/core/types/cursor_image/cursor_image.cpp
     src/core/host/session/host_session.cpp
@@ -1820,6 +1830,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     enable_language(OBJCXX)
     find_library(GUI_FORMS_APPKIT AppKit REQUIRED)
     find_library(GUI_FORMS_QUARTZCORE QuartzCore REQUIRED)
+    find_library(GUI_FORMS_IOSURFACE IOSurface REQUIRED)
     find_library(GUI_FORMS_COREGRAPHICS CoreGraphics REQUIRED)
     find_library(GUI_FORMS_UNIFORMTYPEIDENTIFIERS UniformTypeIdentifiers REQUIRED)
     find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
@@ -1836,6 +1847,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         src/host/macos/view/macos_view.mm
         src/host/macos/view/macos_view_scheduling.mm
         src/host/macos/view/macos_view_drawing.mm
+        src/host/macos/view/macos_iosurface_present.mm
         src/host/macos/view/macos_view_input.mm
         src/host/macos/view/macos_view_accessibility.mm
         src/host/macos/view/macos_view_diagnostics.mm
@@ -1856,7 +1868,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     target_compile_options(gui_forms_host_macos PRIVATE -fobjc-arc)
     target_link_libraries(gui_forms_host_macos
         PUBLIC gui_forms_core gui_forms_skia
-        PRIVATE ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE}
+        PRIVATE ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE} ${GUI_FORMS_IOSURFACE}
                 ${GUI_FORMS_COREGRAPHICS}
                 ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS}
                 ${GUI_FORMS_COREFOUNDATION}
@@ -1890,8 +1902,17 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         list(APPEND _gf_application_archives gui_forms_text_engine)
         list(APPEND _gf_application_libraries stx_text::freetype stx_text::harfbuzz)
     endif()
-    set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE}
+    set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE} ${GUI_FORMS_IOSURFACE}
         ${GUI_FORMS_COREGRAPHICS} ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS} ${GUI_FORMS_COREFOUNDATION})
+    # The Metal buffer route (macos_metal_present.hpp): Metal is linked into
+    # the macOS host adapter only, and only with this option.
+    if(GUI_FORMS_ENABLE_METAL_PRESENT)
+        find_library(GUI_FORMS_METAL Metal REQUIRED)
+        target_sources(gui_forms_host_macos PRIVATE src/host/macos/view/macos_metal_present.mm)
+        target_link_libraries(gui_forms_host_macos PRIVATE ${GUI_FORMS_METAL})
+        target_compile_definitions(gui_forms_host_macos PRIVATE GUI_FORMS_HAVE_METAL_PRESENT=1)
+        list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_METAL})
+    endif()
     gui_forms_application_library(gui_forms_application
         ARCHIVES ${_gf_application_archives}
         LIBRARIES ${_gf_application_libraries} ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
@@ -1918,6 +1939,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
         src/host/linux/application/x11_windowing.cpp
         src/host/linux/application/x11_shm_present.cpp
+        src/host/linux/application/x11_present_direct.cpp
         src/host/linux/settings/xsettings_parse.cpp
         src/host/linux/locale/strftime_date_pattern.cpp
         src/host/linux/locale/posix_locale.cpp
@@ -1951,6 +1973,32 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xext)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1)
     endif()
+    # The X11 direct presentation path (docs/user/presentation.md): MIT-SHM
+    # pixmaps presented with the Present extension, where libXpresent and
+    # libXext are present; without them the path refuses as unsupported and
+    # the window keeps the copy path.
+    find_path(GUI_FORMS_XPRESENT_INCLUDE_DIR X11/extensions/Xpresent.h)
+    find_library(GUI_FORMS_XPRESENT_LIBRARY Xpresent)
+    if(GUI_FORMS_XPRESENT_INCLUDE_DIR AND GUI_FORMS_XPRESENT_LIBRARY AND TARGET X11::Xext)
+        target_include_directories(gui_forms_host_linux PRIVATE ${GUI_FORMS_XPRESENT_INCLUDE_DIR})
+        target_link_libraries(gui_forms_host_linux PUBLIC ${GUI_FORMS_XPRESENT_LIBRARY})
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XPRESENT=1)
+        set(GUI_FORMS_XPRESENT_AVAILABLE ON)
+    endif()
+    # The X11 DRI3 buffer route (x11_dri3_present.hpp): GBM, xcb-dri3 and
+    # X11-xcb, linked into the X11 host adapter only, and only with this
+    # option. It presents with the Present extension, so it needs it.
+    if(GUI_FORMS_ENABLE_X11_DRI3_PRESENT)
+        if(NOT GUI_FORMS_XPRESENT_AVAILABLE)
+            message(FATAL_ERROR "GUI_FORMS_ENABLE_X11_DRI3_PRESENT requires libXpresent and libXext")
+        endif()
+        pkg_check_modules(GUI_FORMS_X11_DRI3 REQUIRED IMPORTED_TARGET gbm xcb xcb-dri3 x11-xcb)
+        target_sources(gui_forms_host_linux PRIVATE
+            src/host/linux/gbm/gbm_buffer.cpp
+            src/host/linux/application/x11_dri3_present.cpp)
+        target_link_libraries(gui_forms_host_linux PUBLIC PkgConfig::GUI_FORMS_X11_DRI3)
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_X11_DRI3=1)
+    endif()
     # Relative pointer mode (cp34): XI 2 raw motion where libXi is present;
     # without it the host reports no relative_pointer or raw_pointer_motion.
     if(TARGET X11::Xi)
@@ -1981,10 +2029,62 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
             list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES X11::${_gf_x11})
         endif()
     endforeach()
+    if(GUI_FORMS_XPRESENT_AVAILABLE)
+        list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_XPRESENT_LIBRARY})
+    endif()
+    if(GUI_FORMS_ENABLE_X11_DRI3_PRESENT)
+        list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES PkgConfig::GUI_FORMS_X11_DRI3)
+    endif()
     gui_forms_application_library(gui_forms_application
         ARCHIVES ${_gf_application_archives}
         LIBRARIES ${_gf_application_libraries} ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
     gui_forms_install_bundled_fonts()
+endif()
+
+# The Wayland direct presentation path (docs/user/presentation.md), written
+# ahead of a Wayland host: wl_shm buffers with buffer damage. Off by default;
+# on, it builds as its own archive over the core's presentation shim.
+if(GUI_FORMS_ENABLE_WAYLAND_PRESENT)
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        message(FATAL_ERROR "GUI_FORMS_ENABLE_WAYLAND_PRESENT requires Linux")
+    endif()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GUI_FORMS_WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
+    add_library(gui_forms_wayland_present STATIC src/host/linux/wayland/wayland_shm_present.cpp)
+    target_link_libraries(gui_forms_wayland_present PUBLIC gui_forms_core PRIVATE PkgConfig::GUI_FORMS_WAYLAND_CLIENT)
+    # The linux-dmabuf buffer route (wayland_dmabuf_present.hpp): GBM and
+    # the protocol's client code, generated by wayland-scanner from
+    # wayland-protocols, in this archive only and only with this option.
+    if(GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT)
+        pkg_check_modules(GUI_FORMS_WAYLAND_DMABUF REQUIRED IMPORTED_TARGET gbm)
+        pkg_get_variable(GUI_FORMS_WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
+        pkg_get_variable(GUI_FORMS_WAYLAND_SCANNER wayland-scanner wayland_scanner)
+        if(NOT GUI_FORMS_WAYLAND_PROTOCOLS_DIR OR NOT GUI_FORMS_WAYLAND_SCANNER)
+            message(FATAL_ERROR "GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT requires wayland-protocols and wayland-scanner")
+        endif()
+        set(_gf_dmabuf_xml ${GUI_FORMS_WAYLAND_PROTOCOLS_DIR}/unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml)
+        set(_gf_dmabuf_dir ${CMAKE_CURRENT_BINARY_DIR}/wayland-protocols)
+        add_custom_command(
+            OUTPUT ${_gf_dmabuf_dir}/linux-dmabuf-unstable-v1-client-protocol.h
+                   ${_gf_dmabuf_dir}/linux-dmabuf-unstable-v1-protocol.c
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${_gf_dmabuf_dir}
+            COMMAND ${GUI_FORMS_WAYLAND_SCANNER} client-header ${_gf_dmabuf_xml}
+                    ${_gf_dmabuf_dir}/linux-dmabuf-unstable-v1-client-protocol.h
+            COMMAND ${GUI_FORMS_WAYLAND_SCANNER} private-code ${_gf_dmabuf_xml}
+                    ${_gf_dmabuf_dir}/linux-dmabuf-unstable-v1-protocol.c
+            DEPENDS ${_gf_dmabuf_xml}
+            VERBATIM)
+        target_sources(gui_forms_wayland_present PRIVATE
+            src/host/linux/gbm/gbm_buffer.cpp
+            src/host/linux/wayland/wayland_dmabuf_present.cpp
+            ${_gf_dmabuf_dir}/linux-dmabuf-unstable-v1-client-protocol.h
+            ${_gf_dmabuf_dir}/linux-dmabuf-unstable-v1-protocol.c)
+        target_include_directories(gui_forms_wayland_present PRIVATE ${_gf_dmabuf_dir})
+        target_link_libraries(gui_forms_wayland_present PRIVATE PkgConfig::GUI_FORMS_WAYLAND_DMABUF)
+    endif()
+endif()
+if(GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT AND NOT GUI_FORMS_ENABLE_WAYLAND_PRESENT)
+    message(FATAL_ERROR "GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT requires GUI_FORMS_ENABLE_WAYLAND_PRESENT")
 endif()
 
 if(GUI_FORMS_ENABLE_SKIA)
@@ -4971,6 +5071,13 @@ if(GUI_FORMS_BUILD_TESTS)
     target_include_directories(gui_forms_surface_desk_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(gui_forms_surface_desk_tests PRIVATE gui_forms_core Threads::Threads)
     add_test(NAME gui_forms_surface_desk_tests COMMAND gui_forms_surface_desk_tests)
+    # The presentation shim (docs/user/presentation.md): geometry, the
+    # normative trace order, and both paths with fallback over in-memory
+    # fakes. Plain C++, tested on every platform.
+    add_executable(gui_forms_presentation_shim_tests tests/presentation_shim_tests.cpp)
+    target_include_directories(gui_forms_presentation_shim_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(gui_forms_presentation_shim_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_presentation_shim_tests COMMAND gui_forms_presentation_shim_tests)
     add_executable(gui_forms_web_host_rules_tests
         tests/web_host_rules_tests.cpp
         src/host/web/application/web_dialog_rules.cpp

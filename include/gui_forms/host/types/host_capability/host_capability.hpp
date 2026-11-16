@@ -125,6 +125,40 @@ enum class HostCapability : std::uint64_t {
     // (ShellExecuteW), macOS (NSWorkspace) and X11 (xdg-open, found when
     // the address is opened). Additive flag; no protocol version change.
     open_url = 1ULL << 42U,
+    // The presentation shim (owner, 2026-11-16; docs/user/presentation.md),
+    // reserved in fold order before the C ABI seal. Each is reported only
+    // where the adapter implements it and its presentation policy selects
+    // it (GUI_FORMS_PRESENT=direct while the direct paths are verified).
+    // Additive flags; no protocol version change.
+    // direct_buffers: frames are written blind, with CPU pixels, into
+    // buffers the window system gives (possibly GPU-backed: an IOSurface,
+    // an X11 Present pixmap, a wl_shm buffer), never through a GPU API of
+    // the program's own; any refusal or loss falls back to the copy path
+    // with the same pixels.
+    direct_buffers = 1ULL << 43U,
+    // host_scroll: a scroll copy (SurfaceRoot::request_scroll_copy) moves
+    // the pixels already presented in the window system's storage, and only
+    // the band it exposed is copied.
+    host_scroll = 1ULL << 44U,
+    // reference_presentation: the host is GUI.Forms' own window manager
+    // (src/host/surface/), whose presentation is the reference behaviour
+    // the platform paths' traces are compared against.
+    reference_presentation = 1ULL << 45U,
+    // The direct path's buffer routes that use a platform graphics API to
+    // obtain and present a buffer, never to draw (owner, 2026-11-16: "we
+    // enumerate host capabilities"). Each is reported, besides
+    // direct_buffers, only where the adapter is built with the route and
+    // its presentation policy names it; its library is linked inside the
+    // host adapter only. Additive flags; no protocol version change.
+    // metal_drawables: macOS CAMetalLayer drawables, written through their
+    // IOSurface.
+    metal_drawables = 1ULL << 46U,
+    // dri3_pixmaps: X11 DRI3 pixmaps over GBM buffers (dmabuf), mapped for
+    // writing and presented with the Present extension.
+    dri3_pixmaps = 1ULL << 47U,
+    // linux_dmabuf: Wayland linux-dmabuf buffers over GBM buffers, mapped
+    // for writing (reserved: GUI.Forms has no Wayland host yet).
+    linux_dmabuf = 1ULL << 48U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

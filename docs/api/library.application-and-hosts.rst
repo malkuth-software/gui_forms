@@ -3848,6 +3848,18 @@ Enumerations
 
    .. cpp:enumerator:: open_url
 
+   .. cpp:enumerator:: direct_buffers
+
+   .. cpp:enumerator:: host_scroll
+
+   .. cpp:enumerator:: reference_presentation
+
+   .. cpp:enumerator:: metal_drawables
+
+   .. cpp:enumerator:: dri3_pixmaps
+
+   .. cpp:enumerator:: linux_dmabuf
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostCloseReason

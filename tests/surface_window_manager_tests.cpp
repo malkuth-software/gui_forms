@@ -9,9 +9,13 @@
 // left half's double click and downward drag, the right half's live move
 // to a half of the surface and back to floating with its snap preview,
 // the help call point and the title on hover, and the keyboard paths
-// (src/host/surface/manager/surface_manager_internal.hpp).
+// (src/host/surface/manager/surface_manager_internal.hpp). The manager is
+// also the presentation shim's reference (docs/user/presentation.md): its
+// trace follows the normative order, and its host scroll moves the
+// surface's pixels to exactly what a whole compose gives.
 
 #include "../src/host/surface/manager/surface_manager_internal.hpp"
+#include "gui_forms/canvas.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
 #if defined(_WIN32)
 #include "../src/host/windows/fonts/sealed_pages_windows.hpp"
@@ -89,6 +93,8 @@ public:
         return SurfacePresentResult::presented;
     }
     void want_frames(bool) override {}
+    [[nodiscard]] presentation::PresentTrace* presentation_trace() noexcept override { return &trace; }
+    [[nodiscard]] presentation::PresentPolicy presentation_policy() const override { return policy; }
     void set_title(std::string_view text) override { title.assign(text); }
     void set_cursor(CursorKind) override { ++host_cursor_calls; }
     void pointer_capture(bool) override {}
@@ -115,6 +121,10 @@ public:
     std::uint64_t acquired{};
     std::uint64_t host_cursor_calls{};
     std::string title;
+    // The reference trace, recording from the start, and the policy the
+    // run reads when it begins.
+    presentation::PresentTrace trace;
+    presentation::PresentPolicy policy{};
 };
 
 struct CountClicks final {
@@ -168,7 +178,10 @@ struct Harness final {
     std::shared_ptr<gui_forms::detail::BundledFontSet> fonts;
     std::unique_ptr<Runtime> runtime;
 
-    Harness() {
+    // `host_scroll` turns the reference host scroll on for the run.
+    explicit Harness(bool host_scroll = false) {
+        host.policy.host_scroll = host_scroll;
+        host.trace.set_enabled(true);
         fonts = gui_forms::detail::shared_bundled_font_set(host.fonts_directory(), host.sealed_pages());
         runtime = std::make_unique<Runtime>(host, fonts);
         (*runtime).windowing = std::make_unique<SurfaceWindowing>(*runtime);
@@ -594,7 +607,6 @@ void test_capsule_help_shows_business_card() {
     require(!business_card_shown(model), "Escape puts it away");
 }
 
-} // namespace
 
 // A-gf-host-02-F14: a full queue drops pointer motion, not the records
 // whose loss would leave state stuck.
@@ -620,6 +632,108 @@ void test_full_queue_keeps_control_records() {
     require(queue.dropped() == 2U, "the dropped motion is counted");
 }
 
+std::vector<presentation::PresentTraceRecord> trace_records(const presentation::PresentTrace& trace) {
+    std::vector<presentation::PresentTraceRecord> records(trace.size());
+    const std::size_t count = trace.fill(records);
+    records.resize(count);
+    return records;
+}
+
+// Every compose acquires the surface through the shim and presents it: the
+// first acquire finds a new surface (age 0), later ones the same surface
+// (age 1), and the trace follows the normative order.
+void test_reference_trace() {
+    TestWindow owned;
+    Harness harness;
+    static_cast<void>(harness.open(owned, "owned"));
+    harness.post_pointer(SurfacePointerAction::move, Point{700.0, 100.0}, 0.0);
+    harness.settle();
+    const std::vector<presentation::PresentTraceRecord> records = trace_records(harness.host.trace);
+    require(!records.empty(), "the reference records its presents");
+    const presentation::PresentTraceCheck check = presentation::check_present_trace(records);
+    require(check.passed(), "the reference trace follows the normative order (record " +
+                                std::to_string(check.index) + ")");
+    require(records[0].event == presentation::PresentTraceEvent::acquire && records[0].detail == 0U,
+            "the first compose acquires a new surface");
+    std::size_t presents = 0U;
+    for (std::size_t index = 0U; index < records.size(); ++index) {
+        const presentation::PresentTraceRecord& record = records[index];
+        require(record.path == presentation::PresentPath::direct, "the surface is the direct path");
+        if (record.event == presentation::PresentTraceEvent::acquire && index > 0U)
+            require(record.detail == 1U, "the kept surface holds the frame before");
+        if (record.event == presentation::PresentTraceEvent::present) ++presents;
+    }
+    require(presents == harness.host.presents, "each host present is one traced present");
+    const HostCapabilities report = (*harness.runtime).capabilities();
+    require(report.supports(HostCapability::reference_presentation) && report.supports(HostCapability::direct_buffers),
+            "the manager reports itself as the reference");
+    require(!report.supports(HostCapability::host_scroll), "host scroll stays off unless the policy turns it on");
+}
+
+std::shared_ptr<gui_drawing::Bitmap> pattern_bitmap() {
+    constexpr int width = 640;
+    constexpr int height = 480;
+    const std::shared_ptr<gui_drawing::Bitmap> bitmap = std::make_shared<gui_drawing::Bitmap>(width, height);
+    gui_drawing::BitmapEditView edit = (*bitmap).begin_edit({0, 0, width, height});
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            std::byte* pixel = edit.writable_data + y * edit.row_bytes + x * 4;
+            pixel[0] = std::byte(static_cast<unsigned>(x % 251));
+            pixel[1] = std::byte(static_cast<unsigned>(y % 241));
+            pixel[2] = std::byte(static_cast<unsigned>((x + 2 * y) % 239));
+            pixel[3] = std::byte{255};
+        }
+    }
+    static_cast<void>((*bitmap).commit_edit(edit.token));
+    return bitmap;
+}
+
+// The reference host scroll: an owned window's canvas pans by whole pixels,
+// the window's raster takes a scroll copy, and the manager moves the
+// surface's pixels instead of composing the canvas again. The trace shows
+// the scroll, and the surface then equals a whole compose of the scene.
+void test_reference_host_scroll() {
+    Harness harness(true);
+    require((*harness.runtime).capabilities().supports(HostCapability::host_scroll),
+            "the policy turns the reference host scroll on");
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("canvas.root"));
+    (*root).set_background(Color::rgba(240, 240, 240));
+    const std::shared_ptr<RasterCanvas> canvas = make_control<RasterCanvas>(StableId("canvas.view"));
+    (*canvas).bitmap = pattern_bitmap();
+    (*canvas).canvas_background = Color::rgba(23, 37, 51);
+    (*canvas).set_requested_bounds(Rect{10.0, 10.0, 280.0, 180.0});
+    (*root).add_child(canvas);
+    SurfaceApplicationWindow entry;
+    entry.stable_id = "canvas";
+    entry.owner_id = "main";
+    entry.options.title = "canvas";
+    entry.options.initial_size = Size{300.0, 200.0};
+    entry.options.minimum_size = Size{120.0, 80.0};
+    entry.options.print_metrics_on_close = false;
+    entry.model = std::make_unique<Window>(root, Size{300.0, 200.0});
+    const HostWindowAdmission admission = (*(*harness.runtime).windowing).open(std::move(entry), true);
+    require(admission.status.accepted(), "the canvas window opens");
+    harness.settle();
+    (*canvas).set_view(1.0, gui_drawing::PointF{0.0F, 0.0F});
+    harness.settle();
+    harness.host.trace.clear();
+    (*canvas).set_view(1.0, gui_drawing::PointF{0.0F, 12.0F});
+    harness.settle();
+    const std::vector<presentation::PresentTraceRecord> records = trace_records(harness.host.trace);
+    require(presentation::check_present_trace(records).passed(), "the scrolling trace follows the normative order");
+    bool moved = false;
+    for (std::size_t index = 0U; index < records.size(); ++index) {
+        if (records[index].event == presentation::PresentTraceEvent::scroll) moved = true;
+    }
+    require(moved, "the pan moved the surface's pixels");
+    const std::vector<std::uint8_t> scrolled = harness.host.pixels;
+    (*harness.runtime).damage_surface();
+    harness.settle();
+    require(harness.host.pixels == scrolled, "the moved surface equals a whole compose of the scene");
+}
+
+} // namespace
+
 int main() {
     try {
         test_full_queue_keeps_control_records();
@@ -636,6 +750,8 @@ int main() {
         test_capsule_right_half_moves();
         test_capsule_help_and_keyboard();
         test_capsule_help_shows_business_card();
+        test_reference_trace();
+        test_reference_host_scroll();
     } catch (const std::exception& error) {
         std::cerr << "surface window manager tests failed: " << error.what() << '\n';
         return EXIT_FAILURE;

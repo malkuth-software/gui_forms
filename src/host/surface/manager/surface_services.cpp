@@ -8,7 +8,7 @@
 
 namespace gui_forms::host::surface_detail {
 
-Services::Services(NativeWindow& window) : HostServices(window.runtime.host.capabilities()), window_(window) {}
+Services::Services(NativeWindow& window) : HostServices(window.runtime.capabilities()), window_(window) {}
 
 Services::~Services() { shutdown(); }
 

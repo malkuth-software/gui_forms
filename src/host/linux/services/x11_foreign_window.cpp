@@ -15,6 +15,19 @@ ForeignWindowScope::ForeignWindowScope(Display *display, ::Window window, Foreig
   active_ = this;
   previous_ = XSetErrorHandler(handle);
 }
+ForeignWindowScope::ForeignWindowScope(Display *display, ::Window window, std::span<const int> opcodes)
+    : display_(display), window_(window), errors_(ForeignWindowErrors::extension_requests), previous_(nullptr),
+      parent_(active_) {
+  const std::size_t count = opcodes.size() < maximum_opcodes ? opcodes.size() : maximum_opcodes;
+  for (std::size_t index = 0U; index < count; ++index) opcodes_[index] = opcodes[index];
+  XSync(display_, False);
+  active_ = this;
+  previous_ = XSetErrorHandler(handle);
+}
+bool ForeignWindowScope::synchronize() noexcept {
+  XSync(display_, False);
+  return absorbed_;
+}
 ForeignWindowScope::~ForeignWindowScope() {
   XSync(display_, False);
   XSetErrorHandler(previous_);
@@ -41,12 +54,19 @@ int ForeignWindowScope::handle(Display *display, XErrorEvent *error) noexcept {
       absorbed = (bad_window && names_window) || (*error).error_code == BadAtom ||
                  ((*error).error_code == BadMatch && (*error).request_code == X_ChangeProperty);
       break;
+    case ForeignWindowErrors::extension_requests:
+      for (const int opcode : (*scope).opcodes_) {
+        if (opcode >= 0 && (*error).request_code == static_cast<unsigned char>(opcode)) absorbed = true;
+      }
+      break;
     default:
       absorbed = false;
       break;
     }
-    if (absorbed)
+    if (absorbed) {
+      (*scope).absorbed_ = true;
       return 0;
+    }
   }
   while (scope != nullptr && (*scope).previous_ == handle)
     scope = (*scope).parent_;

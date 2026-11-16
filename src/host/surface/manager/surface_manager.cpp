@@ -269,6 +269,63 @@ struct WindowAction final {
 
 SurfaceHost::~SurfaceHost() = default;
 
+presentation::PresentTrace* SurfaceHost::presentation_trace() noexcept { return nullptr; }
+
+presentation::PresentPolicy SurfaceHost::presentation_policy() const {
+    const presentation::PresentPolicy policy = presentation::present_policy_from_environment();
+    return policy;
+}
+
+presentation::DirectAcquire SurfaceHostDirectPath::acquire(presentation::PresentExtent extent) {
+    if (view_.pixels == nullptr || view_.width != extent.width || view_.height != extent.height) {
+        view_ = host_.acquire_surface(extent.width, extent.height);
+        const bool usable = view_.pixels != nullptr && view_.width == extent.width &&
+                            view_.height == extent.height &&
+                            view_.row_bytes >= static_cast<std::size_t>(extent.width) * 4U;
+        if (!usable) {
+            view_ = SurfaceView{};
+            return presentation::DirectAcquire::refused(presentation::DirectRefusal::resources);
+        }
+        // A new surface holds nothing yet.
+        age_ = 0U;
+    }
+    presentation::DirectBuffer buffer{};
+    buffer.pixels = reinterpret_cast<std::byte*>(view_.pixels);
+    buffer.row_bytes = view_.row_bytes;
+    buffer.extent = extent;
+    buffer.age = age_;
+    return presentation::DirectAcquire::granted(buffer);
+}
+
+presentation::PresentOutcome SurfaceHostDirectPath::present(std::span<const presentation::PresentRect> damage) {
+    rects_.clear();
+    for (std::size_t index = 0U; index < damage.size(); ++index) {
+        const presentation::PresentRect rect = damage[index];
+        rects_.push_back(SurfaceDeviceRect{rect.left, rect.top, rect.right, rect.bottom});
+    }
+    // The surface keeps what the manager wrote whatever the host did with
+    // it: it holds the frame composed last.
+    age_ = 1U;
+    const SurfacePresentResult result = host_.present(rects_);
+    switch (result) {
+    case SurfacePresentResult::presented:
+        return presentation::PresentOutcome::presented;
+    case SurfacePresentResult::pending:
+        return presentation::PresentOutcome::pending;
+    case SurfacePresentResult::inactive:
+        return presentation::PresentOutcome::inactive;
+    case SurfacePresentResult::failed:
+    default:
+        break;
+    }
+    return presentation::PresentOutcome::failed;
+}
+
+void SurfaceHostDirectPath::release() noexcept {
+    view_ = SurfaceView{};
+    age_ = 0U;
+}
+
 void Wake::operator()() const noexcept {
     if (queue != nullptr) (*queue).wake();
 }
@@ -325,7 +382,7 @@ FrameChrome::FrameChrome(Runtime& runtime, std::string_view title, double width,
     model_ = std::make_unique<Window>(root_, size_);
     (*model_).set_text_metrics_provider(&raster_);
     (*model_).set_framebuffer_painter(&raster_);
-    session_ = std::make_unique<HostSession>(*model_, runtime_.host.capabilities(), nullptr);
+    session_ = std::make_unique<HostSession>(*model_, runtime_.capabilities(), nullptr);
     if (!dispatch(HostAttachEvent{size_, scale_}).accepted()) throw std::runtime_error("Frame strip attach rejected");
     resize(width, scale);
 }
@@ -467,7 +524,7 @@ NativeWindow::NativeWindow(Runtime& host, SurfaceApplicationWindow source, HostW
     presentation.contract_version = paint_contract_version;
     presentation.extensions.partial_present = true;
     (*entry.model).declare_presentation(presentation);
-    session = std::make_unique<HostSession>(*entry.model, runtime.host.capabilities(), services.get());
+    session = std::make_unique<HostSession>(*entry.model, runtime.capabilities(), services.get());
     closing_token = (*session).closing().subscribe(Closing{this});
     if (runtime.desk.framed(window_id)) {
         chrome = std::make_unique<FrameChrome>(runtime, entry.options.title, content.width, scale);
@@ -731,6 +788,8 @@ void NativeWindow::update() {
     for (std::size_t index = 0U; index < live_regions.size(); ++index) {
         if (!live_regions[index].empty()) screen.add(live_regions[index]);
     }
+    // The screen without the copies' clips, for the reference host scroll.
+    screen_painted = screen;
     for (std::size_t index = 0U; index < pending_copies.size(); ++index) screen.add(pending_copies[index].clip);
     // A hidden or minimised window keeps its damage until it is shown.
     if (!visible || !runtime.desk.shown(window_id) || screen.empty()) {
@@ -752,11 +811,13 @@ void NativeWindow::paint(DamageRegion& screen, bool regions_taken) {
     const std::chrono::steady_clock::time_point started = std::chrono::steady_clock::now();
     raster.begin_frame(screen);
     applied_copy_clips.clear();
+    applied_copies.clear();
     bool copies_applied = true;
     for (std::size_t index = 0U; index < pending_copies.size(); ++index) {
         const ScrollCopy& copy = pending_copies[index];
         if (copies_applied) copies_applied = raster.scroll_copy(copy.clip, copy.offset);
         applied_copy_clips.push_back(copy.clip);
+        applied_copies.push_back(copy);
     }
     pending_copies.clear();
     if (!copies_applied) {
@@ -767,7 +828,10 @@ void NativeWindow::paint(DamageRegion& screen, bool regions_taken) {
     if (!damage.empty()) {
         receipt = (*entry.model).paint(raster, damage.rectangles());
         const std::span<const Rect> painted = damage.rectangles();
-        for (std::size_t index = 0U; index < painted.size(); ++index) screen.add(painted[index]);
+        for (std::size_t index = 0U; index < painted.size(); ++index) {
+            screen.add(painted[index]);
+            screen_painted.add(painted[index]);
+        }
     }
     raster.end_frame();
     live_frames.clear();
@@ -787,8 +851,21 @@ void NativeWindow::paint(DamageRegion& screen, bool regions_taken) {
         copied.device_pixels += columns * rows;
     }
     copied.rectangles = count;
+    // The copies this paint applied may be composed by moving the surface's
+    // pixels only when nothing painted before them waits to be composed
+    // (those rectangles are where the pixels were before the copies) and no
+    // earlier copies wait either.
+    const bool copied_now = copies_applied && !applied_copies.empty();
+    if (copied_now) {
+        copies_composable = composed.empty() && composed_copies.empty() && !raster_resized;
+        composed_copies = applied_copies;
+    } else if (!applied_copies.empty()) {
+        copies_composable = false;
+    }
     const std::span<const Rect> changed = screen.rectangles();
     for (std::size_t index = 0U; index < changed.size(); ++index) composed.push_back(changed[index]);
+    const std::span<const Rect> painted_only = screen_painted.rectangles();
+    for (std::size_t index = 0U; index < painted_only.size(); ++index) composed_painted.push_back(painted_only[index]);
     const std::uint64_t elapsed = static_cast<std::uint64_t>(
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - started).count());
     if (regions_taken) live_region_lost = false;
@@ -927,6 +1004,14 @@ Runtime::Runtime(SurfaceHost& surface_host, std::shared_ptr<gui_forms::detail::B
     desk.set_extent(extent);
     layers_.reserve(4U * HostWindowing::maximum_windows + 1U);
     device_rects_.reserve(maximum_compose_rects);
+    policy_ = host.presentation_policy();
+}
+
+HostCapabilities Runtime::capabilities() const {
+    HostCapabilities report = host.capabilities();
+    report.available = report.available | HostCapability::reference_presentation | HostCapability::direct_buffers;
+    if (policy_.host_scroll) report.available = report.available | HostCapability::host_scroll;
+    return report;
 }
 
 Runtime::~Runtime() {
@@ -1207,8 +1292,20 @@ void Runtime::gather_damage() {
             continue;
         }
         const Rect client = candidate.content;
+        // A window whose scroll copies may move the surface's pixels
+        // (reference host scroll) gives its painted rectangles without the
+        // copies' clips, apart from the rest, for compose to decide.
+        const bool scrolling = policy_.host_scroll && candidate.copies_composable &&
+                               !candidate.composed_copies.empty() && !candidate.raster_resized;
         if (candidate.raster_resized) {
             surface_damage_.add(client);
+        } else if (scrolling) {
+            scrolling_.push_back(&candidate);
+            for (std::size_t rect = 0U; rect < candidate.composed_painted.size(); ++rect) {
+                const Rect local = candidate.composed_painted[rect];
+                scrolling_damage_.add(Rect{client.x + local.x - slack, client.y + local.y - slack,
+                                           local.width + 2.0 * slack, local.height + 2.0 * slack});
+            }
         } else {
             for (std::size_t rect = 0U; rect < candidate.composed.size(); ++rect) {
                 const Rect local = candidate.composed[rect];
@@ -1217,6 +1314,11 @@ void Runtime::gather_damage() {
             }
         }
         candidate.composed.clear();
+        candidate.composed_painted.clear();
+        if (!scrolling) {
+            candidate.composed_copies.clear();
+            candidate.copies_composable = false;
+        }
         candidate.raster_resized = false;
         if (candidate.chrome) {
             const std::optional<Rect> outer = desk.outer(candidate.window_id);
@@ -1328,9 +1430,12 @@ void Runtime::compose() {
     // While the host reads the last present, or another surface holds the
     // screen, the surface is left alone; the damage waits.
     if (present_pending_ || surface_inactive_) return;
+    scrolling_.clear();
+    scrolling_damage_.clear();
+    moved_areas_.clear();
     gather_damage();
     scene_dirty_ = false;
-    if (surface_damage_.empty()) {
+    if (surface_damage_.empty() && scrolling_.empty()) {
         composed_quads_ = quads_;
         composed_tabs_ = tabs_;
         snap_composed_ = snap_preview_rect();
@@ -1338,16 +1443,49 @@ void Runtime::compose() {
     }
     const std::uint32_t width = device_extent(extent.width, scale);
     const std::uint32_t height = device_extent(extent.height, scale);
-    if (view_.pixels == nullptr || view_.width != width || view_.height != height) {
-        view_ = host.acquire_surface(width, height);
-        if (view_.pixels == nullptr || view_.width != width || view_.height != height ||
-            view_.row_bytes < static_cast<std::size_t>(width) * 4U) {
-            view_ = SurfaceView{};
-            scene_dirty_ = true;
-            return;
+    // The surface is the shim's direct path (the reference): acquired and
+    // presented through it, so that its trace is the reference trace.
+    if (!presenter_) {
+        presenter_ = std::make_unique<presentation::PresentationShim>(
+            nullptr, std::make_unique<SurfaceHostDirectPath>(host), host.presentation_trace());
+    }
+    const presentation::DirectAcquire acquired =
+        (*presenter_).acquire_for_writing(presentation::PresentExtent{width, height});
+    const presentation::DirectBuffer* const granted = acquired.buffer();
+    if (granted == nullptr) {
+        // Tried again on the next turn; the scrolling windows' rectangles and
+        // clips wait with the rest.
+        for (std::size_t index = 0U; index < scrolling_.size(); ++index) {
+            NativeWindow& window = *scrolling_[index];
+            for (std::size_t copy = 0U; copy < window.composed_copies.size(); ++copy) {
+                const Rect clip = window.composed_copies[copy].clip;
+                surface_damage_.add(Rect{window.content.x + clip.x, window.content.y + clip.y, clip.width,
+                                         clip.height});
+            }
+            window.composed_copies.clear();
+            window.copies_composable = false;
         }
-        // A new surface holds nothing yet.
-        surface_damage_.add({0.0, 0.0, extent.width, extent.height});
+        const std::span<const Rect> waiting = scrolling_damage_.rectangles();
+        for (std::size_t index = 0U; index < waiting.size(); ++index) surface_damage_.add(waiting[index]);
+        view_ = SurfaceView{};
+        scene_dirty_ = true;
+        return;
+    }
+    view_ = SurfaceView{reinterpret_cast<std::uint8_t*>((*granted).pixels), (*granted).row_bytes, width, height};
+    // A new surface holds nothing yet.
+    if ((*granted).age == 0U) surface_damage_.add({0.0, 0.0, extent.width, extent.height});
+    build_layers();
+    // The reference host scroll: what everything but the scrolling windows
+    // damaged, then each scrolling window's copies moved or composed.
+    if (!scrolling_.empty()) {
+        std::array<SurfaceDeviceRect, maximum_compose_rects> foreign{};
+        const std::size_t foreign_count =
+            surface_device_rects(surface_damage_.rectangles(), scale, width, height, foreign);
+        const std::span<const SurfaceDeviceRect> foreign_rects(foreign.data(), foreign_count);
+        for (std::size_t index = 0U; index < scrolling_.size(); ++index)
+            compose_scrolls(*scrolling_[index], foreign_rects);
+        const std::span<const Rect> painted = scrolling_damage_.rectangles();
+        for (std::size_t index = 0U; index < painted.size(); ++index) surface_damage_.add(painted[index]);
     }
     std::array<SurfaceDeviceRect, maximum_compose_rects> device{};
     const std::size_t count = surface_device_rects(surface_damage_.rectangles(), scale, width, height, device);
@@ -1355,34 +1493,128 @@ void Runtime::compose() {
     composed_tabs_ = tabs_;
     cursor_composed_ = cursor_rect();
     snap_composed_ = snap_preview_rect();
-    if (count == 0U) {
+    device_rects_.assign(device.begin(), device.begin() + static_cast<std::ptrdiff_t>(count));
+    const SurfaceTarget target{view_.pixels, view_.row_bytes, view_.width, view_.height};
+    const SurfacePixel background = surface_opaque_pixel(desk.theme().background);
+    for (std::size_t index = 0U; index < device_rects_.size(); ++index)
+        surface_compose(target, device_rects_[index], background, layers_);
+    // The present: what was composed, and every area moved in place (the
+    // screen changed there too).
+    present_rects_.clear();
+    for (std::size_t index = 0U; index < device_rects_.size(); ++index) {
+        const SurfaceDeviceRect rect = device_rects_[index];
+        present_rects_.push_back(presentation::PresentRect{rect.left, rect.top, rect.right, rect.bottom});
+    }
+    for (std::size_t index = 0U; index < moved_areas_.size(); ++index) {
+        const SurfaceDeviceRect rect = moved_areas_[index];
+        present_rects_.push_back(presentation::PresentRect{rect.left, rect.top, rect.right, rect.bottom});
+    }
+    // Nothing to show ends the grant unpresented (present_written with no
+    // rectangle does not reach the host).
+    const presentation::PresentOutcome outcome = (*presenter_).present_written(present_rects_);
+    if (present_rects_.empty()) {
         surface_damage_.clear();
         return;
     }
-    build_layers();
-    const SurfaceTarget target{view_.pixels, view_.row_bytes, view_.width, view_.height};
-    const SurfacePixel background = surface_opaque_pixel(desk.theme().background);
-    device_rects_.assign(device.begin(), device.begin() + static_cast<std::ptrdiff_t>(count));
-    for (std::size_t index = 0U; index < device_rects_.size(); ++index)
-        surface_compose(target, device_rects_[index], background, layers_);
-    const SurfacePresentResult result = host.present(device_rects_);
-    switch (result) {
-    case SurfacePresentResult::presented:
+    switch (outcome) {
+    case presentation::PresentOutcome::presented:
         surface_damage_.clear();
         break;
-    case SurfacePresentResult::pending:
+    case presentation::PresentOutcome::pending:
         surface_damage_.clear();
         present_pending_ = true;
         break;
-    case SurfacePresentResult::inactive:
+    case presentation::PresentOutcome::inactive:
         surface_inactive_ = true;
         break;
-    case SurfacePresentResult::failed:
+    case presentation::PresentOutcome::failed:
+    case presentation::PresentOutcome::lost:
     default:
-        // Kept for the next turn.
+        // Kept for the next turn, with the areas moved in place: the host
+        // never showed them, so they are composed again from the rasters.
+        for (std::size_t index = 0U; index < moved_areas_.size(); ++index) {
+            const SurfaceDeviceRect area = moved_areas_[index];
+            surface_damage_.add(Rect{static_cast<double>(area.left) / scale, static_cast<double>(area.top) / scale,
+                                     static_cast<double>(area.right - area.left) / scale,
+                                     static_cast<double>(area.bottom - area.top) / scale});
+        }
         scene_dirty_ = true;
         break;
     }
+}
+
+void Runtime::compose_scrolls(NativeWindow& window, std::span<const SurfaceDeviceRect> foreign) {
+    const SurfaceDeviceRect surface{0, 0, static_cast<std::int32_t>(view_.width),
+                                    static_cast<std::int32_t>(view_.height)};
+    // The window's client layer: an opaque copy of its raster, and the
+    // layers composed after it (which may cover the copies' areas).
+    std::size_t client_layer = layers_.size();
+    for (std::size_t index = 0U; index < layers_.size(); ++index) {
+        const SurfaceComposeLayer& layer = layers_[index];
+        if (layer.pixels == static_cast<const std::uint8_t*>(window.raster.pixels())) client_layer = index;
+    }
+    const bool opaque = client_layer < layers_.size() &&
+                        layers_[client_layer].kind == SurfaceLayerKind::opaque_image;
+    const std::int32_t origin_left = opaque ? layers_[client_layer].bounds.left : 0;
+    const std::int32_t origin_top = opaque ? layers_[client_layer].bounds.top : 0;
+    // Once one copy cannot move, the later ones cannot either: their source
+    // pixels would be the ones that copy should have moved.
+    bool movable = opaque;
+    for (std::size_t copy_index = 0U; copy_index < window.composed_copies.size(); ++copy_index) {
+        const ScrollCopy& copy = window.composed_copies[copy_index];
+        // The copy in surface device pixels: request_scroll_copy admits
+        // only clips and offsets on whole device pixels.
+        const SurfaceDeviceRect area{origin_left + device_coordinate(copy.clip.x, scale),
+                                     origin_top + device_coordinate(copy.clip.y, scale),
+                                     origin_left + device_coordinate(copy.clip.right(), scale),
+                                     origin_top + device_coordinate(copy.clip.bottom(), scale)};
+        const presentation::PresentScroll scroll{
+            presentation::PresentRect{area.left, area.top, area.right, area.bottom},
+            device_coordinate(copy.offset.x, scale), device_coordinate(copy.offset.y, scale)};
+        bool eligible = movable && !area.empty();
+        if (eligible) {
+            const presentation::PresentRect whole{surface.left, surface.top, surface.right, surface.bottom};
+            const presentation::PresentRect layer_bounds{
+                layers_[client_layer].bounds.left, layers_[client_layer].bounds.top,
+                layers_[client_layer].bounds.right, layers_[client_layer].bounds.bottom};
+            eligible = presentation::present_rect_contains(whole, scroll.area) &&
+                       presentation::present_rect_contains(layer_bounds, scroll.area);
+        }
+        for (std::size_t index = client_layer + 1U; eligible && index < layers_.size(); ++index) {
+            const SurfaceDeviceRect bounds = layers_[index].bounds;
+            const presentation::PresentRect above{bounds.left, bounds.top, bounds.right, bounds.bottom};
+            if (!presentation::present_rect_intersection(above, scroll.area).empty()) eligible = false;
+        }
+        for (std::size_t index = 0U; eligible && index < foreign.size(); ++index) {
+            const presentation::PresentRect damaged{foreign[index].left, foreign[index].top, foreign[index].right,
+                                                    foreign[index].bottom};
+            if (!presentation::present_rect_intersection(damaged, scroll.area).empty()) eligible = false;
+        }
+        bool moved = false;
+        if (eligible) {
+            const presentation::PresentScrollResult result = (*presenter_).scroll_written(scroll);
+            moved = result.moved;
+            if (moved) {
+                moved_areas_.push_back(area);
+                for (std::size_t band = 0U; band < result.plan.exposed_count; ++band) {
+                    const presentation::PresentRect exposed = result.plan.exposed[band];
+                    surface_damage_.add(Rect{static_cast<double>(exposed.left) / scale,
+                                             static_cast<double>(exposed.top) / scale,
+                                             static_cast<double>(exposed.right - exposed.left) / scale,
+                                             static_cast<double>(exposed.bottom - exposed.top) / scale});
+                }
+            }
+        } else {
+            (*presenter_).decline_scroll(scroll);
+        }
+        if (!moved) {
+            movable = false;
+            surface_damage_.add(Rect{window.content.x + copy.clip.x, window.content.y + copy.clip.y, copy.clip.width,
+                                     copy.clip.height});
+        }
+    }
+    window.composed_copies.clear();
+    window.copies_composable = false;
 }
 
 void Runtime::place_input() {
@@ -1463,6 +1695,7 @@ void Runtime::handle(SurfaceInputRecord& record) {
     }
     case SurfaceInputKind::presented:
         present_pending_ = false;
+        if (presenter_) (*presenter_).notify_released();
         break;
     case SurfaceInputKind::activation:
         surface_inactive_ = !record.down;

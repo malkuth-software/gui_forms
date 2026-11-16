@@ -89,7 +89,11 @@ install(FILES "${_gf_package_engine}" "${_gf_package_dependencies}" DESTINATION 
 set(GUI_FORMS_PACKAGE_FIND_DEPENDENCIES "")
 if(APPLE)
     set(GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES
-        "-framework AppKit;-framework QuartzCore;-framework CoreGraphics;-framework CoreText;-framework UniformTypeIdentifiers;-framework CoreFoundation")
+        "-framework AppKit;-framework QuartzCore;-framework IOSurface;-framework CoreGraphics;-framework CoreText;-framework UniformTypeIdentifiers;-framework CoreFoundation")
+    # The Metal buffer route, where the host adapter was built with it.
+    if(GUI_FORMS_ENABLE_METAL_PRESENT)
+        string(APPEND GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES ";-framework Metal")
+    endif()
     set(GUI_FORMS_PACKAGE_WHOLE_ARCHIVE
         "LINKER:-force_load,\${_gui_forms_application_prefix}/${CMAKE_INSTALL_LIBDIR}/libgui_forms_application.a")
 elseif(WIN32)
@@ -111,6 +115,14 @@ endif()
             string(APPEND GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES ";X11::${_gf_package_x11}")
         endif()
     endforeach()
+    # The X11 direct presentation path's libXpresent, linked by name.
+    if(GUI_FORMS_XPRESENT_AVAILABLE)
+        string(APPEND GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES ";Xpresent")
+    endif()
+    # The X11 DRI3 buffer route's libraries, linked by name.
+    if(GUI_FORMS_ENABLE_X11_DRI3_PRESENT)
+        string(APPEND GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES ";gbm;xcb;xcb-dri3;X11-xcb")
+    endif()
     if(CMAKE_DL_LIBS)
         string(APPEND GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES ";${CMAKE_DL_LIBS}")
     endif()

@@ -45,6 +45,31 @@ namespace gui_forms::host::surface_detail {
 class Runtime;
 class NativeWindow;
 
+// The host's surface as the presentation shim's direct path: the manager's
+// reference implementation of the contract (docs/user/presentation.md).
+// acquire grants the host's surface (asking the host again only for a new
+// size, which holds nothing yet: age 0; the surface kept since the last
+// present has age 1, since the host keeps what the manager wrote).
+// present hands the damage to SurfaceHost::present and maps its result:
+// presented, pending (the host reads later; a presented record releases
+// it), inactive, failed. release forgets the surface, so that the next
+// acquire asks the host again. The host outlives the path; the manager's
+// thread only.
+class SurfaceHostDirectPath final : public presentation::PresentationDirectPath {
+public:
+    explicit SurfaceHostDirectPath(SurfaceHost& host) noexcept : host_(host) {}
+    presentation::DirectAcquire acquire(presentation::PresentExtent extent) override;
+    presentation::PresentOutcome present(std::span<const presentation::PresentRect> damage) override;
+    void release() noexcept override;
+
+private:
+    SurfaceHost& host_;
+    SurfaceView view_{};
+    std::uint32_t age_{};
+    // The damage in the host's rectangle type, reused.
+    std::vector<SurfaceDeviceRect> rects_{};
+};
+
 // The wake every model's handlers call, from any thread. `queue` is the
 // host's, which outlives the handlers.
 struct Wake final {
@@ -281,6 +306,18 @@ public:
     std::vector<ScrollCopy> pending_copies;
     std::vector<ScrollCopy> taken_copies;
     std::vector<Rect> applied_copy_clips;
+    // The reference host scroll (Runtime::compose): the copies a paint
+    // applied, in order; the update's screen rectangles without the copies'
+    // clips; the rectangles painted since the last compose without those
+    // clips; the copies those rectangles follow, in client logical units;
+    // and whether the compose may move the surface's pixels for them
+    // instead of composing their clips (one paint recorded them, with
+    // nothing composed-pending before it).
+    std::vector<ScrollCopy> applied_copies;
+    DamageRegion screen_painted;
+    std::vector<Rect> composed_painted;
+    std::vector<ScrollCopy> composed_copies;
+    bool copies_composable{};
     // The live frames, as the X11 host keeps them (linux_host_internal.hpp).
     std::vector<LiveSurfacePresentation> live_updates;
     std::vector<LiveSurfaceFrame> live_frames;
@@ -443,8 +480,18 @@ private:
     // The client window and position a surface point reaches for pointer
     // input: the pressed window while a press lasts, else the desk's hit.
     [[nodiscard]] SurfaceDeskHit pointer_target(Point point) const noexcept;
+    // The host's capabilities with the manager's own presentation bits
+    // (reference_presentation and direct_buffers always, host_scroll as the
+    // policy turns it on).
+    [[nodiscard]] HostCapabilities capabilities() const;
     // Composes the damage into the host's surface and presents it.
     void compose();
+    // The reference host scroll for one window whose copies are composable:
+    // moves the surface's pixels for each eligible copy, in order, and adds
+    // the clip of every other one to the surface damage. `foreign` is the
+    // damage gathered from everything but the scrolling windows, in device
+    // pixels.
+    void compose_scrolls(NativeWindow& window, std::span<const SurfaceDeviceRect> foreign);
     void gather_damage();
     void build_layers();
     [[nodiscard]] Rect cursor_rect() const noexcept;
@@ -462,6 +509,17 @@ private:
     std::vector<SurfaceComposeLayer> layers_;
     std::vector<SurfaceDeviceRect> device_rects_;
     SurfaceView view_{};
+    // The presentation shim over the host's surface (made with the first
+    // compose; producer mode) and the policy read when it was made.
+    std::unique_ptr<presentation::PresentationShim> presenter_;
+    presentation::PresentPolicy policy_{};
+    // This compose's scrolling windows (gather_damage), their painted
+    // rectangles (surface logical units), the surface areas moved in place
+    // (device pixels, presented as damage), and the present's rectangles.
+    std::vector<NativeWindow*> scrolling_;
+    DamageRegion scrolling_damage_;
+    std::vector<SurfaceDeviceRect> moved_areas_;
+    std::vector<presentation::PresentRect> present_rects_;
     std::vector<PendingDialog*> dialogs_;
     SurfaceClickHistory title_clicks_{};
     // The drawn cursor (when the host has none): its kind, whether the

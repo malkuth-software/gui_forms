@@ -25,6 +25,8 @@
 #include "../application/macos_host_private.hpp"
 #include "../accessibility/macos_accessibility_element.hpp"
 #include "macos_view_diagnostics.hpp"
+#include "macos_iosurface_present.hpp"
+#include "macos_presentation.hpp"
 
 // Nullability: every object pointer in the declarations below is non-null
 // unless marked nullable. The pointer ivars are nil until the view sets
@@ -63,6 +65,16 @@ NS_ASSUME_NONNULL_BEGIN
     // The sRGB colour space every present tags the raster with: immutable,
     // made once per view instead of once per draw, released in dealloc.
     CGColorSpaceRef _Nullable _presentColorSpace;
+    // The presentation shim (docs/user/presentation.md), made with the
+    // first present: the copy path it borrows, declared first so that it
+    // is destroyed last; the shim; and a present's device rectangles,
+    // reused.
+    std::unique_ptr<gui_forms::host::macos::MacViewCopyPath> _copyPath;
+    std::unique_ptr<gui_forms::host::presentation::PresentationShim> _presenter;
+    // The shim's direct path, IOSurface or Metal (observing; owned by
+    // _presenter), or null while the presentation policy leaves it off.
+    gui_forms::host::macos::MacDirectPath* _Nullable _directPath;
+    std::vector<gui_forms::host::presentation::PresentRect> _presentRects;
     std::unique_ptr<MacDisplayLinkTrace> _displayTrace;
     // The draw trace (live resize probe); null, recording nothing, unless a
     // probe enabled it.
@@ -257,6 +269,17 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)frameCaptureSaved;
 - (void)completeFrameCaptureIfDue:(NSRect)dirtyRect presented:(BOOL)presented;
 - (void)drawRetainedRect:(NSRect)dirtyRect;
+// The copy path's draw (MacViewCopyPath::copy): `pixels`, laid out as the
+// raster, drawn at `presentationSize` points into the current AppKit
+// context with the CG setup, draw and release phases recorded. Returns
+// whether the image was drawn; `copyNanoseconds` is the draw's duration.
+- (BOOL)copyFramePixels:(const void*)pixels
+       presentationSize:(GFSize)presentationSize
+        copyNanoseconds:(std::uint64_t&)copyNanoseconds;
+// The view's presentation shim, made on first use (macos_presentation.hpp).
+- (gui_forms::host::presentation::PresentationShim&)presenter;
+- (void)appendDrawnDeviceRects:(gui_forms::host::presentation::PresentExtent)extent scale:(double)scale;
+- (void)markPresentationDirty;
 - (void)armInvalidationOverlayTimer;
 - (void)stopInvalidationOverlayTimer;
 - (void)answerInvalidationOverlayTick;

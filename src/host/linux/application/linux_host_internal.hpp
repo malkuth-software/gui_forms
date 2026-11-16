@@ -1,5 +1,8 @@
 #pragma once
 #include "x11_shm_present.hpp"
+#include "x11_present_direct.hpp"
+#include "x11_dri3_present.hpp"
+#include "../../../core/host/presentation/presentation_shim.hpp"
 #include "../accessibility/linux_accessibility.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
 #include "../../../render/skia/raster/skia_splash_bake.hpp"
@@ -134,6 +137,34 @@ enum class NativePresentKernel : std::uint8_t { plain_copy, byte_channels, scale
 [[nodiscard]] std::optional<NativePresentKernel> convert_present_rectangle(XImage& image,
                                                                          const NativePresentSource& source,
                                                                          int left, int top, int right, int bottom);
+// A window's copy path, the presentation shim's safe fallback
+// (docs/user/presentation.md): each rectangle converted into the window's
+// native image and sent with XShmPutImage where MIT-SHM works and XPutImage
+// otherwise, then one finish (XSync) or flush, exactly as before the shim.
+// With host scroll on (GUI_FORMS_PRESENT=scroll) and a compositing manager
+// keeping the window's contents, scroll moves presented pixels with
+// XCopyArea. Owned by its NativeWindow, declared before the shim that
+// borrows it; UI thread only.
+class X11CopyPath final : public presentation::PresentationCopyPath {
+public:
+  explicit X11CopyPath(NativeWindow &window) noexcept : window_(window) {}
+  [[nodiscard]] bool scrolls() const noexcept override;
+  bool scroll(const presentation::PresentScrollPlan &plan) override;
+  presentation::PresentOutcome copy(const presentation::PresentSourcePixels &source,
+                                    std::span<const presentation::PresentRect> rects) override;
+
+  // Set by each present before it runs the shim: the alpha the source is
+  // presented with, and the area the copy adds to (null outside a present).
+  unsigned long alpha_mask{0};
+  bool present_alpha{false};
+  PresentedArea *copied{};
+  // The host's policy turned host scroll on for this window.
+  bool scroll_enabled{};
+
+private:
+  // The owner (observing): the copy path is its member.
+  NativeWindow &window_;
+};
 class Services final : public HostServices {
 public:
   explicit Services(NativeWindow &window);
@@ -354,6 +385,9 @@ public:
   Colormap colormap{};
   // The last compositor report's generation; 0 before the first.
   CompositorGeneration compositor_generation{};
+  // A compositing manager ran at the last compositor report: the window's
+  // contents are kept off screen, so host scroll may move them.
+  bool compositor_running{};
   GC gc{};
   XIC input{};
   // The client area in logical units: the device size divided by `scale`.
@@ -410,6 +444,12 @@ public:
   std::vector<ScrollCopy> taken_copies;
   std::vector<Rect> applied_copy_clips;
   std::uint64_t scroll_copies_applied{};
+  // Host scroll (docs/user/presentation.md), while the presentation
+  // policy turns it on: the copies applied this tick in device pixels,
+  // which the shim moves on screen, and the screen rectangles without the
+  // copies' clips. Reused.
+  std::vector<presentation::PresentScroll> present_scrolls;
+  DamageRegion screen_moved;
   SubscriptionToken closing_token;
   std::uint64_t sequence{};
   // The last press, for the computed click count (linux_input_rules.hpp).
@@ -421,6 +461,23 @@ public:
   // The shared-memory image presents use where MIT-SHM is available
   // (audit G4/N67); released in ~NativeWindow, before the display closes.
   X11SharedImage shared_image;
+  // The presentation shim (docs/user/presentation.md): the copy path it
+  // borrows, declared first so that it outlives the shim; the shim, made
+  // with the window's first present and released in ~NativeWindow before
+  // the display closes; the present's device rectangles, reused.
+  X11CopyPath copy_path{*this};
+  std::unique_ptr<presentation::PresentationShim> presenter;
+  // The shim's X11 Present direct path (observing; owned by `presenter`),
+  // null while the presentation policy leaves it off. Receives the
+  // window's PresentIdleNotify events (Runtime::dispatch).
+  X11PresentPath *direct_path{};
+  // Or the shim's DRI3 buffer route (observing; owned by `presenter`), in a
+  // build with GUI_FORMS_ENABLE_X11_DRI3_PRESENT whose policy names "dri3";
+  // receives the window's PresentIdleNotify events the same way.
+  X11Dri3Path *dri3_path{};
+  // The presentation policy turned host scroll on (set with the shim).
+  bool host_scroll_policy{};
+  std::vector<presentation::PresentRect> present_rects;
   // The invalidation overlay's present-time storage (gui_forms/diagnostics/
   // invalidation_overlay), reused: the scratch frame the outlines are
   // composited in (sized on first use), the device areas they cover now and
@@ -517,6 +574,8 @@ public:
   // pointer mode is not offered (Services drops relative_pointer and
   // raw_pointer_motion).
   int xi_opcode{-1};
+  // The Present extension's opcode (x11_present_direct.hpp); -1 without it.
+  int present_opcode{-1};
   // The server's 32-bit millisecond time of an event, unwrapped and mapped
   // onto the steady clock (HostEventClock): PointerEvent and
   // HostRelativeMotionEvent timestamps. UI thread.

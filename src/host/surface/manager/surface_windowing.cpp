@@ -10,7 +10,7 @@
 
 namespace gui_forms::host::surface_detail {
 
-SurfaceWindowing::SurfaceWindowing(Runtime& runtime) : HostWindowing(runtime.host.capabilities()), runtime_(runtime) {}
+SurfaceWindowing::SurfaceWindowing(Runtime& runtime) : HostWindowing(runtime.capabilities()), runtime_(runtime) {}
 
 HostWindowAdmission SurfaceWindowing::open(SurfaceApplicationWindow entry, bool runtime) {
     HostWindowAdmission admission;
