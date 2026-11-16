@@ -153,20 +153,25 @@ void QuickAccessToolbar::set_command_shown(std::string_view command_id, bool sho
     if (declared_index(command_id) == commands_.size()) {
         throw std::out_of_range("QuickAccessToolbar has no such command");
     }
-    const std::vector<std::string>::iterator found = std::find(shown_ids_.begin(), shown_ids_.end(), command_id);
+    // `command_id` may view an element of shown_ids_ (shown_command_ids()
+    // hands them out), which the erase below frees or moves: the identity is
+    // copied before the list changes and only the copy is read afterwards
+    // (A-gf-controls-10-F4).
+    const std::string id(command_id);
+    const std::vector<std::string>::iterator found = std::find(shown_ids_.begin(), shown_ids_.end(), id);
     const bool was_shown = found != shown_ids_.end();
     if (was_shown == shown) return;
     if (shown) {
         if (shown_ids_.size() >= maximum_commands) {
             throw std::invalid_argument("A QuickAccessToolbar shows at most 20 commands");
         }
-        shown_ids_.emplace_back(command_id);
+        shown_ids_.push_back(id);
     } else {
         shown_ids_.erase(found);
     }
     rebuild_items();
     rebuild_menu();
-    const QuickAccessToolbarCustomization change{std::string(stable_id().value()), std::string(command_id), shown};
+    const QuickAccessToolbarCustomization change{std::string(stable_id().value()), id, shown};
     customized_.emit(change);
 }
 
