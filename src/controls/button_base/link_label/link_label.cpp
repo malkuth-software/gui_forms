@@ -73,8 +73,8 @@ const ControlAnatomy& LinkLabel::anatomy() const noexcept {
 
 double LinkLabel::text_baseline() const noexcept {
     const Rect bounds = local_bounds();
-    const double baseline = std::max(font.read().size,
-        (bounds.height + font.read().size) * 0.5 - 1.0);
+    const double size = text_font(font.read()).size;
+    const double baseline = std::max(size, (bounds.height + size) * 0.5 - 1.0);
     return baseline;
 }
 
@@ -85,9 +85,10 @@ double LinkLabel::text_baseline() const noexcept {
 double LinkLabel::underline_width() const {
     const Rect bounds = local_bounds();
     const std::string text = display_text();
+    const FontSpec resolved = text_font(font.read());
     const ResolvedTextLayout measured = window() != nullptr
-        ? (*window()).resolve_text_layout_utf8(text, font.read())
-        : estimate_text_layout_utf8(text, font.read());
+        ? (*window()).resolve_text_layout_utf8(text, resolved)
+        : estimate_text_layout_utf8(text, resolved);
     const double width = std::min(bounds.width - 4.0, measured.logical_size.width);
     return std::max(0.0, width);
 }
@@ -98,7 +99,8 @@ void LinkLabel::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const double width = underline_width();
     // The label spans one font size above the baseline; the underline is the
     // one-unit stroke two units below it.
-    const Rect label{2.0, baseline - font.read().size, width, font.read().size};
+    const double size = text_font(font.read()).size;
+    const Rect label{2.0, baseline - size, width, size};
     const Rect underline{2.0, baseline + 1.5, width, 1.0};
     Parts record;
     record.region = PartGeometry::from_bounds(bounds);
@@ -155,16 +157,18 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
     // drawn in the link's colour as authored colour (T4-1): a disabled link
     // takes the theme's disabled ink.
     const std::string display = display_text();
-    const FontSpec text_font = font.read();
-    const Size measured = painter.measure_text_utf8(display, text_font);
-    const double box_height = std::max(measured.height, text_font.size * 1.2);
-    const double box_ascent = std::max(text_font.size, box_height * 0.82);
+    // The font measure sized the control with: resolved at the effective
+    // text scale (A-gf-controls-01-F3).
+    const FontSpec resolved = text_font(font.read());
+    const Size measured = painter.measure_text_utf8(display, resolved);
+    const double box_height = std::max(measured.height, resolved.size * 1.2);
+    const double box_ascent = std::max(resolved.size, box_height * 0.82);
     PartPaint label;
     label.role = PartRole::label;
     label.family = family;
     label.states = states;
     label.text = lend_paint_text(display);
-    label.font = text_font;
+    label.font = resolved;
     label.bounds = {2.0, baseline - box_ascent, std::max(measured.width, bounds.width - 2.0), box_height};
     label.authored_foreground.set(foreground);
     paint_part(painter, *this, label);

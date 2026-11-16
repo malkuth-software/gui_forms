@@ -100,6 +100,7 @@ public:
         texts.emplace_back(text);
         text_colors.push_back(color);
         roles.push_back(font.role);
+        text_sizes.push_back(font.size);
         text_origins.push_back(origin);
         text_line_order.push_back('T');
     }
@@ -127,6 +128,7 @@ public:
     std::uint64_t lines{};
     std::size_t text_measurements{};
     std::size_t measured_text_bytes{};
+    std::vector<double> text_sizes{};
     Rect last_fill_bounds{};
     Color last_fill_color{};
     Rect last_rounded_stroke_bounds{};
@@ -994,6 +996,21 @@ Color painted_link_color(LinkLabel& link) {
     require(painter.text_colors.size() == 1U, "LinkLabel must draw its text once");
     const Color color = painter.text_colors.front();
     return color;
+}
+
+// LinkLabel paints with the font measure sized it with: at a text scale
+// above 1 the drawn text is larger than the authored size
+// (A-gf-controls-01-F3).
+void test_link_label_paints_at_the_text_scale() {
+    std::shared_ptr<gui_forms::LinkLabel> link = make_control<LinkLabel>(StableId("link.scaled"), "Open");
+    (*link).set_requested_bounds({0.0, 0.0, 160.0, 48.0});
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(link, Size{160.0, 48.0});
+    (*held_window).set_text_scale(2.0);
+    (*held_window).perform_layout();
+    RecordingPainter painter;
+    (*link).on_paint(painter, {});
+    require(painter.text_sizes.size() == 1U && painter.text_sizes.front() > (*link).font.read().size,
+            "LinkLabel draws its text at the effective text scale");
 }
 
 // The link families (owner decision W-Q5): LinkLabel's text takes the link
@@ -2246,6 +2263,7 @@ int main() {
         test_radio_clear_survives_a_handler_editing_the_parent();
         test_link_and_callback_disposal();
         test_link_families();
+    test_link_label_paints_at_the_text_scale();
         test_wrong_thread_property_mutation_is_rejected();
         test_fixed_label_text_is_paint_only();
         test_fixed_label_measurement_does_not_resolve_unused_text();
