@@ -764,14 +764,14 @@ void SurfaceRoot::count_blend_frame(const detail::DisplayChunk& transaction, Pai
     blend_frame_pending_ = true;
 }
 
-void SurfaceRoot::set_blend_study(const std::optional<BlendStudyMode> mode) {
+void SurfaceRoot::set_blend_study(const stxlib::Optional<BlendStudyMode> mode) {
     require_root_thread("blend study setting");
     blend_study_setting_ = mode;
     if (blend_study_mode() == BlendStudyMode::off) blend_planes_.reset();
 }
 
 BlendStudyMode SurfaceRoot::blend_study_mode() const noexcept {
-    const BlendStudyMode mode = blend_study_setting_ ? *blend_study_setting_ : blend_study_default();
+    const BlendStudyMode mode = blend_study_setting_.value_or(blend_study_default());
     return mode;
 }
 

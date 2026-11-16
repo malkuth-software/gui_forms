@@ -177,7 +177,7 @@ CaseResult measure(SkiaRaster& raster, Window& window, Rect damage, double scale
     CaseResult result;
     std::size_t frame = 0;
     // Counting pass.
-    window.set_blend_study(BlendStudyMode::counters);
+    window.set_blend_study(stxlib::Optional<BlendStudyMode>::of(BlendStudyMode::counters));
     for (frame = 0; frame < warmup_frames; ++frame) paint_once(raster, window, damage, scale);
     window.reset_blend_study();
     for (frame = 0; frame < measured_frames; ++frame) paint_once(raster, window, damage, scale);
@@ -185,7 +185,7 @@ CaseResult measure(SkiaRaster& raster, Window& window, Rect damage, double scale
     result.counters = counted.totals;
     result.counted_frames = counted.frames;
     // Timing pass, the study off.
-    window.set_blend_study(BlendStudyMode::off);
+    window.set_blend_study(stxlib::Optional<BlendStudyMode>::of(BlendStudyMode::off));
     for (frame = 0; frame < warmup_frames; ++frame) paint_once(raster, window, damage, scale);
     std::vector<std::uint64_t> samples;
     samples.reserve(measured_frames);
@@ -230,7 +230,7 @@ void write_record(std::ofstream& records, const std::string& record) {
 // the frame as <output>/heat-<name>-<page>.png.
 void write_heat_map(SkiaRaster& raster, Window& window, Rect whole, BlendStudyMode mode, std::string_view name,
                     std::string_view page, const std::filesystem::path& output) {
-    window.set_blend_study(mode);
+    window.set_blend_study(stxlib::Optional<BlendStudyMode>::of(mode));
     paint_once(raster, window, whole, 1.0);
     const std::span<const std::byte> frame(static_cast<const std::byte*>(raster.pixels()), raster.byte_size());
     std::vector<std::byte> copy(frame.begin(), frame.end());
@@ -242,7 +242,7 @@ void write_heat_map(SkiaRaster& raster, Window& window, Rect whole, BlendStudyMo
     const gui_forms::DevicePixelRect clip{0, 0, static_cast<std::int32_t>(target.width),
                                          static_cast<std::int32_t>(target.height)};
     gui_forms::compose_blend_heat_map(target, window.blend_heat_map(), clip);
-    window.set_blend_study(BlendStudyMode::off);
+    window.set_blend_study(stxlib::Optional<BlendStudyMode>::of(BlendStudyMode::off));
     gui_forms::image::PngEncodeInput input{};
     input.width = target.width;
     input.height = target.height;

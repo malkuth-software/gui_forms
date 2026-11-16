@@ -104,7 +104,7 @@ gui_forms::SurfaceRoot
 
       **invalidation_overlay_setting** : ``stxlib::Optional<bool>``, read-only
 
-      **blend_study_setting** : ``std::optional<BlendStudyMode>``, read-only
+      **blend_study_setting** : ``stxlib::Optional<BlendStudyMode>``, read-only
 
       **blend_study_mode** : ``BlendStudyMode``, read-only
          The mode in force: the window's setting, else the process switch.
@@ -792,7 +792,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: stxlib::Optional<bool> invalidation_overlay_setting() const noexcept
 
-   .. cpp:function:: std::optional<BlendStudyMode> blend_study_setting() const noexcept
+   .. cpp:function:: stxlib::Optional<BlendStudyMode> blend_study_setting() const noexcept
 
    .. cpp:function:: BlendStudyMode blend_study_mode() const noexcept
 
@@ -1821,9 +1821,13 @@ gui_forms::SurfaceRoot
 
       The standard form, kept for one stage (D15 Q3).
 
-   .. cpp:function:: void set_blend_study(std::optional<BlendStudyMode> mode)
+   .. cpp:function:: void set_blend_study(stxlib::Optional<BlendStudyMode> mode)
 
       The blend and opaque study (2026-11-16; see blend_study.hpp). The window's own setting: a mode, or none to follow the process switch (set_blend_study_default, read from GUI_FORMS_DEBUG_BLEND at first). While the study is on, each paint counts how its frame's device pixels were written (BlendFrameCounters); turning it off keeps the counts and frees the planes. Neither damages the window. UI thread.
+
+   .. cpp:function:: void set_blend_study(std::optional<BlendStudyMode> mode)
+
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: void set_paint_wake_handler(std::function<void()> wake)
 

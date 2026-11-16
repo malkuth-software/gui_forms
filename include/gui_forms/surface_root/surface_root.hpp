@@ -736,8 +736,18 @@ public:
     // While the study is on, each paint counts how its frame's device
     // pixels were written (BlendFrameCounters); turning it off keeps the
     // counts and frees the planes. Neither damages the window. UI thread.
-    void set_blend_study(std::optional<BlendStudyMode> mode);
-    [[nodiscard]] std::optional<BlendStudyMode> blend_study_setting() const noexcept { return blend_study_setting_; }
+    void set_blend_study(stxlib::Optional<BlendStudyMode> mode);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<BlendStudyMode>")]]
+    void set_blend_study(std::optional<BlendStudyMode> mode) {
+        stxlib::Optional<BlendStudyMode> owned{};
+        if (mode.has_value()) owned.set(*mode);
+        set_blend_study(owned);
+    }
+    // A plain mode is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<BlendStudyMode>::of(mode).
+    void set_blend_study(BlendStudyMode mode) = delete;
+    [[nodiscard]] stxlib::Optional<BlendStudyMode> blend_study_setting() const noexcept { return blend_study_setting_; }
     // The mode in force: the window's setting, else the process switch.
     [[nodiscard]] BlendStudyMode blend_study_mode() const noexcept;
     // The frames counted since the window was made or the last reset, the
@@ -2917,7 +2927,7 @@ private:
     // paint_timed adds its duration) and the sums.
     std::unique_ptr<BlendStudyPlanes> blend_planes_{};
     std::vector<DevicePixelRect> blend_painted_{};
-    std::optional<BlendStudyMode> blend_study_setting_{};
+    stxlib::Optional<BlendStudyMode> blend_study_setting_{};
     std::uint64_t blend_frames_{};
     BlendFrameCounters blend_last_{};
     BlendFrameCounters blend_totals_{};
