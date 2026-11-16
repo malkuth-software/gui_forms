@@ -162,10 +162,12 @@ enum class OwnerDecorationLayer : std::uint8_t {
 struct GUI_FORMS_API OwnerDecorationRecipe final {
     OwnerDecorationLayer layer{OwnerDecorationLayer::after_content};
     Size size{};
-    std::optional<double> left;
-    std::optional<double> top;
-    std::optional<double> right;
-    std::optional<double> bottom;
+    // Offsets from the owner's edges: exactly one of left and right, and one
+    // of top and bottom, is present (set_owned_decorations checks).
+    stxlib::Optional<double> left{};
+    stxlib::Optional<double> top{};
+    stxlib::Optional<double> right{};
+    stxlib::Optional<double> bottom{};
     double rotation_degrees{};
     MaterialBorderEdges border_edges;
     friend bool operator==(const OwnerDecorationRecipe& left_value,

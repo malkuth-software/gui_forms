@@ -2686,13 +2686,15 @@ Related types
 
    .. cpp:member:: Size size
 
-   .. cpp:member:: std::optional<double> left
+   .. cpp:member:: stxlib::Optional<double> left
 
-   .. cpp:member:: std::optional<double> top
+      Offsets from the owner's edges: exactly one of left and right, and one of top and bottom, is present (set_owned_decorations checks).
 
-   .. cpp:member:: std::optional<double> right
+   .. cpp:member:: stxlib::Optional<double> top
 
-   .. cpp:member:: std::optional<double> bottom
+   .. cpp:member:: stxlib::Optional<double> right
+
+   .. cpp:member:: stxlib::Optional<double> bottom
 
    .. cpp:member:: double rotation_degrees
 

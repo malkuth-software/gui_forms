@@ -1405,15 +1405,15 @@ void test_owner_decoration_is_retained_and_owner_relative() {
     OwnerDecorationRecipe before_recipe{};
     before_recipe.layer = OwnerDecorationLayer::before_content;
     before_recipe.size = {10.0, 10.0};
-    before_recipe.top = 14.0;
-    before_recipe.left = 10.0;
+    before_recipe.top.set(14.0);
+    before_recipe.left.set(10.0);
     before_recipe.rotation_degrees = 45.0;
     before_recipe.border_edges = MaterialBorderEdges::from_parts(
         &edge, &edge, nullptr, nullptr);
     OwnerDecorationRecipe after_recipe = before_recipe;
     after_recipe.layer = OwnerDecorationLayer::after_content;
     after_recipe.left.reset();
-    after_recipe.right = 10.0;
+    after_recipe.right.set(10.0);
     const OwnerDecorationRecipe recipes[]{before_recipe, after_recipe};
     (*button).set_owned_decorations(recipes, 2U);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(button, Size{80.0, 40.0});
