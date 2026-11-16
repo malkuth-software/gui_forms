@@ -18,9 +18,8 @@ gui_forms_font_metrics_differential --reference <face.ttf> --candidate <face.ttf
 
 The exit status is 0 when the mapping's gate passes and 1 when it does not.
 It is 2 when an input is rejected or the measurement fails, and then no report
-is written. The tool is built when FreeType is (a build with Skia or the
-Win32 host): it reads the faces' name, OS/2 and hhea tables with FreeType,
-which STXlib's font reader does not yet give. The executable sits at the build tree's
+is written. It reads the faces' name, OS/2 and hhea tables with STXlib's
+font reader (FreeType's reading, until 2026-11-16). The executable sits at the build tree's
 root as `gui_forms_font_metrics_differential`.
 
 ## What it measures

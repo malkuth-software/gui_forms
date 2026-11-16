@@ -70,7 +70,7 @@ private:
 
 // Analyses the paragraph of `text` that starts at byte `offset` (the
 // automatic base level, left to right when the paragraph has no strong
-// character: SheenBidi's SBLevelDefaultLTR), then its whole length as one
+// character), then its whole length as one
 // line, and counts the storage. The visual runs are analysis.line.runs(),
 // their offsets bytes of the whole text. Returns the paragraph's length,
 // which is never zero; the next paragraph starts at offset plus it.

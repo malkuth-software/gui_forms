@@ -93,7 +93,6 @@ checkout, whose edits each build brings into the package. The package holds:
 | stx path | Contents |
 |---|---|
 | `stx_skia/` | the CPU renderer, a pruned CPU Skia derivative, with its contract tests in stx's own CI |
-| `third_party/freetype/` | FreeType (GUI.Drawing's face choice; the text engine shapes, measures and draws with STXlib) |
 | `third_party/unicode/` | the Unicode data |
 | `stx_zlib/`, `stx_png/`, `stx_conv/`, `stx_rtf2md/`, `stx_vorbis/` | the first-party compression, PNG, CONV interpolation, rich-text and Ogg Vorbis libraries |
 

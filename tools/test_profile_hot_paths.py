@@ -21,8 +21,8 @@ SELF_LISTING: str = '\n'.join([
     '    21.50%\tgui_forms_paint_profile_workload\t[.] portable::lowp::blit_row_s32a_opaque',
     '    12.25%\tgui_forms_paint_profile_workload\t[.] SkRasterPipeline::run',
     '     8.00%\tgui_forms_paint_profile_workload\t[.] gui_forms::Window::paint(gui_forms::Painter&, gui_forms::Rect)',
-    '     4.10%\tgui_forms_paint_profile_workload\t[.] hb_buffer_t::sort',
-    '     3.00%\tgui_forms_paint_profile_workload\t[.] FT_Load_Glyph',
+    '     4.10%\tgui_forms_paint_profile_workload\t[.] stxlib::glyphs::Shaper::shape',
+    '     3.00%\tgui_forms_paint_profile_workload\t[.] stxlib::glyphs::Typeface::draw',
     '     2.00%\tlibc.so.6\t[.] __memmove_avx_unaligned_erms',
     '     1.50%\t[kernel.kallsyms]\t[k] clear_page_erms',
     '     0.75%\tgui_forms_paint_profile_workload\t[.] std::vector<int, std::allocator<int> >::push_back',
@@ -70,11 +70,11 @@ class ParseTests(unittest.TestCase):
 
     def test_split_inclusive_rows_are_summed_and_held_above_self(self) -> None:
         # perf --children can list one function twice; the self listing once.
-        self_rows: list[HotFunction] = [HotFunction('af_glyph_hints_reload', 'w', 12.35, 12.35, 'freetype'),
-                                        HotFunction('FT_Load_Glyph', 'w', 3.0, 3.0, 'freetype')]
-        children_rows: list[HotFunction] = [HotFunction('af_glyph_hints_reload', 'w', 11.86, 13.56, 'freetype'),
-                                            HotFunction('af_glyph_hints_reload', 'w', 0.48, 0.61, 'freetype'),
-                                            HotFunction('FT_Load_Glyph', 'w', 0.5, 1.0, 'freetype')]
+        self_rows: list[HotFunction] = [HotFunction('stxlib::glyphs::fit_outline', 'w', 12.35, 12.35, 'stxlib'),
+                                        HotFunction('stxlib::glyphs::Typeface::draw', 'w', 3.0, 3.0, 'stxlib')]
+        children_rows: list[HotFunction] = [HotFunction('stxlib::glyphs::fit_outline', 'w', 11.86, 13.56, 'stxlib'),
+                                            HotFunction('stxlib::glyphs::fit_outline', 'w', 0.48, 0.61, 'stxlib'),
+                                            HotFunction('stxlib::glyphs::Typeface::draw', 'w', 0.5, 1.0, 'stxlib')]
         merged: list[HotFunction] = profile_hot_paths.merge_inclusive(self_rows, children_rows)
         self.assertEqual(merged[0].inclusive_percent, 14.17)
         # An inclusive share below the self share (a split the listing cut off) is raised to it.
@@ -103,7 +103,7 @@ class AreaTests(unittest.TestCase):
         row: HotFunction
         for row in rows:
             areas.append(row.area)
-        self.assertEqual(areas, ['skia', 'skia', 'gui_forms', 'harfbuzz', 'freetype', 'runtime', 'kernel', 'other',
+        self.assertEqual(areas, ['skia', 'skia', 'gui_forms', 'stxlib', 'stxlib', 'runtime', 'kernel', 'other',
                                  'gui_forms', 'workload', 'skia'])
 
     def test_area_shares_sum_self_shares_largest_first(self) -> None:

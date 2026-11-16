@@ -4,17 +4,20 @@ This repository carries no third-party sources (owner, 2026-11-05). They are
 kept in the stx repository (malkuth-software/stx) at the commit `stx.lock`
 names. `cmake/Stx.cmake` builds them once, at that commit, into the stx
 package (`cmake/stx_package/`), which the build links; it fetches the stx
-source only when the package must be built:
+source only when the package must be built. (HarfBuzz, FreeType, the line
+breaker, the markdown reader and the bidi library were retired on
+2026-11-16: STXlib does that work.)
 
 | stx path | What | GUI.Forms uses it for |
 |---|---|---|
-| `third_party/freetype/` | FreeType 2.14.2 at `f4205da1` | glyph loading and rasterisation, with the options header in `cmake/freetype/` |
 | `third_party/unicode/` | the Unicode 17 licence and the provenance of GUI.Forms' generated grapheme tables | the tables' attribution |
 | `stx_skia/` | the CPU Skia derivative (Skia `chrome/m152`, pruned and converted) | the Skia adapters, linked from the stx package |
 
-HarfBuzz, libunibreak, MD4C and SheenBidi left on 2026-11-16: GUI.Forms
-shapes with STXlib's shaper, reads Markdown with stxlib::markdown and takes
-line breaks and bidi from stxlib::textlayout (STXlib, in the stx package).
+FreeType, HarfBuzz, libunibreak, MD4C and SheenBidi left on 2026-11-16:
+GUI.Forms reads fonts with STXlib's font tables, shapes with its shaper,
+reads Markdown with stxlib::markdown and takes line breaks and bidi from
+stxlib::textlayout (STXlib, in the stx package). GUI.Forms builds no
+third-party code.
 
 Each stx directory keeps its licence, its PROVENANCE file and its intake
 record (stx `third_party/README.md`), unchanged from when they were here. The

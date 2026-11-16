@@ -368,7 +368,7 @@ void link_view_categories() noexcept {
         (*_model).set_framebuffer_painter(fonts_ready ? &_raster : nullptr);
         (*_model).metrics().set_renderer(
             fonts_ready
-                ? "Skia CPU m152 · HarfBuzz 14.6.0 · FreeType 2.14.2 · bundled fonts (optional Unicode fallback)"
+                ? "Skia CPU m152 · STXlib text · bundled fonts (optional Unicode fallback)"
                 : "Skia CPU m152 · incomplete bundled font pack",
             true);
         [[NSNotificationCenter defaultCenter]

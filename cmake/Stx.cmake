@@ -2,8 +2,8 @@
 # package (cmake/stx_package/CMakeLists.txt): the stx libraries (stx_zlib,
 # stx_png, stx_conv, stx_raster3d, stx_rtf2md and, for audio builds, stx_vorbis; owner ruling
 # 2026-11-03, decision 3(a)), stx_skia, and the third-party sources of stx
-# third_party/ (FreeType; owner, 2026-11-05: this repository carries no
-# third-party sources). Markdown, bidi, line breaking, script runs and
+# third_party/ (now only the Unicode data and its licence; owner, 2026-11-05:
+# this repository carries no third-party sources). Markdown, bidi, line breaking, script runs and
 # shaping are STXlib's since 2026-11-16 (stxlib::markdown,
 # stxlib::textlayout, stxlib::glyphs; HarfBuzz is no longer built). This build
 # compiles none of them: it links the package.
@@ -13,7 +13,7 @@
 # - GUI_FORMS_STX_PREFIX=<dir> names a package already built (an SDK build, a
 #   product's lockstep build): nothing is fetched or built, and the configure
 #   stops unless the package was built from stx.lock's commit with the
-#   renderer, text and audio choices of this configuration.
+#   renderer and audio choices of this configuration.
 # - GUI_FORMS_STX_PACKAGE_DIR=<dir> (default <build>/stx-package) is where the
 #   package is built, and reused while its stamp matches: the stx commit, this
 #   file and the package recipe, and the compilers, build type, flags,
@@ -24,7 +24,7 @@
 # - FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<dir> replaces the pinned commit with
 #   a local stx checkout (lockstep development); the package is then brought up
 #   to date before every build, so edits there reach this build.
-# - GUI_FORMS_ENABLE_SKIA, GUI_FORMS_WITH_FREETYPE, and
+# - GUI_FORMS_ENABLE_SKIA and
 #   GUI_FORMS_BUILD_AUDIO with GUI_FORMS_AUDIO_VORBIS_BACKEND=stx choose what
 #   the package holds.
 #
@@ -34,8 +34,7 @@
 #   (STXlib at stx's stxlib.lock commit),
 #   stx_zlib::stx_zlib, stx_png::stx_png, stx_conv::stx_conv, stx_raster3d::stx_raster3d,
 #   stx_rtf2md::stx_rtf2md (and stx_vorbis's when asked);
-#   stx_skia::swizzle and, with the renderer, stx_skia::stx_skia; with the
-#   GUI_FORMS_WITH_FREETYPE, stx_text::freetype;
+#   stx_skia::swizzle and, with the renderer, stx_skia::stx_skia;
 # - GUI_FORMS_STX_PREFIX_DIR, the package's stx libraries (<package>/stx), which
 #   the SDK install copies whole (GUIFormsConfig finds the packages beside
 #   GUI.Forms);
@@ -66,11 +65,7 @@ set(_gui_stx_with_skia OFF)
 if(GUI_FORMS_ENABLE_SKIA)
     set(_gui_stx_with_skia ON)
 endif()
-set(_gui_stx_with_text OFF)
-if(GUI_FORMS_WITH_FREETYPE)
-    set(_gui_stx_with_text ON)
-endif()
-set(_gui_stx_choices "skia = ${_gui_stx_with_skia}\ntext = ${_gui_stx_with_text}\nvorbis = ${_gui_stx_with_vorbis}\n")
+set(_gui_stx_choices "skia = ${_gui_stx_with_skia}\nvorbis = ${_gui_stx_with_vorbis}\n")
 # The high-integrity configuration's STXlib settings (cmake/HighIntegrity.cmake):
 # a line of their own, only when on, so an ordinary package's stamp is unchanged.
 if(GUI_FORMS_HIGH_INTEGRITY)
@@ -111,8 +106,7 @@ macro(_gui_stx_fetch_source)
     FetchContent_MakeAvailable(gui_forms_stx)
     set(GUI_FORMS_STX_SOURCE_DIR "${gui_forms_stx_SOURCE_DIR}")
     if(NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/CMakeLists.txt" OR
-       NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/CMakeLists.txt" OR
-       NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/third_party/freetype/CMakeLists.txt")
+       NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/CMakeLists.txt")
         message(FATAL_ERROR "the stx source at ${GUI_FORMS_STX_SOURCE_DIR} is not an stx checkout with stx_skia/ "
                             "and third_party/ (stx.lock must name a commit after the move of 2026-11-08)")
     endif()
@@ -144,7 +138,6 @@ else()
     string(TOUPPER "${CMAKE_BUILD_TYPE}" _gui_stx_build_type)
     set(_gui_stx_arguments
         -DGUI_FORMS_STX_PACKAGE_SKIA=${_gui_stx_with_skia}
-        -DGUI_FORMS_STX_PACKAGE_TEXT=${_gui_stx_with_text}
         -DSTX_WITH_VORBIS=${_gui_stx_with_vorbis}
         # One module (owner decision, 2026-11-15): STXlib's state is a static
         # archive linked into the one module that holds it, a program or the C
@@ -185,8 +178,7 @@ else()
     endforeach()
     gui_forms_text_digest("${CMAKE_CURRENT_LIST_FILE}" _gui_stx_this_digest)
     gui_forms_text_digest("${_gui_stx_recipe}/CMakeLists.txt" _gui_stx_recipe_digest)
-    gui_forms_text_digest("${_gui_stx_root}/cmake/freetype/gui_forms_ftoption.h" _gui_stx_options_digest)
-    string(SHA256 _gui_stx_inputs "${_gui_stx_this_digest};${_gui_stx_recipe_digest};${_gui_stx_options_digest};${CMAKE_GENERATOR};${_gui_stx_stamped_arguments}")
+    string(SHA256 _gui_stx_inputs "${_gui_stx_this_digest};${_gui_stx_recipe_digest};${CMAKE_GENERATOR};${_gui_stx_stamped_arguments}")
     set(_gui_stx_stamp "commit = ${_gui_stx_commit}\n${_gui_stx_choices}inputs = ${_gui_stx_inputs}\n")
     set(_gui_stx_recorded "")
     if(EXISTS "${_gui_stx_package}/${_gui_stx_stamp_name}")
@@ -305,4 +297,3 @@ if(_gui_stx_with_vorbis)
     find_package(stx_vorbis CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 endif()
 find_package(stx_skia CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_BUILD_PREFIX_DIR}")
-find_package(stx_text CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_BUILD_PREFIX_DIR}")

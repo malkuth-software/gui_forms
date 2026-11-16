@@ -171,7 +171,7 @@ std::int64_t oracle_floor_pixel(const std::int64_t value) {
     return floored;
 }
 
-// The face's FT_Size_Metrics at `device_size` (26.6) as FreeType 2.14 gave
+// The face's size metrics at `device_size` (26.6) as FreeType 2.14 gave
 // them (y_scale = size / units per em; ascender up, descender down, height
 // to the nearest whole pixel), from the face's design numbers as STXlib's
 // independent font reader reads them.

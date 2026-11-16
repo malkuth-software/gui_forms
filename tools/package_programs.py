@@ -62,10 +62,6 @@ WINDOWS_SYSTEM_DLLS: frozenset[str] = frozenset({
 WINDOWS_FORBIDDEN_RUNTIME_DLL: re.Pattern[str] = re.compile(
     r"(libgcc_s_[a-z0-9_]+-\d+|libstdc\+\+-\d+|libgomp-\d+|libatomic-\d+|libssp-\d+|libquadmath-\d+"
     r"|libc\+\+|libc\+\+abi|libunwind|libwinpthread-\d+)\.dll", re.IGNORECASE)
-# The credit the FreeType License requires in the documentation of a binary
-# that uses FreeType (FTL section 3); THIRD_PARTY_NOTICES.md carries it.
-FREETYPE_CREDIT: str = ("Portions of this software are copyright \u00a9 2026 The FreeType Project "
-                        "(www.freetype.org). All rights reserved.")
 NOTICES_NAME: str = "THIRD_PARTY_NOTICES.md"
 # The title every GNU GPL, LGPL and AGPL text begins with; a package carries
 # none of them.
@@ -122,7 +118,7 @@ def linux_runtime_dependencies(listing: str) -> list[str]:
 # package whose binary names a first-party or bundled third-party library is
 # refused, never completed by copying the library beside it.
 FIRST_PARTY_LIBRARY: re.Pattern[str] = re.compile(
-    r"(?:lib)?(?:gui_forms_|gui_drawing_|stxlib_|stx_|freetype|harfbuzz|sheenbidi|unibreak|md4c)[^/\\]*",
+    r"(?:lib)?(?:gui_forms_|gui_drawing_|stxlib_|stx_|freetype|harfbuzz)[^/\\]*",
     re.IGNORECASE)
 # The LLVM runtime dylibs a macOS program may still name while the pinned
 # runtime tree has no static libc++ archives (cmake/llvm22.cmake sets
@@ -173,8 +169,6 @@ def check_package_notices(root: Path, platform: str, licenses: dict[str, Any], f
     if not notices_path.is_file():
         raise RuntimeError(f"the package lacks licenses/{NOTICES_NAME}")
     notices = notices_path.read_text(encoding="utf-8")
-    if FREETYPE_CREDIT not in notices:
-        raise RuntimeError(f"licenses/{NOTICES_NAME} lacks the FreeType credit")
     licence_files: list[str] = []
     licences = root / "licenses"
     for path in sorted(licences.rglob("*")):
@@ -705,8 +699,7 @@ class Packager:
         """Fail unless the package at `root` is covered by THIRD_PARTY_NOTICES.md.
 
         `root` holds licenses/ and fonts/ (a bundle, or a macOS app's
-        Resources). The notices file must be in licenses/ and carry the
-        FreeType credit; every licence file under licenses/ and every font
+        Resources). The notices file must be in licenses/; every licence file under licenses/ and every font
         licence in fonts/ must be named in it; every packaging/licenses.json
         component that applies to this platform must have a row in its
         table; and no file in the package may carry a GPL text or a name
@@ -714,7 +707,7 @@ class Packager:
         """
         check_package_notices(root, self.platform, json.loads(LICENSES_PATH.read_text(encoding="utf-8")),
                               self.manifest.font_notices(program))
-        self.log(f"  notices checked: {NOTICES_NAME}, FreeType credit, licence files named, no GPL text")
+        self.log(f"  notices checked: {NOTICES_NAME}, licence files named, no GPL text")
 
     def write_readme(self, destination: Path, program: Program, launch: str) -> None:
         (destination / "README.txt").write_text(
