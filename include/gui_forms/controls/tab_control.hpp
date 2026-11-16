@@ -160,9 +160,6 @@ private:
         std::unordered_map<std::uint64_t, Control::WeakPtr>;
     [[nodiscard]] stxlib::Optional<std::size_t> index_of(
         const std::shared_ptr<TabPage>& page) const;
-    // The index of the page whose tab is the semantic child
-    // `<page id>.tab`, or none.
-    [[nodiscard]] stxlib::Optional<std::size_t> find_semantic_tab(std::string_view child_stable_id) const;
     void select_relative(int delta);
     // Raises deselecting and selecting for a change to `target`; false when
     // a handler cancelled it, disposed the control or removed the page.

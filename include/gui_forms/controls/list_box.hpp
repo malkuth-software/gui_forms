@@ -163,9 +163,6 @@ private:
     void invalidate_row(std::size_t index);
     // The index of an authored stable item ID, or none.
     [[nodiscard]] stxlib::Optional<std::size_t> index_of_item_stable_id(std::string_view stable_id);
-    // Fills `index` with the row a semantic virtual child names (an authored
-    // item ID, or "<id>.item.<n>"); false for none, `index` unchanged.
-    [[nodiscard]] bool semantic_child_index(std::string_view child_stable_id, std::size_t& index);
 
     // Orders indices into item_stable_ids_ by the identity they name.
     struct StableIdOrder {

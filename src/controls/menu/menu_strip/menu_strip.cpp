@@ -522,10 +522,25 @@ std::vector<SemanticNode> MenuStrip::semantic_virtual_children() const {
     return nodes;
 }
 
+namespace {
+
+// The index of the visible, enabled top-level menu `id` among `items`, or none.
+stxlib::Optional<std::size_t> find_top_level(const std::vector<MenuStripItemSpec>& items, std::string_view id) {
+    for (std::size_t index = 0U; index < items.size(); ++index) {
+        const MenuStripItemSpec& item = items[index];
+        if (item.stable_id != id) continue;
+        if (!item.visible || !item.enabled) return stxlib::Optional<std::size_t>::none();
+        return stxlib::Optional<std::size_t>::of(index);
+    }
+    return stxlib::Optional<std::size_t>::none();
+}
+
+} // namespace
+
 bool MenuStrip::on_semantic_child_action(std::string_view id,
                                          SemanticAction action,
                                          std::string_view) {
-    const stxlib::Optional<std::size_t> found = find_top_level(id);
+    const stxlib::Optional<std::size_t> found = find_top_level(items_, id);
     if (found.absent()) return false;
     const std::size_t index = *found.value();
     if (action == SemanticAction::collapse) {
@@ -541,7 +556,7 @@ bool MenuStrip::on_semantic_child_action(std::string_view id,
     const Control::Ptr lifetime = shared_from_this();
     if (window()) static_cast<void>((*window()).request_focus(lifetime));
     if (!is_alive()) return true;
-    const stxlib::Optional<std::size_t> again = find_top_level(id);
+    const stxlib::Optional<std::size_t> again = find_top_level(items_, id);
     if (again.absent()) return true;
     set_hot(again);
     if (action != SemanticAction::focus) {
@@ -549,16 +564,6 @@ bool MenuStrip::on_semantic_child_action(std::string_view id,
         return opened;
     }
     return true;
-}
-
-stxlib::Optional<std::size_t> MenuStrip::find_top_level(std::string_view id) const {
-    for (std::size_t index = 0U; index < items_.size(); ++index) {
-        const MenuStripItemSpec& item = items_[index];
-        if (item.stable_id != id) continue;
-        if (!item.visible || !item.enabled) return stxlib::Optional<std::size_t>::none();
-        return stxlib::Optional<std::size_t>::of(index);
-    }
-    return stxlib::Optional<std::size_t>::none();
 }
 
 bool MenuStrip::mnemonic_matches(char32_t character) const noexcept {
@@ -602,7 +607,7 @@ bool MenuStrip::process_mnemonic_self(char32_t character) {
         return true;
     }
     if (!is_alive()) return true;
-    const stxlib::Optional<std::size_t> again = find_top_level(selected_id);
+    const stxlib::Optional<std::size_t> again = find_top_level(items_, selected_id);
     if (again.absent()) return true;
     set_hot(again);
     const bool opened = open(*again.value());

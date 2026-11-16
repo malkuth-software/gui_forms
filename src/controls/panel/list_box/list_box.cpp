@@ -636,25 +636,25 @@ std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
     return nodes;
 }
 
-bool ListBox::semantic_child_index(std::string_view child_stable_id, std::size_t& index) {
-    if (!item_stable_ids_.empty()) {
-        const stxlib::Optional<std::size_t> found = index_of_item_stable_id(child_stable_id);
-        if (found.absent()) return false;
-        index = *found.value();
-        return true;
-    }
-    const std::string prefix = std::string(stable_id().value()) + ".item.";
-    if (!child_stable_id.starts_with(prefix)) return false;
+namespace {
+
+// The row a semantic child "<list id>.item.<n>" names in a list of `count`
+// items without authored item IDs, or none.
+stxlib::Optional<std::size_t> numbered_child_row(std::string_view list_id, std::size_t count,
+                                                 std::string_view child_stable_id) {
+    const std::string prefix = std::string(list_id) + ".item.";
+    if (!child_stable_id.starts_with(prefix)) return stxlib::Optional<std::size_t>::none();
     const std::string_view suffix = child_stable_id.substr(prefix.size());
-    std::size_t parsed_index{};
+    std::size_t index{};
     const std::from_chars_result parsed = std::from_chars(
-        suffix.data(), suffix.data() + suffix.size(), parsed_index);
+        suffix.data(), suffix.data() + suffix.size(), index);
     if (parsed.ec != std::errc{} ||
         parsed.ptr != suffix.data() + suffix.size() ||
-        parsed_index >= items.read().size()) return false;
-    index = parsed_index;
-    return true;
+        index >= count) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(index);
 }
+
+} // namespace
 
 // Commit, then notify (house style 5): the focus request runs the focus
 // handlers, which may edit the items or drop the list, so the row is found
@@ -666,17 +666,27 @@ bool ListBox::on_semantic_child_action(std::string_view child_stable_id,
                                        std::string_view) {
     if (action != SemanticAction::focus && action != SemanticAction::select &&
         action != SemanticAction::press) return false;
-    std::size_t index{};
-    if (!semantic_child_index(child_stable_id, index)) return false;
+    // The row is named by an authored item ID, or by its position.
+    const stxlib::Optional<std::size_t> named = item_stable_ids_.empty()
+        ? numbered_child_row(stable_id().value(), items.read().size(), child_stable_id)
+        : index_of_item_stable_id(child_stable_id);
+    if (named.absent()) return false;
     const Ptr self = shared_from_this();
     if (window() != nullptr) {
         static_cast<void>((*window()).request_focus(self));
     }
-    if (!is_alive() || !semantic_child_index(child_stable_id, index)) return true;
-    select_index(index, false, false);
+    if (!is_alive()) return true;
+    const stxlib::Optional<std::size_t> focused_row = item_stable_ids_.empty()
+        ? numbered_child_row(stable_id().value(), items.read().size(), child_stable_id)
+        : index_of_item_stable_id(child_stable_id);
+    if (focused_row.absent()) return true;
+    select_index(*focused_row.value(), false, false);
     if (action != SemanticAction::press || !is_alive()) return true;
-    if (!semantic_child_index(child_stable_id, index)) return true;
-    item_activated_.emit(index);
+    const stxlib::Optional<std::size_t> pressed_row = item_stable_ids_.empty()
+        ? numbered_child_row(stable_id().value(), items.read().size(), child_stable_id)
+        : index_of_item_stable_id(child_stable_id);
+    if (pressed_row.absent()) return true;
+    item_activated_.emit(*pressed_row.value());
     return true;
 }
 
