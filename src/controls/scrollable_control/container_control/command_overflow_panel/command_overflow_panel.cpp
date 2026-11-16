@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <stxlib/optional.hpp>
 #include <system_error>
 #include <unordered_set>
 #include <utility>
@@ -86,9 +87,10 @@ void append_number(std::string& text, double value) {
 // The group spec's text form ("176 176 176" or "176 176 176 priority 2");
 // the empty text is none. Parsing throws std::invalid_argument for text of
 // another shape; the extents' order is the panel's check, on the write.
-std::string format_command_overflow_group_spec(const std::optional<CommandOverflowGroupSpec>& spec) {
+std::string format_command_overflow_group_spec(const stxlib::Optional<CommandOverflowGroupSpec>& stored) {
     std::string text;
-    if (!spec) return text;
+    const CommandOverflowGroupSpec* spec = stored.value();
+    if (spec == nullptr) return text;
     append_number(text, (*spec).minimum);
     text.push_back(' ');
     append_number(text, (*spec).preferred);
@@ -101,10 +103,10 @@ std::string format_command_overflow_group_spec(const std::optional<CommandOverfl
     return text;
 }
 
-std::optional<CommandOverflowGroupSpec> parse_command_overflow_group_spec(std::string_view text) {
+stxlib::Optional<CommandOverflowGroupSpec> parse_command_overflow_group_spec(std::string_view text) {
     std::size_t position = 0U;
     const std::string_view first = next_word(text, position);
-    if (first.empty()) return std::nullopt;
+    if (first.empty()) return stxlib::Optional<CommandOverflowGroupSpec>::none();
     CommandOverflowGroupSpec spec{};
     const std::string_view second = next_word(text, position);
     const std::string_view third = next_word(text, position);
@@ -126,7 +128,8 @@ std::optional<CommandOverflowGroupSpec> parse_command_overflow_group_spec(std::s
     if (!next_word(text, position).empty()) {
         throw std::invalid_argument("CommandOverflowPanel group spec has text after its priority");
     }
-    return spec;
+    stxlib::Optional<CommandOverflowGroupSpec> parsed_spec = stxlib::Optional<CommandOverflowGroupSpec>::of(spec);
+    return parsed_spec;
 }
 
 const PropertyDescriptor& describe_group_spec() {
@@ -141,14 +144,14 @@ const PropertyDescriptor& describe_group_spec() {
 
 BindingValue read_group_spec(const Component& container, const Control& child) {
     const CommandOverflowPanel& panel = static_cast<const CommandOverflowPanel&>(container);
-    const std::optional<CommandOverflowGroupSpec> spec = panel.group_spec[child].read();
+    const stxlib::Optional<CommandOverflowGroupSpec> spec = panel.group_spec[child].read();
     BindingValue value{format_command_overflow_group_spec(spec)};
     return value;
 }
 
 void write_group_spec(Component& container, const Control& child, const BindingValue& value) {
     CommandOverflowPanel& panel = static_cast<CommandOverflowPanel&>(container);
-    std::optional<CommandOverflowGroupSpec> spec = parse_command_overflow_group_spec(std::get<std::string>(value));
+    stxlib::Optional<CommandOverflowGroupSpec> spec = parse_command_overflow_group_spec(std::get<std::string>(value));
     panel.group_spec[child] = std::move(spec);
 }
 
@@ -190,11 +193,12 @@ void CommandOverflowPanel::validate_spec(
 }
 
 void CommandOverflowPanel::prepare_write(const Control& child,
-                                         const std::optional<CommandOverflowGroupSpec>& incoming) const {
+                                         const stxlib::Optional<CommandOverflowGroupSpec>& incoming) const {
     require_mutable();
     require_direct_child(child);
-    if (!incoming) return;
-    const CommandOverflowGroupSpec& spec = *incoming;
+    const CommandOverflowGroupSpec* incoming_spec = incoming.value();
+    if (incoming_spec == nullptr) return;
+    const CommandOverflowGroupSpec& spec = *incoming_spec;
     validate_spec(spec);
     const std::shared_ptr<Control> actuator = overflow_actuator_.lock();
     if (actuator && actuator.get() == &child) {
@@ -216,24 +220,25 @@ void CommandOverflowPanel::written(const Control& child) {
     invalidate(invalidation::bounds);
 }
 
-bool CommandOverflowPanel::replace_group_spec(const Control& child, std::optional<CommandOverflowGroupSpec> value) {
+bool CommandOverflowPanel::replace_group_spec(const Control& child, stxlib::Optional<CommandOverflowGroupSpec> value) {
     const std::uint64_t id = child.runtime_id().value;
     const GroupSpecMap::iterator found = group_specs_.find(id);
-    if (!value) {
+    const CommandOverflowGroupSpec* spec = value.value();
+    if (spec == nullptr) {
         if (found == group_specs_.end()) return false;
         group_specs_.erase(found);
         return true;
     }
-    if (found != group_specs_.end() && (*found).second == *value) return false;
-    group_specs_[id] = std::move(*value);
+    if (found != group_specs_.end() && (*found).second == *spec) return false;
+    group_specs_[id] = *spec;
     return true;
 }
 
-std::optional<CommandOverflowGroupSpec> CommandOverflowPanel::stored_group_spec(const Control& child) const {
+stxlib::Optional<CommandOverflowGroupSpec> CommandOverflowPanel::stored_group_spec(const Control& child) const {
     require_direct_child(child);
     const GroupSpecMap::const_iterator found = group_specs_.find(child.runtime_id().value);
-    if (found == group_specs_.end()) return std::nullopt;
-    std::optional<CommandOverflowGroupSpec> value = (*found).second;
+    if (found == group_specs_.end()) return stxlib::Optional<CommandOverflowGroupSpec>::none();
+    stxlib::Optional<CommandOverflowGroupSpec> value = stxlib::Optional<CommandOverflowGroupSpec>::of((*found).second);
     return value;
 }
 
