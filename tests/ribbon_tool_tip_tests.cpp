@@ -69,6 +69,14 @@ struct RecordVisibility final {
     void operator()(const RibbonToolTipEvent& event) const { (*seen).push_back(event); }
 };
 
+// Clears every mapping when a tooltip hides.
+struct ClearOnHide final {
+    RibbonToolTip* tips{};
+    void operator()(const RibbonToolTipEvent& event) const {
+        if (!event.shown) (*tips).clear();
+    }
+};
+
 struct RecordHelp final {
     std::vector<RibbonToolTipHelpRequest>* seen{};
     void operator()(const RibbonToolTipHelpRequest& request) const { (*seen).push_back(request); }
@@ -243,6 +251,15 @@ void validation_and_removal() {
     tips.set_item_tool_tip(fixture.strip, "bold", {});
     tips.clear();
     require(!tips.has_tool_tip(*fixture.strip, "bold"), "clear removes every mapping");
+
+    // A visibility_changed handler that clears the mappings while the shown
+    // one is removed (A-gf-controls-12-F5; meaningful under the sanitizer
+    // tree).
+    tips.set_tool_tip(fixture.button, {.title = "Format Painter"});
+    tips.show(fixture.button);
+    SubscriptionToken clearing = tips.visibility_changed().subscribe(ClearOnHide{&tips});
+    require(tips.remove_tool_tip(*fixture.button) && !tips.visible() && !tips.has_tool_tip(*fixture.button),
+            "a removal whose hide handler clears the mappings completes");
 }
 
 // A mapping without a title takes the thing's plain tooltip as its title,
