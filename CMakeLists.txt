@@ -6766,6 +6766,14 @@ install(FILES ${gui_forms_stx_licenses}/stxlib/stx_btree-NOTICE DESTINATION ${CM
 install(FILES ${gui_forms_stx_licenses}/stxlib/stx_minmallocpp-NOTICE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_minmallocpp-NOTICE.txt)
 install(FILES ${gui_forms_stx_licenses}/stxlib/tzdata-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME tzdata-LICENSE.txt)
 install(FILES ${gui_forms_stx_licenses}/stxlib/unicode-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stxlib-unicode-LICENSE.txt)
+# STXlib 23a0025 (layout 13): the glyph face the text rasterizers draw with
+# (stxlib::glyphs; its NOTICE carries the notices of ttf-parser, Skrifa and
+# read-fonts and the FreeType Project's design it converts), and
+# stxlib::markdown (MD4C's licence in its NOTICE, and the HTML Standard's
+# named character references), both compiled into stxlib_algorithms.
+install(FILES ${gui_forms_stx_licenses}/stxlib/glyphs-NOTICE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stxlib-glyphs-NOTICE.txt)
+install(FILES ${gui_forms_stx_licenses}/stxlib/markdown-NOTICE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stxlib-markdown-NOTICE.txt)
+install(FILES ${gui_forms_stx_licenses}/stxlib/whatwg-entities-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME whatwg-entities-LICENSE.txt)
 # The stock icons are Heroicons vectors converted into the library at build
 # time (assets/icons/heroicons/PROVENANCE.md); their MIT licence ships with it.
 install(FILES assets/icons/heroicons/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Heroicons-LICENSE.txt)
