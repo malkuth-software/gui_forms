@@ -225,6 +225,10 @@ public:
     // buffer holds the frame before (age 1), else the caller writes the
     // area. Requires a held grant.
     PresentScrollResult scroll_written(const PresentScroll& scroll);
+    // Records a host scroll the caller does not move (something covers its
+    // area, or it would read pixels not yet written): its area is written
+    // instead. Requires a held grant.
+    void decline_scroll(const PresentScroll& scroll);
     // Presents the held buffer with `damage` (what the caller wrote, plus
     // the area of every scroll, since the screen changed there). Requires a
     // held grant.

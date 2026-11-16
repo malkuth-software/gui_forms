@@ -738,6 +738,8 @@ void test_producer_mode() {
     require(second.buffer() != nullptr && (*second.buffer()).age == 1U, "the same buffer is one present old");
     const PresentScrollResult moved = shim.scroll_written(PresentScroll{rect(0, 0, 24, 24), 0, 5});
     require(moved.moved && moved.plan.exposed_count == 1U, "a scroll moves the held buffer");
+    shim.decline_scroll(PresentScroll{rect(0, 0, 12, 12), 0, 2});
+    require(shim.snapshot().scrolls_refused == 1U, "a declined scroll is counted and traced");
     direct.outcomes.push_back(PresentOutcome::pending);
     require(shim.present_written(whole) == PresentOutcome::pending, "a pending present");
     const DirectAcquire blocked = shim.acquire_for_writing(PresentExtent{24U, 24U});

@@ -18,6 +18,7 @@
 
 #include "../compose/surface_compose.hpp"
 #include "../input/surface_input.hpp"
+#include "../../../core/host/presentation/presentation_shim.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/platform/surface_host.hpp"
@@ -96,6 +97,16 @@ public:
     // Whether the host should post SurfaceInputKind::frame on each display
     // frame (a live surface animates).
     virtual void want_frames(bool wanted) = 0;
+    // The manager is the presentation shim's reference
+    // (docs/user/presentation.md): the surface is its direct path, every
+    // compose acquires and presents it through the shim, and its trace is
+    // the reference trace. A host (a test, a probe) may supply a trace it
+    // owns, which must outlive the run; the default is none.
+    [[nodiscard]] virtual presentation::PresentTrace* presentation_trace() noexcept;
+    // What the manager may use beyond composing damage: host scroll moves
+    // the surface's pixels for a window's scroll copy. The default reads
+    // GUI_FORMS_PRESENT; a test host turns it on directly.
+    [[nodiscard]] virtual presentation::PresentPolicy presentation_policy() const;
 
     // The primary window's title (a document title, a terminal's name).
     virtual void set_title(std::string_view title) = 0;

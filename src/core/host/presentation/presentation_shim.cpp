@@ -437,6 +437,14 @@ PresentScrollResult PresentationShim::scroll_written(const PresentScroll& scroll
     return result;
 }
 
+void PresentationShim::decline_scroll(const PresentScroll& scroll) {
+    if (!holding_) return;
+    const PresentScrollPlan plan = plan_present_scroll(scroll, held_.extent);
+    if (plan.area.empty()) return;
+    ++counters_.scrolls_refused;
+    record(PresentTraceEvent::scroll_refused, PresentPath::direct, 0U, 0U, plan.area.area());
+}
+
 PresentOutcome PresentationShim::present_written(std::span<const PresentRect> damage) {
     if (!holding_) return PresentOutcome::failed;
     const std::size_t count = clip_present_damage(damage, held_.extent, present_rects_);
