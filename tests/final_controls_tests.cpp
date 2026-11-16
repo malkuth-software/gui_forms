@@ -578,7 +578,7 @@ void test_modal_layer() {
     require(!(*layer).close(DialogResult::ok) && (*layer).is_shown(), "closing may refuse");
     refusing.disconnect();
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && !(*layer).is_shown() &&
-                recorder.seen.back() == "modal:2" && (*layer).result() == std::optional<DialogResult>{DialogResult::cancel},
+                recorder.seen.back() == "modal:2" && (*layer).result() == stxlib::Optional<DialogResult>::of(DialogResult::cancel),
             "Escape closes as cancel");
     require(!(*content).parent(), "the content leaves the layer");
     require((*layer).scrim_opacity() == 1.0, "a closed layer's fade is over");
