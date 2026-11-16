@@ -2499,20 +2499,22 @@ std::size_t PageStrip::realized_item_count() const {
     return count;
 }
 
+// The realized-item accessors refuse an item past the realized ones with
+// std::out_of_range (.at) before it indexes the pages (A-gf-controls-07-F4).
 std::string PageStrip::realized_item_stable_id(std::size_t item) const {
-    const std::size_t position = layout().visible[item];
+    const std::size_t position = layout().visible.at(item);
     const std::string identity = tab_identity((*pages_).record_at(PagePosition{position}).id);
     return identity;
 }
 
 void PageStrip::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
-    const std::size_t position = layout().visible[item];
+    const std::size_t position = layout().visible.at(item);
     const ItemParts record = tab_parts(position);
     write_item_parts(anatomy().item_systems.front(), page_strip_item_part_fields, record, geometry);
 }
 
 AnatomyStateSet PageStrip::realized_item_anatomy_states(std::size_t item) const {
-    const std::size_t position = layout().visible[item];
+    const std::size_t position = layout().visible.at(item);
     const AnatomyStateSet states = tab_states(position);
     return states;
 }
@@ -2523,7 +2525,7 @@ std::vector<PageStrip::Item> PageStrip::realized_items() const {
     records.reserve(count);
     for (std::size_t item = 0; item < count; ++item) {
         const PartGeometryBuffer published = published_realized_item_geometry(item);
-        const std::size_t position = layout().visible[item];
+        const std::size_t position = layout().visible.at(item);
         Item record{};
         record.position = PagePosition{position};
         record.page = (*pages_).record_at(record.position).id;

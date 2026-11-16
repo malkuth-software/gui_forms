@@ -124,6 +124,8 @@ protected:
                                         std::span<PartGeometry> geometry) const override;
 
 private:
+    // Throws std::out_of_range for an item past realized_item_count().
+    void require_realized_item(std::size_t item) const;
     enum class VisibleKind : std::uint8_t { segment, overflow, edit };
     struct VisibleItem final {
         VisibleKind kind{VisibleKind::segment};
