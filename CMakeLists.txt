@@ -932,11 +932,10 @@ if(WIN32 AND GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
 endif()
 
 if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
-    # FreeType, HarfBuzz, SheenBidi and libunibreak 8.0 (UAX #14 line breaking,
-    # admitted to the text engine by the owner on 2026-10-26; stx
-    # third_party/LIBUNIBREAK_INTAKE_2026-10-01.md) come compiled from the stx
-    # package (stx_text::), with the options cmake/stx_package/ gives them.
-    include(cmake/LineBreak.cmake)
+    # FreeType and HarfBuzz come compiled from the stx package (stx_text::),
+    # with the options cmake/stx_package/ gives them. Bidi levels, UAX #14
+    # line breaking and script runs are stxlib::textlayout's (STXlib, in
+    # stxlib::algorithms; SheenBidi and libunibreak until 2026-11-16).
     add_library(gui_forms_text_engine STATIC
         src/render/text/harfbuzz/harfbuzz_font_engine.cpp
         src/render/text/harfbuzz/bounded_shape_workspace.cpp
@@ -950,7 +949,7 @@ if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
     # its header carries face_profile_version beside retained coverage.
     target_link_libraries(gui_forms_text_engine
         PUBLIC gui_forms_core stxlib::algorithms
-        PRIVATE stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi stx_text::linebreak
+        PRIVATE stx_text::freetype stx_text::harfbuzz
     )
     target_compile_features(gui_forms_text_engine PUBLIC cxx_std_20)
     if(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
@@ -1033,8 +1032,7 @@ if(GUI_FORMS_BUILD_TEXT_MASKS)
         src/render/text/text_mask/text_mask_layout.cpp)
     target_link_libraries(gui_forms_text_masks_impl
         PUBLIC gui_forms_core
-        PRIVATE Threads::Threads stxlib::algorithms stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
-                stx_text::linebreak)
+        PRIVATE Threads::Threads stxlib::algorithms stx_text::freetype stx_text::harfbuzz)
     target_compile_features(gui_forms_text_masks_impl PUBLIC cxx_std_20)
     set_target_properties(gui_forms_text_masks_impl PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
@@ -2260,7 +2258,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         gui_forms_application_library(gui_forms_application
             ARCHIVES gui_forms_core gui_drawing_core gui_drawing_skia gui_forms_controls gui_forms_host_windows
                      gui_forms_skia gui_forms_text_engine
-            LIBRARIES stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
+            LIBRARIES stx_text::freetype stx_text::harfbuzz
                       ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
         gui_forms_install_bundled_fonts()
     endif()
@@ -3296,7 +3294,7 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_text_mask_cost_probe PRIVATE gui_forms_text_masks_impl)
         add_executable(gui_forms_text_mask_native_tests tests/text_mask_native_tests.cpp)
         target_link_libraries(gui_forms_text_mask_native_tests PRIVATE
-            gui_forms_text_masks_impl stxlib::algorithms stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi)
+            gui_forms_text_masks_impl stxlib::algorithms stx_text::freetype stx_text::harfbuzz)
         add_test(NAME gui_forms_text_mask_native_tests
             COMMAND gui_forms_text_mask_native_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/fonts/amiri/Amiri-Regular.ttf")
@@ -6978,8 +6976,6 @@ if(GUI_FORMS_ENABLE_SKIA)
     install(FILES "${gui_forms_stx_notices}/stx_skia/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_skia-LICENSE.txt)
 endif()
 
-install(FILES "${gui_forms_stx_notices}/third_party/sheenbidi/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME SheenBidi-LICENSE.txt)
-install(FILES "${gui_forms_stx_notices}/third_party/md4c/LICENSE.md" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME MD4C-LICENSE.txt)
 
 # Windows: the installed DLLs embed the LLVM runtimes, winpthreads and the
 # MinGW-w64 CRT (add_link_options(-static) above). Their licences come from
@@ -7335,8 +7331,8 @@ endif()
 # bits on the two. Every target this directory defines gets -ffp-contract=off; the
 # stx libraries (stx_zlib, stx_png, stx_conv, stx_rtf2md, stx_vorbis) set it on their own
 # targets in their own build. A kernel that wants fusion spells it std::fma, so the choice is
-# visible and gives the same bits everywhere. Third-party code (FreeType, HarfBuzz, MD4C,
-# SheenBidi, libunibreak) keeps its own flags in the stx package (cmake/stx_package/);
+# visible and gives the same bits everywhere. Third-party code (FreeType,
+# HarfBuzz) keeps its own flags in the stx package (cmake/stx_package/);
 # miniaudio is compiled inside src/audio/audio.cpp and so takes the flag with it. stx_skia sets -ffp-contract=off on its
 # library itself; its raster pipeline's explicit fused stages (the FMA entries in the FMA
 # log) are a separate matter.

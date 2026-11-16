@@ -96,8 +96,7 @@ checkout, whose edits each build brings into the package. The package holds:
 |---|---|
 | `stx_skia/` | the CPU renderer, a pruned CPU Skia derivative, with its contract tests in stx's own CI |
 | `third_party/harfbuzz/`, `third_party/freetype/` | HarfBuzz (without `test/` and `perf/`) and FreeType |
-| `third_party/libunibreak/` | libunibreak (UAX #14 line breaking) |
-| `third_party/md4c/`, `third_party/sheenbidi/`, `third_party/unicode/` | MD4C, SheenBidi and the Unicode data |
+| `third_party/unicode/` | the Unicode data |
 | `stx_zlib/`, `stx_png/`, `stx_conv/`, `stx_rtf2md/`, `stx_vorbis/` | the first-party compression, PNG, CONV interpolation, rich-text and Ogg Vorbis libraries |
 
 The row height index of the virtual row views adapts `stx_btree`'s

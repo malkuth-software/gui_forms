@@ -2,8 +2,9 @@
 # package (cmake/stx_package/CMakeLists.txt): the stx libraries (stx_zlib,
 # stx_png, stx_conv, stx_raster3d, stx_rtf2md and, for audio builds, stx_vorbis; owner ruling
 # 2026-11-03, decision 3(a)), stx_skia, and the third-party sources of stx
-# third_party/ (FreeType, HarfBuzz, SheenBidi, libunibreak, MD4C; owner,
-# 2026-11-05: this repository carries no third-party sources). This build
+# third_party/ (FreeType, HarfBuzz; owner, 2026-11-05: this repository
+# carries no third-party sources). Markdown, bidi, line breaking and script
+# runs are STXlib's since 2026-11-16 (stxlib::markdown, stxlib::textlayout). This build
 # compiles none of them: it links the package.
 #
 # Inputs:
@@ -32,15 +33,13 @@
 #   (STXlib at stx's stxlib.lock commit),
 #   stx_zlib::stx_zlib, stx_png::stx_png, stx_conv::stx_conv, stx_raster3d::stx_raster3d,
 #   stx_rtf2md::stx_rtf2md (and stx_vorbis's when asked);
-#   stx_skia::swizzle and, with the renderer, stx_skia::stx_skia; stx_text::md4c
-#   (objects) and, with the text engine, stx_text::freetype, stx_text::harfbuzz,
-#   stx_text::sheenbidi, stx_text::linebreak and stx_text::linebreak_conformance;
+#   stx_skia::swizzle and, with the renderer, stx_skia::stx_skia; with the
+#   text engine, stx_text::freetype and stx_text::harfbuzz;
 # - GUI_FORMS_STX_PREFIX_DIR, the package's stx libraries (<package>/stx), which
 #   the SDK install copies whole (GUIFormsConfig finds the packages beside
 #   GUI.Forms);
 # - GUI_FORMS_STX_BUILD_PREFIX_DIR, what only this build links
-#   (<package>/build), with the MD4C header (include/md4c), the libunibreak
-#   conformance data (share/stx_text/linebreak), the markdown corpus
+#   (<package>/build), with the markdown corpus
 #   (share/stx_text/rtf2md_corpus) and the licences the SDK and the programs
 #   ship (share/stx_text/notices, at their paths in the stx source);
 # - GUI_FORMS_STX_SOURCE_DIR, the stx source when this configure fetched it (or
@@ -112,7 +111,7 @@ macro(_gui_stx_fetch_source)
     set(GUI_FORMS_STX_SOURCE_DIR "${gui_forms_stx_SOURCE_DIR}")
     if(NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/CMakeLists.txt" OR
        NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/CMakeLists.txt" OR
-       NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/third_party/md4c/md4c.c")
+       NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/third_party/harfbuzz/CMakeLists.txt")
         message(FATAL_ERROR "the stx source at ${GUI_FORMS_STX_SOURCE_DIR} is not an stx checkout with stx_skia/ "
                             "and third_party/ (stx.lock must name a commit after the move of 2026-11-08)")
     endif()
@@ -187,10 +186,9 @@ else()
     gui_forms_text_digest("${_gui_stx_recipe}/CMakeLists.txt" _gui_stx_recipe_digest)
     gui_forms_text_digest("${_gui_stx_root}/cmake/freetype/gui_forms_ftoption.h" _gui_stx_options_digest)
     # The text stack's allocation hooks, which the recipe compiles into
-    # HarfBuzz and SheenBidi (cmake/stx_text_allocation/).
+    # HarfBuzz (cmake/stx_text_allocation/).
     set(_gui_stx_allocation_digests "")
-    foreach(_gui_stx_allocation_file IN ITEMS stx_text_allocation.h stx_harfbuzz_allocation.c
-                                              stx_sheenbidi_allocation.c)
+    foreach(_gui_stx_allocation_file IN ITEMS stx_text_allocation.h stx_harfbuzz_allocation.c)
         gui_forms_text_digest("${_gui_stx_root}/cmake/stx_text_allocation/${_gui_stx_allocation_file}"
                               _gui_stx_allocation_digest)
         string(APPEND _gui_stx_allocation_digests "${_gui_stx_allocation_digest};")

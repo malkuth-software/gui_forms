@@ -21,6 +21,13 @@
 # Not on GitHub until the owner pushes claude/stx-cp33 (a fast-forward of
 # 6bc7dc5); push it before this commit, or build with
 # -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<that checkout>.
+#
+# d08de76 is stx claude/stx-text-swap: 3f3d966 (claude/stx-cp34), then the
+# removal of third_party/md4c, sheenbidi and libunibreak, with stxlib.lock
+# at STXlib integration 77a19ff (stxlib::textlayout), provisional: the
+# integrator moves both pins to the final STXlib push (5209c9e or its
+# successor), which also has Paragraph/Line::bytes_held that GUI.Forms uses.
+# Not on GitHub until pushed.
 [stx]
 repository = "malkuth-software/stx"
-commit = "3f3d9665cacb89f8edf46a93cc49aaae6b773801"
+commit = "d08de763a2018a290f3011c99092cdeb840351f3"

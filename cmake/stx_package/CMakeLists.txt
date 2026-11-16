@@ -9,8 +9,8 @@ cmake_minimum_required(VERSION 3.25)
 #   checkout in lockstep development);
 # - GUI_FORMS_STX_PACKAGE_SKIA: ON builds stx_skia whole, OFF only its red/blue
 #   swap kernel (GUI_FORMS_ENABLE_SKIA=OFF);
-# - GUI_FORMS_STX_PACKAGE_TEXT: ON adds FreeType, HarfBuzz, SheenBidi and
-#   libunibreak (GUI_FORMS_ENABLE_HARFBUZZ_TEXT);
+# - GUI_FORMS_STX_PACKAGE_TEXT: ON adds FreeType and HarfBuzz
+#   (GUI_FORMS_ENABLE_HARFBUZZ_TEXT);
 # - STX_WITH_VORBIS, passed to the stx root as is;
 # - the compilers, build type, flags and toolchain file, which Stx.cmake passes
 #   from GUI.Forms' own configure, so every object is compiled as it was when
@@ -24,14 +24,14 @@ cmake_minimum_required(VERSION 3.25)
 #   prefix whole, as it did before this package existed.
 # - `build`: what only the GUI.Forms build links, installed at <package>/build
 #   and never copied into the SDK whole: the stx_skia package (stx_skia::stx_skia
-#   and stx_skia::swizzle), the stx_text package (stx_text::freetype,
-#   stx_text::harfbuzz, stx_text::sheenbidi, stx_text::linebreak, the MD4C
-#   objects stx_text::md4c and the libunibreak conformance driver
-#   stx_text::linebreak_conformance), the headers of each, and the data the
-#   GUI.Forms build and its packages read from the stx source otherwise:
-#   share/stx_text/linebreak (the conformance data), share/stx_text/rtf2md_corpus
-#   (the markdown corpus test) and share/stx_text/notices (each licence the
-#   programs ship, at its path in the stx source; packaging/licenses.json).
+#   and stx_skia::swizzle), the stx_text package (stx_text::freetype and
+#   stx_text::harfbuzz, with the text engine; empty without it), the headers
+#   of each, and the data the GUI.Forms build and its packages read from the
+#   stx source otherwise: share/stx_text/rtf2md_corpus (the markdown corpus
+#   test) and share/stx_text/notices (each licence the programs ship, at its
+#   path in the stx source; packaging/licenses.json). Markdown, bidi, line
+#   breaking and script runs are STXlib's (stxlib::markdown and
+#   stxlib::textlayout, in stxlib::algorithms) since 2026-11-16.
 #
 # The install components follow CMAKE_INSTALL_DEFAULT_COMPONENT_NAME, which
 # every install() call without a COMPONENT takes at the point it is made: the
@@ -42,7 +42,7 @@ if(NOT DEFINED GUI_FORMS_STX_SOURCE_DIR OR NOT EXISTS "${GUI_FORMS_STX_SOURCE_DI
     message(FATAL_ERROR "GUI_FORMS_STX_SOURCE_DIR must name an stx checkout")
 endif()
 option(GUI_FORMS_STX_PACKAGE_SKIA "Build stx_skia whole (OFF: only its red/blue swap kernel)" ON)
-option(GUI_FORMS_STX_PACKAGE_TEXT "Build FreeType, HarfBuzz, SheenBidi and libunibreak" ON)
+option(GUI_FORMS_STX_PACKAGE_TEXT "Build FreeType and HarfBuzz" ON)
 set(_stx_third_party "${GUI_FORMS_STX_SOURCE_DIR}/third_party")
 get_filename_component(_stx_gui_cmake "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 
@@ -56,7 +56,7 @@ find_package(Threads REQUIRED)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 # As in GUI.Forms' CMakeLists.txt: Windows executables link their runtimes
-# statically (here only the conformance driver).
+# statically (the package builds none today).
 if(WIN32 AND NOT MSVC)
     add_link_options(-static)
 endif()
@@ -79,14 +79,7 @@ endif()
 add_subdirectory("${GUI_FORMS_STX_SOURCE_DIR}/stx_skia" stx_skia)
 
 # --- component `build`: stx_text ---------------------------------------------
-# MD4C 0.6.0 (stx third_party/md4c), the markdown framework's CommonMark
-# parser. An object library: GUI.Forms adds its objects to Core, so no archive
-# of it is exported from GUI.Forms; its headers, include/md4c/md4c.h and entity.h, stay
-# private to GUI.Forms' markdown.cpp.
-add_library(stx_text_md4c OBJECT "${_stx_third_party}/md4c/md4c.c" "${_stx_third_party}/md4c/entity.c")
-set_target_properties(stx_text_md4c PROPERTIES EXPORT_NAME md4c POSITION_INDEPENDENT_CODE ON)
-install(FILES "${_stx_third_party}/md4c/md4c.h" "${_stx_third_party}/md4c/entity.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/md4c)
-set(_stx_text_targets stx_text_md4c)
+set(_stx_text_targets "")
 
 if(GUI_FORMS_STX_PACKAGE_TEXT)
     # FreeType and HarfBuzz with GUI.Forms' options (these were CMakeLists.txt's
@@ -132,6 +125,8 @@ if(GUI_FORMS_STX_PACKAGE_TEXT)
     target_compile_definitions(harfbuzz PRIVATE
         hb_malloc_impl=stx_text_hb_malloc hb_calloc_impl=stx_text_hb_calloc
         hb_realloc_impl=stx_text_hb_realloc hb_free_impl=stx_text_hb_free)
+    # The counters' header, beside HarfBuzz's (the text engine reads them).
+    install(FILES "${_stx_text_allocation}/stx_text_allocation.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/harfbuzz)
 
     # FreeType's headers: the source include tree without its internal headers,
     # then the configured ftconfig.h and ftoption.h the build generated (the
@@ -162,64 +157,24 @@ if(GUI_FORMS_STX_PACKAGE_TEXT)
     list(REMOVE_DUPLICATES _stx_harfbuzz_headers)
     install(FILES ${_stx_harfbuzz_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/harfbuzz)
 
-    # SheenBidi, the text engine's bidirectional algorithm: its unmodified
-    # unity build, compiled through a unit that sends its heap calls to an
-    # arena a caller may install, or to the C heap, counted per thread
-    # (stx_text_allocation.h, installed beside SheenBidi's headers).
-    add_library(stx_text_sheenbidi STATIC "${_stx_text_allocation}/stx_sheenbidi_allocation.c")
-    target_include_directories(stx_text_sheenbidi PUBLIC
-        $<BUILD_INTERFACE:${_stx_third_party}/sheenbidi/Headers>
-        $<BUILD_INTERFACE:${_stx_text_allocation}>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-    target_include_directories(stx_text_sheenbidi PRIVATE "${_stx_third_party}/sheenbidi/Source")
-    target_compile_definitions(stx_text_sheenbidi PRIVATE SB_CONFIG_UNITY)
-    set_target_properties(stx_text_sheenbidi PROPERTIES EXPORT_NAME sheenbidi POSITION_INDEPENDENT_CODE ON)
-    install(DIRECTORY "${_stx_third_party}/sheenbidi/Headers/" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-    install(FILES "${_stx_text_allocation}/stx_text_allocation.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-    # UAX #14 line breaking (libunibreak 8.0): the line-break subset the text
-    # engine links, and the upstream conformance driver, which also needs the
-    # word and grapheme objects (test-only). GUI.Forms registers the driver as
-    # gui_forms_linebreak_conformance, run in share/stx_text/linebreak.
-    set(_stx_linebreak "${_stx_third_party}/libunibreak/src")
-    add_library(stx_text_linebreak STATIC
-        "${_stx_linebreak}/unibreakbase.c"
-        "${_stx_linebreak}/unibreakdef.c"
-        "${_stx_linebreak}/linebreak.c"
-        "${_stx_linebreak}/linebreakdata.c"
-        "${_stx_linebreak}/linebreakdef.c"
-        "${_stx_linebreak}/eastasianwidthdef.c"
-        "${_stx_linebreak}/emojidef.c")
-    target_include_directories(stx_text_linebreak PUBLIC
-        $<BUILD_INTERFACE:${_stx_linebreak}>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libunibreak>)
-    set_target_properties(stx_text_linebreak PROPERTIES EXPORT_NAME linebreak POSITION_INDEPENDENT_CODE ON)
-    install(FILES "${_stx_linebreak}/linebreak.h" "${_stx_linebreak}/linebreakdef.h"
-        "${_stx_linebreak}/unibreakbase.h" "${_stx_linebreak}/unibreakdef.h"
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libunibreak)
-    add_executable(stx_text_linebreak_conformance
-        "${_stx_linebreak}/tests.c"
-        "${_stx_linebreak}/wordbreak.c"
-        "${_stx_linebreak}/graphemebreak.c")
-    target_link_libraries(stx_text_linebreak_conformance PRIVATE stx_text_linebreak)
-    set_target_properties(stx_text_linebreak_conformance PROPERTIES EXPORT_NAME linebreak_conformance)
-    install(FILES "${_stx_linebreak}/LineBreakTest.txt" "${_stx_linebreak}/WordBreakTest.txt"
-        "${_stx_linebreak}/GraphemeBreakTest.txt"
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/stx_text/linebreak)
-    list(APPEND _stx_text_targets freetype harfbuzz stx_text_sheenbidi stx_text_linebreak
-        stx_text_linebreak_conformance)
+    list(APPEND _stx_text_targets freetype harfbuzz)
 endif()
 
-install(TARGETS ${_stx_text_targets} EXPORT stx_textTargets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    OBJECTS DESTINATION ${CMAKE_INSTALL_LIBDIR}/stx_text_objects)
-install(EXPORT stx_textTargets NAMESPACE stx_text:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/stx_text)
+# Without the text engine the package is empty but still found, so the
+# GUI.Forms configure reads one shape.
+set(_stx_text_include "")
+if(_stx_text_targets)
+    install(TARGETS ${_stx_text_targets} EXPORT stx_textTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(EXPORT stx_textTargets NAMESPACE stx_text:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/stx_text)
+    set(_stx_text_include "include(\"\${CMAKE_CURRENT_LIST_DIR}/stx_textTargets.cmake\")\n")
+endif()
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/stx_textConfig.cmake.in"
     "@PACKAGE_INIT@\n"
     "include(CMakeFindDependencyMacro)\n"
     "find_dependency(Threads)\n"
-    "include(\"\${CMAKE_CURRENT_LIST_DIR}/stx_textTargets.cmake\")\n"
+    "${_stx_text_include}"
     "check_required_components(stx_text)\n")
 configure_package_config_file("${CMAKE_CURRENT_BINARY_DIR}/stx_textConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/stx_textConfig.cmake"
@@ -235,8 +190,6 @@ install(DIRECTORY "${GUI_FORMS_STX_SOURCE_DIR}/stx_rtf2md/tests/corpus/"
     DESTINATION ${CMAKE_INSTALL_DATADIR}/stx_text/rtf2md_corpus)
 set(_stx_notice_root ${CMAKE_INSTALL_DATADIR}/stx_text/notices)
 install(FILES "${_stx_third_party}/unicode/LICENSE.txt" DESTINATION ${_stx_notice_root}/third_party/unicode)
-install(FILES "${_stx_third_party}/sheenbidi/LICENSE" DESTINATION ${_stx_notice_root}/third_party/sheenbidi)
-install(FILES "${_stx_third_party}/md4c/LICENSE.md" DESTINATION ${_stx_notice_root}/third_party/md4c)
 install(FILES "${_stx_third_party}/harfbuzz/COPYING" DESTINATION ${_stx_notice_root}/third_party/harfbuzz)
 install(FILES "${_stx_third_party}/freetype/docs/FTL.TXT" DESTINATION ${_stx_notice_root}/third_party/freetype/docs)
 install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/LICENSE" "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/LICENSE-Skia"

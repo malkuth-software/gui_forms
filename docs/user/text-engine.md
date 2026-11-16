@@ -127,11 +127,10 @@ control:
   under edits.
 - A snapshot of revision, edit, style and rejected-operation counters.
 
-Bidirectional analysis in the shared shaping engine uses the vendored
-SheenBidi. Unicode line breaking through libunibreak belongs to the optional
-development text-mask profile (`GUI_FORMS_BUILD_TEXT_MASKS`); it is not part
-of the normal installed text engine. Neither dependency's types appear in
-public headers.
+Bidirectional analysis (UAX #9), Unicode line breaking (UAX #14) and script
+runs (UAX #24) come from STXlib's stxlib::textlayout at Unicode 18.0.0, one
+analysis per paragraph, in the shared shaping engine and the text masks.
+None of its types appear in public headers.
 
 ## Paragraph layout for owner-drawn rows
 

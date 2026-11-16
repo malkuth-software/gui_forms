@@ -29,7 +29,7 @@ your C++ application         one executable: everything below is linked into it
          host adapter       src/host/macos | windows | linux
          CPU renderer       src/render/skia on every host (Windows presents its
                             frames from DIB sections, src/host/windows/raster)
-         text engine        HarfBuzz, FreeType, SheenBidi
+         text engine        HarfBuzz, FreeType, stxlib::textlayout
 
 renderer-free code (tests, models, automation)
   └─ GUIForms::Controls ── Core, Drawing

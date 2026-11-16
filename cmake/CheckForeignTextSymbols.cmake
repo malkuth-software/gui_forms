@@ -1,8 +1,10 @@
 # Symbol isolation of the text stack (owner decisions 2026-11-13, "What this
 # asks of GUI.Forms": a consumer may link its own HarfBuzz and FreeType beside
 # GUI.Forms). The one shared GUI.Forms library, the C ABI library, holds the
-# pinned FreeType, HarfBuzz, SheenBidi, libunibreak and MD4C privately; its
-# generated export list leaves every one of those symbols local. This script fails when a shared library defines and exports
+# pinned FreeType and HarfBuzz privately; its generated export list leaves
+# every one of those symbols local. The prefixes of SheenBidi, libunibreak
+# and MD4C (no longer linked since 2026-11-16) stay refused, so none comes
+# back exported. This script fails when a shared library defines and exports
 # any of them, so a consumer's own copy can never bind to ours or ours to its.
 #
 #   cmake -DTOOL_NM=<nm> [-DTOOL_OBJDUMP=<objdump>] -DLIBRARIES=<a|b|...>
