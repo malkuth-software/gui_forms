@@ -372,7 +372,7 @@ void roles_actions_and_fields() {
                 json.find("\"orientation\":null") != std::string::npos,
             "semantic snapshots carry the tab panel role, the relation and the orientation");
     require(window.perform_semantic_action("tabs.second.tab", SemanticAction::select) &&
-                (*tabs).selected_index.read() == 1U,
+                (*tabs).selected_index.read() == stxlib::Optional<std::size_t>::of(1U),
             "selecting a tab still works");
 
     (*tabs).alignment = TabAlignment::left;

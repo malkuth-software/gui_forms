@@ -84,7 +84,7 @@ private:
             if (index == 2U) (*tab_page).image_index = 0;
             primary.add_page(tab_page);
         }
-        primary.selected_index = 1U;
+        primary.selected_index = stxlib::Optional<std::size_t>::of(1U);
     }
 
     // One ordinary control per retained page, proving hidden pages keep
@@ -155,7 +155,7 @@ private:
                 (*tab_page).add_child(content);
                 tabs.add_page(tab_page);
             }
-            tabs.selected_index = index % 3U;
+            tabs.selected_index = stxlib::Optional<std::size_t>::of(index % 3U);
         }
     }
 

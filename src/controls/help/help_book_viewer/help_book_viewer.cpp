@@ -415,15 +415,15 @@ bool HelpBookViewer::home() {
 void HelpBookViewer::select_tab(HelpNavigationTab tab) {
     require_mutable();
     if (!navigation_visible_) set_navigation_visible(true);
-    (*tabs_).selected_index = std::optional<std::size_t>(static_cast<std::size_t>(tab));
+    (*tabs_).selected_index = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(tab));
 }
 
 HelpNavigationTab HelpBookViewer::selected_tab() const noexcept {
-    const std::optional<std::size_t> selected = (*tabs_).selected_index.read();
-    if (!selected.has_value() || *selected > static_cast<std::size_t>(HelpNavigationTab::bookmarks)) {
+    const stxlib::Optional<std::size_t> selected = (*tabs_).selected_index.read();
+    if (selected.absent() || *selected.value() > static_cast<std::size_t>(HelpNavigationTab::bookmarks)) {
         return HelpNavigationTab::contents;
     }
-    return static_cast<HelpNavigationTab>(*selected);
+    return static_cast<HelpNavigationTab>(*selected.value());
 }
 
 void HelpBookViewer::show_contents() {
