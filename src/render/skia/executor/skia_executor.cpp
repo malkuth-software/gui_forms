@@ -923,7 +923,7 @@ constexpr std::size_t italic_slot_bit = 2U;
 
 // The faces tried for each requested slot, nearest first: the same slant
 // with the other weight before the other slant. A face of another weight or
-// slant is emboldened or sheared toward the request.
+// slant is thickened (synthesized bold) or sheared toward the request.
 constexpr std::array<std::array<std::size_t, 4>, 4> nearest_slots{{
     {0U, 1U, 2U, 3U},
     {1U, 0U, 3U, 2U},
@@ -1151,7 +1151,7 @@ public:
 
     // The registered family, else the registry's Portsmouth Rapids. The
     // requested slot's face draws as it is; otherwise the nearest registered
-    // face is emboldened or sheared toward the request.
+    // face is thickened (synthesized bold) or sheared toward the request.
     [[nodiscard]] std::optional<ResolvedFont> resolve(const FontSnapshot& spec) {
         const std::size_t requested = static_cast<std::size_t>(spec.style & 3U);
         TextFamily* family = registered(spec.family);
@@ -1182,7 +1182,7 @@ public:
         // synthesizes bold and oblique here for GDI+ compatibility, unlike interface text,
         // which draws the nearest face and never synthesizes (stage F decision 7). Whether
         // GUI.Drawing stops synthesizing is the owner's decision; keep this as it is until then.
-        resolved.synthesis.embolden = (requested & bold_slot_bit) != 0U && !face_bold;
+        resolved.synthesis.thicken = (requested & bold_slot_bit) != 0U && !face_bold;
         resolved.synthesis.oblique = (requested & italic_slot_bit) != 0U && !face_italic;
         resolved.metrics = (*(*family).faces[slot]).metrics;
         result = resolved;

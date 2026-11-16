@@ -2,6 +2,8 @@
 
 #include "../harfbuzz/harfbuzz_font_engine.hpp"
 
+#include <stxlib/glyph_face.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -9,10 +11,13 @@
 
 namespace gui_forms::render::text {
 
-// ADR-004 text rasterization: FreeType light auto-hinting, grayscale, no stem
-// darkening, glyphs placed in integer 26.6 device units. Any change to this
-// profile increments the version so retained coverage is never reused.
-inline constexpr std::uint32_t glyph_run_profile_version = 1U;
+// ADR-004 text rasterization, drawn by STXlib's glyph face
+// (stxlib/glyph_face.hpp): light auto-hinting along y, grey coverage, glyphs
+// placed in integer 26.6 device units. STXlib changes face_profile_version
+// whenever its output for the same input would change; retained coverage
+// keeps the version it was made under (GlyphRunCoverage::profile_version)
+// and is made again when it differs.
+inline constexpr std::uint32_t face_profile_version = stxlib::glyphs::face_profile_version;
 
 // A run's device origin. x keeps its subpixel phase in 1/64 pixel; the
 // baseline y is snapped to a whole device pixel so light hinting's vertical
@@ -43,6 +48,8 @@ struct GlyphRunCoverage final {
     // glyph_run_maximum_extent: nothing is drawn (pixels is empty) and the
     // caller counts the run. Never an exception, so painting goes on.
     bool oversized{};
+    // The face_profile_version the coverage was made under.
+    std::uint32_t profile_version{};
 };
 
 // Coverage wider or taller than this, in device pixels, is not produced.
@@ -61,9 +68,11 @@ struct GlyphRunWindow final {
 };
 
 // Synthesized styles for faces a family lacks (the C drawing API). Bold
-// thickens outlines by a size-dependent amount; oblique shears by 0.25.
+// thickens outlines by a size-dependent amount (STXlib's DrawStyle::thicken,
+// its own integer rule); oblique shears by 0.25 (the DrawStyle matrix, which
+// STXlib takes only unhinted, so oblique text is drawn unhinted).
 struct GlyphRunSynthesis final {
-    bool embolden{};
+    bool thicken{};
     bool oblique{};
 };
 
@@ -76,9 +85,12 @@ struct GlyphRunTransform final {
     double yy{1.0};
 };
 
-// Rasterizes HarfBuzz-shaped runs. It opens its own FreeType faces, at the
-// device size, from the engine's registered font bytes; the engine's shaping
-// faces are never resized. Not thread-safe: one rasterizer per executor.
+// Rasterizes HarfBuzz-shaped runs through STXlib's glyph face. For each face
+// the engine registered it opens one face of its own over the program's
+// typeface of the same bytes (program_typefaces.hpp), so the glyphs read for
+// one executor serve every other; the engine's shaping faces are never
+// resized. Its faces' bytes are counted under AllocationSubsystem::text_layout.
+// Not thread-safe: one rasterizer per executor.
 class GlyphRunRasterizer final {
 public:
     explicit GlyphRunRasterizer(const HarfBuzzFontEngine& engine);
@@ -90,15 +102,20 @@ public:
     // scale is device pixels per logical unit; phase_x is the origin's
     // subpixel phase. Overlapping glyphs combine as c + p * (255 - c) / 255.
     // window, when given, limits the glyphs rendered to those that can show.
-    // FreeType failures throw; the coverage is then not produced. A run too
-    // large to cover is reported as GlyphRunCoverage::oversized, not thrown.
+    // A glyph the face cannot give is counted (missing_glyphs) and draws
+    // nothing. A bundled face that will not open, or a run STXlib refuses
+    // (its storage exhausted), throws std::runtime_error; the coverage is
+    // then not produced. An application family's face quarantines the family
+    // instead and its glyphs count as missing. A run too large to cover is
+    // reported as GlyphRunCoverage::oversized, not thrown.
     [[nodiscard]] GlyphRunCoverage rasterize(const ShapedText& shaped, FontSpec font, double scale,
                                              std::int32_t phase_x, GlyphRunSynthesis synthesis = {},
                                              std::optional<GlyphRunWindow> window = std::nullopt);
 
     // General affine placement: the run origin maps to (device_x, device_y)
     // and glyph positions through transform. Hinting is off (it assumes
-    // axis alignment). Coverage is relative to (floor(device_x),
+    // axis alignment; Fit::none). A transform entry of 32768 or more in
+    // magnitude, beyond a 16.16 matrix, is refused with invalid_argument. Coverage is relative to (floor(device_x),
     // floor(device_y)), returned in origin.
     [[nodiscard]] GlyphRunCoverage rasterize_transformed(const ShapedText& shaped, FontSpec font,
                                                          GlyphRunTransform transform, double device_x,

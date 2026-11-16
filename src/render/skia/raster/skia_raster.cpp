@@ -2091,7 +2091,9 @@ public:
     // text of the same length is made again rather than drawing the old one.
     std::size_t text_hash{};
     text::ShapedText shaped;
-    // ADR-004 coverage of the shaped run at one device scale and phase.
+    // ADR-004 coverage of the shaped run at one device scale and phase; the
+    // glyph face's profile it was made under is in the coverage
+    // (GlyphRunCoverage::profile_version).
     bool has_coverage{};
     double coverage_scale{};
     std::int32_t coverage_phase{};
@@ -2156,10 +2158,12 @@ bool SkiaRaster::Impl::composite_run(SkCanvas& target, const text::ShapedText& s
     if (!glyph_runs) glyph_runs = std::make_unique<text::GlyphRunRasterizer>(text_engine);
     text::GlyphRunCoverage fresh{};
     const text::GlyphRunCoverage* coverage = &fresh;
-    // Kept coverage is reused only when it holds the whole run: one cut to
-    // an earlier paint's window may lack glyphs this paint shows.
+    // Kept coverage is reused only when it holds the whole run (one cut to
+    // an earlier paint's window may lack glyphs this paint shows) and was
+    // made under the glyph face's current profile (face_profile_version).
     if (kept != nullptr && kept_scale != nullptr && kept_phase != nullptr && *kept_scale == device_scale &&
-        *kept_phase == placement.phase_x && !(*kept).pixels.empty() && (*kept).outside_glyphs == 0U) {
+        *kept_phase == placement.phase_x && !(*kept).pixels.empty() && (*kept).outside_glyphs == 0U &&
+        (*kept).profile_version == text::face_profile_version) {
         coverage = kept;
     } else {
         const text::GlyphRunWindow window = run_window(target, placement.pixel_x, placement.pixel_y);
