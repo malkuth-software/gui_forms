@@ -40,9 +40,10 @@ all eleven:
    the fallback when an owner disappears (reject stale identities, stop
    revoked callbacks).
 5. **Callbacks and execution:** named targets with explicit context; specify
-   event order, reentrancy and revocation; name asynchronous work,
-   completion, cancellation and shutdown; one execution context per piece of
-   mutable state.
+   event order, reentrancy and revocation; complete a state change before
+   notifying, and carry nothing taken from state across a call into
+   application code; name asynchronous work, completion, cancellation and
+   shutdown; one execution context per piece of mutable state.
 6. **Procedures and data:** state inputs, outputs and permitted mutation;
    fill caller-supplied storage for bulk work; name intermediate forms; state
    overlap rules.

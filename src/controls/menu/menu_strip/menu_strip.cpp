@@ -525,11 +525,9 @@ std::vector<SemanticNode> MenuStrip::semantic_virtual_children() const {
 bool MenuStrip::on_semantic_child_action(std::string_view id,
                                          SemanticAction action,
                                          std::string_view) {
-    std::vector<MenuStripItemSpec>::iterator found = items_.begin();
-    while (found != items_.end() && (*found).stable_id != id) ++found;
-    if (found == items_.end() || !(*found).visible || !(*found).enabled) return false;
-    const std::size_t index = static_cast<std::size_t>(
-        std::distance(items_.begin(), found));
+    const stxlib::Optional<std::size_t> found = find_top_level(id);
+    if (found.absent()) return false;
+    const std::size_t index = *found.value();
     if (action == SemanticAction::collapse) {
         if (!holds(active_index_, index)) return false;
         close();
@@ -537,13 +535,30 @@ bool MenuStrip::on_semantic_child_action(std::string_view id,
     }
     if (action != SemanticAction::focus && action != SemanticAction::press &&
         action != SemanticAction::expand) return false;
-    if (window()) static_cast<void>((*window()).request_focus(shared_from_this()));
-    set_hot(stxlib::Optional<std::size_t>::of(index));
+    // Focus first: its handlers may replace the items or drop the strip, so
+    // the menu is found again after it (commit, then notify; house style 5),
+    // and `lifetime` keeps the strip alive across them.
+    const Control::Ptr lifetime = shared_from_this();
+    if (window()) static_cast<void>((*window()).request_focus(lifetime));
+    if (!is_alive()) return true;
+    const stxlib::Optional<std::size_t> again = find_top_level(id);
+    if (again.absent()) return true;
+    set_hot(again);
     if (action != SemanticAction::focus) {
-        const bool opened = open(index);
+        const bool opened = open(*again.value());
         return opened;
     }
     return true;
+}
+
+stxlib::Optional<std::size_t> MenuStrip::find_top_level(std::string_view id) const {
+    for (std::size_t index = 0U; index < items_.size(); ++index) {
+        const MenuStripItemSpec& item = items_[index];
+        if (item.stable_id != id) continue;
+        if (!item.visible || !item.enabled) return stxlib::Optional<std::size_t>::none();
+        return stxlib::Optional<std::size_t>::of(index);
+    }
+    return stxlib::Optional<std::size_t>::none();
 }
 
 bool MenuStrip::mnemonic_matches(char32_t character) const noexcept {
@@ -576,13 +591,21 @@ bool MenuStrip::process_mnemonic_self(char32_t character) {
             selected = next == matches.end() ? matches.front() : *next;
         }
     }
-    if (window() && !(*window()).request_focus(shared_from_this())) {
+    // The focus handlers may replace the items or drop the strip: the menu
+    // is found again by its ID after them, and `lifetime` keeps the strip
+    // alive across them.
+    const std::string selected_id = items_[selected].stable_id;
+    const Control::Ptr lifetime = shared_from_this();
+    if (window() && !(*window()).request_focus(lifetime)) {
         // The mnemonic is still owned, but prevent-mode validation may reject
         // the focus transaction that would authorize opening the overlay.
         return true;
     }
-    set_hot(stxlib::Optional<std::size_t>::of(selected));
-    const bool opened = open(selected);
+    if (!is_alive()) return true;
+    const stxlib::Optional<std::size_t> again = find_top_level(selected_id);
+    if (again.absent()) return true;
+    set_hot(again);
+    const bool opened = open(*again.value());
     return opened;
 }
 
