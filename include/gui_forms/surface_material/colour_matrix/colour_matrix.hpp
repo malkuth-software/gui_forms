@@ -10,6 +10,8 @@
 #include <optional>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 namespace detail {
@@ -161,7 +163,7 @@ struct GUI_FORMS_API MaterialColourTable final {
 // A filter's stages: the matrix, then, if present, the table.
 struct GUI_FORMS_API MaterialColourStages final {
     MaterialColourMatrix matrix{};
-    std::optional<MaterialColourTable> table{};
+    stxlib::Optional<MaterialColourTable> table{};
     friend bool operator==(const MaterialColourStages& left, const MaterialColourStages& right) noexcept {
         return left.matrix == right.matrix && left.table == right.table;
     }

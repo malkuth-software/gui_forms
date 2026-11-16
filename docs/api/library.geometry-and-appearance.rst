@@ -3932,7 +3932,7 @@ Types
 
    .. cpp:member:: MaterialColourMatrix matrix
 
-   .. cpp:member:: std::optional<MaterialColourTable> table
+   .. cpp:member:: stxlib::Optional<MaterialColourTable> table
 
 .. cpp:namespace:: gui_forms
 
@@ -9792,15 +9792,17 @@ Functions, constants and aliases
 
 .. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology) noexcept
 
+.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology, Size box) noexcept
+
+   As above for a material drawn over a box of ``box``: its reach includes the material's own transform (surface_material_visual_outsets with a size).
+
 .. cpp:function:: inline void paint_connected_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology)
 
    The standard forms, kept for one stage (D15 Q3); a plain topology is refused: pass stxlib::Optional<ConnectedControlTopology>::of(topology).
 
 .. cpp:function:: inline Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
 
-.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology, Size box) noexcept
-
-   As above for a material drawn over a box of ``box``: its reach includes the material's own transform (surface_material_visual_outsets with a size).
+.. cpp:function:: inline Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology, Size box) noexcept
 
 .. cpp:namespace:: gui_forms
 
