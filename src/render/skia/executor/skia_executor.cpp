@@ -25,6 +25,7 @@
 #include "../../../core/text/composite/text_composite.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
 #if defined(_WIN32)
@@ -229,16 +230,15 @@ void mark_hatch_pixel(std::array<SkPMColor, Count>& pixels,
                           static_cast<SkScalar>(element.sweep_angle),
                           !has_current_point);
             {
-                constexpr double degrees_to_radians =
-                    0.01745329251994329576923690768489;
-                const double angle =
-                    (element.start_angle + element.sweep_angle) *
-                    degrees_to_radians;
+                // The engine's deterministic sine and cosine.
+                const gui_forms::EngineSineCosine turn =
+                    gui_forms::engine_sine_cosine_degrees(
+                        element.start_angle + element.sweep_angle);
                 current_point = {
                     element.rect.x + element.rect.width * 0.5 +
-                        element.rect.width * 0.5 * std::cos(angle),
+                        element.rect.width * 0.5 * turn.cosine,
                     element.rect.y + element.rect.height * 0.5 +
-                        element.rect.height * 0.5 * std::sin(angle),
+                        element.rect.height * 0.5 * turn.sine,
                 };
             }
             has_current_point = true;
@@ -499,17 +499,18 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         return true;
     }
     if (brush.kind == BrushKind::linear_gradient) {
-        constexpr double degrees_to_radians = 0.017453292519943295769;
-        const double radians = brush.angle * degrees_to_radians;
-        const double half_length = std::abs(std::cos(radians)) * brush.bounds.width / 2.0 +
-            std::abs(std::sin(radians)) * brush.bounds.height / 2.0;
+        // The engine's deterministic sine and cosine, exact at quarter turns
+        // (drawing replay draws the same line).
+        const gui_forms::EngineSineCosine along = gui_forms::engine_sine_cosine_degrees(brush.angle);
+        const double half_length = std::abs(along.cosine) * brush.bounds.width / 2.0 +
+            std::abs(along.sine) * brush.bounds.height / 2.0;
         const PointF center{brush.bounds.x + brush.bounds.width / 2.0,
                             brush.bounds.y + brush.bounds.height / 2.0};
         const SkPoint points[] = {
-            {static_cast<SkScalar>(center.x - std::cos(radians) * half_length),
-             static_cast<SkScalar>(center.y - std::sin(radians) * half_length)},
-            {static_cast<SkScalar>(center.x + std::cos(radians) * half_length),
-             static_cast<SkScalar>(center.y + std::sin(radians) * half_length)},
+            {static_cast<SkScalar>(center.x - along.cosine * half_length),
+             static_cast<SkScalar>(center.y - along.sine * half_length)},
+            {static_cast<SkScalar>(center.x + along.cosine * half_length),
+             static_cast<SkScalar>(center.y + along.sine * half_length)},
         };
         SkGradientShaderResult made = SkShaders::LinearGradient(points, gradient);
         if (made.rejection != SkGradientRejection::kNone) return false;
@@ -548,8 +549,8 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
     }
     double radius{};
     for (const PointF point : brush.points) {
-        radius = std::max(radius, std::hypot(point.x - brush.center.x,
-                                             point.y - brush.center.y));
+        radius = std::max(radius, gui_forms::engine_hypotenuse(point.x - brush.center.x,
+                                                               point.y - brush.center.y));
     }
     if (radius <= 0.0) {
         paint.setColor(to_sk_color(brush.primary));

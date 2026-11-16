@@ -1,4 +1,5 @@
 #include "skia_raster.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 
@@ -2039,9 +2040,10 @@ void SkiaRaster::Impl::draw_rotated_run(SkCanvas& target, const text::ShapedText
     const SkMatrix matrix = target.getTotalMatrix();
     if (matrix.hasPerspective()) return;
     if (!glyph_runs) glyph_runs = std::make_unique<text::GlyphRunRasterizer>(text_engine);
-    const double radians = degrees * (3.14159265358979323846 / 180.0);
-    const double cosine = std::cos(radians);
-    const double sine = std::sin(radians);
+    // The engine's deterministic sine and cosine, exact at quarter turns.
+    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    const double cosine = turn.cosine;
+    const double sine = turn.sine;
     // The turn in logical units, x' = cos x + sin y and y' = -sin x + cos y
     // (anticlockwise as seen on the y-down surface), then the canvas's
     // linear part: device = M * R * logical.
@@ -3360,10 +3362,10 @@ bool SkiaRaster::Impl::make_clip_mask(const SkCanvas& target, const PaintPathVie
     const double sy = matrix.getScaleY();
     const double ty = matrix.getTranslateY();
     // The longest a unit of content becomes on the device bounds the chord
-    // error the device sees. sqrt rounds exactly on every host; hypot need
-    // not, and the stretch decides how many points the flattened clip has.
-    const double first_column = std::sqrt(sx * sx + ky * ky);
-    const double second_column = std::sqrt(kx * kx + sy * sy);
+    // error the device sees. The engine's hypotenuse has the same bits on
+    // every host; the stretch decides how many points the flattened clip has.
+    const double first_column = engine_hypotenuse(sx, ky);
+    const double second_column = engine_hypotenuse(kx, sy);
     const double stretch = std::max(first_column, second_column);
     if (!(stretch > 0.0) || !std::isfinite(stretch)) return false;
     const double tolerance = clip_mask_device_tolerance / stretch;

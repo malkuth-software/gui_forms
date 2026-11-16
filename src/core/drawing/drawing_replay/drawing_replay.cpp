@@ -559,10 +559,7 @@ struct BrushReplay final {
     // farthest boundary point.
     double radius = 0.0;
     for (const gui_drawing::PointF point : brush.points) {
-        // sqrt rounds exactly on every host; hypot need not.
-        const double across = point.x - brush.center.x;
-        const double down = point.y - brush.center.y;
-        radius = std::max(radius, std::sqrt(across * across + down * down));
+        radius = std::max(radius, engine_hypotenuse(point.x - brush.center.x, point.y - brush.center.y));
     }
     if (!(radius > 0.0)) {
         painter.fill_rect(area, primary);
