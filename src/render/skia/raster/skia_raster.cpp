@@ -6,6 +6,7 @@
 #include "gui_forms/live_surface.hpp"
 #if defined(GUI_FORMS_PREPARED_TEXT)
 #include "prepared_skia_frame.hpp"
+#include "skia_map_scale.hpp"
 #include "skia_paint_path.hpp"
 #endif
 
@@ -488,6 +489,20 @@ sk_sp<SkImage> resample_image_through_conv(const SkImage& source, int width, int
     return result;
 }
 
+// A paint group's composite as a Skia blend, for the isolated group drawn
+// through a turning map (end_group), which Skia composites through the map's
+// clip; the other groups go through the shared blend.
+SkBlendMode group_blend_mode(const PaintGroupComposite composite) noexcept {
+    switch (composite) {
+    case PaintGroupComposite::source_over: return SkBlendMode::kSrcOver;
+    case PaintGroupComposite::plus: return SkBlendMode::kPlus;
+    case PaintGroupComposite::multiply: return SkBlendMode::kMultiply;
+    case PaintGroupComposite::screen: return SkBlendMode::kScreen;
+    case PaintGroupComposite::copy: return SkBlendMode::kSrc;
+    }
+    return SkBlendMode::kSrcOver;
+}
+
 } // namespace
 
 class SkiaRaster::Impl {
@@ -791,9 +806,13 @@ public:
     [[nodiscard]] bool composites_refused(const SkCanvas& target) noexcept;
     // A part raster drawn as a Skia image over its logical `destination`,
     // source-over at `opacity`, sampled linearly: how a part raster draws
-    // under a path clip no mask describes, which composite_part cannot
-    // follow.
-    static void draw_part_image(SkCanvas& target, const PartRaster& raster, Rect destination, double opacity);
+    // under a path clip no mask describes, or through a turning transform
+    // group, which composite_part cannot follow. Where the canvas map's
+    // minimum scale would minify the raster, it is first area-resampled to
+    // that scale (rotation tier 1, skia_map_scale.hpp; counted in
+    // transformed_resamples); a raster the resampler refuses (too large, or
+    // unreadable) is drawn as it is.
+    void draw_part_image(SkCanvas& target, const PartRaster& raster, Rect destination, double opacity);
     bool composite_part_scaled(SkCanvas& target, const PartRaster& raster, Rect destination, double opacity);
     // The shared step alone: premultiplied pixels placed in the canvas's
     // device pixels, composited under the recorded clips. False when the
@@ -809,11 +828,19 @@ public:
         SkIRect device{};
         double opacity{};
         PaintGroupComposite composite{PaintGroupComposite::source_over};
+        // Isolated under a turning transform group: the group's bounds, in
+        // the coordinates it began in, clip its composite (end_group).
+        bool turned{};
+        Rect bounds{};
         std::vector<TextClipState> parent_text_clips;
         int parent_text_clip_base{};
         int parent_save_floor{};
     };
     std::array<GroupLevel, maximum_paint_group_depth> groups{};
+    // An isolated group drawn under a turning map (begin_group): its image,
+    // in the parent's device pixels, composited by Skia under the parent's
+    // clip and the group's bounds, at its opacity and composite.
+    static void composite_turned_group(SkCanvas& parent, const GroupLevel& level);
     std::size_t group_depth{};
     std::size_t refused_open{};
     std::uint64_t group_refusals{};
@@ -823,6 +850,9 @@ public:
     std::size_t transform_depth{};
     std::size_t refused_transforms_open{};
     std::uint64_t transform_refusals{};
+    // Part rasters area-resampled before a draw through a map
+    // (draw_part_image).
+    std::uint64_t transformed_resamples{};
 
     // The canvas of the innermost isolated group, or null.
     [[nodiscard]] SkCanvas* group_canvas() const noexcept {
@@ -2571,14 +2601,18 @@ void SkiaRaster::begin_group(const PaintGroup& group) {
     // or an isolation surface that cannot be allocated, draws the group
     // directly, without its opacity or composite: counted as a refusal
     // (audit P9), as a group past the depth bound is.
-    // Under a path clip no mask describes, or a turning transform group,
-    // the composite could not follow: the group draws directly too. Under a
-    // mask the group's image is composited through it.
+    // Under a path clip no mask describes the composite could not follow:
+    // the group draws directly too. Under a mask the group's image is
+    // composited through it. Under a turning transform group (rotation tier
+    // 1) the group is isolated in the parent's device pixels, through the
+    // map, and Skia composites its image under the parent's clip
+    // (composite_turned_group).
     const Impl::TextClipState* const state = impl.current_text_clip(*parent);
-    if (state == nullptr || (*state).path_clipped || (*state).transformed) {
+    if (state == nullptr || (*state).path_clipped) {
         impl.group_refusals = impl.group_refusals + 1U;
         return;
     }
+    const bool turned = (*state).transformed;
     const std::optional<SkPixmap> parent_view = (*parent).peekPixels();
     if (!parent_view) {
         impl.group_refusals = impl.group_refusals + 1U;
@@ -2624,10 +2658,15 @@ void SkiaRaster::begin_group(const PaintGroup& group) {
     impl.text_clips.clear();
     Impl::TextClipState base{};
     base.rect = SkRect::MakeIWH(width, height);
+    // The surface's matrix still turns: composites inside give way as they
+    // do on the parent.
+    base.transformed = turned;
     impl.text_clips.push_back(std::move(base));
     impl.text_clip_base = canvas.getSaveCount();
     impl.save_floor = canvas.getSaveCount();
     level.device = device;
+    level.turned = turned;
+    level.bounds = group.bounds;
     level.isolated = true;
 }
 
@@ -2656,6 +2695,10 @@ void SkiaRaster::end_group() {
     restore();
     SkCanvas* const parent = impl.canvas();
     if (parent == nullptr) return;
+    if (level.turned) {
+        Impl::composite_turned_group(*parent, level);
+        return;
+    }
     const std::optional<SkPixmap> peeked = (*level.surface).peekPixels();
     if (!peeked) return;
     const SkPixmap& pixmap = *peeked;
@@ -2673,6 +2716,30 @@ void SkiaRaster::end_group() {
 
 std::uint64_t SkiaRaster::group_refusals() const noexcept {
     return (*impl_).group_refusals;
+}
+
+void SkiaRaster::Impl::composite_turned_group(SkCanvas& parent, const GroupLevel& level) {
+    const std::optional<SkPixmap> peeked = (*level.surface).peekPixels();
+    if (!peeked) return;
+    const SkPixmap& pixmap = *peeked;
+    const SkImageInfo info = SkImageInfo::Make(level.device.width(), level.device.height(), kBGRA_8888_SkColorType,
+                                               kPremul_SkAlphaType, SkColorSpace::MakeSRGB());
+    const SkPixmap shown(info, pixmap.addr(), pixmap.rowBytes());
+    // Borrowed for this call only: the level keeps its surface, and the
+    // image does not outlive the draw.
+    const sk_sp<SkImage> image = SkImages::RasterFromPixmap(shown, nullptr, nullptr);
+    if (!image) return;
+    SkPaint paint;
+    paint.setAlphaf(static_cast<float>(std::clamp(level.opacity, 0.0, 1.0)));
+    paint.setBlendMode(group_blend_mode(level.composite));
+    // The parent's matrix is the one the group began under: its bounds clip
+    // in those coordinates, then the image goes on its device pixels.
+    parent.save();
+    parent.clipRect(to_sk_rect(level.bounds), SkClipOp::kIntersect, false);
+    parent.resetMatrix();
+    parent.drawImage(image, static_cast<SkScalar>(level.device.left()), static_cast<SkScalar>(level.device.top()),
+                     SkSamplingOptions{}, &paint);
+    parent.restore();
 }
 
 bool SkiaRaster::Impl::composites_refused(const SkCanvas& target) noexcept {
@@ -2731,6 +2798,10 @@ std::uint64_t SkiaRaster::transform_refusals() const noexcept {
     return (*impl_).transform_refusals;
 }
 
+std::uint64_t SkiaRaster::transformed_resamples() const noexcept {
+    return (*impl_).transformed_resamples;
+}
+
 void SkiaRaster::Impl::draw_part_image(SkCanvas& target, const PartRaster& raster, const Rect destination,
                                        const double opacity) {
     const DeviceExtent extent = raster.extent();
@@ -2743,9 +2814,26 @@ void SkiaRaster::Impl::draw_part_image(SkCanvas& target, const PartRaster& raste
     // the image does not outlive the draw.
     const sk_sp<SkImage> image = SkImages::RasterFromPixmap(borrowed, nullptr, nullptr);
     if (!image) return;
+    // Rotation tier 1: reduced to the map's minimum scale first, so the
+    // linear sampling through the map never minifies.
+    sk_sp<SkImage> reduced{};
+    const SkMatrix matrix = target.getTotalMatrix();
+    if (!matrix.hasPerspective()) {
+        const double minimum_scale = skia_map_scale::minimum_map_scale(
+            static_cast<double>(matrix.getScaleX()), static_cast<double>(matrix.getSkewX()),
+            static_cast<double>(matrix.getSkewY()), static_cast<double>(matrix.getScaleY()));
+        const skia_map_scale::ReducedExtent target_extent =
+            skia_map_scale::reduced_part_extent(extent, Size{destination.width, destination.height}, minimum_scale);
+        if (target_extent.reduced) {
+            reduced = resample_image_through_conv(*image, static_cast<int>(target_extent.extent.width),
+                                                  static_cast<int>(target_extent.extent.height));
+            if (reduced) transformed_resamples = transformed_resamples + 1U;
+        }
+    }
+    const SkImage* const drawn = reduced ? reduced.get() : image.get();
     SkPaint paint;
     paint.setAlphaf(static_cast<float>(std::clamp(opacity, 0.0, 1.0)));
-    target.drawImageRect(image, to_sk_rect(destination), SkSamplingOptions(SkFilterMode::kLinear), &paint);
+    target.drawImageRect(drawn, to_sk_rect(destination), SkSamplingOptions(SkFilterMode::kLinear), &paint);
 }
 
 void SkiaRaster::draw_part_raster(const std::shared_ptr<const PartRaster>& raster, const Point origin,
@@ -2758,7 +2846,7 @@ void SkiaRaster::draw_part_raster(const std::shared_ptr<const PartRaster>& raste
         const DeviceExtent extent = (*raster).extent();
         const Rect destination{origin.x, origin.y, static_cast<double>(extent.width) / scale,
                                static_cast<double>(extent.height) / scale};
-        Impl::draw_part_image(*canvas, *raster, destination, opacity);
+        (*impl_).draw_part_image(*canvas, *raster, destination, opacity);
         return;
     }
     static_cast<void>((*impl_).composite_part(*canvas, *raster, origin, opacity));
@@ -2769,7 +2857,7 @@ void SkiaRaster::draw_part_raster_scaled(const std::shared_ptr<const PartRaster>
     SkCanvas* const canvas = (*impl_).canvas();
     if (canvas == nullptr || !raster) return;
     if ((*impl_).composites_refused(*canvas)) {
-        Impl::draw_part_image(*canvas, *raster, destination, opacity);
+        (*impl_).draw_part_image(*canvas, *raster, destination, opacity);
         return;
     }
     static_cast<void>((*impl_).composite_part_scaled(*canvas, *raster, destination, opacity));
