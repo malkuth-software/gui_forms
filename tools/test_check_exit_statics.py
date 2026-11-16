@@ -21,7 +21,7 @@ def rules(text: str, path: Path = ABI) -> list[int]:
 class ExitStaticsTests(unittest.TestCase):
     def test_audited_forms_are_findings(self) -> None:
         # A-gf-abi-03-F2 (abi_windows.cpp, abi_fonts.cpp) and A-gf-abi-01-F5
-        # (drawing_c_api.cpp, drawing_platform_windows.cpp) as they were.
+        # (drawing_c_api.cpp, src/surface/windows/drawing/drawing_platform_windows.cpp) as they were.
         text: str = '\n'.join([
             'std::vector<std::shared_ptr<OwnedWindow>>& owned_windows() {',
             '    static std::vector<std::shared_ptr<OwnedWindow>> windows;',

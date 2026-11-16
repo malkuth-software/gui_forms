@@ -29,9 +29,10 @@ inline constexpr std::uint32_t effect_verification_note_type = 0x47464c02U;
                                          std::vector<std::span<const std::byte>>& out);
 
 // Copies of the descriptions of every GUI.Forms note of `type` in the
-// loaded images. On Windows only one image is read: the module holding
-// `within`, or the program's own when it is null; elsewhere every image.
-// A malformed run contributes nothing.
+// loaded images, found through STXlib's image regions (stxlib/images.hpp).
+// On Windows a non-null `within` reads only the module holding it; a null
+// one, and every call elsewhere, reads every image. A malformed run
+// contributes nothing. Throws std::bad_alloc when a copy cannot be made.
 [[nodiscard]] std::vector<std::vector<std::byte>> gui_forms_note_descriptions(std::uint32_t type,
                                                                             const void* within);
 

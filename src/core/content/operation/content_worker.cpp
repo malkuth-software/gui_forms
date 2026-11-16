@@ -1,23 +1,21 @@
 #include "gui_forms/content/operation/content_operation.hpp"
 
 #include "../channel/content_channel.hpp"
-#include "../../thread_records/thread_records_end.hpp"
+
+#include <stxlib/error.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/threads.hpp>
 
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
 #include <exception>
 #include <mutex>
+#include <new>
 #include <stdexcept>
 #include <system_error>
-#include <thread>
-#include <type_traits>
 #include <utility>
 #include <vector>
-
-#if !defined(_WIN32)
-#include <pthread.h>
-#endif
 
 namespace gui_forms {
 
@@ -53,22 +51,19 @@ struct ContentWorkerStart final {
     std::shared_ptr<detail::ContentWorkerShared> shared{};
 };
 
-// The thread a worker runs on. POSIX: a pthread GUI.Forms starts itself
-// (content_worker_thread_main), so the only state the thread holds is ours
-// (its start block; std::thread's runtime would add a per-thread record
-// that only the thread's own storage refers to, which a leak checker
-// reports for a thread abandoned until exit). Windows: std::thread (the
-// MinGW runtime has no leak checker). `joinable` is true from a successful
-// start until the thread is joined or detached. `start` observes the
-// thread's start block, which the thread owns (or the root, once
-// abandoned); read by the owner only under the shared state's mutex while
-// the thread has not set done.
+// The thread a worker runs on: an STXlib thread (stxlib::Thread, the
+// standard augmentation) on every host, so the only state the thread holds
+// is ours and STXlib's (its start block and STXlib's thread state, both
+// released when it returns; std::thread's runtime would add a per-thread
+// record that only the thread's own storage refers to, which a leak checker
+// reports for a thread abandoned until exit). STXlib ends the thread's
+// records on the thread when its body ends (stxlib/threads.hpp, "Thread
+// records"). `joinable` is true from a successful start until the thread is
+// joined or abandoned. `start` observes the thread's start block, which the
+// thread owns (or the root, once abandoned); read by the owner only under
+// the shared state's mutex while the thread has not set done.
 struct ContentWorkerThread final {
-#if defined(_WIN32)
-    std::thread thread{};
-#else
-    pthread_t handle{};
-#endif
+    stxlib::Thread thread{};
     ContentWorkerStart* start{};
     bool joinable{};
 };
@@ -201,79 +196,33 @@ void run_content_worker(ContentWorkerStart* start) noexcept {
     }
 }
 
-#if defined(_WIN32)
-// std::thread's entry on Windows.
-struct ContentWorkerThreadEntry final {
-    ContentWorkerStart* start{};
-    void operator()() const noexcept {
-        // Closes last: the thread's records are released here, on the thread.
-        const gui_forms::detail::ThreadRecordsEnd thread_records_end;
-        run_content_worker(start);
-    }
-};
-#else
-// pthread_create's start routine type, taken from its declaration.
-template <typename Signature>
-struct StartRoutineOf;
-template <typename Result, typename Thread, typename Attributes, typename Routine, typename Argument>
-struct StartRoutineOf<Result(Thread, Attributes, Routine, Argument)> final {
-    using type = Routine;
-};
-// glibc declares it noexcept in C++.
-template <typename Result, typename Thread, typename Attributes, typename Routine, typename Argument>
-struct StartRoutineOf<Result(Thread, Attributes, Routine, Argument) noexcept> final {
-    using type = Routine;
-};
-using PthreadStartRoutine = StartRoutineOf<decltype(pthread_create)>::type;
-
-// The POSIX thread's body: runs the worker on its start block (which it
-// owns from here). Returns null, unread.
-void* content_worker_thread_main(void* argument) {
-    // Closes last: the thread's records are released here, on the thread.
-    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
+// The STXlib thread's body: runs the worker on its start block (which it
+// owns from here). STXlib's stop signal is not used: a stop reaches the
+// program through its channel (request_content_stop).
+void content_worker_thread_main(const stxlib::StopSignal& stop, void* argument) noexcept {
+    static_cast<void>(stop);
     run_content_worker(static_cast<ContentWorkerStart*>(argument));
-    return nullptr;
-}
-static_assert(std::is_same_v<decltype(&content_worker_thread_main), PthreadStartRoutine>,
-              "content_worker_thread_main has pthread_create's start routine type");
-#endif
-
-// Joins a started thread. A join the system refuses detaches it instead.
-void join_thread(detail::ContentWorkerThread& thread) noexcept {
-    if (!thread.joinable) return;
-    thread.joinable = false;
-#if defined(_WIN32)
-    try {
-        thread.thread.join();
-    } catch (const std::system_error&) {
-        thread.thread.detach();
-    }
-#else
-    const int joined = pthread_join(thread.handle, nullptr);
-    if (joined != 0) {
-        // Nothing else to do: a detach that fails too leaves the thread to
-        // the process's exit, as abandonment does.
-        static_cast<void>(pthread_detach(thread.handle));
-    }
-#endif
 }
 
-// Detaches a started thread, which then runs until its code returns or the
-// process exits.
+// Gives a started thread up: it runs until its code returns or the process
+// exits, and STXlib releases its thread state when it returns.
 void detach_thread(detail::ContentWorkerThread& thread) noexcept {
     if (!thread.joinable) return;
     thread.joinable = false;
-#if defined(_WIN32)
-    try {
-        thread.thread.detach();
-    } catch (const std::system_error&) {
-        static_cast<void>(0);
+    static_cast<void>(thread.thread.abandon());
+}
+
+// Joins a started thread. A join STXlib refuses (only a thread joining
+// itself, which a content program cannot do through its own worker) gives
+// the thread up instead.
+void join_thread(detail::ContentWorkerThread& thread) noexcept {
+    if (!thread.joinable) return;
+    const stxlib::JoinResult joined = thread.thread.join();
+    if (joined == stxlib::JoinResult::joined) {
+        thread.joinable = false;
+        return;
     }
-#else
-    // A refused detach (only for a handle that is not joinable, which this
-    // one is) leaves the thread as it is; the process's exit ends it.
-    static_cast<void>(pthread_detach(thread.handle));
-#endif
+    detach_thread(thread);
 }
 
 } // namespace
@@ -319,22 +268,19 @@ ContentWorker::ContentWorker(std::unique_ptr<ContentProgram> program, ContentFra
     (*shared_).sink = std::move(sink);
     (*shared_).channel = std::move(channel);
     thread_ = std::make_unique<detail::ContentWorkerThread>();
-    // std::system_error escapes when the system refuses the thread; the
-    // program is released with shared_ then.
+    // std::system_error escapes when the system refuses the thread
+    // (std::bad_alloc when STXlib's allocator is exhausted); the program is
+    // released with shared_ then.
     std::unique_ptr<ContentWorkerStart> start = std::make_unique<ContentWorkerStart>();
     (*start).shared = shared_;
-#if defined(_WIN32)
-    const ContentWorkerThreadEntry entry{start.get()};
-    (*thread_).thread = std::thread(entry);
-#else
-    pthread_t handle{};
-    const int started = pthread_create(&handle, nullptr, &content_worker_thread_main, start.get());
-    if (started != 0) {
+    stxlib::Result<stxlib::Thread> started = stxlib::Thread::start(&content_worker_thread_main, start.get());
+    if (started.failed()) {
         // The thread never ran: the start block is still ours, freed here.
-        throw std::system_error(started, std::generic_category(), "ContentWorker could not start its thread");
+        if ((*started.error()).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc();
+        throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again),
+                                "ContentWorker could not start its thread");
     }
-    (*thread_).handle = handle;
-#endif
+    (*thread_).thread = static_cast<stxlib::Result<stxlib::Thread>&&>(started).take_value();
     // The thread owns the start block from here (run_content_worker).
     (*thread_).start = start.release();
     (*thread_).joinable = true;

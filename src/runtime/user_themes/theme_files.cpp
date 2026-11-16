@@ -1,5 +1,15 @@
 #include "theme_files.hpp"
 
+#include "../../platform/stxlib_bridge.hpp"
+
+#include <stxlib/desktop.hpp>
+#include <stxlib/environment.hpp>
+#include <stxlib/path.hpp>
+#include <stxlib/process.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/text.hpp>
+#include <stxlib/text_view.hpp>
+
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -9,19 +19,6 @@
 #include <string>
 #include <system_error>
 #include <utility>
-
-#if defined(_WIN32)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#elif defined(__APPLE__)
-#include <crt_externs.h>
-#include <mach-o/dyld.h>
-#endif
 
 namespace gui_forms::detail::theme_files {
 namespace {
@@ -53,24 +50,23 @@ struct EntryPathOrder final {
     }
 };
 
-// The variable `name`'s value as UTF-8, or empty. A high-integrity build
-// reads no environment variable (cmake/HighIntegrity.cmake): always empty, so
-// there is no configuration folder and no GUI_FORMS_THEME_SHEET request.
-std::string environment(const char* name) {
+// The variable `name`'s value as UTF-8, or empty: STXlib's environment
+// (stxlib/environment.hpp), which reads the wide block on Windows and
+// serializes with every other reader. An unset, unreadable or non-UTF-8
+// variable reads as empty. A high-integrity build reads no environment
+// variable (cmake/HighIntegrity.cmake): always empty, so there is no
+// configuration folder and no GUI_FORMS_THEME_SHEET request.
+std::string environment(std::string_view name) {
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
     static_cast<void>(name);
     return std::string{};
-#elif defined(_WIN32)
-    std::wstring wide{};
-    for (const char* cursor = name; *cursor != '\0'; ++cursor) wide.push_back(static_cast<wchar_t>(*cursor));
-    const wchar_t* const value = _wgetenv(wide.c_str());
-    if (value == nullptr) return std::string{};
-    const std::filesystem::path path(value);
-    return text_of(path);
 #else
-    const char* const value = std::getenv(name);
-    if (value == nullptr) return std::string{};
-    std::string made(value);
+    const stxlib::Result<stxlib::TextView> checked = platform::validated_text(name);
+    if (checked.failed()) return std::string{};
+    const stxlib::Result<stxlib::Utf8String> value =
+        stxlib::read_variable(*checked.value(), stxlib::maximum_environment_bytes);
+    if (value.failed()) return std::string{};
+    std::string made = platform::standard_text_copy((*value.value()).view());
     return made;
 #endif
 }
@@ -222,135 +218,36 @@ std::string program_configuration_folder(std::string_view program) {
 }
 
 std::string environment_value(std::string_view name) {
-    const std::string terminated(name);
-    std::string value = environment(terminated.c_str());
+    std::string value = environment(name);
     return value;
 }
 
+// STXlib's current_executable (stxlib/desktop.hpp): GetModuleFileNameW on
+// Windows, _NSGetExecutablePath on macOS, /proc/self/exe on Linux. Empty
+// when the host cannot say or the name is not Unicode text.
 std::string executable_path() {
-#if defined(_WIN32)
-    // The longest path with long paths enabled, in UTF-16 units.
-    constexpr DWORD maximum_path_units = 32768U;
-    std::wstring path(maximum_path_units, L'\0');
-    const DWORD count = GetModuleFileNameW(nullptr, path.data(), maximum_path_units);
-    if (count == 0U || count >= maximum_path_units) return std::string{};
-    path.resize(count);
-    const std::filesystem::path made(path);
-    return text_of(made);
-#elif defined(__APPLE__)
-    std::uint32_t size = 0U;
-    static_cast<void>(_NSGetExecutablePath(nullptr, &size));
-    if (size == 0U) return std::string{};
-    std::string path(size, '\0');
-    if (_NSGetExecutablePath(path.data(), &size) != 0) return std::string{};
-    path.resize(std::char_traits<char>::length(path.c_str()));
+    const stxlib::Result<stxlib::Path> found = stxlib::current_executable();
+    if (found.failed()) return std::string{};
+    const stxlib::PathText text = (*found.value()).text();
+    if (!text.is_unicode()) return std::string{};
+    std::string path = platform::standard_text_copy(text.unicode());
     return path;
-#elif defined(__linux__)
-    std::error_code error{};
-    const std::filesystem::path path = std::filesystem::read_symlink("/proc/self/exe", error);
-    if (error) return std::string{};
-    return text_of(path);
-#else
-    return std::string{};
-#endif
 }
 
-std::vector<std::string> split_windows_command_line(std::string_view line) {
-    std::vector<std::string> arguments{};
-    std::size_t index = 0U;
-    // The program's name: quotes toggle, backslashes are literal.
-    std::string program{};
-    bool quoted = false;
-    while (index < line.size()) {
-        const char character = line[index];
-        if (!quoted && (character == ' ' || character == '\t')) break;
-        if (character == '"') {
-            quoted = !quoted;
-        } else {
-            program.push_back(character);
-        }
-        index = index + 1U;
-    }
-    arguments.push_back(std::move(program));
-    while (true) {
-        while (index < line.size() && (line[index] == ' ' || line[index] == '\t')) index = index + 1U;
-        if (index >= line.size()) break;
-        std::string argument{};
-        quoted = false;
-        while (index < line.size()) {
-            const char character = line[index];
-            if (!quoted && (character == ' ' || character == '\t')) break;
-            if (character == '\\') {
-                std::size_t backslashes = 0U;
-                while (index < line.size() && line[index] == '\\') {
-                    backslashes = backslashes + 1U;
-                    index = index + 1U;
-                }
-                const bool before_quote = index < line.size() && line[index] == '"';
-                if (!before_quote) {
-                    argument.append(backslashes, '\\');
-                    continue;
-                }
-                argument.append(backslashes / 2U, '\\');
-                if (backslashes % 2U == 1U) {
-                    argument.push_back('"');
-                    index = index + 1U;
-                }
-                continue;
-            }
-            if (character == '"') {
-                const bool doubled = quoted && index + 1U < line.size() && line[index + 1U] == '"';
-                if (doubled) {
-                    argument.push_back('"');
-                    index = index + 2U;
-                    continue;
-                }
-                quoted = !quoted;
-                index = index + 1U;
-                continue;
-            }
-            argument.push_back(character);
-            index = index + 1U;
-        }
-        arguments.push_back(std::move(argument));
-    }
-    return arguments;
-}
-
+// STXlib's process_arguments (stxlib/process.hpp): the C runtime's argv on
+// macOS, /proc/self/cmdline on Linux, GetCommandLineW split by the C
+// runtime's rules on Windows; each argument's bytes as the host gave them.
+// Empty when the host cannot be read.
 std::vector<std::string> process_arguments() {
     std::vector<std::string> arguments{};
-#if defined(_WIN32)
-    const wchar_t* const line = GetCommandLineW();
-    if (line == nullptr) return arguments;
-    const std::filesystem::path wide(line);
-    const std::u8string units = wide.u8string();
-    const std::string_view text(reinterpret_cast<const char*>(units.data()), units.size());
-    arguments = split_windows_command_line(text);
-#elif defined(__APPLE__)
-    const int count = *_NSGetArgc();
-    char** const vector = *_NSGetArgv();
-    if (vector == nullptr) return arguments;
-    for (int index = 0; index < count; ++index) {
-        if (vector[index] == nullptr) break;
-        arguments.emplace_back(vector[index]);
+    const stxlib::Result<stxlib::ProcessArguments> read = stxlib::process_arguments();
+    if (read.failed()) return arguments;
+    const stxlib::ProcessArguments& host = *read.value();
+    // The program's own name (index 0) is not an argument.
+    for (stxlib::usize index = 1; index < host.count(); ++index) {
+        const stxlib::View<char> bytes = host.argument(index).bytes();
+        arguments.emplace_back(bytes.data(), static_cast<std::size_t>(bytes.count()));
     }
-#elif defined(__linux__)
-    // NUL-separated, each argument ended by one; at most 1 MiB is read.
-    constexpr std::size_t maximum_command_line_bytes = std::size_t{1024} * 1024U;
-    std::string bytes{};
-    if (read_named_file("/proc/self/cmdline", maximum_command_line_bytes, bytes) != FileOutcome::done) {
-        return arguments;
-    }
-    std::size_t start = 0U;
-    while (start < bytes.size()) {
-        std::size_t end = bytes.find('\0', start);
-        if (end == std::string::npos) end = bytes.size();
-        arguments.emplace_back(bytes, start, end - start);
-        start = end + 1U;
-    }
-#endif
-    // The program's own name is not an argument.
-    if (!arguments.empty()) arguments.erase(arguments.begin());
     return arguments;
 }
 

@@ -1136,13 +1136,6 @@
       "reason": "three or four channels; the short form doubles each digit"
     },
     {
-      "path": "src/core/threading/atomic_pool/atomic_pool.c",
-      "function": "gui_forms_atomic_pool_worker",
-      "condition": "pool->terminate",
-      "decision": "false_shape",
-      "reason": "another thread sets pool->terminate under sleep_lock; the condition wait reloads it"
-    },
-    {
       "path": "src/core/types/painter/painter.cpp",
       "function": "gui_forms::fill_linear_gradient",
       "condition": "horizontal",

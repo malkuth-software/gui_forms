@@ -41,7 +41,7 @@ Related types
    * - :cpp:class:`AtomicTask <gui_forms::AtomicTask>`
      -  
    * - :cpp:class:`AtomicThreadPool <gui_forms::AtomicThreadPool>`
-     - The owner's threadpool_atomic_fast algorithm: synchronous batches, reusable task storage, native pthread workers.
+     - The owner's threadpool_atomic_fast algorithm: synchronous batches, reusable task storage, STXlib's AtomicPool workers.
    * - :cpp:class:`MotionPolicy <gui_forms::MotionPolicy>`
      - MotionPolicy is the resolved environment policy for active/quiescent cadence, speed scaling, and presentation phase.
 
@@ -154,7 +154,7 @@ Related types
 
    ``#include <gui_forms/threading.hpp>``
 
-   The owner's threadpool_atomic_fast algorithm: synchronous batches, reusable task storage, native pthread workers. Small batches may run on the caller. Methods belong to one owner thread; entries borrow contexts until run returns.
+   The owner's threadpool_atomic_fast algorithm: synchronous batches, reusable task storage, STXlib's AtomicPool workers. Small batches may run on the caller. Methods belong to one owner thread; entries borrow contexts until run returns.
 
 
    .. rubric:: Construction

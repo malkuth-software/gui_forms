@@ -2,7 +2,7 @@
 // The Windows host's installed-font probe, for the GUI.Drawing raster's
 // families the substitution table does not map (ADR-004 phase 7): the
 // Windows counterpart of the CoreText probe
-// (src/render/skia/executor/core_text_font_bytes.hpp). Win32 types stay in
+// (src/render/skia/executor/core_text_font_bytes.hpp, defined in src/surface/macos/fonts/). Win32 types stay in
 // this directory; the raster sees UTF-8 names and bytes only.
 
 #include <cstddef>

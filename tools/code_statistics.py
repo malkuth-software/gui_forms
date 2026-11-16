@@ -38,7 +38,7 @@ record):
   house style: every path under a third_party/ directory, and stx_skia files
   still listed in stx_skia/house_style_allowance.txt. The owner's own code is
   first-party wherever it is copied (BFFT in stx_vorbis, the C thread pool
-  threadpool_atomic_fast in gui_forms and STXlib).
+  threadpool_atomic_fast in STXlib).
 - converted: first-party code converted from an outside source, the files the
   PROVENANCE.md records name as derived from, rewritten from or restating
   another code base (stx_skia/skia/, stx_zlib's inflate, stx_raster3d,
@@ -132,8 +132,6 @@ class PathRule:
 OWNER_COPIES: tuple[PathRule, ...] = (
     PathRule(KIND_STX, 'stx_vorbis/third_party/bfft/', ORIGINAL,
              'stx_vorbis/third_party/bfft/provenance.json: the owner\'s BFFT, falseywinchnet/bfft 0f75ca79'),
-    PathRule(KIND_GUI_FORMS, 'src/core/threading/atomic_pool/', ORIGINAL,
-             'src/core/threading/atomic_pool/provenance.json: the owner\'s threadpool_atomic_fast'),
     PathRule(KIND_STXLIB, 'tests/reference/', ORIGINAL,
              'PROVENANCE.md, threadpool_atomic_fast: the owner\'s C original, kept unchanged'),
 )

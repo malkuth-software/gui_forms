@@ -29,7 +29,7 @@ output never enters them. It needs no build and no network.
 - **Provenance** comes from the repositories' own records:
   - *first-party original*: written for these repositories, including
     the owner's own code wherever it is copied (BFFT inside stx_vorbis and
-    the C thread pool threadpool_atomic_fast in gui_forms and STXlib);
+    the C thread pool threadpool_atomic_fast in STXlib);
   - *first-party converted*: rewritten from an outside code base, as the
     `PROVENANCE.md` records state: stx_skia's `skia/` (from Skia, converted
     to the house style under `stx_skia/house_style_allowance.txt`),

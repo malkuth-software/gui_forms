@@ -10,7 +10,6 @@
   "notices": [
     {"name": "THIRD_PARTY_NOTICES.md", "source": "THIRD_PARTY_NOTICES.md"},
     {"name": "GUIForms.txt", "source": "LICENSE", "component": "GUI.Forms"},
-    {"name": "threadpool_atomic_fast.txt", "source": "src/core/threading/atomic_pool/LICENSE", "component": "threadpool_atomic_fast (the owner's thread pool)"},
     {"name": "Heroicons.txt", "source": "assets/icons/heroicons/LICENSE", "component": "Heroicons (the stock icons)"},
     {"name": "Unicode.txt", "source": "$STX/third_party/unicode/LICENSE.txt", "component": "Unicode Character Database (grapheme tables)"},
     {"name": "stx_zlib.txt", "source": "$STX/stx_zlib/LICENSE", "component": "stx_zlib (the owned zlib codec)"},
@@ -20,7 +19,7 @@
     {"name": "stx_conv.txt", "source": "$STX/stx_conv/LICENSE", "component": "stx_conv (the owner's CONV resampler)"},
     {"name": "stx_raster3d.txt", "source": "$STX/stx_raster3d/LICENSE", "component": "stx_raster3d (the 3D plot renderer, from conv-teapot)"},
     {"name": "stx_rtf2md.txt", "source": "$STX/stx_rtf2md/LICENSE", "component": "stx_rtf2md (the owner's RTF and markdown converter)"},
-    {"name": "STXlib.txt", "source": "$STXLIB/LICENSE", "component": "STXlib (the boundary library: the row height index, the SIMD level; its state is a static archive in each program)"},
+    {"name": "STXlib.txt", "source": "$STXLIB/LICENSE", "component": "STXlib (the boundary library: the row height index, the SIMD level, the worker threads and the atomic pool; its state is a static archive in each program)"},
     {"name": "stx_btree.txt", "source": "$STXLIB/stx_btree-LICENSE", "component": "stx_btree (the row height index's sequence tree, in STXlib)"},
     {"name": "stx_btree-NOTICE.txt", "source": "$STXLIB/stx_btree-NOTICE", "component": "stx_btree (the row height index's sequence tree, in STXlib)"},
     {"name": "stx_minmallocpp-NOTICE.txt", "source": "$STXLIB/stx_minmallocpp-NOTICE", "component": "stx_minmallocpp (STXlib's allocator, in its state archive)"},

@@ -70,29 +70,20 @@ enum class FileOutcome : std::uint8_t {
 // the environment; empty where the environment names none.
 [[nodiscard]] std::string program_configuration_folder(std::string_view program);
 
-// The environment variable `name`'s value as UTF-8; empty where it is unset.
+// The environment variable `name`'s value as UTF-8 (STXlib's
+// read_variable); empty where it is unset, unreadable or not UTF-8.
 [[nodiscard]] std::string environment_value(std::string_view name);
 
-// The running program's own file as an absolute UTF-8 path (Windows: the
-// process's module; Linux: /proc/self/exe; macOS: _NSGetExecutablePath);
-// empty where the platform names none.
+// The running program's own file as an absolute UTF-8 path (STXlib's
+// current_executable: Windows, the process's module; Linux, /proc/self/exe;
+// macOS, _NSGetExecutablePath); empty where the platform names none.
 [[nodiscard]] std::string executable_path();
 
 // The arguments the process was started with, after the program's own
-// name, as UTF-8 (Windows: the process's command line split as the C
-// runtime splits it, split_windows_command_line; Linux:
-// /proc/self/cmdline; macOS: the C runtime's argument vector); empty where
+// name, as the host gave them (STXlib's process_arguments: Windows, the
+// process's command line split as the C runtime splits it; Linux,
+// /proc/self/cmdline; macOS, the C runtime's argument vector); empty where
 // the platform gives none.
 [[nodiscard]] std::vector<std::string> process_arguments();
-
-// A Windows command line, UTF-8, split into its arguments by the C
-// runtime's rules (the program's name first): the first argument runs to
-// the first space or tab outside quotes, and a quote there only toggles
-// quoting; in the others, 2n backslashes and a quote are n backslashes and
-// a toggle, 2n+1 backslashes and a quote are n backslashes and a literal
-// quote, other backslashes are literal, and inside quotes `""` is a
-// literal quote. Every byte of a multi-byte UTF-8 character is above 0x7F,
-// so splitting the UTF-8 text is splitting the UTF-16 one.
-[[nodiscard]] std::vector<std::string> split_windows_command_line(std::string_view line);
 
 } // namespace gui_forms::detail::theme_files

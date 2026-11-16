@@ -1,20 +1,35 @@
+// gui_forms::AtomicThreadPool and gui_forms::Worker (gui_forms/threading.hpp)
+// over STXlib's standard augmentation (owner, 2026-11-16: worker threads and
+// the atomic pool live in STXlib): stxlib::AtomicPool, the owner's
+// threadpool_atomic_fast algorithm with its claim sizes, memory orders and
+// lock order (stxlib/thread_pool.hpp), and stxlib::Thread
+// (stxlib/threads.hpp). The C copy GUI.Forms kept under
+// src/core/threading/atomic_pool/ is gone; this file keeps GUI.Forms'
+// throwing interface over STXlib's results.
+//
+// Thread records: every STXlib thread, pool workers included, ends its
+// STXlib thread records on the thread when its body ends (threads.hpp,
+// "Thread records"), outside the loader lock a Windows thread's exit runs
+// under, as gui_forms_atomic_pool_thread_ending did here before.
+
 #include "gui_forms/threading.hpp"
-#include "atomic_pool/atomic_pool.h"
 
-#include <stxlib/thread_records.hpp>
+#include <stxlib/error.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/text_view.hpp>
+#include <stxlib/thread_pool.hpp>
+#include <stxlib/threads.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 
+#include <cstddef>
 #include <exception>
 #include <limits>
+#include <new>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
-
-// Each pool thread's last act (atomic_pool.h): its STXlib thread records
-// (every library's) are released here, on the thread, rather than by the
-// exit hook, which on Windows runs under the loader lock.
-extern "C" void gui_forms_atomic_pool_thread_ending() {
-    stxlib::end_thread_records();
-}
 
 namespace gui_forms {
 
@@ -28,33 +43,51 @@ bool CancellationFlag::requested() const noexcept {
 }
 
 namespace {
-void check_pool_result(const gui_forms_atomic_pool_result_t result) {
-    if (result == THREADPOOL_OK) return;
-    if (result == THREADPOOL_ALLOCATION_FAILED) throw std::bad_alloc();
-    throw std::runtime_error("threadpool_atomic_fast operation failed: " +
-        std::to_string(static_cast<int>(result)));
+
+// STXlib's refusal as GUI.Forms' exception: exhaustion as std::bad_alloc,
+// anything else as std::runtime_error naming the operation and the record's
+// code. A null record throws nothing.
+void throw_failure(const stxlib::ErrorRecord* const record) {
+    if (record == nullptr) return;
+    const stxlib::ErrorRecord& failure = *record;
+    if (failure.kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc();
+    const stxlib::TextView operation = failure.operation().name();
+    std::string message = "atomic pool operation failed: ";
+    message.append(operation.data(), static_cast<std::size_t>(operation.count()));
+    message.append(" (code ");
+    message.append(std::to_string(failure.code()));
+    message.append(")");
+    throw std::runtime_error(message);
 }
+
+void check_status(const stxlib::Status& status) {
+    if (!status.failed()) return;
+    throw_failure(status.error());
+}
+
 } // namespace
 
+// The pool and the reusable task table run hands it. `running` is true while
+// run is inside the pool on the owner's thread, so a task run on the caller
+// that calls run again is refused here (logic_error) before STXlib would end
+// the process for it (PoolFailure::batch_still_open).
 struct AtomicThreadPool::State final {
-    explicit State(const std::uint32_t threads) {
-        const gui_forms_atomic_pool_result_t result =
-            gui_forms_atomic_pool_create_checked(threads, &pool);
-        check_pool_result(result);
-    }
-    ~State() { gui_forms_atomic_pool_destroy(pool); }
-    gui_forms_atomic_pool_t* pool{nullptr};
-    std::vector<gui_forms_atomic_pool_task_t> tasks{};
+    stxlib::AtomicPool pool{};
+    std::vector<stxlib::PoolTask> tasks{};
     bool running{false};
 };
 
-AtomicThreadPool::AtomicThreadPool(const std::uint32_t threads)
-    : state_(std::make_unique<State>(threads)) {}
+AtomicThreadPool::AtomicThreadPool(const std::uint32_t threads) : state_(std::make_unique<State>()) {
+    stxlib::Result<stxlib::AtomicPool> created = stxlib::AtomicPool::create(threads);
+    if (created.failed()) throw_failure(created.error());
+    (*state_).pool = static_cast<stxlib::Result<stxlib::AtomicPool>&&>(created).take_value();
+}
+
 AtomicThreadPool::~AtomicThreadPool() = default;
 
 std::uint32_t AtomicThreadPool::thread_count() const noexcept {
     const State& state = *state_;
-    const std::uint32_t result = gui_forms_atomic_pool_thread_count(state.pool);
+    const std::uint32_t result = state.pool.thread_count();
     return result;
 }
 
@@ -65,63 +98,72 @@ void AtomicThreadPool::run(const std::span<const AtomicTask> tasks) {
         if (task.entry == nullptr) throw std::invalid_argument("atomic pool entry is null");
     }
     State& state = *state_;
-    if (state.running || gui_forms_atomic_pool_is_worker(state.pool) != 0)
+    if (state.running || state.pool.is_worker())
         throw std::logic_error("an atomic pool task cannot reenter its pool");
     state.tasks.resize(tasks.size());
     for (std::size_t index = 0; index < tasks.size(); ++index) {
-        state.tasks[index] = {tasks[index].entry, tasks[index].context};
+        state.tasks[index] = stxlib::PoolTask{.function = tasks[index].entry, .argument = tasks[index].context};
     }
+    const stxlib::View<stxlib::PoolTask> batch(state.tasks.data(), static_cast<stxlib::usize>(state.tasks.size()));
     state.running = true;
-    const gui_forms_atomic_pool_result_t result = gui_forms_atomic_pool_run_checked(
-        state.pool, state.tasks.data(), static_cast<std::uint32_t>(state.tasks.size()));
+    const stxlib::Status result = state.pool.run(batch);
     state.running = false;
-    check_pool_result(result);
+    check_status(result);
 }
 
+// One STXlib thread running the entry. The thread borrows this state until
+// it is joined; the Thread is the last member, so it is destroyed (and
+// joined, if wait never ran) before what it borrows. An entry's exception
+// stays on the thread and is rethrown by join on the owner's.
 struct Worker::State final {
     State(const Entry function, void* const address) : entry(function), context(address) {
         if (entry == nullptr) throw std::invalid_argument("Worker requires a named entry");
-        gui_forms_atomic_pool_result_t result = gui_forms_atomic_pool_create_checked(1, &pool);
-        check_pool_result(result);
-        task = {State::run, this};
-        result = gui_forms_atomic_pool_begin_checked(pool, &task, 1);
-        if (result != THREADPOOL_OK) {
-            gui_forms_atomic_pool_destroy(pool);
-            pool = nullptr;
-            check_pool_result(result);
-        }
+        stxlib::Result<stxlib::Thread> started = stxlib::Thread::start(State::run, this);
+        if (started.failed()) throw_failure(started.error());
+        thread = static_cast<stxlib::Result<stxlib::Thread>&&>(started).take_value();
     }
     ~State() {
         cancellation.request();
-        try { wait(); } catch (...) { std::terminate(); }
-        gui_forms_atomic_pool_destroy(pool);
+        try {
+            wait();
+        } catch (...) {
+            std::terminate();
+        }
     }
+    State(const State&) = delete;
+    State& operator=(const State&) = delete;
+    State(State&&) = delete;
+    State& operator=(State&&) = delete;
+
     void wait() {
         if (joined) return;
-        if (gui_forms_atomic_pool_is_worker(pool) != 0)
-            throw std::logic_error("Worker cannot join itself");
-        const gui_forms_atomic_pool_result_t result = gui_forms_atomic_pool_wait_checked(pool);
-        check_pool_result(result);
-        gui_forms_atomic_pool_destroy(pool);
-        pool = nullptr;
+        const stxlib::JoinResult result = thread.join();
+        if (result == stxlib::JoinResult::self_join) throw std::logic_error("Worker cannot join itself");
         joined = true;
     }
-    static void run(void* const address) noexcept {
+
+    // The thread's body. STXlib's stop signal is not used: the entry reads
+    // the worker's own CancellationFlag.
+    static void run(const stxlib::StopSignal& stop, void* const address) noexcept {
+        static_cast<void>(stop);
         State& state = *static_cast<State*>(address);
-        try { state.entry(state.cancellation, state.context); }
-        catch (...) { state.failure = std::current_exception(); }
+        try {
+            state.entry(state.cancellation, state.context);
+        } catch (...) {
+            state.failure = std::current_exception();
+        }
     }
+
     CancellationFlag cancellation{};
     Entry entry{nullptr};
     void* context{nullptr};
     std::exception_ptr failure{};
-    gui_forms_atomic_pool_t* pool{nullptr};
-    gui_forms_atomic_pool_task_t task{};
     bool joined{false};
+    // Declared last (see above).
+    stxlib::Thread thread{};
 };
 
-Worker::Worker(const Entry entry, void* const context)
-    : state_(std::make_unique<State>(entry, context)) {}
+Worker::Worker(const Entry entry, void* const context) : state_(std::make_unique<State>(entry, context)) {}
 Worker::~Worker() = default;
 
 void Worker::request_cancel() noexcept {
