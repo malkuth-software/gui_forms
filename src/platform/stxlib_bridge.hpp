@@ -68,6 +68,15 @@ template <typename Element, std::size_t Count>
 template <typename Element, std::size_t Count>
 stxlib::MutableView<Element> stxlib_mutable_view(std::array<Element, Count>&& storage) = delete;
 
+// Standard bytes (a font's) as STXlib's view of the same bytes as unsigned
+// octets. std::byte and unsigned char may alias each other, so the view
+// reads exactly the source's storage.
+[[nodiscard]] inline stxlib::View<stxlib::u8> stxlib_bytes(const std::span<const std::byte> bytes) noexcept {
+    const stxlib::u8* const octets = reinterpret_cast<const stxlib::u8*>(bytes.data());
+    const stxlib::View<stxlib::u8> result(octets, static_cast<stxlib::usize>(bytes.size()));
+    return result;
+}
+
 // STXlib's views as standard spans of the same elements.
 template <typename Element>
 [[nodiscard]] std::span<const Element> standard_span(const stxlib::View<Element> elements) noexcept {

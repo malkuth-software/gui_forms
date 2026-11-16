@@ -898,10 +898,13 @@ struct FaceMetrics final {
     double line_gap{};
 };
 
-// One encoded face of a family: the shared bytes, the collection index and
-// its metrics.
+// One encoded face of a family: its bytes and their owner (the font
+// family registry's sealed face for a bundled face, so every executor draws
+// the registry's typeface of it; a private copy for a face registered by
+// its bytes), the collection index and its metrics.
 struct FaceRecord final {
-    std::shared_ptr<const std::vector<std::byte>> bytes;
+    std::span<const std::byte> bytes{};
+    std::shared_ptr<const void> owner{};
     std::uint32_t index{};
     FaceMetrics metrics{};
 };
@@ -923,7 +926,7 @@ constexpr std::size_t italic_slot_bit = 2U;
 
 // The faces tried for each requested slot, nearest first: the same slant
 // with the other weight before the other slant. A face of another weight or
-// slant is emboldened or sheared toward the request.
+// slant is thickened (synthesized bold) or sheared toward the request.
 constexpr std::array<std::array<std::size_t, 4>, 4> nearest_slots{{
     {0U, 1U, 2U, 3U},
     {1U, 0U, 3U, 2U},
@@ -1089,17 +1092,17 @@ public:
 
     // Chooses the collection face best matching family and weight, scanning
     // at most 64 faces. Nullopt when the bytes hold no usable face.
-    [[nodiscard]] std::optional<FaceRecord> select_face(std::string_view family,
-                                                        std::shared_ptr<const std::vector<std::byte>> bytes,
+    [[nodiscard]] std::optional<FaceRecord> select_face(std::string_view family, const std::span<const std::byte> bytes,
+                                                        const std::shared_ptr<const void>& owner,
                                                         const int requested_weight) const {
         const std::string requested_family = ascii_lower(family);
         std::optional<FaceRecord> best;
         int best_score = std::numeric_limits<int>::min();
-        const FreeTypeFace collection(library.get(), *bytes, -1);
+        const FreeTypeFace collection(library.get(), bytes, -1);
         if (collection.get() == nullptr) return best;
         const FT_Long count = std::min<FT_Long>((*collection.get()).num_faces, 64);
         for (FT_Long index = 0; index < count; ++index) {
-            const FreeTypeFace candidate(library.get(), *bytes, index);
+            const FreeTypeFace candidate(library.get(), bytes, index);
             const FT_Face face = candidate.get();
             if (face == nullptr || !FT_IS_SCALABLE(face)) continue;
             const bool exact_family = (*face).family_name != nullptr &&
@@ -1108,7 +1111,7 @@ public:
             const int score = (exact_family ? 100000 : 0) - weight_distance;
             if (score > best_score) {
                 best_score = score;
-                best = FaceRecord{bytes, static_cast<std::uint32_t>(index), face_metrics(face)};
+                best = FaceRecord{bytes, owner, static_cast<std::uint32_t>(index), face_metrics(face)};
             }
             if (exact_family && weight_distance == 0) break;
         }
@@ -1131,12 +1134,29 @@ public:
             if (!face) continue;
             const std::uint16_t weight = (index & bold_slot_bit) != 0U ? bold_weight : regular_weight;
             const bool italic = (index & italic_slot_bit) != 0U;
-            if (!(*family.engine).register_shared_typeface(gui_forms::FontRole::control, weight, italic,
-                                                          (*face).bytes, (*face).index)) {
+            if (!(*family.engine).register_owned_typeface(gui_forms::FontRole::control, weight, italic,
+                                                         (*face).bytes, (*face).owner, (*face).index)) {
                 throw std::runtime_error("font registration failed");
             }
         }
         family.rasterizer = std::make_unique<text::GlyphRunRasterizer>(*family.engine);
+    }
+
+    // Chooses the face of `bytes` (owned by `owner`) best matching `family` and style's weight
+    // and installs it in style's slot under `family`. False when the bytes hold no usable face.
+    [[nodiscard]] bool install_face(std::string_view family, const std::span<const std::byte> bytes,
+                                    const std::shared_ptr<const void>& owner, const std::uint32_t style) {
+        const std::size_t slot = static_cast<std::size_t>(style & 3U);
+        const bool bold = (slot & bold_slot_bit) != 0U;
+        // Collections (TTC/OTC) hold several faces; choose the requested
+        // family and weight instead of silently using face zero.
+        std::optional<FaceRecord> record = select_face(family, bytes, owner, bold ? bold_weight : regular_weight);
+        if (!record) return false;
+        const std::string key = ascii_lower(family);
+        // A face registered under its own name replaces an alias of it.
+        aliases.erase(key);
+        install(family, slot, std::move(*record));
+        return true;
     }
 
     // The family registered under a name, following its alias if it has one.
@@ -1151,7 +1171,7 @@ public:
 
     // The registered family, else the registry's Portsmouth Rapids. The
     // requested slot's face draws as it is; otherwise the nearest registered
-    // face is emboldened or sheared toward the request.
+    // face is thickened (synthesized bold) or sheared toward the request.
     [[nodiscard]] std::optional<ResolvedFont> resolve(const FontSnapshot& spec) {
         const std::size_t requested = static_cast<std::size_t>(spec.style & 3U);
         TextFamily* family = registered(spec.family);
@@ -1182,7 +1202,7 @@ public:
         // synthesizes bold and oblique here for GDI+ compatibility, unlike interface text,
         // which draws the nearest face and never synthesizes (stage F decision 7). Whether
         // GUI.Drawing stops synthesizing is the owner's decision; keep this as it is until then.
-        resolved.synthesis.embolden = (requested & bold_slot_bit) != 0U && !face_bold;
+        resolved.synthesis.thicken = (requested & bold_slot_bit) != 0U && !face_bold;
         resolved.synthesis.oblique = (requested & italic_slot_bit) != 0U && !face_italic;
         resolved.metrics = (*(*family).faces[slot]).metrics;
         result = resolved;
@@ -1389,9 +1409,12 @@ bool SkiaExecutor::register_bundled_typeface(std::string_view family,
         const gui_forms::detail::FontFaceLoad load = (*(*impl_).bundled_fonts).face(file_name);
         const std::shared_ptr<const gui_forms::detail::SealedFontFace>* face = load.face();
         if (face == nullptr) return false;
-        // register_typeface keeps its own copy of the bytes; the sealed face stays with the set.
+        // The sealed face's own bytes, with the face as their owner: the executor draws the
+        // registry's typeface of them (program_typefaces.hpp), the one every window and executor
+        // shares, and holds no copy.
         const std::span<const std::byte> bytes = (*(*face)).bytes();
-        const bool registered = register_typeface(family, bytes, style);
+        const std::shared_ptr<const void> owner = *face;
+        const bool registered = (*impl_).install_face(family, bytes, owner, style);
         return registered;
     } catch (const std::exception&) {
         return false;
@@ -1406,22 +1429,16 @@ bool SkiaExecutor::register_typeface(std::string_view family,
         return false;
     }
     try {
-        const std::shared_ptr<const std::vector<std::byte>> bytes =
+        // A private copy, which the executor's faces share.
+        const std::shared_ptr<const std::vector<std::byte>> copy =
             std::make_shared<const std::vector<std::byte>>(encoded.begin(), encoded.end());
-        const std::size_t slot = static_cast<std::size_t>(style & 3U);
-        const bool bold = (slot & bold_slot_bit) != 0U;
-        // Collections (TTC/OTC) hold several faces; choose the requested
-        // family and weight instead of silently using face zero.
-        std::optional<FaceRecord> record = (*impl_).select_face(family, bytes, bold ? bold_weight : regular_weight);
-        if (!record) return false;
-        const std::string key = ascii_lower(family);
-        // A face registered under its own name replaces an alias of it.
-        (*impl_).aliases.erase(key);
-        (*impl_).install(family, slot, std::move(*record));
+        const std::span<const std::byte> bytes(*copy);
+        const std::shared_ptr<const void> owner = copy;
+        const bool installed = (*impl_).install_face(family, bytes, owner, style);
+        return installed;
     } catch (const std::exception&) {
         return false;
     }
-    return true;
 }
 
 bool SkiaExecutor::alias_family(std::string_view requested, std::string_view family) {

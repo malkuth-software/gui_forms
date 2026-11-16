@@ -5,11 +5,17 @@
 // every static that holds a handle. Entry n has number
 // minimum_app_font_family + n; numbers are given in load order and never reused.
 //
-// Memory: an entry owns its faces' bytes through one shared AppFontBytes block. A text engine
+// Memory: an entry owns its faces' bytes through one shared AppFontBytes block, and with them
+// the program's STXlib typeface of each face (program_typefaces.hpp), opened at load and
+// registered for as long as the block lives, so every executor drawing the family draws the
+// same typefaces. A text engine
 // that opens the family copies a shared_ptr to that block (app_font_family_faces) and keeps it
 // for as long as its faces live. Unloading moves the entry's reference out under the lock: if it
 // was the last, the bytes go at once (released); otherwise they go with the last engine's
 // reference (deferred), and the entry keeps only a weak reference to tell the two apart later.
+// Either way unloading retires the family's typefaces first: an executor's face over one is
+// rejected on its next draw and released, and no face opens over one again, so no executor
+// draws an unloaded family while its bytes wait for the last engine.
 //
 // Threads: loads, unloads, name lookups and face copies take `registration`. A family's state is
 // an atomic each text engine reads per shaped run without the lock; `given` publishes new entries
@@ -18,6 +24,8 @@
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 
 #include "gui_forms/typography/font_families/font_families.hpp"
+
+#include "program_typefaces.hpp"
 
 #include <array>
 #include <atomic>
@@ -34,11 +42,22 @@
 namespace gui_forms {
 namespace {
 
-// A family's faces as loaded: `count` of `faces` are live.
+// A family's faces as loaded: `count` of `faces` are live, each with the typeface opened over
+// its bytes (null for a face STXlib refuses: its executors then fail to open it and quarantine
+// the family, as before). Declared after `faces`, destroyed before them: a typeface reads them.
 struct AppFontBytes final {
     std::array<AppFontFace, maximum_app_font_faces> faces{};
     std::size_t count{};
+    std::array<std::unique_ptr<detail::ProgramTypeface>, maximum_app_font_faces> typefaces{};
 };
+
+// Retires every typeface of `block` (program_typefaces.hpp).
+void retire_typefaces(const AppFontBytes& block) noexcept {
+    for (std::size_t index = 0U; index < block.count; ++index) {
+        const std::unique_ptr<detail::ProgramTypeface>& typeface = block.typefaces[index];
+        if (typeface) (*typeface).retire();
+    }
+}
 
 struct AppFontEntry final {
     // Written under the lock, read anywhere.
@@ -148,6 +167,7 @@ AppFontUnload unload_app_font_family(FontFamilyId family) noexcept {
         AppFontEntry& entry = table.entries[index];
         if (!holds_name(entry.state.load(std::memory_order_relaxed))) return result;
         held = std::move(entry.bytes);
+        if (held) retire_typefaces(*held);
         entry.unloaded = held;
         const bool shared = held.use_count() > 1;
         result = shared ? AppFontUnload::deferred : AppFontUnload::released;
@@ -192,10 +212,21 @@ AppFontLoad load_app_font_family(std::string_view name, std::span<const AppFontF
             return refused_load(validation.status, index, validation.table);
         }
     }
-    // Built before the lock: the faces share the application's bytes.
+    // Built before the lock: the faces share the application's bytes. Each face's typeface is
+    // opened over them and registered while the block lives; a block whose load is then refused
+    // takes its registrations with it.
     std::shared_ptr<AppFontBytes> block = std::make_shared<AppFontBytes>();
     for (std::size_t index = 0U; index < faces.size(); ++index) (*block).faces[index] = faces[index];
     (*block).count = faces.size();
+    const std::shared_ptr<const void> owner = block;
+    for (std::size_t index = 0U; index < faces.size(); ++index) {
+        const std::span<const std::byte> bytes((*faces[index].bytes).data(), (*faces[index].bytes).size());
+        std::unique_ptr<detail::ProgramTypeface> typeface = detail::open_program_typeface(bytes, 0U);
+        if (!typeface) continue;
+        const detail::ProgramTypeface& registered = *typeface;
+        (*block).typefaces[index] = std::move(typeface);
+        static_cast<void>(detail::register_program_typeface(bytes, 0U, owner, registered));
+    }
 
     AppFontTable& table = app_font_table();
     FontFamilyId family{};

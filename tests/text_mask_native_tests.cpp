@@ -1,6 +1,10 @@
 #include "../src/render/text/text_mask/text_mask_native.hpp"
 #include "prepared_text_test_support.hpp"
 
+#include <stxlib/glyph_face.hpp>
+#include <stxlib/vector.hpp>
+#include <stxlib/view.hpp>
+
 #include <cmath>
 #include <iostream>
 
@@ -108,7 +112,8 @@ std::vector<std::uint8_t> gray_mask(NativeFixture& fixture, const std::string& t
     metrics.height_px = static_cast<std::uint32_t>(std::ceil(shape.ascent + shape.descent)) + 4U;
     metrics.stride_bytes = metrics.width_px;
     std::shared_ptr<TextMaskStorage> mask = allocate_mask_storage(fixture.ledger, key, metrics, 1);
-    fill_native_mask(fonts, (*key).options, live, *mask);
+    NativeRasterWork raster_work(fixture.ledger);
+    fill_native_mask(fonts, (*key).options, live, raster_work, *mask);
     return std::vector<std::uint8_t>((*mask).pixels.begin(), (*mask).pixels.end());
 }
 
@@ -143,7 +148,8 @@ void test_raster_profiles(const std::span<const std::byte> bytes) {
             const NativeShape shape = paragraph.shape(0, text.size(), glyphs);
             for (std::size_t index = 0; index < shape.glyph_count; ++index) glyphs[index].y += shape.ascent;
             const std::span<const NativeGlyph> live(glyphs.data(), shape.glyph_count);
-            const NativeInk ink = measure_native_ink(fonts, (*key).options, live);
+            NativeRasterWork raster_work(fixture.ledger);
+            const NativeInk ink = measure_native_ink(fonts, (*key).options, live, raster_work);
             require(ink.present && ink.right > ink.left && ink.bottom > ink.top, "native ink measured");
             TextMaskMetrics metrics{};
             metrics.device_scale = request.device_scale;
@@ -153,7 +159,7 @@ void test_raster_profiles(const std::span<const std::byte> bytes) {
             metrics.height_px = static_cast<std::uint32_t>(ink.bottom - ink.top);
             metrics.stride_bytes = metrics.width_px;
             std::shared_ptr<TextMaskStorage> mask = allocate_mask_storage(fixture.ledger, key, metrics, 1);
-            fill_native_mask(fonts, (*key).options, live, *mask);
+            fill_native_mask(fonts, (*key).options, live, raster_work, *mask);
             bool ink_found = false;
             bool fractional = false;
             for (std::size_t index = 0; index < (*mask).pixels.size(); ++index) {
@@ -233,7 +239,8 @@ void test_mono_native_oracle(const std::span<const std::byte> bytes) {
     require(shape.glyph_count == 1, "mono oracle single glyph");
     glyphs[0].y += shape.ascent;
     const std::span<const NativeGlyph> live(glyphs.data(), 1);
-    const NativeInk ink = measure_native_ink(fonts, (*key).options, live);
+    NativeRasterWork raster_work(fixture.ledger);
+    const NativeInk ink = measure_native_ink(fonts, (*key).options, live, raster_work);
     TextMaskMetrics metrics{};
     metrics.device_scale = 2.0;
     metrics.ink_left_px = static_cast<std::int32_t>(ink.left);
@@ -242,27 +249,28 @@ void test_mono_native_oracle(const std::span<const std::byte> bytes) {
     metrics.height_px = static_cast<std::uint32_t>(ink.bottom - ink.top);
     metrics.stride_bytes = metrics.width_px;
     std::shared_ptr<TextMaskStorage> mask = allocate_mask_storage(fixture.ledger, key, metrics, 1);
-    fill_native_mask(fonts, (*key).options, live, *mask);
-    // Independent native call supplies the oracle's packed bits and bearings.
-    const FT_Face face = fonts.faces[0].value;
-    FT_Error status = FT_Load_Glyph(face, glyphs[0].glyph, FT_LOAD_NO_BITMAP | FT_LOAD_TARGET_MONO | FT_LOAD_MONOCHROME);
-    require(status == 0, "mono oracle glyph load");
-    status = FT_Render_Glyph((*face).glyph, FT_RENDER_MODE_MONO);
-    require(status == 0, "mono oracle packed render");
-    const FT_GlyphSlotRec& slot = *(*face).glyph;
-    const FT_Bitmap& bitmap = slot.bitmap;
-    require(bitmap.pixel_mode == FT_PIXEL_MODE_MONO && bitmap.width == metrics.width_px && bitmap.rows == metrics.height_px,
-        "mask dimensions equal native mono bitmap");
-    const std::int64_t expected_left = std::llround(glyphs[0].x * 2.0) + slot.bitmap_left;
-    const std::int64_t expected_top = std::llround(glyphs[0].y * 2.0) - slot.bitmap_top;
-    require(expected_left == metrics.ink_left_px && expected_top == metrics.ink_top_px, "signed native bearings preserved");
-    for (std::size_t row = 0; row < bitmap.rows; ++row) {
-        for (std::size_t column = 0; column < bitmap.width; ++column) {
-            const unsigned packed = bitmap.buffer[row * static_cast<std::size_t>(bitmap.pitch) + column / 8U];
-            const unsigned bit = 0x80U >> (column % 8U);
-            std::uint8_t expected = 0;
-            if ((packed & bit) != 0) expected = 255;
-            require((*mask).pixels[row * metrics.stride_bytes + column] == expected, "mono coverage equals actual packed FT bits");
+    fill_native_mask(fonts, (*key).options, live, raster_work, *mask);
+    // Independent oracle: a face of its own over the same bytes (not the
+    // program typeface the job drew from), one glyph's monochrome mask at
+    // the job's device size, whole-pixel origin.
+    stxlib::glyphs::Face oracle{};
+    const stxlib::View<stxlib::u8> font_bytes(reinterpret_cast<const stxlib::u8*>(bytes.data()), bytes.size());
+    require(oracle.open(font_bytes, 0U).succeeded(), "mono oracle face opens");
+    stxlib::glyphs::DrawStyle style{};
+    style.size = static_cast<stxlib::i64>(std::floor(static_cast<double>((*key).options.size_64) * 2.0 + 0.5));
+    style.fit = stxlib::glyphs::Fit::monochrome;
+    stxlib::glyphs::Bounds bounds{};
+    stxlib::Vector<stxlib::u8> pixels{};
+    require(oracle.mask(glyphs[0].glyph, style, stxlib::glyphs::Point{}, bounds, pixels).succeeded(), "mono oracle glyph mask");
+    require(bounds.width == metrics.width_px && bounds.height == metrics.height_px, "mask dimensions equal the oracle's");
+    const std::int64_t expected_left = std::llround(glyphs[0].x * 2.0) + bounds.left;
+    const std::int64_t expected_top = std::llround(glyphs[0].y * 2.0) - bounds.top;
+    require(expected_left == metrics.ink_left_px && expected_top == metrics.ink_top_px, "signed bearings preserved");
+    for (std::size_t row = 0; row < bounds.height; ++row) {
+        for (std::size_t column = 0; column < bounds.width; ++column) {
+            const std::uint8_t expected = pixels[row * bounds.width + column];
+            require(expected == 0U || expected == 255U, "oracle mono coverage is one bit");
+            require((*mask).pixels[row * metrics.stride_bytes + column] == expected, "mono coverage equals the oracle's");
         }
     }
 }

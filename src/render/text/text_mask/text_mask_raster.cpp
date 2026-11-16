@@ -1,162 +1,173 @@
 #include "text_mask_native.hpp"
+
+#include <stxlib/result.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
+
 #include <algorithm>
 #include <cmath>
 
 namespace gui_forms::detail::mask_native {
 namespace {
-struct BitmapBorrow final {
-    const FT_Bitmap* bitmap{};
-    std::int64_t left{0};
-    std::int64_t top{0};
-};
 
-void blend_gray(const FT_Bitmap& bitmap, const std::size_t left, const std::size_t top, TextMaskStorage& target);
-void blend_mono(const FT_Bitmap& bitmap, const std::size_t left, const std::size_t top, TextMaskStorage& target);
+// The widest or tallest ink a mask may have, in pixels.
+constexpr std::int64_t maximum_mask_dimension = 4096;
 
-void validate_gray_bitmap(const FT_Bitmap& bitmap, const std::size_t pitch) {
-    if (bitmap.pixel_mode != FT_PIXEL_MODE_GRAY || bitmap.num_grays != 256 || bitmap.width > pitch) {
-        throw NativeFailure(TextMaskStatus::unsupported_profile);
-    }
-}
-void validate_mono_bitmap(const FT_Bitmap& bitmap, const std::size_t pitch) {
-    if (bitmap.pixel_mode != FT_PIXEL_MODE_MONO || (bitmap.width + 7U) / 8U > pitch) {
-        throw NativeFailure(TextMaskStatus::unsupported_profile);
-    }
-}
-
+// How the options' raster profile is drawn (ADR-004): its fit and size, and
+// whether x keeps its 1/64 pixel phase.
 struct RasterConfiguration final {
     double scale{1.0};
-    // ADR-004: outline_gray is the shared light auto-hinted grayscale profile.
-    FT_Int32 load_flags{FT_LOAD_NO_BITMAP | FT_LOAD_TARGET_LIGHT | FT_LOAD_FORCE_AUTOHINT};
-    FT_Render_Mode render_mode{FT_RENDER_MODE_NORMAL};
+    stxlib::glyphs::DrawStyle style{};
     // Horizontal placement keeps its 1/64 pixel phase (ADR-004 integer 26.6
     // placement); vertical placement stays on whole pixels. Mono is whole-pixel.
     bool subpixel_x{true};
-    void (*validate_bitmap)(const FT_Bitmap&, std::size_t){validate_gray_bitmap};
-    void (*blend_bitmap)(const FT_Bitmap&, std::size_t, std::size_t, TextMaskStorage&){blend_gray};
+    bool monochrome{false};
 };
 
 RasterConfiguration make_raster_configuration(const MaskOptions& options) {
     RasterConfiguration result{};
     result.scale = options.scale;
+    const double scaled_fixed = static_cast<double>(options.size_64) * options.scale;
+    if (!std::isfinite(scaled_fixed) || scaled_fixed < 1.0 || scaled_fixed > 1073741824.0) {
+        throw NativeFailure(TextMaskStatus::unsupported_profile);
+    }
+    result.style.size = static_cast<stxlib::i64>(std::floor(scaled_fixed + 0.5));
+    // ADR-004: outline_gray is the shared light auto-hinted grey profile.
+    result.style.fit = stxlib::glyphs::Fit::light;
     if (options.raster == TextMaskRaster::true_mono) {
-        result.load_flags = FT_LOAD_NO_BITMAP | FT_LOAD_TARGET_MONO | FT_LOAD_MONOCHROME;
-        result.render_mode = FT_RENDER_MODE_MONO;
+        result.style.fit = stxlib::glyphs::Fit::monochrome;
         result.subpixel_x = false;
-        result.validate_bitmap = validate_mono_bitmap;
-        result.blend_bitmap = blend_mono;
+        result.monochrome = true;
     }
     return result;
 }
 
-BitmapBorrow load_bitmap(NativeFonts& fonts, const RasterConfiguration& configuration, const NativeGlyph& glyph) {
+// One glyph as STXlib takes it: its device position in 26.6 from the mask
+// origin, y downward. Throws for a glyph its face has not and for a
+// position beyond the mask's coordinate range.
+stxlib::glyphs::RunGlyph place_glyph(const NativeFonts& fonts, const RasterConfiguration& configuration,
+                                     const NativeGlyph& glyph) {
     if (glyph.face >= fonts.count) throw NativeFailure(TextMaskStatus::native_failure);
-    const FT_Face face = fonts.faces[glyph.face].value;
-    if (glyph.glyph == 0 || glyph.glyph >= static_cast<std::uint64_t>((*face).num_glyphs)) {
-        throw NativeFailure(TextMaskStatus::missing_font_coverage);
-    }
+    const stxlib::glyphs::Font* const font = fonts.raster_faces[glyph.face].font();
+    if (font == nullptr) throw NativeFailure(TextMaskStatus::native_failure);
+    if (glyph.glyph == 0 || glyph.glyph >= (*font).glyph_count) throw NativeFailure(TextMaskStatus::missing_font_coverage);
     const double device_x = glyph.x * configuration.scale;
     const double device_y = glyph.y * configuration.scale;
     if (!std::isfinite(device_x) || !std::isfinite(device_y) || std::abs(device_x) > 16'000'000.0 || std::abs(device_y) > 16'000'000.0) {
         throw MaskLimitFailure(TextMaskLimit::mask_dimension);
     }
-    std::int64_t origin_x = std::llround(device_x);
-    const std::int64_t origin_y = std::llround(device_y);
-    if (configuration.subpixel_x) {
-        const std::int64_t fixed_x = std::llround(device_x * 64.0);
-        std::int64_t pixel_x = fixed_x / 64;
-        if (fixed_x % 64 != 0 && fixed_x < 0) --pixel_x;
-        origin_x = pixel_x;
-        FT_Vector delta{static_cast<FT_Pos>(fixed_x - pixel_x * 64), 0};
-        FT_Set_Transform(face, nullptr, &delta);
-    } else {
-        FT_Set_Transform(face, nullptr, nullptr);
-    }
-    const FT_Error loaded = FT_Load_Glyph(face, glyph.glyph, configuration.load_flags);
-    if (loaded != 0) throw NativeFailure(TextMaskStatus::native_failure);
-    const FT_GlyphSlot slot = (*face).glyph;
-    if (slot == nullptr || (*slot).format != FT_GLYPH_FORMAT_OUTLINE) throw NativeFailure(TextMaskStatus::unsupported_profile);
-    const FT_Error rendered = FT_Render_Glyph(slot, configuration.render_mode);
-    if (rendered != 0) throw NativeFailure(TextMaskStatus::native_failure);
-    const FT_Bitmap& bitmap = (*slot).bitmap;
-    if (bitmap.width == 0 || bitmap.rows == 0) return {};
-    if (bitmap.width > 4096 || bitmap.rows > 4096) throw MaskLimitFailure(TextMaskLimit::mask_dimension);
-    if (bitmap.buffer == nullptr || bitmap.pitch <= 0 || bitmap.pitch > 16384) throw NativeFailure(TextMaskStatus::unsupported_profile);
-    const std::size_t pitch = static_cast<std::size_t>(bitmap.pitch);
-    configuration.validate_bitmap(bitmap, pitch);
-    // Font bitmap memory is native/opaque and already allocated here. These
-    // are indexing guards, not a claimed pre-allocation bound on FreeType.
-    if (bitmap.rows > (64U * 1024U * 1024U) / pitch) throw NativeFailure(TextMaskStatus::unsupported_profile);
-    const BitmapBorrow result{&bitmap, origin_x + (*slot).bitmap_left, origin_y - (*slot).bitmap_top};
-    return result;
+    std::int64_t fixed_x = std::llround(device_x) * 64;
+    if (configuration.subpixel_x) fixed_x = std::llround(device_x * 64.0);
+    const std::int64_t fixed_y = std::llround(device_y) * 64;
+    stxlib::glyphs::RunGlyph placed{};
+    placed.glyph = glyph.glyph;
+    placed.x = static_cast<std::int32_t>(fixed_x);
+    placed.y = static_cast<std::int32_t>(fixed_y);
+    return placed;
 }
 
-void blend_gray(const FT_Bitmap& bitmap, const std::size_t left, const std::size_t top, TextMaskStorage& target) {
-    const std::size_t pitch = static_cast<std::size_t>(bitmap.pitch);
+// The face run starting at `begin`: its glyphs, placed, into work.glyphs.
+// Returns the index after the run.
+std::size_t place_face_run(const NativeFonts& fonts, const RasterConfiguration& configuration,
+                           const std::span<const NativeGlyph> glyphs, const std::size_t begin, NativeRasterWork& work) {
+    work.glyphs.clear();
+    const std::uint32_t face = glyphs[begin].face;
+    std::size_t end = begin;
+    while (end < glyphs.size() && glyphs[end].face == face) {
+        work.glyphs.push_back(place_glyph(fonts, configuration, glyphs[end]));
+        ++end;
+    }
+    return end;
+}
+
+// Blends one face run's grey mask into the target at (left, top) by
+// c + p * (255 - c) / 255.
+void blend_gray_run(const stxlib::glyphs::RunCoverage& coverage, const std::size_t left, const std::size_t top,
+                    TextMaskStorage& target) {
+    const stxlib::View<stxlib::u8> pixels = coverage.pixels.view();
     const std::size_t stride = target.metrics.stride_bytes;
-    for (std::size_t row = 0; row < bitmap.rows; ++row) {
-        const std::size_t source_row = row * pitch;
+    for (std::size_t row = 0; row < coverage.height; ++row) {
+        const std::size_t source_row = row * coverage.width;
         const std::size_t target_row = (top + row) * stride + left;
-        for (std::size_t column = 0; column < bitmap.width; ++column) {
-            const unsigned coverage = bitmap.buffer[source_row + column];
+        for (std::size_t column = 0; column < coverage.width; ++column) {
+            const unsigned value = pixels[source_row + column];
             const unsigned previous = target.pixels[target_row + column];
-            const unsigned combined = coverage + previous * (255U - coverage) / 255U;
+            const unsigned combined = value + previous * (255U - value) / 255U;
             target.pixels[target_row + column] = static_cast<std::uint8_t>(combined);
         }
     }
 }
-void blend_mono(const FT_Bitmap& bitmap, const std::size_t left, const std::size_t top, TextMaskStorage& target) {
-    const std::size_t pitch = static_cast<std::size_t>(bitmap.pitch);
+
+// Blends one face run's monochrome mask (every byte 0 or 255) into the
+// target at (left, top) by the larger.
+void blend_mono_run(const stxlib::glyphs::RunCoverage& coverage, const std::size_t left, const std::size_t top,
+                    TextMaskStorage& target) {
+    const stxlib::View<stxlib::u8> pixels = coverage.pixels.view();
     const std::size_t stride = target.metrics.stride_bytes;
-    for (std::size_t row = 0; row < bitmap.rows; ++row) {
-        const std::size_t source_row = row * pitch;
+    for (std::size_t row = 0; row < coverage.height; ++row) {
+        const std::size_t source_row = row * coverage.width;
         const std::size_t target_row = (top + row) * stride + left;
-        for (std::size_t column = 0; column < bitmap.width; ++column) {
-            const unsigned packed = bitmap.buffer[source_row + column / 8U];
-            const unsigned bit = 0x80U >> (column % 8U);
-            if ((packed & bit) != 0) target.pixels[target_row + column] = 255;
+        for (std::size_t column = 0; column < coverage.width; ++column) {
+            const std::uint8_t value = pixels[source_row + column];
+            const std::uint8_t previous = target.pixels[target_row + column];
+            target.pixels[target_row + column] = std::max(value, previous);
         }
     }
 }
-}
+} // namespace
 
-NativeInk measure_native_ink(NativeFonts& fonts, const MaskOptions& options, const std::span<const NativeGlyph> glyphs) {
-    fonts.set_raster_size(options);
+NativeInk measure_native_ink(NativeFonts& fonts, const MaskOptions& options, const std::span<const NativeGlyph> glyphs,
+                             NativeRasterWork& work) {
     const RasterConfiguration configuration = make_raster_configuration(options);
     NativeInk bounds{};
-    for (std::size_t index = 0; index < glyphs.size(); ++index) {
-        const BitmapBorrow placement = load_bitmap(fonts, configuration, glyphs[index]);
-        if (placement.bitmap == nullptr) continue;
-        const std::int64_t right = placement.left + (*placement.bitmap).width;
-        const std::int64_t bottom = placement.top + (*placement.bitmap).rows;
-        if (!bounds.present) bounds = {placement.left, placement.top, right, bottom, true};
+    std::size_t next = 0;
+    while (next < glyphs.size()) {
+        const std::uint32_t face = glyphs[next].face;
+        next = place_face_run(fonts, configuration, glyphs, next, work);
+        stxlib::glyphs::RunBox box{};
+        const stxlib::View<stxlib::glyphs::RunGlyph> placed(work.glyphs.data(), work.glyphs.size());
+        const stxlib::Status measured = fonts.raster_faces[face].measure_run(placed, configuration.style, box);
+        if (measured.failed() || box.missing_glyphs != 0U) throw NativeFailure(TextMaskStatus::native_failure);
+        if (box.oversized) throw MaskLimitFailure(TextMaskLimit::mask_dimension);
+        if (box.right <= box.left || box.bottom <= box.top) continue;
+        if (!bounds.present) bounds = {box.left, box.top, box.right, box.bottom, true};
         else {
-            bounds.left = std::min(bounds.left, placement.left);
-            bounds.top = std::min(bounds.top, placement.top);
-            bounds.right = std::max(bounds.right, right);
-            bounds.bottom = std::max(bounds.bottom, bottom);
+            bounds.left = std::min<std::int64_t>(bounds.left, box.left);
+            bounds.top = std::min<std::int64_t>(bounds.top, box.top);
+            bounds.right = std::max<std::int64_t>(bounds.right, box.right);
+            bounds.bottom = std::max<std::int64_t>(bounds.bottom, box.bottom);
         }
-        if (bounds.right - bounds.left > 4096 || bounds.bottom - bounds.top > 4096) {
+        if (bounds.right - bounds.left > maximum_mask_dimension || bounds.bottom - bounds.top > maximum_mask_dimension) {
             throw MaskLimitFailure(TextMaskLimit::mask_dimension);
         }
     }
     return bounds;
 }
-void fill_native_mask(NativeFonts& fonts, const MaskOptions& options,
-    const std::span<const NativeGlyph> glyphs, TextMaskStorage& storage) {
+
+void fill_native_mask(NativeFonts& fonts, const MaskOptions& options, const std::span<const NativeGlyph> glyphs,
+                      NativeRasterWork& work, TextMaskStorage& storage) {
     const RasterConfiguration configuration = make_raster_configuration(options);
-    for (std::size_t index = 0; index < glyphs.size(); ++index) {
-        const BitmapBorrow placement = load_bitmap(fonts, configuration, glyphs[index]);
-        if (placement.bitmap == nullptr) continue;
-        const FT_Bitmap& bitmap = *placement.bitmap;
-        const std::int64_t left = placement.left - storage.metrics.ink_left_px;
-        const std::int64_t top = placement.top - storage.metrics.ink_top_px;
-        if (left < 0 || top < 0 || left + bitmap.width > storage.metrics.width_px || top + bitmap.rows > storage.metrics.height_px) {
+    std::size_t next = 0;
+    while (next < glyphs.size()) {
+        const std::uint32_t face = glyphs[next].face;
+        next = place_face_run(fonts, configuration, glyphs, next, work);
+        const stxlib::View<stxlib::glyphs::RunGlyph> placed(work.glyphs.data(), work.glyphs.size());
+        const stxlib::Status drawn = fonts.raster_faces[face].draw_run(placed, configuration.style, work.coverage);
+        const stxlib::glyphs::RunCoverage& coverage = work.coverage;
+        if (drawn.failed() || coverage.missing_glyphs != 0U || coverage.oversized) {
+            throw NativeFailure(TextMaskStatus::native_failure);
+        }
+        if (coverage.width == 0U || coverage.height == 0U) continue;
+        const std::int64_t left = static_cast<std::int64_t>(coverage.left) - storage.metrics.ink_left_px;
+        const std::int64_t top = static_cast<std::int64_t>(coverage.top) - storage.metrics.ink_top_px;
+        if (left < 0 || top < 0 || left + coverage.width > storage.metrics.width_px ||
+            top + coverage.height > storage.metrics.height_px) {
             throw NativeFailure(TextMaskStatus::native_failure);
         }
         const std::size_t target_left = static_cast<std::size_t>(left);
         const std::size_t target_top = static_cast<std::size_t>(top);
-        configuration.blend_bitmap(bitmap, target_left, target_top, storage);
+        if (configuration.monochrome) blend_mono_run(coverage, target_left, target_top, storage);
+        else blend_gray_run(coverage, target_left, target_top, storage);
     }
 }
 } // namespace gui_forms::detail::mask_native

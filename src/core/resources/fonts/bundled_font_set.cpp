@@ -1,4 +1,5 @@
 #include "bundled_font_set.hpp"
+#include "program_typefaces.hpp"
 
 #include "gui_forms/threading.hpp"
 #include "stx_fontpack/loader.hpp"
@@ -499,6 +500,8 @@ SealedFontFace::SealedFontFace(const SealedPageFunctions& pages, std::byte* stor
     : release_(pages.release), storage_(storage), size_bytes_(size_bytes) {}
 
 SealedFontFace::~SealedFontFace() {
+    // The typeface reads the pages: it goes first.
+    typeface_.reset();
     (*release_)(storage_, size_bytes_);
 }
 
@@ -506,6 +509,12 @@ std::span<const std::byte> SealedFontFace::bytes() const noexcept {
     const std::span<const std::byte> bytes(storage_, size_bytes_);
     return bytes;
 }
+
+void SealedFontFace::adopt_typeface(std::unique_ptr<ProgramTypeface> typeface) noexcept {
+    typeface_ = std::move(typeface);
+}
+
+const ProgramTypeface* SealedFontFace::typeface() const noexcept { return typeface_.get(); }
 
 FontFaceLoad::FontFaceLoad(State state) noexcept : state_(std::move(state)) {}
 
@@ -726,9 +735,21 @@ FontFaceLoad BundledFontSet::seal_copy(std::size_t index, const std::uint8_t* da
     std::memcpy(reservation.storage(), data, size_bytes);
     if (!(*pages_.seal)(reservation.storage(), size_bytes))
         return FontFaceLoad::failed(FontSetError::page_failure);
-    std::shared_ptr<const SealedFontFace> face =
-        std::make_shared<const SealedFontFace>(pages_, reservation.storage(), size_bytes);
+    std::shared_ptr<SealedFontFace> sealed =
+        std::make_shared<SealedFontFace>(pages_, reservation.storage(), size_bytes);
     reservation.disown();
+    // The program's typeface of the face, registered while the face lives
+    // (program_typefaces.hpp). A face STXlib refuses has none, and the
+    // executors drawing it fail as they would opening it themselves; a full
+    // registration table leaves them opening their own.
+    std::unique_ptr<ProgramTypeface> typeface = open_program_typeface((*sealed).bytes(), 0U);
+    if (typeface) {
+        const ProgramTypeface& registered = *typeface;
+        (*sealed).adopt_typeface(std::move(typeface));
+        const std::shared_ptr<const void> owner = sealed;
+        static_cast<void>(register_program_typeface((*sealed).bytes(), 0U, owner, registered));
+    }
+    std::shared_ptr<const SealedFontFace> face = std::move(sealed);
     FontFaceLoad result = FontFaceLoad::loaded(std::move(face));
     return result;
 }
@@ -764,9 +785,21 @@ FontFaceLoad BundledFontSet::load(std::size_t index) const {
         return FontFaceLoad::failed(FontSetError::page_failure);
     // The face adopts the pages only once it exists; if make_shared throws, the reservation
     // still releases them.
-    std::shared_ptr<const SealedFontFace> face =
-        std::make_shared<const SealedFontFace>(pages_, reservation.storage(), size_bytes);
+    std::shared_ptr<SealedFontFace> sealed =
+        std::make_shared<SealedFontFace>(pages_, reservation.storage(), size_bytes);
     reservation.disown();
+    // The program's typeface of the face, registered while the face lives
+    // (program_typefaces.hpp). A face STXlib refuses has none, and the
+    // executors drawing it fail as they would opening it themselves; a full
+    // registration table leaves them opening their own.
+    std::unique_ptr<ProgramTypeface> typeface = open_program_typeface((*sealed).bytes(), 0U);
+    if (typeface) {
+        const ProgramTypeface& registered = *typeface;
+        (*sealed).adopt_typeface(std::move(typeface));
+        const std::shared_ptr<const void> owner = sealed;
+        static_cast<void>(register_program_typeface((*sealed).bytes(), 0U, owner, registered));
+    }
+    std::shared_ptr<const SealedFontFace> face = std::move(sealed);
     FontFaceLoad result = FontFaceLoad::loaded(std::move(face));
     return result;
 }

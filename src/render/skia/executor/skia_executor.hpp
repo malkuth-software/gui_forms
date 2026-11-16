@@ -69,7 +69,7 @@ public:
 
     // Registers a face in the slot named by the bold (1) and italic (2)
     // bits of style. A request for a missing slot draws the nearest
-    // registered face, emboldened or sheared toward the request.
+    // registered face, thickened (synthesized bold) or sheared toward the request.
     [[nodiscard]] bool register_typeface(std::string_view family,
                                          std::span<const std::byte> encoded,
                                          std::uint32_t style = 0U);
@@ -77,7 +77,9 @@ public:
     // manifest, decoded from the font pack compiled into it, font pack
     // stage 4) under `family` in style's slot, as register_typeface does.
     // The executor holds the process's shared pack set from its first call,
-    // so a group is decoded once per process. False when the pack does not
+    // so a group is decoded once per process, and draws the set's own bytes
+    // with the font family registry's typeface of the face, the one every
+    // window and executor draws (no copy). False when the pack does not
     // hold the face or it does not register.
     [[nodiscard]] bool register_bundled_typeface(std::string_view family,
                                                  std::string_view file_name,

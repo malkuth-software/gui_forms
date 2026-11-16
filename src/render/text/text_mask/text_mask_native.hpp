@@ -1,7 +1,11 @@
 #pragma once
 
+#include "../../../core/resources/fonts/program_typefaces.hpp"
+#include "../../../core/text/prepared/prepared_face_pool.hpp"
 #include "../../../core/text/text_mask/text_mask_state.hpp"
 #include "../../../core/text/unicode/unicode_grapheme.hpp"
+
+#include <stxlib/glyph_face.hpp>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -33,15 +37,25 @@ struct NativeFace final {
     NativeFace& operator=(const NativeFace&) = delete;
 };
 
+// One job's faces. Shaping, coverage and line metrics use FreeType and
+// HarfBuzz faces of the key's bank (until STXlib's shaper replaces them);
+// the raster draws with STXlib faces over the bank's typefaces
+// (PreparedFontBank::typefaces), one per bank face, on the job's thread,
+// leased from the bank's face pool (prepared_face_pool.hpp): opened by the
+// first job that draws them and reused by the jobs after it.
 struct NativeFonts final {
-    // Destruction reverses declaration: HB/FT faces before their library.
+    // Destruction reverses declaration: HB/FT faces before their library;
+    // the raster lease first of all (its faces borrow the bank, which the
+    // key keeps alive for the job, and it returns them to the bank's pool).
     NativeLibrary library{};
     std::array<NativeFace, 8> faces{};
     std::size_t count{0};
     std::uint32_t primary{0};
+    PreparedFaceLease raster;
+    // The leased set's faces, in bank order.
+    std::array<ExecutorFace, PreparedTextLimits::font_faces>& raster_faces;
     explicit NativeFonts(const MaskKey& key);
     [[nodiscard]] std::uint32_t select_face(const std::string_view cluster) const;
-    void set_raster_size(const MaskOptions& options);
 };
 
 struct NativeGlyph final {
@@ -112,9 +126,26 @@ struct NativeInk final {
     bool present{false};
 };
 
+// The raster's working storage for one job, reused by its measure and its
+// fill: one face run's glyphs as STXlib takes them (counted as workspace)
+// and STXlib's mask of that run (STXlib's storage, reused from run to run).
+struct NativeRasterWork final {
+    std::vector<stxlib::glyphs::RunGlyph, MaskAllocator<stxlib::glyphs::RunGlyph>> glyphs;
+    stxlib::glyphs::RunCoverage coverage{};
+    explicit NativeRasterWork(const std::shared_ptr<MaskLedger>& ledger)
+        : glyphs(MaskAllocator<stxlib::glyphs::RunGlyph>(ledger, MaskResource::workspace)) {}
+};
+
+// Glyphs are drawn a face run at a time (consecutive glyphs of one face), in
+// order. outline_gray: Fit::light, x at its 1/64 pixel phase, y on whole
+// pixels, runs combined as c + p * (255 - c) / 255. true_mono:
+// Fit::monochrome, both axes on whole pixels, runs combined by the larger.
+// A glyph outside its face throws missing_font_coverage; ink wider or
+// taller than 4096 pixels throws MaskLimitFailure(mask_dimension); a run
+// STXlib refuses throws native_failure.
 [[nodiscard]] NativeInk measure_native_ink(NativeFonts& fonts, const MaskOptions& options,
-    const std::span<const NativeGlyph> glyphs);
+    const std::span<const NativeGlyph> glyphs, NativeRasterWork& work);
 void fill_native_mask(NativeFonts& fonts, const MaskOptions& options,
-    const std::span<const NativeGlyph> glyphs, TextMaskStorage& storage);
+    const std::span<const NativeGlyph> glyphs, NativeRasterWork& work, TextMaskStorage& storage);
 
 } // namespace gui_forms::detail::mask_native

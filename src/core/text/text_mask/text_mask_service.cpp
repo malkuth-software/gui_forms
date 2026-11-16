@@ -97,6 +97,10 @@ TextMaskResult TextMaskService::create_font_bank(const std::span<const PreparedF
             face.index = source.face_index;
             face.family = source.family;
         }
+        // The bank's typefaces over the copied bytes and its face pool, which every job's raster
+        // faces are leased from and kept in between jobs. A face STXlib refuses leaves them
+        // empty; the job reports it (unsupported_profile), as the native faces' own refusal does.
+        static_cast<void>(detail::open_bank_typefaces(owner.bank));
         const std::shared_ptr<const detail::PreparedFontBank> alias(candidate, &owner.bank);
         owner.count.commit();
         owner.bytes.commit();

@@ -1,10 +1,14 @@
 #include "prepared_storage.hpp"
+#include "../../resources/fonts/program_typefaces.hpp"
+#include "prepared_face_pool.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
+#include <new>
 #include <stdexcept>
 #include <utility>
 
@@ -364,3 +368,113 @@ PreparedTextMetrics prepared_device_metrics(const FontSpec font, const double sc
 
 } // namespace detail
 } // namespace gui_forms
+
+namespace gui_forms::detail {
+
+PreparedFaceCharge::~PreparedFaceCharge() { release(); }
+
+void PreparedFaceCharge::charge(const std::shared_ptr<PreparedLedger>& ledger, const std::size_t held,
+                                const std::size_t peak) noexcept {
+    if (!ledger) return;
+    std::lock_guard<std::mutex> lock((*ledger).mutex);
+    PreparedTextBudgetSnapshot& usage = (*ledger).usage;
+    usage.glyph_face_bytes = usage.glyph_face_bytes - bytes_ + held;
+    usage.glyph_face_peak_bytes = std::max(usage.glyph_face_peak_bytes, peak);
+    bytes_ = held;
+    if (!ledger_) ledger_ = ledger;
+}
+
+void PreparedFaceCharge::release() noexcept {
+    if (!ledger_) return;
+    {
+        std::lock_guard<std::mutex> lock((*ledger_).mutex);
+        (*ledger_).usage.glyph_face_bytes -= bytes_;
+    }
+    bytes_ = 0;
+    ledger_.reset();
+}
+
+namespace {
+
+// The most glyphs a bank's face may have (as the FreeType check before it).
+constexpr std::uint32_t maximum_bank_glyphs = 1'000'000U;
+
+// Whether every rasterizer can draw from `font`: outlines STXlib reads, a
+// glyph count in range and a Unicode character map.
+[[nodiscard]] bool drawable_bank_font(const stxlib::glyphs::Font& font) noexcept {
+    const bool drawable = font.outlines != stxlib::glyphs::OutlineKind::none && font.glyph_count != 0U &&
+        font.glyph_count <= maximum_bank_glyphs && font.units_per_em != 0U && font.character_map.length != 0U;
+    return drawable;
+}
+
+} // namespace
+
+namespace {
+
+// Empties the bank's pool and typefaces, the pool first (its faces read the
+// typefaces).
+void clear_bank_typefaces(PreparedFontBank& bank) noexcept {
+    bank.face_pool.reset();
+    for (std::shared_ptr<const ProgramTypeface>& opened : bank.typefaces) opened.reset();
+}
+
+} // namespace
+
+bool open_bank_typefaces(PreparedFontBank& bank) {
+    TypefaceByteLimits limits{};
+    limits.recent_glyph_bytes = PreparedTextLimits::glyph_store_bytes;
+    try {
+        for (std::size_t index = 0; index < bank.face_count; ++index) {
+            const PreparedFontFace& source = bank.faces[index];
+            const std::span<const std::byte> bytes(source.bytes.get(), source.size);
+            // The bank's own: it owns the bytes, and every other holder of
+            // the typeface holds the bank (prepared storage, a mask key).
+            std::shared_ptr<const ProgramTypeface> typeface = open_program_typeface(bytes, source.index, limits);
+            const stxlib::glyphs::Font* const font = typeface ? (*(*typeface).typeface()).font() : nullptr;
+            if (font == nullptr || !drawable_bank_font(*font)) {
+                clear_bank_typefaces(bank);
+                return false;
+            }
+            bank.typefaces[index] = std::move(typeface);
+        }
+        bank.face_pool = std::make_shared<PreparedFacePool>();
+    } catch (const std::bad_alloc&) {
+        clear_bank_typefaces(bank);
+        throw;
+    }
+    return true;
+}
+
+std::unique_ptr<PreparedRasterFaces> PreparedFacePool::lease() {
+    std::unique_ptr<PreparedRasterFaces> result{};
+    {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        if (!idle_.empty()) {
+            result = std::move(idle_.back());
+            idle_.pop_back();
+            return result;
+        }
+        idle_.reserve(kept_sets);
+    }
+    result = std::make_unique<PreparedRasterFaces>();
+    return result;
+}
+
+void PreparedFacePool::restore(std::unique_ptr<PreparedRasterFaces> faces) noexcept {
+    if (!faces) return;
+    const std::lock_guard<std::mutex> lock(mutex_);
+    // lease reserved kept_sets before any set existed, so this never
+    // allocates; a set beyond them is released as `faces` goes.
+    if (idle_.size() < kept_sets && idle_.capacity() >= kept_sets) idle_.push_back(std::move(faces));
+}
+
+std::size_t PreparedFacePool::idle_face_bytes() const noexcept {
+    std::size_t held = 0U;
+    const std::lock_guard<std::mutex> lock(mutex_);
+    for (const std::unique_ptr<PreparedRasterFaces>& set : idle_) {
+        for (const ExecutorFace& face : (*set).faces) held += face.face_bytes_held();
+    }
+    return held;
+}
+
+} // namespace gui_forms::detail
