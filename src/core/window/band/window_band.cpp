@@ -26,6 +26,7 @@
 #include <chrono>
 #include <cmath>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 
@@ -296,7 +297,8 @@ void SurfaceRoot::refresh_band() {
             asked = Insets{edges.left, edges.top, edges.right, edges.bottom};
         } else {
             double uniform = default_band_width;
-            if (themed.width && *themed.width > 0.0) uniform = *themed.width;
+            const double* const themed_width = themed.width.value();
+            if (themed_width != nullptr && *themed_width > 0.0) uniform = *themed_width;
             if (band_.options.width > 0.0) uniform = band_.options.width;
             asked = Insets{uniform, uniform, uniform, uniform};
         }
@@ -311,7 +313,7 @@ void SurfaceRoot::refresh_band() {
             resolved.rest = appearance.rest_colour.value_or(themed.rest_colour.value_or(transparent_colour));
             resolved.lit =
                 appearance.lit_colour.value_or(role_colour(appearance.lit_role, themed, recipe, style));
-            const bool theme_flash = themed.effect && *themed.effect == BandEffect::flash;
+            const bool theme_flash = themed.effect == stxlib::Optional<BandEffect>::of(BandEffect::flash);
             const bool asked_flash = appearance.state == WindowBandState::flashing ||
                                      (appearance.state == WindowBandState::lit && theme_flash);
             const bool asked_cycle = appearance.state == WindowBandState::cycling;

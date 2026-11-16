@@ -423,13 +423,13 @@ enum class BandEffect : std::uint8_t { none, flash };
 // field is set only by its own declaration; the cascade takes each field
 // from the last matching rule that sets it.
 struct GUI_FORMS_API BandDeclaration final {
-    std::optional<double> width{};
-    std::optional<Color> rest_colour{};
-    std::optional<Color> lit_colour{};
-    std::optional<BandEffect> effect{};
+    stxlib::Optional<double> width{};
+    stxlib::Optional<Color> rest_colour{};
+    stxlib::Optional<Color> lit_colour{};
+    stxlib::Optional<BandEffect> effect{};
 
     [[nodiscard]] bool empty() const noexcept {
-        const bool none = !width && !rest_colour && !lit_colour && !effect;
+        const bool none = width.absent() && rest_colour.absent() && lit_colour.absent() && effect.absent();
         return none;
     }
 

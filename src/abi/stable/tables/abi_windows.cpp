@@ -1243,8 +1243,8 @@ std::optional<WindowBandAppearance> band_appearance_from(const gf_window_band_ap
     appearance.state = *state;
     appearance.lit_role = *role;
     appearance.frequency = record.frequency;
-    if ((record.flags & GF_WINDOW_BAND_REST_COLOUR) != 0U) appearance.rest_colour = unpacked_color(record.rest_colour);
-    if ((record.flags & GF_WINDOW_BAND_LIT_COLOUR) != 0U) appearance.lit_colour = unpacked_color(record.lit_colour);
+    if ((record.flags & GF_WINDOW_BAND_REST_COLOUR) != 0U) appearance.rest_colour.set(unpacked_color(record.rest_colour));
+    if ((record.flags & GF_WINDOW_BAND_LIT_COLOUR) != 0U) appearance.lit_colour.set(unpacked_color(record.lit_colour));
     if (!band_texture_from(record, appearance.texture)) return std::nullopt;
     if (!window_band_appearance_valid(appearance)) return std::nullopt;
     return appearance;

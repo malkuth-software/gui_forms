@@ -2818,13 +2818,13 @@ bool CompilePass::lower_band(const SyntaxNode& node) {
                    "a band-width from 0 to " + std::to_string(static_cast<int>(maximum_theme_band_width)) + "px");
             return false;
         }
-        band.width = width;
+        band.width.set(width);
     } else if (name == "band-effect") {
         const bool keyword = first.kind == ValueComponentKind::keyword;
-        std::optional<BandEffect> effect{};
-        if (keyword && equals_ascii_folded(first.text, "none")) effect = BandEffect::none;
-        if (keyword && equals_ascii_folded(first.text, "flash")) effect = BandEffect::flash;
-        if (!effect) {
+        stxlib::Optional<BandEffect> effect{};
+        if (keyword && equals_ascii_folded(first.text, "none")) effect.set(BandEffect::none);
+        if (keyword && equals_ascii_folded(first.text, "flash")) effect.set(BandEffect::flash);
+        if (effect.absent()) {
             report(DiagnosticCode::value_wrong_kind, first.token, "none or flash");
             return false;
         }
@@ -2835,9 +2835,9 @@ bool CompilePass::lower_band(const SyntaxNode& node) {
             return false;
         }
         if (name == "band-color") {
-            band.rest_colour = first.colour;
+            band.rest_colour.set(first.colour);
         } else {
-            band.lit_colour = first.colour;
+            band.lit_colour.set(first.colour);
         }
     }
     band_ = band;

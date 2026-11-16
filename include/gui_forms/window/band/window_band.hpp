@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <stxlib/optional.hpp>
 
 // The window outer band (owner, 2026-11-08: "a thin effect"; the active
 // border study, section 2.2, and the owner's answers of 2026-11-07). A thin
@@ -158,8 +159,8 @@ struct GUI_FORMS_API WindowBandAppearance final {
     // The application's colours, each replacing the theme's while set.
     // Ignored under high contrast, where the band takes the high-contrast
     // palette.
-    std::optional<Color> rest_colour{};
-    std::optional<Color> lit_colour{};
+    stxlib::Optional<Color> rest_colour{};
+    stxlib::Optional<Color> lit_colour{};
     // The theme colour the band lights in while lit_colour is empty.
     WindowBandColourRole lit_role{WindowBandColourRole::theme};
     // Cycles a second of a flash or a cycle, lowered to

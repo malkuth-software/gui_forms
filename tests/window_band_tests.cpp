@@ -332,8 +332,8 @@ void test_appearance_touches_paint_only() {
     const Color grey = Color::rgba(90, 90, 90);
     WindowBandAppearance lit{};
     lit.state = WindowBandState::lit;
-    lit.lit_colour = blue;
-    lit.rest_colour = grey;
+    lit.lit_colour.set(blue);
+    lit.rest_colour.set(grey);
     window.set_band_appearance(lit);
     require(window.band_snapshot().drawn == blue, "lit, the band draws the lit colour");
     const DamageRegion lit_damage = window.take_damage();
@@ -423,7 +423,7 @@ void test_drawn_above_every_plane() {
     window.declare_band(WindowBandOptions{3.0, WindowBandFullScreen::stays});
     WindowBandAppearance lit{};
     lit.state = WindowBandState::lit;
-    lit.lit_colour = band_colour;
+    lit.lit_colour.set(band_colour);
     window.set_band_appearance(lit);
     ShapePainter painter{};
     const std::optional<PaintReceipt> receipt = window.paint(painter, Rect{0.0, 0.0, 120.0, 80.0});
@@ -543,7 +543,7 @@ void test_host_corners() {
     window.declare_band(WindowBandOptions{2.0, WindowBandFullScreen::stays});
     WindowBandAppearance lit{};
     lit.state = WindowBandState::lit;
-    lit.lit_colour = band_colour;
+    lit.lit_colour.set(band_colour);
     window.set_band_appearance(lit);
     ShapePainter painter{};
     static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 120.0, 90.0}));
@@ -641,7 +641,7 @@ void test_per_edge_reservation() {
     const std::uint64_t arranges = window.metrics_snapshot().arrange_passes;
     const std::uint64_t measures = window.metrics_snapshot().measure_passes;
     WindowBandAppearance appearance{};
-    appearance.lit_colour = Color::rgba(0, 120, 60);
+    appearance.lit_colour.set(Color::rgba(0, 120, 60));
     const WindowBandState states[] = {WindowBandState::lit, WindowBandState::flashing, WindowBandState::cycling,
                                       WindowBandState::rest, WindowBandState::lit};
     for (const WindowBandState state : states) {
@@ -741,8 +741,8 @@ void test_limiter_and_cycling() {
 
     WindowBandAppearance red{};
     red.state = WindowBandState::flashing;
-    red.lit_colour = Color::rgba(220, 10, 10);
-    red.rest_colour = Color::rgba(90, 90, 90);
+    red.lit_colour.set(Color::rgba(220, 10, 10));
+    red.rest_colour.set(Color::rgba(90, 90, 90));
     window.set_band_appearance(red);
     require(!window.band_snapshot().flashing && window.band_snapshot().drawn == Color::rgba(220, 10, 10),
             "a saturated red never flashes: it holds lit");
@@ -751,8 +751,8 @@ void test_limiter_and_cycling() {
     const Color rest = Color::rgba(200, 200, 200);
     WindowBandAppearance cycling{};
     cycling.state = WindowBandState::cycling;
-    cycling.lit_colour = lit;
-    cycling.rest_colour = rest;
+    cycling.lit_colour.set(lit);
+    cycling.rest_colour.set(rest);
     cycling.frequency = 4.0;
     window.set_band_appearance(cycling);
     const WindowBandSnapshot started = window.band_snapshot();
@@ -814,7 +814,7 @@ void test_roles_and_texture() {
     role.lit_role = WindowBandColourRole::text;
     window.set_band_appearance(role);
     require(window.band_snapshot().drawn == style.text, "the text role lights in the theme's text colour");
-    role.lit_colour = Color::rgba(7, 8, 9);
+    role.lit_colour.set(Color::rgba(7, 8, 9));
     window.set_band_appearance(role);
     require(window.band_snapshot().drawn == Color::rgba(7, 8, 9), "a lit colour wins over the role");
 

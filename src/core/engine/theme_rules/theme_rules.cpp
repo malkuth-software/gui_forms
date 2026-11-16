@@ -2179,11 +2179,12 @@ void CompiledThemeRules::add_backdrop(std::vector<RuleDiagnostic>& diagnostics, 
 }
 
 bool band_declaration_valid(const BandDeclaration& band) noexcept {
-    if (band.width) {
-        const double width = *band.width;
+    if (band.width.present()) {
+        const double width = *band.width.value();
         if (!std::isfinite(width) || width < 0.0 || width > maximum_theme_band_width) return false;
     }
-    if (band.effect && *band.effect != BandEffect::none && *band.effect != BandEffect::flash) return false;
+    const BandEffect* const effect = band.effect.value();
+    if (effect != nullptr && *effect != BandEffect::none && *effect != BandEffect::flash) return false;
     return true;
 }
 
@@ -3110,10 +3111,10 @@ BandDeclaration CompiledThemeRules::resolve_band(const PartFacts& facts) const n
         const CompiledRule& rule = *next;
         if (!rule.band || !matches(rule, facts)) continue;
         const BandDeclaration& band = *rule.band;
-        if (band.width) merged.width = band.width;
-        if (band.rest_colour) merged.rest_colour = band.rest_colour;
-        if (band.lit_colour) merged.lit_colour = band.lit_colour;
-        if (band.effect) merged.effect = band.effect;
+        if (band.width.present()) merged.width = band.width;
+        if (band.rest_colour.present()) merged.rest_colour = band.rest_colour;
+        if (band.lit_colour.present()) merged.lit_colour = band.lit_colour;
+        if (band.effect.present()) merged.effect = band.effect;
     }
     return merged;
 }
