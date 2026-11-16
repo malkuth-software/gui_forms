@@ -445,6 +445,8 @@ gui_forms::ToolStrip
 
       *Protected.*
 
+      The model position of a realized item. Throws std::out_of_range for an item past realized_item_count().
+
    .. cpp:function:: Parts strip_parts() const
 
       *Protected.*

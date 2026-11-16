@@ -1412,6 +1412,9 @@ ToolStrip::Parts ToolStrip::parts() const {
     return record;
 }
 
+// Every realized-item accessor resolves its item here, so an item past the
+// realized ones is refused instead of answering a past-the-end index they
+// would use (A-gf-controls-14-F5).
 std::size_t ToolStrip::realized_item_index(std::size_t item) const {
     const Layout placed = layout();
     std::size_t seen = 0U;
@@ -1420,7 +1423,7 @@ std::size_t ToolStrip::realized_item_index(std::size_t item) const {
         if (seen == item) return index;
         ++seen;
     }
-    return items_.size();
+    throw std::out_of_range("ToolStrip realized item is past the realized items");
 }
 
 std::size_t ToolStrip::realized_item_count() const {

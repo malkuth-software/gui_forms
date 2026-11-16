@@ -1608,7 +1608,11 @@ ItemSystemIndex VirtualRowsView::publish_realized_item_system(std::size_t item) 
     return system;
 }
 
+// Reached through Control's checked fill_realized_item_geometry and this
+// view's own realized_items; checked here too, as the stable-ID and state
+// accessors are (A-gf-controls-14-F5).
 void VirtualRowsView::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
+    if (item >= realized_item_count()) throw std::out_of_range("VirtualRowsView realized item past the end");
     const std::size_t rows = end_realized_ - first_realized_;
     if (item >= rows) {
         const ColumnHeaderParts header = column_header_parts(item - rows);

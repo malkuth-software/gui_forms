@@ -299,6 +299,8 @@ protected:
     void on_dispose() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override;
+    // The model position of a realized item. Throws std::out_of_range for an
+    // item past realized_item_count().
     [[nodiscard]] std::size_t realized_item_index(std::size_t item) const;
     // The strip's own parts, as ToolStrip publishes them.
     [[nodiscard]] Parts strip_parts() const;
