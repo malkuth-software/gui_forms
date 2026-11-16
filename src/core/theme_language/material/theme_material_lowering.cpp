@@ -2996,7 +2996,13 @@ bool MaterialReader::lower_mask() {
         if (!written.imaged) resolve_authored_gradient(written.gradient, Size{100.0, 100.0}, layer);
         checked.masks[bottom_first].source = layer;
         if (written.imaged || fixed_gradient(written.gradient)) {
+            // Kept as written: its gradient entry is the solid placeholder
+            // (MaterialDeclaration), as push_fills writes it. A default
+            // AuthoredGradient is a linear one without stops, which
+            // material_declaration_admitted refuses once a neighbour waits
+            // for the box.
             declaration.masks[bottom_first] = layer;
+            gradients[bottom_first].kind = MaterialFillKind::solid;
             continue;
         }
         declaration.masks[bottom_first] = MaterialFillLayer{};
