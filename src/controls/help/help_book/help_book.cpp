@@ -1160,7 +1160,7 @@ std::vector<SemanticNode> HelpBook::semantic_virtual_children() const {
             // expand or collapse and reports expanded while open.
             heading.role = SemanticRole::heading;
             for (std::size_t run = 0U; run < block.run_count; ++run) heading.name.append(page_.runs[block.first_run + run].text);
-            heading.level = block.level;
+            heading.level.set(block.level);
             heading.bounds = Rect{laid_block.bounds.x + offset.x, laid_block.bounds.y + offset.y,
                                   laid_block.bounds.width, laid_block.bounds.height};
             heading.states = SemanticState::enabled | SemanticState::visible;

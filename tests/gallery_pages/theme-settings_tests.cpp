@@ -44,7 +44,7 @@ void test_theme_settings(gui_forms::Window& window) {
             "the dark radio writes this window's colour-scheme override");
     click(window, light);
     overrides = window.presentation_overrides();
-    require(overrides != nullptr && (*overrides).colour_scheme == ColourScheme::light,
+    require(overrides != nullptr && (*overrides).colour_scheme == stxlib::Optional<ColourScheme>::of(ColourScheme::light),
             "the light radio writes the light override");
 
     // This window alone: the window's override; the resources keep theirs.

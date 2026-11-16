@@ -79,7 +79,7 @@ SurfaceMaterial gloss_material(const GlossColours& colours, double corner_radius
     material.fills.clear();
     material.fills.push_back(MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 1.0}, stops, std::size(stops)));
     const double border_width = 1.0;
-    material.border = MaterialBorder{colours.border, border_width};
+    material.border.set(MaterialBorder{colours.border, border_width});
     MaterialKeyline shine{};
     shine.edge = MaterialEdge::top;
     shine.color = colours.shine;

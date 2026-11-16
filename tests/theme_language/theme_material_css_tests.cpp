@@ -402,7 +402,7 @@ void test_border_lowering() {
     const MaterialDeclaration* const dash =
         field_of(only_rule(style, style_sheet), MaterialField::border_bottom_style);
     require(omitted != nullptr && (*omitted).initial && dash != nullptr &&
-                (*dash).border_style == MaterialBorderStyle::dashed,
+                (*dash).border_style == stxlib::Optional<MaterialBorderStyle>::of(MaterialBorderStyle::dashed),
             "a part the shorthand omits keeps the floor's");
 
     const std::string_view colour_sheet = "#pad::part(face) { border-color: red green blue }";
@@ -457,7 +457,7 @@ void test_line_lowering() {
     const ThemeRule& rule = only_rule(compiled, sheet);
     const MaterialDeclaration* const top = field_of(rule, MaterialField::border_top_style);
     const MaterialDeclaration* const right = field_of(rule, MaterialField::border_right_style);
-    require(top != nullptr && (*top).border_style == MaterialBorderStyle::solid &&
+    require(top != nullptr && (*top).border_style == stxlib::Optional<MaterialBorderStyle>::of(MaterialBorderStyle::solid) &&
                 (*top).edge_lines == MaterialEdgeLines::double_line && right != nullptr &&
                 (*right).edge_lines == MaterialEdgeLines::groove,
             "double and groove are solid edges drawn as two lines");

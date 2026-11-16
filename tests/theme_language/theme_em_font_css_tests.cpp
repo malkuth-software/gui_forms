@@ -218,7 +218,7 @@ void test_em_assembly() {
     width.em_lengths = {0.5};
     MaterialDeclaration style{};
     style.field = MaterialField::border_top_style;
-    style.border_style = MaterialBorderStyle::solid;
+    style.border_style.set(MaterialBorderStyle::solid);
     std::array<const MaterialDeclaration*, material_field_count> fields{};
     fields[static_cast<std::size_t>(MaterialField::border_top_width)] = &width;
     fields[static_cast<std::size_t>(MaterialField::border_top_style)] = &style;

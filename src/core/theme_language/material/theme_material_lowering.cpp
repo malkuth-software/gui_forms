@@ -1328,18 +1328,18 @@ bool MaterialReader::read_style(std::size_t index, MaterialDeclaration& styled) 
         return fail(DiagnosticCode::value_wrong_kind, component.token, "a border style");
     }
     styled.edge_lines = MaterialEdgeLines::single;
-    styled.border_style = MaterialBorderStyle::solid;
+    styled.border_style.set(MaterialBorderStyle::solid);
     if (keyword(index, "none") || keyword(index, "hidden")) {
         styled.border_style.reset();
         return true;
     }
     if (keyword(index, "solid")) return true;
     if (keyword(index, "dashed")) {
-        styled.border_style = MaterialBorderStyle::dashed;
+        styled.border_style.set(MaterialBorderStyle::dashed);
         return true;
     }
     if (keyword(index, "dotted")) {
-        styled.border_style = MaterialBorderStyle::dotted;
+        styled.border_style.set(MaterialBorderStyle::dotted);
         return true;
     }
     if (keyword(index, "double")) {
