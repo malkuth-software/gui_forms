@@ -3915,7 +3915,7 @@ Functions, constants and aliases
 
 .. cpp:function:: MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document, const MarkdownLimits& limits = MarkdownLimits{}, std::stop_token cancellation = std::stop_token{})
 
-   Parses source into document, which is replaced; on failure document is empty. source is only read and must not change during the call; document keeps no borrow of it. Cancellation is observed between the parser's callbacks.
+   Parses source into document, which is replaced; on failure document is empty. source is only read and must not change during the call; document keeps no borrow of it. Cancellation is observed once per block, while the source is read and while its blocks are built.
 
 .. cpp:function:: void markdown_plain_text(const MarkdownDocument& document, std::string& text)
 

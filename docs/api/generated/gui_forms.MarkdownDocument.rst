@@ -41,8 +41,8 @@ gui_forms::MarkdownDocument
 
    .. rubric:: Notes
 
-   The parser is MD4C 0.6.0 with the dialect's attribute spans and block
-   attribute lines added. stx_rtf2md's own reader stays the normative reader
+   The reader is STXlib's CommonMark 0.31.2 reader (stxlib::markdown) with the
+   dialect's attribute spans and block attribute lines added. stx_rtf2md's own reader stays the normative reader
    for conversion; over the dialect's canonical documents the two give the
    same blocks and spans, which the tests check over stx_rtf2md's corpus.
    :cpp:class:`MarkdownLimits <gui_forms::MarkdownLimits>` bounds the source, the tables and the text; a failed parse

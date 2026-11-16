@@ -196,8 +196,8 @@ private:
 
 // Parses source into document, which is replaced; on failure document is
 // empty. source is only read and must not change during the call; document
-// keeps no borrow of it. Cancellation is observed between the parser's
-// callbacks.
+// keeps no borrow of it. Cancellation is observed once per block, while
+// the source is read and while its blocks are built.
 [[nodiscard]] GUI_FORMS_API MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document,
                                                  const MarkdownLimits& limits = MarkdownLimits{},
                                                  std::stop_token cancellation = std::stop_token{});

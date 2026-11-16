@@ -818,11 +818,6 @@ endif()
 target_link_libraries(gui_forms_core PRIVATE stx_conv::stx_conv)
 # rtf_conversion's reader and writer; no stx_rtf2md type is public.
 target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
-# MD4C 0.6.0 (stx third_party/md4c, MIT; stx third_party/MD4C_INTAKE_2026-10-28.md), the
-# markdown framework's CommonMark parser, compiled in the stx package. Its
-# objects are part of Core, so no target is added to the exports; its header
-# stays private to markdown.cpp.
-target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:stx_text::md4c>)
 # Hosted content's parent end (include/gui_forms/content/hosted): POSIX
 # processes, shared memory and a socket pair on macOS and Linux; on Windows
 # an implementation that reports itself absent (the hand-back writes it). A
@@ -837,7 +832,7 @@ else()
                                           src/host/posix/hosted/hosted_content_posix.cpp)
 endif()
 # stx_fontpack's loader (stx_fontpack/README.md), which opens the embedded font pack
-# (cmake/FontPack.cmake). Its objects are part of Core, like MD4C's, so no target joins the
+# (cmake/FontPack.cmake). Its objects are part of Core, so no target joins the
 # exports; its headers stay private to the font set.
 target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:stx_fontpack_objects>)
 target_include_directories(gui_forms_core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/stx_fontpack/include)
@@ -846,8 +841,6 @@ if(GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY)
     target_compile_definitions(gui_forms_core PRIVATE
         GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
 endif()
-set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
-    INCLUDE_DIRECTORIES "${GUI_FORMS_STX_BUILD_PREFIX_DIR}/include/md4c")
 # A program may link Core beside Application: Application links Core's
 # archive whole into the program (gui_forms_application_library), so the
 # ordinary mention draws no second copy. The generation-time refusal of the
@@ -879,7 +872,9 @@ target_link_libraries(gui_forms_core PUBLIC stxlib::boundary stxlib::state)
 # The program's typefaces (src/core/resources/fonts/program_typefaces.cpp)
 # are STXlib's glyph face (stxlib::glyphs, in stxlib::algorithms); no public
 # header includes it. The text rasterizers that include the private header
-# link stxlib::algorithms themselves.
+# link stxlib::algorithms themselves. The markdown framework's CommonMark
+# reader is stxlib::markdown, also in stxlib::algorithms; its header stays
+# private to markdown.cpp.
 target_link_libraries(gui_forms_core PRIVATE stxlib::algorithms)
 if(WIN32)
     target_compile_definitions(gui_forms_core PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
