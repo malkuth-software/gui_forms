@@ -372,7 +372,7 @@ PresentedProperties run_transitions(const CompiledThemeRules::Resolution& resolu
         std::optional<double> entry{};
         std::array<MotionStop, maximum_motion_stops> taken{};
         std::span<const MotionStop> stops{};
-        const std::size_t* const state_index = state.value();
+        // state_index (above) still names the machine's state.
         if (state_index != nullptr) {
             const CompiledThemeRules::CompiledPresentationState& held = transition.states[*state_index];
             if (held.enter_from.present()) entry = *held.enter_from.value() + sources.em * held.enter_from_em;
