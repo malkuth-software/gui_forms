@@ -22,6 +22,18 @@ using control_language::ExpressionNodeIndex;
 using control_language::ExpressionNodeKind;
 using control_language::ExpressionOperator;
 
+// Counts one nested custom-state or command-enabled condition for a scope.
+class ConditionDepthScope final {
+public:
+    explicit ConditionDepthScope(std::size_t& depth) noexcept : depth_(depth) { ++depth_; }
+    ~ConditionDepthScope() { --depth_; }
+    ConditionDepthScope(const ConditionDepthScope&) = delete;
+    ConditionDepthScope& operator=(const ConditionDepthScope&) = delete;
+
+private:
+    std::size_t& depth_;
+};
+
 // Two numbers within this are equal (properties hold doubles written as
 // decimal text).
 constexpr double number_tolerance = 1e-9;
@@ -330,7 +342,12 @@ CompositeValue CompositeEvaluator::evaluate_call(const CompositeExpression& expr
     if (name == "command-enabled") {
         const std::string_view command = argument_name(expression, node, 0U);
         for (std::size_t index = 0U; index < definition_.commands.size(); ++index) {
-            if (definition_.commands[index].name == command) return boolean_value(control_.command_enabled_at(index));
+            if (definition_.commands[index].name != command) continue;
+            // Within the condition depth, so a command and a custom state
+            // that read each other end (A-gf-controls-02-F1).
+            if (control_.condition_depth_ >= maximum_composite_condition_depth) return boolean_value(false);
+            const ConditionDepthScope depth(control_.condition_depth_);
+            return boolean_value(control_.command_enabled_at(index));
         }
         return boolean_value(false);
     }
@@ -383,10 +400,14 @@ bool CompositeEvaluator::subject_state(const std::string_view subject, const std
         const Control::Ptr focused = (*root).focused_control();
         return focused != nullptr && (focused.get() == &target || target.contains(*focused));
     }
-    // A custom state of the composite: its condition.
+    // A custom state of the composite: its condition, within the condition
+    // depth (A-gf-controls-02-F1).
     if (self) {
         for (const control_language::CompositeStateDefinition& declared : definition_.states) {
-            if (declared.custom_index && declared.name == state) return holds(declared.when);
+            if (!declared.custom_index || declared.name != state) continue;
+            if (control_.condition_depth_ >= maximum_composite_condition_depth) return false;
+            const ConditionDepthScope depth(control_.condition_depth_);
+            return holds(declared.when);
         }
     }
     std::string_view standard = state;

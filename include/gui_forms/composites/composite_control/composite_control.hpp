@@ -183,6 +183,11 @@ struct GUI_FORMS_API CompositeEvent final {
 
 // The deepest nesting of rule firings (Q12).
 inline constexpr std::size_t maximum_composite_rule_depth = 8U;
+// The deepest nesting of custom-state and command-enabled conditions
+// (A-gf-controls-02-F1): a custom state's `when` or a command's `enabled`
+// that reads another custom state or command. A definition with a cycle
+// between them reads the condition past this depth as false.
+inline constexpr std::size_t maximum_composite_condition_depth = 16U;
 
 // Counters (AGENTS.md: structured instrumentation).
 //   rule_firings: rules whose condition held and whose actions ran;
@@ -425,6 +430,17 @@ private:
     DragState drag_state_{};
     FrameRequestToken repeat_frames_{};
     std::size_t firing_depth_{};
+    // While anatomy_states evaluates the declared states: the set decided so
+    // far, from which a nested read of the composite's own states answers,
+    // so a `when` that reads the composite's states (state(hot), pressed(),
+    // hovering()) sees the states before it instead of recursing
+    // (A-gf-controls-02-F1). Null otherwise; points at a local of the
+    // evaluating call.
+    mutable AnatomyStateSet* deciding_states_{};
+    // The nesting of custom-state and command-enabled conditions under
+    // evaluation; past maximum_composite_condition_depth a further one reads
+    // as false, so a cycle between custom states and commands ends.
+    mutable std::size_t condition_depth_{};
     // Set while the children's bound properties are written from the
     // composite, so their change notifications do not flow back.
     bool writing_children_{};

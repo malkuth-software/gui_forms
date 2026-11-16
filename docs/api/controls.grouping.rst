@@ -2504,6 +2504,10 @@ Functions, constants and aliases
 
    The deepest nesting of rule firings (Q12). Value: ``8U``.
 
+.. cpp:var:: constexpr std::size_t maximum_composite_condition_depth
+
+   The deepest nesting of custom-state and command-enabled conditions (A-gf-controls-02-F1): a custom state's ``when`` or a command's ``enabled`` that reads another custom state or command. A definition with a cycle between them reads the condition past this depth as false. Value: ``16U``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/controls/expandable_sections.hpp>``
