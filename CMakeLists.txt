@@ -144,6 +144,7 @@ option(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB
 option(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT
        "Let a Windows program that opts in (host::accept_automation_environment) turn on automation from GUI_FORMS_WINDOWS_AUTOMATION=1" ON)
 option(GUI_FORMS_ENABLE_LINUX_HOST "Build the native X11 host with the private CPU renderer" OFF)
+option(GUI_FORMS_ENABLE_WAYLAND_PRESENT "Build the Wayland wl_shm presentation path (no Wayland host yet)" OFF)
 # The browser host (owner decisions, 2026-11-15): Emscripten only, through
 # cmake/emscripten.cmake; WebGL2 is its present backend and nothing else.
 option(GUI_FORMS_ENABLE_WEB_HOST "Build the browser host (Emscripten) with the private CPU renderer" ${EMSCRIPTEN})
@@ -1985,6 +1986,19 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         ARCHIVES ${_gf_application_archives}
         LIBRARIES ${_gf_application_libraries} ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
     gui_forms_install_bundled_fonts()
+endif()
+
+# The Wayland direct presentation path (docs/user/presentation.md), written
+# ahead of a Wayland host: wl_shm buffers with buffer damage. Off by default;
+# on, it builds as its own archive over the core's presentation shim.
+if(GUI_FORMS_ENABLE_WAYLAND_PRESENT)
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        message(FATAL_ERROR "GUI_FORMS_ENABLE_WAYLAND_PRESENT requires Linux")
+    endif()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GUI_FORMS_WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
+    add_library(gui_forms_wayland_present STATIC src/host/linux/wayland/wayland_shm_present.cpp)
+    target_link_libraries(gui_forms_wayland_present PUBLIC gui_forms_core PRIVATE PkgConfig::GUI_FORMS_WAYLAND_CLIENT)
 endif()
 
 if(GUI_FORMS_ENABLE_SKIA)
