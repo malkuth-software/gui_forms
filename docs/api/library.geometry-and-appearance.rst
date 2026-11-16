@@ -6680,9 +6680,13 @@ Types
 
       Removes every entry.
 
-   .. cpp:function:: ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, std::optional<Color> background = {})
+   .. cpp:function:: ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, stxlib::Optional<Color> background = {})
 
       Redefines a colour role: ``foreground`` alone for a single role, ``foreground`` on ``background`` for a paired one (colour_role_paired). Setting a role again replaces its colours in place.
+
+   .. cpp:function:: ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, std::optional<Color> background)
+
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: ThemeOverrideCheck set_colour(const ThemeOverrideTarget& target, ThemeOverrideProperty property, Color colour)
 

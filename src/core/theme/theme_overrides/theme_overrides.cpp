@@ -170,10 +170,10 @@ ThemeOverrideCheck ThemeOverrides::check_target(const ThemeOverrideTarget& targe
     return ThemeOverrideCheck::accepted;
 }
 
-ThemeOverrideCheck ThemeOverrides::set_role_colour(ColourRole role, Color foreground, std::optional<Color> background) {
+ThemeOverrideCheck ThemeOverrides::set_role_colour(ColourRole role, Color foreground, stxlib::Optional<Color> background) {
     if (role == ColourRole::count) return ThemeOverrideCheck::wrong_value_kind;
     const bool paired = colour_role_paired(role);
-    if (paired != background.has_value()) return ThemeOverrideCheck::wrong_value_kind;
+    if (paired != background.present()) return ThemeOverrideCheck::wrong_value_kind;
     for (RoleEntry& entry : roles_) {
         if (entry.role != role) continue;
         entry.foreground = foreground;
@@ -250,9 +250,9 @@ std::string ThemeOverrides::sheet_text() const {
             out.append(colour_role_name(entry.role));
             out.append(": ");
             append_colour(out, entry.foreground);
-            if (entry.background.has_value()) {
+            if (entry.background.present()) {
                 out.append(" on ");
-                append_colour(out, *entry.background);
+                append_colour(out, *entry.background.value());
             }
             out.append(";\n");
         }
