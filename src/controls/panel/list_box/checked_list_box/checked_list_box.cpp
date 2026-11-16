@@ -96,8 +96,10 @@ void CheckedListBox::set_item_check_state(std::size_t index,
     ItemCheckEvent change{index, check_states_[index], state, false};
     // A handler may edit the items (erase the one being checked): the
     // check applies only to the items it was raised for
-    // (A-gf-controls-08-F2).
+    // (A-gf-controls-08-F2). It may also drop the list's last reference:
+    // `self` keeps it alive (none while it is not shared yet).
     const std::uint64_t revision = TextItemsCapability<ListBox>::items_revision(*this);
+    const Ptr self = weak_from_this().lock();
     item_checking_.emit(change);
     if (!is_alive() || change.cancel) return;
     if (TextItemsCapability<ListBox>::items_revision(*this) != revision || index >= check_states_.size()) return;
@@ -137,6 +139,8 @@ std::vector<std::size_t> CheckedListBox::checked_indices() const {
 // (every press with check_on_click, else a press on a selected item), then
 // raises MouseDown through Control (ListBox's raiser would handle it again).
 void CheckedListBox::on_mouse_down(MouseEventArgs& arguments) {
+    // The press's focus, selection and check handlers may drop the list.
+    const Ptr self = shared_from_this();
     toggle_on_press(arguments);
     Control::on_mouse_down(arguments);
 }
@@ -150,8 +154,12 @@ void CheckedListBox::toggle_on_press(MouseEventArgs& arguments) {
         ? index_at(arguments.window_position) : stxlib::Optional<std::size_t>::none();
     const bool was_selected = index.present() && detail::binary_search_contains(
         selected_indices(), *index.value());
+    // The focus and selection handlers that list_pointer runs may edit the
+    // items: the press toggles only the items it was made on.
+    const std::uint64_t revision = TextItemsCapability<ListBox>::items_revision(*this);
     list_pointer(arguments);
-    if (!is_alive() || index.absent() || *index.value() >= items.read().size()) return;
+    if (!is_alive() || index.absent() || TextItemsCapability<ListBox>::items_revision(*this) != revision ||
+        *index.value() >= items.read().size()) return;
     if (check_on_click.read() || was_selected) {
         toggle_item(*index.value());
         arguments.handled = true;
@@ -262,9 +270,12 @@ bool CheckedListBox::on_semantic_child_action(std::string_view stable_id,
         index >= items.read().size()) return false;
     // The focus and selection handlers may edit the items: the item is
     // toggled only if they did not (A-gf-controls-08-F2).
+    // `self` keeps the list alive across the focus handlers, so the
+    // checks below read a live object (never is_alive() on a freed one).
     const std::uint64_t revision = TextItemsCapability<ListBox>::items_revision(*this);
+    const Ptr self = shared_from_this();
     if (window() != nullptr) {
-        static_cast<void>((*window()).request_focus(shared_from_this()));
+        static_cast<void>((*window()).request_focus(self));
     }
     if (!is_alive() || TextItemsCapability<ListBox>::items_revision(*this) != revision) return true;
     select_index(index, false, false);
