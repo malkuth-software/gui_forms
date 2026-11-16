@@ -219,6 +219,21 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::end_group:
         painter.end_group();
         return;
+    case DisplayOperation::begin_transform: {
+        PaintTransformGroup group{};
+        group.bounds = command.rect;
+        group.transform.xx = command.first.x;
+        group.transform.yx = command.first.y;
+        group.transform.xy = command.second.x;
+        group.transform.yy = command.second.y;
+        group.transform.dx = command.scalar;
+        group.transform.dy = command.secondary_scalar;
+        painter.begin_transform(group);
+        return;
+    }
+    case DisplayOperation::end_transform:
+        painter.end_transform();
+        return;
     case DisplayOperation::draw_image_region:
         painter.draw_image_region(
             command.image,
@@ -257,8 +272,8 @@ namespace {
 
 // Whether a command changes only the painter's state (what a replay of the
 // saves open at an occluder must reproduce without drawing). Paint groups
-// are excluded: none is open at an occluder, and a closed one leaves no
-// state behind.
+// and transform groups are excluded: none is open at an occluder, and a
+// closed one leaves no state behind.
 bool state_only(const DisplayOperation operation) noexcept {
     const bool state = operation == DisplayOperation::save || operation == DisplayOperation::restore ||
                        operation == DisplayOperation::translate || operation == DisplayOperation::clip_rect ||

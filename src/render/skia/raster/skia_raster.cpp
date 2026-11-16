@@ -674,6 +674,11 @@ public:
         // raster's own composites, which cannot follow a path, give way to
         // Skia draws (shared_composite refuses).
         bool path_clipped{};
+        // A transform group that does more than translate is in force: the
+        // device pixels no longer follow content coordinates as the direct
+        // composites assume, so they give way as under a path clip. `rect`
+        // holds the clips' device bounds.
+        bool transformed{};
     };
     std::vector<TextClipState> text_clips;
     int text_clip_base{};
@@ -746,8 +751,10 @@ public:
     // when the canvas is not a uniform scale and translation equal to the
     // raster's scale, or cannot be addressed.
     bool composite_part(SkCanvas& target, const PartRaster& raster, Point origin, double opacity);
-    // Whether a clip_path is in force on `target` (TextClipState::path_clipped).
-    [[nodiscard]] bool path_clipped(const SkCanvas& target) noexcept;
+    // Whether the raster's direct composites give way on `target`: a
+    // clip_path or a turning transform group is in force
+    // (TextClipState::path_clipped, TextClipState::transformed).
+    [[nodiscard]] bool composites_refused(const SkCanvas& target) noexcept;
     // A part raster drawn as a Skia image over its logical `destination`,
     // source-over at `opacity`, sampled linearly: how a part raster draws
     // under a path clip, which composite_part cannot follow.
@@ -775,6 +782,12 @@ public:
     std::size_t group_depth{};
     std::size_t refused_open{};
     std::uint64_t group_refusals{};
+    // Transform groups: those open and drawn, those open and refused (all
+    // inside the drawn ones, since a refused group refuses what it holds),
+    // and the refusals counted.
+    std::size_t transform_depth{};
+    std::size_t refused_transforms_open{};
+    std::uint64_t transform_refusals{};
 
     // The canvas of the innermost isolated group, or null.
     [[nodiscard]] SkCanvas* group_canvas() const noexcept {
@@ -797,6 +810,8 @@ public:
         }
         group_depth = 0U;
         refused_open = 0U;
+        transform_depth = 0U;
+        refused_transforms_open = 0U;
     }
 
 #if defined(GUI_FORMS_PREPARED_TEXT)
@@ -2201,7 +2216,7 @@ bool SkiaRaster::Impl::composite_run(SkCanvas& target, const text::ShapedText& s
 
 std::optional<SkiaRaster::Impl::SharedComposite> SkiaRaster::Impl::shared_composite(SkCanvas& target) {
     TextClipState* const state = current_text_clip(target);
-    if (state == nullptr || (*state).path_clipped) return std::nullopt;
+    if (state == nullptr || (*state).path_clipped || (*state).transformed) return std::nullopt;
     const std::optional<SkPixmap> peeked = target.peekPixels();
     if (!peeked) return std::nullopt;
     const SkPixmap& pixmap = *peeked;
@@ -2510,10 +2525,10 @@ void SkiaRaster::begin_group(const PaintGroup& group) {
     // or an isolation surface that cannot be allocated, draws the group
     // directly, without its opacity or composite: counted as a refusal
     // (audit P9), as a group past the depth bound is.
-    // Under a path clip the composite could not follow the path: the group
-    // draws directly too.
+    // Under a path clip or a turning transform group the composite could not
+    // follow: the group draws directly too.
     const Impl::TextClipState* const state = impl.current_text_clip(*parent);
-    if (state == nullptr || (*state).path_clipped) {
+    if (state == nullptr || (*state).path_clipped || (*state).transformed) {
         impl.group_refusals = impl.group_refusals + 1U;
         return;
     }
@@ -2607,10 +2622,60 @@ std::uint64_t SkiaRaster::group_refusals() const noexcept {
     return (*impl_).group_refusals;
 }
 
-bool SkiaRaster::Impl::path_clipped(const SkCanvas& target) noexcept {
+bool SkiaRaster::Impl::composites_refused(const SkCanvas& target) noexcept {
     const TextClipState* const state = current_text_clip(target);
-    const bool clipped = state != nullptr && (*state).path_clipped;
-    return clipped;
+    const bool refused = state != nullptr && ((*state).path_clipped || (*state).transformed);
+    return refused;
+}
+
+void SkiaRaster::begin_transform(const PaintTransformGroup& group) {
+    Impl& impl = *impl_;
+    save();
+    const bool refused = impl.refused_transforms_open > 0U ||
+                         impl.transform_depth >= maximum_paint_transform_depth ||
+                         !valid_paint_transform(group.transform);
+    if (refused) {
+        clip_rect(Rect{});
+        impl.refused_transforms_open = impl.refused_transforms_open + 1U;
+        impl.transform_refusals = impl.transform_refusals + 1U;
+        return;
+    }
+    impl.transform_depth = impl.transform_depth + 1U;
+    const PaintTransform& map = group.transform;
+    if (paint_transform_is_translation(map)) {
+        // Every fast path keeps working under a translation.
+        translate(Point{map.dx, map.dy});
+        clip_rect(group.bounds);
+        return;
+    }
+    SkCanvas* const canvas = impl.canvas();
+    if (canvas == nullptr) return;
+    // MakeAll takes the rows: x' = xx * x + xy * y + dx, y' = yx * x + yy * y + dy.
+    const SkMatrix matrix = SkMatrix::MakeAll(static_cast<SkScalar>(map.xx), static_cast<SkScalar>(map.xy),
+                                              static_cast<SkScalar>(map.dx), static_cast<SkScalar>(map.yx),
+                                              static_cast<SkScalar>(map.yy), static_cast<SkScalar>(map.dy), 0.0F,
+                                              0.0F, 1.0F);
+    (*canvas).concat(matrix);
+    // Marked on the state the save above pushed, so end_transform's restore
+    // drops it; saves inside copy it.
+    if (Impl::TextClipState* const state = impl.current_text_clip(*canvas)) (*state).transformed = true;
+    clip_rect(group.bounds);
+}
+
+void SkiaRaster::end_transform() {
+    Impl& impl = *impl_;
+    if (impl.refused_transforms_open > 0U) {
+        impl.refused_transforms_open = impl.refused_transforms_open - 1U;
+        restore();
+        return;
+    }
+    if (impl.transform_depth == 0U) return;
+    impl.transform_depth = impl.transform_depth - 1U;
+    restore();
+}
+
+std::uint64_t SkiaRaster::transform_refusals() const noexcept {
+    return (*impl_).transform_refusals;
 }
 
 void SkiaRaster::Impl::draw_part_image(SkCanvas& target, const PartRaster& raster, const Rect destination,
@@ -2634,7 +2699,7 @@ void SkiaRaster::draw_part_raster(const std::shared_ptr<const PartRaster>& raste
                                   const double opacity) {
     SkCanvas* const canvas = (*impl_).canvas();
     if (canvas == nullptr || !raster) return;
-    if ((*impl_).path_clipped(*canvas)) {
+    if ((*impl_).composites_refused(*canvas)) {
         const double scale = (*raster).scale().value;
         if (!(scale > 0.0)) return;
         const DeviceExtent extent = (*raster).extent();
@@ -2650,7 +2715,7 @@ void SkiaRaster::draw_part_raster_scaled(const std::shared_ptr<const PartRaster>
                                          const double opacity) {
     SkCanvas* const canvas = (*impl_).canvas();
     if (canvas == nullptr || !raster) return;
-    if ((*impl_).path_clipped(*canvas)) {
+    if ((*impl_).composites_refused(*canvas)) {
         Impl::draw_part_image(*canvas, *raster, destination, opacity);
         return;
     }

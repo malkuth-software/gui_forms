@@ -571,6 +571,39 @@ void test_focal_radial() {
     require(is_exactly(pixel_at(raster, 2U, 2U), white), "a focus outside the ellipse draws nothing");
 }
 
+// A bar 16 by 4 about (48, 32), turned a quarter about its centre: it
+// stands from y 24 to 40 across x 46 to 50. A hatch inside a half turn
+// lands mirrored.
+void transform_scene(Painter& painter) {
+    PaintTransformGroup group{};
+    group.bounds = Rect{36.0, 20.0, 24.0, 24.0};
+    group.transform = paint_rotation_about(Point{48.0, 32.0}, 90.0);
+    painter.begin_transform(group);
+    painter.fill_rect(Rect{40.0, 30.0, 16.0, 4.0}, red);
+    painter.end_transform();
+    PaintTransformGroup moved{};
+    moved.bounds = Rect{0.0, 0.0, 4.0, 4.0};
+    moved.transform.dx = 70.0;
+    moved.transform.dy = 50.0;
+    painter.begin_transform(moved);
+    painter.fill_rect(Rect{0.0, 0.0, 8.0, 8.0}, blue);
+    painter.end_transform();
+}
+
+void test_transform_group() {
+    SkiaRaster raster;
+    paint(raster, &transform_scene);
+    require(is_exactly(pixel_at(raster, 47U, 25U), red) && is_exactly(pixel_at(raster, 48U, 38U), red),
+            "the turned bar stands upright");
+    require(is_exactly(pixel_at(raster, 41U, 32U), white) && is_exactly(pixel_at(raster, 54U, 32U), white) &&
+                is_exactly(pixel_at(raster, 47U, 22U), white),
+            "nothing is left where the bar lay before the turn");
+    require(is_exactly(pixel_at(raster, 70U, 50U), blue) && is_exactly(pixel_at(raster, 73U, 53U), blue) &&
+                is_exactly(pixel_at(raster, 74U, 51U), white) && is_exactly(pixel_at(raster, 71U, 54U), white),
+            "a translated group draws inside its bounds only");
+    require(raster.transform_refusals() == 0U, "valid groups are not refused");
+}
+
 // Every new call in one scene, so a recording's replay can be compared with
 // drawing directly.
 void all_marks_scene(Painter& painter) {
@@ -583,6 +616,7 @@ void all_marks_scene(Painter& painter) {
     path_scene(painter);
     clip_scene(painter);
     hatch_scene(painter);
+    transform_scene(painter);
 }
 
 void replayed_scene(Painter& painter) {
@@ -624,6 +658,7 @@ int main() {
         test_image_pattern_wraps();
         test_hatch();
         test_focal_radial();
+        test_transform_group();
         test_replay_draws_the_same_bytes();
         std::cout << "gui_forms_paint_marks_raster_tests: all tests passed\n";
         return EXIT_SUCCESS;

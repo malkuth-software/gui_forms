@@ -1212,6 +1212,10 @@ Enumerations
 
    .. cpp:enumerator:: fill_focal_radial_gradient
 
+   .. cpp:enumerator:: begin_transform
+
+   .. cpp:enumerator:: end_transform
+
 Functions, constants and aliases
 --------------------------------
 

@@ -143,6 +143,18 @@ public:
     void begin_group(const PaintGroup& group) override;
     void end_group() override;
     [[nodiscard]] std::uint64_t group_refusals() const noexcept { return group_refusals_; }
+    // Records the transform group. One that is not valid, begun deeper than
+    // maximum_paint_transform_depth or inside one refused is recorded as
+    // save and clip_rect of an empty rectangle (it draws nothing) and
+    // counted in transform_refusals(). Inside a recorded group, origin()
+    // is where the content origin lands (the map's dx and dy added).
+    // end_transform throws std::logic_error without a transform group to
+    // end, with a paint group still open inside it, or when the saves
+    // inside are unbalanced; end_group throws likewise with a transform
+    // group open inside it.
+    void begin_transform(const PaintTransformGroup& group) override;
+    void end_transform() override;
+    [[nodiscard]] std::uint64_t transform_refusals() const noexcept { return transform_refusals_; }
     // Refuses, from now on, image draws (draw_image, the region draws and
     // fill_image_pattern) naming a nonzero identity `images` does not hold:
     // a stale one, whose generation a replace or patch advanced, or a
@@ -223,16 +235,21 @@ private:
     // A clip outside any save, which stays in force to the end.
     bool clipped_{};
     std::optional<Rect> opaque_cover_;
-    // Each open group's kind (isolated or refused) and the save depth at
-    // its beginning, innermost last; `group_depth_` counts the recorded
-    // (not refused) ones.
+    // Each open paint or transform group's kind, the save depth at its
+    // beginning and the origin before it, innermost last; `group_depth_`
+    // and `transform_depth_` count the recorded (not refused) ones.
+    enum class OpenScope : std::uint8_t { group, refused_group, transform, refused_transform };
     struct OpenGroup final {
-        bool refused{};
+        OpenScope kind{OpenScope::group};
         std::uint64_t save_depth{};
+        Point origin{};
     };
     std::vector<OpenGroup> open_groups_;
     std::size_t group_depth_{};
     std::uint64_t group_refusals_{};
+    std::size_t transform_depth_{};
+    std::size_t refused_transforms_open_{};
+    std::uint64_t transform_refusals_{};
     // refuse_stale_images: the registry draws are checked against (null:
     // none are), the draws refused and the first identity refused.
     const ImageRegistry* images_{};

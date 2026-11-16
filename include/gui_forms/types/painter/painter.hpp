@@ -88,6 +88,56 @@ struct GUI_FORMS_API PaintGroup final {
 // under a save), and the refusal is counted.
 inline constexpr std::size_t maximum_paint_group_depth = 4;
 
+// A two-dimensional affine map (Painter::begin_transform): the point
+// (x, y) goes to (xx * x + xy * y + dx, yx * x + yy * y + dy). The default
+// is the identity.
+struct GUI_FORMS_API PaintTransform final {
+    double xx{1.0};
+    double yx{0.0};
+    double xy{0.0};
+    double yy{1.0};
+    double dx{0.0};
+    double dy{0.0};
+
+    [[nodiscard]] bool operator==(const PaintTransform& other) const noexcept {
+        return xx == other.xx && yx == other.yx && xy == other.xy && yy == other.yy && dx == other.dx &&
+               dy == other.dy;
+    }
+};
+
+// The smallest |xx * yy - xy * yx| a transform group accepts: a map that
+// flattens the plane, or nearly, has no usable inverse to clip by.
+inline constexpr double minimum_paint_transform_determinant = 1.0e-6;
+// The deepest transform groups nest. One begun deeper draws nothing, as
+// does every group begun inside a group that draws nothing.
+inline constexpr std::size_t maximum_paint_transform_depth = 8U;
+
+// Whether `transform` is finite and its determinant at least
+// minimum_paint_transform_determinant in size.
+[[nodiscard]] GUI_FORMS_API bool valid_paint_transform(const PaintTransform& transform) noexcept;
+// Whether `transform` only moves the plane (xx = yy = 1, xy = yx = 0).
+[[nodiscard]] GUI_FORMS_API bool paint_transform_is_translation(const PaintTransform& transform) noexcept;
+// Where `transform` takes `point`.
+[[nodiscard]] GUI_FORMS_API Point transform_paint_point(const PaintTransform& transform, Point point) noexcept;
+// The rectangle bounding `rect` mapped by `transform` (its four corners):
+// the area a control damages for a transform group of bounds `rect`. An
+// empty or non-finite rectangle, or a transform that is not valid, gives
+// an empty rectangle.
+[[nodiscard]] GUI_FORMS_API Rect transformed_paint_bounds(const PaintTransform& transform, Rect rect) noexcept;
+// The turn of `degrees` about `centre`, positive anticlockwise as seen on
+// the surface, as Painter::draw_rotated_text_utf8 turns: (1, 0) about the
+// origin goes to (cos, -sin). A non-finite input gives the identity.
+[[nodiscard]] GUI_FORMS_API PaintTransform paint_rotation_about(Point centre, double degrees) noexcept;
+
+// A transform group (Painter::begin_transform; owner, 2026-11-16: a scoped
+// transform, never a free concatenation): `bounds`, in the group's content
+// coordinates, limits what it draws; `transform` maps content coordinates
+// into those in force where the group begins.
+struct GUI_FORMS_API PaintTransformGroup final {
+    Rect bounds{};
+    PaintTransform transform{};
+};
+
 // The most cells Painter::fill_checker draws one by one.
 inline constexpr std::size_t maximum_checker_cells = 65536U;
 // The most marked squares the base Painter::fill_hatch fills one by one.
@@ -147,6 +197,33 @@ public:
     // save() and clip_rect(bounds), then restore().
     virtual void begin_group(const PaintGroup& group);
     virtual void end_group();
+    // Transform groups (see PaintTransformGroup). Between begin_transform
+    // and its end_transform, coordinates are the group's content
+    // coordinates: a point p drawn there lands at transform(p) in the
+    // coordinates in force at begin_transform. `bounds` limits the content
+    // as clip_rect(bounds) under the map would, so everything the group
+    // draws lies inside transformed_paint_bounds(transform, bounds) in the
+    // enclosing coordinates: the rectangle a control damages for it. The
+    // pair nests like save and restore, and inside and around paint groups
+    // (each ends in the scope it began in), up to
+    // maximum_paint_transform_depth; the saves inside must balance. A
+    // transform that is not valid (valid_paint_transform), or a group begun
+    // too deep, draws nothing until its end_transform.
+    // Inside a group that does more than translate, text is shaped as
+    // outside and its glyph outlines are rasterized under the map (no
+    // picture of the upright run is turned); that rasterization is the seam
+    // where glyphs from the STXlib face seat enter
+    // (GlyphRunRasterizer::rasterize_transformed in the Skia painter). The
+    // raster's own direct composites, which address device pixels (text
+    // coverage, part rasters, isolated paint groups), give way to drawing
+    // through the map; nothing new is blended.
+    // The base implementation, a minimal painter's fallback, draws a
+    // translation as save, translate and clip_rect(bounds), and any other
+    // map as nothing (save and clip_rect of an empty rectangle);
+    // end_transform restores. The recording and Skia painters draw every
+    // valid map.
+    virtual void begin_transform(const PaintTransformGroup& group);
+    virtual void end_transform();
     // Native renderers preserve their fonts and drawing semantics offscreen.
     // Recording/headless painters explicitly report this facility unavailable.
     [[nodiscard]] virtual std::unique_ptr<PaintFramebuffer> create_framebuffer(

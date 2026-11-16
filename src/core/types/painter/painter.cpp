@@ -448,6 +448,91 @@ void Painter::begin_group(const PaintGroup& group) {
     if (!(group.opacity > 0.0)) clip_rect(Rect{});
 }
 
+void Painter::begin_transform(const PaintTransformGroup& group) {
+    save();
+    if (!valid_paint_transform(group.transform) || !paint_transform_is_translation(group.transform)) {
+        // A minimal painter cannot turn or scale: the group draws nothing.
+        clip_rect(Rect{});
+        return;
+    }
+    translate(Point{group.transform.dx, group.transform.dy});
+    clip_rect(group.bounds);
+}
+
+void Painter::end_transform() {
+    restore();
+}
+
+bool valid_paint_transform(const PaintTransform& transform) noexcept {
+    const bool finite = std::isfinite(transform.xx) && std::isfinite(transform.yx) && std::isfinite(transform.xy) &&
+                        std::isfinite(transform.yy) && std::isfinite(transform.dx) && std::isfinite(transform.dy);
+    if (!finite) return false;
+    const double determinant = transform.xx * transform.yy - transform.xy * transform.yx;
+    const bool usable = std::isfinite(determinant) && std::fabs(determinant) >= minimum_paint_transform_determinant;
+    return usable;
+}
+
+bool paint_transform_is_translation(const PaintTransform& transform) noexcept {
+    const bool translation = transform.xx == 1.0 && transform.yy == 1.0 && transform.xy == 0.0 && transform.yx == 0.0;
+    return translation;
+}
+
+Point transform_paint_point(const PaintTransform& transform, const Point point) noexcept {
+    const double x = transform.xx * point.x + transform.xy * point.y + transform.dx;
+    const double y = transform.yx * point.x + transform.yy * point.y + transform.dy;
+    return Point{x, y};
+}
+
+Rect transformed_paint_bounds(const PaintTransform& transform, const Rect rect) noexcept {
+    if (!valid_paint_transform(transform) || rect.empty() || !rect.finite()) return Rect{};
+    const std::array<Point, 4> corners{{Point{rect.x, rect.y}, Point{rect.x + rect.width, rect.y},
+                                        Point{rect.x, rect.y + rect.height},
+                                        Point{rect.x + rect.width, rect.y + rect.height}}};
+    const Point first = transform_paint_point(transform, corners[0]);
+    double left = first.x;
+    double top = first.y;
+    double right = first.x;
+    double bottom = first.y;
+    for (std::size_t index = 1U; index < corners.size(); ++index) {
+        const Point mapped = transform_paint_point(transform, corners[index]);
+        left = std::min(left, mapped.x);
+        top = std::min(top, mapped.y);
+        right = std::max(right, mapped.x);
+        bottom = std::max(bottom, mapped.y);
+    }
+    const Rect bounds{left, top, right - left, bottom - top};
+    if (!bounds.finite()) return Rect{};
+    return bounds;
+}
+
+PaintTransform paint_rotation_about(const Point centre, const double degrees) noexcept {
+    if (!std::isfinite(degrees) || !std::isfinite(centre.x) || !std::isfinite(centre.y)) return PaintTransform{};
+    // Quarter turns are exact, so a turned rectangle keeps whole-pixel edges.
+    const double turns = degrees / 90.0;
+    double cosine = 0.0;
+    double sine = 0.0;
+    if (turns == std::floor(turns) && std::fabs(turns) < 1.0e9) {
+        const long long quarter = static_cast<long long>(turns);
+        const long long phase = ((quarter % 4LL) + 4LL) % 4LL;
+        const std::array<double, 4> cosines{{1.0, 0.0, -1.0, 0.0}};
+        const std::array<double, 4> sines{{0.0, 1.0, 0.0, -1.0}};
+        cosine = cosines[static_cast<std::size_t>(phase)];
+        sine = sines[static_cast<std::size_t>(phase)];
+    } else {
+        const double radians = degrees * 3.14159265358979323846 / 180.0;
+        cosine = std::cos(radians);
+        sine = std::sin(radians);
+    }
+    PaintTransform rotation{};
+    rotation.xx = cosine;
+    rotation.xy = sine;
+    rotation.yx = -sine;
+    rotation.yy = cosine;
+    rotation.dx = centre.x - (cosine * centre.x + sine * centre.y);
+    rotation.dy = centre.y - (-sine * centre.x + cosine * centre.y);
+    return rotation;
+}
+
 void Painter::end_group() {
     restore();
 }

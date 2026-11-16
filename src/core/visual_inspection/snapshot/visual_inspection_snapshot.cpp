@@ -657,6 +657,8 @@ const char* visual_paint_operation_name(VisualPaintOperation operation) noexcept
     case VisualPaintOperation::fill_radial_gradient_spread: return "fill_radial_gradient_spread";
     case VisualPaintOperation::fill_hatch: return "fill_hatch";
     case VisualPaintOperation::fill_focal_radial_gradient: return "fill_focal_radial_gradient";
+    case VisualPaintOperation::begin_transform: return "begin_transform";
+    case VisualPaintOperation::end_transform: return "end_transform";
     }
     return "unknown";
 }

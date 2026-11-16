@@ -318,6 +318,10 @@ Types
      - A borrowed path: the verbs and their points, both owned by the caller and read only for the duration of the call given the view.
    * - :cpp:class:`PaintSegment <gui_forms::PaintSegment>`
      - One independent segment of stroke_segments (no joins between segments).
+   * - :cpp:class:`PaintTransform <gui_forms::PaintTransform>`
+     - A two-dimensional affine map (Painter::begin_transform): the point (x, y) goes to (xx * x + xy * y + dx, yx * x + yy * y + dy).
+   * - :cpp:class:`PaintTransformGroup <gui_forms::PaintTransformGroup>`
+     - A transform group (Painter::begin_transform; owner, 2026-11-16: a scoped transform, never a free concatenation): ``bounds``, in the group's content coordinates, limits what it draws; ``transform`` maps content coordinates into those in force where the group begins.
    * - :cpp:class:`ParameterValidation <gui_forms::ParameterValidation>`
      - The first defect found and the index of the parameter it concerns.
    * - :cpp:class:`PartArc <gui_forms::PartArc>`
@@ -4514,6 +4518,12 @@ Types
 
    .. cpp:function:: virtual void end_group()
 
+   .. cpp:function:: virtual void begin_transform(const PaintTransformGroup& group)
+
+      Transform groups (see PaintTransformGroup). Between begin_transform and its end_transform, coordinates are the group's content coordinates: a point p drawn there lands at transform(p) in the coordinates in force at begin_transform. ``bounds`` limits the content as clip_rect(bounds) under the map would, so everything the group draws lies inside transformed_paint_bounds(transform, bounds) in the enclosing coordinates: the rectangle a control damages for it. The pair nests like save and restore, and inside and around paint groups (each ends in the scope it began in), up to maximum_paint_transform_depth; the saves inside must balance. A transform that is not valid (valid_paint_transform), or a group begun too deep, draws nothing until its end_transform. Inside a group that does more than translate, text is shaped as outside and its glyph outlines are rasterized under the map (no picture of the upright run is turned); that rasterization is the seam where glyphs from the STXlib face seat enter (GlyphRunRasterizer::rasterize_transformed in the Skia painter). The raster's own direct composites, which address device pixels (text coverage, part rasters, isolated paint groups), give way to drawing through the map; nothing new is blended. The base implementation, a minimal painter's fallback, draws a translation as save, translate and clip_rect(bounds), and any other map as nothing (save and clip_rect of an empty rectangle); end_transform restores. The recording and Skia painters draw every valid map.
+
+   .. cpp:function:: virtual void end_transform()
+
    .. cpp:function:: virtual std::unique_ptr<PaintFramebuffer> create_framebuffer(Size logical_size, double scale)
 
       Native renderers preserve their fonts and drawing semantics offscreen. Recording/headless painters explicitly report this facility unavailable.
@@ -4787,6 +4797,50 @@ Types
    .. cpp:member:: Point from
 
    .. cpp:member:: Point to
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintTransform final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   A two-dimensional affine map (Painter::begin_transform): the point (x, y) goes to (xx * x + xy * y + dx, yx * x + yy * y + dy). The default is the identity.
+
+   .. cpp:member:: double xx
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double yx
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double xy
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double yy
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double dx
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double dy
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintTransformGroup final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   A transform group (Painter::begin_transform; owner, 2026-11-16: a scoped transform, never a free concatenation): ``bounds``, in the group's content coordinates, limits what it draws; ``transform`` maps content coordinates into those in force where the group begins.
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: PaintTransform transform
 
 .. cpp:namespace:: gui_forms
 
@@ -10821,6 +10875,26 @@ Functions, constants and aliases
 
 ``#include <gui_forms/types/painter/painter.hpp>``
 
+.. cpp:function:: bool valid_paint_transform(const PaintTransform& transform) noexcept
+
+   Whether ``transform`` is finite and its determinant at least minimum_paint_transform_determinant in size.
+
+.. cpp:function:: bool paint_transform_is_translation(const PaintTransform& transform) noexcept
+
+   Whether ``transform`` only moves the plane (xx = yy = 1, xy = yx = 0).
+
+.. cpp:function:: Point transform_paint_point(const PaintTransform& transform, Point point) noexcept
+
+   Where ``transform`` takes ``point``.
+
+.. cpp:function:: Rect transformed_paint_bounds(const PaintTransform& transform, Rect rect) noexcept
+
+   The rectangle bounding ``rect`` mapped by ``transform`` (its four corners): the area a control damages for a transform group of bounds ``rect``. An empty or non-finite rectangle, or a transform that is not valid, gives an empty rectangle.
+
+.. cpp:function:: PaintTransform paint_rotation_about(Point centre, double degrees) noexcept
+
+   The turn of ``degrees`` about ``centre``, positive anticlockwise as seen on the surface, as Painter::draw_rotated_text_utf8 turns: (1, 0) about the origin goes to (cos, -sin). A non-finite input gives the identity.
+
 .. cpp:function:: bool focus_inside_ellipse(Point center, Size radii, Point focus) noexcept
 
    Whether ``focus`` lies strictly inside the ellipse of ``radii`` (both positive) about ``center``, as Painter::fill_focal_radial_gradient requires; false for radii that are not positive or a non-finite result.
@@ -10836,6 +10910,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_paint_group_depth
 
    The deepest groups nest (T2, coordinator decision Q2/Q3). A group begun deeper is refused by name: it draws without isolation (as clip_rect(bounds) under a save), and the refusal is counted. Value: ``4``.
+
+.. cpp:var:: constexpr double minimum_paint_transform_determinant
+
+   The smallest |xx * yy - xy * yx| a transform group accepts: a map that flattens the plane, or nearly, has no usable inverse to clip by. Value: ``1.0e-6``.
+
+.. cpp:var:: constexpr std::size_t maximum_paint_transform_depth
+
+   The deepest transform groups nest. One begun deeper draws nothing, as does every group begun inside a group that draws nothing. Value: ``8U``.
 
 .. cpp:var:: constexpr std::size_t maximum_checker_cells
 

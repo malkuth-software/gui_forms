@@ -88,6 +88,11 @@ enum class DisplayOperation : std::uint8_t {
     // A focal radial gradient: as fill_radial_gradient_spread, with the
     // focus in `scalar` (x) and `secondary_scalar` (y).
     fill_focal_radial_gradient = 44,
+    // A transform group (Painter::begin_transform): `rect` its bounds in
+    // content coordinates; the map's xx and yx in `first`, xy and yy in
+    // `second`, dx in `scalar` and dy in `secondary_scalar`.
+    begin_transform = 45,
+    end_transform = 46,
 };
 
 // The payload of a batched mark or pattern command: the caller's spans,

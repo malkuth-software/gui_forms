@@ -805,7 +805,7 @@ void RecordingPainter::begin_group(const PaintGroup& group) {
         open_groups_.reserve(open_groups_.size() + 1U);
         save();
         clip_rect(group.bounds);
-        opened.refused = true;
+        opened.kind = OpenScope::refused_group;
         opened.save_depth = save_depth_;
         open_groups_.push_back(opened);
         group_refusals_ = group_refusals_ + 1U;
@@ -828,11 +828,14 @@ void RecordingPainter::end_group() {
         throw std::logic_error("GUI.Forms paint group ended without one begun");
     }
     const OpenGroup closing = open_groups_.back();
+    if (closing.kind != OpenScope::group && closing.kind != OpenScope::refused_group) {
+        throw std::logic_error("GUI.Forms paint group ended with a transform group open inside it");
+    }
     if (closing.save_depth != save_depth_) {
         throw std::logic_error("GUI.Forms paint group has unbalanced saves inside it");
     }
     open_groups_.pop_back();
-    if (closing.refused) {
+    if (closing.kind == OpenScope::refused_group) {
         restore();
         return;
     }
@@ -840,6 +843,63 @@ void RecordingPainter::end_group() {
     command.operation = DisplayOperation::end_group;
     commands_.push_back(std::move(command));
     group_depth_ = group_depth_ - 1U;
+}
+
+void RecordingPainter::begin_transform(const PaintTransformGroup& group) {
+    OpenGroup opened{};
+    opened.origin = origin_;
+    const bool refused = refused_transforms_open_ > 0U || transform_depth_ >= maximum_paint_transform_depth ||
+                         !valid_paint_transform(group.transform);
+    if (refused) {
+        // Refused by name: nothing inside draws.
+        open_groups_.reserve(open_groups_.size() + 1U);
+        save();
+        clip_rect(Rect{});
+        opened.kind = OpenScope::refused_transform;
+        opened.save_depth = save_depth_;
+        open_groups_.push_back(opened);
+        refused_transforms_open_ = refused_transforms_open_ + 1U;
+        transform_refusals_ = transform_refusals_ + 1U;
+        return;
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::begin_transform;
+    command.rect = group.bounds;
+    command.first = Point{group.transform.xx, group.transform.yx};
+    command.second = Point{group.transform.xy, group.transform.yy};
+    command.scalar = group.transform.dx;
+    command.secondary_scalar = group.transform.dy;
+    opened.kind = OpenScope::transform;
+    opened.save_depth = save_depth_;
+    open_groups_.reserve(open_groups_.size() + 1U);
+    commands_.push_back(std::move(command));
+    open_groups_.push_back(opened);
+    transform_depth_ = transform_depth_ + 1U;
+    origin_ = Point{origin_.x + group.transform.dx, origin_.y + group.transform.dy};
+}
+
+void RecordingPainter::end_transform() {
+    if (open_groups_.empty()) {
+        throw std::logic_error("GUI.Forms transform group ended without one begun");
+    }
+    const OpenGroup closing = open_groups_.back();
+    if (closing.kind != OpenScope::transform && closing.kind != OpenScope::refused_transform) {
+        throw std::logic_error("GUI.Forms transform group ended with a paint group open inside it");
+    }
+    if (closing.save_depth != save_depth_) {
+        throw std::logic_error("GUI.Forms transform group has unbalanced saves inside it");
+    }
+    open_groups_.pop_back();
+    if (closing.kind == OpenScope::refused_transform) {
+        refused_transforms_open_ = refused_transforms_open_ - 1U;
+        restore();
+        return;
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::end_transform;
+    commands_.push_back(std::move(command));
+    transform_depth_ = transform_depth_ - 1U;
+    origin_ = closing.origin;
 }
 
 std::shared_ptr<const DisplayChunk> RecordingPainter::finish(

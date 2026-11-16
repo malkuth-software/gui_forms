@@ -71,6 +71,9 @@ enum class VisualPaintOperation : std::uint8_t {
     // A focal radial gradient: the focus in `scalar` and
     // `secondary_scalar`.
     fill_focal_radial_gradient,
+    // A transform group: `rect` its bounds in content coordinates.
+    begin_transform,
+    end_transform,
 };
 
 [[nodiscard]] GUI_FORMS_API const char* visual_paint_operation_name(
