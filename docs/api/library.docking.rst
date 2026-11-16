@@ -1363,7 +1363,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::uint32_t dock_layout_format_version
 
-   The framework's layout format version written by write_xml. Older versions are upgraded step by step on restore (version 1 spelled stacks as <stack kind="tool|document">); newer ones are read best-effort. Value: ``2``.
+   The framework's layout format version written by write_xml. Older versions are upgraded step by step on restore (version 1 spelled stacks as <stack kind="tool\|document">); newer ones are read best-effort. Value: ``2``.
 
 .. cpp:var:: constexpr std::uint32_t dock_layout_maximum_xml_depth
 

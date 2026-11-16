@@ -39,9 +39,9 @@ gui_forms::OpenFileDialog
          as :cpp:member:`title <gui_forms::OpenFileDialog::title>` is.
 
       **filter** : ``std::string``, default empty
-         The filter in Windows Forms' syntax: ``label|patterns`` pairs separated
-         by ``|``, the patterns separated by ``;``, as in
-         ``"Text files|*.txt;*.log|All files|*.*"``. A pattern is ``*``, ``*.*``
+         The filter in Windows Forms' syntax: ``label\|patterns`` pairs separated
+         by ``\|``, the patterns separated by ``;``, as in
+         ``"Text files\|*.txt;*.log\|All files\|*.*"``. A pattern is ``*``, ``*.*``
          (any file) or ``*.extension``; the hosts filter by extension only, so
          other patterns are refused. A write throws ``std::invalid_argument``
          for a string ``parse_file_dialog_filter`` refuses, and keeps the old
@@ -142,7 +142,7 @@ gui_forms::OpenFileDialog
       gf::Window window(root, {320.0, 200.0});
       gf::OpenFileDialog dialog;
       dialog.title = "Open recordings";
-      dialog.filter = "Recordings|*.wav;*.flac|All files|*.*";
+      dialog.filter = "Recordings\|*.wav;*.flac\|All files\|*.*";
       dialog.multiselect = true;
       const gf::DialogResult result = dialog.show_dialog(window);
       if (result == gf::DialogResult::ok) {
@@ -175,9 +175,9 @@ gui_forms::OpenFileDialog
 
    .. cpp:member:: std::string filter
 
-      The filter in Windows Forms' syntax: ``label|patterns`` pairs separated
-      by ``|``, the patterns separated by ``;``, as in
-      ``"Text files|*.txt;*.log|All files|*.*"``. A pattern is ``*``, ``*.*``
+      The filter in Windows Forms' syntax: ``label\|patterns`` pairs separated
+      by ``\|``, the patterns separated by ``;``, as in
+      ``"Text files\|*.txt;*.log\|All files\|*.*"``. A pattern is ``*``, ``*.*``
       (any file) or ``*.extension``; the hosts filter by extension only, so
       other patterns are refused. A write throws ``std::invalid_argument``
       for a string ``parse_file_dialog_filter`` refuses, and keeps the old

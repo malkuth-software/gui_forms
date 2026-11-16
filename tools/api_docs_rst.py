@@ -290,7 +290,17 @@ class Linker:
 
     def prose(self, text: str, owner: str = "", members: frozenset[str] = frozenset()) -> str:
         pattern = re.compile(r"(?<![`:\\\w])`([^`\n]+)`(?![`_\w])")
-        return pattern.sub(lambda match: self.span(match.group(1), owner, members), text)
+        # Outside the code spans a comment's | (an absolute value, |x|) is
+        # text, not a reStructuredText substitution reference.
+        pieces: list[str] = []
+        last: int = 0
+        match: re.Match[str]
+        for match in pattern.finditer(text):
+            pieces.append(text[last:match.start()].replace("|", "\\|"))
+            pieces.append(self.span(match.group(1), owner, members))
+            last = match.end()
+        pieces.append(text[last:].replace("|", "\\|"))
+        return "".join(pieces)
 
 
 # --- C++ domain declarations ---------------------------------------------------------

@@ -1594,7 +1594,7 @@ bool ObjectView::press_column_header(std::string_view id, SemanticAction action)
     header_focused_ = true;
     focused_column_ = column;
     reveal_header();
-    request_header_sort(*column);
+    request_header_sort(column);
     return true;
 }
 

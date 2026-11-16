@@ -1175,7 +1175,7 @@ Related types
 
    .. cpp:member:: std::string filter
 
-      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
+      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label\|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
 
    .. cpp:member:: std::size_t filter_index
 
@@ -1298,7 +1298,7 @@ Related types
 
    ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
 
-   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
+   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label\|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
 
 
    .. rubric:: Methods
@@ -2028,7 +2028,7 @@ Functions, constants and aliases
 
 .. cpp:function:: FileDialogFilterParse parse_file_dialog_filter(std::string_view filter)
 
-   Parses a filter in Windows Forms' syntax, ``label|patterns|label|patterns``, where patterns are separated by ``;`` and spaces around a pattern are ignored: "Text files|*.txt;*.log|All files|*.*". ``*.extension`` becomes the host filter's extension (without the dot; ``*.tar.gz`` gives ``tar.gz``), and ``*`` and ``*.*`` become ``*``, which every host reads as any file. An empty string is no filter: the host shows every file.
+   Parses a filter in Windows Forms' syntax, ``label|patterns|label|patterns``, where patterns are separated by ``;`` and spaces around a pattern are ignored: "Text files\|*.txt;*.log\|All files\|*.*". ``*.extension`` becomes the host filter's extension (without the dot; ``*.tar.gz`` gives ``tar.gz``), and ``*`` and ``*.*`` become ``*``, which every host reads as any file. An empty string is no filter: the host shows every file.
 
 .. cpp:function:: bool file_dialog_filter_matches(const HostFileDialogFilter& filter, std::string_view file_name)
 

@@ -47,13 +47,22 @@ struct GUI_FORMS_API BuildProfileRecord final {
     bool clipboard_text{true};
 };
 
-// The profile the including unit is compiled with. build_profile() reports
-// the library's; the link markers above keep the two equal.
+namespace detail {
+// The including unit's profile, decided by GUI_FORMS_HIGH_INTEGRITY.
+constexpr BuildProfile compiled_profile_of_unit() noexcept {
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
-inline constexpr BuildProfile compiled_build_profile = BuildProfile::high_integrity;
+    return BuildProfile::high_integrity;
 #else
-inline constexpr BuildProfile compiled_build_profile = BuildProfile::standard;
+    return BuildProfile::standard;
 #endif
+}
+} // namespace detail
+
+// The profile the including unit is compiled with (high_integrity under
+// GUI_FORMS_HIGH_INTEGRITY, else standard). build_profile() reports the
+// library's; the link markers above keep the two equal. One declaration, so
+// the reference documents it once.
+inline constexpr BuildProfile compiled_build_profile = detail::compiled_profile_of_unit();
 
 // The library's build profile and allowances. Constant for the process; any
 // thread.

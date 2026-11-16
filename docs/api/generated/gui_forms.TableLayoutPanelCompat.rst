@@ -217,8 +217,8 @@ gui_forms::TableLayoutPanelCompat
           gf::make_control<gf::Label>(gf::StableId("form.email.label"), "Email:");
       std::shared_ptr<gf::TextBox> email =
           gf::make_control<gf::TextBox>(gf::StableId("form.email"));
-      (*name).anchor = gf::AnchorStyles::left | gf::AnchorStyles::right;
-      (*email).anchor = gf::AnchorStyles::left | gf::AnchorStyles::right;
+      (*name).anchor = gf::AnchorStyles::left \| gf::AnchorStyles::right;
+      (*email).anchor = gf::AnchorStyles::left \| gf::AnchorStyles::right;
 
       // Automatic placement fills the cells row by row.
       (*form).add_child(name_label);

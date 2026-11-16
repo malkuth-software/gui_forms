@@ -10056,7 +10056,7 @@ Functions, constants and aliases
 
 .. cpp:function:: double engine_tangent(double x) noexcept
 
-   The tangent of ``x`` radians, as engine_sine_cosine's sine over its cosine (the theme language's arc handles, 4/3 tan(piece/4) with |piece/4| at most π/8). For |x| ≤ π/4 the cosine is at least 0.7071, so the absolute error is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives 0. Every finite x has a finite result (no double but 0 is a multiple of π/2); infinities and NaN give the stated value 0.
+   The tangent of ``x`` radians, as engine_sine_cosine's sine over its cosine (the theme language's arc handles, 4/3 tan(piece/4) with \|piece/4\| at most π/8). For \|x\| ≤ π/4 the cosine is at least 0.7071, so the absolute error is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives 0. Every finite x has a finite result (no double but 0 is a multiple of π/2); infinities and NaN give the stated value 0.
 
 .. cpp:function:: double engine_hypotenuse(double x, double y) noexcept
 
@@ -10950,7 +10950,7 @@ Functions, constants and aliases
 
 .. cpp:function:: Insets surface_material_visual_outsets(const SurfaceMaterial& material, Size box) noexcept
 
-   How far a material drawn over a box of ``box`` reaches outside it, transform included: the box grown by the untransformed reach, turned and scaled about its centre, bounds what the material paints, and these outsets cover that bound. With the identity they are the untransformed reach. For a transform, each horizontal outset is max(|xx|, 1) A + |xy| B - w / 2 and each vertical one |yx| A + max(|yy|, 1) B - h / 2 (at least the untransformed outset), where A = w / 2 + the larger horizontal reach and B = h / 2 + the larger vertical reach: never less than the exact transformed bound, exact for a scale of at least 1 without rotation, and never smaller for a larger box, so a caller that knows only a box enclosing the material's (a control's arranged box around a glyph) may pass that.
+   How far a material drawn over a box of ``box`` reaches outside it, transform included: the box grown by the untransformed reach, turned and scaled about its centre, bounds what the material paints, and these outsets cover that bound. With the identity they are the untransformed reach. For a transform, each horizontal outset is max(\|xx\|, 1) A + \|xy\| B - w / 2 and each vertical one \|yx\| A + max(\|yy\|, 1) B - h / 2 (at least the untransformed outset), where A = w / 2 + the larger horizontal reach and B = h / 2 + the larger vertical reach: never less than the exact transformed bound, exact for a scale of at least 1 without rotation, and never smaller for a larger box, so a caller that knows only a box enclosing the material's (a control's arranged box around a glyph) may pass that.
 
 .. cpp:function:: Rect surface_material_paint_bounds(Rect box, const SurfaceMaterial& material) noexcept
 
@@ -11622,7 +11622,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr double minimum_paint_transform_determinant
 
-   The smallest |xx * yy - xy * yx| a transform group accepts: a map that flattens the plane, or nearly, has no usable inverse to clip by. Value: ``1.0e-6``.
+   The smallest \|xx * yy - xy * yx\| a transform group accepts: a map that flattens the plane, or nearly, has no usable inverse to clip by. Value: ``1.0e-6``.
 
 .. cpp:var:: constexpr std::size_t maximum_paint_transform_depth
 

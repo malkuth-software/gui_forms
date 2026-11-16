@@ -30,7 +30,7 @@ gui_forms::MaskedTextProvider
          optional ASCII letter or digit. ``.``, ``,``, ``:``, ``/`` and ``$`` are
          the culture's decimal separator, group separator, time separator, date
          separator and currency symbol, as literals. ``<`` lower-cases and ``>``
-         upper-cases the letters typed into the positions after it, ``|`` stops
+         upper-cases the letters typed into the positions after it, ``\|`` stops
          converting. ``\`` makes the next character a literal; every other
          character is a literal. A mask that is not valid UTF-8, ends in a lone
          backslash or holds a control character throws ``std::invalid_argument``.

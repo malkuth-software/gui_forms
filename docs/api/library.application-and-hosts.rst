@@ -2688,7 +2688,7 @@ Related types
 
    .. cpp:member:: std::string capture_path
 
-      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
+      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true\|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
 
    .. cpp:member:: std::optional<Size> capture_size
 
@@ -2794,7 +2794,7 @@ Related types
 
    .. cpp:member:: std::string capture_path
 
-      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
+      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true\|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
 
    .. cpp:member:: std::optional<Size> capture_size
 
@@ -3509,7 +3509,7 @@ Related types
 
    .. cpp:member:: std::string capture_path
 
-      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
+      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true\|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
 
    .. cpp:member:: std::optional<Size> capture_size
 
@@ -4459,11 +4459,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr BuildProfile compiled_build_profile
 
-   The profile the including unit is compiled with. build_profile() reports the library's; the link markers above keep the two equal. Value: ``BuildProfile::high_integrity``.
-
-.. cpp:var:: constexpr BuildProfile compiled_build_profile
-
-   Value: ``BuildProfile::standard``.
+   The profile the including unit is compiled with (high_integrity under GUI_FORMS_HIGH_INTEGRITY, else standard). build_profile() reports the library's; the link markers above keep the two equal. One declaration, so the reference documents it once. Value: ``detail::compiled_profile_of_unit()``.
 
 .. cpp:namespace:: gui_forms
 
