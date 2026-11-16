@@ -718,7 +718,8 @@ add_library(gui_forms_core STATIC
     src/core/image/png_color.cpp
     src/core/image/color_conversion.cpp
     src/core/interpolation/interpolation.cpp
-    src/core/host/frame_capture/frame_capture.cpp
+    # Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/core/host/frame_capture/frame_capture.cpp>
     src/core/host/compositor/window_backdrop.cpp
     src/core/host/types/host_types.cpp
     src/core/host/types/host_capabilities/host_capabilities.cpp
@@ -1938,7 +1939,8 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/linux/services/linux_services.cpp
         src/host/linux/services/x11_foreign_window.cpp
         src/host/linux/services/x11_tray_icons.cpp
-        src/host/linux/services/linux_drag_drop.cpp
+        # XDND drops: not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+        $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/host/linux/services/linux_drag_drop.cpp>
         src/host/linux/services/linux_dialogs.cpp
         src/host/linux/compositor/x11_compositor.cpp)
     # The environment's POSIX locale (LC_ALL, LC_TIME, LANG), which a

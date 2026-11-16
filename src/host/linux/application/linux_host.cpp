@@ -1142,10 +1142,14 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
       static_cast<int>(entry.options.title.size()));
   Atom protocols[] = {runtime.atom("WM_DELETE_WINDOW")};
   XSetWMProtocols(runtime.display, xid, protocols, 1);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // Not announced in a high-integrity build (cmake/HighIntegrity.cmake):
+  // nothing is dropped from another program.
   const unsigned long xdnd_version = 5;
   XChangeProperty(runtime.display, xid, runtime.atom("XdndAware"), XA_ATOM, 32,
                   PropModeReplace,
                   reinterpret_cast<const unsigned char *>(&xdnd_version), 1);
+#endif
   XSizeHints hints{};
   hints.flags = PMinSize | PPosition;
   hints.x = 60;
@@ -1542,8 +1546,10 @@ void NativeWindow::event(XEvent &event) {
     static_cast<void>(dispatch(HostActivationEvent{event.type == FocusIn}));
     return;
   }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
   if (event.type == ClientMessage && drag_message(event.xclient))
     return;
+#endif
   if (modal)
     return;
   // A confined or locked relative pointer moves by raw motion only.
@@ -1973,6 +1979,10 @@ bool NativeWindow::report_presented(const std::optional<PaintReceipt>& receipt,
 }
 
 void NativeWindow::frame_capture_if_due(bool covers_window) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+  // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+  static_cast<void>(covers_window);
+#else
   if (closed || frame_capture_completed || !covers_window ||
       entry.options.capture_path.empty())
     return;
@@ -1983,6 +1993,7 @@ void NativeWindow::frame_capture_if_due(bool covers_window) {
   frame_capture_saved = gui_forms::host::detail::complete_frame_capture(
       entry.options.capture_path, encoded);
   close(HostCloseReason::application);
+#endif
 }
 void Runtime::report_displays() {
   HostMonitorResult monitors;
@@ -2480,6 +2491,7 @@ int run_linux_application(std::vector<LinuxApplicationWindow> windows,
           primary_open = true;
       }
     }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // Portable contract: a requested capture that was never saved fails the
     // process even when the window closed normally.
     for (std::size_t i = 0; i < runtime.windows.size(); ++i) {
@@ -2488,6 +2500,7 @@ int run_linux_application(std::vector<LinuxApplicationWindow> windows,
           !window.frame_capture_saved)
         return 6;
     }
+#endif
     return 0;
   } catch (const std::exception &error) {
     std::cerr << "GUI.Forms Linux host: " << error.what() << '\n';

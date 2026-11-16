@@ -110,7 +110,10 @@ private:
   // Owner of this object (observing).
   Runtime &runtime_;
 };
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
 DragFileListData local_files(const std::vector<std::byte>& data);
+#endif
 // A present's source: the raster's premultiplied BGRA8 pixels, row_bytes
 // apart, and the window's alpha mask, presented when present_alpha (a
 // non-opaque backdrop is granted) and otherwise set opaque.
@@ -268,7 +271,10 @@ public:
   void ready();
   void event(XEvent &event);
   void update();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // XDND drops (linux_drag_drop.cpp): not compiled in a high-integrity build.
   bool drag_message(const XClientMessageEvent &message);
+#endif
   void action(ActionKind kind);
   void close(HostCloseReason reason, bool force = false);
   // Portable frame capture (capture_path host option): runs once after the

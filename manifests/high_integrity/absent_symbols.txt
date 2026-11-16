@@ -54,3 +54,13 @@ read_windows_clipboard_image\(
 write_windows_clipboard_image\(
 ShellExecute
 posix_spawn$
+# Frame capture to a file (the hosts' capture_path).
+complete_frame_capture\(
+frame_capture_report_json\(
+# Drag and drop with other programs.
+NativeWindow::drag_message\(
+linux_detail::local_files\(
+Runtime::handle_drop\(
+gf_web_post_drop
+answerPerformDragOperation
+draggingEntered

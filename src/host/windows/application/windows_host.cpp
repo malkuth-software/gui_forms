@@ -2454,6 +2454,10 @@ private:
     // first presented frame whose update rectangle covers the whole client
     // area, then requests close through the ordinary WM_CLOSE path.
     void complete_frame_capture_if_due(const RECT& painted) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+        // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+        static_cast<void>(painted);
+#else
         if (frame_capture_completed_ || options_.capture_path.empty() || hwnd_ == nullptr) return;
         RECT client{};
         if (!GetClientRect(hwnd_, &client) || client.right <= client.left ||
@@ -2465,6 +2469,7 @@ private:
         if (!raster_.encode_png(encoded)) encoded.clear();
         frame_capture_saved_ = detail::complete_frame_capture(options_.capture_path, encoded);
         PostMessageW(hwnd_, WM_CLOSE, 0, 0);
+#endif
     }
 public:
     // Read by run_windows after the message loop: the portable contract fails
@@ -4381,9 +4386,12 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
     }
     if (options.final_snapshot) options.final_snapshot(metrics, host);
     if (SUCCEEDED(com_status)) CoUninitialize();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     // Portable contract: a requested capture that was never saved fails the
     // process even when the window closed normally.
     if (!options.capture_path.empty() && !state.frame_capture_saved()) return 6;
+#endif
     return static_cast<int>(message.wParam);
 }
 

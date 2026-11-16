@@ -264,18 +264,23 @@ NS_ASSUME_NONNULL_BEGIN
 
 // Pointer, keyboard, text input and drag destination (macos_view_input.mm).
 @interface GUIFormsView (Input)
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
 - (DragEvent)dragEventFor:(id<NSDraggingInfo>)sender action:(DragAction)action;
+#endif
 // macOS's own keyboard context request (owner's ruling, 2026-11-08): the
 // accessibility show-menu action (NSAccessibilityShowMenuAction, VoiceOver
 // VO+Shift+M) on an element with no menu of its own, reported to the
 // window as a keyboard HostContextRequestEvent after the element's control
 // took focus. Returns whether a control handled it.
 - (BOOL)dispatchKeyboardContextRequest;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 - (NSDragOperation)answerDraggingEntered:(id<NSDraggingInfo>)sender;
 - (NSDragOperation)answerDraggingUpdated:(id<NSDraggingInfo>)sender;
 - (void)answerDraggingExited:(nullable id<NSDraggingInfo>)sender;
 - (BOOL)answerPrepareForDragOperation:(id<NSDraggingInfo>)sender;
 - (BOOL)answerPerformDragOperation:(id<NSDraggingInfo>)sender;
+#endif
 - (void)answerCursorUpdate:(NSEvent*)event;
 - (void)answerMouseExited:(NSEvent*)event;
 - (void)answerMouseDown:(NSEvent*)event;

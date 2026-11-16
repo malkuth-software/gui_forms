@@ -478,6 +478,9 @@ addToLibrary({
       });
       input.addEventListener('focus', () => _gf_web_post_focus(1));
       input.addEventListener('blur', () => _gf_web_post_focus(0));
+      // A high-integrity build exports no drop entry (web_page_exports.cpp),
+      // so the page takes no drops.
+      if (typeof _gf_web_post_drop === 'function') {
       canvas.addEventListener('dragover', (event) => {
         event.preventDefault();
         if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
@@ -496,6 +499,7 @@ addToLibrary({
           _free(joined);
         }
       });
+      }
       if (typeof ResizeObserver !== 'undefined') {
         new ResizeObserver(() => GFWeb.postResize()).observe(canvas);
       } else {

@@ -1482,9 +1482,13 @@ void Runtime::handle(SurfaceInputRecord& record) {
             break;
         }
         break;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Drops from other programs: not compiled in a high-integrity build
+    // (cmake/HighIntegrity.cmake), where a drop record takes the default.
     case SurfaceInputKind::drop:
         handle_drop(record);
         break;
+#endif
     case SurfaceInputKind::fonts: {
         // A font group arrived: text that fell back may now find its face.
         const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
@@ -1782,6 +1786,8 @@ void Runtime::handle_resize(const SurfaceInputRecord& record) {
     }
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
 void Runtime::handle_drop(const SurfaceInputRecord& record) {
     const SurfaceDeskHit hit = desk.hit(record.position);
     if (!hit.window.valid() || hit.part != SurfaceDeskPart::client || desk.blocked(hit.window)) return;
@@ -1806,6 +1812,7 @@ void Runtime::handle_drop(const SurfaceInputRecord& record) {
     drag.action = accepted ? DragAction::drop : DragAction::leave;
     static_cast<void>((*target).dispatch(drag));
 }
+#endif
 
 // ---------------------------------------------------------------------------
 // The run

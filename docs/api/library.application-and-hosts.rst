@@ -4515,7 +4515,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr HostCapability high_integrity_compiled_out_capabilities
 
-   The host services a high-integrity build does not compile (cmake/HighIntegrity.cmake): opening addresses, clipboard images and clipboard file references, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from its own, so their requests are refused as unsupported. Value: ``HostCapability::open_url | HostCapability::clipboard_images``.
+   The host services a high-integrity build does not compile (cmake/HighIntegrity.cmake): opening addresses, clipboard images and clipboard file references, frame capture to a file, drag and drop with other programs, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from its own, so their requests are refused as unsupported. Value: ``HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture | HostCapability::typed_drag_source | HostCapability::typed_drag_destination``.
 
 .. cpp:namespace:: gui_forms
 

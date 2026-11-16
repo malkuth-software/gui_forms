@@ -844,6 +844,8 @@ using gui_forms::host::macos::MacPresentedFrame;
     }
     if (presented == NO) return;
     ++trace.presented;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The frame files: Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     if (trace.capture_directory.empty() || trace.captured >= trace.capture_limit) return;
     if ((trace.presented - 1U) % trace.capture_stride != 0U) return;
     char name[32]{};
@@ -851,6 +853,7 @@ using gui_forms::host::macos::MacPresentedFrame;
     const std::string path = trace.capture_directory + name;
     const std::vector<std::byte> encoded = _raster.encode_png();
     if (gui_forms::host::detail::complete_frame_capture(path, encoded)) ++trace.captured;
+#endif
 }
 
 - (void)installFrameCapturePath:(std::string)path {
@@ -862,6 +865,11 @@ using gui_forms::host::macos::MacPresentedFrame;
     return _frameCaptureSaved;
 }
 - (void)completeFrameCaptureIfDue:(NSRect)dirtyRect presented:(BOOL)presented {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    static_cast<void>(dirtyRect);
+    static_cast<void>(presented);
+#else
     if (_frameCaptureCompleted || _frameCapturePath.empty() || presented == NO ||
         !NSContainsRect(dirtyRect, self.bounds) || NSIsEmptyRect(self.bounds)) {
         return;
@@ -874,6 +882,7 @@ using gui_forms::host::macos::MacPresentedFrame;
     _frameCaptureSaved = gui_forms::host::detail::complete_frame_capture(
         _frameCapturePath, encoded) ? YES : NO;
     post_perform_close(self.window);
+#endif
 }
 // The display timing of the display link's last tick, in FrameClock time:
 // its vertical blank and refresh period. Empty (source none) before the

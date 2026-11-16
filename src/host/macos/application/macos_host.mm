@@ -137,12 +137,15 @@ void end_single_window_run(void* context) {
     if (options.final_snapshot) {
         options.final_snapshot(metrics, host);
     }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     // Portable contract: a requested capture that was never saved (no
     // covering frame before close, or an encode/write failure) fails the
     // process.
     if (!options.capture_path.empty() && [end.view frameCaptureSaved] == NO) {
         *end.exit_code = 6;
     }
+#endif
     [end.view prepareForShutdown];
     [end.window setDelegate:nil];
     [end.window setContentView:nil];
@@ -199,9 +202,12 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
             transparentFullSizeContent:transparentFullSizeContent
             windowDragRegionIds:std::move(windowDragRegionIds)];
         [view installCloseRequestHandler:std::move(options.close_request)];
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
         if (!options.capture_path.empty()) {
             [view installFrameCapturePath:options.capture_path];
         }
+#endif
         GUIFormsWindowDelegate* delegate =
             [[GUIFormsWindowDelegate alloc] initWithView:view
                                  stopsApplicationOnClose:YES

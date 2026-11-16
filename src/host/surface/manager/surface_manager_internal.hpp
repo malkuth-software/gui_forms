@@ -437,7 +437,10 @@ private:
     void handle_key(const SurfaceInputRecord& record);
     void handle_text(const SurfaceInputRecord& record, bool composition);
     void handle_resize(const SurfaceInputRecord& record);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     void handle_drop(const SurfaceInputRecord& record);
+#endif
     void leave_pointer_window(Point point);
     // Tells the windows that lost and gained the keyboard after a desk
     // change that moved it.
