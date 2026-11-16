@@ -110,6 +110,6 @@ jobs:
             exit 1
           fi
       - name: Build the effect targets with the effect pass
-        run: cmake --build build --parallel 4 --target gui_forms_effect_program_tests gui_forms_plot_primitives_tests
+        run: cmake --build build --parallel 4 --target gui_forms_effect_program_tests gui_forms_plot_primitives_tests -- -k 0
       - name: Run the effect tests
         run: ctest --test-dir build --output-on-failure -R '^gui_forms_(effect_(program_tests|pass_)|plot_primitives_tests$)'

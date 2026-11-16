@@ -337,7 +337,9 @@ def build_workloads(build: Path, jobs: int) -> Path:
     workload: Workload
     for workload in WORKLOADS:
         targets.append(workload.target)
-    run_command(['cmake', '--build', str(tree), '--parallel', str(jobs), '--target', *targets])
+    # Ninja keeps going past a failed command, so one run reports every
+    # compile error (as ci_build.build_logged).
+    run_command(['cmake', '--build', str(tree), '--parallel', str(jobs), '--target', *targets, '--', '-k', '0'])
     return tree
 
 
