@@ -1369,8 +1369,17 @@ public:
     // hidden). Throws std::invalid_argument for a target that is not a live
     // control attached to this window or whose tooltip text is empty, and
     // for a negative duration.
-    void show_tool_tip(const Control::Ptr& target,
-                       std::optional<std::chrono::milliseconds> duration = std::nullopt);
+    void show_tool_tip(const Control::Ptr& target, stxlib::Optional<std::chrono::milliseconds> duration = stxlib::Optional<std::chrono::milliseconds>::none());
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<std::chrono::milliseconds>")]]
+    void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) {
+        stxlib::Optional<std::chrono::milliseconds> owned{};
+        if (duration.has_value()) owned.set(*duration);
+        show_tool_tip(target, owned);
+    }
+    // A plain duration is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::chrono::milliseconds>::of(duration).
+    void show_tool_tip(const Control::Ptr& target, std::chrono::milliseconds duration) = delete;
     // Closes the tooltip that shows, and cancels one waiting to show.
     void hide_tool_tip();
     [[nodiscard]] bool tool_tip_visible() const noexcept;
@@ -1738,7 +1747,7 @@ private:
     // `control`'s part `item_id` with `text` below `anchor` (window
     // coordinates), whatever the switches, as show_tool_tip does.
     void show_requested_tool_tip(const Control::Ptr& control, std::string item_id, std::string text, Rect anchor,
-                                 std::optional<std::chrono::milliseconds> duration);
+                                 stxlib::Optional<std::chrono::milliseconds> duration);
     // Called by RibbonToolTip: while covered, the plain presenter shows no
     // tooltip for `control`'s part `item_id` (empty: the control itself),
     // because the enhanced one describes it. Covers count, so two providers

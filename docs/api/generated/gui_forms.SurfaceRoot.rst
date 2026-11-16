@@ -1619,7 +1619,15 @@ gui_forms::SurfaceRoot
       a menu or a drop-down, and returns a :cpp:class:`OverlayToken <gui_forms::OverlayToken>` that closes it. The
       overlay closes on its own when its owner is hidden, disabled or detached.
 
-   .. cpp:function:: void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration = std::nullopt)
+   .. cpp:function:: void show_tool_tip(const Control::Ptr& target, stxlib::Optional<std::chrono::milliseconds> duration = stxlib::Optional<std::chrono::milliseconds>::none())
+
+      ``show_tool_tip(control)`` shows the control's tooltip at once, below it,
+      for the auto-pop delay; ``show_tool_tip(control, duration)`` for
+      ``duration``, where zero means until hidden. It shows even with the
+      switches off. A control without tooltip text throws
+      ``std::invalid_argument``.
+
+   .. cpp:function:: void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration)
 
       ``show_tool_tip(control)`` shows the control's tooltip at once, below it,
       for the auto-pop delay; ``show_tool_tip(control, duration)`` for

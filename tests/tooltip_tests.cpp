@@ -40,6 +40,24 @@ namespace {
 using namespace gui_forms;
 using namespace std::chrono_literals;
 
+// D15 Q3: show_tool_tip keeps its deprecated std::optional duration for one
+// stage; a plain duration or {} must not reach it silently. Each plain call
+// below is refused (the deleted overload or an ambiguity), and the stxlib
+// form and the default are accepted.
+template <typename Root>
+concept takes_plain_duration = requires(Root& root, const Control::Ptr& target) {
+    root.show_tool_tip(target, std::chrono::milliseconds(0));
+};
+template <typename Root>
+concept takes_empty_duration = requires(Root& root, const Control::Ptr& target) { root.show_tool_tip(target, {}); };
+template <typename Root>
+concept takes_optional_duration = requires(Root& root, const Control::Ptr& target) {
+    root.show_tool_tip(target, stxlib::Optional<std::chrono::milliseconds>::none());
+    root.show_tool_tip(target);
+};
+static_assert(!takes_plain_duration<Window> && !takes_empty_duration<Window>);
+static_assert(takes_optional_duration<Window>);
+
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
 }
@@ -452,7 +470,7 @@ void test_window_and_program_switches() {
     fire_next(fixture.window);
     require(fixture.window.tool_tip_visible(), "a window switched on shows its tooltips");
     application.set_tool_tips_shown(true);
-    fixture.window.show_tool_tip(fixture.button, 0ms);
+    fixture.window.show_tool_tip(fixture.button, stxlib::Optional<std::chrono::milliseconds>::of(0ms));
     fixture.window.set_tool_tips_shown(stxlib::Optional<bool>::of(false));
     require(fixture.window.tool_tip_visible(), "a tooltip the program showed stays whatever the switches");
     fixture.window.hide_tool_tip();
@@ -472,7 +490,7 @@ void test_blank_text_and_open_scopes() {
     settings.initial_delay = 1ms;
     fixture.window.set_tool_tip_settings(settings);
     (*fixture.button).tool_tip_text = " \t\xC2\xA0";
-    fixture.window.show_tool_tip(fixture.button, 0ms);
+    fixture.window.show_tool_tip(fixture.button, stxlib::Optional<std::chrono::milliseconds>::of(0ms));
     require(!fixture.window.tool_tip_visible(), "blank text does not show even when the program asks");
     hover(fixture.window, {60.0, 60.0});
     run_due(fixture.window);

@@ -71,9 +71,9 @@ public:
     void scope_changed() override;
     void cover(RuntimeId control, std::string_view item_id, bool covered) override;
 
-    void show_program(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) override;
+    void show_program(const Control::Ptr& target, stxlib::Optional<std::chrono::milliseconds> duration) override;
     void show_program_item(const Control::Ptr& control, std::string item_id, std::string text, Rect anchor,
-                           std::optional<std::chrono::milliseconds> duration) override;
+                           stxlib::Optional<std::chrono::milliseconds> duration) override;
     void request(const Control::Ptr& owner, std::uint64_t id, std::string item_id,
                  const ToolTipRequest& content) override;
     void withdraw(std::string_view item_id) override;
@@ -184,14 +184,14 @@ private:
     // subject cannot show (detached, or disabled without show_when_disabled).
     // Returns the visibility event to raise, or none.
     [[nodiscard]] std::optional<ToolTipEvent> open(ToolTipOrigin origin, ToolTipSubject subject,
-                                                   std::optional<std::chrono::milliseconds> duration);
+                                                   stxlib::Optional<std::chrono::milliseconds> duration);
     // Closes a bubble that shows, entering `next`. Returns the visibility
     // event to raise, or none when nothing showed.
     [[nodiscard]] std::optional<ToolTipEvent> close(State next);
     // Closes what shows (raising its event), then opens `subject` unless a
     // handler of that event showed another tooltip, which then stands.
     void replace(ToolTipOrigin origin, ToolTipSubject subject,
-                 std::optional<std::chrono::milliseconds> duration);
+                 stxlib::Optional<std::chrono::milliseconds> duration);
     // Places the bubble that shows; false when the Splash window refused it.
     bool position(Showing& showing);
     // Raises `change` (none raises nothing) and keeps its storage as the

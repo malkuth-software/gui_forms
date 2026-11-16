@@ -53,7 +53,7 @@ public:
     // (SurfaceRoot::show_requested_tool_tip).
     static void show_requested_tool_tip(SurfaceRoot& root, const Control::Ptr& control, std::string item_id,
                                         std::string text, Rect anchor,
-                                        std::optional<std::chrono::milliseconds> duration) {
+                                        stxlib::Optional<std::chrono::milliseconds> duration) {
         root.show_requested_tool_tip(control, std::move(item_id), std::move(text), anchor, duration);
     }
     // While covered, the plain presenter shows no tooltip for `control`'s

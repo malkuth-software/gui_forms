@@ -2054,7 +2054,7 @@ Related types
 
       The thing the tooltip is about, in the root's coordinates; the bubble shows below it.
 
-   .. cpp:member:: std::optional<std::chrono::milliseconds> duration
+   .. cpp:member:: stxlib::Optional<std::chrono::milliseconds> duration
 
       How long it shows: none, the root's auto-pop delay; zero, until it is withdrawn or replaced.
 

@@ -42,12 +42,12 @@
       "headers": 1
     },
     "optional": {
-      "occurrences": 494,
-      "headers": 134
+      "occurrences": 491,
+      "headers": 132
     },
     "nullopt": {
-      "occurrences": 8,
-      "headers": 4
+      "occurrences": 7,
+      "headers": 3
     },
     "string_view": {
       "occurrences": 914,

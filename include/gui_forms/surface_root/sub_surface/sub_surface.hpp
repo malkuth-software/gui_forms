@@ -226,7 +226,7 @@ struct GUI_FORMS_API SubSurfaceRequest final {
     // For a program request (SurfaceRoot::show_tool_tip or
     // request_tool_tip on the sub-surface): how long it shows (none: the
     // parent's auto-pop delay; zero: until revoked).
-    std::optional<std::chrono::milliseconds> duration{};
+    stxlib::Optional<std::chrono::milliseconds> duration{};
 };
 
 // Where a sub-surface's requests go: called on the parent's thread only,

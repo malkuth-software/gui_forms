@@ -514,7 +514,7 @@ void show_tool_tip_window(RuntimeWindowsProbe& state, Window& window) {
     (*anchor).tool_tip_text = "Main Menu";
     (*window.root()).add_child(anchor);
     window.perform_layout();
-    window.show_tool_tip(anchor, std::chrono::milliseconds(0));
+    window.show_tool_tip(anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     const HWND main_window = test_support::own_gui_forms_window(L"GUI.Forms runtime windows fixture");
     if (main_window == nullptr || !window.tool_tip_visible()) {
         state.tool_tip_windows = "no tooltip showed";
