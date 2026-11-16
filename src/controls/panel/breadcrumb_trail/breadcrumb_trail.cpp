@@ -120,7 +120,7 @@ void BreadcrumbTrail::set_segments(std::vector<BreadcrumbSegment> segments) {
     }
     const std::string retained_active = active_id_;
     segments_ = std::move(segments);
-    active_id_ = segment_index(retained_active) ? retained_active : std::string{};
+    active_id_ = segment_index(retained_active).present() ? retained_active : std::string{};
     rebuild_layout(committed_arranged_bounds().width,
                    committed_arranged_bounds().height);
     normalize_active();
@@ -128,16 +128,16 @@ void BreadcrumbTrail::set_segments(std::vector<BreadcrumbSegment> segments) {
                Dirty::semantics | Dirty::accessibility);
 }
 
-std::optional<std::size_t> BreadcrumbTrail::segment_index(
+stxlib::Optional<std::size_t> BreadcrumbTrail::segment_index(
     std::string_view stable_id) const noexcept {
     const std::size_t count = segments_.size();
     for (std::size_t index = 0U; index < count; ++index) {
         if (segments_[index].stable_id == stable_id) {
-            const std::optional<std::size_t> result(index);
+            const stxlib::Optional<std::size_t> result = stxlib::Optional<std::size_t>::of(index);
             return result;
         }
     }
-    return {};
+    return stxlib::Optional<std::size_t>::none();
 }
 
 void BreadcrumbTrail::begin_edit(std::string text, bool select_all) {
@@ -324,7 +324,7 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
     for (std::size_t index = 0; index < visible_items_.size(); ++index) {
         const VisibleItem& item = visible_items_[index];
         const bool active = focused_ && visible_stable_id(item) == active_id_;
-        const bool hovered = hovered_visible_ == index;
+        const bool hovered = holds(hovered_visible_, index);
         AnatomyStateSet item_states = states;
         if (hovered || active) item_states.insert(AnatomyState::hot);
         ControlVisualRole family = ControlVisualRole::command_button;
@@ -439,8 +439,8 @@ void BreadcrumbTrail::paint_raised(Painter& painter) {
         // segment's x would be.
         const double shoulder = bounds.x + bounds.width - tip;
         AnatomyStateSet item_states = states;
-        if (hovered_visible_ == index || active) item_states.insert(AnatomyState::hot);
-        if (pressed_visible_ == index) item_states.insert(AnatomyState::pressed);
+        if (holds(hovered_visible_, index) || active) item_states.insert(AnatomyState::hot);
+        if (holds(pressed_visible_, index)) item_states.insert(AnatomyState::pressed);
         if (current) item_states.insert(AnatomyState::selected);
         std::string_view text = terminal ? "./" : "…";
         if (item.kind == VisibleKind::segment) {
@@ -508,7 +508,7 @@ bool BreadcrumbTrail::raised_face_contains(Rect bounds, Point local) const noexc
     return inside;
 }
 
-std::optional<std::size_t> BreadcrumbTrail::visible_index_at(
+stxlib::Optional<std::size_t> BreadcrumbTrail::visible_index_at(
     Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
     const Point local{absolute.x - bounds.x, absolute.y - bounds.y};
@@ -524,10 +524,16 @@ std::optional<std::size_t> BreadcrumbTrail::visible_index_at(
                 if (raised_face_contains(previous, local)) continue;
             }
         }
-        const std::optional<std::size_t> result(index - 1U);
+        const stxlib::Optional<std::size_t> result = stxlib::Optional<std::size_t>::of(index - 1U);
         return result;
     }
-    return {};
+    return stxlib::Optional<std::size_t>::none();
+}
+
+bool BreadcrumbTrail::holds(const stxlib::Optional<std::size_t>& held, std::size_t index) noexcept {
+    const std::size_t* const current = held.value();
+    const bool result = current != nullptr && *current == index;
+    return result;
 }
 
 void BreadcrumbTrail::activate_visible(std::size_t index) {
@@ -547,7 +553,7 @@ void BreadcrumbTrail::activate_visible(std::size_t index) {
 
 void BreadcrumbTrail::on_mouse_move(MouseEventArgs& arguments) {
     if (eligible_for_input() && !editing.read()) {
-        const std::optional<std::size_t> hovered = visible_index_at(arguments.window_position);
+        const stxlib::Optional<std::size_t> hovered = visible_index_at(arguments.window_position);
         if (hovered != hovered_visible_) {
             hovered_visible_ = hovered;
             invalidate(Dirty::paint);
@@ -568,16 +574,17 @@ void BreadcrumbTrail::on_mouse_down(MouseEventArgs& arguments) {
     if (eligible_for_input() && !editing.read() && arguments.button == PointerButton::primary) {
         if (window()) static_cast<void>((*window()).request_focus(shared_from_this()));
         pressed_visible_ = visible_index_at(arguments.window_position);
-        arguments.handled = pressed_visible_.has_value();
+        arguments.handled = pressed_visible_.present();
     }
     Control::on_mouse_down(arguments);
 }
 
 void BreadcrumbTrail::on_mouse_up(MouseEventArgs& arguments) {
     if (eligible_for_input() && !editing.read() && arguments.button == PointerButton::primary) {
-        const std::optional<std::size_t> released = visible_index_at(arguments.window_position);
-        if (released && released == pressed_visible_) activate_visible(*released);
-        arguments.handled = released.has_value();
+        const stxlib::Optional<std::size_t> found = visible_index_at(arguments.window_position);
+        const std::size_t* const released = found.value();
+        if (released != nullptr && found == pressed_visible_) activate_visible(*released);
+        arguments.handled = released != nullptr;
         pressed_visible_.reset();
     }
     Control::on_mouse_up(arguments);
@@ -831,7 +838,7 @@ void BreadcrumbTrail::publish_realized_item_geometry(std::size_t item,
 AnatomyStateSet BreadcrumbTrail::realized_item_anatomy_states(std::size_t item) const {
     AnatomyStateSet states;
     const VisibleItem& visible = visible_items_[item];
-    if (hovered_visible_ == item) {
+    if (holds(hovered_visible_, item)) {
         states.insert(AnatomyState::hot);
     }
     if (visible_stable_id(visible) == active_id_) {
@@ -916,7 +923,7 @@ std::string BreadcrumbTrail::read_view(const decltype(active_id)&) const {
 void BreadcrumbTrail::write_view(const decltype(active_id)&, std::string incoming) {
     require_mutable();
     if (!incoming.empty() && incoming != overflow_stable_id_ &&
-        incoming != edit_stable_id_ && !segment_index(incoming)) {
+        incoming != edit_stable_id_ && segment_index(incoming).absent()) {
         throw std::out_of_range("BreadcrumbTrail active ID is not in its model");
     }
     if (active_id_ == incoming) return;
