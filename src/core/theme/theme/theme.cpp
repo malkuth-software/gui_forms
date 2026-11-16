@@ -1,4 +1,5 @@
 #include "gui_forms/theme.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
@@ -303,10 +304,10 @@ std::pair<Point, Point> resolve_css_linear_gradient(
     } else if (std::abs(angle - 270.0) < epsilon) {
         direction = {-1.0, 0.0};
     } else {
-        constexpr double degrees_to_radians =
-            3.14159265358979323846264338327950288 / 180.0;
-        const double radians = angle * degrees_to_radians;
-        direction = {std::sin(radians), -std::cos(radians)};
+        // The engine's deterministic sine and cosine (the same bits on
+        // every host).
+        const EngineSineCosine turn = engine_sine_cosine_degrees(angle);
+        direction = {turn.sine, -turn.cosine};
     }
     const Point center{bounds.x + bounds.width * 0.5,
                        bounds.y + bounds.height * 0.5};

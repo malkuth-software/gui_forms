@@ -202,6 +202,20 @@ void test_degrees_and_tangent() {
     }
 }
 
+// The hypotenuse: exact for Pythagorean triples, near the host elsewhere.
+void test_hypotenuse() {
+    require(engine_hypotenuse(3.0, 4.0) == 5.0 && engine_hypotenuse(-5.0, 12.0) == 13.0 &&
+                engine_hypotenuse(0.0, -7.5) == 7.5 && engine_hypotenuse(0.0, 0.0) == 0.0,
+            "Pythagorean triples and axes are exact");
+    for (int step = 1; step <= 2000; ++step) {
+        const double x = static_cast<double>(step) * 0.731 - 600.0;
+        const double y = static_cast<double>(step % 37) * 19.3 - 300.0;
+        require(relative_error(engine_hypotenuse(x, y), std::hypot(x, y)) <= 4.5e-16,
+                "the hypotenuse within two roundings of the host");
+    }
+    require(std::isnan(engine_hypotenuse(std::numeric_limits<double>::quiet_NaN(), 1.0)), "NaN gives NaN");
+}
+
 // The bits of fixed tables, the same on every host. The expected values were
 // produced on Windows x64 and are checked by every CI platform.
 constexpr std::uint64_t expected_table_hash = 0xa2d6d4ebca4d01adULL;
@@ -249,6 +263,7 @@ int main() {
     test_sine_cosine();
     test_arctangent();
     test_degrees_and_tangent();
+    test_hypotenuse();
     test_identity();
     std::cout << "engine math tests passed\n";
     return 0;

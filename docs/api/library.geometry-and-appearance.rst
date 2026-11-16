@@ -9634,6 +9634,10 @@ Functions, constants and aliases
 
    The tangent of ``x`` radians, as engine_sine_cosine's sine over its cosine (the theme language's arc handles, 4/3 tan(piece/4) with |piece/4| at most π/8). For |x| ≤ π/4 the cosine is at least 0.7071, so the absolute error is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives 0. Outside engine_sine_cosine's range, infinities and NaN give NaN.
 
+.. cpp:function:: double engine_hypotenuse(double x, double y) noexcept
+
+   The length of (x, y), as sqrt(x² + y²): each square, the sum and the root round once, so the result has the same bits on every host, where the host's hypot need not. Relative error at most 2^-52 (about one unit in the last place). No scaling: the squares overflow for magnitudes above about 1e154 and lose precision below about 1e-154, far outside the coordinates and colours this serves. NaN in either gives NaN.
+
 .. cpp:namespace:: gui_forms::engine_light
 
 ``#include <gui_forms/engine/light_planes/light_planes.hpp>``

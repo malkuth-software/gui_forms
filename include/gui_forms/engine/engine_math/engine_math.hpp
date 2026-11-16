@@ -22,7 +22,8 @@ namespace gui_forms {
 // - engine_arctangent2: absolute error at most 2^-48;
 // - engine_sine_cosine_degrees: absolute error at most 2^-49, and exact at
 //   every multiple of 90 degrees;
-// - engine_tangent: absolute error at most 2^-48 for |x| ≤ π/4.
+// - engine_tangent: absolute error at most 2^-48 for |x| ≤ π/4;
+// - engine_hypotenuse: relative error at most 2^-52 (two roundings).
 // The tests check them against the host library with a margin.
 
 // Natural logarithm of `x`. Requires x > 0 and finite; returns NaN for
@@ -81,5 +82,13 @@ struct GUI_FORMS_API EngineSineCosine final {
 // is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives
 // 0. Outside engine_sine_cosine's range, infinities and NaN give NaN.
 [[nodiscard]] GUI_FORMS_API double engine_tangent(double x) noexcept;
+
+// The length of (x, y), as sqrt(x² + y²): each square, the sum and the
+// root round once, so the result has the same bits on every host, where
+// the host's hypot need not. Relative error at most 2^-52 (about one unit
+// in the last place). No scaling: the squares overflow for magnitudes above
+// about 1e154 and lose precision below about 1e-154, far outside the
+// coordinates and colours this serves. NaN in either gives NaN.
+[[nodiscard]] GUI_FORMS_API double engine_hypotenuse(double x, double y) noexcept;
 
 } // namespace gui_forms

@@ -709,9 +709,10 @@ void paint_rotated_text(Painter& painter, const PartPaint& part, Color color) {
     const Point centre{part.bounds.x + part.bounds.width * 0.5, part.bounds.y + part.bounds.height * 0.5};
     const double offset_x = part.bounds.x + along - centre.x;
     const double offset_y = part.bounds.y + line_top + ascent - centre.y;
-    const double radians = part.text_angle * (3.14159265358979323846 / 180.0);
-    const double cosine = std::cos(radians);
-    const double sine = std::sin(radians);
+    // The engine's deterministic sine and cosine, exact at quarter turns.
+    const EngineSineCosine turn = engine_sine_cosine_degrees(part.text_angle);
+    const double cosine = turn.cosine;
+    const double sine = turn.sine;
     const Point origin{centre.x + offset_x * cosine + offset_y * sine, centre.y - offset_x * sine + offset_y * cosine};
     // The turned bounds' corners, as a box whose baseline is the bounds' top
     // edge: its advance the width, reaching the height below.

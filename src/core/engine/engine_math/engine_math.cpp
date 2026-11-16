@@ -299,4 +299,11 @@ double engine_tangent(double x) noexcept {
     return tangent;
 }
 
+double engine_hypotenuse(double x, double y) noexcept {
+    const double across = x * x;
+    const double down = y * y;
+    const double length = std::sqrt(across + down);
+    return length;
+}
+
 } // namespace gui_forms

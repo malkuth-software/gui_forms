@@ -4532,6 +4532,8 @@ __ZN9gui_forms17effect_name_validB*
 __ZN9gui_forms17effect_name_validE*
 __ZN9gui_forms17encode_hosted_keyB*
 __ZN9gui_forms17encode_hosted_keyE*
+__ZN9gui_forms17engine_hypotenuseB*
+__ZN9gui_forms17engine_hypotenuseE*
 __ZN9gui_forms17engine_input_nameB*
 __ZN9gui_forms17engine_input_nameE*
 __ZN9gui_forms17familiar_theme_idB*
