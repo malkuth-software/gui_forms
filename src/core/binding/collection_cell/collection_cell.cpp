@@ -70,9 +70,9 @@ void CollectionDirty::reserve(std::size_t length) {
 void CollectionDirty::record(const CollectionEdit& edit) noexcept {
     if (edit.kind() == CollectionEditKind::replace) {
         const std::size_t position = edit.index();
-        if (structural_from_ && position >= *structural_from_) return;
+        if (structural_from_.present() && position >= *structural_from_.value()) return;
         if (position >= bit_reach) {
-            structural_from_ = position;
+            structural_from_.set(position);
             return;
         }
         replaced_.set(static_cast<std::uint32_t>(position));
@@ -81,16 +81,16 @@ void CollectionDirty::record(const CollectionEdit& edit) noexcept {
     // An assignment moves everything; an insertion or erasure everything
     // from its index.
     const std::size_t from = edit.kind() == CollectionEditKind::assign ? 0U : edit.index();
-    if (!structural_from_ || from < *structural_from_) structural_from_ = from;
+    if (structural_from_.absent() || from < *structural_from_.value()) structural_from_.set(from);
     if (from == 0U) replaced_.clear();
 }
 
 bool CollectionDirty::any() const noexcept {
-    const bool pending = structural_from_.has_value() || replaced_.any();
+    const bool pending = structural_from_.present() || replaced_.any();
     return pending;
 }
 
-std::optional<std::size_t> CollectionDirty::take(std::vector<std::uint32_t>& replaced) {
+stxlib::Optional<std::size_t> CollectionDirty::take(std::vector<std::uint32_t>& replaced) {
     const std::size_t first_appended = replaced.size();
     try {
         static_cast<void>(replaced_.take(replaced));
@@ -98,16 +98,16 @@ std::optional<std::size_t> CollectionDirty::take(std::vector<std::uint32_t>& rep
         // Some bits were taken and lost with the failed append: the next
         // take repaints everything.
         replaced_.clear();
-        structural_from_ = 0U;
+        structural_from_.set(0U);
         throw;
     }
-    const std::optional<std::size_t> structural_from = structural_from_;
+    const stxlib::Optional<std::size_t> structural_from = structural_from_;
     structural_from_.reset();
-    if (structural_from) {
+    if (structural_from.present()) {
         const std::vector<std::uint32_t>::iterator appended =
             replaced.begin() + static_cast<std::vector<std::uint32_t>::difference_type>(first_appended);
         const std::vector<std::uint32_t>::iterator past =
-            std::find_if(appended, replaced.end(), AtOrPastWatermark{*structural_from});
+            std::find_if(appended, replaced.end(), AtOrPastWatermark{*structural_from.value()});
         replaced.erase(past, replaced.end());
     }
     return structural_from;

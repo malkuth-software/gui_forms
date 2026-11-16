@@ -6,10 +6,11 @@
 
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
-#include <optional>
 #include <span>
 #include <stdexcept>
 #include <type_traits>
@@ -86,16 +87,16 @@ public:
     [[nodiscard]] bool any() const noexcept;
     // Appends the replaced positions below the watermark to `replaced`, in
     // increasing order (the caller's storage, reused; not emptied first),
-    // clears the record and returns the watermark, or nullopt when no
+    // clears the record and returns the watermark, or none when no
     // structural edit is pending. If appending fails, the record becomes
     // "everything dirty" (watermark 0) for the next take, and the failure
     // propagates.
-    [[nodiscard]] std::optional<std::size_t> take(std::vector<std::uint32_t>& replaced);
+    [[nodiscard]] stxlib::Optional<std::size_t> take(std::vector<std::uint32_t>& replaced);
     void clear() noexcept;
 
 private:
     detail::DirtyBitset replaced_{};
-    std::optional<std::size_t> structural_from_{};
+    stxlib::Optional<std::size_t> structural_from_{};
 };
 
 // A collection property's only storage, as the single member of its
@@ -325,8 +326,8 @@ private:
     }
 
     // The pending damage, for the capability's take_dirty only.
-    [[nodiscard]] std::optional<std::size_t> take_dirty(std::vector<std::uint32_t>& replaced) {
-        const std::optional<std::size_t> structural_from = dirty_.take(replaced);
+    [[nodiscard]] stxlib::Optional<std::size_t> take_dirty(std::vector<std::uint32_t>& replaced) {
+        const stxlib::Optional<std::size_t> structural_from = dirty_.take(replaced);
         return structural_from;
     }
 

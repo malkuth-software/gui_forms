@@ -315,13 +315,13 @@ void ListBox::arrange(Rect final_bounds) {
 // repainted when shown and above the structural watermark.
 void ListBox::settle_items_damage(bool window_moved) {
     settled_rows_.clear();
-    const std::optional<std::size_t> structural_from =
+    const stxlib::Optional<std::size_t> structural_from =
         TextItemsCapability<ListBox>::take_dirty(*this, settled_rows_);
     if (window_moved) {
         invalidate(Dirty::paint);
         return;
     }
-    if (!structural_from && settled_rows_.empty()) return;
+    if (structural_from.absent() && settled_rows_.empty()) return;
     const Rect bounds = local_bounds();
     if (bounds.empty()) return;
     const double row_height = item_height.read() * effective_text_scale();
@@ -329,8 +329,8 @@ void ListBox::settle_items_damage(bool window_moved) {
     const double content_bottom = std::max(well_inset, bounds.height - well_inset);
     const std::size_t window_end = top_index_ + visible_row_count() + 1U;
     std::size_t replaced_end = window_end;
-    if (structural_from && *structural_from < window_end) {
-        const std::size_t first = std::max(*structural_from, top_index_);
+    if (structural_from.present() && *structural_from.value() < window_end) {
+        const std::size_t first = std::max(*structural_from.value(), top_index_);
         const double top = well_inset + static_cast<double>(first - top_index_) * row_height;
         if (top < content_bottom) invalidate(Rect{well_inset, top, row_width, content_bottom - top});
         replaced_end = first;

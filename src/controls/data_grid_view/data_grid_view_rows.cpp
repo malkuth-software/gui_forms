@@ -210,8 +210,8 @@ void DataGridView::written(const decltype(rows)&, const CollectionEdit& edit) {
 // when shown and above the watermark.
 void DataGridView::settle_rows_damage(bool whole, const GridLayout& layout) {
     settled_rows_.clear();
-    const std::optional<std::size_t> structural_from = take_dirty(*this, settled_rows_);
-    if (!structural_from && settled_rows_.empty()) return;
+    const stxlib::Optional<std::size_t> structural_from = take_dirty(*this, settled_rows_);
+    if (structural_from.absent() && settled_rows_.empty()) return;
     // Frozen rows or columns split the data area into panes whose rows
     // and columns move apart: the whole grid repaints.
     if (whole || has_frozen_panes()) {
@@ -224,8 +224,8 @@ void DataGridView::settle_rows_damage(bool whole, const GridLayout& layout) {
     if (right <= left || bottom <= layout.data.y) return;
     const std::size_t window_end = visible_row_end(layout);
     std::size_t replaced_end = window_end;
-    if (structural_from && *structural_from < window_end) {
-        const std::size_t first = std::max(*structural_from, first_row_);
+    if (structural_from.present() && *structural_from.value() < window_end) {
+        const std::size_t first = std::max(*structural_from.value(), first_row_);
         const double top = layout.data.y + row_offset(first, layout);
         if (top < bottom) invalidate(Rect{left, top, right - left, bottom - top});
         replaced_end = first;

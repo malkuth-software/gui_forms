@@ -1970,7 +1970,7 @@ Related types
 
    .. rubric:: Extension points
 
-   .. cpp:function:: static std::optional<std::size_t> take_dirty(TextItemsCapability& capability, std::vector<std::uint32_t>& replaced)
+   .. cpp:function:: static stxlib::Optional<std::size_t> take_dirty(TextItemsCapability& capability, std::vector<std::uint32_t>& replaced)
 
       *Protected.*
 

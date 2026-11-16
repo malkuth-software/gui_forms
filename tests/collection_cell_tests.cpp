@@ -74,14 +74,14 @@ void test_edit_remap() {
 void test_dirty_coalescing() {
     CollectionDirty dirty;
     std::vector<std::uint32_t> rows;
-    require(!dirty.any() && !dirty.take(rows) && rows.empty(), "a new record is clean");
+    require(!dirty.any() && dirty.take(rows).absent() && rows.empty(), "a new record is clean");
     dirty.reserve(100U);
     dirty.record(CollectionEdit::replaced(70U));
     dirty.record(CollectionEdit::replaced(3U));
     dirty.record(CollectionEdit::replaced(40U));
     require(dirty.any(), "a replacement makes the record dirty");
-    std::optional<std::size_t> watermark = dirty.take(rows);
-    require(!watermark && rows == std::vector<std::uint32_t>{3U, 40U, 70U} && !dirty.any(),
+    stxlib::Optional<std::size_t> watermark = dirty.take(rows);
+    require(watermark.absent() && rows == std::vector<std::uint32_t>{3U, 40U, 70U} && !dirty.any(),
             "replacements are taken in increasing order and cleared");
 
     rows.clear();
@@ -91,14 +91,14 @@ void test_dirty_coalescing() {
     dirty.record(CollectionEdit::inserted(30U, 4U));
     dirty.record(CollectionEdit::replaced(60U));
     watermark = dirty.take(rows);
-    require(watermark == std::optional<std::size_t>{20U} && rows == std::vector<std::uint32_t>{3U},
+    require(watermark == stxlib::Optional<std::size_t>::of(20U) && rows == std::vector<std::uint32_t>{3U},
             "the lowest structural index wins and covers the later replacements");
 
     rows.assign(1U, 99U);
     dirty.record(CollectionEdit::replaced(3U));
     dirty.record(CollectionEdit::assigned(5U));
     watermark = dirty.take(rows);
-    require(watermark == std::optional<std::size_t>{0U} && rows == std::vector<std::uint32_t>{99U},
+    require(watermark == stxlib::Optional<std::size_t>::of(0U) && rows == std::vector<std::uint32_t>{99U},
             "an assignment makes everything dirty and keeps the caller's storage");
 }
 
