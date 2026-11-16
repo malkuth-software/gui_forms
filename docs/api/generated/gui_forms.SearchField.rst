@@ -225,6 +225,12 @@ gui_forms::SearchField
 
       *Protected.*
 
+   .. cpp:function:: void on_mouse_capture_changed() override
+
+      *Protected.*
+
+      A press on the clear mark whose capture is taken away is forgotten, so a later release over the mark does not clear the field.
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*

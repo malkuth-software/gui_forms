@@ -993,6 +993,19 @@ void test_search_field_in_window() {
     release.handled = false;
     gui_forms::detail::ControlInputAccess::on_pointer(*field, release);
     require(release.handled && (*field).text.read().empty(), "releasing over the clear mark clears the field");
+
+    // A press on the clear mark whose capture is taken away is forgotten
+    // (A-gf-controls-13-F3).
+    (*field).text = std::string{"x"};
+    window.perform_layout();
+    PointerEvent second_press = press;
+    second_press.handled = false;
+    gui_forms::detail::ControlInputAccess::on_pointer(*field, second_press);
+    (*field).set_pointer_capture(false);
+    PointerEvent late_release = release;
+    late_release.handled = false;
+    gui_forms::detail::ControlInputAccess::on_pointer(*field, late_release);
+    require((*field).text.read() == "x", "a release after the press lost its capture does not clear the field");
 }
 
 // Draws nothing: on_paint runs for its effects on the motion clock.

@@ -674,6 +674,15 @@ void test_built_in_thumb_snaps_to_device_pixels() {
                 near((*f.panel).scroll_position().y, 333.0),
             "a press just inside the painted thumb must take the thumb, not the track");
     static_cast<void>(f.window.dispatch_pointer(pointer_at(PointerAction::up, {92.0, thumb.y + 0.2})));
+
+    // A thumb drag whose capture is taken away ends: a later plain move
+    // does not scroll (A-gf-controls-13-F3).
+    require(f.window.dispatch_pointer(press), "the thumb takes a second press");
+    (*f.panel).set_pointer_capture(false);
+    static_cast<void>(f.window.dispatch_pointer(pointer_at(PointerAction::move, {92.0, thumb.y + 40.0})));
+    require(near((*f.panel).scroll_position().y, 333.0) &&
+                !(*f.panel).parts().scrollable.vertical_thumb.states.contains(AnatomyState::captured),
+            "after its capture is lost a move leaves the scroll position");
 }
 
 // Bars shorter than two arrows and a thumb: the arrows share the bar, the
