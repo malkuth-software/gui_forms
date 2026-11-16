@@ -1031,7 +1031,7 @@ gf_status content_editor_submit_layout_body(gf_object editor, const gf_content_t
             transform.yy = given.yy;
             transform.dx = given.dx;
             transform.dy = given.dy;
-            made.transform = transform;
+            made.transform.set(transform);
         }
     }
     made.lines.reserve(lines.size());

@@ -48,11 +48,11 @@ void test_retained_layout_panels(gui_forms::Window& window) {
                 (*table).column_span[*span_note].read() == 2U &&
                 (*table).column_span[*auto_placed].read() == 1U &&
                 (*table).cell_position(*span_note) ==
-                    std::optional<TableLayoutCellPosition>({0U, 2U}) &&
+                    stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{0U, 2U}) &&
                 (*table).cell_position(*auto_placed) ==
-                    std::optional<TableLayoutCellPosition>({2U, 2U}) &&
+                    stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{2U, 2U}) &&
                 (*table).cell_position(*table_progress) ==
-                    std::optional<TableLayoutCellPosition>({3U, 2U}) &&
+                    stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{3U, 2U}) &&
                 (*table).control_from_position(2U, 2U) == auto_placed &&
                 (*header).arranged_bounds().width > (*span_note).arranged_bounds().width,
             "table page must retain explicit spans beside automatic placement");

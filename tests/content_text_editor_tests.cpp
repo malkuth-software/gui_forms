@@ -816,7 +816,7 @@ void transformed_layout_boxes() {
     turn.dx = 100.0;
     turn.dy = 0.0;
     ContentTextLayout turned = plain;
-    turned.transform = turn;
+    turned.transform.set(turn);
     require(editor.submit_layout(turned) == ContentLayoutResult::accepted, "a turned layout is accepted");
     const std::optional<ContentQuad> quad = editor.caret_quad();
     require(quad && *quad == map_content_box(turn, *plain_caret), "the caret's quad is the mapped bar");
@@ -840,13 +840,13 @@ void transformed_layout_boxes() {
     flattening.xy = 2.0;
     flattening.yx = 0.5;
     flattening.yy = 1.0;
-    flat.transform = flattening;
+    flat.transform.set(flattening);
     require(editor.submit_layout(flat) == ContentLayoutResult::refused_geometry,
             "a transform with a zero determinant is refused");
     ContentTextLayout broken = plain;
     ContentLayoutTransform not_finite{};
     not_finite.dx = std::numeric_limits<double>::infinity();
-    broken.transform = not_finite;
+    broken.transform.set(not_finite);
     require(editor.submit_layout(broken) == ContentLayoutResult::refused_geometry,
             "a transform that is not finite is refused");
     require(editor.position_at(turn.map(inside_b)).value() == 2U, "a refused layout leaves the turned one in force");

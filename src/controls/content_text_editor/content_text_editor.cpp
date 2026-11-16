@@ -352,23 +352,24 @@ std::vector<Rect> ContentTextEditor::range_boxes(Utf8Offset start, Utf8Offset en
 }
 
 ContentQuad ContentTextEditor::local_quad(Rect box) const {
-    const ContentLayoutTransform transform = layout_.transform ? *layout_.transform : ContentLayoutTransform{};
+    const ContentLayoutTransform transform = layout_.transform.value_or(ContentLayoutTransform{});
     const ContentQuad quad = map_content_box(transform, box);
     return quad;
 }
 
 Rect ContentTextEditor::local_bounds(Rect box) const {
     // Without a transform the box is local already, exactly as given.
-    if (!layout_.transform) return box;
+    if (layout_.transform.absent()) return box;
     const Rect bounds = local_quad(box).bounds();
     return bounds;
 }
 
 Point ContentTextEditor::layout_point(Point local) const {
-    if (!layout_.transform) return local;
+    const ContentLayoutTransform* const mapping = layout_.transform.value();
+    if (mapping == nullptr) return local;
     // The inverse of a validated transform: its determinant is finite and
     // not zero (validate_content_text_layout).
-    const ContentLayoutTransform& transform = *layout_.transform;
+    const ContentLayoutTransform& transform = *mapping;
     const double determinant = transform.determinant();
     const double x = local.x - transform.dx;
     const double y = local.y - transform.dy;
@@ -379,7 +380,8 @@ Point ContentTextEditor::layout_point(Point local) const {
 }
 
 bool ContentTextEditor::paints_selection() const noexcept {
-    const bool turned = layout_.transform && !(*layout_.transform).axis_aligned();
+    const ContentLayoutTransform* const mapping = layout_.transform.value();
+    const bool turned = mapping != nullptr && !(*mapping).axis_aligned();
     const bool result = draws_selection_ && !turned;
     return result;
 }

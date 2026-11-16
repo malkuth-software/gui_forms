@@ -1314,8 +1314,8 @@ bool DockSite::pin_shown(const StackSlot& slot) const {
     if (workspace_ == nullptr || slot.kind != DockNodeKind::tool_stack) return false;
     const std::optional<DockPanelId> panel = selected_panel(slot);
     if (!panel) return false;
-    const std::optional<DockNodeId> owner = (*workspace_).layout().pin_owner(*panel);
-    const bool shown = owner.has_value() && *owner == slot.stack;
+    const stxlib::Optional<DockNodeId> owner = (*workspace_).layout().pin_owner(*panel);
+    const bool shown = owner.present() && *owner.value() == slot.stack;
     return shown;
 }
 
@@ -2061,8 +2061,8 @@ bool DockSite::position_command_enabled(const DockPanelId& panel, DockPositionCo
     case DockPositionCommand::auto_hide: {
         // A root-level tool stack (DK decision 28) that the layout lets go to
         // auto-hide.
-        const std::optional<DockNodeId> owner = layout.pin_owner(panel);
-        if (auto_hidden || !tool || !owner || !(*owner == location.stack)) return false;
+        const stxlib::Optional<DockNodeId> owner = layout.pin_owner(panel);
+        if (auto_hidden || !tool || owner.absent() || !(*owner.value() == location.stack)) return false;
         DockTransaction transaction{};
         transaction.origin = DockEditOrigin::user;
         transaction.edits.push_back(DockEdit::auto_hide(DockSubject::of_stack(location.stack), DockSide::left));

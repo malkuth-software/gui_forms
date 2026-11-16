@@ -6,6 +6,8 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -203,7 +205,7 @@ public:
     // The root-level item whose pin governs a panel (DK decision 28): the
     // panel's stack when it is a tool stack of the main site outside the
     // document area, or auto-hidden; none otherwise.
-    [[nodiscard]] std::optional<DockNodeId> pin_owner(const DockPanelId& panel) const;
+    [[nodiscard]] stxlib::Optional<DockNodeId> pin_owner(const DockPanelId& panel) const;
     // Fills out (cleared first) with every item that carries a pin: the main
     // site's tool stacks in tree order, then the auto-hidden stacks.
     void collect_pinnable_items(std::vector<DockNodeId>& out) const;

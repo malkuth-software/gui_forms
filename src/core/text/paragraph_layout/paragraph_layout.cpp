@@ -1,6 +1,7 @@
 #include "gui_forms/text/paragraph_layout/paragraph_layout.hpp"
 
 #include "gui_forms/types/painter/painter.hpp"
+#include "../../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -649,13 +650,15 @@ const ParagraphStorageRequirement* ParagraphLayoutResult::required_storage() con
     return std::get_if<ParagraphStorageRequirement>(&state_);
 }
 
-std::optional<ParagraphRequestError> ParagraphLayoutResult::error() const noexcept {
+stxlib::Optional<ParagraphRequestError> ParagraphLayoutResult::error() const noexcept {
     const ParagraphRequestError* const refused_error = std::get_if<ParagraphRequestError>(&state_);
-    if (refused_error == nullptr) return std::nullopt;
-    return *refused_error;
+    if (refused_error == nullptr) return stxlib::Optional<ParagraphRequestError>::none();
+    const stxlib::Optional<ParagraphRequestError> result = stxlib::Optional<ParagraphRequestError>::of(*refused_error);
+    return result;
 }
 
-LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, std::optional<double> line_height) {
+LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font,
+                                  const stxlib::Optional<double> line_height) {
     // The primary face's metrics do not depend on the text, so a space
     // resolves them (TextBlock::line_metrics).
     ResolvedTextLayout primary{};
@@ -664,7 +667,8 @@ LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, 
     } else {
         primary = estimate_text_layout_utf8(" ", font);
     }
-    const LineBoxMetrics metrics = line_box_metrics(primary, line_height);
+    const std::optional<double> standard_line_height = platform::standard_optional(line_height);
+    const LineBoxMetrics metrics = line_box_metrics(primary, standard_line_height);
     return metrics;
 }
 

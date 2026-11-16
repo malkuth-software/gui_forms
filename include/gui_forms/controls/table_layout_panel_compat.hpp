@@ -7,10 +7,11 @@
 #include "gui_forms/layout/grid_span/grid_span.hpp"
 #include "gui_forms/controls/table_layout_panel_compat_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <unordered_map>
 #include <utility>
@@ -157,7 +158,7 @@ public:
     // The cell a child occupies after layout: its explicit cell, or the one
     // automatic placement found; none when it overflowed or is not a live
     // direct child. Lays the panel out first when it is in a window.
-    [[nodiscard]] std::optional<TableLayoutCellPosition> cell_position(const Control& child) const;
+    [[nodiscard]] stxlib::Optional<TableLayoutCellPosition> cell_position(const Control& child) const;
     // Makes `child` automatic again (the cell's reset); refuses while it is
     // the only child anchored at a span, which must go back to 1 by 1 first.
     void clear_cell(const Control& child);
