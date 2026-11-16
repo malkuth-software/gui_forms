@@ -507,10 +507,11 @@ void TextBox::discard_auto_complete_list() noexcept {
 
 void TextBox::auto_complete_list_selection_changed(const ListSelectionChange& change) {
     detail::TextBoxAutoCompleteSession& session = auto_complete_session();
-    if (session.synchronizing || !change.active_index) return;
+    if (session.synchronizing || change.active_index.absent()) return;
     // A press on a row highlights it, as Up and Down do; the release accepts it.
-    if (*change.active_index >= session.suggestions.size()) return;
-    highlight_auto_complete(change.active_index);
+    const std::size_t active = *change.active_index.value();
+    if (active >= session.suggestions.size()) return;
+    highlight_auto_complete(active);
 }
 
 void TextBox::auto_complete_list_activated(std::size_t index) {

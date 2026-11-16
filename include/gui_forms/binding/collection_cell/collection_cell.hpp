@@ -51,12 +51,12 @@ public:
     [[nodiscard]] std::size_t count() const noexcept { return count_; }
     // Whether positions moved or the length changed: every kind but replace.
     [[nodiscard]] bool structural() const noexcept { return kind_ != CollectionEditKind::replace; }
-    // Where an element at position `before` is after the edit, or nullopt
+    // Where an element at position `before` is after the edit, or none
     // when the edit removed it. An assignment keeps the positions below its
     // new length (the elements there are new; the position is what a
     // selection without stable identities keeps); a replacement keeps every
     // position.
-    [[nodiscard]] std::optional<std::size_t> remap(std::size_t before) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> remap(std::size_t before) const noexcept;
 
 private:
     CollectionEdit(CollectionEditKind kind, std::size_t index, std::size_t count) noexcept

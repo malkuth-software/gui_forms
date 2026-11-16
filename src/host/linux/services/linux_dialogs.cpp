@@ -347,9 +347,10 @@ void PickColor::operator()(Color colour) const {
     (*(*state).status).text = "";
 }
 void SelectFile::operator()(const ListSelectionChange &change) const {
-  if (change.active_index && *change.active_index < (*state).entries.size())
+  if (change.active_index.present() &&
+      *change.active_index.value() < (*state).entries.size())
     (*(*state).name).text =
-        (*state).entries[*change.active_index].path.filename().string();
+        (*state).entries[*change.active_index.value()].path.filename().string();
 }
 void ChangeFilter::operator()(stxlib::Optional<std::size_t>) const {
   (*state).refresh((*state).directory);

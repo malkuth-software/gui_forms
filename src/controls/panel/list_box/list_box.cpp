@@ -15,6 +15,7 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -92,8 +93,8 @@ void ListBox::prepare_edit(const decltype(items)&, const CollectionEdit& edit,
     edit_selection_.clear();
     edit_selection_.reserve(selected_.size());
     for (const std::size_t selected : selected_) {
-        const std::optional<std::size_t> kept = edit.remap(selected);
-        if (kept) edit_selection_.push_back(*kept);
+        const stxlib::Optional<std::size_t> kept = edit.remap(selected);
+        if (kept.present()) edit_selection_.push_back(*kept.value());
     }
     on_items_changing(edit);
 }
@@ -125,9 +126,9 @@ void ListBox::written(const decltype(items)&, const CollectionEdit& edit) {
     }
     const bool selection_changed = edit_selection_ != selected_;
     if (selection_changed) std::swap(selected_, edit_selection_);
-    if (active_index_) active_index_ = edit.remap(*active_index_);
-    if (anchor_index_) anchor_index_ = edit.remap(*anchor_index_);
-    if (hovered_index_) hovered_index_ = edit.remap(*hovered_index_);
+    if (active_index_.present()) active_index_ = edit.remap(*active_index_.value());
+    if (anchor_index_.present()) anchor_index_ = edit.remap(*anchor_index_.value());
+    if (hovered_index_.present()) hovered_index_ = edit.remap(*hovered_index_.value());
     const std::size_t top_before = top_index_;
     top_index_ = count == 0U ? 0U : std::min(top_index_, count - 1U);
     on_items_changed(edit);
@@ -173,7 +174,7 @@ void ListBox::set_item_stable_ids(std::vector<std::string> stable_ids) {
 
 // The order is rebuilt on the first lookup after the identities change
 // (audit N46a): one sort per change, then logarithmic lookups.
-std::optional<std::size_t> ListBox::index_of_item_stable_id(std::string_view stable_id) {
+stxlib::Optional<std::size_t> ListBox::index_of_item_stable_id(std::string_view stable_id) {
     if (stable_id_order_.size() != item_stable_ids_.size()) {
         stable_id_order_.resize(item_stable_ids_.size());
         for (std::size_t index = 0U; index < stable_id_order_.size(); ++index) stable_id_order_[index] = index;
@@ -182,8 +183,8 @@ std::optional<std::size_t> ListBox::index_of_item_stable_id(std::string_view sta
     const std::vector<std::size_t>::const_iterator found =
         std::lower_bound(stable_id_order_.cbegin(), stable_id_order_.cend(), stable_id,
                          StableIdOrder{&item_stable_ids_});
-    if (found == stable_id_order_.cend() || item_stable_ids_[*found] != stable_id) return std::nullopt;
-    return *found;
+    if (found == stable_id_order_.cend() || item_stable_ids_[*found] != stable_id) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(*found);
 }
 
 std::string ListBox::item_stable_id(std::size_t index) const {
@@ -205,17 +206,17 @@ void ListBox::prepare_write(const decltype(selection_mode)&, ListSelectionMode&)
 void ListBox::written(const decltype(selection_mode)&) {
     if (selection_mode.read() == ListSelectionMode::one && selected_.size() > 1U) {
         const std::size_t retained = active_index_.value_or(selected_.front());
-        apply_selection({retained}, retained);
+        apply_selection({retained}, stxlib::Optional<std::size_t>::of(retained));
     }
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void ListBox::apply_selection(std::vector<std::size_t> selection,
-                              std::optional<std::size_t> active) {
+                              stxlib::Optional<std::size_t> active) {
     std::sort(selection.begin(), selection.end());
     selection.erase(std::unique(selection.begin(), selection.end()), selection.end());
     const std::vector<std::size_t> previous = selected_;
-    const std::optional<std::size_t> previous_active = active_index_;
+    const stxlib::Optional<std::size_t> previous_active = active_index_;
     selected_ = std::move(selection);
     active_index_ = active;
     if (previous == selected_ && previous_active == active_index_) return;
@@ -232,33 +233,34 @@ void ListBox::select_index(std::size_t index, bool extend, bool toggle) {
         throw std::out_of_range("ListBox selection index is outside the collection");
     }
     if (selection_mode.read() == ListSelectionMode::one) {
-        apply_selection({index}, index);
-        anchor_index_ = index;
-    } else if (extend && anchor_index_) {
+        apply_selection({index}, stxlib::Optional<std::size_t>::of(index));
+        anchor_index_.set(index);
+    } else if (extend && anchor_index_.present()) {
         std::vector<std::size_t> next;
-        const std::size_t first = std::min(*anchor_index_, index);
-        const std::size_t last = std::max(*anchor_index_, index);
+        const std::size_t anchor = *anchor_index_.value();
+        const std::size_t first = std::min(anchor, index);
+        const std::size_t last = std::max(anchor, index);
         next.reserve(last - first + 1U);
         for (std::size_t item = first; item <= last; ++item) next.push_back(item);
-        apply_selection(std::move(next), index);
+        apply_selection(std::move(next), stxlib::Optional<std::size_t>::of(index));
     } else if (toggle) {
         std::vector<std::size_t> next = selected_;
         const std::vector<std::size_t>::iterator found =
             std::find(next.begin(), next.end(), index);
         if (found == next.end()) next.push_back(index);
         else next.erase(found);
-        apply_selection(std::move(next), index);
-        anchor_index_ = index;
+        apply_selection(std::move(next), stxlib::Optional<std::size_t>::of(index));
+        anchor_index_.set(index);
     } else {
-        apply_selection({index}, index);
-        anchor_index_ = index;
+        apply_selection({index}, stxlib::Optional<std::size_t>::of(index));
+        anchor_index_.set(index);
     }
     ensure_visible(index);
 }
 
 void ListBox::clear_selection() {
     require_mutable();
-    apply_selection({}, {});
+    apply_selection({}, stxlib::Optional<std::size_t>::none());
     anchor_index_.reset();
 }
 
@@ -300,8 +302,8 @@ void ListBox::ensure_visible(std::size_t index) {
 void ListBox::arrange(Rect final_bounds) {
     const std::size_t top_before = top_index_;
     Panel::arrange(final_bounds);
-    if (active_index_) {
-        ensure_visible(*active_index_);
+    if (active_index_.present()) {
+        ensure_visible(*active_index_.value());
     }
     settle_items_damage(top_before != top_index_);
 }
@@ -354,16 +356,16 @@ void ListBox::invalidate_row(std::size_t index) {
     invalidate(Rect{well_inset, top, std::max(0.0, bounds.width - well_insets), row_height});
 }
 
-std::optional<std::size_t> ListBox::index_at(Point absolute) const noexcept {
+stxlib::Optional<std::size_t> ListBox::index_at(Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
-    if (!bounds.contains(absolute)) return {};
+    if (!bounds.contains(absolute)) return stxlib::Optional<std::size_t>::none();
     const double local_y = absolute.y - bounds.y - well_inset;
-    if (local_y < 0.0) return {};
+    if (local_y < 0.0) return stxlib::Optional<std::size_t>::none();
     const double row_height = item_height.read() * effective_text_scale();
     const std::size_t index = top_index_ +
         static_cast<std::size_t>(std::floor(local_y / row_height));
-    return index < items.read().size() ? std::optional<std::size_t>{index}
-                                 : std::optional<std::size_t>{};
+    return index < items.read().size() ? stxlib::Optional<std::size_t>::of(index)
+                                       : stxlib::Optional<std::size_t>::none();
 }
 
 // The well, each row's selection plate, its text and the active row's focus
@@ -394,7 +396,7 @@ void ListBox::on_paint(Painter& painter, Rect) {
         const double y = well_inset + static_cast<double>(index - top_index_) * row_height;
         const bool selected = detail::binary_search_contains(
             std::span<const std::size_t>(selected_), index);
-        const bool hovered = hovered_index_ == index;
+        const bool hovered = hovered_index_ == stxlib::Optional<std::size_t>::of(index);
         const Rect row{well_inset, y, std::max(0.0, bounds.width - well_insets), row_height};
         AnatomyStateSet row_states = states;
         if (hovered) row_states.insert(AnatomyState::hot);
@@ -430,7 +432,7 @@ void ListBox::on_paint(Painter& painter, Rect) {
         } else {
             paint_text_part_at(painter, *this, text, {left, baseline}, room);
         }
-        if (focused_ && active_index_ == index) {
+        if (focused_ && active_index_ == stxlib::Optional<std::size_t>::of(index)) {
             PartPaint ring;
             ring.family = ControlVisualRole::selection;
             ring.role = PartRole::focus;
@@ -483,13 +485,13 @@ void ListBox::on_mouse_leave() {
 void ListBox::list_pointer(MouseEventArgs& arguments) {
     if (!eligible_for_input()) return;
     if (arguments.action == PointerAction::move) {
-        const std::optional<std::size_t> next = index_at(arguments.window_position);
+        const stxlib::Optional<std::size_t> next = index_at(arguments.window_position);
         if (next != hovered_index_) {
             // Only the row left and the row entered repaint (audit C9).
-            const std::optional<std::size_t> previous = hovered_index_;
+            const stxlib::Optional<std::size_t> previous = hovered_index_;
             hovered_index_ = next;
-            if (previous) invalidate_row(*previous);
-            if (next) invalidate_row(*next);
+            if (previous.present()) invalidate_row(*previous.value());
+            if (next.present()) invalidate_row(*next.value());
         }
         return;
     }
@@ -506,16 +508,17 @@ void ListBox::list_pointer(MouseEventArgs& arguments) {
     }
     if (arguments.action == PointerAction::down && arguments.button == PointerButton::primary) {
         if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
-        if (const std::optional<std::size_t> index = index_at(arguments.window_position)) {
-            select_index(*index, includes(arguments.modifiers, Modifier::shift),
+        const stxlib::Optional<std::size_t> index = index_at(arguments.window_position);
+        if (index.present()) {
+            select_index(*index.value(), includes(arguments.modifiers, Modifier::shift),
                          command_modifier(arguments.modifiers));
             arguments.handled = true;
         }
     } else if (arguments.action == PointerAction::up &&
                arguments.button == PointerButton::primary) {
-        if (const std::optional<std::size_t> index = index_at(arguments.window_position);
-            index && active_index_ == index) {
-            item_activated_.emit(*index);
+        const stxlib::Optional<std::size_t> index = index_at(arguments.window_position);
+        if (index.present() && active_index_ == index) {
+            item_activated_.emit(*index.value());
             arguments.handled = true;
         }
     }
@@ -523,9 +526,9 @@ void ListBox::list_pointer(MouseEventArgs& arguments) {
 
 void ListBox::list_pointer_left() {
     if (!eligible_for_input()) return;
-    const std::optional<std::size_t> previous = hovered_index_;
+    const stxlib::Optional<std::size_t> previous = hovered_index_;
     hovered_index_.reset();
-    if (previous) invalidate_row(*previous);
+    if (previous.present()) invalidate_row(*previous.value());
 }
 
 void ListBox::on_key_down(KeyEventArgs& arguments) {
@@ -535,21 +538,21 @@ void ListBox::on_key_down(KeyEventArgs& arguments) {
 
 void ListBox::list_key_down(KeyEventArgs& arguments) {
     if (!focused_ || !enabled.read() || items.read().empty()) return;
-    if (arguments.physical_key == PhysicalKey::enter && active_index_) {
-        item_activated_.emit(*active_index_);
+    if (arguments.physical_key == PhysicalKey::enter && active_index_.present()) {
+        item_activated_.emit(*active_index_.value());
         arguments.handled = true;
         return;
     }
-    std::optional<std::size_t> next;
+    stxlib::Optional<std::size_t> next;
     const std::size_t current = active_index_.value_or(0U);
-    if (arguments.physical_key == PhysicalKey::up) next = current == 0U ? 0U : current - 1U;
-    else if (arguments.physical_key == PhysicalKey::down) next = std::min(current + 1U, items.read().size() - 1U);
-    else if (arguments.physical_key == PhysicalKey::home) next = 0U;
-    else if (arguments.physical_key == PhysicalKey::end) next = items.read().size() - 1U;
-    else if (arguments.physical_key == PhysicalKey::page_up) next = current > visible_row_count() ? current - visible_row_count() : 0U;
-    else if (arguments.physical_key == PhysicalKey::page_down) next = std::min(current + visible_row_count(), items.read().size() - 1U);
-    if (next) {
-        select_index(*next, includes(arguments.modifiers, Modifier::shift), false);
+    if (arguments.physical_key == PhysicalKey::up) next.set(current == 0U ? 0U : current - 1U);
+    else if (arguments.physical_key == PhysicalKey::down) next.set(std::min(current + 1U, items.read().size() - 1U));
+    else if (arguments.physical_key == PhysicalKey::home) next.set(0U);
+    else if (arguments.physical_key == PhysicalKey::end) next.set(items.read().size() - 1U);
+    else if (arguments.physical_key == PhysicalKey::page_up) next.set(current > visible_row_count() ? current - visible_row_count() : 0U);
+    else if (arguments.physical_key == PhysicalKey::page_down) next.set(std::min(current + visible_row_count(), items.read().size() - 1U));
+    if (next.present()) {
+        select_index(*next.value(), includes(arguments.modifiers, Modifier::shift), false);
         arguments.handled = true;
     }
 }
@@ -617,7 +620,7 @@ std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
                 std::span<const std::size_t>(selected_), index)) {
             node.states |= SemanticState::selected;
         }
-        if (focused_ && active_index_ == index) node.states |= SemanticState::focused;
+        if (focused_ && active_index_ == stxlib::Optional<std::size_t>::of(index)) node.states |= SemanticState::focused;
         node.actions = {SemanticAction::focus, SemanticAction::select,
                         SemanticAction::press};
         nodes.push_back(std::move(node));
@@ -630,9 +633,9 @@ bool ListBox::on_semantic_child_action(std::string_view child_stable_id,
                                        std::string_view) {
     std::size_t index{};
     if (!item_stable_ids_.empty()) {
-        const std::optional<std::size_t> found = index_of_item_stable_id(child_stable_id);
-        if (!found) return false;
-        index = *found;
+        const stxlib::Optional<std::size_t> found = index_of_item_stable_id(child_stable_id);
+        if (found.absent()) return false;
+        index = *found.value();
     } else {
         const std::string prefix = std::string(stable_id().value()) + ".item.";
         if (!child_stable_id.starts_with(prefix)) return false;
@@ -777,10 +780,10 @@ AnatomyStateSet ListBox::list_item_states(std::size_t index) const {
     if (detail::binary_search_contains(std::span<const std::size_t>(selected_), index)) {
         states.insert(AnatomyState::selected);
     }
-    if (hovered_index_ == index) {
+    if (hovered_index_ == stxlib::Optional<std::size_t>::of(index)) {
         states.insert(AnatomyState::hot);
     }
-    if (active_index_ == index) {
+    if (active_index_ == stxlib::Optional<std::size_t>::of(index)) {
         states.insert(AnatomyState::current);
     }
     return states;

@@ -952,9 +952,9 @@ Types
 
       The element at :cpp:func:`index <gui_forms::CollectionEdit::index>` replaced by another value.
 
-   .. cpp:function:: std::optional<std::size_t> remap(std::size_t before) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> remap(std::size_t before) const noexcept
 
-      Where an element at position ``before`` is after the edit, or nullopt when the edit removed it. An assignment keeps the positions below its new length (the elements there are new; the position is what a selection without stable identities keeps); a replacement keeps every position.
+      Where an element at position ``before`` is after the edit, or none when the edit removed it. An assignment keeps the positions below its new length (the elements there are new; the position is what a selection without stable identities keeps); a replacement keeps every position.
 
 .. cpp:namespace:: gui_forms
 

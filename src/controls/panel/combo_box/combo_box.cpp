@@ -9,7 +9,6 @@
 #include "gui_forms/detail/weak_member_callback.hpp"
 #include "gui_forms/text.hpp"
 #include "../panel_anatomy.hpp"
-#include "../../../platform/stxlib_bridge.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
@@ -424,8 +423,8 @@ void ComboBox::match_editor_text() {
 }
 
 void ComboBox::overlay_selection_changed(const ListSelectionChange& change) {
-    if (synchronizing_list_ || !change.active_index || *change.active_index >= rows_.size()) return;
-    selected_index = stxlib::Optional<std::size_t>::of(rows_[*change.active_index]);
+    if (synchronizing_list_ || change.active_index.absent() || *change.active_index.value() >= rows_.size()) return;
+    selected_index = stxlib::Optional<std::size_t>::of(rows_[*change.active_index.value()]);
 }
 
 void ComboBox::on_anchored_dismissal(OverlayDismissReason) {
@@ -458,7 +457,7 @@ void ComboBox::prepare_edit(const decltype(items)&, const CollectionEdit& edit, 
         }
     }
     edit_selection_.reset();
-    if (selected_index_.present()) edit_selection_ = platform::stxlib_optional(edit.remap(*selected_index_.value()));
+    if (selected_index_.present()) edit_selection_ = edit.remap(*selected_index_.value());
     edit_former_text_.assign(selected_text());
 }
 

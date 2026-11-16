@@ -55,19 +55,19 @@ bool same_rect(const Rect a, const Rect b) {
 void test_edit_remap() {
     const CollectionEdit assigned = CollectionEdit::assigned(3U);
     require(assigned.kind() == CollectionEditKind::assign && assigned.structural() &&
-                assigned.remap(2U) == std::optional<std::size_t>{2U} && !assigned.remap(3U),
+                assigned.remap(2U) == stxlib::Optional<std::size_t>::of(2U) && assigned.remap(3U).absent(),
             "an assignment keeps the positions below its length");
     const CollectionEdit inserted = CollectionEdit::inserted(2U, 2U);
-    require(inserted.remap(1U) == std::optional<std::size_t>{1U} &&
-                inserted.remap(2U) == std::optional<std::size_t>{4U},
+    require(inserted.remap(1U) == stxlib::Optional<std::size_t>::of(1U) &&
+                inserted.remap(2U) == stxlib::Optional<std::size_t>::of(4U),
             "an insertion moves the positions from its index");
     const CollectionEdit erased = CollectionEdit::erased(2U, 2U);
-    require(erased.remap(1U) == std::optional<std::size_t>{1U} && !erased.remap(2U) && !erased.remap(3U) &&
-                erased.remap(4U) == std::optional<std::size_t>{2U},
+    require(erased.remap(1U) == stxlib::Optional<std::size_t>::of(1U) && erased.remap(2U).absent() && erased.remap(3U).absent() &&
+                erased.remap(4U) == stxlib::Optional<std::size_t>::of(2U),
             "an erasure removes its positions and moves the later ones");
     const CollectionEdit replaced = CollectionEdit::replaced(5U);
     require(!replaced.structural() && replaced.count() == 1U &&
-                replaced.remap(5U) == std::optional<std::size_t>{5U},
+                replaced.remap(5U) == stxlib::Optional<std::size_t>::of(5U),
             "a replacement keeps every position");
 }
 

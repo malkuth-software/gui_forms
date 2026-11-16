@@ -146,14 +146,14 @@ void CheckedListBox::toggle_on_press(MouseEventArgs& arguments) {
         list_pointer(arguments);
         return;
     }
-    const std::optional<std::size_t> index = arguments.button == PointerButton::primary
-        ? index_at(arguments.window_position) : std::optional<std::size_t>{};
-    const bool was_selected = index && detail::binary_search_contains(
-        selected_indices(), *index);
+    const stxlib::Optional<std::size_t> index = arguments.button == PointerButton::primary
+        ? index_at(arguments.window_position) : stxlib::Optional<std::size_t>::none();
+    const bool was_selected = index.present() && detail::binary_search_contains(
+        selected_indices(), *index.value());
     list_pointer(arguments);
-    if (!is_alive() || !index || *index >= items.read().size()) return;
+    if (!is_alive() || index.absent() || *index.value() >= items.read().size()) return;
     if (check_on_click.read() || was_selected) {
-        toggle_item(*index);
+        toggle_item(*index.value());
         arguments.handled = true;
     }
 }
@@ -163,8 +163,9 @@ void CheckedListBox::on_key_down(KeyEventArgs& arguments) {
     ListControl::on_key_down(arguments);
     if (arguments.handled) return;
     if (arguments.physical_key == PhysicalKey::space && focused_for_extension() && enabled.read()) {
-        if (const std::optional<std::size_t> index = active_index_for_extension()) {
-            toggle_item(*index);
+        const stxlib::Optional<std::size_t> index = active_index_for_extension();
+        if (index.present()) {
+            toggle_item(*index.value());
             arguments.handled = true;
         }
         return;

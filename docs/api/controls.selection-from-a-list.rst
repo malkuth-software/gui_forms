@@ -3903,7 +3903,7 @@ Related types
 
    .. cpp:member:: std::vector<std::size_t> current
 
-   .. cpp:member:: std::optional<std::size_t> active_index
+   .. cpp:member:: stxlib::Optional<std::size_t> active_index
 
 .. cpp:namespace:: gui_forms
 

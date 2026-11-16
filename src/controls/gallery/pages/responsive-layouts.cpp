@@ -188,8 +188,8 @@ private:
     }
 
     void on_folder_selected(const ListSelectionChange& change) {
-        if (!change.active_index || *change.active_index >= folder_names.size()) return;
-        (*detail_text_).text = std::string(folder_names[*change.active_index]) +
+        if (change.active_index.absent() || *change.active_index.value() >= folder_names.size()) return;
+        (*detail_text_).text = std::string(folder_names[*change.active_index.value()]) +
                                  " · detail pane follows the master selection";
     }
 

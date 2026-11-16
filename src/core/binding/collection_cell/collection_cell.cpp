@@ -40,26 +40,26 @@ CollectionEdit CollectionEdit::replaced(std::size_t index) noexcept {
     return edit;
 }
 
-std::optional<std::size_t> CollectionEdit::remap(std::size_t before) const noexcept {
+stxlib::Optional<std::size_t> CollectionEdit::remap(std::size_t before) const noexcept {
     switch (kind_) {
     case CollectionEditKind::assign:
-        if (before < count_) return before;
-        return std::nullopt;
+        if (before < count_) return stxlib::Optional<std::size_t>::of(before);
+        return stxlib::Optional<std::size_t>::none();
     case CollectionEditKind::insert:
-        if (before < index_) return before;
-        return before + count_;
+        if (before < index_) return stxlib::Optional<std::size_t>::of(before);
+        return stxlib::Optional<std::size_t>::of(before + count_);
     case CollectionEditKind::erase:
-        if (before < index_) return before;
-        if (before - index_ < count_) return std::nullopt;
-        return before - count_;
+        if (before < index_) return stxlib::Optional<std::size_t>::of(before);
+        if (before - index_ < count_) return stxlib::Optional<std::size_t>::none();
+        return stxlib::Optional<std::size_t>::of(before - count_);
     case CollectionEditKind::replace:
-        return before;
+        return stxlib::Optional<std::size_t>::of(before);
     default:
         break;
     }
     // Unreachable for an edit made by the factories; the fallback drops
     // the position.
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 void CollectionDirty::reserve(std::size_t length) {

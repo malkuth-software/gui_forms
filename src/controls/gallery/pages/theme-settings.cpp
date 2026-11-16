@@ -7,6 +7,7 @@
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/scaled_group_box.hpp"
 
+#include <optional>
 #include <stdexcept>
 
 namespace gui_forms::gallery::pages {
