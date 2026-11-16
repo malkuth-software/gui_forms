@@ -1167,6 +1167,17 @@ void ThemeEngine::paint_clipped(Painter& painter, const Control& control, const 
     paint_planned(painter, control, part, decided, clips, &group);
 }
 
+namespace {
+
+// The most material blocks one paint_material_blocks call draws. A block is
+// more than 128 device pixels on a side (whole periods up to
+// maximum_material_block_side, or one period past it), so this covers a
+// square of at least 8192 device pixels, as maximum_finish_tiles_per_paint
+// does. A larger area draws nothing.
+constexpr std::uint64_t maximum_material_blocks_per_paint = 4096U;
+
+} // namespace
+
 bool ThemeEngine::paint_material_blocks(Painter& painter, const Control& control,
                                         const MaterialBlocks& blocks) const {
     SurfaceRoot* const window = control.attached_surface_root();
@@ -1208,15 +1219,25 @@ bool ThemeEngine::paint_material_blocks(Painter& painter, const Control& control
     const PartRasterResult drawn = detail::SurfaceEngineAccess::part_raster(*window, *record.value(), request);
     if (!drawn.raster) return false;
     // The lattice corner at or before the area's, then whole blocks to the
-    // area's far edges: a count bounded by the area over the block side.
-    const double columns_before = std::floor((area.x - blocks.anchor.x) / side);
-    const double rows_before = std::floor((area.y - blocks.anchor.y) / side);
-    const double left = blocks.anchor.x + columns_before * side;
-    const double top = blocks.anchor.y + rows_before * side;
+    // area's far edges. The corner comes from the area's offset reduced
+    // modulo the side (A-gf-core-13-F1): rebuilt from a far anchor as
+    // anchor + floor(...) * side, it rounded to the anchor's unit in the
+    // last place and could land millions of blocks before the area. Reduced
+    // here it lies within one side of the area, so the count is bounded by
+    // the area over the side; a count past the stated bound still draws
+    // nothing, as paint_finish_tiles refuses.
+    double column_phase = std::fmod(area.x - blocks.anchor.x, side);
+    if (column_phase < 0.0) column_phase = column_phase + side;
+    double row_phase = std::fmod(area.y - blocks.anchor.y, side);
+    if (row_phase < 0.0) row_phase = row_phase + side;
+    const double left = area.x - column_phase;
+    const double top = area.y - row_phase;
     const double column_span = std::ceil((area.right() - left) / side);
     const double row_span = std::ceil((area.bottom() - top) / side);
-    const std::size_t columns = static_cast<std::size_t>(std::max(0.0, column_span));
-    const std::size_t rows = static_cast<std::size_t>(std::max(0.0, row_span));
+    const double most = static_cast<double>(maximum_material_blocks_per_paint);
+    if (!(column_span > 0.0 && row_span > 0.0 && column_span * row_span <= most)) return false;
+    const std::size_t columns = static_cast<std::size_t>(column_span);
+    const std::size_t rows = static_cast<std::size_t>(row_span);
     painter.save();
     painter.clip_rect(area);
     for (std::size_t row = 0U; row < rows; ++row) {
