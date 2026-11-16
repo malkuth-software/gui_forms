@@ -71,6 +71,12 @@ if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
     set(_gui_stx_with_text ON)
 endif()
 set(_gui_stx_choices "skia = ${_gui_stx_with_skia}\ntext = ${_gui_stx_with_text}\nvorbis = ${_gui_stx_with_vorbis}\n")
+# The high-integrity configuration's STXlib settings (cmake/HighIntegrity.cmake):
+# a line of their own, only when on, so an ordinary package's stamp is unchanged.
+if(GUI_FORMS_HIGH_INTEGRITY)
+    string(REPLACE ";" " " _gui_stx_high_integrity "${GUI_FORMS_HIGH_INTEGRITY_STX_ARGUMENTS}")
+    string(APPEND _gui_stx_choices "high_integrity = ${_gui_stx_high_integrity}\n")
+endif()
 
 file(STRINGS "${_gui_stx_root}/stx.lock" _gui_stx_lock REGEX "^(repository|commit) = ")
 set(_gui_stx_repository "")
@@ -144,6 +150,7 @@ else()
         # archive linked into the one module that holds it, a program or the C
         # ABI library, whose shared object needs position-independent code.
         -DSTXLIB_STATE_SHARED=OFF
+        ${GUI_FORMS_HIGH_INTEGRITY_STX_ARGUMENTS}
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
         "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")

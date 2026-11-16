@@ -161,6 +161,27 @@ if(GUIForms_CHECKED_BORROWS)
     unset(_gui_forms_borrow_target)
 endif()
 
+# Whether the producer was built in the high-integrity configuration
+# (GUI_FORMS_HIGH_INTEGRITY, cmake/HighIntegrity.cmake), and with which
+# allowances. Its public headers declare fewer entries in that mode, so a
+# consumer compiles them the same way; a consumer built the other way fails at
+# link time (gui_forms_build_profile_*_v1, gui_forms/build_profile/build_profile.hpp).
+set(GUIForms_HIGH_INTEGRITY @GUI_FORMS_HIGH_INTEGRITY@)
+set(GUIForms_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT @GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT@)
+if(GUIForms_HIGH_INTEGRITY)
+    foreach(_gui_forms_profile_target IN ITEMS Core Controls Application)
+        if(TARGET GUIForms::${_gui_forms_profile_target})
+            set_property(TARGET GUIForms::${_gui_forms_profile_target} APPEND PROPERTY
+                         INTERFACE_COMPILE_DEFINITIONS GUI_FORMS_HIGH_INTEGRITY=1)
+            if(GUIForms_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
+                set_property(TARGET GUIForms::${_gui_forms_profile_target} APPEND PROPERTY
+                             INTERFACE_COMPILE_DEFINITIONS GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT=1)
+            endif()
+        endif()
+    endforeach()
+    unset(_gui_forms_profile_target)
+endif()
+
 # Components describe installed targets, not the producer's build options.
 # Set these explicitly so REQUIRED COMPONENTS works and missing hosts fail here.
 foreach(_gui_forms_component IN ITEMS Core Controls Drawing Threading HostedClient Application Audio TextMasks AudioLoopTransport FreeType HarfBuzz CAbi CAbiConformance GalleryModel Lab DemoControls)

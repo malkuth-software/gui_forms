@@ -82,7 +82,7 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "Running windows on a native host, host options per platform, and the "
           "portable host protocol: capabilities, services, cursors, dialogs and "
           "lifecycle records.",
-          ("application", "platform", "host")),
+          ("application", "platform", "host", "build_profile")),
     Group("window", "Window, scheduling and dispatch",
           "The retained window model, update scopes, damage, frame scheduling, "
           "the UI-thread dispatcher, per-window instrumentation, the counters "

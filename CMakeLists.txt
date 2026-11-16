@@ -62,6 +62,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# The high-integrity configuration settles the options below before they are
+# declared, and refuses a configure that contradicts it (cmake/HighIntegrity.cmake).
+include(cmake/HighIntegrity.cmake)
+
 option(GUI_FORMS_BUILD_GALLERY "Build the native control gallery" ${PROJECT_IS_TOP_LEVEL})
 option(GUI_FORMS_BUILD_TESTS "Build automated proving-slice tests" ${PROJECT_IS_TOP_LEVEL})
 # The Gallery model (the control specimen catalogue: gui_forms_gallery_model)
@@ -496,6 +500,7 @@ add_custom_command(
 
 add_library(gui_forms_core STATIC
     src/core/application/application.cpp
+    src/core/build_profile/build_profile.cpp
     src/core/application/native_popup.cpp
     src/core/application/transient_window.cpp
     src/core/application/splashscreen.cpp
@@ -824,6 +829,15 @@ set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
 # Application, was retired with the shared library (one module, 2026-11-15).
 if(GUI_FORMS_CHECKED_BORROWS)
     target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_CHECKED_BORROWS=1)
+endif()
+# The high-integrity configuration changes the declarations of the public
+# headers (entries are compiled out), so a consumer compiles them the same way
+# (cmake/HighIntegrity.cmake).
+if(GUI_FORMS_HIGH_INTEGRITY)
+    target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_HIGH_INTEGRITY=1)
+    if(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
+        target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT=1)
+    endif()
 endif()
 # The shadow frames, failure snapshots and the fail-fast boundary are
 # STXlib's gates and frames (src/core/diagnostics/shadow_frames,
@@ -2142,18 +2156,21 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         )
         add_test(NAME gui_forms_windows_live_surface_endpoint_tests
                  COMMAND gui_forms_windows_live_surface_endpoint_tests)
-        add_executable(gui_forms_windows_gdi_compat_shim_tests
-            tests/windows_gdi_compat_shim_tests.cpp
-        )
-        target_compile_definitions(
-            gui_forms_windows_gdi_compat_shim_tests PRIVATE
-            ${GUI_FORMS_WINDOWS_DEFINITIONS}
-        )
-        target_link_libraries(gui_forms_windows_gdi_compat_shim_tests PRIVATE
-            gui_forms_abi gdi32 user32
-        )
-        add_test(NAME gui_forms_windows_gdi_compat_shim_tests
-                 COMMAND gui_forms_windows_gdi_compat_shim_tests)
+        # The shim is part of the C ABI library (cmake/CAbi.cmake).
+        if(GUI_FORMS_BUILD_C_ABI)
+            add_executable(gui_forms_windows_gdi_compat_shim_tests
+                tests/windows_gdi_compat_shim_tests.cpp
+            )
+            target_compile_definitions(
+                gui_forms_windows_gdi_compat_shim_tests PRIVATE
+                ${GUI_FORMS_WINDOWS_DEFINITIONS}
+            )
+            target_link_libraries(gui_forms_windows_gdi_compat_shim_tests PRIVATE
+                gui_forms_abi gdi32 user32
+            )
+            add_test(NAME gui_forms_windows_gdi_compat_shim_tests
+                     COMMAND gui_forms_windows_gdi_compat_shim_tests)
+        endif()
     endif()
 endif()
 
@@ -6730,6 +6747,7 @@ include(cmake/ApplicationPackage.cmake)
 
 include(cmake/TextStackExport.cmake)
 include(cmake/CAbi.cmake)
+include(cmake/HighIntegrityTests.cmake)
 
 install(FILES cmake/llvm22.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 install(FILES src/core/threading/atomic_pool/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME threadpool_atomic_fast-LICENSE.txt)

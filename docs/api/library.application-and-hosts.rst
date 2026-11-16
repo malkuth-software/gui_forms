@@ -51,6 +51,8 @@ Related types
      -  
    * - :cpp:class:`ApplicationWindowOpenResult <gui_forms::ApplicationWindowOpenResult>`
      -  
+   * - :cpp:class:`BuildProfileRecord <gui_forms::BuildProfileRecord>`
+     - What the library was built with: the profile and the allowances of the high-integrity configuration.
    * - :cpp:class:`CompositorGeneration <gui_forms::CompositorGeneration>`
      - The order of compositor state reports within one host run.
    * - :cpp:class:`CompositorState <gui_forms::CompositorState>`
@@ -446,6 +448,22 @@ Related types
    .. cpp:member:: ApplicationWindowHandle window
 
       Active once the window is ready; inactive when the open was refused.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BuildProfileRecord final
+
+   ``#include <gui_forms/build_profile/build_profile.hpp>``
+
+   What the library was built with: the profile and the allowances of the high-integrity configuration. In a standard build every allowance is true, since nothing is compiled out.
+
+   .. cpp:member:: BuildProfile profile
+
+      Default: ``{BuildProfile::standard}``.
+
+   .. cpp:member:: bool clipboard_text
+
+      HostServices::read_clipboard_text and write_clipboard_text are compiled (GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT in high integrity). Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3684,6 +3702,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BuildProfile
+
+   ``#include <gui_forms/build_profile/build_profile.hpp>``
+
+   .. cpp:enumerator:: standard
+
+   .. cpp:enumerator:: high_integrity
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: CompositorPresence
 
    ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
@@ -4408,6 +4436,22 @@ Functions, constants and aliases
 ``#include <gui_forms/application/window_frame_drag/window_frame_drag.hpp>``
 
 .. cpp:function:: const char* window_frame_drag_mode_name(WindowFrameDragMode mode) noexcept
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/build_profile/build_profile.hpp>``
+
+.. cpp:function:: BuildProfileRecord build_profile() noexcept
+
+   The library's build profile and allowances. Constant for the process; any thread.
+
+.. cpp:var:: constexpr BuildProfile compiled_build_profile
+
+   The profile the including unit is compiled with. build_profile() reports the library's; the link markers above keep the two equal. Value: ``BuildProfile::high_integrity``.
+
+.. cpp:var:: constexpr BuildProfile compiled_build_profile
+
+   Value: ``BuildProfile::standard``.
 
 .. cpp:namespace:: gui_forms
 
