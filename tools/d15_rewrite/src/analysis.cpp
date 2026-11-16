@@ -545,7 +545,7 @@ private:
         }
         const clang::UsingType* const using_type = llvm::dyn_cast<clang::UsingType>(plain);
         if (using_type != nullptr) {
-            const clang::UsingShadowDecl* const shadow = (*using_type).getFoundDecl();
+            const clang::UsingShadowDecl* const shadow = (*using_type).getDecl();
             if (shadow != nullptr && (*shadow).isInStdNamespace()) {
                 return "std::" + std::string((*shadow).getName());
             }
@@ -749,7 +749,7 @@ private:
         if (core.isNull()) return result;
         const clang::TypedefTypeLoc typedef_loc = core.getAs<clang::TypedefTypeLoc>();
         if (typedef_loc.isNull()) return result;
-        const clang::TypedefNameDecl* const alias = typedef_loc.getTypedefNameDecl();
+        const clang::TypedefNameDecl* const alias = (*typedef_loc.getTypePtr()).getDecl();
         if (alias == nullptr || (*alias).isInStdNamespace()) return result;
         result.alias = alias;
         return result;
@@ -775,7 +775,7 @@ private:
         if (!core.getAs<clang::AutoTypeLoc>().isNull()) return;
         const clang::TypedefTypeLoc typedef_loc = core.getAs<clang::TypedefTypeLoc>();
         if (!typedef_loc.isNull()) {
-            const clang::TypedefNameDecl* const alias = typedef_loc.getTypedefNameDecl();
+            const clang::TypedefNameDecl* const alias = (*typedef_loc.getTypePtr()).getDecl();
             if (alias == nullptr || !(*alias).isInStdNamespace()) return;
             const Span name = token_span(typedef_loc.getNameLoc());
             if (!editable(name, where)) return;

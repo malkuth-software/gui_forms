@@ -14,7 +14,9 @@
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/PCHContainerOperations.h"
+#include "clang/Tooling/ArgumentsAdjusters.h"
 #include "clang/Tooling/CommonOptionsParser.h"
+#include "clang/Tooling/CompilationDatabase.h"
 #include "clang/Tooling/CompilationDatabase.h"
 #include "clang/Tooling/Tooling.h"
 #include "llvm/ADT/SmallString.h"
@@ -347,7 +349,7 @@ public:
         const std::vector<std::string> sources = {source_};
         clang::tooling::ClangTool tool(*database_, sources, std::make_shared<clang::PCHContainerOperations>(),
                                        llvm::vfs::createPhysicalFileSystem());
-        tool.setRestoreWorkingDir(false);
+        // Clang 22's ClangTool has no setRestoreWorkingDir: it restores nothing to set.
         CountingDiagnostics diagnostics;
         tool.setDiagnosticConsumer(&diagnostics);
         std::unique_ptr<clang::tooling::FrontendActionFactory> factory =
@@ -548,6 +550,30 @@ void scan_uncompiled(const d15::Options& options, const d15::Closure& closure, c
     return true;
 }
 
+// Every value of a command-line option written `-name value`, `-name=value`,
+// `--name value` or `--name=value`, in order. For the options clang's
+// CommonOptionsParser registers itself (-p, --extra-arg, --extra-arg-before),
+// whose values it does not hand back.
+std::vector<std::string> argument_values(int argc, const char** argv, const std::string& name) {
+    std::vector<std::string> values;
+    const std::string single = "-" + name;
+    const std::string doubled = "--" + name;
+    for (int index = 1; index < argc; ++index) {
+        const std::string argument(argv[index]);
+        const bool bare = argument == single || argument == doubled;
+        if (bare && index + 1 < argc) {
+            values.push_back(std::string(argv[index + 1]));
+            ++index;
+            continue;
+        }
+        const std::string single_equals = single + "=";
+        const std::string doubled_equals = doubled + "=";
+        if (argument.rfind(single_equals, 0) == 0) values.push_back(argument.substr(single_equals.size()));
+        if (argument.rfind(doubled_equals, 0) == 0) values.push_back(argument.substr(doubled_equals.size()));
+    }
+    return values;
+}
+
 } // namespace
 
 int main(int argc, const char** argv) {
@@ -568,7 +594,38 @@ int main(int argc, const char** argv) {
         llvm::errs() << "d15_rewrite: --mode takes check, apply or plan\n";
         return 2;
     }
-    const clang::tooling::CompilationDatabase& database = (*parsed).getCompilations();
+    // CommonOptionsParser loads no database when, as here, no source path is
+    // named (its sources are ZeroOrMore): it is loaded from -p, with the
+    // --extra-arg-before and --extra-arg values applied as the parser would.
+    std::unique_ptr<clang::tooling::CompilationDatabase> loaded{};
+    const clang::tooling::CompilationDatabase* database_pointer = nullptr;
+    if ((*parsed).getSourcePathList().empty()) {
+        const std::vector<std::string> build_paths = argument_values(argc, argv, "p");
+        if (build_paths.empty()) {
+            llvm::errs() << "d15_rewrite: -p names the directory of compile_commands.json\n";
+            return 2;
+        }
+        std::string message;
+        std::unique_ptr<clang::tooling::CompilationDatabase> detected =
+            clang::tooling::CompilationDatabase::autoDetectFromDirectory(build_paths.back(), message);
+        if (!detected) {
+            llvm::errs() << "d15_rewrite: " << message << '\n';
+            return 2;
+        }
+        std::unique_ptr<clang::tooling::ArgumentsAdjustingCompilations> adjusting =
+            std::make_unique<clang::tooling::ArgumentsAdjustingCompilations>(std::move(detected));
+        const std::vector<std::string> before = argument_values(argc, argv, "extra-arg-before");
+        const std::vector<std::string> after = argument_values(argc, argv, "extra-arg");
+        (*adjusting).appendArgumentsAdjuster(
+            clang::tooling::getInsertArgumentAdjuster(before, clang::tooling::ArgumentInsertPosition::BEGIN));
+        (*adjusting).appendArgumentsAdjuster(
+            clang::tooling::getInsertArgumentAdjuster(after, clang::tooling::ArgumentInsertPosition::END));
+        loaded = std::move(adjusting);
+        database_pointer = loaded.get();
+    } else {
+        database_pointer = &(*parsed).getCompilations();
+    }
+    const clang::tooling::CompilationDatabase& database = *database_pointer;
 
     // The translation units: those named, else every first-party unit in
     // the database within the scope (C sources excluded).
