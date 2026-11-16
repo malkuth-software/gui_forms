@@ -10,7 +10,8 @@
 # report.
 #
 # Inputs: BUNDLE, the .app directory; OUTPUT_DIRECTORY, where the program's
-# standard output and error are written.
+# standard output and error are kept (written first in the temporary
+# directory, see below).
 
 if(NOT IS_DIRECTORY "${BUNDLE}")
     message(FATAL_ERROR "Test bundle is missing: ${BUNDLE}")
@@ -19,8 +20,21 @@ get_filename_component(bundle_name "${BUNDLE}" NAME_WE)
 set(stdout_file "${OUTPUT_DIRECTORY}/${bundle_name}.stdout.txt")
 set(stderr_file "${OUTPUT_DIRECTORY}/${bundle_name}.stderr.txt")
 file(REMOVE "${stdout_file}" "${stderr_file}")
+# LaunchServices opens --stdout and --stderr for the launched program, which
+# macOS refuses on a removable volume (a build tree on an external disk:
+# privacy approval per application, error -10810): the program writes into
+# the temporary directory, and the files are copied beside the build after.
+set(launch_directory "$ENV{TMPDIR}")
+if(launch_directory STREQUAL "")
+    set(launch_directory "/tmp")
+endif()
+string(RANDOM LENGTH 12 launch_suffix)
+set(launch_directory "${launch_directory}/gui_forms_activated_${bundle_name}_${launch_suffix}")
+file(MAKE_DIRECTORY "${launch_directory}")
+set(launch_stdout "${launch_directory}/stdout.txt")
+set(launch_stderr "${launch_directory}/stderr.txt")
 
-set(open_arguments -W -n --stdout "${stdout_file}" --stderr "${stderr_file}")
+set(open_arguments -W -n --stdout "${launch_stdout}" --stderr "${launch_stderr}")
 foreach(variable IN ITEMS ASAN_OPTIONS UBSAN_OPTIONS LSAN_OPTIONS)
     if(DEFINED ENV{${variable}})
         list(APPEND open_arguments --env "${variable}=$ENV{${variable}}")
@@ -32,6 +46,12 @@ execute_process(
     RESULT_VARIABLE open_result
     TIMEOUT 120)
 
+foreach(stream IN ITEMS stdout stderr)
+    if(EXISTS "${launch_directory}/${stream}.txt")
+        file(COPY_FILE "${launch_directory}/${stream}.txt" "${OUTPUT_DIRECTORY}/${bundle_name}.${stream}.txt")
+    endif()
+endforeach()
+file(REMOVE_RECURSE "${launch_directory}")
 set(program_output "")
 set(program_errors "")
 if(EXISTS "${stdout_file}")

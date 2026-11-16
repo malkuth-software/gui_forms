@@ -16,9 +16,16 @@ if [ -z "$bundle" ] || [ -z "$output" ]; then
   exit 2
 fi
 rm -f "$output"
+# The bundle writes into the temporary directory and the lines are copied to
+# <output.jsonl> after: macOS refuses a launched application's writes to a
+# removable volume (a build tree on an external disk) without a per-app
+# privacy approval.
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/gui_forms_probe.XXXXXX") || exit 1
 # -W waits for the bundle to quit; -n starts a new instance even if one runs.
-/usr/bin/open -W -n "$bundle" --args --output "$output"
+/usr/bin/open -W -n "$bundle" --args --output "$scratch/output.jsonl"
 launched=$?
+if [ -f "$scratch/output.jsonl" ]; then cp "$scratch/output.jsonl" "$output"; fi
+rm -rf "$scratch"
 if [ ! -f "$output" ]; then
   echo "the probe bundle wrote no output (open exited $launched)" >&2
   exit 1
