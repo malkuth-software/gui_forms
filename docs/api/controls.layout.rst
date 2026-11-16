@@ -3141,7 +3141,7 @@ Enumerations
 
    .. cpp:enumerator:: idle
 
-   .. cpp:enumerator:: near
+   .. cpp:enumerator:: nearby
 
    .. cpp:enumerator:: hot
 

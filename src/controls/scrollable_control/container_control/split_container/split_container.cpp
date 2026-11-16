@@ -946,7 +946,7 @@ void SplitContainer::publish_part_geometry(std::span<PartGeometry> geometry) con
 
     const SplitSeamSnapshot seam = splitter_seam_snapshot();
     record.seam = PartGeometry::from_bounds(seam.visible_bounds);
-    if (seam.state == SplitSeamState::near || seam.state == SplitSeamState::hot) {
+    if (seam.state == SplitSeamState::nearby || seam.state == SplitSeamState::hot) {
         record.seam.states.insert(AnatomyState::hot);
     } else if (seam.state == SplitSeamState::dragging) {
         record.seam.states.insert(AnatomyState::pressed);
@@ -980,7 +980,7 @@ SplitContainer::Parts SplitContainer::parts() const {
 AnatomyStateSet SplitContainer::anatomy_states() const {
     AnatomyStateSet states = ScrollableControl::anatomy_states();
     const SplitSeamSnapshot seam = splitter_seam_snapshot();
-    if (seam.state == SplitSeamState::near || seam.state == SplitSeamState::hot) {
+    if (seam.state == SplitSeamState::nearby || seam.state == SplitSeamState::hot) {
         states.erase(AnatomyState::normal);
         states.insert(AnatomyState::hot);
     } else if (seam.state == SplitSeamState::dragging) {

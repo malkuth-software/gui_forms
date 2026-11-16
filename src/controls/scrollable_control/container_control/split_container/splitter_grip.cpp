@@ -119,7 +119,7 @@ SplitSeamState SplitterGrip::seam_state() const noexcept {
     if (dragging_) return SplitSeamState::dragging;
     if (focused_) return SplitSeamState::focused;
     if (hot_) return SplitSeamState::hot;
-    if (near_) return SplitSeamState::near;
+    if (near_) return SplitSeamState::nearby;
     if (collapsed_) return SplitSeamState::collapsed;
     return SplitSeamState::idle;
 }

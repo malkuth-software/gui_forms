@@ -236,7 +236,7 @@ bool invalid_geometry_is_rejected() {
 const char* seam_state_name(SplitSeamState state) noexcept {
     switch (state) {
     case SplitSeamState::idle: return "IDLE";
-    case SplitSeamState::near: return "NEAR";
+    case SplitSeamState::nearby: return "NEARBY";
     case SplitSeamState::hot: return "HOT";
     case SplitSeamState::dragging: return "DRAGGING";
     case SplitSeamState::focused: return "FOCUSED";

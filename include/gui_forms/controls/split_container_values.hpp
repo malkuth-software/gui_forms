@@ -48,7 +48,7 @@ enum class SplitSeamThicknessPolicy : std::uint8_t {
 
 enum class SplitSeamState : std::uint8_t {
     idle,
-    near,
+    nearby,
     hot,
     dragging,
     focused,

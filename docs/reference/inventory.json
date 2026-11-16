@@ -331123,14 +331123,14 @@
           "page": "gui-forms-splitseamstate-idle-gui-forms-splitseamstate-013d74142b.html"
         },
         {
-          "id": "gui_forms::SplitSeamState::near|gui_forms::SplitSeamState",
-          "name": "near",
+          "id": "gui_forms::SplitSeamState::nearby|gui_forms::SplitSeamState",
+          "name": "nearby",
           "type": "gui_forms::SplitSeamState",
           "namespace": "gui_forms::SplitSeamState",
           "kind": "EnumConstantDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "near",
+          "declaration": "nearby",
           "comment": "",
           "header": "gui_forms/controls/split_container_values.hpp",
           "source": "include/gui_forms/controls/split_container_values.hpp",
