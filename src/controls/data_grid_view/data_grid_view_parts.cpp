@@ -423,9 +423,9 @@ double DataGridView::preferred_column_header_width(std::size_t column) const {
     return result;
 }
 
-std::optional<double> DataGridView::automatic_width(std::size_t column, DataGridViewAutoSizeColumnMode mode,
+stxlib::Optional<double> DataGridView::automatic_width(std::size_t column, DataGridViewAutoSizeColumnMode mode,
                                                     const GridLayout& layout) const {
-    if (!measures(mode) || column >= columns_.size()) return std::nullopt;
+    if (!measures(mode) || column >= columns_.size()) return stxlib::Optional<double>::none();
     const std::uint64_t revision = structure_revision_;
     double widest = 0.0;
     const bool header = mode == DataGridViewAutoSizeColumnMode::column_header ||
@@ -446,7 +446,7 @@ std::optional<double> DataGridView::automatic_width(std::size_t column, DataGrid
         }
     }
     const double result = std::max(columns_[column].minimum_width, widest);
-    return result;
+    return stxlib::Optional<double>::of(result);
 }
 
 void DataGridView::apply_auto_sizes() {
@@ -465,9 +465,9 @@ void DataGridView::apply_auto_sizes() {
         // Widths from every row or the header change only with the grid's
         // content; widths from the rows shown change with every scroll.
         if (!measures(mode) || (!auto_size_stale_ && !displayed_only(mode))) continue;
-        const std::optional<double> width = automatic_width(column, mode, layout);
+        const stxlib::Optional<double> width = automatic_width(column, mode, layout);
         if (structure_revision_ != revision) return;
-        if (width) columns_[column].width = *width;
+        if (width.present()) columns_[column].width = *width.value();
         columns_placed_changed();
     }
     auto_size_stale_ = false;
@@ -531,10 +531,10 @@ void DataGridView::auto_resize_column(std::size_t column, DataGridViewAutoSizeCo
     if (!measures(mode)) {
         throw std::invalid_argument("DataGridView auto_resize_column takes a cell mode or column_header");
     }
-    const std::optional<double> width = automatic_width(column, mode, grid_layout());
+    const stxlib::Optional<double> width = automatic_width(column, mode, grid_layout());
     // A formatting handler may have changed the columns.
-    if (!width || !is_alive() || column >= columns_.size() || columns_[column].width == *width) return;
-    columns_[column].width = *width;
+    if (width.absent() || !is_alive() || column >= columns_.size() || columns_[column].width == *width.value()) return;
+    columns_[column].width = *width.value();
     columns_placed_changed();
     structure_changed();
     column_width_changed_.emit(column);
@@ -654,7 +654,7 @@ double DataGridView::preferred_row_header_height(DataGridViewRowPosition row) co
     return result;
 }
 
-std::optional<double> DataGridView::automatic_height(std::size_t position, DataGridViewAutoSizeRowMode mode) const {
+stxlib::Optional<double> DataGridView::automatic_height(std::size_t position, DataGridViewAutoSizeRowMode mode) const {
     const DataGridViewRowPosition row{position};
     const std::uint64_t revision = structure_revision_;
     double tallest = 0.0;
@@ -670,7 +670,7 @@ std::optional<double> DataGridView::automatic_height(std::size_t position, DataG
     }
     if (tallest <= 0.0) tallest = row_height.read();
     const double result = std::clamp(tallest, minimum_row_height.read(), 4096.0);
-    return result;
+    return stxlib::Optional<double>::of(result);
 }
 
 void DataGridView::apply_row_auto_sizes() {
@@ -704,9 +704,9 @@ void DataGridView::apply_row_auto_sizes() {
         row_height_scratch_.clear();
         row_height_scratch_.reserve(count);
         for (std::size_t position = 0U; position < count; ++position) {
-            const std::optional<double> height = automatic_height(position, each);
+            const stxlib::Optional<double> height = automatic_height(position, each);
             if (structure_revision_ != revision) return;
-            if (height) row_height_scratch_.push_back(DataGridViewRowHeight{position, *height});
+            if (height.present()) row_height_scratch_.push_back(DataGridViewRowHeight{position, *height.value()});
         }
         row_heights_.reset(count, row_height.read(), row_height_scratch_);
         row_heights_stale_ = false;
@@ -722,17 +722,17 @@ void DataGridView::apply_row_auto_sizes() {
     // scrolling rows then fill what the frozen ones leave.
     const std::size_t frozen = frozen_rows();
     for (std::size_t position = 0U; position < frozen && heights.top(position) < data_height; ++position) {
-        const std::optional<double> height = automatic_height(position, each);
+        const stxlib::Optional<double> height = automatic_height(position, each);
         if (structure_revision_ != revision) return;
-        if (height) row_heights_.set_height(position, *height);
+        if (height.present()) row_heights_.set_height(position, *height.value());
     }
     const double viewport = data_height - heights.top(frozen);
     const std::size_t first = scroll_first_row();
     const double first_top = heights.top(first);
     for (std::size_t position = first; position < count && heights.top(position) - first_top < viewport; ++position) {
-        const std::optional<double> height = automatic_height(position, each);
+        const stxlib::Optional<double> height = automatic_height(position, each);
         if (structure_revision_ != revision) return;
-        if (height) row_heights_.set_height(position, *height);
+        if (height.present()) row_heights_.set_height(position, *height.value());
     }
     row_auto_size_stale_ = false;
 }
@@ -756,10 +756,10 @@ void DataGridView::auto_resize_row(DataGridViewRowPosition row, DataGridViewAuto
     if (static_cast<std::uint8_t>(mode) > static_cast<std::uint8_t>(DataGridViewAutoSizeRowMode::row_header)) {
         throw std::invalid_argument("DataGridView auto size row mode is outside the enumeration");
     }
-    const std::optional<double> height = automatic_height(row.value, mode);
+    const stxlib::Optional<double> height = automatic_height(row.value, mode);
     // A formatting handler may have changed the rows.
-    if (!height || !is_alive() || row.value >= row_count()) return;
-    set_row_height_at(row, *height);
+    if (height.absent() || !is_alive() || row.value >= row_count()) return;
+    set_row_height_at(row, *height.value());
 }
 
 void DataGridView::auto_resize_rows(DataGridViewAutoSizeRowsMode mode) {
@@ -1170,12 +1170,12 @@ DataGridView::Parts DataGridView::grid_parts(const GridLayout& layout) const {
     // A dragged header's destination: a bar on the boundary the column
     // would take, before the column now at its target or, moving right,
     // after it.
-    if (ordering_ && order_target_ && pressed_column_.present() && *pressed_column_.value() < columns_.size() &&
-        (*order_target_).value < display_order_.size()) {
+    if (ordering_ && order_target_.present() && pressed_column_.present() && *pressed_column_.value() < columns_.size() &&
+        (*order_target_.value()).value < display_order_.size()) {
         // The target is a display index (order_target_at names a shown
         // column's).
         const std::size_t from = display_indices_[*pressed_column_.value()];
-        const std::size_t target = (*order_target_).value;
+        const std::size_t target = (*order_target_.value()).value;
         const std::size_t neighbour = display_order_[target];
         // The neighbour's reading-start edge, or its reading end moving on:
         // its left and right, exchanged right to left.
@@ -1530,9 +1530,9 @@ AnatomyStateSet DataGridView::cell_states(DataGridViewRowPosition row, std::size
     if (edit_invalid || !cell_error_text(row, column).empty()) states.insert(AnatomyState::invalid);
     const DataGridViewColumnKind kind = columns_[column].kind;
     if (kind == DataGridViewColumnKind::check_box) {
-        const std::optional<bool> state = check_state(row, column);
-        if (state && *state) states.insert(AnatomyState::checked);
-        if (!state) states.insert(AnatomyState::indeterminate);
+        const stxlib::Optional<bool> state = check_state(row, column);
+        if (state == stxlib::Optional<bool>::of(true)) states.insert(AnatomyState::checked);
+        if (state.absent()) states.insert(AnatomyState::indeterminate);
     }
     const bool pressed = pressed_content_ && (*pressed_content_).column == column &&
                          (*pressed_content_).row_id == row_id_text(row);

@@ -1445,14 +1445,14 @@ private:
     // column, fill columns last. values_changed is the invalidation of a
     // value change, which lays the grid out again when a column sizes by
     // its cells.
-    [[nodiscard]] std::optional<double> automatic_width(std::size_t column, DataGridViewAutoSizeColumnMode mode,
+    [[nodiscard]] stxlib::Optional<double> automatic_width(std::size_t column, DataGridViewAutoSizeColumnMode mode,
                                                         const GridLayout& layout) const;
     void apply_auto_sizes();
     void distribute_fill_width();
     // A row's preferred height under a mode, from 4 to 4096; none when a
     // formatting handler changed the grid while it was measured. Applied by
     // arrange after the columns' widths (apply_row_auto_sizes).
-    [[nodiscard]] std::optional<double> automatic_height(std::size_t position, DataGridViewAutoSizeRowMode mode) const;
+    [[nodiscard]] stxlib::Optional<double> automatic_height(std::size_t position, DataGridViewAutoSizeRowMode mode) const;
     void apply_row_auto_sizes();
     // column_headers_height_size_mode auto_size: the band takes the
     // preferred height at each layout, first in arrange (the height is one
@@ -1522,7 +1522,7 @@ private:
     [[nodiscard]] Rect row_paint_bounds(DataGridViewRowPosition row, const GridLayout& layout) const;
     // A check box cell's state: checked or not, or none (indeterminate) for
     // an empty value in a three-state column.
-    [[nodiscard]] std::optional<bool> check_state(DataGridViewRowPosition row, std::size_t column) const;
+    [[nodiscard]] stxlib::Optional<bool> check_state(DataGridViewRowPosition row, std::size_t column) const;
     // Whether a combo box cell shows its drop-down button.
     [[nodiscard]] bool shows_drop_down(DataGridViewRowPosition row, std::size_t column) const;
     // The cell's tooltip: empty unless show_cell_tool_tips holds and a
@@ -2131,7 +2131,7 @@ private:
     // enough to be a drag, and the display index the column would take.
     double order_start_x_{};
     bool ordering_{};
-    std::optional<DataGridViewDisplayIndex> order_target_{};
+    stxlib::Optional<DataGridViewDisplayIndex> order_target_{};
     double resize_start_x_{};
     double resize_start_width_{};
     // A row header edge drag: the row, by position (rows do not move while

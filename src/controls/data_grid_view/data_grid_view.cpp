@@ -1224,7 +1224,7 @@ void DataGridView::written(const decltype(allow_user_to_order_columns)&) {
 }
 
 void DataGridView::end_column_order() {
-    if (!ordering_ && !order_target_) return;
+    if (!ordering_ && order_target_.absent()) return;
     ordering_ = false;
     order_target_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
@@ -3484,11 +3484,11 @@ void DataGridView::close_drop_down() noexcept {
     if (choices_) (*choices_).close();
 }
 
-std::optional<bool> DataGridView::check_state(DataGridViewRowPosition row, std::size_t column) const {
+stxlib::Optional<bool> DataGridView::check_state(DataGridViewRowPosition row, std::size_t column) const {
     const BindingValue value = stored_value(row, column);
-    if (columns_[column].three_state && std::holds_alternative<std::monostate>(value)) return std::nullopt;
+    if (columns_[column].three_state && std::holds_alternative<std::monostate>(value)) return stxlib::Optional<bool>::none();
     const bool checked = binding_value_to_bool(value).value_or(false);
-    return checked;
+    return stxlib::Optional<bool>::of(checked);
 }
 
 bool DataGridView::shows_drop_down(DataGridViewRowPosition row, std::size_t column) const {
@@ -3506,12 +3506,12 @@ bool DataGridView::toggle_check(DataGridViewCellAddress cell) {
     }
     // Two states toggle; three run unchecked, checked, indeterminate (an
     // empty value), as Windows Forms' ThreeState cells do.
-    const std::optional<bool> state = check_state(cell.row, cell.column);
+    const stxlib::Optional<bool> state = check_state(cell.row, cell.column);
     BindingValue value{false};
     std::string shown = "false";
-    if (!state) {
+    if (state.absent()) {
         value = BindingValue{false};
-    } else if (!*state) {
+    } else if (!*state.value()) {
         value = BindingValue{true};
         shown = "true";
     } else if (columns_[cell.column].three_state) {
@@ -4186,8 +4186,8 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         if (!ordering_ && moved >= 4.0) ordering_ = true;
         if (ordering_) {
             const DataGridViewDisplayIndex target = order_target_at(local.x, layout);
-            if (order_target_ != target) {
-                order_target_ = target;
+            if (order_target_ != stxlib::Optional<DataGridViewDisplayIndex>::of(target)) {
+                order_target_.set(target);
                 invalidate(Dirty::paint | Dirty::semantics);
             }
         }
@@ -4362,13 +4362,13 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             // The drag is read before the capture goes: releasing it may
             // deliver a leave that ends the drag.
             const bool dragged = ordering_;
-            const std::optional<DataGridViewDisplayIndex> target = order_target_;
+            const stxlib::Optional<DataGridViewDisplayIndex> target = order_target_;
             end_column_order();
             Window* const host = window();
             if (host != nullptr && has_pointer_capture()) (*host).release_pointer();
             if (dragged) {
                 // A drag moves the column and is no header click.
-                if (target && is_alive() && pressed < columns_.size()) set_column_display_index(pressed, *target);
+                if (target.present() && is_alive() && pressed < columns_.size()) set_column_display_index(pressed, *target.value());
                 event.handled = true;
                 return;
             }
@@ -5132,9 +5132,9 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             cell.role = SemanticRole::cell;
             if (definition.kind == DataGridViewColumnKind::check_box) {
                 cell.states |= SemanticState::checkable;
-                const std::optional<bool> state = check_state(row, column);
-                if (state && *state) cell.states |= SemanticState::checked;
-                if (!state) cell.states |= SemanticState::mixed;
+                const stxlib::Optional<bool> state = check_state(row, column);
+                if (state == stxlib::Optional<bool>::of(true)) cell.states |= SemanticState::checked;
+                if (state.absent()) cell.states |= SemanticState::mixed;
                 if (!cell_is_read_only) cell.actions.push_back(SemanticAction::press);
             } else if (definition.kind == DataGridViewColumnKind::button) {
                 cell.name = cell.value;
