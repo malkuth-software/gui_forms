@@ -877,7 +877,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:member:: std::optional<std::size_t> selected_index
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_index
 
       The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows. A write selects an item and shows its text, or clears the selection and keeps the text, and raises selected_index_changed. An index past the end throws std::out_of_range.
 
@@ -927,11 +927,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(DomainUpDownSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(DomainUpDownSelectedIndexCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const DomainUpDownSelectedIndexCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const DomainUpDownSelectedIndexCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, DomainUpDownSelectedIndexCapability<Declaring>> selected_index
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, DomainUpDownSelectedIndexCapability<Declaring>> selected_index
 
 .. cpp:namespace:: gui_forms
 

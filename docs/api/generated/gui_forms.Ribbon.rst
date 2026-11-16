@@ -702,7 +702,7 @@ gui_forms::Ribbon
       and applies the selection rules (see Notes). Both throw
       ``std::out_of_range`` for an unknown set.
 
-   .. cpp:function:: std::optional<AccentIndex> tab_set_accent(std::string_view set_id) const
+   .. cpp:function:: stxlib::Optional<AccentIndex> tab_set_accent(std::string_view set_id) const
 
       The :cpp:class:`AccentIndex <gui_forms::AccentIndex>` a shown set is tinted with, or none while it is hidden.
       Throws ``std::out_of_range`` for an unknown set.

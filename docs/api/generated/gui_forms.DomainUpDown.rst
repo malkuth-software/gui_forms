@@ -40,7 +40,7 @@ gui_forms::DomainUpDown
          stay where it was put. After each edit the text is kept and the
          selection re-matched to it.
 
-      **selected_index** : ``std::optional<std::size_t>``, default none
+      **selected_index** : ``stxlib::Optional<std::size_t>``, default none
          The item the text equals, or none. ``set_selected_index`` selects an item
          and shows its text, or clears the selection and keeps the text; an index
          past the end throws ``std::out_of_range``.
@@ -73,7 +73,7 @@ gui_forms::DomainUpDown
 
    :Events:
 
-      **selected_index_changed** : ``Event<std::optional<std::size_t>>``
+      **selected_index_changed** : ``Event<stxlib::Optional<std::size_t>>``
          Raised after :cpp:member:`selected_index <gui_forms::DomainUpDown::selected_index>` changes, whatever the cause: stepping,
          typing, a setter or a change to the items. It carries the new selection.
 
@@ -146,7 +146,7 @@ gui_forms::DomainUpDown
           gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
       (*mode).items = {"AM", "FM", "USB", "LSB"};
       (*mode).wrap = true;
-      (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
+      (*mode).selected_index = stxlib::Optional<std::size_t>::of(3U);   // the field shows "LSB"
       (*mode).down_button();            // wraps: the field shows "AM"
 
 
@@ -168,7 +168,7 @@ gui_forms::DomainUpDown
       stay where it was put. After each edit the text is kept and the
       selection re-matched to it.
 
-   .. cpp:member:: std::optional<std::size_t> selected_index
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_index
 
       The item the text equals, or none. ``set_selected_index`` selects an item
       and shows its text, or clears the selection and keeps the text; an index
@@ -208,7 +208,7 @@ gui_forms::DomainUpDown
 
    .. rubric:: Events
 
-   .. cpp:function:: Event<std::optional<std::size_t>>& selected_index_changed() noexcept
+   .. cpp:function:: Event<stxlib::Optional<std::size_t>>& selected_index_changed() noexcept
 
       Raised after :cpp:member:`selected_index <gui_forms::DomainUpDown::selected_index>` changes, whatever the cause: stepping,
       typing, a setter or a change to the items. It carries the new selection.

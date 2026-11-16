@@ -444,7 +444,7 @@ Related types
 
       The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<std::size_t> selected_topic
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_topic
 
       The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.
 
@@ -476,11 +476,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BackstageViewSelectedTopicCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(BackstageViewSelectedTopicCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic
 
 .. cpp:namespace:: gui_forms
 

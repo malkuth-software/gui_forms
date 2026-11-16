@@ -2776,19 +2776,19 @@ Related types
 
    .. cpp:member:: AnatomyStateSet states
 
-   .. cpp:member:: std::optional<AccentIndex> accent
+   .. cpp:member:: stxlib::Optional<AccentIndex> accent
 
       The accent the part is tinted with, or none (see AccentIndex).
 
-   .. cpp:member:: std::optional<Color> content_color
+   .. cpp:member:: stxlib::Optional<Color> content_color
 
       The colour the part shows as its content, or none: a colour swatch's sample (PartPaint::content_color; owner decision W-7).
 
-   .. cpp:member:: std::optional<Color> authored_background
+   .. cpp:member:: stxlib::Optional<Color> authored_background
 
       The colours the application authored for the part, or none (PartPaint::authored_background and authored_foreground; owner decision T4-1).
 
-   .. cpp:member:: std::optional<Color> authored_foreground
+   .. cpp:member:: stxlib::Optional<Color> authored_foreground
 
 .. cpp:namespace:: gui_forms
 
@@ -4026,23 +4026,23 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view engine_input_name(EngineInput input) noexcept
 
-.. cpp:function:: std::optional<PartRole> part_role_from_name(std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<PartRole> part_role_from_name(std::string_view name) noexcept
 
-.. cpp:function:: std::optional<AnatomyState> anatomy_state_from_name(std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<AnatomyState> anatomy_state_from_name(std::string_view name) noexcept
 
-.. cpp:function:: std::optional<PartIndex> find_declared_part(std::span<const PartDeclaration> declared, std::string_view part_name) noexcept
+.. cpp:function:: stxlib::Optional<PartIndex> find_declared_part(std::span<const PartDeclaration> declared, std::string_view part_name) noexcept
 
    Lookup by declared name within one declaration list, within a control type's own parts, or within one of its item systems.
 
-.. cpp:function:: std::optional<PartIndex> find_part(const ControlAnatomy& anatomy, std::string_view part_name) noexcept
+.. cpp:function:: stxlib::Optional<PartIndex> find_part(const ControlAnatomy& anatomy, std::string_view part_name) noexcept
 
-.. cpp:function:: std::optional<ItemSystemIndex> find_item_system(const ControlAnatomy& anatomy, std::string_view system_name) noexcept
+.. cpp:function:: stxlib::Optional<ItemSystemIndex> find_item_system(const ControlAnatomy& anatomy, std::string_view system_name) noexcept
 
-.. cpp:function:: std::optional<PartIndex> find_item_part(const ItemSystemDeclaration& system, std::string_view part_name) noexcept
+.. cpp:function:: stxlib::Optional<PartIndex> find_item_part(const ItemSystemDeclaration& system, std::string_view part_name) noexcept
 
-.. cpp:function:: std::optional<CustomStateIndex> find_custom_state(const ControlAnatomy& anatomy, std::string_view state_name) noexcept
+.. cpp:function:: stxlib::Optional<CustomStateIndex> find_custom_state(const ControlAnatomy& anatomy, std::string_view state_name) noexcept
 
-.. cpp:function:: std::optional<CustomStateIndex> find_item_custom_state(const ItemSystemDeclaration& system, std::string_view state_name) noexcept
+.. cpp:function:: stxlib::Optional<CustomStateIndex> find_item_custom_state(const ItemSystemDeclaration& system, std::string_view state_name) noexcept
 
 .. cpp:function:: bool declares_state(const ControlAnatomy& anatomy, AnatomyState state) noexcept
 
