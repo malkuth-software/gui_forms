@@ -12,8 +12,8 @@
 #                                         core, drawing core, controls, host,
 #                                         Skia adapter and text engine),
 #                                         linked whole into the program;
-#   lib/libgui_forms_application_deps.a   stx_skia and the pinned text stack
-#                                         (FreeType, HarfBuzz), linked
+#   lib/libgui_forms_application_deps.a   stx_skia and the pinned FreeType
+#                                         (GUI.Drawing's face choice), linked
 #                                         ordinarily, so
 #                                         the program takes only the members
 #                                         it reaches;
@@ -38,7 +38,7 @@ foreach(_gf_package_archive IN LISTS _gf_package_archives)
     list(APPEND _gf_package_engine_inputs "$<TARGET_FILE:${_gf_package_archive}>")
 endforeach()
 set(_gf_package_dependency_inputs "")
-foreach(_gf_package_dependency IN ITEMS stx_skia::stx_skia stx_text::freetype stx_text::harfbuzz)
+foreach(_gf_package_dependency IN ITEMS stx_skia::stx_skia stx_text::freetype)
     if(TARGET ${_gf_package_dependency})
         list(APPEND _gf_package_dependency_inputs "$<TARGET_FILE:${_gf_package_dependency}>")
     endif()

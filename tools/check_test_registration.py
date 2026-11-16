@@ -32,7 +32,6 @@ SHARED: dict[str, str] = {
     'tests/image/png_decode_probe.cpp': 'audit P12 decode timing probe, built on demand (EXCLUDE_FROM_ALL), never a test',
     'tests/text_mask_cost_probe.cpp': 'by-hand text mask cost probe (EXCLUDE_FROM_ALL)',
     'tests/windows_message_queue_native_probe.cpp': 'local probe that needs an interactive desktop window',
-    'tests/installed_feature_consumer/text_stack.cpp': 'installed-package consumer, built by tools/verify_install.py',
     'tests/hosted_child.cpp': 'the hosted program gui_forms_hosted_content_tests starts (GUI_FORMS_HOSTED_CHILD)',
     'tests/hosted_client_consumer/parent.cpp': 'installed-package hosted-content parent, built by tools/verify_install.py --hosted-client',
     'tests/hosted_client_consumer/child.cpp': 'installed-package hosted program, built by tools/verify_install.py --hosted-client',

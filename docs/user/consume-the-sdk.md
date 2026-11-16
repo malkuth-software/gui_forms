@@ -131,8 +131,8 @@ target_link_libraries(my_forms PRIVATE GUIForms::Application audio_adapter)
 ## Development text targets
 
 `GUIForms::TextMasks` (the logical text-mask service) and
-`GUIForms::PreparedText` (the prepared-text service) both need
-`GUI_FORMS_ENABLE_HARFBUZZ_TEXT`.
+`GUIForms::PreparedText` (the prepared-text service) both use the text
+engine, which every build has.
 
 - `TextMasks` is the `TextMasks` package component of a native-host build
   configured with `GUI_FORMS_BUILD_TEXT_MASKS`, such as
