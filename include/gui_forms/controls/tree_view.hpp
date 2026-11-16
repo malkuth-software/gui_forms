@@ -11,12 +11,13 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -155,9 +156,9 @@ private:
     // and currently the other way), then rebuilds, invalidates and raises
     // the events as the bulk calls describe.
     void apply_expansion(std::span<const std::size_t> indices, bool expanded);
-    [[nodiscard]] std::optional<std::size_t> item_index(
+    [[nodiscard]] stxlib::Optional<std::size_t> item_index(
         std::string_view stable_id) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> visible_row_at(
+    [[nodiscard]] stxlib::Optional<std::size_t> visible_row_at(
         Point absolute) const noexcept;
     [[nodiscard]] std::size_t visible_row_count() const noexcept;
     void ensure_visible(std::size_t visible_row);
@@ -175,11 +176,11 @@ private:
     std::vector<std::size_t> visible_;
     std::string selected_id_;
     std::string active_id_;
-    std::optional<std::size_t> hovered_row_;
+    stxlib::Optional<std::size_t> hovered_row_;
     // The in-place reveal of the hovered node's cut-off text; owned,
     // created with the view.
     std::unique_ptr<detail::CutOffTextRevealer> reveal_;
-    std::optional<std::size_t> pressed_row_;
+    stxlib::Optional<std::size_t> pressed_row_;
     std::uint32_t pressed_click_count_{1U};
     bool pressed_expander_{};
     std::size_t top_row_{};
