@@ -20,12 +20,13 @@ HostWindowAdmission SurfaceWindowing::open(SurfaceApplicationWindow entry, bool 
     }
     HostWindowId owner_id{};
     if (!entry.owner_id.empty()) {
-        const std::optional<HostWindowId> found = find(entry.owner_id);
-        if (!found.has_value() || runtime_.window(*found) == nullptr) {
+        const stxlib::Optional<HostWindowId> found = find(entry.owner_id);
+        const HostWindowId* const found_id = found.value();
+        if (found_id == nullptr || runtime_.window(*found_id) == nullptr) {
             admission.status.error = HostServiceError::invalid_argument;
             return admission;
         }
-        owner_id = *found;
+        owner_id = *found_id;
     }
     const std::optional<HostPopupPlacement> popup = entry.popup;
     const HostWindowKind kind = host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.has_value());
@@ -189,7 +190,8 @@ HostServiceStatus SurfaceWindowing::hide_impl(HostWindowId window) {
 // windows when the loop begins: every window not owned by the modal one.
 HostServiceStatus SurfaceWindowing::run_modal_impl(HostWindowId window) {
     if (runtime_.window(window) == nullptr) return {HostServiceError::after_shutdown};
-    const std::optional<HostWindowId> owner_id = owner(window);
+    const stxlib::Optional<HostWindowId> owner_held = owner(window);
+    const HostWindowId* const owner_id = owner_held.value();
     runtime_.begin_modal_scope(window);
     runtime_.activate(window, true);
     const HostWindowId main_window = primary();
@@ -197,7 +199,7 @@ HostServiceStatus SurfaceWindowing::run_modal_impl(HostWindowId window) {
            (!main_window.valid() || runtime_.window(main_window) != nullptr))
         runtime_.step();
     runtime_.desk.end_modal(window);
-    if (owner_id.has_value() && runtime_.window(*owner_id) != nullptr) runtime_.activate(*owner_id, true);
+    if (owner_id != nullptr && runtime_.window(*owner_id) != nullptr) runtime_.activate(*owner_id, true);
     runtime_.scene_changed();
     return {};
 }

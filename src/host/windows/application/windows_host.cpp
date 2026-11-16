@@ -4480,7 +4480,7 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
         for (std::size_t index = 0; index < windows.size() && failure == 0; ++index) {
             if (created[index]) continue;
             WindowsApplicationWindow& entry = windows[index];
-            if (!entry.owner_id.empty() && !(*run).find(entry.owner_id).has_value()) continue;
+            if (!entry.owner_id.empty() && (*run).find(entry.owner_id).absent()) continue;
             const WindowsApplicationRun::OpenOutcome outcome = (*run).open(std::move(entry), false);
             if (!outcome.admission.status.accepted()) {
                 failure = outcome.failure_code == 0 ? 2 : outcome.failure_code;

@@ -22,6 +22,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace {
 using namespace gui_forms;
 
@@ -84,8 +86,8 @@ void opens_a_native_window() {
     require(token.refusal() == NativePopupRefusal::none, "nothing refused it");
     require(token.id().valid() && token.window() != nullptr, "the token names the popup window");
     require(desk.windowing().window_count() == 2U, "the popup is a window of the run");
-    require(desk.windowing().kind(token.id()) == HostWindowKind::popup, "its kind is popup");
-    require(desk.windowing().owner(token.id()) == desk.main.id(), "the window that opened it owns it");
+    require(desk.windowing().kind(token.id()) == stxlib::Optional<HostWindowKind>::of(HostWindowKind::popup), "its kind is popup");
+    require(desk.windowing().owner(token.id()) == stxlib::Optional<HostWindowId>::of(desk.main.id()), "the window that opened it owns it");
     const std::string& trace = desk.windowing().trace();
     require(contains(trace, "kind=popup") && contains(trace, "focus=passive"), "the host traces the popup");
     const std::optional<Rect> content = desk.windowing().native_content(token.id());
@@ -241,7 +243,7 @@ void task_dialog_opens_natively() {
     const std::vector<HostWindowId> ids = desk.windowing().z_order();
     HostWindowId popup{};
     for (std::size_t index = 0U; index < ids.size(); ++index) {
-        if (desk.windowing().kind(ids[index]) == HostWindowKind::popup) popup = ids[index];
+        if (desk.windowing().kind(ids[index]) == stxlib::Optional<HostWindowKind>::of(HostWindowKind::popup)) popup = ids[index];
     }
     require(desk.windowing().destroy_window(popup).accepted(), "the host destroys the popup window");
     require(!(*dialog).shown() && !button.empty(), "the dialog closes as cancelled");

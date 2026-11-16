@@ -49,13 +49,14 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
   HostWindowId owner_id{};
   ::Window owner_xid = 0;
   if (!entry.owner_id.empty()) {
-    const std::optional<HostWindowId> found = find(entry.owner_id);
-    NativeWindow *owner = found.has_value() ? native(*found) : nullptr;
+    const stxlib::Optional<HostWindowId> found = find(entry.owner_id);
+    const HostWindowId *const found_id = found.value();
+    NativeWindow *owner = found_id != nullptr ? native(*found_id) : nullptr;
     if (owner == nullptr) {
       admission.status.error = HostServiceError::invalid_argument;
       return admission;
     }
-    owner_id = *found;
+    owner_id = *found_id;
     owner_xid = (*owner).xid;
   }
   const std::optional<HostPopupPlacement> popup = entry.popup;
@@ -374,7 +375,8 @@ HostServiceStatus X11Windowing::run_modal_impl(HostWindowId window) {
     held.modal = true;
     blocked.push_back(candidate);
   }
-  const std::optional<HostWindowId> owner_id = owner(window);
+  const stxlib::Optional<HostWindowId> owner_held = owner(window);
+  const HostWindowId *const owner_id = owner_held.value();
   // The outer loop ends when the primary window closes; the nested loop
   // ends then too, so the outer one sees it.
   const HostWindowId main_window = primary();
@@ -388,7 +390,7 @@ HostServiceStatus X11Windowing::run_modal_impl(HostWindowId window) {
   // The keyboard goes back to a shown owner; its FocusIn reactivates it,
   // which gives its last focused control focus again
   // (SurfaceRoot::restore_focus).
-  NativeWindow *const owner_native = owner_id.has_value() ? native(*owner_id) : nullptr;
+  NativeWindow *const owner_native = owner_id != nullptr ? native(*owner_id) : nullptr;
   if (owner_native != nullptr && !(*owner_native).closed && (*owner_native).visible) {
     // visible follows MapNotify and UnmapNotify, so it can be one round trip
     // stale: a BadMatch is absorbed rather than ending the process

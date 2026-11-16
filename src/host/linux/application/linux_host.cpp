@@ -2668,7 +2668,7 @@ int run_linux_application(std::vector<LinuxApplicationWindow> windows,
         if (opened[i])
           continue;
         if (!windows[i].owner_id.empty() &&
-            !(*runtime.windowing).find(windows[i].owner_id).has_value())
+            (*runtime.windowing).find(windows[i].owner_id).absent())
           continue;
         const HostWindowAdmission admission =
             (*runtime.windowing).open(std::move(windows[i]), false);

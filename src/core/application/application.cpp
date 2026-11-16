@@ -268,8 +268,9 @@ void detach_run_windowing(ApplicationRunState& run) noexcept {
 void register_run_window(const std::shared_ptr<ApplicationWindowState>& state) {
     const std::shared_ptr<ApplicationRunState> run = (*state).run.lock();
     if (!run || (*run).closed || (*run).windowing == nullptr) return;
-    const std::optional<HostWindowId> id = (*(*run).windowing).find((*state).stable_id);
-    if (!id.has_value()) return;
+    const stxlib::Optional<HostWindowId> found = (*(*run).windowing).find((*state).stable_id);
+    const HostWindowId* const id = found.value();
+    if (id == nullptr) return;
     (*state).id = *id;
     for (std::size_t index = 0U; index < (*run).windows.size(); ++index) {
         if ((*run).windows[index].id == *id) return;

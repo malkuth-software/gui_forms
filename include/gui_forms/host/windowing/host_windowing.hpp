@@ -15,6 +15,8 @@
 #include <thread>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // Identity of one window within one application run. Identities are
@@ -342,12 +344,12 @@ public:
     [[nodiscard]] std::size_t modal_depth() const noexcept { return modal_depth_; }
 
     // Table queries (no capability needed).
-    [[nodiscard]] std::optional<HostWindowId> find(std::string_view stable_id) const noexcept;
+    [[nodiscard]] stxlib::Optional<HostWindowId> find(std::string_view stable_id) const noexcept;
     [[nodiscard]] bool live(HostWindowId window) const noexcept;
-    [[nodiscard]] std::optional<HostWindowKind> kind(HostWindowId window) const noexcept;
+    [[nodiscard]] stxlib::Optional<HostWindowKind> kind(HostWindowId window) const noexcept;
     // The owner, or an invalid identity for a window without one. Empty for
     // an unknown window.
-    [[nodiscard]] std::optional<HostWindowId> owner(HostWindowId window) const noexcept;
+    [[nodiscard]] stxlib::Optional<HostWindowId> owner(HostWindowId window) const noexcept;
     [[nodiscard]] HostWindowId primary() const noexcept { return primary_; }
     // Whether the window should be on screen now: what the program asked
     // for, after the floating policy. Adapters show a new window only when
@@ -461,7 +463,7 @@ private:
         HostWindowId owner{};
         HostWindowKind kind{HostWindowKind::standard};
         // The frame last reported, until the first report.
-        std::optional<HostWindowFrame> frame{};
+        stxlib::Optional<HostWindowFrame> frame{};
         // Visibility: what the program wants, and what the policy last put
         // on screen.
         bool requested_visible{};
@@ -476,14 +478,14 @@ private:
         // origins is the policy's own placement, possibly answered late
         // (X11), and never changes the offset; the targets are forgotten when
         // the user moves the window.
-        std::optional<Point> offset{};
+        stxlib::Optional<Point> offset{};
         std::array<Point, 4> recent_targets{};
         std::size_t recent_target_count{};
         // The primary window's client origin when its followers were last
         // placed (none before the first placement); a follower move seen
         // while the primary has moved since then is the platform carrying
         // it, not the user.
-        std::optional<Point> followed_origin{};
+        stxlib::Optional<Point> followed_origin{};
     };
 
     void apply_visibility(WindowRecord& entry);

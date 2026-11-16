@@ -478,7 +478,7 @@ HeadlessApplication::HeadlessApplication(std::vector<ApplicationWindow> windows,
             for (std::size_t index = 0U; index < windows.size(); ++index) {
                 if (opened[index]) continue;
                 const bool owner_open = windows[index].owner_id.empty() ||
-                    windowing_.find(windows[index].owner_id).has_value();
+                    windowing_.find(windows[index].owner_id).present();
                 if (!owner_open) continue;
                 const ApplicationWindowOpenResult result = open(std::move(windows[index]), false);
                 if (!result.status.accepted()) {
@@ -531,8 +531,9 @@ ApplicationWindowHandle HeadlessApplication::handle(std::string_view stable_id) 
 }
 
 HostWindowId HeadlessApplication::id(std::string_view stable_id) const {
-    const std::optional<HostWindowId> result = windowing_.find(stable_id);
-    if (!result.has_value()) return {};
+    const stxlib::Optional<HostWindowId> found = windowing_.find(stable_id);
+    const HostWindowId* const result = found.value();
+    if (result == nullptr) return {};
     return *result;
 }
 
@@ -586,12 +587,13 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     }
     HostWindowId owner{};
     if (!source.owner_id.empty()) {
-        const std::optional<HostWindowId> found = windowing_.find(source.owner_id);
-        if (!found.has_value()) {
+        const stxlib::Optional<HostWindowId> found = windowing_.find(source.owner_id);
+        const HostWindowId* const found_owner = found.value();
+        if (found_owner == nullptr) {
             result.status.error = HostServiceError::invalid_argument;
             return result;
         }
-        owner = *found;
+        owner = *found_owner;
     }
     const std::optional<HostPopupPlacement> popup = source.popup;
     const HostWindowKind kind =

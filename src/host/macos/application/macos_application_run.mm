@@ -474,7 +474,8 @@ HostServiceStatus MacApplicationRun::run_modal_impl(gui_forms::HostWindowId wind
     MacRunSlot* found = slot(window);
     if (found == nullptr) return {HostServiceError::after_shutdown};
     NSWindow* modalWindow = (*found).window;
-    const std::optional<gui_forms::HostWindowId> owner_id = owner(window);
+    const stxlib::Optional<gui_forms::HostWindowId> owner_held = owner(window);
+    const gui_forms::HostWindowId* const owner_id = owner_held.value();
     const gui_forms::HostWindowId main_window = primary();
     // AppKit's modal session refuses key and mouse events to the
     // application's other windows; posted work, damage collection and
@@ -500,7 +501,7 @@ HostServiceStatus MacApplicationRun::run_modal_impl(gui_forms::HostWindowId wind
     // The owner becomes key again with its raster view first responder; its
     // activation gives its last focused control focus again
     // (SurfaceRoot::restore_focus).
-    MacRunSlot* const owner_slot = owner_id.has_value() ? slot(*owner_id) : nullptr;
+    MacRunSlot* const owner_slot = owner_id != nullptr ? slot(*owner_id) : nullptr;
     if (owner_slot != nullptr && (*owner_slot).window.visible) {
         [(*owner_slot).window makeKeyAndOrderFront:nil];
         [(*owner_slot).window makeFirstResponder:(*owner_slot).view];
@@ -882,7 +883,7 @@ int run_macos_application(std::vector<MacApplicationWindow> windows,
             for (std::size_t index = 0U; index < windows.size() && failure == 0; ++index) {
                 if (opened[index]) continue;
                 if (!windows[index].owner_id.empty() &&
-                    !run.find(windows[index].owner_id).has_value()) continue;
+                    run.find(windows[index].owner_id).absent()) continue;
                 const MacApplicationRun::OpenOutcome outcome =
                     run.open(std::move(windows[index]), false);
                 if (!outcome.admission.status.accepted()) {

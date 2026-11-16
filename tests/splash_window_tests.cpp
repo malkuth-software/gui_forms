@@ -43,6 +43,8 @@
 #include <string>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace {
 bool counting_allocations = false;
 std::uint64_t counted_allocations = 0U;
@@ -162,8 +164,8 @@ void tooltip_shows_in_a_splash_window() {
     require((*desk.model).tool_tip_visible(), "the tooltip shows");
     const std::optional<HostWindowId> splash = desk.splash();
     require(splash.has_value() && desk.windowing().window_count() == 2U, "the tooltip has its own window");
-    require(desk.windowing().kind(*splash) == HostWindowKind::popup, "a Splash is a popup-kind window");
-    require(desk.windowing().owner(*splash) == desk.main.id(), "the window that shows it owns it");
+    require(desk.windowing().kind(*splash) == stxlib::Optional<HostWindowKind>::of(HostWindowKind::popup), "a Splash is a popup-kind window");
+    require(desk.windowing().owner(*splash) == stxlib::Optional<HostWindowId>::of(desk.main.id()), "the window that shows it owns it");
     const std::string& trace = desk.windowing().trace();
     require(contains(trace, "transient=tool_tip") && contains(trace, "focus=passive"),
             "the host is told it is a tooltip Splash, never focused");
@@ -441,7 +443,7 @@ void error_message_shows_in_the_splash_window() {
     (*desk.model).show_tool_tip(hit, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
     const std::optional<HostWindowId> splash = desk.splash();
     require(splash.has_value() && desk.windowing().native_visible(*splash) &&
-                desk.windowing().kind(*splash) == HostWindowKind::popup,
+                desk.windowing().kind(*splash) == stxlib::Optional<HostWindowKind>::of(HostWindowKind::popup),
             "the message shows in the Splash window");
 }
 
