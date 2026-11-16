@@ -566,6 +566,9 @@ private:
     // A `@keyframes` rule's definition into motion_.keyframes; false after
     // an error.
     [[nodiscard]] bool collect_keyframes(std::size_t index);
+    // One `@filter` rule at node `index` into filters_ (lower_theme_filter_
+    // declaration); false, reporting, when it refuses the sheet.
+    [[nodiscard]] bool collect_filter(std::size_t index);
     // The offsets a keyframe block's selectors name, into `offsets`.
     [[nodiscard]] bool keyframe_offsets(const SyntaxNode& block, std::vector<double>& offsets);
     // One keyframe declaration's values into `definition` at `offsets`;
@@ -658,6 +661,9 @@ private:
     std::optional<ColourRoleSide> bare_side_{};
     // The backdrop the rule being lowered declares, or none.
     std::optional<BackdropDeclaration> backdrop_{};
+    // The sheet's `@filter` rules, in order, collected before its style
+    // rules so that a filter may be named before it is declared.
+    std::vector<NamedThemeFilter> filters_{};
     // The band the rule being lowered declares, or none.
     std::optional<BandDeclaration> band_{};
     // The palette slots the rule being lowered read, one bit a slot.
@@ -799,6 +805,18 @@ CompileOutcome CompilePass::run() {
     }
     if (!palette) return CompileOutcome::refused;
     const std::vector<SyntaxNode>& nodes = tree_.nodes;
+    // The filters first, as the keyframes: `filter: url(#id)` may name a
+    // filter declared after its rule.
+    filters_.clear();
+    for (std::size_t index = 1U; index < nodes.size(); index = nodes[index].subtree_end.value) {
+        if (nodes[index].kind != SyntaxNodeKind::filter_rule) continue;
+        if (filters_.size() == maximum_theme_filters) {
+            report(DiagnosticCode::value_out_of_range, nodes[index].tokens.first.value,
+                   "more than " + std::to_string(maximum_theme_filters) + " @filter rules");
+            return CompileOutcome::refused;
+        }
+        if (!collect_filter(index)) return CompileOutcome::refused;
+    }
     // The keyframes first: an animation may name keyframes defined after
     // its rule, as in CSS.
     std::size_t keyframes_rules = 0U;
@@ -3089,7 +3107,10 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
     material_lowering_.current_colour = Color::rgba(0, 0, 0, 255);
     material_lowering_.admit_app_fonts = input_.admit_app_fonts;
     material_lowering_.keep_gradients = em_token.has_value() || names_current_colour(value_);
+    // The sheet's @filter rules, lent for the one lowering.
+    material_lowering_.filters = filters_;
     lower_material_value(property, value_, node.content.first.value, input_.images, material_lowering_);
+    material_lowering_.filters = {};
     if (material_lowering_.outcome != MaterialLoweringOutcome::lowered) return report_material_problem();
     for (MaterialLoweringProblem& warning : material_lowering_.warnings) {
         report(warning.code, warning.token, std::move(warning.detail));
@@ -3164,7 +3185,10 @@ bool CompilePass::lower_relative(MaterialProperty property, std::uint32_t start,
 // that em changes is not admitted.
 bool CompilePass::lower_em_pass(MaterialProperty property, std::uint32_t start) {
     material_lowering_.em = 1.0;
+    // The sheet's @filter rules, lent for the one lowering.
+    material_lowering_.filters = filters_;
     lower_material_value(property, value_, start, input_.images, material_lowering_);
+    material_lowering_.filters = {};
     material_lowering_.em = 0.0;
     if (material_lowering_.outcome != MaterialLoweringOutcome::lowered) {
         static_cast<void>(report_material_problem());
@@ -3205,7 +3229,10 @@ bool CompilePass::lower_em_pass(MaterialProperty property, std::uint32_t start) 
 // (material_declaration_colours) that changes is not admitted.
 bool CompilePass::lower_current_colour_pass(MaterialProperty property, std::uint32_t start) {
     material_lowering_.current_colour = Color::rgba(255, 255, 255, 255);
+    // The sheet's @filter rules, lent for the one lowering.
+    material_lowering_.filters = filters_;
     lower_material_value(property, value_, start, input_.images, material_lowering_);
+    material_lowering_.filters = {};
     material_lowering_.current_colour = Color::rgba(0, 0, 0, 255);
     if (material_lowering_.outcome != MaterialLoweringOutcome::lowered) {
         static_cast<void>(report_material_problem());
@@ -3475,6 +3502,38 @@ bool CompilePass::apply_loop(const DeclaredLoop& loop, ThemeRule& lowered) {
         break;
     }
     lowered.declarations.push_back(RuleDeclaration::expression_value(loop.parameter, motion_.program, frames[0].value));
+    return true;
+}
+
+bool CompilePass::collect_filter(std::size_t index) {
+    const SyntaxNode& rule = tree_.nodes[index];
+    rule_ = clipped_theme_detail(range_text(TokenRange{rule.tokens.first, rule.content.end}));
+    property_.clear();
+    NamedThemeFilter filter{};
+    filter.name = token_text(rule.content.first.value);
+    filters_.reserve(filters_.size() + 1U);
+    const std::size_t end = rule.subtree_end.value;
+    std::string property_name{};
+    for (std::size_t child = index + 1U; child < end; child = tree_.nodes[child].subtree_end.value) {
+        const SyntaxNode& node = tree_.nodes[child];
+        const std::uint32_t property = node.tokens.first.value;
+        property_ = clipped_theme_detail(token_text(property));
+        fold_ascii(token_text(property), property_name);
+        if (property_name != "color-matrix" && property_name != "component-transfer") {
+            report(DiagnosticCode::property_not_admitted, property, property_ + " in @filter");
+            continue;
+        }
+        parameter_names_.clear();
+        if (!read_value(node)) return false;
+        const std::uint32_t at = node.content.first.value < node.content.end.value ? node.content.first.value : property;
+        MaterialLoweringProblem problem{};
+        if (!lower_theme_filter_declaration(property_name, value_, at, filter, problem)) {
+            report(problem.code, problem.token, std::move(problem.detail));
+            return false;
+        }
+    }
+    property_.clear();
+    filters_.push_back(std::move(filter));
     return true;
 }
 

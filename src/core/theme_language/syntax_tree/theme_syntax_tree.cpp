@@ -38,6 +38,7 @@ std::string_view syntax_node_kind_name(SyntaxNodeKind kind) noexcept {
     case SyntaxNodeKind::style_rule: return "style_rule";
     case SyntaxNodeKind::keyframe_block: return "keyframe_block";
     case SyntaxNodeKind::declaration: return "declaration";
+    case SyntaxNodeKind::filter_rule: return "filter_rule";
     }
     return "unknown";
 }

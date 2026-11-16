@@ -2,6 +2,7 @@
 // primitive registry with diagnostics, and resolving one part.
 
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 

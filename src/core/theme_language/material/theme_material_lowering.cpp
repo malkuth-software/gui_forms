@@ -2457,6 +2457,36 @@ bool MaterialReader::lower_filter() {
         if (component.kind == ValueComponentKind::resource) {
             return fail(DiagnosticCode::value_form_not_admitted, component.token, "an SVG filter reference");
         }
+        if (component.kind == ValueComponentKind::fragment) {
+            // url(#id): a theme-declared @filter, the last of its name.
+            const NamedThemeFilter* found = nullptr;
+            for (const NamedThemeFilter& declared : lowering_.filters) {
+                if (declared.name == component.text) found = &declared;
+            }
+            if (found == nullptr) {
+                return fail(DiagnosticCode::resource_unknown, component.token,
+                            "#" + clipped_theme_detail(component.text));
+            }
+            const MaterialColourStages& stages = (*found).stages;
+            if (stages.table && (table || shadowed)) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            table ? "a second colour table" : "a component-transfer after drop-shadow()");
+            }
+            if (stages.table) {
+                composed = composed.then(stages.matrix);
+                table = *stages.table;
+            } else if (!table) {
+                composed = composed.then(stages.matrix);
+                if (shadowed) after_shadow = after_shadow.then(stages.matrix);
+            } else if (stages.matrix.per_channel()) {
+                table = (*table).then_matrix(stages.matrix);
+            } else {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            "#" + clipped_theme_detail(component.text) + " after a colour table");
+            }
+            filtered = true;
+            continue;
+        }
         const NamedFilter* const named =
             component.kind == ValueComponentKind::function ? filter_function(component.text) : nullptr;
         if (named == nullptr) return fail(DiagnosticCode::value_wrong_kind, component.token, "a filter function");
@@ -4662,6 +4692,214 @@ void lower_material_value(MaterialProperty property, const ThemeValue& value, st
                           std::span<const ThemeImageResource> images, MaterialLowering& lowering) {
     MaterialReader reader(value, start, images, lowering);
     reader.lower(property);
+}
+
+// -- @filter declarations --------------------------------------------------------
+
+namespace {
+
+// Reads one @filter declaration's value (see lower_theme_filter_declaration).
+class FilterRuleReader final {
+public:
+    FilterRuleReader(const ThemeValue& value, std::uint32_t start, NamedThemeFilter& filter,
+                     MaterialLoweringProblem& problem) noexcept
+        : value_(value), start_(start), filter_(filter), problem_(problem) {}
+
+    [[nodiscard]] bool colour_matrix();
+    [[nodiscard]] bool component_transfer();
+
+private:
+    [[nodiscard]] bool fail(DiagnosticCode code, std::uint32_t token, std::string detail);
+    // The plain number at component `index`; false, failing, for another
+    // component.
+    [[nodiscard]] bool plain_number(std::size_t index, double& number);
+    // The plain numbers that are the arguments of the function at `index`,
+    // between `least` and `most` of them.
+    [[nodiscard]] bool function_numbers(std::size_t index, std::size_t least, std::size_t most,
+                                        std::vector<double>& numbers);
+    // The component after `index` (past a function's arguments).
+    [[nodiscard]] std::size_t after(std::size_t index) const noexcept;
+    [[nodiscard]] bool transfer_function(std::size_t index, MaterialTransferFunction& function);
+
+    const ThemeValue& value_;
+    std::uint32_t start_{};
+    NamedThemeFilter& filter_;
+    MaterialLoweringProblem& problem_;
+};
+
+bool FilterRuleReader::fail(const DiagnosticCode code, const std::uint32_t token, std::string detail) {
+    problem_.code = code;
+    problem_.token = token;
+    problem_.detail = std::move(detail);
+    return false;
+}
+
+std::size_t FilterRuleReader::after(const std::size_t index) const noexcept {
+    const ValueComponent& component = value_.components[index];
+    if (component.kind == ValueComponentKind::function) return component.subtree_end;
+    return index + 1U;
+}
+
+bool FilterRuleReader::plain_number(const std::size_t index, double& number) {
+    const ValueComponent& component = value_.components[index];
+    const bool plain = component.kind == ValueComponentKind::number && component.unit == ValueUnit::none;
+    if (!plain) return fail(DiagnosticCode::value_wrong_kind, component.token, "a number");
+    if (!std::isfinite(component.number)) return fail(DiagnosticCode::value_out_of_range, component.token, "a number");
+    number = component.number;
+    return true;
+}
+
+bool FilterRuleReader::function_numbers(const std::size_t index, const std::size_t least, const std::size_t most,
+                                        std::vector<double>& numbers) {
+    const ValueComponent& function = value_.components[index];
+    numbers.clear();
+    for (std::size_t argument = index + 1U; argument < function.subtree_end; argument = after(argument)) {
+        if (value_.components[argument].kind == ValueComponentKind::comma) continue;
+        if (numbers.size() == most) {
+            return fail(DiagnosticCode::value_syntax, value_.components[argument].token,
+                        "at most " + std::to_string(most) + " numbers");
+        }
+        double number = 0.0;
+        if (!plain_number(argument, number)) return false;
+        numbers.push_back(number);
+    }
+    if (numbers.size() < least) {
+        return fail(DiagnosticCode::value_syntax, function.token, "at least " + std::to_string(least) + " numbers");
+    }
+    return true;
+}
+
+bool FilterRuleReader::colour_matrix() {
+    if (filter_.stages.table) {
+        return fail(DiagnosticCode::value_form_not_admitted, start_, "color-matrix after component-transfer");
+    }
+    const std::vector<ValueComponent>& components = value_.components;
+    MaterialColourMatrix matrix{};
+    const ValueComponent& first = components[0];
+    if (first.kind == ValueComponentKind::keyword && equals_ascii_folded(first.text, "luminance-to-alpha")) {
+        if (components.size() != 1U) return fail(DiagnosticCode::value_syntax, components[1].token, "one keyword");
+        // SVG's luminanceToAlpha: colour 0, alpha the luminance.
+        matrix.values = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0, 0.0, 0.0, 0.2125, 0.7154, 0.0721, 0.0, 0.0};
+    } else if (first.kind == ValueComponentKind::function && equals_ascii_folded(first.text, "saturate")) {
+        std::vector<double> numbers{};
+        if (!function_numbers(0U, 1U, 1U, numbers)) return false;
+        if (after(0U) != components.size()) {
+            return fail(DiagnosticCode::value_syntax, components[after(0U)].token, "one function");
+        }
+        matrix = MaterialColourMatrix::saturate(numbers[0]);
+    } else if (first.kind == ValueComponentKind::function && equals_ascii_folded(first.text, "hue-rotate")) {
+        if (first.subtree_end != 2U || components.size() != 2U) {
+            return fail(DiagnosticCode::value_syntax, first.token, "one angle");
+        }
+        const ValueComponent& angle = components[1];
+        const bool degrees = angle.kind == ValueComponentKind::number &&
+                             (angle.unit == ValueUnit::degrees || (angle.unit == ValueUnit::none && angle.number == 0.0));
+        if (!degrees) return fail(DiagnosticCode::value_wrong_kind, angle.token, "an angle");
+        matrix = MaterialColourMatrix::hue_rotate(angle.number);
+    } else {
+        std::size_t written = 0U;
+        for (std::size_t index = 0U; index < components.size(); index = after(index)) {
+            if (components[index].kind == ValueComponentKind::comma) continue;
+            if (written == matrix.values.size()) {
+                return fail(DiagnosticCode::value_syntax, components[index].token, "20 numbers");
+            }
+            double number = 0.0;
+            if (!plain_number(index, number)) return false;
+            matrix.values[written] = number;
+            written = written + 1U;
+        }
+        if (written != matrix.values.size()) return fail(DiagnosticCode::value_syntax, start_, "20 numbers");
+    }
+    if (!valid_colour_matrix(matrix)) return fail(DiagnosticCode::value_out_of_range, start_, "a colour matrix");
+    filter_.stages.matrix = filter_.stages.matrix.then(matrix);
+    return true;
+}
+
+bool FilterRuleReader::transfer_function(const std::size_t index, MaterialTransferFunction& function) {
+    const ValueComponent& written = value_.components[index];
+    if (written.kind == ValueComponentKind::keyword && equals_ascii_folded(written.text, "identity")) {
+        function = MaterialTransferFunction{};
+        return true;
+    }
+    if (written.kind != ValueComponentKind::function) {
+        return fail(DiagnosticCode::value_wrong_kind, written.token, "a transfer function");
+    }
+    std::vector<double> numbers{};
+    function = MaterialTransferFunction{};
+    if (equals_ascii_folded(written.text, "table") || equals_ascii_folded(written.text, "discrete")) {
+        if (!function_numbers(index, 1U, MaterialTransferFunction::maximum_values, numbers)) return false;
+        function.kind = equals_ascii_folded(written.text, "table") ? MaterialTransferKind::table
+                                                                     : MaterialTransferKind::discrete;
+        function.values = numbers;
+    } else if (equals_ascii_folded(written.text, "linear")) {
+        if (!function_numbers(index, 2U, 2U, numbers)) return false;
+        function.kind = MaterialTransferKind::linear;
+        function.slope = numbers[0];
+        function.intercept = numbers[1];
+    } else if (equals_ascii_folded(written.text, "gamma")) {
+        if (!function_numbers(index, 3U, 3U, numbers)) return false;
+        function.kind = MaterialTransferKind::gamma;
+        function.amplitude = numbers[0];
+        function.exponent = numbers[1];
+        function.offset = numbers[2];
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, written.token, clipped_theme_detail(written.text));
+    }
+    if (!valid_transfer_function(function)) {
+        return fail(DiagnosticCode::value_out_of_range, written.token, clipped_theme_detail(written.text));
+    }
+    return true;
+}
+
+bool FilterRuleReader::component_transfer() {
+    if (filter_.stages.table) return fail(DiagnosticCode::value_form_not_admitted, start_, "a second component-transfer");
+    const std::vector<ValueComponent>& components = value_.components;
+    std::array<MaterialTransferFunction, 4> functions{};
+    std::array<bool, 4> named{};
+    constexpr std::array<std::string_view, 4> channel_names{"red", "green", "blue", "alpha"};
+    std::size_t index = 0U;
+    while (index < components.size()) {
+        const ValueComponent& channel = components[index];
+        std::size_t position = channel_names.size();
+        for (std::size_t candidate = 0U; candidate < channel_names.size(); ++candidate) {
+            const bool matches =
+                channel.kind == ValueComponentKind::keyword && equals_ascii_folded(channel.text, channel_names[candidate]);
+            if (matches) position = candidate;
+        }
+        if (position == channel_names.size()) {
+            return fail(DiagnosticCode::value_wrong_kind, channel.token, "red, green, blue or alpha");
+        }
+        if (named[position]) return fail(DiagnosticCode::value_syntax, channel.token, "a channel named twice");
+        named[position] = true;
+        const std::size_t function = index + 1U;
+        if (function >= components.size()) {
+            return fail(DiagnosticCode::value_syntax, channel.token, "a transfer function after the channel");
+        }
+        if (!transfer_function(function, functions[position])) return false;
+        index = after(function);
+    }
+    filter_.stages.table = MaterialColourTable::transfer(functions[0], functions[1], functions[2], functions[3]);
+    return true;
+}
+
+} // namespace
+
+bool lower_theme_filter_declaration(const std::string_view property, const ThemeValue& value, const std::uint32_t start,
+                                    NamedThemeFilter& filter, MaterialLoweringProblem& problem) {
+    if (value.components.empty()) {
+        problem.code = DiagnosticCode::value_syntax;
+        problem.token = start;
+        problem.detail = "a value";
+        return false;
+    }
+    FilterRuleReader reader(value, start, filter, problem);
+    if (property == "color-matrix") return reader.colour_matrix();
+    if (property == "component-transfer") return reader.component_transfer();
+    problem.code = DiagnosticCode::property_not_admitted;
+    problem.token = start;
+    problem.detail = std::string(property) + " in @filter";
+    return false;
 }
 
 } // namespace gui_forms::theme_language

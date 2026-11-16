@@ -362,7 +362,8 @@ is drawn, so a baked face composites under the path's coverage mask, the
 same on every host. For example, a tab's slanted face:
 `clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%)`.
 
-A `filter` list may also use three GUI.Forms colour functions (not CSS).
+A `filter` list may also use three GUI.Forms colour functions, house
+extensions (not CSS).
 `fill(<colour>)` paints every covered pixel in the colour and keeps its
 coverage: the colour channels become the colour's, and the alpha is the
 pixel's times the colour's. `duotone(<dark>, <light>)` (a tint) maps each
@@ -381,14 +382,38 @@ that reads only its own channel (`brightness()`, `contrast()`, `invert()`,
 `tritone()`, and a `tritone()` after `drop-shadow()` refuse the theme. For
 example, `filter: tritone(#14213d, #fca311, #e5e5e5)`.
 
+A filter may also be declared once and named. `@filter <id> { ... }`
+declares it at the top level of a sheet, and `filter: url(#<id>)` (or
+`url("#<id>")`) composes it into a list where it stands, anywhere a colour
+function may stand; a rule may name a filter declared after it, and the
+last of a name wins. The block holds two declarations, SVG's colour
+primitives in CSS form:
+- `color-matrix` is feColorMatrix: 20 numbers (the red, green, blue and
+  alpha rows, each four factors and an offset, on straight colour from 0
+  to 1), or `saturate(<number>)`, `hue-rotate(<angle>)` or
+  `luminance-to-alpha`. Several compose in order.
+- `component-transfer` is feComponentTransfer: up to four
+  `<channel> <function>` pairs, the channel `red`, `green`, `blue` or
+  `alpha`, the function `identity`, `table(<n> ...)`, `discrete(<n> ...)`
+  (1 to 32 values), `linear(<slope> <intercept>)` or
+  `gamma(<amplitude> <exponent> <offset>)`. A channel not named is
+  unchanged. At most one, after every `color-matrix`.
+A filter lowers to the same colour stages as `tritone()`: the matrix, then
+a 256-level table per channel, so a list may hold at most one table (a
+`tritone()` or a filter with a `component-transfer`). A name no `@filter`
+declares is an error (`E413`). For example,
+`@filter warm { color-matrix: saturate(0.6); component-transfer: red linear(0.9 0.1) }`
+and `filter: url(#warm) brightness(1.1)`.
+
 A material's mask fades the whole finished part, its shadows and glows
 included. `mask-image` is `none` or up to 4 comma-separated layers, the
 top layer first as in CSS, each a gradient or an image; at most one of
-them may be an image. `mask-mode` reads each layer's weight: `alpha`, the
+them may be an image (a house limit; CSS allows any number). `mask-mode` reads each layer's weight: `alpha`, the
 layer's alpha (also `match-source`, since every layer is an image or a
 gradient); `luminance`, 0.2126 R + 0.7152 G + 0.0722 B of the layer's
-premultiplied colour, on its sRGB-encoded values; or the GUI.Forms
-additions `inverse-alpha` and `inverse-luminance`, one minus either.
+premultiplied colour, on its sRGB-encoded values; or the house
+extensions `inverse-alpha` and `inverse-luminance` (not CSS), one minus
+either.
 `mask-composite` joins each layer to the layers beneath it, with w the
 layer's weight and c theirs: `add` gives w + c (1 - w), `subtract` w
 (1 - c), `intersect` w c and `exclude` w (1 - c) + c (1 - w); the bottom

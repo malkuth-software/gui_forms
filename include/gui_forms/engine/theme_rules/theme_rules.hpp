@@ -10,7 +10,6 @@
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
-#include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
 
@@ -534,6 +533,8 @@ inline constexpr std::string_view translate_x_property = "translate_x";
 inline constexpr std::string_view translate_y_property = "translate_y";
 inline constexpr double maximum_presentational_translate = 32.0;
 
+enum class PaintGroupComposite : std::uint8_t;
+
 // How a part joins what lies beneath it (E9.6, CSS `mix-blend-mode`); the
 // modes past screen are the rest of CSS's separable modes (capability
 // review, owner 2026-11-16).
@@ -566,7 +567,10 @@ enum class PartBlend : std::uint8_t {
 inline constexpr std::string_view blend_property = "blend";
 
 // The paint group composite that draws a part of `blend`; source-over for
-// normal.
+// normal. PaintGroupComposite is declared opaquely here (painter.hpp
+// defines it), so that this header does not include the painter's, which
+// reaches back through gui_forms/types.hpp; a caller that reads the result
+// includes painter.hpp.
 [[nodiscard]] GUI_FORMS_API PaintGroupComposite part_blend_composite(PartBlend blend) noexcept;
 
 // The effect a part draws (effect programs, design note section 7): a

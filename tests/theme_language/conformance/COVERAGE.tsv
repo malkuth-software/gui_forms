@@ -1,6 +1,7 @@
 # The theme language's forms (PLAN.md sections 1.1 to 1.10) and diagnostic codes (section 2),
 # each with the conformance fixture covering it (theme_conformance_tests). A form with no fixture
 # fails. `code-elsewhere <code>` rows name the test reporting a code no sheet alone can.
+atrule.filter	theme-filter
 atrule.import	import
 atrule.keyframes	motion-keyframes
 atrule.media	media
@@ -247,6 +248,8 @@ token.comment	source-and-tokens
 token.number-exponent	source-and-tokens
 token.string	source-and-tokens
 value.image-url	values-keywords-images
+value.url-fragment	theme-filter
+value.url-fragment-unknown	theme-filter-unknown
 value.inherit-color	values-keywords-images
 value.inherit-font	values-keywords-images
 value.initial	values-keywords-images

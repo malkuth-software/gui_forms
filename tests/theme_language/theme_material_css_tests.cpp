@@ -1054,8 +1054,52 @@ void test_seat() {
             "a quarter of an 8-unit side seats the part 2 units proud");
 }
 
+// `@filter <id>` and `filter: url(#id)` (capability review, owner
+// 2026-11-16): the declared matrix and table, composed where named.
+void test_theme_filters() {
+    const std::string_view sheet = "#pad::part(face) { filter: url(#warm) contrast(1.5) }\n"
+                                   "@filter warm { color-matrix: saturate(0.5); color-matrix: hue-rotate(90deg);\n"
+                                   "  component-transfer: red linear(0.5 0.25) alpha discrete(0 1) }";
+    const Compilation warm = compile(sheet);
+    const MaterialDeclaration* const filter = field_of(only_rule(warm, sheet), MaterialField::colour_filter);
+    require(filter != nullptr && (*filter).colour_filter.has_value() && (*filter).colour_filter.table() != nullptr,
+            "a named filter lowers to a matrix and a table");
+    const MaterialColourMatrix matrix =
+        MaterialColourMatrix::saturate(0.5).then(MaterialColourMatrix::hue_rotate(90.0));
+    require(*(*filter).colour_filter == matrix, "its color-matrix declarations compose in order");
+    MaterialTransferFunction red{};
+    red.kind = MaterialTransferKind::linear;
+    red.slope = 0.5;
+    red.intercept = 0.25;
+    MaterialTransferFunction alpha{};
+    alpha.kind = MaterialTransferKind::discrete;
+    alpha.values = {0.0, 1.0};
+    const MaterialColourTable table =
+        MaterialColourTable::transfer(red, MaterialTransferFunction{}, MaterialTransferFunction{}, alpha)
+            .then_matrix(MaterialColourMatrix::contrast(1.5));
+    require(*(*filter).colour_filter.table() == table, "a per-channel function after it folds into the table");
+
+    const std::string_view quoted = "@filter alpha-of { color-matrix: luminance-to-alpha }\n"
+                                    "#pad::part(face) { filter: url(\"#alpha-of\") }";
+    const Compilation alpha_of = compile(quoted);
+    const MaterialDeclaration* const luminance = field_of(only_rule(alpha_of, quoted), MaterialField::colour_filter);
+    MaterialColourMatrix to_alpha{};
+    to_alpha.values = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                       0.0, 0.0, 0.0, 0.0, 0.0, 0.2125, 0.7154, 0.0721, 0.0, 0.0};
+    require(luminance != nullptr && *(*luminance).colour_filter == to_alpha &&
+                (*luminance).colour_filter.table() == nullptr,
+            "a quoted fragment names the filter too, and a matrix alone has no table");
+
+    const std::string_view raw = "@filter swap { color-matrix: 0 1 0 0 0  1 0 0 0 0  0 0 1 0 0  0 0 0 1 0 }\n"
+                                 "#pad::part(face) { filter: url(#swap) }";
+    const Compilation swapped = compile(raw);
+    const MaterialDeclaration* const swap = field_of(only_rule(swapped, raw), MaterialField::colour_filter);
+    require(swap != nullptr && (*(*swap).colour_filter).values[1] == 1.0 && (*(*swap).colour_filter).values[5] == 1.0,
+            "twenty numbers are the matrix's rows");
+}
+
 void test_refusals() {
-    const std::array<Refusal, 87> refusals{{
+    const std::array<Refusal, 95> refusals{{
         {"#a { reflection: below backplane 1px }", DiagnosticCode::value_syntax},
         {"#a { reflection: below 1px mirror }", DiagnosticCode::keyword_unknown},
         {"#a { reflection: below 4px 6px }", DiagnosticCode::value_out_of_range},
@@ -1117,6 +1161,17 @@ void test_refusals() {
         {"#a { filter: duotone(black) }", DiagnosticCode::value_syntax},
         {"#a { filter: fill(1px) }", DiagnosticCode::value_wrong_kind},
         {"#a { filter: tritone(black grey white) }", DiagnosticCode::value_syntax},
+        {"#a { filter: url(#missing) }", DiagnosticCode::resource_unknown},
+        {"@filter f { color-matrix: 1 2 3 } #a { filter: url(#f) }", DiagnosticCode::value_syntax},
+        {"@filter f { color-matrix: saturate(1px) } #a { filter: url(#f) }", DiagnosticCode::value_wrong_kind},
+        {"@filter f { component-transfer: red identity; component-transfer: blue identity } #a { opacity: 1 }",
+         DiagnosticCode::value_form_not_admitted},
+        {"@filter f { component-transfer: red identity; color-matrix: saturate(2) } #a { opacity: 1 }",
+         DiagnosticCode::value_form_not_admitted},
+        {"@filter f { component-transfer: red gamma(1 0 0) } #a { opacity: 1 }", DiagnosticCode::value_out_of_range},
+        {"@filter f { component-transfer: red identity red identity } #a { opacity: 1 }", DiagnosticCode::value_syntax},
+        {"@filter g { component-transfer: red table(0 1) } #a { filter: tritone(black, grey, white) url(#g) }",
+         DiagnosticCode::value_form_not_admitted},
         {"#a { surface-finish: 2 }", DiagnosticCode::value_out_of_range},
         {"#a { surface-finish: 1px }", DiagnosticCode::value_wrong_kind},
         {"#a { gradient-dither: dots }", DiagnosticCode::keyword_unknown},
@@ -1655,6 +1710,7 @@ int main() {
     test_reflection_lowering();
     test_shape_lowering();
     test_seat();
+    test_theme_filters();
     test_refusals();
     test_gate();
     if (failures != 0) {

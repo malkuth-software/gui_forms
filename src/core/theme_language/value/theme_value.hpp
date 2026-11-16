@@ -47,6 +47,10 @@ enum class ValueComponentKind : std::uint8_t {
     function,
     comma,
     slash,
+    // `url(#<id>)` or `url("#<id>")` (capability review, owner 2026-11-16):
+    // a reference to a theme-declared `@filter <id>`; `text` is the id,
+    // without the '#'. The phases that lower properties judge it.
+    fragment,
 };
 
 // One component of a value. Components are stored in written order, each
