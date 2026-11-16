@@ -5,6 +5,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
@@ -111,8 +112,8 @@ FontSpec Label::resolved_font() const noexcept {
 // theme's text with the fields of the rules that select this label (its
 // type, stable ID, classes and states) in place (G3).
 Color Label::foreground() const {
-    const std::optional<Color>& own = fore_color.read();
-    if (own) return *own;
+    const Color* own = fore_color.read().value();
+    if (own != nullptr) return *own;
     const ResolvedControlRecipe resolved =
         effective_theme().resolve(*this, ControlVisualRole::panel, visual_context());
     const Color theme_text = resolved.recipe().text;
@@ -143,20 +144,20 @@ BindingValue Label::fore_color_property_value() const {
 }
 
 void Label::write_fore_color_property(const BindingValue& value) {
-    fore_color = std::get<Color>(value);
+    fore_color = stxlib::Optional<Color>::of(std::get<Color>(value));
 }
 
 void Label::reset_fore_color_property() {
-    fore_color = std::nullopt;
+    fore_color = stxlib::Optional<Color>::none();
 }
 
 bool Label::fore_color_serialized() const {
-    const bool own = fore_color.read().has_value();
+    const bool own = fore_color.read().present();
     return own;
 }
 
 PropertyValueOrigin Label::fore_color_property_origin() const noexcept {
-    return fore_color.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+    return fore_color.read().present() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
 }
 
 // Text only changes retained geometry when this label is content-sized.
@@ -408,7 +409,7 @@ void Label::paint_label_text(Painter& painter, const std::string_view shown) con
     line.family = ControlVisualRole::panel;
     line.role = PartRole::label;
     line.font = face;
-    line.authored_foreground = fore_color.read();
+    line.authored_foreground = platform::standard_optional(fore_color.read());
     for (std::size_t index = 0; index < layout.lines.size(); ++index) {
         line.text = lend_paint_text(layout.lines[index]);
         paint_text_part_at(painter, *this, line, layout.origins[index], layout.widths[index]);

@@ -6,6 +6,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
@@ -87,8 +88,8 @@ FontSpec TextBlock::resolved_font() const noexcept {
 }
 
 Color TextBlock::foreground() const noexcept {
-    const std::optional<Color>& own = fore_color.read();
-    if (own) return *own;
+    const Color* own = fore_color.read().value();
+    if (own != nullptr) return *own;
     return effective_theme().resolve(ControlVisualRole::panel, visual_context()).text;
 }
 
@@ -116,20 +117,20 @@ BindingValue TextBlock::fore_color_property_value() const {
 }
 
 void TextBlock::write_fore_color_property(const BindingValue& value) {
-    fore_color = std::get<Color>(value);
+    fore_color = stxlib::Optional<Color>::of(std::get<Color>(value));
 }
 
 void TextBlock::reset_fore_color_property() {
-    fore_color = std::nullopt;
+    fore_color = stxlib::Optional<Color>::none();
 }
 
 bool TextBlock::fore_color_serialized() const {
-    const bool own = fore_color.read().has_value();
+    const bool own = fore_color.read().present();
     return own;
 }
 
 PropertyValueOrigin TextBlock::fore_color_property_origin() const noexcept {
-    return fore_color.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+    return fore_color.read().present() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
 }
 
 BindingValue TextBlock::line_height_property_value() const {
@@ -330,7 +331,7 @@ void TextBlock::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::label;
     part.font = face;
-    part.authored_foreground = fore_color.read();
+    part.authored_foreground = platform::standard_optional(fore_color.read());
     for (std::size_t index = 0U; index < workspace_.lines.size(); ++index) {
         const TextLine& line = workspace_.lines[index];
         const double top = inset.top + static_cast<double>(index) * metrics.height;

@@ -644,7 +644,7 @@ void test_control_back_color_paints_background_once() {
     std::shared_ptr<Control> child = make_control<Control>(StableId("back-color.child"));
     (*child).set_requested_bounds({10.0, 10.0, 60.0, 24.0});
     (*root).add_child(child);
-    (*root).back_color = root_color;
+    (*root).back_color = stxlib::Optional<Color>::of(root_color);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{100.0, 60.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -652,10 +652,10 @@ void test_control_back_color_paints_background_once() {
     RecordingPainter inherited_painter{};
     window.paint(inherited_painter, {0.0, 0.0, 100.0, 60.0});
     require(std::count(inherited_painter.fill_colors.begin(), inherited_painter.fill_colors.end(), root_color) == 1 &&
-                (*child).ambient_back_color() == root_color,
+                (*child).ambient_back_color() == stxlib::Optional<Color>::of(root_color),
             "an inherited background must paint once, on the control that sets it");
 
-    (*child).back_color = child_color;
+    (*child).back_color = stxlib::Optional<Color>::of(child_color);
     RecordingPainter own_painter{};
     window.paint(own_painter, {0.0, 0.0, 100.0, 60.0});
     require(std::count(own_painter.fill_colors.begin(), own_painter.fill_colors.end(), root_color) == 1 &&
@@ -1540,7 +1540,7 @@ void test_label_inherits_theme_typography_until_explicitly_overridden() {
     require((*label).font.read().absent() &&
                 (*label).resolved_font() == FontSpec{FontRole::control, 17.0, 650, false,
                                           0.31} &&
-                !(*label).fore_color.read().has_value() &&
+                (*label).fore_color.read().absent() &&
                 (*label).foreground() == themed_text,
             "Label must resolve typography and text color from inherited theme roles");
 
@@ -1556,10 +1556,10 @@ void test_label_inherits_theme_typography_until_explicitly_overridden() {
             "clearing Label font must restore inherited role typography");
 
     constexpr Color explicit_text = Color::rgba(91, 37, 19);
-    (*label).fore_color = explicit_text;
+    (*label).fore_color = stxlib::Optional<Color>::of(explicit_text);
     require((*label).foreground() == explicit_text,
             "explicit Label foreground must override theme text");
-    (*label).fore_color = std::nullopt;
+    (*label).fore_color = stxlib::Optional<Color>::none();
     require((*label).foreground() == themed_text,
             "clearing Label foreground must restore inherited theme text");
 }

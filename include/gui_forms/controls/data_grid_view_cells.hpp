@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -131,8 +132,8 @@ struct GUI_FORMS_API DataGridViewCellsCell final {
 struct GUI_FORMS_API DataGridViewCellsLook final {
     std::vector<std::string> classes{};
     std::string inline_style{};
-    std::optional<Color> back_color{};
-    std::optional<Color> fore_color{};
+    stxlib::Optional<Color> back_color{};
+    stxlib::Optional<Color> fore_color{};
 
     friend bool operator==(const DataGridViewCellsLook& left, const DataGridViewCellsLook& right) {
         return left.classes == right.classes &&

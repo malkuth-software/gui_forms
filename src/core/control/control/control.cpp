@@ -477,18 +477,17 @@ void Control::set_classes_property_value(const BindingValue& value) {
 }
 
 BindingValue Control::back_color_property_value() const {
-    if (!back_color.read()) {
-        return BindingValue{};
-    }
-    return BindingValue{*back_color.read()};
+    const Color* own = back_color.read().value();
+    if (own == nullptr) return BindingValue{};
+    return BindingValue{*own};
 }
 
 void Control::set_back_color_property_value(const BindingValue& value) {
     if (std::holds_alternative<std::monostate>(value)) {
-        back_color = std::nullopt;
+        back_color = stxlib::Optional<Color>::none();
         return;
     }
-    back_color = std::get<Color>(value);
+    back_color = stxlib::Optional<Color>::of(std::get<Color>(value));
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> Control::active_border_motion_property_enum() {
@@ -559,18 +558,17 @@ void Control::set_active_border_property_value(RegisteredProperty property, cons
 }
 
 BindingValue Control::fore_color_property_value() const {
-    if (!fore_color.read()) {
-        return BindingValue{};
-    }
-    return BindingValue{*fore_color.read()};
+    const Color* own = fore_color.read().value();
+    if (own == nullptr) return BindingValue{};
+    return BindingValue{*own};
 }
 
 void Control::set_fore_color_property_value(const BindingValue& value) {
     if (std::holds_alternative<std::monostate>(value)) {
-        fore_color = std::nullopt;
+        fore_color = stxlib::Optional<Color>::none();
         return;
     }
-    fore_color = std::get<Color>(value);
+    fore_color = stxlib::Optional<Color>::of(std::get<Color>(value));
 }
 
 std::shared_ptr<const PropertyEnumDescriptor>
@@ -1265,10 +1263,10 @@ template <Control::RegisteredProperty Property>
 void Control::reset_registered(Component& owner) {
     Control& control = static_cast<Control&>(owner);
     if constexpr (Property == RegisteredProperty::back_color) {
-        control.back_color = std::nullopt;
+        control.back_color = stxlib::Optional<Color>::none();
     } else {
         static_assert(Property == RegisteredProperty::fore_color);
-        control.fore_color = std::nullopt;
+        control.fore_color = stxlib::Optional<Color>::none();
     }
 }
 
@@ -1940,13 +1938,13 @@ void Control::clear_authored_surface_material() {
     invalidate(Dirty::paint);
 }
 
-std::optional<Color> Control::ambient_back_color() const noexcept {
-    const std::optional<Color> colour = inherited_values().back_color;
+stxlib::Optional<Color> Control::ambient_back_color() const noexcept {
+    const stxlib::Optional<Color> colour = inherited_values().back_color;
     return colour;
 }
 
-std::optional<Color> Control::ambient_fore_color() const noexcept {
-    const std::optional<Color> colour = inherited_values().fore_color;
+stxlib::Optional<Color> Control::ambient_fore_color() const noexcept {
+    const stxlib::Optional<Color> colour = inherited_values().fore_color;
     return colour;
 }
 
@@ -3346,9 +3344,9 @@ void Control::written(const decltype(cursor)&) {
 
 void Control::on_cursor_changed() {}
 
-void Control::prepare_write(const decltype(back_color)&, std::optional<Color>& value) {
+void Control::prepare_write(const decltype(back_color)&, stxlib::Optional<Color>& value) {
     require_mutable();
-    if (!value || value == back_color.read() || back_color_warned_) return;
+    if (value.absent() || value == back_color.read() || back_color_warned_) return;
     back_color_warned_ = true;
     warn_inline_colour("back_color");
 }
@@ -3361,9 +3359,9 @@ void Control::written(const decltype(back_color)&) {
 
 void Control::on_back_color_changed() {}
 
-void Control::prepare_write(const decltype(fore_color)&, std::optional<Color>& value) {
+void Control::prepare_write(const decltype(fore_color)&, stxlib::Optional<Color>& value) {
     require_mutable();
-    if (!value || value == fore_color.read() || fore_color_warned_) return;
+    if (value.absent() || value == fore_color.read() || fore_color_warned_) return;
     fore_color_warned_ = true;
     warn_inline_colour("fore_color");
 }
@@ -4132,8 +4130,8 @@ const Control::InheritedValues& Control::inherited_values() const noexcept {
     if (visual_parent) {
         const InheritedValues& above = (*visual_parent).inherited_values();
         if (computed.theme_override == nullptr) computed.theme_override = above.theme_override;
-        if (!computed.back_color && !stops_inherited_colours_) computed.back_color = above.back_color;
-        if (!computed.fore_color && !stops_inherited_colours_) computed.fore_color = above.fore_color;
+        if (computed.back_color.absent() && !stops_inherited_colours_) computed.back_color = above.back_color;
+        if (computed.fore_color.absent() && !stops_inherited_colours_) computed.fore_color = above.fore_color;
         computed.cursor = cursor.read() ? *cursor.read() : above.cursor;
         computed.visible = computed.visible && above.visible;
         computed.enabled = computed.enabled && above.enabled;
@@ -4785,10 +4783,11 @@ void Control::warn_clear_face() const noexcept {
 }
 
 void Control::paint_back_color(Painter& painter, Rect bounds) const {
-    if (!back_color.read()) return;
+    const Color* own = back_color.read().value();
+    if (own == nullptr) return;
     const bool high_contrast = surface_root_ != nullptr && (*surface_root_).presentation_settings().high_contrast;
     if (high_contrast || application_colours_suspended()) return;
-    painter.fill_rect(bounds, *back_color.read());
+    painter.fill_rect(bounds, *own);
 }
 
 void Control::paint_authored_surface(Painter& painter, Rect bounds) const {

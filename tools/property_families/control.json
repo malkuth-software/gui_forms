@@ -152,7 +152,7 @@
     {
       "name": "back_color",
       "capability": "BackColor",
-      "value": "std::optional<Color>",
+      "value": "stxlib::Optional<Color>",
       "initial": null,
       "comment": "The own background colour; empty takes the parent's.",
       "getter": null,
@@ -171,7 +171,7 @@
     {
       "name": "fore_color",
       "capability": "ForeColor",
-      "value": "std::optional<Color>",
+      "value": "stxlib::Optional<Color>",
       "initial": null,
       "comment": "The own text colour; empty takes the parent's.",
       "getter": null,

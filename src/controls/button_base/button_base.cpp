@@ -946,14 +946,14 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     // text, else the theme's.
     const bool authored = style_override_.has_value();
     const BasicControlStyle& colours = style();
-    const std::optional<Color> own_face = back_color.read();
-    const std::optional<Color> own_ink = fore_color.read();
-    if (own_face) {
+    const Color* own_face = back_color.read().value();
+    const Color* own_ink = fore_color.read().value();
+    if (own_face != nullptr) {
         painter.fill_rect(bounds, *own_face);
     } else if (authored && (*style_override_).face_light.alpha != 0U) {
         painter.fill_rect(bounds, (*style_override_).face_light);
     }
-    const Color ink = own_ink ? *own_ink : authored ? (*style_override_).text : colours.text;
+    const Color ink = own_ink != nullptr ? *own_ink : authored ? (*style_override_).text : colours.text;
     // WinForms derives the hover and pressed faces from the face; a veil of
     // the ink stands for both (12% hot, 24% pressed).
     if (effectively_enabled() && (hovered_ || pressed_visual())) {

@@ -112,6 +112,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -612,7 +613,7 @@ private:
     const CompiledThemeRules* look_composite_rules_{};
     bool look_dark_{};
     bool look_high_contrast_{};
-    std::optional<Color> look_back_color_{};
+    stxlib::Optional<Color> look_back_color_{};
     std::vector<std::string> look_classes_{};
     // Bumped at each resolution of look_: an item record of another stamp
     // is stale.

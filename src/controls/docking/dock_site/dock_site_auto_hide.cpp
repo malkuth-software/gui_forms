@@ -592,10 +592,10 @@ bool DockSite::open_flyout(const DockPanelId& panel, DockFlyoutCause cause) {
     // The flyout is an overlay root, so the colours the program set on the
     // form (WinForms ambient BackColor and ForeColor) stop at it; it takes
     // the site's.
-    const std::optional<Color> site_back = ambient_back_color();
-    if (site_back) (*flyout_).back_color = site_back;
-    const std::optional<Color> site_fore = ambient_fore_color();
-    if (site_fore) (*flyout_).fore_color = site_fore;
+    const stxlib::Optional<Color> site_back = ambient_back_color();
+    if (site_back.present()) (*flyout_).back_color = site_back;
+    const stxlib::Optional<Color> site_fore = ambient_fore_color();
+    if (site_fore.present()) (*flyout_).fore_color = site_fore;
     flyout_root_ = flyout_;
     move_view_to_flyout(*slot);
     // The slide starts under the strip; under reduced motion or in an

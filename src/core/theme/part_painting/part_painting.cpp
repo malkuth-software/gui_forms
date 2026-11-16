@@ -10,6 +10,7 @@
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/types/painter/painter.hpp"
+#include "../../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1537,10 +1538,12 @@ void paint_part_clipped(Painter& painter, const Control& control, const PartPain
     // set_fore_color) under the part's own: its own background fills every
     // ground, an inherited one every ground but a well.
     std::optional<Color> background = part.authored_background;
-    if (!background && !suspended) background = control.back_color.read();
-    if (!background && !suspended && part.role != PartRole::well) background = control.ambient_back_color();
+    if (!background && !suspended) background = platform::standard_optional(control.back_color.read());
+    if (!background && !suspended && part.role != PartRole::well) {
+        background = platform::standard_optional(control.ambient_back_color());
+    }
     std::optional<Color> foreground = part.authored_foreground;
-    if (!foreground && !suspended) foreground = control.ambient_fore_color();
+    if (!foreground && !suspended) foreground = platform::standard_optional(control.ambient_fore_color());
     const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
     if (unchanged) {
         theme.engine().paint_clipped(painter, control, part, clips);

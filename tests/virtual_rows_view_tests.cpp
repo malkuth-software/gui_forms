@@ -34,6 +34,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -653,7 +654,7 @@ void themed_background() {
     window.perform_layout();
     require(!(*view).parts().well.authored_background, "without back_color the theme's ground stands");
     const Color override_colour = Color::rgba(12, 34, 56);
-    (*view).back_color = override_colour;
+    (*view).back_color = stxlib::Optional<Color>::of(override_colour);
     window.perform_layout();
     RecordingPainter painter;
     (*view).on_paint(painter, (*view).client_rectangle());

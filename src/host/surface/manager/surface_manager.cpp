@@ -299,7 +299,7 @@ FrameChrome::FrameChrome(Runtime& runtime, std::string_view title, double width,
     (*root_).set_background(theme_color(theme.title_inactive));
     title_ = make_control<Label>(StableId("host.frame.title"), std::string(title));
     (*title_).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 13, 400, false});
-    (*title_).fore_color = text;
+    (*title_).fore_color = stxlib::Optional<Color>::of(text);
     (*title_).vertical_alignment = VerticalAlignment::center;
     (*root_).add_child(title_);
     // U+2013, U+25A1 and U+00D7: minimise, maximise and close.
@@ -310,7 +310,7 @@ FrameChrome::FrameChrome(Runtime& runtime, std::string_view title, double width,
     for (std::size_t index = 0U; index < boxes.size(); ++index) {
         Label& box = *boxes[index];
         box.font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 15, 400, false});
-        box.fore_color = text;
+        box.fore_color = stxlib::Optional<Color>::of(text);
         box.alignment = HorizontalAlignment::center;
         box.vertical_alignment = VerticalAlignment::center;
     }

@@ -14,6 +14,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace {
@@ -536,10 +537,11 @@ void control_colors() {
     const std::shared_ptr<Control> parent = make_control<Control>(StableId("part.colors"));
     const std::shared_ptr<Control> child = make_control<Control>(StableId("part.colors.child"));
     (*parent).add_child(child);
-    (*parent).back_color = ground;
-    (*parent).fore_color = ink;
-    require(!(*child).back_color.read() && !(*child).fore_color.read() && (*child).ambient_back_color() == ground &&
-                (*child).ambient_fore_color() == ink,
+    (*parent).back_color = stxlib::Optional<Color>::of(ground);
+    (*parent).fore_color = stxlib::Optional<Color>::of(ink);
+    require((*child).back_color.read().absent() && (*child).fore_color.read().absent() &&
+                (*child).ambient_back_color() == stxlib::Optional<Color>::of(ground) &&
+                (*child).ambient_fore_color() == stxlib::Optional<Color>::of(ink),
             "a control without its own colours takes its parent's");
 
     PartPaint face;
@@ -556,7 +558,7 @@ void control_colors() {
     paint_part(inherited_well, *child, well);
     require(!recorded(inherited_well, "fill", ground) && !recorded(inherited_well, "fill_rounded", ground),
             "an inherited background leaves a well alone");
-    (*child).back_color = own;
+    (*child).back_color = stxlib::Optional<Color>::of(own);
     RecordingPainter own_well;
     paint_part(own_well, *child, well);
     require(recorded(own_well, "fill", own) || recorded(own_well, "fill_rounded", own),
@@ -584,11 +586,11 @@ void control_colors() {
     require(recorded(disabled_label, "text", disabled_text) && !recorded(disabled_label, "text", ink),
             "a disabled label keeps the theme's disabled text under a control's foreground");
 
-    (*child).back_color = std::nullopt;
-    require((*child).ambient_back_color() == ground, "clearing a control's colour restores its parent's");
-    (*parent).back_color = std::nullopt;
-    (*parent).fore_color = std::nullopt;
-    require(!(*child).ambient_back_color() && !(*child).ambient_fore_color(),
+    (*child).back_color = stxlib::Optional<Color>::none();
+    require((*child).ambient_back_color() == stxlib::Optional<Color>::of(ground), "clearing a control's colour restores its parent's");
+    (*parent).back_color = stxlib::Optional<Color>::none();
+    (*parent).fore_color = stxlib::Optional<Color>::none();
+    require((*child).ambient_back_color().absent() && (*child).ambient_fore_color().absent(),
             "with no colours set anywhere the theme's stand");
 }
 

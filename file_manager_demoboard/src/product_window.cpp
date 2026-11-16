@@ -125,7 +125,7 @@ std::shared_ptr<Label> label(std::string id, std::string text, Rect bounds,
     std::shared_ptr<gui_forms::Label> result = std::make_shared<Label>(StableId(std::move(id)), std::move(text));
     (*result).set_requested_bounds(bounds);
     (*result).font = stxlib::Optional<FontSpec>::of(font);
-    (*result).fore_color = ink;
+    (*result).fore_color = stxlib::Optional<Color>::of(ink);
     return result;
 }
 
@@ -240,13 +240,13 @@ std::shared_ptr<ScaledPanel> make_title(ProductRefs& refs) {
     (*panel).add_at(mark, {7.0, 5.0, 30.0, 30.0});
     std::shared_ptr<Label> title = label("fm.title.text", "File Manager  ·  Projects", {45.0, 4.0, 900.0, 32.0},
                        {FontRole::control, 16.0, 700, false, 0.32});
-    (*title).fore_color = Color::rgba(255, 255, 255);
+    (*title).fore_color = stxlib::Optional<Color>::of(Color::rgba(255, 255, 255));
     refs.title = title;
     (*panel).add_at(title, (*title).requested_bounds());
     std::shared_ptr<Label> state = label("fm.title.state", "LOCAL · GENERATION 86", {1160.0, 5.0, 274.0, 30.0},
                        {FontRole::control, 9.0, 600, false, 0.42});
     (*state).alignment = HorizontalAlignment::far;
-    (*state).fore_color = Color::rgba(245, 249, 255);
+    (*state).fore_color = stxlib::Optional<Color>::of(Color::rgba(245, 249, 255));
     (*panel).add_at(state, (*state).requested_bounds());
     return panel;
 }
@@ -705,7 +705,7 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
         std::shared_ptr<Label> footer = label(std::string("fm.palette.") + spec.id + ".state",
                             index == 8U ? "CURRENT · HOUSE" : "AVAILABLE",
                             {}, {FontRole::content, 8.5, 600, false, 0.28});
-        (*footer).fore_color = muted;
+        (*footer).fore_color = stxlib::Optional<Color>::of(muted);
         static_cast<void>((*card).set_footer(footer));
         (*surface).add_child(card);
         refs.palette_cards.push_back(card);
@@ -1418,7 +1418,7 @@ private:
         std::shared_ptr<Label> heading = label("fm.path.matrix.heading", "COMPLETE PATH MATRIX",
                              {10.0, 5.0, 840.0, 34.0},
                              {FontRole::control, 12.0, 700, false, .45});
-        (*heading).fore_color = Color::rgba(247, 250, 251);
+        (*heading).fore_color = stxlib::Optional<Color>::of(Color::rgba(247, 250, 251));
         (*heading).accessible_description =
             "Browse a full drive-rooted stack or edit the current fixture path";
         std::shared_ptr<DrawingSurface> heading_back = material(
@@ -1669,7 +1669,7 @@ private:
                 navigate_and_close(result.destination_id);
             } else {
                 (*resolution_).text = "Path not resolved · " + result.explanation;
-                (*resolution_).fore_color = Color::rgba(139, 43, 47);
+                (*resolution_).fore_color = stxlib::Optional<Color>::of(Color::rgba(139, 43, 47));
                 (*resolution_).accessible_description =
                     "Error: " + result.explanation;
                 status_("Path rejected · " + result.explanation);

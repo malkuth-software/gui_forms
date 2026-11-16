@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace {
@@ -93,14 +94,14 @@ void selected_text_takes_control_colours() {
     const Color themed = field_ink(combo, "Blackman-Harris 4");
     require(themed != parent_ink && themed != own_ink, "with no control colours the theme's editor text stands");
 
-    (*fixture.root).fore_color = parent_ink;
+    (*fixture.root).fore_color = stxlib::Optional<Color>::of(parent_ink);
     require(field_ink(combo, "Blackman-Harris 4") == parent_ink, "the selected text takes the parent's fore colour");
 
-    combo.fore_color = own_ink;
+    combo.fore_color = stxlib::Optional<Color>::of(own_ink);
     require(field_ink(combo, "Blackman-Harris 4") == own_ink, "the combo box's own fore colour stands over its parent's");
 
-    combo.fore_color = std::nullopt;
-    (*fixture.root).fore_color = std::nullopt;
+    combo.fore_color = stxlib::Optional<Color>::none();
+    (*fixture.root).fore_color = stxlib::Optional<Color>::none();
     require(field_ink(combo, "Blackman-Harris 4") == themed, "clearing the colours restores the theme's text");
 }
 
@@ -108,7 +109,7 @@ void placeholder_and_disabled_keep_the_theme() {
     Fixture fixture = make_fixture();
     ComboBox& combo = *fixture.combo;
     const Color parent_ink = Color::rgba(250, 250, 250);
-    (*fixture.root).fore_color = parent_ink;
+    (*fixture.root).fore_color = stxlib::Optional<Color>::of(parent_ink);
 
     combo.selected_index = std::nullopt;
     require(field_ink(combo, "Choose") != parent_ink, "the placeholder keeps the theme's muted text");

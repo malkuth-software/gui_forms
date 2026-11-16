@@ -27,6 +27,7 @@
 #include <cstdio>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -204,7 +205,7 @@ private:
 
 std::shared_ptr<Label> caption(std::string id, std::string text, Rect bounds) {
     std::shared_ptr<Label> made = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*made).fore_color = ink;
+    (*made).fore_color = stxlib::Optional<Color>::of(ink);
     (*made).set_requested_bounds(bounds);
     return made;
 }

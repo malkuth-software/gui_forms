@@ -178,7 +178,7 @@ void test_load() {
     require(loaded.root != nullptr && (*loaded.root).stable_id().value() == "settings.root", "load: the root");
     require(loaded.objects.size() == 6U, "load: every object");
     if (loaded.root == nullptr || loaded.objects.size() != 6U) return;
-    require((*loaded.root).back_color.read() == gui_forms::Color{0x33, 0x66, 0x99, 255}, "load: the root's colour");
+    require((*loaded.root).back_color.read() == stxlib::Optional<gui_forms::Color>::of(gui_forms::Color{0x33, 0x66, 0x99, 255}), "load: the root's colour");
 
     // Child order is document order; the command is the form's, not a child.
     const std::span<const Control::Ptr> root_children = (*loaded.root).children();

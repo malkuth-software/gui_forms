@@ -67,7 +67,7 @@ std::shared_ptr<Label> make_label(std::string id, std::string text,
                                   FontSpec font, Color color = ink) {
     std::shared_ptr<Label> result = make_control<Label>(StableId(std::move(id)), std::move(text));
     (*result).font = stxlib::Optional<FontSpec>::of(font);
-    (*result).fore_color = color;
+    (*result).fore_color = stxlib::Optional<Color>::of(color);
     return result;
 }
 

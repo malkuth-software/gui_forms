@@ -87,7 +87,7 @@ void NodeCanvas::ensure_look() {
     const CompiledThemeRules* const composite_look = look_rules();
     const ControlVisualContext context = visual_context();
     const std::span<const std::string> current_classes = classes.read();
-    const std::optional<Color> authored = back_color.read();
+    const stxlib::Optional<Color> authored = back_color.read();
     const bool unchanged = look_resolved_ && look_theme_ == &theme && look_inline_rules_ == inline_rules &&
                            look_composite_rules_ == composite_look &&
                            look_dark_ == context.dark && look_high_contrast_ == context.high_contrast &&
@@ -101,7 +101,8 @@ void NodeCanvas::ensure_look() {
     look_ = resolve_canvas_look(theme, *this, scheme);
     // back_color is the per-control override of the region's colour, as
     // VirtualRowsView's is of its well; high contrast keeps the plate.
-    if (authored.has_value() && !context.high_contrast) look_.background.fill = *authored;
+    const Color* authored_fill = authored.value();
+    if (authored_fill != nullptr && !context.high_contrast) look_.background.fill = *authored_fill;
     if (grid_spacing_set_.has_value()) look_.grid.spacing = *grid_spacing_set_;
     look_theme_ = &theme;
     look_inline_rules_ = inline_rules;

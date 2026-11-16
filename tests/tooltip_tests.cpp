@@ -32,6 +32,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 
 namespace {
 
@@ -809,8 +810,8 @@ void test_tooltip_ink_is_black_and_ignores_inherited_colours() {
     Fixture fixture;
     const Color white = Color::rgba(255, 255, 255);
     const Color night = Color::rgba(32, 34, 40);
-    (*fixture.root).fore_color = white;
-    (*fixture.root).back_color = night;
+    (*fixture.root).fore_color = stxlib::Optional<Color>::of(white);
+    (*fixture.root).back_color = stxlib::Optional<Color>::of(night);
     ToolTip tips(fixture.window);
     tips.initial_delay = 30ms;
     tips.auto_pop_delay = 2000ms;

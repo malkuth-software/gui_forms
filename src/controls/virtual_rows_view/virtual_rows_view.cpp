@@ -9,6 +9,7 @@
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1125,7 +1126,7 @@ void VirtualRowsView::on_paint(Painter& painter, Rect) {
     // when the resolved well (the theme's material, or back_color over it
     // outside high contrast) is opaque, and only then can a scroll move the
     // painted pixels (scroll_content needs the cover).
-    well.authored_background = back_color.read();
+    well.authored_background = platform::standard_optional(back_color.read());
     paint_part(painter, *this, well);
     std::size_t painted = 0U;
     if (!viewport_.empty() && first_realized_ < end_realized_) {
@@ -1563,7 +1564,7 @@ void VirtualRowsView::publish_part_geometry(std::span<PartGeometry> geometry) co
     Parts record;
     record.region = PartGeometry::from_bounds(client_);
     record.well = PartGeometry::from_bounds(client_);
-    record.well.authored_background = back_color.read();
+    record.well.authored_background = platform::standard_optional(back_color.read());
     if (bar_shown_) record.vertical_scroll_bar = PartGeometry::from_bounds(bar_);
     record.focus = PartGeometry::from_bounds(client_);
     if (!header_.empty()) record.column_headers = PartGeometry::from_bounds(header_);

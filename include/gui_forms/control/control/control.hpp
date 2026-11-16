@@ -41,6 +41,7 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -648,8 +649,8 @@ public:
     // where WinForms' box stays white. Writing one (std::nullopt clears it)
     // repaints the control and its descendants.
     // This control's own colour, else its nearest ancestor's, else none.
-    [[nodiscard]] std::optional<Color> ambient_back_color() const noexcept;
-    [[nodiscard]] std::optional<Color> ambient_fore_color() const noexcept;
+    [[nodiscard]] stxlib::Optional<Color> ambient_back_color() const noexcept;
+    [[nodiscard]] stxlib::Optional<Color> ambient_fore_color() const noexcept;
     [[nodiscard]] std::span<const OwnerDecorationRecipe>
     owned_decorations() const& noexcept {
         return std::span<const OwnerDecorationRecipe>(owned_decorations_.data(), owned_decorations_.size());
@@ -1831,9 +1832,9 @@ private:
     void written(const decltype(tool_tip_text)& cell);
     void prepare_write(const decltype(cursor)& cell, std::optional<CursorKind>& value);
     void written(const decltype(cursor)& cell);
-    void prepare_write(const decltype(back_color)& cell, std::optional<Color>& value);
+    void prepare_write(const decltype(back_color)& cell, stxlib::Optional<Color>& value);
     void written(const decltype(back_color)& cell);
-    void prepare_write(const decltype(fore_color)& cell, std::optional<Color>& value);
+    void prepare_write(const decltype(fore_color)& cell, stxlib::Optional<Color>& value);
     void written(const decltype(fore_color)& cell);
     void prepare_write(const decltype(minimum_size)& cell, Size& value);
     void written(const decltype(minimum_size)& cell);
@@ -2080,8 +2081,8 @@ private:
     struct InheritedValues final {
         std::uint64_t generation{};
         const Theme* theme_override{};
-        std::optional<Color> back_color{};
-        std::optional<Color> fore_color{};
+        stxlib::Optional<Color> back_color{};
+        stxlib::Optional<Color> fore_color{};
         CursorKind cursor{CursorKind::arrow};
         bool visible{};
         bool enabled{};

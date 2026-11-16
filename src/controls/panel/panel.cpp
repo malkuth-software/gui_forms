@@ -53,8 +53,9 @@ void Panel::on_attached_to_window() {
 
 std::optional<Color> Panel::face_colour() const noexcept {
     if (background_override_) return background_override_;
-    const std::optional<Color> own = back_color.read();
-    if (!own) return std::nullopt;
+    const Color* own_colour = back_color.read().value();
+    if (own_colour == nullptr) return std::nullopt;
+    const std::optional<Color> own(*own_colour);
     const Window* const attached = window();
     const bool high_contrast = attached != nullptr && (*attached).presentation_settings().high_contrast;
     if (high_contrast) return std::nullopt;

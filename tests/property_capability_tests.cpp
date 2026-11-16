@@ -453,9 +453,9 @@ void test_control_family() {
     expect((*probe).reset_property("margin") && (*probe).margin.read() == Insets{3.0, 3.0, 3.0, 3.0},
            "reset writes margin's default");
 
-    (*probe).back_color = Color::rgba(10, 20, 30);
+    (*probe).back_color = stxlib::Optional<Color>::of(Color::rgba(10, 20, 30));
     expect((*probe).should_serialize_property("back_color"), "an own back colour serializes");
-    expect((*probe).reset_property("back_color") && !(*probe).back_color.read(), "reset clears the back colour");
+    expect((*probe).reset_property("back_color") && (*probe).back_color.read().absent(), "reset clears the back colour");
 }
 
 // G11: a themed Panel's face takes its own back_color (outside high
@@ -465,9 +465,9 @@ void test_panel_back_color_when_themed() {
     Window window(root, Size{120.0, 80.0});
     const Color themed = (*root).background();
     const Color own = Color::rgba(200, 30, 30);
-    (*root).back_color = own;
+    (*root).back_color = stxlib::Optional<Color>::of(own);
     expect((*root).background() == own, "a themed panel's face is its back colour");
-    (*root).back_color = std::nullopt;
+    (*root).back_color = stxlib::Optional<Color>::none();
     expect((*root).background() == themed, "clearing the back colour returns the material's ground");
 }
 
@@ -517,8 +517,8 @@ void test_setters_store() {
     (*control).minimum_size = Size{4.0, 4.0};
     (*control).maximum_size = Size{40.0, 40.0};
     (*control).cursor = CursorKind::hand;
-    (*control).back_color = Color::rgba(1, 2, 3);
-    (*control).fore_color = Color::rgba(4, 5, 6);
+    (*control).back_color = stxlib::Optional<Color>::of(Color::rgba(1, 2, 3));
+    (*control).fore_color = stxlib::Optional<Color>::of(Color::rgba(4, 5, 6));
     (*control).accessible_name = "a";
     (*control).accessible_description = "d";
     (*control).tool_tip_text = "t";
@@ -532,8 +532,8 @@ void test_setters_store() {
                (*control).layout_direction.read() == LayoutDirection::right_to_left &&
                (*control).minimum_size.read() == Size{4.0, 4.0} &&
                (*control).maximum_size.read() == Size{40.0, 40.0} &&
-               (*control).cursor.read() == CursorKind::hand && (*control).back_color.read() &&
-               (*control).fore_color.read() && (*control).accessible_name.read() == "a" &&
+               (*control).cursor.read() == CursorKind::hand && (*control).back_color.read().present() &&
+               (*control).fore_color.read().present() && (*control).accessible_name.read() == "a" &&
                (*control).accessible_description.read() == "d" && (*control).tool_tip_text.read() == "t",
            "every named setter stores its value");
 }

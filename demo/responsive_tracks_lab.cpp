@@ -52,7 +52,7 @@ std::shared_ptr<Panel> band(std::string id, std::string text,
     (*value).dock = DockStyle::fill;
     std::shared_ptr<Label> label = make_control<Label>(
         StableId(label_id), std::move(text));
-    (*label).fore_color = foreground;
+    (*label).fore_color = stxlib::Optional<Color>::of(foreground);
     (*label).font = stxlib::Optional<FontSpec>::of(font);
     (*label).text_wrapping = wrapping;
     (*label).vertical_alignment = VerticalAlignment::center;
