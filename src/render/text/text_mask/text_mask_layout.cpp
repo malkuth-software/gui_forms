@@ -15,7 +15,7 @@ struct LineChoice final {
 class NativeMaskJob final {
 public:
     NativeMaskJob(const std::shared_ptr<MaskLedger>& ledger, const std::shared_ptr<const MaskKey>& key)
-        : ledger_(ledger), key_(key), fonts_(*key),
+        : ledger_(ledger), key_(key), fonts_(*key), raster_work_(ledger),
           trial_(MaskAllocator<NativeGlyph>(ledger, MaskResource::shaping)),
           glyphs_(MaskAllocator<NativeGlyph>(ledger, MaskResource::shaping)),
           lines_(MaskAllocator<TextMaskLine>(ledger, MaskResource::workspace)),
@@ -53,7 +53,7 @@ public:
         }
         const MaskOptions& options = (*key_).options;
         const std::span<const NativeGlyph> glyphs(glyphs_.data(), glyph_count_);
-        const NativeInk ink = measure_native_ink(fonts_, options, glyphs);
+        const NativeInk ink = measure_native_ink(fonts_, options, glyphs, raster_work_);
         TextMaskMetrics metrics{};
         metrics.size_64 = options.size_64;
         metrics.wrap_width_64 = options.width_64;
@@ -71,7 +71,7 @@ public:
         }
         std::shared_ptr<TextMaskStorage> candidate = allocate_mask_storage(ledger_, key_, metrics, line_count_);
         std::copy_n(lines_.begin(), line_count_, (*candidate).lines.begin());
-        fill_native_mask(fonts_, options, glyphs, *candidate);
+        fill_native_mask(fonts_, options, glyphs, raster_work_, *candidate);
         return candidate;
     }
 private:
@@ -79,6 +79,7 @@ private:
     const std::shared_ptr<MaskLedger>& ledger_;
     const std::shared_ptr<const MaskKey>& key_;
     NativeFonts fonts_;
+    NativeRasterWork raster_work_;
     NativeWork work_{};
     std::string_view text_{};
     NativeGlyphBuffer trial_;

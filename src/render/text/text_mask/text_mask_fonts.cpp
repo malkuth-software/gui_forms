@@ -73,6 +73,13 @@ NativeFonts::NativeFonts(const MaskKey& key) {
             throw std::bad_alloc{};
         }
         hb_ft_font_set_load_flags(face.shaping, FT_LOAD_NO_HINTING | FT_LOAD_NO_AUTOHINT | FT_LOAD_NO_BITMAP);
+        // The raster's face over the bank's typeface (opened with the bank, text_mask_service).
+        const std::shared_ptr<const ProgramTypeface>& typeface = bank.typefaces[index];
+        if (!typeface) throw NativeFailure(TextMaskStatus::unsupported_profile);
+        FaceByteLimits limits{};
+        limits.mask_width = 4096U;
+        limits.mask_height = 4096U;
+        if (!raster_faces[index].open(typeface, limits)) throw std::bad_alloc{};
     }
 }
 std::uint32_t NativeFonts::select_face(const std::string_view cluster) const {
@@ -85,14 +92,6 @@ std::uint32_t NativeFonts::select_face(const std::string_view cluster) const {
         }
     }
     throw NativeFailure(TextMaskStatus::missing_font_coverage);
-}
-void NativeFonts::set_raster_size(const MaskOptions& options) {
-    const double scaled_fixed = static_cast<double>(options.size_64) * options.scale;
-    const FT_F26Dot6 size = static_cast<FT_F26Dot6>(std::floor(scaled_fixed + 0.5));
-    for (std::size_t index = 0; index < count; ++index) {
-        const FT_Error status = FT_Set_Char_Size(faces[index].value, 0, size, 72, 72);
-        if (status != 0) throw NativeFailure(TextMaskStatus::native_failure);
-    }
 }
 void NativeWork::admit(const std::size_t bytes) {
     if (shape_calls == 2048 || bytes > 4U * 1024U * 1024U - context_bytes) {
