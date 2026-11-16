@@ -268,7 +268,7 @@ gui_forms::HelpBookSystem
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Help``. Members declared here and by the counterpart: 32 supported, 0 deferred, 0 excluded, 13 unclassified; 42 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Help``. Members declared here and by the counterpart: 33 supported, 0 deferred, 0 excluded, 12 unclassified; 42 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -326,7 +326,7 @@ Counterpart: ``Help``. Members declared here and by the counterpart: 32 supporte
    * - event
      - GUI.Forms-only
      - ``bookmarks_changed``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``external_link``

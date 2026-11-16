@@ -2,6 +2,7 @@
 #include "x11_present_direct.hpp"
 #include "../services/x11_foreign_window.hpp"
 
+#include <limits>
 #include <X11/Xlib-xcb.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/Xpresent.h>
@@ -177,6 +178,10 @@ presentation::PresentOutcome X11Dri3Path::present(std::span<const presentation::
     native.height = static_cast<unsigned short>(rect.bottom - rect.top);
     rectangles_.push_back(native);
   }
+  // XFixesCreateRegion counts its rectangles in an int: a damage list
+  // longer than that is refused, and the shim presents on the copy path.
+  if (rectangles_.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+    return presentation::PresentOutcome::failed;
   ++serial_;
   if (serial_ == 0U) ++serial_;
   // As the Present path: the present's requests inside a scope that absorbs

@@ -8,13 +8,13 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2319 | 13 | 367 | 4146 | 2453 |
+| 2334 | 13 | 367 | 4141 | 2463 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 248 | 0 | 12 | 323 | 226 |
+| `Control` | `Control` | 250 | 0 | 12 | 323 | 228 |
 | `Component` | `Component` | 10 | 0 | 0 | 10 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 37 | 22 |
 | `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
@@ -36,7 +36,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Toast` | GUI.Forms-only | 4 | 0 | 0 | 1 | 5 |
 | `PictureBox` | `PictureBox` | 6 | 0 | 2 | 33 | 7 |
 | `ProgressBar` | `ProgressBar` | 8 | 0 | 1 | 34 | 11 |
-| `ProgressRing` | GUI.Forms-only | 5 | 0 | 0 | 3 | 8 |
+| `ProgressRing` | GUI.Forms-only | 6 | 0 | 0 | 4 | 10 |
 | `Spinner` | GUI.Forms-only | 2 | 0 | 0 | 2 | 4 |
 | `SweepScope` | GUI.Forms-only | 2 | 0 | 0 | 3 | 5 |
 | `Sparkline` | GUI.Forms-only | 6 | 0 | 0 | 4 | 10 |
@@ -115,9 +115,9 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ToolStripPanel` | `ToolStripPanel` | 8 | 0 | 1 | 17 | 5 |
 | `ToolStripContainer` | `ToolStripContainer` | 16 | 0 | 0 | 25 | 16 |
 | `BindingNavigator` | `BindingNavigator` | 8 | 0 | 0 | 18 | 8 |
-| `Ribbon` | GUI.Forms-only | 45 | 0 | 0 | 6 | 51 |
+| `Ribbon` | GUI.Forms-only | 46 | 0 | 0 | 5 | 51 |
 | `ContextMenu` | `ContextMenuStrip` | 9 | 0 | 0 | 1 | 5 |
-| `DockWorkspace` | GUI.Forms-only | 41 | 0 | 0 | 15 | 56 |
+| `DockWorkspace` | GUI.Forms-only | 42 | 0 | 0 | 14 | 56 |
 | `Command` | GUI.Forms-only | 15 | 0 | 0 | 4 | 19 |
 | `FontCommand` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |
 | `ColorCommand` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
@@ -160,17 +160,17 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ErrorProvider` | `ErrorProvider` | 14 | 0 | 0 | 17 | 9 |
 | `HelpProvider` | `HelpProvider` | 16 | 0 | 0 | 7 | 10 |
 | `HelpBook` | GUI.Forms-only | 9 | 0 | 0 | 17 | 26 |
-| `HelpBookViewer` | GUI.Forms-only | 27 | 0 | 0 | 15 | 42 |
-| `HelpBookSystem` | `Help` | 32 | 0 | 0 | 13 | 42 |
+| `HelpBookViewer` | GUI.Forms-only | 28 | 0 | 0 | 14 | 42 |
+| `HelpBookSystem` | `Help` | 33 | 0 | 0 | 12 | 42 |
 | `SemanticFeedback` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
-| `Binding` | `Binding` | 8 | 0 | 0 | 22 | 7 |
-| `BindingSource` | `BindingSource` | 45 | 0 | 0 | 60 | 28 |
+| `Binding` | `Binding` | 10 | 0 | 0 | 20 | 7 |
+| `BindingSource` | `BindingSource` | 46 | 0 | 0 | 59 | 28 |
 | `BindingContext` | `BindingContext` | 8 | 0 | 0 | 7 | 2 |
 | `TextBoxBase` | `TextBoxBase` | 11 | 0 | 0 | 40 | 4 |
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
 | `BusinessCard` | GUI.Forms-only | 16 | 0 | 0 | 2 | 18 |
-| `Window` | `Form` | 231 | 10 | 10 | 137 | 248 |
+| `Window` | `Form` | 236 | 10 | 10 | 138 | 254 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -313,5 +313,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1590 |
-| `untested` | 971 |
+| `untested` | 966 |
 | `w-open` | 5 |

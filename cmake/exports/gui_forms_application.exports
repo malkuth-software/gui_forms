@@ -726,6 +726,7 @@ __ZGVZN9gui_forms16NativePopupToken*
 __ZGVZN9gui_forms16PageCloseRequest*
 __ZGVZN9gui_forms16PaintCornerRadii*
 __ZGVZN9gui_forms16PaintFramebuffer*
+__ZGVZN9gui_forms16PaintGroupEffect*
 __ZGVZN9gui_forms16ParagraphBuffers*
 __ZGVZN9gui_forms16ParagraphMetrics*
 __ZGVZN9gui_forms16ParagraphStorage*
@@ -827,6 +828,7 @@ __ZGVZN9gui_forms17MarkdownSpanStyle*
 __ZGVZN9gui_forms17MaterialClipPoint*
 __ZGVZN9gui_forms17MaterialFillLayer*
 __ZGVZN9gui_forms17MaterialImageSize*
+__ZGVZN9gui_forms17MaterialMaskLayer*
 __ZGVZN9gui_forms17MaterialTransform*
 __ZGVZN9gui_forms17MenuStripItemSpec*
 __ZGVZN9gui_forms17MessageBoxRefused*
@@ -1049,6 +1051,7 @@ __ZGVZN9gui_forms19LiveSurfaceSnapshot*
 __ZGVZN9gui_forms19LocaleResolvedField*
 __ZGVZN9gui_forms19MarkdownParseResult*
 __ZGVZN9gui_forms19MaterialBorderEdges*
+__ZGVZN9gui_forms19MaterialColourTable*
 __ZGVZN9gui_forms19MaterialCornerRadii*
 __ZGVZN9gui_forms19MaterialDeclaration*
 __ZGVZN9gui_forms19MenuStripInvocation*
@@ -1137,6 +1140,7 @@ __ZGVZN9gui_forms20ImageAtlasStatistics*
 __ZGVZN9gui_forms20InstrumentModuleSpec*
 __ZGVZN9gui_forms20MaterialColourFilter*
 __ZGVZN9gui_forms20MaterialColourMatrix*
+__ZGVZN9gui_forms20MaterialColourStages*
 __ZGVZN9gui_forms20NodeCanvasStatistics*
 __ZGVZN9gui_forms20ObjectContextRequest*
 __ZGVZN9gui_forms20PointerCaptureChange*
@@ -1350,6 +1354,7 @@ __ZGVZN9gui_forms24HostClipboardFilesResult*
 __ZGVZN9gui_forms24HostClipboardImageResult*
 __ZGVZN9gui_forms24HostMessageDialogRequest*
 __ZGVZN9gui_forms24InvalidationOutlineStyle*
+__ZGVZN9gui_forms24MaterialTransferFunction*
 __ZGVZN9gui_forms24PresentationAvailability*
 __ZGVZN9gui_forms24PropertyEditorInputError*
 __ZGVZN9gui_forms24RelativePointerEventArgs*
@@ -2400,6 +2405,7 @@ __ZGVZNK9gui_forms16NativePopupToken*
 __ZGVZNK9gui_forms16PageCloseRequest*
 __ZGVZNK9gui_forms16PaintCornerRadii*
 __ZGVZNK9gui_forms16PaintFramebuffer*
+__ZGVZNK9gui_forms16PaintGroupEffect*
 __ZGVZNK9gui_forms16ParagraphBuffers*
 __ZGVZNK9gui_forms16ParagraphMetrics*
 __ZGVZNK9gui_forms16ParagraphStorage*
@@ -2501,6 +2507,7 @@ __ZGVZNK9gui_forms17MarkdownSpanStyle*
 __ZGVZNK9gui_forms17MaterialClipPoint*
 __ZGVZNK9gui_forms17MaterialFillLayer*
 __ZGVZNK9gui_forms17MaterialImageSize*
+__ZGVZNK9gui_forms17MaterialMaskLayer*
 __ZGVZNK9gui_forms17MaterialTransform*
 __ZGVZNK9gui_forms17MenuStripItemSpec*
 __ZGVZNK9gui_forms17MessageBoxRefused*
@@ -2723,6 +2730,7 @@ __ZGVZNK9gui_forms19LiveSurfaceSnapshot*
 __ZGVZNK9gui_forms19LocaleResolvedField*
 __ZGVZNK9gui_forms19MarkdownParseResult*
 __ZGVZNK9gui_forms19MaterialBorderEdges*
+__ZGVZNK9gui_forms19MaterialColourTable*
 __ZGVZNK9gui_forms19MaterialCornerRadii*
 __ZGVZNK9gui_forms19MaterialDeclaration*
 __ZGVZNK9gui_forms19MenuStripInvocation*
@@ -2811,6 +2819,7 @@ __ZGVZNK9gui_forms20ImageAtlasStatistics*
 __ZGVZNK9gui_forms20InstrumentModuleSpec*
 __ZGVZNK9gui_forms20MaterialColourFilter*
 __ZGVZNK9gui_forms20MaterialColourMatrix*
+__ZGVZNK9gui_forms20MaterialColourStages*
 __ZGVZNK9gui_forms20NodeCanvasStatistics*
 __ZGVZNK9gui_forms20ObjectContextRequest*
 __ZGVZNK9gui_forms20PointerCaptureChange*
@@ -3024,6 +3033,7 @@ __ZGVZNK9gui_forms24HostClipboardFilesResult*
 __ZGVZNK9gui_forms24HostClipboardImageResult*
 __ZGVZNK9gui_forms24HostMessageDialogRequest*
 __ZGVZNK9gui_forms24InvalidationOutlineStyle*
+__ZGVZNK9gui_forms24MaterialTransferFunction*
 __ZGVZNK9gui_forms24PresentationAvailability*
 __ZGVZNK9gui_forms24PropertyEditorInputError*
 __ZGVZNK9gui_forms24RelativePointerEventArgs*
@@ -4322,6 +4332,7 @@ __ZN9gui_forms16NativePopupToken*
 __ZN9gui_forms16PageCloseRequest*
 __ZN9gui_forms16PaintCornerRadii*
 __ZN9gui_forms16PaintFramebuffer*
+__ZN9gui_forms16PaintGroupEffect*
 __ZN9gui_forms16ParagraphBuffers*
 __ZN9gui_forms16ParagraphMetrics*
 __ZN9gui_forms16ParagraphStorage*
@@ -4499,6 +4510,7 @@ __ZN9gui_forms17MarkdownSpanStyle*
 __ZN9gui_forms17MaterialClipPoint*
 __ZN9gui_forms17MaterialFillLayer*
 __ZN9gui_forms17MaterialImageSize*
+__ZN9gui_forms17MaterialMaskLayer*
 __ZN9gui_forms17MaterialTransform*
 __ZN9gui_forms17MenuStripItemSpec*
 __ZN9gui_forms17MessageBoxRefused*
@@ -4919,6 +4931,7 @@ __ZN9gui_forms19LiveSurfaceSnapshot*
 __ZN9gui_forms19LocaleResolvedField*
 __ZN9gui_forms19MarkdownParseResult*
 __ZN9gui_forms19MaterialBorderEdges*
+__ZN9gui_forms19MaterialColourTable*
 __ZN9gui_forms19MaterialCornerRadii*
 __ZN9gui_forms19MaterialDeclaration*
 __ZN9gui_forms19MenuStripInvocation*
@@ -5145,6 +5158,7 @@ __ZN9gui_forms20ImageAtlasStatistics*
 __ZN9gui_forms20InstrumentModuleSpec*
 __ZN9gui_forms20MaterialColourFilter*
 __ZN9gui_forms20MaterialColourMatrix*
+__ZN9gui_forms20MaterialColourStages*
 __ZN9gui_forms20NodeCanvasStatistics*
 __ZN9gui_forms20ObjectContextRequest*
 __ZN9gui_forms20PointerCaptureChange*
@@ -5191,6 +5205,8 @@ __ZN9gui_forms20compare_binding_keysB*
 __ZN9gui_forms20compare_binding_keysE*
 __ZN9gui_forms20connect_button_groupB*
 __ZN9gui_forms20connect_button_groupE*
+__ZN9gui_forms20content_effect_fieldB*
+__ZN9gui_forms20content_effect_fieldE*
 __ZN9gui_forms20desktop_device_pointB*
 __ZN9gui_forms20desktop_device_pointE*
 __ZN9gui_forms20drop_down_popup_faceB*
@@ -5225,6 +5241,8 @@ __ZN9gui_forms20paint_rotation_aboutB*
 __ZN9gui_forms20paint_rotation_aboutE*
 __ZN9gui_forms20paint_text_over_fillB*
 __ZN9gui_forms20paint_text_over_fillE*
+__ZN9gui_forms20part_blend_compositeB*
+__ZN9gui_forms20part_blend_compositeE*
 __ZN9gui_forms20portable_host_localeB*
 __ZN9gui_forms20portable_host_localeE*
 __ZN9gui_forms20rasterize_stock_iconB*
@@ -5729,6 +5747,8 @@ __ZN9gui_forms23valid_font_family_stackB*
 __ZN9gui_forms23valid_font_family_stackE*
 __ZN9gui_forms23valid_layout_constraintB*
 __ZN9gui_forms23valid_layout_constraintE*
+__ZN9gui_forms23valid_transfer_functionB*
+__ZN9gui_forms23valid_transfer_functionE*
 __ZN9gui_forms23validate_theme_packagesB*
 __ZN9gui_forms23validate_theme_packagesE*
 __ZN9gui_forms23window_backdrop_refusalB*
@@ -5748,6 +5768,7 @@ __ZN9gui_forms24HostClipboardFilesResult*
 __ZN9gui_forms24HostClipboardImageResult*
 __ZN9gui_forms24HostMessageDialogRequest*
 __ZN9gui_forms24InvalidationOutlineStyle*
+__ZN9gui_forms24MaterialTransferFunction*
 __ZN9gui_forms24PresentationAvailability*
 __ZN9gui_forms24PropertyEditorInputError*
 __ZN9gui_forms24RelativePointerEventArgs*
@@ -5795,6 +5816,8 @@ __ZN9gui_forms24make_property_collectionB*
 __ZN9gui_forms24make_property_collectionE*
 __ZN9gui_forms24material_fields_read_boxB*
 __ZN9gui_forms24material_fields_read_boxE*
+__ZN9gui_forms24paint_group_effect_reachB*
+__ZN9gui_forms24paint_group_effect_reachE*
 __ZN9gui_forms24parse_file_dialog_filterB*
 __ZN9gui_forms24parse_file_dialog_filterE*
 __ZN9gui_forms24parse_localizable_tablesB*
@@ -5809,6 +5832,8 @@ __ZN9gui_forms24rule_condition_kind_nameB*
 __ZN9gui_forms24rule_condition_kind_nameE*
 __ZN9gui_forms24transformed_paint_boundsB*
 __ZN9gui_forms24transformed_paint_boundsE*
+__ZN9gui_forms24valid_paint_group_effectB*
+__ZN9gui_forms24valid_paint_group_effectE*
 __ZN9gui_forms24validate_control_anatomyB*
 __ZN9gui_forms24validate_control_anatomyE*
 __ZN9gui_forms24validate_shaping_requestB*
@@ -6161,6 +6186,8 @@ __ZN9gui_forms32paint_connected_surface_materialB*
 __ZN9gui_forms32paint_connected_surface_materialE*
 __ZN9gui_forms32paint_data_grid_view_row_overlayB*
 __ZN9gui_forms32paint_data_grid_view_row_overlayE*
+__ZN9gui_forms32paint_group_effect_mask_materialB*
+__ZN9gui_forms32paint_group_effect_mask_materialE*
 __ZN9gui_forms32register_numeric_up_down_effectsB*
 __ZN9gui_forms32register_numeric_up_down_effectsE*
 __ZN9gui_forms32set_invalidation_overlay_defaultB*
@@ -7430,6 +7457,7 @@ __ZNK[RO]9gui_forms16NativePopupToken*
 __ZNK[RO]9gui_forms16PageCloseRequest*
 __ZNK[RO]9gui_forms16PaintCornerRadii*
 __ZNK[RO]9gui_forms16PaintFramebuffer*
+__ZNK[RO]9gui_forms16PaintGroupEffect*
 __ZNK[RO]9gui_forms16ParagraphBuffers*
 __ZNK[RO]9gui_forms16ParagraphMetrics*
 __ZNK[RO]9gui_forms16ParagraphStorage*
@@ -7531,6 +7559,7 @@ __ZNK[RO]9gui_forms17MarkdownSpanStyle*
 __ZNK[RO]9gui_forms17MaterialClipPoint*
 __ZNK[RO]9gui_forms17MaterialFillLayer*
 __ZNK[RO]9gui_forms17MaterialImageSize*
+__ZNK[RO]9gui_forms17MaterialMaskLayer*
 __ZNK[RO]9gui_forms17MaterialTransform*
 __ZNK[RO]9gui_forms17MenuStripItemSpec*
 __ZNK[RO]9gui_forms17MessageBoxRefused*
@@ -7753,6 +7782,7 @@ __ZNK[RO]9gui_forms19LiveSurfaceSnapshot*
 __ZNK[RO]9gui_forms19LocaleResolvedField*
 __ZNK[RO]9gui_forms19MarkdownParseResult*
 __ZNK[RO]9gui_forms19MaterialBorderEdges*
+__ZNK[RO]9gui_forms19MaterialColourTable*
 __ZNK[RO]9gui_forms19MaterialCornerRadii*
 __ZNK[RO]9gui_forms19MaterialDeclaration*
 __ZNK[RO]9gui_forms19MenuStripInvocation*
@@ -7841,6 +7871,7 @@ __ZNK[RO]9gui_forms20ImageAtlasStatistics*
 __ZNK[RO]9gui_forms20InstrumentModuleSpec*
 __ZNK[RO]9gui_forms20MaterialColourFilter*
 __ZNK[RO]9gui_forms20MaterialColourMatrix*
+__ZNK[RO]9gui_forms20MaterialColourStages*
 __ZNK[RO]9gui_forms20NodeCanvasStatistics*
 __ZNK[RO]9gui_forms20ObjectContextRequest*
 __ZNK[RO]9gui_forms20PointerCaptureChange*
@@ -8054,6 +8085,7 @@ __ZNK[RO]9gui_forms24HostClipboardFilesResult*
 __ZNK[RO]9gui_forms24HostClipboardImageResult*
 __ZNK[RO]9gui_forms24HostMessageDialogRequest*
 __ZNK[RO]9gui_forms24InvalidationOutlineStyle*
+__ZNK[RO]9gui_forms24MaterialTransferFunction*
 __ZNK[RO]9gui_forms24PresentationAvailability*
 __ZNK[RO]9gui_forms24PropertyEditorInputError*
 __ZNK[RO]9gui_forms24RelativePointerEventArgs*
@@ -9104,6 +9136,7 @@ __ZN[KRO]9gui_forms16NativePopupToken*
 __ZN[KRO]9gui_forms16PageCloseRequest*
 __ZN[KRO]9gui_forms16PaintCornerRadii*
 __ZN[KRO]9gui_forms16PaintFramebuffer*
+__ZN[KRO]9gui_forms16PaintGroupEffect*
 __ZN[KRO]9gui_forms16ParagraphBuffers*
 __ZN[KRO]9gui_forms16ParagraphMetrics*
 __ZN[KRO]9gui_forms16ParagraphStorage*
@@ -9205,6 +9238,7 @@ __ZN[KRO]9gui_forms17MarkdownSpanStyle*
 __ZN[KRO]9gui_forms17MaterialClipPoint*
 __ZN[KRO]9gui_forms17MaterialFillLayer*
 __ZN[KRO]9gui_forms17MaterialImageSize*
+__ZN[KRO]9gui_forms17MaterialMaskLayer*
 __ZN[KRO]9gui_forms17MaterialTransform*
 __ZN[KRO]9gui_forms17MenuStripItemSpec*
 __ZN[KRO]9gui_forms17MessageBoxRefused*
@@ -9427,6 +9461,7 @@ __ZN[KRO]9gui_forms19LiveSurfaceSnapshot*
 __ZN[KRO]9gui_forms19LocaleResolvedField*
 __ZN[KRO]9gui_forms19MarkdownParseResult*
 __ZN[KRO]9gui_forms19MaterialBorderEdges*
+__ZN[KRO]9gui_forms19MaterialColourTable*
 __ZN[KRO]9gui_forms19MaterialCornerRadii*
 __ZN[KRO]9gui_forms19MaterialDeclaration*
 __ZN[KRO]9gui_forms19MenuStripInvocation*
@@ -9515,6 +9550,7 @@ __ZN[KRO]9gui_forms20ImageAtlasStatistics*
 __ZN[KRO]9gui_forms20InstrumentModuleSpec*
 __ZN[KRO]9gui_forms20MaterialColourFilter*
 __ZN[KRO]9gui_forms20MaterialColourMatrix*
+__ZN[KRO]9gui_forms20MaterialColourStages*
 __ZN[KRO]9gui_forms20NodeCanvasStatistics*
 __ZN[KRO]9gui_forms20ObjectContextRequest*
 __ZN[KRO]9gui_forms20PointerCaptureChange*
@@ -9728,6 +9764,7 @@ __ZN[KRO]9gui_forms24HostClipboardFilesResult*
 __ZN[KRO]9gui_forms24HostClipboardImageResult*
 __ZN[KRO]9gui_forms24HostMessageDialogRequest*
 __ZN[KRO]9gui_forms24InvalidationOutlineStyle*
+__ZN[KRO]9gui_forms24MaterialTransferFunction*
 __ZN[KRO]9gui_forms24PresentationAvailability*
 __ZN[KRO]9gui_forms24PropertyEditorInputError*
 __ZN[KRO]9gui_forms24RelativePointerEventArgs*
@@ -10778,6 +10815,7 @@ __ZT[VIST]N9gui_forms16NativePopupToken*E
 __ZT[VIST]N9gui_forms16PageCloseRequest*E
 __ZT[VIST]N9gui_forms16PaintCornerRadii*E
 __ZT[VIST]N9gui_forms16PaintFramebuffer*E
+__ZT[VIST]N9gui_forms16PaintGroupEffect*E
 __ZT[VIST]N9gui_forms16ParagraphBuffers*E
 __ZT[VIST]N9gui_forms16ParagraphMetrics*E
 __ZT[VIST]N9gui_forms16ParagraphStorage*E
@@ -10879,6 +10917,7 @@ __ZT[VIST]N9gui_forms17MarkdownSpanStyle*E
 __ZT[VIST]N9gui_forms17MaterialClipPoint*E
 __ZT[VIST]N9gui_forms17MaterialFillLayer*E
 __ZT[VIST]N9gui_forms17MaterialImageSize*E
+__ZT[VIST]N9gui_forms17MaterialMaskLayer*E
 __ZT[VIST]N9gui_forms17MaterialTransform*E
 __ZT[VIST]N9gui_forms17MenuStripItemSpec*E
 __ZT[VIST]N9gui_forms17MessageBoxRefused*E
@@ -11101,6 +11140,7 @@ __ZT[VIST]N9gui_forms19LiveSurfaceSnapshot*E
 __ZT[VIST]N9gui_forms19LocaleResolvedField*E
 __ZT[VIST]N9gui_forms19MarkdownParseResult*E
 __ZT[VIST]N9gui_forms19MaterialBorderEdges*E
+__ZT[VIST]N9gui_forms19MaterialColourTable*E
 __ZT[VIST]N9gui_forms19MaterialCornerRadii*E
 __ZT[VIST]N9gui_forms19MaterialDeclaration*E
 __ZT[VIST]N9gui_forms19MenuStripInvocation*E
@@ -11189,6 +11229,7 @@ __ZT[VIST]N9gui_forms20ImageAtlasStatistics*E
 __ZT[VIST]N9gui_forms20InstrumentModuleSpec*E
 __ZT[VIST]N9gui_forms20MaterialColourFilter*E
 __ZT[VIST]N9gui_forms20MaterialColourMatrix*E
+__ZT[VIST]N9gui_forms20MaterialColourStages*E
 __ZT[VIST]N9gui_forms20NodeCanvasStatistics*E
 __ZT[VIST]N9gui_forms20ObjectContextRequest*E
 __ZT[VIST]N9gui_forms20PointerCaptureChange*E
@@ -11402,6 +11443,7 @@ __ZT[VIST]N9gui_forms24HostClipboardFilesResult*E
 __ZT[VIST]N9gui_forms24HostClipboardImageResult*E
 __ZT[VIST]N9gui_forms24HostMessageDialogRequest*E
 __ZT[VIST]N9gui_forms24InvalidationOutlineStyle*E
+__ZT[VIST]N9gui_forms24MaterialTransferFunction*E
 __ZT[VIST]N9gui_forms24PresentationAvailability*E
 __ZT[VIST]N9gui_forms24PropertyEditorInputError*E
 __ZT[VIST]N9gui_forms24RelativePointerEventArgs*E
@@ -12452,6 +12494,7 @@ __ZT[hvc]*9gui_forms16NativePopupToken*
 __ZT[hvc]*9gui_forms16PageCloseRequest*
 __ZT[hvc]*9gui_forms16PaintCornerRadii*
 __ZT[hvc]*9gui_forms16PaintFramebuffer*
+__ZT[hvc]*9gui_forms16PaintGroupEffect*
 __ZT[hvc]*9gui_forms16ParagraphBuffers*
 __ZT[hvc]*9gui_forms16ParagraphMetrics*
 __ZT[hvc]*9gui_forms16ParagraphStorage*
@@ -12553,6 +12596,7 @@ __ZT[hvc]*9gui_forms17MarkdownSpanStyle*
 __ZT[hvc]*9gui_forms17MaterialClipPoint*
 __ZT[hvc]*9gui_forms17MaterialFillLayer*
 __ZT[hvc]*9gui_forms17MaterialImageSize*
+__ZT[hvc]*9gui_forms17MaterialMaskLayer*
 __ZT[hvc]*9gui_forms17MaterialTransform*
 __ZT[hvc]*9gui_forms17MenuStripItemSpec*
 __ZT[hvc]*9gui_forms17MessageBoxRefused*
@@ -12775,6 +12819,7 @@ __ZT[hvc]*9gui_forms19LiveSurfaceSnapshot*
 __ZT[hvc]*9gui_forms19LocaleResolvedField*
 __ZT[hvc]*9gui_forms19MarkdownParseResult*
 __ZT[hvc]*9gui_forms19MaterialBorderEdges*
+__ZT[hvc]*9gui_forms19MaterialColourTable*
 __ZT[hvc]*9gui_forms19MaterialCornerRadii*
 __ZT[hvc]*9gui_forms19MaterialDeclaration*
 __ZT[hvc]*9gui_forms19MenuStripInvocation*
@@ -12863,6 +12908,7 @@ __ZT[hvc]*9gui_forms20ImageAtlasStatistics*
 __ZT[hvc]*9gui_forms20InstrumentModuleSpec*
 __ZT[hvc]*9gui_forms20MaterialColourFilter*
 __ZT[hvc]*9gui_forms20MaterialColourMatrix*
+__ZT[hvc]*9gui_forms20MaterialColourStages*
 __ZT[hvc]*9gui_forms20NodeCanvasStatistics*
 __ZT[hvc]*9gui_forms20ObjectContextRequest*
 __ZT[hvc]*9gui_forms20PointerCaptureChange*
@@ -13076,6 +13122,7 @@ __ZT[hvc]*9gui_forms24HostClipboardFilesResult*
 __ZT[hvc]*9gui_forms24HostClipboardImageResult*
 __ZT[hvc]*9gui_forms24HostMessageDialogRequest*
 __ZT[hvc]*9gui_forms24InvalidationOutlineStyle*
+__ZT[hvc]*9gui_forms24MaterialTransferFunction*
 __ZT[hvc]*9gui_forms24PresentationAvailability*
 __ZT[hvc]*9gui_forms24PropertyEditorInputError*
 __ZT[hvc]*9gui_forms24RelativePointerEventArgs*
@@ -14126,6 +14173,7 @@ __ZZN9gui_forms16NativePopupToken*
 __ZZN9gui_forms16PageCloseRequest*
 __ZZN9gui_forms16PaintCornerRadii*
 __ZZN9gui_forms16PaintFramebuffer*
+__ZZN9gui_forms16PaintGroupEffect*
 __ZZN9gui_forms16ParagraphBuffers*
 __ZZN9gui_forms16ParagraphMetrics*
 __ZZN9gui_forms16ParagraphStorage*
@@ -14227,6 +14275,7 @@ __ZZN9gui_forms17MarkdownSpanStyle*
 __ZZN9gui_forms17MaterialClipPoint*
 __ZZN9gui_forms17MaterialFillLayer*
 __ZZN9gui_forms17MaterialImageSize*
+__ZZN9gui_forms17MaterialMaskLayer*
 __ZZN9gui_forms17MaterialTransform*
 __ZZN9gui_forms17MenuStripItemSpec*
 __ZZN9gui_forms17MessageBoxRefused*
@@ -14449,6 +14498,7 @@ __ZZN9gui_forms19LiveSurfaceSnapshot*
 __ZZN9gui_forms19LocaleResolvedField*
 __ZZN9gui_forms19MarkdownParseResult*
 __ZZN9gui_forms19MaterialBorderEdges*
+__ZZN9gui_forms19MaterialColourTable*
 __ZZN9gui_forms19MaterialCornerRadii*
 __ZZN9gui_forms19MaterialDeclaration*
 __ZZN9gui_forms19MenuStripInvocation*
@@ -14537,6 +14587,7 @@ __ZZN9gui_forms20ImageAtlasStatistics*
 __ZZN9gui_forms20InstrumentModuleSpec*
 __ZZN9gui_forms20MaterialColourFilter*
 __ZZN9gui_forms20MaterialColourMatrix*
+__ZZN9gui_forms20MaterialColourStages*
 __ZZN9gui_forms20NodeCanvasStatistics*
 __ZZN9gui_forms20ObjectContextRequest*
 __ZZN9gui_forms20PointerCaptureChange*
@@ -14750,6 +14801,7 @@ __ZZN9gui_forms24HostClipboardFilesResult*
 __ZZN9gui_forms24HostClipboardImageResult*
 __ZZN9gui_forms24HostMessageDialogRequest*
 __ZZN9gui_forms24InvalidationOutlineStyle*
+__ZZN9gui_forms24MaterialTransferFunction*
 __ZZN9gui_forms24PresentationAvailability*
 __ZZN9gui_forms24PropertyEditorInputError*
 __ZZN9gui_forms24RelativePointerEventArgs*
@@ -15800,6 +15852,7 @@ __ZZNK9gui_forms16NativePopupToken*
 __ZZNK9gui_forms16PageCloseRequest*
 __ZZNK9gui_forms16PaintCornerRadii*
 __ZZNK9gui_forms16PaintFramebuffer*
+__ZZNK9gui_forms16PaintGroupEffect*
 __ZZNK9gui_forms16ParagraphBuffers*
 __ZZNK9gui_forms16ParagraphMetrics*
 __ZZNK9gui_forms16ParagraphStorage*
@@ -15901,6 +15954,7 @@ __ZZNK9gui_forms17MarkdownSpanStyle*
 __ZZNK9gui_forms17MaterialClipPoint*
 __ZZNK9gui_forms17MaterialFillLayer*
 __ZZNK9gui_forms17MaterialImageSize*
+__ZZNK9gui_forms17MaterialMaskLayer*
 __ZZNK9gui_forms17MaterialTransform*
 __ZZNK9gui_forms17MenuStripItemSpec*
 __ZZNK9gui_forms17MessageBoxRefused*
@@ -16123,6 +16177,7 @@ __ZZNK9gui_forms19LiveSurfaceSnapshot*
 __ZZNK9gui_forms19LocaleResolvedField*
 __ZZNK9gui_forms19MarkdownParseResult*
 __ZZNK9gui_forms19MaterialBorderEdges*
+__ZZNK9gui_forms19MaterialColourTable*
 __ZZNK9gui_forms19MaterialCornerRadii*
 __ZZNK9gui_forms19MaterialDeclaration*
 __ZZNK9gui_forms19MenuStripInvocation*
@@ -16211,6 +16266,7 @@ __ZZNK9gui_forms20ImageAtlasStatistics*
 __ZZNK9gui_forms20InstrumentModuleSpec*
 __ZZNK9gui_forms20MaterialColourFilter*
 __ZZNK9gui_forms20MaterialColourMatrix*
+__ZZNK9gui_forms20MaterialColourStages*
 __ZZNK9gui_forms20NodeCanvasStatistics*
 __ZZNK9gui_forms20ObjectContextRequest*
 __ZZNK9gui_forms20PointerCaptureChange*
@@ -16424,6 +16480,7 @@ __ZZNK9gui_forms24HostClipboardFilesResult*
 __ZZNK9gui_forms24HostClipboardImageResult*
 __ZZNK9gui_forms24HostMessageDialogRequest*
 __ZZNK9gui_forms24InvalidationOutlineStyle*
+__ZZNK9gui_forms24MaterialTransferFunction*
 __ZZNK9gui_forms24PresentationAvailability*
 __ZZNK9gui_forms24PropertyEditorInputError*
 __ZZNK9gui_forms24RelativePointerEventArgs*

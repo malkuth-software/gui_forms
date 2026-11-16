@@ -677,7 +677,7 @@ gf_status controls_set_content_effect_body(gf_object object, const gf_content_ef
     if (effect != nullptr) {
         const gf_content_effect& given = *effect;
         if (given.struct_size < sizeof(gf_content_effect)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the effect is smaller than its 1.6 size");
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the effect is smaller than its 1.5 size");
         }
         if (given.has_colour_matrix > 1U || given.has_colour_table > 1U) {
             return fail(GF_STATUS_INVALID_ARGUMENT, slot, "has_colour_matrix and has_colour_table are 0 or 1");

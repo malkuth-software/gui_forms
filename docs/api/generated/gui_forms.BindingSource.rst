@@ -788,7 +788,7 @@ gui_forms::BindingSource
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``BindingSource``. Members declared here and by the counterpart: 45 supported, 0 deferred, 0 excluded, 60 unclassified; 28 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``BindingSource``. Members declared here and by the counterpart: 46 supported, 0 deferred, 0 excluded, 59 unclassified; 28 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1074,7 +1074,7 @@ Counterpart: ``BindingSource``. Members declared here and by the counterpart: 45
    * - method
      - ``RemoveCurrent``
      - ``remove_current``
-     - unclassified (untested)
+     - supported
    * - method
      - ``RemoveFilter``
      - ``remove_filter``

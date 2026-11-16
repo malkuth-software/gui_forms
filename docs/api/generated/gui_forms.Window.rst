@@ -602,7 +602,7 @@ gui_forms::Window
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Form``. Members declared here and by the counterpart: 231 supported, 10 deferred, 10 excluded, 137 unclassified; 248 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Form``. Members declared here and by the counterpart: 236 supported, 10 deferred, 10 excluded, 138 unclassified; 254 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1172,6 +1172,22 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 231 support
    * - property
      - GUI.Forms-only
      - ``band_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``blend_heat_map``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``blend_study_mode``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``blend_study_setting``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``blend_study_snapshot``
      - supported
    * - property
      - GUI.Forms-only
@@ -1973,6 +1989,10 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 231 support
      - GUI.Forms-only
      - ``reset_activity_metrics``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_blend_study``
+     - supported
    * - event
      - ``Control.Resize``
      - ``resize``
@@ -2020,6 +2040,10 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 231 support
    * - method
      - GUI.Forms-only
      - ``set_band_appearance``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_blend_study``
      - supported
    * - method
      - GUI.Forms-only

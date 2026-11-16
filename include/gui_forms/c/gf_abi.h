@@ -2616,7 +2616,7 @@ typedef struct gf_relative_pointer_state {
 } gf_relative_pointer_state;
 
 /*
- * Content effects (since 1.6): a filter and mask on a control and its
+ * Content effects (since 1.5): a filter and mask on a control and its
  * descendants together, as the theme's filter and mask on a control rule
  * (C++ Control::set_content_effect, PaintGroupEffect). The control's chunk
  * and its descendants' chunks, a custom control's painted pixels among
@@ -2774,9 +2774,9 @@ typedef struct gf_controls_table {
      * INVALID_ARGUMENT, changing nothing. */
     gf_status (GF_CALL* set_pointer_release_regions)(gf_object object, const gf_logical_rect* regions,
                                                      uint32_t count);
-    /* Sets the control's content effect (since 1.6), or clears it when
+    /* Sets the control's content effect (since 1.5), or clears it when
      * effect is null; a cleared control shows its theme's effect, if any.
-     * An effect smaller than its 1.6 size, a flag that is not 0 or 1, a
+     * An effect smaller than its 1.5 size, a flag that is not 0 or 1, a
      * value that is not finite, a blur out of range, more than 4 layers,
      * a layer array whose strides differ, or a layer with an unknown mode
      * or composite or a nonzero reserved gives INVALID_ARGUMENT, changing

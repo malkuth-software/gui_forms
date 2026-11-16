@@ -2,6 +2,7 @@
 #include "../services/x11_foreign_window.hpp"
 
 #if defined(GUI_FORMS_HAVE_XPRESENT) && defined(GUI_FORMS_HAVE_XSHM)
+#include <limits>
 #include <X11/Xutil.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xfixes.h>
@@ -237,6 +238,10 @@ presentation::PresentOutcome X11PresentPath::present(std::span<const presentatio
     rectangles_.push_back(native);
   }
   // Serial 0 means "not reading" in a slot: skip it.
+  // XFixesCreateRegion counts its rectangles in an int: a damage list
+  // longer than that is refused, and the shim presents on the copy path.
+  if (rectangles_.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+    return presentation::PresentOutcome::failed;
   ++serial_;
   if (serial_ == 0U) ++serial_;
   // The present's requests run inside a scope that absorbs their errors

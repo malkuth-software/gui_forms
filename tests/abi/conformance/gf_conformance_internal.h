@@ -112,7 +112,7 @@ void gf_kit_focus(gf_kit* kit);
 /* The controls table's relative pointer slots (since 1.5), on a window
  * that has not run. */
 void gf_kit_relative_pointer(gf_kit* kit);
-/* The controls table's content effect slot (since 1.6). */
+/* The controls table's content effect slot (since 1.5). */
 void gf_kit_content_effect(gf_kit* kit);
 /* The window outer band and shaping (since 1.3), on a window that has not
  * run. */

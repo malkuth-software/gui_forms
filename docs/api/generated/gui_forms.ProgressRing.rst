@@ -163,7 +163,7 @@ gui_forms::ProgressRing
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 3 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 4 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -174,6 +174,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 5 su
      - Windows Forms
      - GUI.Forms
      - Status
+   * - property
+     - GUI.Forms-only
+     - ``draws_arc``
+     - supported
    * - property
      - GUI.Forms-only
      - ``fraction``
@@ -198,6 +202,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 5 su
      - GUI.Forms-only
      - ``phase``
      - supported
+   * - property
+     - GUI.Forms-only
+     - ``ring_style``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``value``

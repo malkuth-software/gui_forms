@@ -104,6 +104,17 @@ gui_forms::SurfaceRoot
 
       **invalidation_overlay_setting** : ``stxlib::Optional<bool>``, read-only
 
+      **blend_study_setting** : ``std::optional<BlendStudyMode>``, read-only
+
+      **blend_study_mode** : ``BlendStudyMode``, read-only
+         The mode in force: the window's setting, else the process switch.
+
+      **blend_study_snapshot** : ``BlendStudySnapshot``, read-only
+         The frames counted since the window was made or the last reset, the last of them and their sum. UI thread.
+
+      **blend_heat_map** : ``BlendHeatMapView``, read-only
+         The planes the last counted frames left, while a heat-map mode is in force, for the host to composite at present time (compose_blend_heat_map); a view whose mode is off otherwise. Borrowed until the window's next paint or setting change. UI thread.
+
       **text_metrics_provider** : ``TextMetricsProvider*``
 
       **theme** : ``Theme``
@@ -457,6 +468,8 @@ gui_forms::SurfaceRoot
         - The window's outlines while the overlay is on, for its host to composite at present time (InvalidationOverlay::compose); null while it is off.
       * - :cpp:func:`record_presented_area <gui_forms::SurfaceRoot::record_presented_area>`
         - Records an area the host presented without a paint of the window's (a live frame, external content), with its cause and source, while the overlay is on; nothing while it is off.
+      * - :cpp:func:`reset_blend_study <gui_forms::SurfaceRoot::reset_blend_study>`
+        - Zeroes the frames, the last frame and the sums.
       * - :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>`
         - Removes a snapshot's image; false when it is not there.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`
@@ -647,6 +660,8 @@ gui_forms::SurfaceRoot
         - Native host borrows its painter until shutdown; clear before destroying it.
       * - :cpp:func:`set_invalidation_overlay <gui_forms::SurfaceRoot::set_invalidation_overlay>`
         - The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp).
+      * - :cpp:func:`set_blend_study <gui_forms::SurfaceRoot::set_blend_study>`
+        - The blend and opaque study (2026-11-16; see blend_study.hpp).
       * - :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`
         - Host adapters also install a paint wake seam.
       * - :cpp:func:`set_schedule_wake_handler <gui_forms::SurfaceRoot::set_schedule_wake_handler>`
@@ -776,6 +791,20 @@ gui_forms::SurfaceRoot
       Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
    .. cpp:function:: stxlib::Optional<bool> invalidation_overlay_setting() const noexcept
+
+   .. cpp:function:: std::optional<BlendStudyMode> blend_study_setting() const noexcept
+
+   .. cpp:function:: BlendStudyMode blend_study_mode() const noexcept
+
+      The mode in force: the window's setting, else the process switch.
+
+   .. cpp:function:: BlendStudySnapshot blend_study_snapshot() const noexcept
+
+      The frames counted since the window was made or the last reset, the last of them and their sum. UI thread.
+
+   .. cpp:function:: BlendHeatMapView blend_heat_map() const& noexcept
+
+      The planes the last counted frames left, while a heat-map mode is in force, for the host to composite at present time (compose_blend_heat_map); a view whose mode is off otherwise. Borrowed until the window's next paint or setting change. UI thread.
 
    .. cpp:function:: TextMetricsProvider* text_metrics_provider() const noexcept
 
@@ -1303,6 +1332,10 @@ gui_forms::SurfaceRoot
 
       Records an area the host presented without a paint of the window's (a live frame, external content), with its cause and source, while the overlay is on; nothing while it is off. UI thread.
 
+   .. cpp:function:: void reset_blend_study() noexcept
+
+      Zeroes the frames, the last frame and the sums. UI thread.
+
    .. cpp:function:: bool release_control_snapshot(ImageId image)
 
       Removes a snapshot's image; false when it is not there.
@@ -1775,6 +1808,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void set_invalidation_overlay(std::optional<bool> enabled)
 
       The standard form, kept for one stage (D15 Q3).
+
+   .. cpp:function:: void set_blend_study(std::optional<BlendStudyMode> mode)
+
+      The blend and opaque study (2026-11-16; see blend_study.hpp). The window's own setting: a mode, or none to follow the process switch (set_blend_study_default, read from GUI_FORMS_DEBUG_BLEND at first). While the study is on, each paint counts how its frame's device pixels were written (BlendFrameCounters); turning it off keeps the counts and frees the planes. Neither damages the window. UI thread.
 
    .. cpp:function:: void set_paint_wake_handler(std::function<void()> wake)
 

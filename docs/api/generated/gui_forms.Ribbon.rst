@@ -911,7 +911,7 @@ gui_forms::Ribbon
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 45 supported, 0 deferred, 0 excluded, 6 unclassified; 51 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 46 supported, 0 deferred, 0 excluded, 5 unclassified; 51 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1017,7 +1017,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 45 s
    * - event
      - GUI.Forms-only
      - ``backstage_open_changed``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``command_clicked``

@@ -481,7 +481,7 @@ void gf_kit_relative_pointer(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(loose), GF_STATUS_OK, "release the loose control");
 }
 
-/* The controls table's content effect slot (since 1.6): a valid effect
+/* The controls table's content effect slot (since 1.5): a valid effect
  * with a matrix, a table, a blur and two mask layers is set and cleared;
  * each malformed effect is refused as INVALID_ARGUMENT before the control
  * changes. */

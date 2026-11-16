@@ -285,7 +285,9 @@ public:
             }
             bounds = grown;
             const stxlib::View<stxlib::u8> pixels = coverage.pixels.view();
-            impl.piece_pixels_.insert(impl.piece_pixels_.end(), pixels.data(), pixels.data() + pixels.count());
+            if (pixels.count() != 0U) {
+                impl.piece_pixels_.insert(impl.piece_pixels_.end(), pixels.data(), pixels.data() + pixels.count());
+            }
             impl.pieces_.push_back(piece);
         }
         if (oversized) {
