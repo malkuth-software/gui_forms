@@ -16,7 +16,9 @@
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
 #include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -26,6 +28,7 @@
 #include "gui_forms/window/window.hpp"
 
 #include <chrono>
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -304,6 +307,43 @@ void test_hover_timer() {
     require(log == Log{"leave", "enter"}, "a move out of the hover rectangle restarts the rest");
     static_cast<void>(window.poll_frame_schedule(again + std::chrono::milliseconds(300) + hover));
     require(log == Log{"leave", "enter", "hover"}, "and MouseHover follows the new rest");
+}
+
+// A UI timer's tick that does nothing.
+struct IgnoredTick final {
+    void operator()(FrameTime) const {}
+};
+
+// A-gf-core-17-F3: with the window's schedule full of the application's
+// frame requests, the hover wake fails soft (counted) instead of throwing
+// from pointer dispatch, and is armed again at the next move once there is
+// room.
+void test_hover_wake_fails_soft_at_the_request_limit() {
+    Fixture fixture;
+    Log log;
+    const Subscriptions subscriptions(*fixture.probe, log, "probe");
+    Window& window = *fixture.window;
+    std::vector<FrameRequestToken> timers;
+    timers.reserve(maximum_scheduled_frame_requests);
+    const FrameTime far = fixture.clock.time + std::chrono::hours(1);
+    for (std::size_t index = 0U; index < maximum_scheduled_frame_requests; ++index) {
+        timers.push_back(window.schedule_ui_timer(*fixture.root, std::chrono::hours(1), far, IgnoredTick{}));
+    }
+    bool thrown = false;
+    try {
+        fixture.pointer(PointerAction::move, PointerButton::none, {20.0, 20.0});
+    } catch (const std::exception&) {
+        thrown = true;
+    }
+    require(!thrown && log == Log{"enter"} && window.metrics_snapshot().internal_wakes_refused == 1U,
+            "a full schedule refuses the hover wake softly and counts it");
+    timers.pop_back();
+    fixture.clock.advance(std::chrono::milliseconds(10));
+    const FrameTime moved = fixture.clock.time;
+    fixture.pointer(PointerAction::move, PointerButton::none, {21.0, 20.0});
+    const FrameInterval hover = std::chrono::milliseconds(default_hover_milliseconds);
+    static_cast<void>(window.poll_frame_schedule(moved + hover + hover));
+    require(log == Log{"enter", "hover"}, "the next move arms the hover wake again once there is room");
 }
 
 void test_native_hover() {
@@ -755,6 +795,7 @@ int main() {
         test_button_has_no_double_click();
         test_enter_leave_wheel_and_capture();
         test_hover_timer();
+        test_hover_wake_fails_soft_at_the_request_limit();
         test_native_hover();
         test_context_requests();
         test_window_destroyed_by_click();

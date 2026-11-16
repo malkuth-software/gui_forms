@@ -191,6 +191,7 @@ void Metrics::record_callback_arbitration_retry(bool limit_hit) noexcept {
     if (limit_hit) ++values_.callback_arbitration_limit_hits;
 }
 void Metrics::record_frame_request() noexcept { ++values_.scheduled_frame_requests; }
+void Metrics::record_internal_wake_refused() noexcept { ++values_.internal_wakes_refused; }
 void Metrics::record_frame_poll(std::uint64_t deadlines_fired,
                                 std::uint64_t motion_clock_ticks,
                                 std::uint64_t ui_timer_ticks,
