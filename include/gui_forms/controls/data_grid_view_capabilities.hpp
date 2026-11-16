@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <utility>
 
@@ -241,9 +242,9 @@ struct DataGridViewEnableHeadersVisualStylesCapability {
 // The authored colour of the grid lines; empty takes the theme's (GridColor).
 template <typename Declaring>
 struct DataGridViewGridColorCapability {
-    PropertyCell<std::optional<Color>, DataGridViewGridColorCapability<Declaring>> grid_color{};
+    PropertyCell<stxlib::Optional<Color>, DataGridViewGridColorCapability<Declaring>> grid_color{};
 
-    static void assign(DataGridViewGridColorCapability& capability, std::optional<Color> incoming) {
+    static void assign(DataGridViewGridColorCapability& capability, stxlib::Optional<Color> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.grid_color), incoming);
         if (!capability.grid_color.replace(std::move(incoming))) return;
@@ -254,9 +255,9 @@ struct DataGridViewGridColorCapability {
 // The authored colour behind the cells; empty takes the theme's (BackgroundColor).
 template <typename Declaring>
 struct DataGridViewBackgroundColorCapability {
-    PropertyCell<std::optional<Color>, DataGridViewBackgroundColorCapability<Declaring>> background_color{};
+    PropertyCell<stxlib::Optional<Color>, DataGridViewBackgroundColorCapability<Declaring>> background_color{};
 
-    static void assign(DataGridViewBackgroundColorCapability& capability, std::optional<Color> incoming) {
+    static void assign(DataGridViewBackgroundColorCapability& capability, stxlib::Optional<Color> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.background_color), incoming);
         if (!capability.background_color.replace(std::move(incoming))) return;

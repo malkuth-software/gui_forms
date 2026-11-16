@@ -2329,9 +2329,9 @@ private:
     void written(const decltype(row_headers_default_cell_style)& cell);
     void prepare_write(const decltype(enable_headers_visual_styles)& cell, bool& incoming);
     void written(const decltype(enable_headers_visual_styles)& cell);
-    void prepare_write(const decltype(grid_color)& cell, std::optional<Color>& incoming);
+    void prepare_write(const decltype(grid_color)& cell, stxlib::Optional<Color>& incoming);
     void written(const decltype(grid_color)& cell);
-    void prepare_write(const decltype(background_color)& cell, std::optional<Color>& incoming);
+    void prepare_write(const decltype(background_color)& cell, stxlib::Optional<Color>& incoming);
     void written(const decltype(background_color)& cell);
     void prepare_write(const decltype(border_style)& cell, BorderStyle& incoming);
     void written(const decltype(border_style)& cell);

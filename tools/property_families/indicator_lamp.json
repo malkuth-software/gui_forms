@@ -120,7 +120,7 @@
     {
       "name": "lamp_color",
       "capability": "IndicatorLampLampColor",
-      "value": "std::optional<Color>",
+      "value": "stxlib::Optional<Color>",
       "initial": null,
       "comment": "The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).",
       "getter": "lamp_color",
@@ -146,7 +146,7 @@
       },
       "hooks": "generated",
       "hand": [],
-      "sample": "std::optional<Color>{Color::rgba(10, 20, 30)}"
+      "sample": "stxlib::Optional<Color>::of(Color::rgba(10, 20, 30))"
     }
   ],
   "not_properties": [],

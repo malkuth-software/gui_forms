@@ -153,8 +153,8 @@ bool IndicatorLamp::light_planes_shown() const {
 
 engine_light::LampColour IndicatorLamp::lit_colour() const noexcept {
     if (lit_state_ == IndicatorLampState::error) return engine_light::lamp_red;
-    const std::optional<Color> chosen = lamp_color.read();
-    if (chosen) return engine_light::lamp_colour_from_srgb(*chosen);
+    const Color* chosen = lamp_color.read().value();
+    if (chosen != nullptr) return engine_light::lamp_colour_from_srgb(*chosen);
     return engine_light::lamp_amber;
 }
 
@@ -256,8 +256,8 @@ void IndicatorLamp::paint_theme_lens(Painter& painter, const Placement& placed, 
         lit_lens.key = PartKey{"lens", "lit", {}};
         // The application's lamp colour fills the lit lens (on only: an
         // error keeps the theme's error colour).
-        const std::optional<Color> chosen = lamp_color.read();
-        if (chosen && lit_state_ == IndicatorLampState::on) lit_lens.authored_background = *chosen;
+        const Color* chosen = lamp_color.read().value();
+        if (chosen != nullptr && lit_state_ == IndicatorLampState::on) lit_lens.authored_background = *chosen;
         painter.begin_group(PaintGroup{.bounds = placed.lens, .opacity = std::min(1.0, power_)});
         painter.save();
         painter.clip_rounded_rect(placed.lens, radius);
@@ -542,7 +542,7 @@ void IndicatorLamp::written(const decltype(light_planes)&) {
     invalidate(Dirty::measure | Dirty::paint);
 }
 
-void IndicatorLamp::prepare_write(const decltype(lamp_color)&, std::optional<Color>&) {
+void IndicatorLamp::prepare_write(const decltype(lamp_color)&, stxlib::Optional<Color>&) {
     require_mutable();
 }
 

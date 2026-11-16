@@ -38,7 +38,7 @@ void test_industrial_surfaces(gui_forms::Window& window) {
     if (ok_lamp == nullptr || clear_lamp == nullptr) return;
     require((*ok_lamp).light_planes.read() == "dialog_ok_up" && (*clear_lamp).light_planes.read() == "indicator_clear_up",
             "each lamp names its bake");
-    require((*ok_lamp).lamp_color.read().has_value() && (*ok_lamp).lamp_color.read() != (*clear_lamp).lamp_color.read(),
+    require((*ok_lamp).lamp_color.read().present() && (*ok_lamp).lamp_color.read() != (*clear_lamp).lamp_color.read(),
             "each lamp carries its own colour, so one bake serves every colour");
     const bool baked = (*ok_lamp).light_planes_shown();
     require(baked || (*bakes).text.read().find("No light-plane bakes") != std::string::npos,

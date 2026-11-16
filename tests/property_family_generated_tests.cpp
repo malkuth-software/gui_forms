@@ -721,12 +721,12 @@ void test_data_grid_view_properties() {
         expect((*control).enable_headers_visual_styles.read() == sample, "DataGridView.enable_headers_visual_styles: a write stores");
     }
     {
-        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10U, 20U, 30U)};
+        const stxlib::Optional<Color> sample = stxlib::Optional<Color>::of(Color::rgba(10U, 20U, 30U));
         (*control).grid_color = sample;
         expect((*control).grid_color.read() == sample, "DataGridView.grid_color: a write stores");
     }
     {
-        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10U, 20U, 30U)};
+        const stxlib::Optional<Color> sample = stxlib::Optional<Color>::of(Color::rgba(10U, 20U, 30U));
         (*control).background_color = sample;
         expect((*control).background_color.read() == sample, "DataGridView.background_color: a write stores");
     }
@@ -1319,11 +1319,11 @@ void test_indicator_lamp_properties() {
                "IndicatorLamp.light_planes: the table reads the cell");
     }
     {
-        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10, 20, 30)};
+        const stxlib::Optional<Color> sample = stxlib::Optional<Color>::of(Color::rgba(10, 20, 30));
         (*control).lamp_color = sample;
         expect((*control).lamp_color.read() == sample, "IndicatorLamp.lamp_color: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("lamp_color");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<Color>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<Color>>::to_binding(sample),
                "IndicatorLamp.lamp_color: the table reads the cell");
     }
 }

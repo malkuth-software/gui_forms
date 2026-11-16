@@ -2261,7 +2261,7 @@ void authored_colours() {
             "an unstyled grid authors no colours");
 
     (*grid).default_cell_style = {.back_color = back, .fore_color = fore};
-    (*grid).grid_color = line;
+    (*grid).grid_color = stxlib::Optional<Color>::of(line);
     window.perform_layout();
     cells = (*grid).realized_cells();
     const DataGridView::Cell text = *find_cell(cells, 1U, 0U);
@@ -2304,7 +2304,7 @@ void authored_colours() {
                 rows[0].parts.row_header.authored_background == header_back,
             "without them the header styles' colours stand on the headers");
 
-    (*grid).background_color = empty;
+    (*grid).background_color = stxlib::Optional<Color>::of(empty);
     window.perform_layout();
     ColourPainter background;
     (*grid).on_paint(background, (*grid).client_rectangle());

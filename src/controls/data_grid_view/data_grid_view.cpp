@@ -5522,7 +5522,7 @@ void DataGridView::written(const decltype(enable_headers_visual_styles)&) {
     invalidate(Dirty::paint);
 }
 
-void DataGridView::prepare_write(const decltype(grid_color)&, std::optional<Color>&) {
+void DataGridView::prepare_write(const decltype(grid_color)&, stxlib::Optional<Color>&) {
     require_mutable();
 }
 
@@ -5533,7 +5533,7 @@ void DataGridView::written(const decltype(grid_color)&) {
 
 void DataGridView::on_grid_color_changed() {}
 
-void DataGridView::prepare_write(const decltype(background_color)&, std::optional<Color>&) {
+void DataGridView::prepare_write(const decltype(background_color)&, stxlib::Optional<Color>&) {
     require_mutable();
 }
 
