@@ -314,6 +314,53 @@ void base_properties_refused() {
             "a child binding to a base property is refused (E999), not compiled to property 0");
 }
 
+// A two-way child binding and a second child bound to the same property
+// (A-gf-controls-02-F3): typing in the field must still update the echo; only
+// the write back to the field itself is skipped.
+constexpr std::string_view echo_field = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="echo-field" version="1.0" base="user-control" family="card">
+  <property name="query" kind="text" default="" bindable="two-way"/>
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <children>
+    <text-box id="@entry" dock="top" text="bind(self.query)"/>
+    <label id="@echo" dock="top" text="bind(self.query, one_way)"/>
+  </children>
+  <focus target="child(@entry)"/>
+  <semantics role="group" name="property(accessible-name)" children="exposed"/>
+</control>
+)xml";
+
+std::string text_property(const Control& control, const std::string_view name) {
+    const std::optional<BindingValue> value = control.property_value(name);
+    const std::string* const text = value ? std::get_if<std::string>(&*value) : nullptr;
+    std::string result = text != nullptr ? *text : std::string{};
+    return result;
+}
+
+void two_way_child_updates_the_others() {
+    const CompositeLoadResult loaded = load_composite_definition("echo-field.control", echo_field, example_child_types);
+    for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
+    require(static_cast<bool>(loaded), "the echo field loads");
+    if (!loaded) return;
+    const std::shared_ptr<CompositeControl> field =
+        make_control<CompositeControl>(StableId(std::string("echo")), loaded.definition);
+    const std::span<const Control::Ptr> children = (*field).children();
+    std::shared_ptr<TextBox> entry{};
+    std::shared_ptr<Label> echo{};
+    for (const Control::Ptr& child : children) {
+        if (!entry) entry = std::dynamic_pointer_cast<TextBox>(child);
+        if (!echo) echo = std::dynamic_pointer_cast<Label>(child);
+    }
+    require(entry && echo, "the field has its text box and label");
+    if (!entry || !echo) return;
+    (*entry).text = "typed";
+    require(text_property(*field, "query") == "typed", "the text box writes the composite's property");
+    require(text_property(*echo, "text") == "typed", "the label bound to the same property follows");
+    (*field).set_property_value("query", BindingValue{std::string("set")});
+    require(text_property(*entry, "text") == "set" && text_property(*echo, "text") == "set",
+            "a write from the composite still reaches both children");
+}
+
 // A live drag: `level` follows every frame; Escape writes back the value
 // the press found.
 constexpr std::string_view live_slider = R"xml(<?xml version="1.0" encoding="UTF-8"?>
@@ -1049,6 +1096,7 @@ int main() {
     card_with_action();
     stepper_field_refused();
     base_properties_refused();
+    two_way_child_updates_the_others();
     live_drag();
     look_shared("toggle-pill.control", {}, Size{160.0, 30.0});
     look_shared("card-with-action.control", "title", Size{240.0, 160.0});

@@ -428,6 +428,10 @@ private:
     // Set while the children's bound properties are written from the
     // composite, so their change notifications do not flow back.
     bool writing_children_{};
+    // The two-way binding whose child is being read back into the
+    // composite: write_bound_children skips only that binding, so the other
+    // children still follow the change (A-gf-controls-02-F3).
+    stxlib::Optional<std::size_t> reading_binding_{};
 };
 
 } // namespace gui_forms
