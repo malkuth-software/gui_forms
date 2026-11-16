@@ -467,9 +467,10 @@ ControlVisualRecipe dark_recipe(const ControlVisualRecipe& light, ControlVisualR
     result.text = detail::dark_colour(light.text, text_class(light.text, plan, disabled));
     result.muted_text = detail::dark_colour(light.muted_text, text_class(light.muted_text, plan, disabled));
     result.glyph = detail::dark_colour(light.glyph, text_class(light.glyph, plan, disabled));
-    if (light.fill_text) {
-        const Color over_fill = *light.fill_text;
-        result.fill_text = detail::dark_colour(over_fill, text_class(over_fill, plan, disabled));
+    const Color* const light_over_fill = light.fill_text.value();
+    if (light_over_fill != nullptr) {
+        const Color over_fill = *light_over_fill;
+        result.fill_text.set(detail::dark_colour(over_fill, text_class(over_fill, plan, disabled)));
     }
     result.focus_ring = detail::dark_colour(light.focus_ring, DarkColourClass::cue);
     result.default_ring = detail::dark_colour(light.default_ring, DarkColourClass::cue);
@@ -478,8 +479,9 @@ ControlVisualRecipe dark_recipe(const ControlVisualRecipe& light, ControlVisualR
     // (a)). The dial geometry is the light theme's.
     const std::uint8_t deeper = static_cast<std::uint8_t>(std::min(255, static_cast<int>(light.scrim.alpha) + 64));
     result.scrim = Color::rgba(0, 0, 0, deeper);
-    if (result.text_shadow) {
-        ControlTextShadow& shadow = *result.text_shadow;
+    ControlTextShadow* const dark_shadow = result.text_shadow.value();
+    if (dark_shadow != nullptr) {
+        ControlTextShadow& shadow = *dark_shadow;
         shadow.color = detail::dark_colour(shadow.color, relief_class(shadow.color, plan));
     }
     return result;

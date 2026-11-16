@@ -1296,17 +1296,18 @@ void paint_profiled_part(Painter& painter, const Control& control, const PartPai
             paint_part(painter, control, whole);
             painter.restore();
         }
-        if (profile.taper_colour && part.frame != PartFrame::none) {
+        const Color* const taper_line = profile.taper_colour.value();
+        if (taper_line != nullptr && part.frame != PartFrame::none) {
             // The line follows the outline: one segment per corner row,
             // then the straight lean to the foot.
             Point from{profile_outline(bounds, taper, radius, bounds.y) - 0.5, bounds.y + 0.5};
             const double corner_end = bounds.y + std::min(std::ceil(radius), std::floor(bounds.height));
             for (double y = bounds.y + 1.0; y <= corner_end; y += 1.0) {
                 const Point to{profile_outline(bounds, taper, radius, y) - 0.5, y};
-                painter.draw_line(from, to, *profile.taper_colour, 1.0);
+                painter.draw_line(from, to, *taper_line, 1.0);
                 from = to;
             }
-            painter.draw_line(from, {right - 0.5, bottom}, *profile.taper_colour, 1.0);
+            painter.draw_line(from, {right - 0.5, bottom}, *taper_line, 1.0);
         }
     }
     if (flare <= 0.0) return;

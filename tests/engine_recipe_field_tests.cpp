@@ -352,8 +352,9 @@ void test_resolve() {
     require(resolved.authored() && recipe.text == red && recipe.authored_focus_outline &&
                 recipe.focus_ring == green && recipe.focus_width == 2.0 && recipe.focus_offset == 1.5,
             "the text colour and a solid outline outside the bounds");
-    require(recipe.text_shadow && (*recipe.text_shadow).offset == Point{1.0, 2.0} &&
-                (*recipe.text_shadow).blur_radius == 3.0 && (*recipe.text_shadow).color == blue,
+    const ControlTextShadow* const shadow = recipe.text_shadow.value();
+    require(shadow != nullptr && (*shadow).offset == Point{1.0, 2.0} && (*shadow).blur_radius == 3.0 &&
+                (*shadow).color == blue,
             "the text shadow");
     require(recipe.material == floor.material && recipe.muted_text == floor.muted_text &&
                 recipe.default_ring == floor.default_ring,
@@ -365,7 +366,7 @@ void test_resolve() {
     const ResolvedControlRecipe dimmed = theme.resolve(first, ControlVisualRole::button, off);
     const ControlVisualRecipe& dimmed_recipe = dimmed.recipe();
     require(dimmed_recipe.text == disabled_floor.text && dimmed_recipe.focus_width == 0.0 &&
-                !dimmed_recipe.text_shadow && dimmed_recipe.focus_ring == green,
+                dimmed_recipe.text_shadow.absent() && dimmed_recipe.focus_ring == green,
             "disabled: initial keeps the floor's text, no outline has no width, none has no shadow");
 
     const ControlVisualContext second_context = second.visual_context();
@@ -406,7 +407,7 @@ void test_part_text_colour() {
     const ResolvedControlRecipe other = theme.resolve(first, ControlVisualRole::button, context, states, "face");
     require(whole.recipe().text == red && other.recipe().text == red, "the control's text colour without the part");
     require(part.recipe().text == blue && part.recipe().glyph == green, "the part's own text and glyph colours");
-    require(part.recipe().fill_text == std::optional<Color>{red} && !whole.recipe().fill_text,
+    require(part.recipe().fill_text == stxlib::Optional<Color>::of(red) && whole.recipe().fill_text.absent(),
             "the part's own colour over a fill, absent on the control");
 }
 

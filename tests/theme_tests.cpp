@@ -223,24 +223,24 @@ void test_text_shadow_is_bounded_recipe_data() {
     ControlVisualRecipe& recipe =
         (*definition).roles[static_cast<std::size_t>(ControlVisualRole::button)]
             .ordinary[static_cast<std::size_t>(ControlSurfaceState::normal)];
-    recipe.text_shadow = shadow;
+    recipe.text_shadow.set(shadow);
     require(valid_control_visual_recipe(recipe), "a bounded text shadow is valid");
     const std::shared_ptr<const Theme> theme = Theme::create(*definition);
     const ControlVisualRecipe& resolved = (*theme).resolve(ControlVisualRole::button, ControlVisualContext{});
-    require(resolved.text_shadow == std::optional<ControlTextShadow>{shadow},
+    require(resolved.text_shadow == stxlib::Optional<ControlTextShadow>::of(shadow),
             "the theme carries the shadow to the resolved recipe");
 
     ControlVisualRecipe blurred = recipe;
-    (*blurred.text_shadow).blur_radius = maximum_text_shadow_blur + 1.0;
+    (*blurred.text_shadow.value()).blur_radius = maximum_text_shadow_blur + 1.0;
     require(!valid_control_visual_recipe(blurred), "a blur past its bound is refused");
     ControlVisualRecipe moved = recipe;
-    (*moved.text_shadow).offset = Point{maximum_text_shadow_offset + 1.0, 0.0};
+    (*moved.text_shadow.value()).offset = Point{maximum_text_shadow_offset + 1.0, 0.0};
     require(!valid_control_visual_recipe(moved), "an offset past its bound is refused");
     ControlVisualRecipe unknown = recipe;
-    (*unknown.text_shadow).offset = Point{std::numeric_limits<double>::quiet_NaN(), 0.0};
+    (*unknown.text_shadow.value()).offset = Point{std::numeric_limits<double>::quiet_NaN(), 0.0};
     require(!valid_control_visual_recipe(unknown), "a non-finite offset is refused");
 
-    recipe.text_shadow = (*blurred.text_shadow);
+    recipe.text_shadow = blurred.text_shadow;
     bool rejected{};
     try {
         static_cast<void>(Theme::create(*definition));

@@ -520,8 +520,8 @@ Color ValueBar::over_fill_text_colour(AnatomyStateSet states) const {
     const Theme& theme = effective_theme();
     const ControlVisualContext context = part_visual_context(*this, states);
     const ResolvedControlRecipe label_recipe = theme.resolve(*this, ControlVisualRole::editor, context, states, "label");
-    const std::optional<Color> authored = label_recipe.recipe().fill_text;
-    if (authored) return *authored;
+    const stxlib::Optional<Color> authored = label_recipe.recipe().fill_text;
+    if (authored.present()) return *authored.value();
     AnatomyStateSet fill_states = states;
     fill_states.insert(AnatomyState::selected);
     const ControlVisualContext fill_context = part_visual_context(*this, fill_states);

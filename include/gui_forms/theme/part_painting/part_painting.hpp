@@ -7,6 +7,8 @@
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -144,7 +146,7 @@ enum class DockShapeRegion : std::uint8_t { top, bottom, left, right, tab_into }
 // width, the flare by its height, all by maximum_part_shape.
 struct GUI_FORMS_API PartProfile final {
     double taper{};
-    std::optional<Color> taper_colour{};
+    stxlib::Optional<Color> taper_colour{};
     double flare{};
     Color flare_colour{};
     double edge_shadow{};

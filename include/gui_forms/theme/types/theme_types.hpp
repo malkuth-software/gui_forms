@@ -7,6 +7,8 @@
 #include "gui_forms/resources/stock_icons/stock_icon_vectors.hpp"
 #include "gui_forms/surface_material.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -76,16 +78,16 @@ struct GUI_FORMS_API ControlTextShadow final {
 // over opaque stripe colours, and still bands under reduced motion. A pitch
 // of 0 is `auto`.
 struct GUI_FORMS_API ControlStripePattern final {
-    std::optional<double> pitch{};
-    std::optional<double> ratio{};
-    std::optional<double> angle_degrees{};
-    std::optional<StripeSense> lean{};
-    std::optional<StripeSense> direction{};
-    std::optional<double> speed{};
-    std::optional<Color> colour{};
-    std::optional<Color> ground{};
-    std::optional<StripeGloss> gloss{};
-    std::optional<StripeReducedMotion> reduced_motion{};
+    stxlib::Optional<double> pitch{};
+    stxlib::Optional<double> ratio{};
+    stxlib::Optional<double> angle_degrees{};
+    stxlib::Optional<StripeSense> lean{};
+    stxlib::Optional<StripeSense> direction{};
+    stxlib::Optional<double> speed{};
+    stxlib::Optional<Color> colour{};
+    stxlib::Optional<Color> ground{};
+    stxlib::Optional<StripeGloss> gloss{};
+    stxlib::Optional<StripeReducedMotion> reduced_motion{};
     friend bool operator==(const ControlStripePattern& left, const ControlStripePattern& right) noexcept {
         return left.pitch == right.pitch && left.ratio == right.ratio && left.angle_degrees == right.angle_degrees &&
                left.lean == right.lean && left.direction == right.direction && left.speed == right.speed &&
@@ -95,16 +97,16 @@ struct GUI_FORMS_API ControlStripePattern final {
 };
 
 struct GUI_FORMS_API ControlPartMetrics final {
-    std::optional<double> block_size{};
-    std::optional<double> minimum_inline_size{};
-    std::optional<double> padding_inline{};
-    std::optional<double> gap{};
-    std::optional<double> margin_block_start{};
-    std::optional<double> margin_block_end{};
+    stxlib::Optional<double> block_size{};
+    stxlib::Optional<double> minimum_inline_size{};
+    stxlib::Optional<double> padding_inline{};
+    stxlib::Optional<double> gap{};
+    stxlib::Optional<double> margin_block_start{};
+    stxlib::Optional<double> margin_block_end{};
     double taper{};
-    std::optional<Color> taper_colour{};
+    stxlib::Optional<Color> taper_colour{};
     double flare{};
-    std::optional<Color> flare_colour{};
+    stxlib::Optional<Color> flare_colour{};
     double edge_shadow_width{};
     Color edge_shadow_colour{};
     ControlStripePattern stripes{};
@@ -129,20 +131,20 @@ struct GUI_FORMS_API ControlPartMetrics final {
 // the focus colour. `texture` holds no layer for `background-texture:
 // none`.
 struct GUI_FORMS_API ControlCanvasPaint final {
-    std::optional<Color> fill{};
-    std::optional<Color> stroke{};
-    std::optional<double> stroke_width{};
-    std::optional<double> dash{};
-    std::optional<double> gap{};
-    std::optional<double> halo_width{};
-    std::optional<Color> halo{};
-    std::optional<double> corner_radius{};
-    std::optional<double> grid_spacing{};
-    std::optional<double> grid_band{};
-    std::optional<CanvasTextureLayers> texture{};
-    std::optional<CanvasFlowStyle> flow{};
-    std::optional<double> flow_speed{};
-    std::optional<double> flow_spacing{};
+    stxlib::Optional<Color> fill{};
+    stxlib::Optional<Color> stroke{};
+    stxlib::Optional<double> stroke_width{};
+    stxlib::Optional<double> dash{};
+    stxlib::Optional<double> gap{};
+    stxlib::Optional<double> halo_width{};
+    stxlib::Optional<Color> halo{};
+    stxlib::Optional<double> corner_radius{};
+    stxlib::Optional<double> grid_spacing{};
+    stxlib::Optional<double> grid_band{};
+    stxlib::Optional<CanvasTextureLayers> texture{};
+    stxlib::Optional<CanvasFlowStyle> flow{};
+    stxlib::Optional<double> flow_speed{};
+    stxlib::Optional<double> flow_spacing{};
     friend bool operator==(const ControlCanvasPaint& left, const ControlCanvasPaint& right) noexcept {
         return left.fill == right.fill && left.stroke == right.stroke && left.stroke_width == right.stroke_width &&
                left.dash == right.dash &&
@@ -172,14 +174,14 @@ struct GUI_FORMS_API ControlVisualRecipe final {
     Point visual_offset{};
     Point pressed_content_offset{1.0, 1.0};
     // The shadow under the recipe's text, if any (E9.6, data only).
-    std::optional<ControlTextShadow> text_shadow{};
+    stxlib::Optional<ControlTextShadow> text_shadow{};
     // The part's metrics and shape, where a rule naming the part sets them.
     ControlPartMetrics part_metrics{};
     // The text's colour where it lies over a fill (`fill-text-color`, the
     // value bar study's section 3.6), if the theme sets one; none, the
     // built-in recipes' value, draws such text in the fill's own selected
     // text colour.
-    std::optional<Color> fill_text{};
+    stxlib::Optional<Color> fill_text{};
     // The dial parts and the scrim (row 2.5; owner option (a)): an arc's
     // thickness and a needle's width at its hub, in logical units (0 to
     // maximum_recipe_stroke_width); the needle's outline; and the colour,

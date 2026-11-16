@@ -783,10 +783,11 @@ ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, C
 
 // A text shadow (E9.6): its offset within ±maximum_text_shadow_offset and
 // its blur within [0, maximum_text_shadow_blur].
-bool valid_text_shadow(const std::optional<ControlTextShadow>& shadow) noexcept {
-    if (!shadow) return true;
-    const Point offset = (*shadow).offset;
-    const double blur = (*shadow).blur_radius;
+bool valid_text_shadow(const stxlib::Optional<ControlTextShadow>& shadow) noexcept {
+    const ControlTextShadow* const written = shadow.value();
+    if (written == nullptr) return true;
+    const Point offset = (*written).offset;
+    const double blur = (*written).blur_radius;
     const bool placed = finite(offset) && std::abs(offset.x) <= maximum_text_shadow_offset &&
                         std::abs(offset.y) <= maximum_text_shadow_offset;
     const bool blurred = std::isfinite(blur) && blur >= 0.0 && blur <= maximum_text_shadow_blur;
@@ -1854,50 +1855,50 @@ Color inherited_text(const Control& control, Color fallback) {
 // over `metrics`, in place.
 void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, ControlPartMetrics& metrics) noexcept {
     const RecipeDeclaration* const block = set_recipe_field(fields, RecipeField::block_size);
-    if (block != nullptr) metrics.block_size = (*block).number;
+    if (block != nullptr) metrics.block_size.set((*block).number);
     const RecipeDeclaration* const minimum = set_recipe_field(fields, RecipeField::minimum_inline_size);
-    if (minimum != nullptr) metrics.minimum_inline_size = (*minimum).number;
+    if (minimum != nullptr) metrics.minimum_inline_size.set((*minimum).number);
     const RecipeDeclaration* const padding = set_recipe_field(fields, RecipeField::padding_inline);
-    if (padding != nullptr) metrics.padding_inline = (*padding).number;
+    if (padding != nullptr) metrics.padding_inline.set((*padding).number);
     const RecipeDeclaration* const gap = set_recipe_field(fields, RecipeField::gap);
-    if (gap != nullptr) metrics.gap = (*gap).number;
+    if (gap != nullptr) metrics.gap.set((*gap).number);
     const RecipeDeclaration* const start = set_recipe_field(fields, RecipeField::margin_block_start);
-    if (start != nullptr) metrics.margin_block_start = (*start).number;
+    if (start != nullptr) metrics.margin_block_start.set((*start).number);
     const RecipeDeclaration* const end = set_recipe_field(fields, RecipeField::margin_block_end);
-    if (end != nullptr) metrics.margin_block_end = (*end).number;
+    if (end != nullptr) metrics.margin_block_end.set((*end).number);
     const RecipeDeclaration* const taper = set_recipe_field(fields, RecipeField::taper);
     if (taper != nullptr) metrics.taper = (*taper).number;
     const RecipeDeclaration* const taper_colour = set_recipe_field(fields, RecipeField::taper_colour);
-    if (taper_colour != nullptr) metrics.taper_colour = (*taper_colour).colour;
+    if (taper_colour != nullptr) metrics.taper_colour.set((*taper_colour).colour);
     const RecipeDeclaration* const flare = set_recipe_field(fields, RecipeField::flare);
     if (flare != nullptr) metrics.flare = (*flare).number;
     const RecipeDeclaration* const flare_colour = set_recipe_field(fields, RecipeField::flare_colour);
-    if (flare_colour != nullptr) metrics.flare_colour = (*flare_colour).colour;
+    if (flare_colour != nullptr) metrics.flare_colour.set((*flare_colour).colour);
     const RecipeDeclaration* const shadow_width = set_recipe_field(fields, RecipeField::edge_shadow_width);
     if (shadow_width != nullptr) metrics.edge_shadow_width = (*shadow_width).number;
     const RecipeDeclaration* const shadow_colour = set_recipe_field(fields, RecipeField::edge_shadow_colour);
     if (shadow_colour != nullptr) metrics.edge_shadow_colour = (*shadow_colour).colour;
     ControlStripePattern& stripes = metrics.stripes;
     const RecipeDeclaration* const pitch = set_recipe_field(fields, RecipeField::stripe_pitch);
-    if (pitch != nullptr) stripes.pitch = (*pitch).number;
+    if (pitch != nullptr) stripes.pitch.set((*pitch).number);
     const RecipeDeclaration* const ratio = set_recipe_field(fields, RecipeField::stripe_ratio);
-    if (ratio != nullptr) stripes.ratio = (*ratio).number;
+    if (ratio != nullptr) stripes.ratio.set((*ratio).number);
     const RecipeDeclaration* const angle = set_recipe_field(fields, RecipeField::stripe_angle);
-    if (angle != nullptr) stripes.angle_degrees = (*angle).number;
+    if (angle != nullptr) stripes.angle_degrees.set((*angle).number);
     const RecipeDeclaration* const lean = set_recipe_field(fields, RecipeField::stripe_lean);
-    if (lean != nullptr) stripes.lean = (*lean).stripe_sense;
+    if (lean != nullptr) stripes.lean.set((*lean).stripe_sense);
     const RecipeDeclaration* const direction = set_recipe_field(fields, RecipeField::stripe_direction);
-    if (direction != nullptr) stripes.direction = (*direction).stripe_sense;
+    if (direction != nullptr) stripes.direction.set((*direction).stripe_sense);
     const RecipeDeclaration* const speed = set_recipe_field(fields, RecipeField::stripe_speed);
-    if (speed != nullptr) stripes.speed = (*speed).number;
+    if (speed != nullptr) stripes.speed.set((*speed).number);
     const RecipeDeclaration* const stripe_colour = set_recipe_field(fields, RecipeField::stripe_colour);
-    if (stripe_colour != nullptr) stripes.colour = (*stripe_colour).colour;
+    if (stripe_colour != nullptr) stripes.colour.set((*stripe_colour).colour);
     const RecipeDeclaration* const ground = set_recipe_field(fields, RecipeField::stripe_ground_colour);
-    if (ground != nullptr) stripes.ground = (*ground).colour;
+    if (ground != nullptr) stripes.ground.set((*ground).colour);
     const RecipeDeclaration* const gloss = set_recipe_field(fields, RecipeField::stripe_gloss);
-    if (gloss != nullptr) stripes.gloss = (*gloss).stripe_gloss;
+    if (gloss != nullptr) stripes.gloss.set((*gloss).stripe_gloss);
     const RecipeDeclaration* const reduced = set_recipe_field(fields, RecipeField::stripe_reduced_motion);
-    if (reduced != nullptr) stripes.reduced_motion = (*reduced).stripe_reduced_motion;
+    if (reduced != nullptr) stripes.reduced_motion.set((*reduced).stripe_reduced_motion);
 }
 
 // The node canvas fields `fields` sets (RecipeField::fill_colour on; cp31),
@@ -1911,34 +1912,34 @@ void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, Cont
 // the part's own rule. A texture of no layers is `none`.
 void apply_canvas_paint(const CompiledThemeRules::RecipeResolution& fields, ControlCanvasPaint& canvas) noexcept {
     const RecipeDeclaration* const fill = set_recipe_field(fields, RecipeField::fill_colour);
-    if (fill != nullptr) canvas.fill = (*fill).colour;
+    if (fill != nullptr) canvas.fill.set((*fill).colour);
     const RecipeDeclaration* const stroke = set_recipe_field(fields, RecipeField::stroke_colour);
-    if (stroke != nullptr) canvas.stroke = (*stroke).colour;
+    if (stroke != nullptr) canvas.stroke.set((*stroke).colour);
     const RecipeDeclaration* const width =
         fields.named_part_fields[static_cast<std::size_t>(RecipeField::stroke_width)];
-    if (width != nullptr && !(*width).initial) canvas.stroke_width = (*width).number;
+    if (width != nullptr && !(*width).initial) canvas.stroke_width.set((*width).number);
     const RecipeDeclaration* const dash = set_recipe_field(fields, RecipeField::stroke_dash);
-    if (dash != nullptr) canvas.dash = (*dash).number;
+    if (dash != nullptr) canvas.dash.set((*dash).number);
     const RecipeDeclaration* const gap = set_recipe_field(fields, RecipeField::stroke_gap);
-    if (gap != nullptr) canvas.gap = (*gap).number;
+    if (gap != nullptr) canvas.gap.set((*gap).number);
     const RecipeDeclaration* const halo_width = set_recipe_field(fields, RecipeField::halo_width);
-    if (halo_width != nullptr) canvas.halo_width = (*halo_width).number;
+    if (halo_width != nullptr) canvas.halo_width.set((*halo_width).number);
     const RecipeDeclaration* const halo = set_recipe_field(fields, RecipeField::halo_colour);
-    if (halo != nullptr) canvas.halo = (*halo).colour;
+    if (halo != nullptr) canvas.halo.set((*halo).colour);
     const RecipeDeclaration* const corner = set_recipe_field(fields, RecipeField::corner_radius);
-    if (corner != nullptr) canvas.corner_radius = (*corner).number;
+    if (corner != nullptr) canvas.corner_radius.set((*corner).number);
     const RecipeDeclaration* const spacing = set_recipe_field(fields, RecipeField::grid_spacing);
-    if (spacing != nullptr) canvas.grid_spacing = (*spacing).number;
+    if (spacing != nullptr) canvas.grid_spacing.set((*spacing).number);
     const RecipeDeclaration* const band = set_recipe_field(fields, RecipeField::grid_band);
-    if (band != nullptr) canvas.grid_band = (*band).number;
+    if (band != nullptr) canvas.grid_band.set((*band).number);
     const RecipeDeclaration* const texture = set_recipe_field(fields, RecipeField::texture_layers);
-    if (texture != nullptr) canvas.texture = (*texture).texture;
+    if (texture != nullptr) canvas.texture.set((*texture).texture);
     const RecipeDeclaration* const flow = set_recipe_field(fields, RecipeField::flow_style);
-    if (flow != nullptr) canvas.flow = (*flow).flow_style;
+    if (flow != nullptr) canvas.flow.set((*flow).flow_style);
     const RecipeDeclaration* const speed = set_recipe_field(fields, RecipeField::flow_speed);
-    if (speed != nullptr) canvas.flow_speed = (*speed).number;
+    if (speed != nullptr) canvas.flow_speed.set((*speed).number);
     const RecipeDeclaration* const flow_spacing = set_recipe_field(fields, RecipeField::flow_spacing);
-    if (flow_spacing != nullptr) canvas.flow_spacing = (*flow_spacing).number;
+    if (flow_spacing != nullptr) canvas.flow_spacing.set((*flow_spacing).number);
 }
 
 // The recipe fields `fields` sets, over `recipe` (the floor's copy), in
@@ -1952,7 +1953,7 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     const RecipeDeclaration* const glyph = set_recipe_field(fields, RecipeField::glyph);
     if (glyph != nullptr) recipe.glyph = (*glyph).colour;
     const RecipeDeclaration* const fill_text = set_recipe_field(fields, RecipeField::fill_text);
-    if (fill_text != nullptr) recipe.fill_text = (*fill_text).colour;
+    if (fill_text != nullptr) recipe.fill_text.set((*fill_text).colour);
     const RecipeDeclaration* const default_width = set_recipe_field(fields, RecipeField::default_outline_width);
     if (default_width != nullptr) recipe.default_width = (*default_width).number;
     const RecipeDeclaration* const default_colour = set_recipe_field(fields, RecipeField::default_outline_colour);
@@ -2004,7 +2005,7 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     written.offset = (*shadow).shadow_offset;
     written.blur_radius = (*shadow).shadow_blur;
     written.color = (*shadow).colour;
-    recipe.text_shadow = written;
+    recipe.text_shadow.set(written);
 }
 
 } // namespace
