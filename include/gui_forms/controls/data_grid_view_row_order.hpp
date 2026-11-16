@@ -12,6 +12,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // A row's stable identity: not empty, unique among the grid's rows, and kept
@@ -194,10 +196,10 @@ public:
     // asked of the source.
     [[nodiscard]] std::string id_at(std::size_t position) const;
     // The position of an ID now, or none.
-    [[nodiscard]] std::optional<std::size_t> position_of(std::string_view id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> position_of(std::string_view id) const;
     // Window mode: the position an ID had in the window held before the last
     // reported change, or none. Edit mode: position_of.
-    [[nodiscard]] std::optional<std::size_t> held_position(std::string_view id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> held_position(std::string_view id) const;
     // The ID at a position when it is held without asking the source (always
     // in edit mode; inside the window in window mode), or none.
     [[nodiscard]] std::optional<std::string> held_id_at(std::size_t position) const;

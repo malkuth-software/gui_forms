@@ -163,8 +163,8 @@ void check_same(const DataGridViewRowOrder& order, const std::vector<DataGridVie
     require(order.count() == reference.size(), what);
     for (std::size_t position = 0; position < reference.size(); ++position) {
         if (order.id_at(position) != reference[position].value) require(false, what);
-        const std::optional<std::size_t> found = order.position_of(reference[position].value);
-        if (!found || *found != position) require(false, what);
+        const stxlib::Optional<std::size_t> found = order.position_of(reference[position].value);
+        if (found.absent() || *found.value() != position) require(false, what);
     }
 }
 
@@ -225,7 +225,7 @@ void chunked_index_matches_a_vector() {
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && order.count() == 3U && order.position_of("again0") == 0U,
+    require(refused && order.count() == 3U && order.position_of("again0") == stxlib::Optional<std::size_t>::of(0U),
             "removing an absent ID is refused before anything is removed");
     refused = false;
     try {

@@ -1484,7 +1484,7 @@ private:
     void rebuild_row_index();
     // Writes the positions of the rows from `first` to the end (unbound).
     void index_rows_from(std::size_t first);
-    [[nodiscard]] std::optional<std::size_t> find_row(std::string_view row_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> find_row(std::string_view row_id) const;
     // The position an event reports for a row: its indexed position, which
     // for a row being removed is the position it had.
     [[nodiscard]] DataGridViewRowPosition event_position(std::string_view row_id) const;
@@ -1519,14 +1519,14 @@ private:
     [[nodiscard]] std::string cell_tool_tip_text(DataGridViewRowPosition row, std::size_t column) const;
     [[nodiscard]] CellKey key_of(DataGridViewCellAddress cell) const;
     [[nodiscard]] std::optional<DataGridViewCellAddress> address_of(const CellKey& cell) const;
-    [[nodiscard]] std::optional<std::size_t> current_position() const;
+    [[nodiscard]] stxlib::Optional<std::size_t> current_position() const;
     [[nodiscard]] bool is_current_row(DataGridViewRowPosition row) const;
     [[nodiscard]] bool is_current_cell(DataGridViewRowPosition row, std::size_t column) const;
     // After rows left the index: drops the selections, anchor and pressed
     // button of rows that are gone, and moves a current cell whose row is
     // gone to the row now at `former_current` (its row's old position), the
     // new last row, or none.
-    void drop_missing_rows(std::optional<std::size_t> former_current);
+    void drop_missing_rows(stxlib::Optional<std::size_t> former_current);
 
     // Layout and geometry: one function per part, used by paint and by the
     // published anatomy.
@@ -1902,7 +1902,7 @@ private:
     // index, the current row's position before an erasure or replacement,
     // and whether an insertion took the new row's ID.
     RowPositions edit_index_{};
-    std::optional<std::size_t> edit_former_current_{};
+    stxlib::Optional<std::size_t> edit_former_current_{};
     bool edit_takes_new_row_id_{};
     // The unbound rows before the edit, for an assignment's rows_removed;
     // and set while the grid edits `rows` as part of a larger change that
@@ -1939,7 +1939,7 @@ private:
     // part way through one notification's changes, for drop_missing_rows
     // once the index holds every row again.
     std::unique_ptr<detail::DataGridViewBoundIndex> bound_index_{};
-    std::optional<std::size_t> bound_removed_current_{};
+    stxlib::Optional<std::size_t> bound_removed_current_{};
 
     std::shared_ptr<TextBox> editor_{};
     std::shared_ptr<VScrollBar> vertical_bar_{};

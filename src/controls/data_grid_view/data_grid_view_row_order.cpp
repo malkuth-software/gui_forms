@@ -235,33 +235,33 @@ std::string DataGridViewRowOrder::id_at(std::size_t position) const {
     return id;
 }
 
-std::optional<std::size_t> DataGridViewRowOrder::position_of(std::string_view id) const {
+stxlib::Optional<std::size_t> DataGridViewRowOrder::position_of(std::string_view id) const {
     if (mode_ == DataGridViewRowOrderMode::edit) {
         const ChunkIndex::const_iterator found = chunk_of_.find(id);
-        if (found == chunk_of_.end()) return std::nullopt;
+        if (found == chunk_of_.end()) return stxlib::Optional<std::size_t>::none();
         const std::size_t chunk = chunk_slot_[(*found).second];
         const std::vector<std::string>& ids = chunks_[chunk].ids;
         const std::vector<std::string>::const_iterator at = std::find(ids.begin(), ids.end(), id);
         const std::size_t position = fenwick_prefix(chunk) + static_cast<std::size_t>(at - ids.begin());
-        return position;
+        return stxlib::Optional<std::size_t>::of(position);
     }
     const WindowIndex::const_iterator held = window_index_.find(id);
-    if (held != window_index_.end()) return (*held).second;
-    if (!source_) return std::nullopt;
+    if (held != window_index_.end()) return stxlib::Optional<std::size_t>::of((*held).second);
+    if (!source_) return stxlib::Optional<std::size_t>::none();
     ++statistics_.position_queries;
     const DataGridViewRowId identity{std::string(id)};
     const std::optional<DataGridViewRowPosition> position = (*source_).row_position(identity);
-    if (!position || (*position).value >= window_count_) return std::nullopt;
-    return (*position).value;
+    if (!position || (*position).value >= window_count_) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of((*position).value);
 }
 
-std::optional<std::size_t> DataGridViewRowOrder::held_position(std::string_view id) const {
+stxlib::Optional<std::size_t> DataGridViewRowOrder::held_position(std::string_view id) const {
     if (mode_ == DataGridViewRowOrderMode::edit) return position_of(id);
     const WindowIndex::const_iterator held = window_index_.find(id);
-    if (held != window_index_.end()) return (*held).second;
+    if (held != window_index_.end()) return stxlib::Optional<std::size_t>::of((*held).second);
     const WindowIndex::const_iterator before = previous_window_.find(id);
-    if (before != previous_window_.end()) return (*before).second;
-    return std::nullopt;
+    if (before != previous_window_.end()) return stxlib::Optional<std::size_t>::of((*before).second);
+    return stxlib::Optional<std::size_t>::none();
 }
 
 std::optional<std::string> DataGridViewRowOrder::held_id_at(std::size_t position) const {

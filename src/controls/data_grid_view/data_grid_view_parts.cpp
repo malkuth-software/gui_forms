@@ -1038,9 +1038,9 @@ const DataGridViewRowHeights& DataGridView::row_heights() const {
     // (drop_missing_rows erases them).
     row_height_scratch_.clear();
     for (const RowHeightsById::value_type& own : own_row_heights_) {
-        const std::optional<std::size_t> position = find_row(own.first);
-        if (!position || *position >= count) continue;
-        const DataGridViewRowHeight given{*position, std::max(own.second, minimum)};
+        const stxlib::Optional<std::size_t> position = find_row(own.first);
+        if (position.absent() || *position.value() >= count) continue;
+        const DataGridViewRowHeight given{*position.value(), std::max(own.second, minimum)};
         row_height_scratch_.push_back(given);
     }
     row_heights_.reset(count, default_height, row_height_scratch_);
@@ -1828,7 +1828,7 @@ bool DataGridView::prepare_row_paints(const GridLayout& layout) {
     row_paints_.clear();
     const IndexSpan rows = row_span(layout);
     const std::uint64_t revision = structure_revision_;
-    const std::optional<std::size_t> current = current_position();
+    const stxlib::Optional<std::size_t> current = current_position();
     row_paints_.reserve(rows.count());
     for (std::size_t position = rows.start(); position < rows.end; position = rows.next(position)) {
         const DataGridViewRowPosition row{position};
@@ -1837,7 +1837,7 @@ bool DataGridView::prepare_row_paints(const GridLayout& layout) {
         answer.row = row;
         answer.bounds = row_paint_bounds(row, layout);
         answer.selected = is_row_selected(row);
-        answer.current = current && *current == position;
+        answer.current = current.present() && *current.value() == position;
         row_pre_paint_.emit(answer);
         if (!is_alive() || structure_revision_ != revision) return false;
         // The answer is found by the row it was asked for.

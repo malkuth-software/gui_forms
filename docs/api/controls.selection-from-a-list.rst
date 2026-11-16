@@ -3188,11 +3188,11 @@ Related types
 
       The ID at a position, by value; empty (no row's ID) for a position at or past count(). In window mode a position outside the window is asked of the source.
 
-   .. cpp:function:: std::optional<std::size_t> position_of(std::string_view id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> position_of(std::string_view id) const
 
       The position of an ID now, or none.
 
-   .. cpp:function:: std::optional<std::size_t> held_position(std::string_view id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> held_position(std::string_view id) const
 
       Window mode: the position an ID had in the window held before the last reported change, or none. Edit mode: position_of.
 

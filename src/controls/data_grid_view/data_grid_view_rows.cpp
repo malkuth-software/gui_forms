@@ -119,8 +119,8 @@ void DataGridView::prepare_rows_insertion(const CollectionEdit& edit, std::span<
 // The current row's position is kept for drop_missing_rows; a cell edit in
 // an erased row is cancelled; the erased rows leave the index.
 void DataGridView::prepare_rows_erasure(const CollectionEdit& edit) {
-    const std::optional<std::size_t> former = current_position();
-    if (former && *former >= edit.index() && *former - edit.index() < edit.count()) cancel_edit_before_row_edit();
+    const stxlib::Optional<std::size_t> former = current_position();
+    if (former.present() && *former.value() >= edit.index() && *former.value() - edit.index() < edit.count()) cancel_edit_before_row_edit();
     edit_former_current_ = former;
     const std::span<const DataGridViewRow> present = rows.read();
     for (std::size_t offset = 0U; offset < edit.count(); ++offset) {
@@ -139,8 +139,8 @@ void DataGridView::prepare_rows_replacement(const CollectionEdit& edit, std::spa
         throw std::invalid_argument("DataGridView row stable IDs must be unique");
     }
     row.cells.resize(columns_.size());
-    const std::optional<std::size_t> former = current_position();
-    if (former == edit.index()) cancel_edit_before_row_edit();
+    const stxlib::Optional<std::size_t> former = current_position();
+    if (former == stxlib::Optional<std::size_t>::of(edit.index())) cancel_edit_before_row_edit();
     edit_former_current_ = former;
     if (!rekeyed) return;
     row_positions_.emplace(row.stable_id.value, edit.index());
