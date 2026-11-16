@@ -268,8 +268,11 @@ void RadioButton::on_paint(Painter& painter, Rect) {
 
 Insets RadioButton::visual_outsets() const noexcept {
     const ControlVisualContext context = visual_context({.hovered = hovered_visual(), .pressed = pressed_visual(), .selected = checked_, .focused = focus_cue_visible()});
+    // The control's box encloses the glyph's (surface_material_painting.hpp).
+    const Rect arranged = committed_arranged_bounds();
     return surface_material_visual_outsets(
-        effective_theme().resolve(ControlVisualRole::choice, context).material);
+        effective_theme().resolve(ControlVisualRole::choice, context).material,
+        Size{arranged.width, arranged.height});
 }
 
 void RadioButton::on_activate() {

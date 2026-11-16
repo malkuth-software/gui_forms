@@ -52,7 +52,9 @@ void MaterialPanel::on_paint(Painter& painter, Rect) {
 }
 
 Insets MaterialPanel::visual_outsets() const noexcept {
-    return surface_material_visual_outsets(material.read());
+    const Rect arranged = committed_arranged_bounds();
+    const Insets outsets = surface_material_visual_outsets(material.read(), Size{arranged.width, arranged.height});
+    return outsets;
 }
 
 namespace {

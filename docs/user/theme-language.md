@@ -330,10 +330,12 @@ A material's `transform` (`none`, or a list of `rotate(<angle>)` and
 turns and scales the whole material, shadows and glows included, about
 the centre of its box. The list composes as CSS composes it, the last
 function first: `transform: rotate(90deg) scale(2)` doubles the face, then
-turns it a quarter clockwise. The turned face is cut to the box and the
-reach of its shadows and glows, so it never paints outside what the part
-already repaints: a face scaled up loses its edges, and a box turned
-whole needs room around it. A transform's entries are limited to 64 in
+turns it a quarter clockwise. What the material paints and repaints
+grows with it: the box and the reach of its shadows and glows, turned and
+scaled about the centre, bound both, so a face scaled to 1.5 repaints its
+whole scaled box and a turned box its turned corners, nothing cut. (For a
+turn the repainted rectangle is a little larger than the turned box: it
+is computed so that it never shrinks for a larger box.) A transform's entries are limited to 64 in
 size and it must not flatten the face (`scale(0)` refuses the theme).
 There is no `transform-origin`: the centre is the only origin.
 
@@ -342,10 +344,17 @@ inside of an outline: the face, its shadows, glows, filters and
 reflection alike. `polygon([nonzero | evenodd,] <x> <y>, ...)` takes three
 to 256 vertices, each a length or a percentage of the box (an em length
 refuses the theme, so the outline never follows the font).
-`path([nonzero | evenodd,] "<SVG path data>")` takes the commands `M`,
-`L`, `H`, `V`, `C`, `Q` and `Z`, absolute or relative, in pixels from the
-box's top-left corner, up to 256 points; `S`, `T` and `A` refuse the
-theme. The outline lies in the box's own coordinates, so a `transform`
+`path([nonzero | evenodd,] "<SVG path data>")` takes every SVG path
+command (`M`, `L`, `H`, `V`, `C`, `S`, `Q`, `T`, `A`, `Z`), absolute or
+relative, in pixels from the box's top-left corner, up to 256 points
+after lowering. `S` and `T` become a cubic and a quadratic whose first
+control point is the previous curve's last one reflected about the
+current point, as in SVG. An arc becomes cubic curves by a fixed
+subdivision: SVG's conversion to a centre and sweep (radii enlarged when
+too small for the endpoints, a zero radius drawn as a line, an arc to its
+own start drawn as nothing), then ceil(sweep / 90°) equal pieces (one to
+four), each a cubic whose handles are 4/3 tan(piece / 4) of the radius,
+ending exactly at the arc's end point. The outline lies in the box's own coordinates, so a `transform`
 turns it with the face. The reference box is always the part's box: a
 box keyword, another basic shape or a `url()` refuses the theme. Both
 are drawn by a transform group and a path clip around however the part

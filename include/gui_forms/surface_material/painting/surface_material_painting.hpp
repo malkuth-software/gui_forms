@@ -13,8 +13,30 @@ namespace gui_forms {
     const SurfaceMaterial& material) noexcept;
 GUI_FORMS_API void paint_surface_material(Painter& painter, Rect bounds,
                             const SurfaceMaterial& material);
+// How far a material reaches outside its box, untransformed: its outer
+// shadows, under glows and reflection. A material's own transform
+// (MaterialTransform) widens its reach by an amount that depends on the
+// box: see the overload taking the box's size.
 [[nodiscard]] GUI_FORMS_API Insets surface_material_visual_outsets(
     const SurfaceMaterial& material) noexcept;
+// How far a material drawn over a box of `box` reaches outside it,
+// transform included: the box grown by the untransformed reach, turned
+// and scaled about its centre, bounds what the material paints, and these
+// outsets cover that bound. With the identity they are the untransformed
+// reach. For a transform, each horizontal outset is
+// max(|xx|, 1) A + |xy| B - w / 2 and each vertical one
+// |yx| A + max(|yy|, 1) B - h / 2 (at least the untransformed outset),
+// where A = w / 2 + the larger horizontal reach and B = h / 2 + the larger
+// vertical reach: never less than the exact transformed bound, exact for a
+// scale of at least 1 without rotation, and never smaller for a larger
+// box, so a caller that knows only a box enclosing the material's (a
+// control's arranged box around a glyph) may pass that.
+[[nodiscard]] GUI_FORMS_API Insets surface_material_visual_outsets(
+    const SurfaceMaterial& material, Size box) noexcept;
+// `box` grown by surface_material_visual_outsets(material, its size): the
+// rectangle the material paints and damages.
+[[nodiscard]] GUI_FORMS_API Rect surface_material_paint_bounds(
+    Rect box, const SurfaceMaterial& material) noexcept;
 // Whether paint_surface_material leaves the whole of its bounds opaque,
 // whatever lay beneath: a valid, unfinished material with square corners, no
 // visual outsets, filter or mask, and an opaque solid fill drawn normally,
@@ -54,10 +76,12 @@ GUI_FORMS_API void resolve_material_clip_path(const MaterialClipPath& clip, Rect
 [[nodiscard]] GUI_FORMS_API PolygonFillRule material_clip_fill_rule(MaterialClipRule rule) noexcept;
 // Begins drawing a material of `bounds` through its shape, when it has one
 // (surface_material_shaped); otherwise does nothing. In order: a save, a
-// clip to `bounds` grown by the material's visual outsets, the transform
-// group of its transform about the box's centre (bounded by the same grown
-// rectangle), then a save and the clip path resolved into `scratch`
-// inside the group. end_surface_material_shape, given the same material,
+// clip to surface_material_paint_bounds(bounds, material) (the transformed
+// bound, so a scaled or turned face widens what it paints rather than
+// being cut), the transform group of its transform about the box's centre
+// (bounded, in the group's own coordinates, by the box grown by the
+// untransformed reach), then a save and the clip path resolved into
+// `scratch` inside the group. end_surface_material_shape, given the same material,
 // undoes them in reverse order; draw the material between the two. The
 // painter's state is as it was once both have run. `scratch` is storage
 // the caller reuses; it is only read while the clip is set.

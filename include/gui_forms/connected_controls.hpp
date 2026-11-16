@@ -27,5 +27,10 @@ GUI_FORMS_API void paint_connected_surface_material(
 [[nodiscard]] GUI_FORMS_API Insets connected_surface_visual_outsets(
     const SurfaceMaterial& material,
     std::optional<ConnectedControlTopology> topology) noexcept;
+// As above for a material drawn over a box of `box`: its reach includes the
+// material's own transform (surface_material_visual_outsets with a size).
+[[nodiscard]] GUI_FORMS_API Insets connected_surface_visual_outsets(
+    const SurfaceMaterial& material,
+    std::optional<ConnectedControlTopology> topology, Size box) noexcept;
 
 } // namespace gui_forms

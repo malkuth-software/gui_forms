@@ -4832,8 +4832,9 @@ void Control::paint_owned_decorations(
 Insets Control::effective_visual_outsets() const noexcept {
     Insets result = visual_outsets();
     if (authored_surface_material_) {
-        const Insets surface =
-            surface_material_visual_outsets(*authored_surface_material_);
+        const Rect arranged = committed_arranged_bounds();
+        const Insets surface = surface_material_visual_outsets(*authored_surface_material_,
+                                                               Size{arranged.width, arranged.height});
         result.left = std::max(result.left, surface.left);
         result.top = std::max(result.top, surface.top);
         result.right = std::max(result.right, surface.right);

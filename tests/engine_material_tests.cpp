@@ -590,7 +590,12 @@ void material_shape_painter_path() {
     require(log.events.rfind("vctvp", 0U) == 0U && fill != std::string::npos &&
                 log.events.size() >= 3U && log.events.compare(log.events.size() - 3U, 3U, "rer") == 0,
             "save, box clip, transform group, save and path clip; the material; then restore, end, restore");
-    require(log.last_clip == box && log.last_group.bounds == box, "the box bounds the clip and the group");
+    // The clip is the transformed bound: a quarter turn of 40 x 20 about
+    // (30, 30) reaches 10 further across and 20 further down on each side
+    // (|xy| B and |yx| A of surface_material_visual_outsets); the group's
+    // own bounds stay the untransformed box.
+    require(log.last_clip == (Rect{0.0, 0.0, 60.0, 60.0}) && log.last_group.bounds == box,
+            "the clip is the transformed bound and the group is bounded by the box");
     // About the centre (30, 30): p goes to c + L (p - c), L a quarter turn.
     const PaintTransform expected{0.0, 1.0, -1.0, 0.0, 60.0, 0.0};
     require(log.last_group.transform == expected, "the group turns about the box's centre");
@@ -612,6 +617,33 @@ void material_shape_painter_path() {
     lined.verbs.front() = MaterialClipVerb::line;
     unmoved.clip_path = lined;
     require(!valid_surface_material(unmoved), "a clip path that does not start with a move is refused");
+    // Scaled to 1.5, the face's paint and damage bounds are the scaled box:
+    // 60 x 30 about the same centre, 10 and 5 beyond each side.
+    SurfaceMaterial scaled = solid_material(red);
+    scaled.transform = MaterialTransform{1.5, 0.0, 0.0, 1.5};
+    const Insets scaled_reach = surface_material_visual_outsets(scaled, Size{40.0, 20.0});
+    require(scaled_reach == (Insets{10.0, 5.0, 10.0, 5.0}), "a face scaled to 1.5 reaches its scaled bounds");
+    require(surface_material_paint_bounds(box, scaled) == (Rect{0.0, 15.0, 60.0, 30.0}),
+            "the paint bounds of a scaled face are its transformed box");
+    require(surface_material_visual_outsets(scaled) == Insets{}, "the untransformed reach is unchanged");
+    // With a shadow, the shadow's reach is scaled too.
+    SurfaceMaterial shadowed = scaled;
+    shadowed.shadows.push_back(MaterialShadow{Point{}, 0.0, 2.0, black_half, false});
+    const Insets shadowed_reach = surface_material_visual_outsets(shadowed, Size{40.0, 20.0});
+    require(shadowed_reach.left >= 13.0 && shadowed_reach.top >= 8.0,
+            "a transformed material's shadow reach is transformed with it");
+    // A larger box never gives a smaller reach, so a control may pass its
+    // own arranged box for a glyph inside it.
+    SurfaceMaterial turned = solid_material(red);
+    turned.transform = MaterialTransform{0.0, 1.0, -1.0, 0.0};
+    const Insets glyph_reach = surface_material_visual_outsets(turned, Size{10.0, 30.0});
+    const Insets control_reach = surface_material_visual_outsets(turned, Size{60.0, 40.0});
+    require(control_reach.left >= glyph_reach.left && control_reach.top >= glyph_reach.top,
+            "the reach never shrinks with a larger box");
+    ShapeLog scaled_log{};
+    paint_surface_material(scaled_log, box, scaled);
+    require(scaled_log.last_clip == (Rect{0.0, 15.0, 60.0, 30.0}), "a scaled face is clipped to its scaled box");
+
     ShapeLog plain_log{};
     paint_surface_material(plain_log, box, solid_material(red));
     require(plain_log.events.find('t') == std::string::npos && plain_log.events.find('p') == std::string::npos,

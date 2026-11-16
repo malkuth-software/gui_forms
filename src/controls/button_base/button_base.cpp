@@ -1005,8 +1005,9 @@ const ControlVisualRecipe& ButtonBase::resolve_visual_recipe(
 Insets ButtonBase::resolved_visual_outsets(
     ControlVisualRole role, ControlVisualContext context) const noexcept {
     const ControlVisualRecipe& recipe = resolve_visual_recipe(role, context);
+    const Rect arranged = committed_arranged_bounds();
     Insets result = connected_surface_visual_outsets(
-        recipe.material, connection_topology_);
+        recipe.material, connection_topology_, Size{arranged.width, arranged.height});
     double cue_extent = 0.0;
     if (context.focused && recipe.authored_focus_outline &&
         recipe.focus_width > 0.0) {

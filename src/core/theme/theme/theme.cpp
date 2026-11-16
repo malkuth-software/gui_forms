@@ -1389,7 +1389,7 @@ void begin_surface_material_shape(Painter& painter, Rect bounds, const SurfaceMa
     const Rect covered{bounds.x - outsets.left, bounds.y - outsets.top, bounds.width + outsets.left + outsets.right,
                        bounds.height + outsets.top + outsets.bottom};
     painter.save();
-    painter.clip_rect(covered);
+    painter.clip_rect(surface_material_paint_bounds(bounds, material));
     const MaterialTransform& linear = material.transform;
     if (!linear.identity()) {
         // About the box's centre: p goes to c + L (p - c).
@@ -1627,6 +1627,35 @@ Insets surface_material_visual_outsets(const SurfaceMaterial& material) noexcept
         result.bottom = std::max(result.bottom, reach);
     }
     return result;
+}
+
+Insets surface_material_visual_outsets(const SurfaceMaterial& material, Size box) noexcept {
+    const Insets face = surface_material_visual_outsets(material);
+    const MaterialTransform& linear = material.transform;
+    if (linear.identity()) return face;
+    const double half_width = std::max(0.0, box.width) * 0.5;
+    const double half_height = std::max(0.0, box.height) * 0.5;
+    const double across = half_width + std::max(face.left, face.right);
+    const double down = half_height + std::max(face.top, face.bottom);
+    // max(|xx|, 1) and max(|yy|, 1) keep the reach from shrinking as the
+    // box grows (surface_material_painting.hpp).
+    const double horizontal =
+        std::max(std::abs(linear.xx), 1.0) * across + std::abs(linear.xy) * down - half_width;
+    const double vertical =
+        std::abs(linear.yx) * across + std::max(std::abs(linear.yy), 1.0) * down - half_height;
+    Insets result{};
+    result.left = std::max(face.left, horizontal);
+    result.right = std::max(face.right, horizontal);
+    result.top = std::max(face.top, vertical);
+    result.bottom = std::max(face.bottom, vertical);
+    return result;
+}
+
+Rect surface_material_paint_bounds(Rect box, const SurfaceMaterial& material) noexcept {
+    const Insets reach = surface_material_visual_outsets(material, Size{box.width, box.height});
+    const Rect painted{box.x - reach.left, box.y - reach.top, box.width + reach.left + reach.right,
+                       box.height + reach.top + reach.bottom};
+    return painted;
 }
 
 bool surface_material_opaque(const SurfaceMaterial& material) noexcept {

@@ -368,8 +368,11 @@ Insets CheckBox::visual_outsets() const noexcept {
     if (appearance.read() == CheckBoxAppearance::button) {
         return resolved_visual_outsets(ControlVisualRole::button, context);
     }
+    // The control's box encloses the glyph's (surface_material_painting.hpp).
+    const Rect arranged = committed_arranged_bounds();
     return surface_material_visual_outsets(
-        effective_theme().resolve(ControlVisualRole::choice, context).material);
+        effective_theme().resolve(ControlVisualRole::choice, context).material,
+        Size{arranged.width, arranged.height});
 }
 
 void CheckBox::on_activate() {

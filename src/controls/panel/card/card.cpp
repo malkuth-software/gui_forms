@@ -238,9 +238,11 @@ Insets Card::visual_outsets() const noexcept {
     if (has_background_override() || has_style_override()) {
         return Panel::visual_outsets();
     }
+    const Rect arranged = committed_arranged_bounds();
     return surface_material_visual_outsets(
         effective_theme().resolve(ControlVisualRole::card,
-                                  current_context()).material);
+                                  current_context()).material,
+        Size{arranged.width, arranged.height});
 }
 
 bool Card::hit_test_local(Point local_point) const {

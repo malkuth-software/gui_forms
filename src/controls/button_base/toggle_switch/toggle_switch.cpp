@@ -214,8 +214,10 @@ void ToggleSwitch::on_paint(Painter& painter, Rect) {
 Insets ToggleSwitch::visual_outsets() const noexcept {
     const ControlVisualContext context =
         visual_context({.hovered = hovered_visual(), .pressed = pressed_visual(), .selected = checked.read(), .focused = focus_cue_visible()});
-    const Insets outsets =
-        surface_material_visual_outsets(effective_theme().resolve(ControlVisualRole::choice, context).material);
+    // The control's box encloses the switch's (surface_material_painting.hpp).
+    const Rect arranged = committed_arranged_bounds();
+    const Insets outsets = surface_material_visual_outsets(
+        effective_theme().resolve(ControlVisualRole::choice, context).material, Size{arranged.width, arranged.height});
     return outsets;
 }
 

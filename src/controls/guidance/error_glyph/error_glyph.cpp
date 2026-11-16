@@ -79,8 +79,10 @@ void ErrorGlyph::on_paint(Painter& painter, Rect) {
 }
 
 Insets ErrorGlyph::visual_outsets() const noexcept {
+    const Rect arranged = committed_arranged_bounds();
     const Insets result = surface_material_visual_outsets(
-        effective_theme().resolve(ControlVisualRole::editor, visual_context()).material);
+        effective_theme().resolve(ControlVisualRole::editor, visual_context()).material,
+        Size{arranged.width, arranged.height});
     return result;
 }
 
