@@ -276,6 +276,16 @@ void Dial::on_mouse_up(MouseEventArgs& arguments) {
     RangeControl::on_mouse_up(arguments);
 }
 
+// The window ends a primary press's capture after its release, when
+// tracking has already ended; any other loss ends the drag here, so a later
+// hover move does not set the value (A-gf-controls-05-F4).
+void Dial::on_mouse_capture_changed() {
+    RangeControl::on_mouse_capture_changed();
+    if (!tracking_) return;
+    tracking_ = false;
+    invalidate(Dirty::paint);
+}
+
 void Dial::on_key_down(KeyEventArgs& arguments) {
     RangeControl::on_key_down(arguments);
     if (arguments.handled) return;

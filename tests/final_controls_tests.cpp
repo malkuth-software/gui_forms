@@ -292,6 +292,14 @@ void test_dial() {
     require(window.dispatch_pointer(move) && near((*dial).value.read(), 100.0), "the gap keeps the nearer end");
     require(window.dispatch_pointer(release(Point{centre.x, centre.y + 40.0})), "the release is handled");
     require(!(*dial).anatomy_states().contains(AnatomyState::pressed), "a released dial is not pressed");
+    // A press whose capture is taken away stops tracking (A-gf-controls-05-F4).
+    require(window.dispatch_pointer(press(Point{centre.x, centre.y - 40.0})) && near((*dial).value.read(), 50.0),
+            "a second press is handled");
+    (*dial).set_pointer_capture(false);
+    move.position = Point{centre.x + 40.0, centre.y};
+    static_cast<void>(window.dispatch_pointer(move));
+    require(near((*dial).value.read(), 50.0) && !(*dial).anatomy_states().contains(AnatomyState::pressed),
+            "after its capture is lost a hover move leaves the dial alone");
 
     require(window.request_focus(dial), "the dial takes focus");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::home}) && near((*dial).value.read(), 0.0), "Home is the minimum");
