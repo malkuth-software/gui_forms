@@ -36,7 +36,12 @@
 //   glyphs) and the bundled engine's shaping workspace arrays (its scalars,
 //   segments, runs, staged glyphs and SheenBidi arena) and its fallback
 //   faces' glyph ink-extent caches; the workspace's
-//   grapheme tables and HarfBuzz buffer are not counted.
+//   grapheme tables and HarfBuzz buffer are not counted. Also the text
+//   rasterizers' glyph faces (STXlib's, which allocate on STXlib's own
+//   allocator): the program's typefaces and each executor's faces count
+//   their bytes_held as it changes, a growth as one allocation of the
+//   difference and a fall as one release, and release what they hold when
+//   they go.
 //
 // Bytes are the bytes asked of operator new, without the allocator's own
 // overhead or rounding. A release is counted by the thread that releases,

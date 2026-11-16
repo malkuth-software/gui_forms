@@ -647,6 +647,7 @@ add_library(gui_forms_core STATIC
     src/core/resources/fonts/app_font_registry.cpp
     src/core/resources/fonts/app_font_validation.cpp
     src/core/resources/fonts/font_family_stacks.cpp
+    src/core/resources/fonts/program_typefaces.cpp
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
     src/core/live_surface/buffer/live_surface_buffer.cpp
     src/core/live_surface/frame/live_surface_frame.cpp
@@ -831,6 +832,11 @@ endif()
 # that links the core. PUBLIC: the hosts' native entries include
 # src/core/failure/fail_fast.hpp, whose call_failing_fast is a gate.
 target_link_libraries(gui_forms_core PUBLIC stxlib::boundary stxlib::state)
+# The program's typefaces (src/core/resources/fonts/program_typefaces.cpp)
+# are STXlib's glyph face (stxlib::glyphs, in stxlib::algorithms); no public
+# header includes it. The text rasterizers that include the private header
+# link stxlib::algorithms themselves.
+target_link_libraries(gui_forms_core PRIVATE stxlib::algorithms)
 if(WIN32)
     target_compile_definitions(gui_forms_core PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(gui_forms_core PUBLIC winpthread)
@@ -900,8 +906,10 @@ if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
     target_include_directories(gui_forms_text_engine
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/text/harfbuzz
     )
+    # The glyph-run rasterizer draws with STXlib's glyph face; PUBLIC because
+    # its header carries face_profile_version beside retained coverage.
     target_link_libraries(gui_forms_text_engine
-        PUBLIC gui_forms_core
+        PUBLIC gui_forms_core stxlib::algorithms
         PRIVATE stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi stx_text::linebreak
     )
     target_compile_features(gui_forms_text_engine PUBLIC cxx_std_20)
@@ -964,7 +972,7 @@ if(GUI_FORMS_BUILD_PREPARED_TEXT)
         src/render/text/prepared_raster.cpp)
     target_link_libraries(gui_forms_prepared_text_impl
         PUBLIC gui_forms_core
-        PRIVATE gui_forms_text_engine stx_text::freetype Threads::Threads)
+        PRIVATE gui_forms_text_engine stxlib::algorithms Threads::Threads)
     target_compile_features(gui_forms_prepared_text_impl PUBLIC cxx_std_20)
     set_target_properties(gui_forms_prepared_text_impl PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
@@ -985,7 +993,8 @@ if(GUI_FORMS_BUILD_TEXT_MASKS)
         src/render/text/text_mask/text_mask_layout.cpp)
     target_link_libraries(gui_forms_text_masks_impl
         PUBLIC gui_forms_core
-        PRIVATE Threads::Threads stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi stx_text::linebreak)
+        PRIVATE Threads::Threads stxlib::algorithms stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
+                stx_text::linebreak)
     target_compile_features(gui_forms_text_masks_impl PUBLIC cxx_std_20)
     set_target_properties(gui_forms_text_masks_impl PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
@@ -3010,7 +3019,7 @@ if(GUI_FORMS_BUILD_TEXT_PAINT_PROBE)
         src/render/text/worker_probe/worker_probe.cpp)
     target_include_directories(gui_forms_text_paint_probe PRIVATE
         src/render/text/paint_probe src/render/text/worker_probe)
-    target_link_libraries(gui_forms_text_paint_probe PRIVATE gui_forms_text_engine stx_text::freetype Threads::Threads)
+    target_link_libraries(gui_forms_text_paint_probe PRIVATE gui_forms_text_engine stxlib::algorithms Threads::Threads)
 endif()
 
 if(GUI_FORMS_BUILD_TEXT_RASTER_PROFILE_PROBE)
@@ -3126,7 +3135,7 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_text_mask_cost_probe PRIVATE gui_forms_text_masks_impl)
         add_executable(gui_forms_text_mask_native_tests tests/text_mask_native_tests.cpp)
         target_link_libraries(gui_forms_text_mask_native_tests PRIVATE
-            gui_forms_text_masks_impl stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi)
+            gui_forms_text_masks_impl stxlib::algorithms stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi)
         add_test(NAME gui_forms_text_mask_native_tests
             COMMAND gui_forms_text_mask_native_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/fonts/amiri/Amiri-Regular.ttf")
