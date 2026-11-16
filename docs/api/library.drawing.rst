@@ -493,6 +493,10 @@ Types
 
    .. cpp:member:: PointF focus
 
+   .. cpp:member:: double radius_y
+
+      A radial gradient brush's radius down (equal to ``radius``, the radius across, for a circle); 0 for every other kind.
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:struct:: BundledFontFace final
@@ -3037,7 +3041,7 @@ Types
 
    ``#include <gui_forms/drawing/brush/radial_gradient_brush.hpp>``
 
-   A radial gradient (owner, 2026-11-16: added to the drawing table before the seal). The colour at a point is the blend's colour at the offset t whose circle passes through it: the circle of radius t * radius centred at focus + t * (center - focus). Position 0 is the focus, position 1 the circle of ``radius`` about ``center``; with the focus at the centre (the default) t is the distance from the centre over the radius. Past position 1 the wrap mode repeats the blend (tile), reflects it (the three flips) or holds its last colour (clamp, the default). The blend holds 2 through 4096 colours at ascending positions from 0 to 1, as LinearGradientBrush::set_interpolation_colors requires; the default is ``center_color`` to ``edge_color``. Colours interpolate premultiplied, in sRGB-encoded values, as every gradient does (the blending rule).
+   A radial gradient (owner, 2026-11-16: added to the drawing table before the seal). The colour at a point is the blend's colour at the offset t whose circle passes through it: the circle of radius t * radius centred at focus + t * (center - focus). Position 0 is the focus, position 1 the circle of ``radius`` about ``center``; with the focus at the centre (the default) t is the distance from the centre over the radius. The circle may be an ellipse (set_radii, owner 2026-11-16): ``radius`` across and ``radius_y`` down, every circle above then the ellipse of those radii scaled by t. Past position 1 the wrap mode repeats the blend (tile), reflects it (the three flips) or holds its last colour (clamp, the default). The blend holds 2 through 4096 colours at ascending positions from 0 to 1, as LinearGradientBrush::set_interpolation_colors requires; the default is ``center_color`` to ``edge_color``. Colours interpolate premultiplied, in sRGB-encoded values, as every gradient does (the blending rule).
 
 
    .. rubric:: Construction
@@ -3053,7 +3057,11 @@ Types
 
    .. cpp:function:: void set_focus(PointF focus)
 
-      Moves position 0 to ``focus``, which must lie strictly inside the circle (std::invalid_argument otherwise; the brush is unchanged).
+      Moves position 0 to ``focus``, which must lie strictly inside the circle or ellipse (std::invalid_argument otherwise; the brush is unchanged).
+
+   .. cpp:function:: void set_radii(double radius_x, double radius_y)
+
+      Makes the edge an ellipse of ``radius_x`` across and ``radius_y`` down about the centre (each positive, at most 1,000,000). Throws std::invalid_argument, the brush unchanged, for a radius out of range or when the focus would not lie strictly inside the new ellipse.
 
    .. cpp:function:: void set_wrap_mode(WrapMode mode)
 

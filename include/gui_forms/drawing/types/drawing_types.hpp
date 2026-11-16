@@ -131,6 +131,9 @@ struct GUI_FORMS_API BrushSnapshot final {
     // position 0 lies); 0 and the origin for every other kind.
     double radius{};
     PointF focus;
+    // A radial gradient brush's radius down (equal to `radius`, the radius
+    // across, for a circle); 0 for every other kind.
+    double radius_y{};
 };
 
 } // namespace gui_drawing

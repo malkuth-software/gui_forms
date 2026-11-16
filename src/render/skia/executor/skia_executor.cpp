@@ -517,9 +517,24 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         return true;
     }
     if (brush.kind == BrushKind::radial_gradient) {
-        if (!(brush.radius > 0.0)) return false;
+        if (!(brush.radius > 0.0) || !(brush.radius_y > 0.0)) return false;
         const SkPoint center{static_cast<SkScalar>(brush.center.x), static_cast<SkScalar>(brush.center.y)};
         const SkScalar radius = static_cast<SkScalar>(brush.radius);
+        if (brush.radius_y != brush.radius) {
+            // An ellipse: the gradient in the unit circle, mapped onto the
+            // ellipse by its local matrix (centre, then the two radii).
+            const SkMatrix ellipse = SkMatrix::Translate(center.x(), center.y()) *
+                                     SkMatrix::Scale(radius, static_cast<SkScalar>(brush.radius_y));
+            const SkPoint focus{static_cast<SkScalar>((brush.focus.x - brush.center.x) / brush.radius),
+                                static_cast<SkScalar>((brush.focus.y - brush.center.y) / brush.radius_y)};
+            SkGradientShaderResult made = brush.focus == brush.center
+                ? SkShaders::RadialGradient(SkPoint::Make(0.0F, 0.0F), 1.0F, gradient, &ellipse)
+                : SkShaders::TwoPointConicalGradient(focus, 0.0F, SkPoint::Make(0.0F, 0.0F), 1.0F, gradient,
+                                                     &ellipse);
+            if (made.rejection != SkGradientRejection::kNone) return false;
+            paint.setShader(std::move(made.shader));
+            return true;
+        }
         // Position 0 at the focus: the circles grow from it to the edge
         // circle, their centres moving from the focus to the centre.
         SkGradientShaderResult made = brush.focus == brush.center

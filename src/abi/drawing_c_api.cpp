@@ -1274,6 +1274,17 @@ gd_result set_radial_gradient_focus(gui_drawing::RadialGradientBrush& brush, gd_
     return GD_OK;
 }
 
+// The two radii of an elliptical radial gradient.
+struct RadialRadii final {
+    double across{};
+    double down{};
+};
+
+gd_result set_radial_gradient_radii(gui_drawing::RadialGradientBrush& brush, RadialRadii radii) {
+    brush.set_radii(radii.across, radii.down);
+    return GD_OK;
+}
+
 gd_result read_contrast_ratio(gd_color first, gd_color second, double* ratio) {
     *ratio = gui_drawing::contrast_ratio(color_from_c(first), color_from_c(second));
     return GD_OK;
@@ -3215,6 +3226,12 @@ gd_result api_radial_gradient_brush_set_focus(gd_handle brush, gd_point focus) {
                                                              &set_radial_gradient_focus, focus);
 }
 
+gd_result api_radial_gradient_brush_set_radii(gd_handle brush, double radius_x, double radius_y) {
+    const RadialRadii radii{radius_x, radius_y};
+    return registry().with<gui_drawing::RadialGradientBrush>(brush, GD_OBJECT_RADIAL_GRADIENT_BRUSH,
+                                                             &set_radial_gradient_radii, radii);
+}
+
 // raster_initialize (1.1, provisional): the raster objects' installer, or
 // the absent one in a build without the renderer.
 gd_result api_raster_initialize() {
@@ -3318,6 +3335,7 @@ const gd_api_v0 api_table{
     &api_texture_brush_set_transform,
     &api_radial_gradient_brush_create, &api_radial_gradient_brush_set_interpolation,
     &api_radial_gradient_brush_set_focus,
+    &api_radial_gradient_brush_set_radii,
 };
 
 } // namespace

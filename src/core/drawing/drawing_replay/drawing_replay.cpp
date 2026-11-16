@@ -182,7 +182,9 @@ void fill_brush_stops(const gui_drawing::BrushSnapshot& brush, BrushStops& writt
     case BrushKind::linear_gradient:
     case BrushKind::path_gradient:
     case BrushKind::conic_gradient: return true;
-    case BrushKind::radial_gradient: return brush.radius > 0.0 && std::isfinite(brush.radius);
+    case BrushKind::radial_gradient:
+        return brush.radius > 0.0 && std::isfinite(brush.radius) && brush.radius_y > 0.0 &&
+               std::isfinite(brush.radius_y);
     case BrushKind::checker: return brush.cell_size > 0.0 && std::isfinite(brush.cell_size);
     case BrushKind::hatch: return hatch_style_of(brush.hatch_style, style);
     case BrushKind::texture:
@@ -250,7 +252,7 @@ void fill_with_brush(Painter& painter, const gui_drawing::BrushSnapshot& brush, 
     if (brush.kind == BrushKind::radial_gradient) {
         const Point centre = point_of(brush.center);
         const Point focus = point_of(brush.focus);
-        const Size radii{brush.radius, brush.radius};
+        const Size radii{brush.radius, brush.radius_y};
         if (focus == centre) {
             painter.fill_radial_gradient_spread(area, centre, radii, stops.view(), spread_of(brush.wrap_mode));
             return;

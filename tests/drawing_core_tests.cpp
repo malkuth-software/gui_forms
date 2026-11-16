@@ -544,6 +544,20 @@ void primitive_brushes_contrast_and_text_over_fill() {
     GraphicsRecorder radial_trace;
     radial_trace.fill_rectangle(radial, {0, 0, 16, 16});
     CHECK(trace_has(radial_trace.deterministic_trace(), ",radius=8,focus=4,8"));
+    CHECK(!trace_has(radial_trace.deterministic_trace(), "radius_y="));
+    CHECK(radial.snapshot().radius_y == 8.0);
+    // An ellipse: the focus (4, 8) stays inside 8 across and 4 down, and a
+    // radius out of range or a focus left outside is refused unchanged.
+    radial.set_radii(8.0, 4.0);
+    CHECK(radial.snapshot().radius == 8.0 && radial.snapshot().radius_y == 4.0);
+    CHECK_THROWS(std::invalid_argument, radial.set_radii(2.0, 4.0));
+    CHECK_THROWS(std::invalid_argument, radial.set_radii(8.0, 0.0));
+    CHECK_THROWS(std::invalid_argument, radial.set_radii(std::numeric_limits<double>::infinity(), 4.0));
+    CHECK(radial.snapshot().radius == 8.0 && radial.snapshot().radius_y == 4.0);
+    CHECK_THROWS(std::invalid_argument, radial.set_focus({4, 12}));
+    GraphicsRecorder ellipse_trace;
+    ellipse_trace.fill_rectangle(radial, {0, 0, 16, 16});
+    CHECK(trace_has(ellipse_trace.deterministic_trace(), ",radius=8,focus=4,8,radius_y=4"));
     CheckerBrush checker(4.0, Color::from_name("white"), Color::from_name("silver"));
     CHECK(checker.snapshot().kind == BrushKind::checker);
     CHECK(checker.snapshot().cell_size == 4.0);

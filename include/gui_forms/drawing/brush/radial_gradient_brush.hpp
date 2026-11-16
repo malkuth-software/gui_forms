@@ -12,7 +12,10 @@ namespace gui_drawing {
 // whose circle passes through it: the circle of radius t * radius centred
 // at focus + t * (center - focus). Position 0 is the focus, position 1 the
 // circle of `radius` about `center`; with the focus at the centre (the
-// default) t is the distance from the centre over the radius. Past
+// default) t is the distance from the centre over the radius. The circle
+// may be an ellipse (set_radii, owner 2026-11-16): `radius` across and
+// `radius_y` down, every circle above then the ellipse of those radii
+// scaled by t. Past
 // position 1 the wrap mode repeats the blend (tile), reflects it (the three
 // flips) or holds its last colour (clamp, the default). The blend holds 2
 // through 4096 colours at ascending positions from 0 to 1, as
@@ -28,14 +31,21 @@ public:
                         WrapMode wrap_mode = WrapMode::clamp);
     void set_interpolation_colors(const ColorBlend& blend);
     // Moves position 0 to `focus`, which must lie strictly inside the
-    // circle (std::invalid_argument otherwise; the brush is unchanged).
+    // circle or ellipse (std::invalid_argument otherwise; the brush is
+    // unchanged).
     void set_focus(PointF focus);
+    // Makes the edge an ellipse of `radius_x` across and `radius_y` down
+    // about the centre (each positive, at most 1,000,000). Throws
+    // std::invalid_argument, the brush unchanged, for a radius out of range
+    // or when the focus would not lie strictly inside the new ellipse.
+    void set_radii(double radius_x, double radius_y);
     void set_wrap_mode(WrapMode mode);
     [[nodiscard]] BrushSnapshot snapshot() const override;
 
 private:
     PointF center_;
     double radius_{};
+    double radius_y_{};
     PointF focus_;
     Color center_color_;
     Color edge_color_;

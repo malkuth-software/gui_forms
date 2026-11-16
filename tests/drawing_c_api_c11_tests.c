@@ -124,6 +124,12 @@ static int check_texture_and_radial_brushes(const gd_api_v0* api) {
     CHECK((*api).radial_gradient_brush_set_focus(radial, (gd_point){4, 8}) == GD_OK);
     CHECK((*api).radial_gradient_brush_set_focus(radial, (gd_point){16, 8}) == GD_ERROR_INVALID_ARGUMENT);
     CHECK((*api).radial_gradient_brush_set_focus(texture, (gd_point){8, 8}) == GD_ERROR_WRONG_HANDLE_KIND);
+    /* An ellipse 8 across and 4 down keeps the focus (4, 8) inside; one
+       2 across would put it outside and is refused. */
+    CHECK((*api).radial_gradient_brush_set_radii(radial, 8.0, 4.0) == GD_OK);
+    CHECK((*api).radial_gradient_brush_set_radii(radial, 2.0, 4.0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).radial_gradient_brush_set_radii(radial, 8.0, 0.0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).radial_gradient_brush_set_radii(texture, 8.0, 4.0) == GD_ERROR_WRONG_HANDLE_KIND);
 
     CHECK((*api).recorder_create(&recorder) == GD_OK);
     CHECK((*api).recorder_fill_rectangle(recorder, texture, (gd_rect){0, 0, 16, 16}) == GD_OK);
@@ -887,13 +893,15 @@ int main(void) {
     CHECK(offsetof(gd_api_v0, raster_initialize) ==
           offsetof(gd_api_v0, graphics_path_flatten) + sizeof(api.graphics_path_flatten));
     /* Then the texture and radial gradient brushes, six entries in fold
-       order; the table ends with them. */
+       order, and the radial brush's radii; the table ends with them. */
     CHECK(offsetof(gd_api_v0, texture_brush_create) ==
           offsetof(gd_api_v0, raster_initialize) + sizeof(api.raster_initialize));
     CHECK((offsetof(gd_api_v0, radial_gradient_brush_set_focus) - offsetof(gd_api_v0, texture_brush_create)) /
               sizeof(api.last_error) == 5U);
-    CHECK(sizeof(gd_api_v0) ==
+    CHECK(offsetof(gd_api_v0, radial_gradient_brush_set_radii) ==
           offsetof(gd_api_v0, radial_gradient_brush_set_focus) + sizeof(api.radial_gradient_brush_set_focus));
+    CHECK(sizeof(gd_api_v0) ==
+          offsetof(gd_api_v0, radial_gradient_brush_set_radii) + sizeof(api.radial_gradient_brush_set_radii));
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_1_1, &api) == GD_OK);
@@ -904,6 +912,7 @@ int main(void) {
     CHECK(api.raster_initialize() == GD_ERROR_NOT_AVAILABLE);
     CHECK(api.texture_brush_create != NULL);
     CHECK(api.radial_gradient_brush_set_focus != NULL);
+    CHECK(api.radial_gradient_brush_set_radii != NULL);
     CHECK(gd_get_api_v0(UINT32_C(0x00010002), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     CHECK(gd_get_api_v0(UINT32_C(0x00020000), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     memset(&api, 0, sizeof(api));

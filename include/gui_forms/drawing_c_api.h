@@ -1059,6 +1059,13 @@ typedef struct gd_api_v0 {
        it. A focus on or outside the circle fails
        GD_ERROR_INVALID_ARGUMENT. */
     gd_result (*radial_gradient_brush_set_focus)(gd_handle brush, gd_point focus);
+    /* Makes the edge an ellipse of radius_x across and radius_y down about
+       the centre (each positive, at most 1,000,000; owner, 2026-11-16):
+       every circle above becomes the ellipse of those radii scaled by t. A
+       radius out of range, or a focus that would not lie strictly inside
+       the new ellipse, fails GD_ERROR_INVALID_ARGUMENT and changes
+       nothing. */
+    gd_result (*radial_gradient_brush_set_radii)(gd_handle brush, double radius_x, double radius_y);
 } gd_api_v0;
 
 /*

@@ -61,7 +61,7 @@ Types
    * - :cpp:class:`CanvasLook <gui_forms::CanvasLook>`
      - Every canvas part in every state, as one theme draws them in one colour scheme and contrast.
    * - :cpp:class:`CanvasTextureLayer <gui_forms::CanvasTextureLayer>`
-     - One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
+     - One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1], and for a hatch its ``hatch_style``); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
    * - :cpp:class:`CanvasTextureLayers <gui_forms::CanvasTextureLayers>`
      - The texture's layers, bottom first: capacity maximum_canvas_texture_layers, ``count`` live (0 is ``none``).
    * - :cpp:class:`CanvasView <gui_forms::CanvasView>`
@@ -1038,7 +1038,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
+   One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1], and for a hatch its ``hatch_style``); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
 
    .. cpp:member:: CanvasTextureSource source
 
@@ -1057,6 +1057,10 @@ Types
    .. cpp:member:: double strength
 
       Default: ``{1.0}``.
+
+   .. cpp:member:: HatchStyle hatch_style
+
+      Default: ``{HatchStyle::horizontal}``.
 
    .. cpp:member:: FinishFill finish
 

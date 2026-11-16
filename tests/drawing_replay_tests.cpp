@@ -377,6 +377,14 @@ void radial_gradient_brushes_replay() {
     CHECK(replay_drawing_commands(focused.commands(), second).drawn == 1U);
     CHECK(count_calls(second, "focal") == 1U && second.last_end == (Point{5, 8}) &&
           second.last_spread == GradientSpreadMode::pad);
+
+    // An ellipse replays with its two radii.
+    focal.set_radii(6.0, 3.0);
+    gui_drawing::GraphicsRecorder elliptical;
+    elliptical.fill_rectangle(focal, {0, 0, 16, 16});
+    CallPainter third;
+    CHECK(replay_drawing_commands(elliptical.commands(), third).drawn == 1U);
+    CHECK(count_calls(third, "focal") == 1U && third.last_radii == (Size{6, 3}));
 }
 
 } // namespace

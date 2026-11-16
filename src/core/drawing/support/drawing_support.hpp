@@ -446,6 +446,8 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
     }
     if (brush.kind == BrushKind::radial_gradient) {
         result += ",radius=" + number(brush.radius) + ",focus=" + point_text(brush.focus);
+        // An ellipse's second radius; a circle's trace is as before.
+        if (brush.radius_y != brush.radius) result += ",radius_y=" + number(brush.radius_y);
     }
     return result;
 }
