@@ -53,15 +53,15 @@ std::string ColorValueEditor::format_value(Color colour) {
     return result;
 }
 
-std::optional<Color> ColorValueEditor::parse_value(std::string_view text) {
+stxlib::Optional<Color> ColorValueEditor::parse_value(std::string_view text) {
     const std::string_view::size_type first =
         text.find_first_not_of(" \t\r\n");
-    if (first == std::string_view::npos) return {};
+    if (first == std::string_view::npos) return stxlib::Optional<Color>::none();
     const std::string_view::size_type last =
         text.find_last_not_of(" \t\r\n");
     text = text.substr(first, last - first + 1U);
     if ((text.size() != 7U && text.size() != 9U) || text.front() != '#') {
-        return {};
+        return stxlib::Optional<Color>::none();
     }
     std::uint8_t channels[4]{0U, 0U, 0U, 255U};
     const std::size_t count = text.size() == 9U ? 4U : 3U;
@@ -70,10 +70,11 @@ std::optional<Color> ColorValueEditor::parse_value(std::string_view text) {
             parse_nibble(text[1U + index * 2U]);
         const std::optional<std::uint8_t> low =
             parse_nibble(text[2U + index * 2U]);
-        if (!high || !low) return {};
+        if (!high || !low) return stxlib::Optional<Color>::none();
         channels[index] = static_cast<std::uint8_t>((*high << 4U) | *low);
     }
-    return Color::rgba(channels[0], channels[1], channels[2], channels[3]);
+    const Color parsed = Color::rgba(channels[0], channels[1], channels[2], channels[3]);
+    return stxlib::Optional<Color>::of(parsed);
 }
 
 std::optional<std::uint8_t> ColorValueEditor::parse_nibble(
@@ -125,8 +126,8 @@ void ColorValueEditor::write_view(const decltype(value)&, Color incoming) {
 
 void ColorValueEditor::commit(std::string_view text) {
     if (synchronizing_) return;
-    const std::optional<Color> parsed = parse_value(text);
-    if (!parsed) {
+    const stxlib::Optional<Color> parsed = parse_value(text);
+    if (parsed.absent()) {
         set_visual_status(ControlVisualStatus::invalid);
         if (editor_) (*editor_).set_visual_status(ControlVisualStatus::invalid);
         const PropertyEditorInputError failure{
@@ -134,7 +135,7 @@ void ColorValueEditor::commit(std::string_view text) {
         edit_failed_.emit(failure);
         return;
     }
-    accept_colour(*parsed);
+    accept_colour(*parsed.value());
 }
 
 void ColorValueEditor::accept_colour(Color incoming) {
@@ -298,7 +299,7 @@ void ColorValueEditor::on_paint(Painter& painter, Rect) {
     well.role = PartRole::well;
     well.states = states;
     well.bounds = swatch;
-    well.corner_radius = 0.0;
+    well.corner_radius.set(0.0);
     paint_part(painter, *this, well);
     const Rect inside{swatch.x + 1.0, swatch.y + 1.0, std::max(0.0, swatch.width - 2.0),
                       std::max(0.0, swatch.height - 2.0)};
@@ -319,11 +320,11 @@ void ColorValueEditor::on_paint(Painter& painter, Rect) {
     fill.states = states;
     for (std::size_t index = 0U; index < squares.size(); ++index) {
         fill.bounds = squares[index];
-        fill.content_color = shades[index];
+        fill.content_color.set(shades[index]);
         paint_part(painter, *this, fill);
     }
     fill.bounds = inside;
-    fill.content_color = value_;
+    fill.content_color.set(value_);
     paint_part(painter, *this, fill);
 }
 

@@ -743,11 +743,11 @@ private:
 
     // VirtualRowsView
     void on_message_selected(const VirtualRowSelection& change) {
-        if (!change.current.has_value()) {
+        if (change.current.absent()) {
             (*status_).text = "VirtualRowsView selection cleared";
             return;
         }
-        const std::size_t row = (*change.current).value;
+        const std::size_t row = (*change.current.value()).value;
         (*status_).text = "VirtualRowsView message " + std::to_string(row + 1U) + " from " +
                           std::string(SeededMessages::sender_of(row)) + " selected";
     }
@@ -764,12 +764,12 @@ private:
     }
 
     void on_tree_list_sorted(const TreeListSortChange& change) {
-        if (!change.column) {
+        if (change.column.absent()) {
             (*status_).text = "TreeListView back in fixture order";
             return;
         }
         (*status_).text = "TreeListView siblings sorted by " +
-                            (*tree_list_).columns()[*change.column].text +
+                            (*tree_list_).columns()[*change.column.value()].text +
                             (change.order == TreeListSortOrder::ascending ? " ascending" : " descending") +
                             " · every folder keeps its children";
     }

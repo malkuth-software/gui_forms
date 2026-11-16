@@ -48,6 +48,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -177,7 +178,7 @@ void test_load() {
     require(loaded.root != nullptr && (*loaded.root).stable_id().value() == "settings.root", "load: the root");
     require(loaded.objects.size() == 6U, "load: every object");
     if (loaded.root == nullptr || loaded.objects.size() != 6U) return;
-    require((*loaded.root).back_color.read() == gui_forms::Color{0x33, 0x66, 0x99, 255}, "load: the root's colour");
+    require((*loaded.root).back_color.read() == stxlib::Optional<gui_forms::Color>::of(gui_forms::Color{0x33, 0x66, 0x99, 255}), "load: the root's colour");
 
     // Child order is document order; the command is the form's, not a child.
     const std::span<const Control::Ptr> root_children = (*loaded.root).children();
@@ -227,7 +228,7 @@ void test_value_bar() {
     require((*samples).minimum.read() == 1.0 && (*samples).maximum.read() == 4096.0 &&
                 (*samples).value.read() == 64.0,
             "value bar: the range family's values");
-    require((*samples).soft_maximum.read() == std::optional<double>{256.0} && !(*samples).soft_minimum.read(),
+    require((*samples).soft_maximum.read() == stxlib::Optional<double>::of(256.0) && (*samples).soft_minimum.read().absent(),
             "value bar: the soft limits");
     require((*samples).presentation.read() == gui_forms::ValueBarStyle::field &&
                 (*samples).precision.read() == 0 && (*samples).label.read() == "Samples",

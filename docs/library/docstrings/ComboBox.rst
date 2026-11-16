@@ -38,7 +38,7 @@ items
     and a position outside the items throws `std::out_of_range`; a refused
     edit changes nothing. The same collection is also available to
     bindings as the ``Items`` property.
-selected_index : default ``std::nullopt``
+selected_index : default none
     The index of the selected item, or no value when nothing is selected.
     Setting an index outside the items throws `std::out_of_range`. Also
     available to bindings as ``SelectedIndex``, with -1 for no selection.
@@ -216,7 +216,7 @@ Offer three choices with a placeholder, and select one:
        gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
    (*density).items = {"Compact", "Comfortable", "Spacious"};
    (*density).placeholder_text = "Choose a density";
-   (*density).selected_index = 1U;
+   (*density).selected_index = stxlib::Optional<std::size_t>::of(1U);
    // (*density).selected_text() is now "Comfortable"
 
 React to the selection with an owned handler. Shrinking the items clears a
@@ -233,15 +233,15 @@ selection that no longer exists, and the handler sees that too:
            (*combo).items = {"Compact", "Comfortable", "Spacious"};
            gf::on((*combo).selected_index_changed(), *this, &DensityField::on_density);
        }
-       void on_density(std::optional<std::size_t> index) {
-           density = index ? std::string((*combo).selected_text()) : std::string();
+       void on_density(stxlib::Optional<std::size_t> index) {
+           density = index.present() ? std::string((*combo).selected_text()) : std::string();
        }
    };
 
    void example() {
        DensityField field;
-       (*field.combo).selected_index = 2U;                 // field.density is "Spacious"
-       (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
+       (*field.combo).selected_index = stxlib::Optional<std::size_t>::of(2U);   // field.density is "Spacious"
+       (*field.combo).items = {"Compact", "Comfortable"};   // and now ""
    }
 
 An editable field that completes from its items:

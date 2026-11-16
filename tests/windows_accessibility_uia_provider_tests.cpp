@@ -52,7 +52,6 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -217,7 +216,7 @@ struct ModelState final {
     bool checked{};
     std::string text;
     double number{};
-    std::optional<std::size_t> list_selection;
+    stxlib::Optional<std::size_t> list_selection;
     bool folder_expanded{};
 };
 
@@ -552,7 +551,7 @@ void check_selection(ClientContext& context, IUIAutomation& automation, IUIAutom
         expect(context, false, "a list item offers SelectionItem");
         return;
     }
-    expect(context, SUCCEEDED((*item.get()).Select()) && read_model(context).list_selection == 1U,
+    expect(context, SUCCEEDED((*item.get()).Select()) && read_model(context).list_selection == stxlib::Optional<std::size_t>::of(1U),
            "SelectionItem Select selects the item");
     BOOL selected = FALSE;
     expect(context, SUCCEEDED((*item.get()).get_CurrentIsSelected(&selected)) && selected == TRUE,

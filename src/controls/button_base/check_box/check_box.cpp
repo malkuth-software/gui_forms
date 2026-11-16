@@ -312,12 +312,12 @@ void CheckBox::on_paint(Painter& painter, Rect) {
     const Rect laid_box = check_box_well(bounds, indicator_style.read());
     const Rect box = mirrored ? horizontally_mirrored(laid_box, bounds) : laid_box;
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ground{};
-    std::optional<Color> ink{};
+    stxlib::Optional<Color> ground{};
+    stxlib::Optional<Color> ink{};
     if (has_style_override()) {
         const BasicControlStyle& colors = style();
-        ground = colors.paper;
-        ink = colors.text;
+        ground.set(colors.paper);
+        ink.set(colors.text);
     }
     PartPaint well;
     well.family = ControlVisualRole::choice;
@@ -329,9 +329,9 @@ void CheckBox::on_paint(Painter& painter, Rect) {
     const ControlVisualContext context = part_visual_context(*this, states);
     const double theme_radius = effective_theme().resolve(ControlVisualRole::choice, context).material.corner_radius;
     const double box_radius = std::min(2.0, theme_radius);
-    well.corner_radius = indicator_style.read() == ChoiceIndicatorStyle::toggle ? 7.5 : box_radius;
+    well.corner_radius.set(indicator_style.read() == ChoiceIndicatorStyle::toggle ? 7.5 : box_radius);
     well.authored_background = ground;
-    well.key = PartKey{"well", {}, {}};
+    well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
     const PartMark mark = check_box_mark(indicator_style.read(), check_state_);
     if (mark != PartMark::none) {
@@ -343,7 +343,7 @@ void CheckBox::on_paint(Painter& painter, Rect) {
         indicator.bounds = mirrored ? horizontally_mirrored(laid_mark, bounds) : laid_mark;
         indicator.states = states;
         indicator.authored_foreground = ink;
-        indicator.key = PartKey{"indicator", {}, {}};
+        indicator.key.set(PartKey{"indicator", {}, {}});
         paint_part(painter, *this, indicator);
     }
     const Rect laid_content{laid_box.x + laid_box.width + 1.0, 0.0,
@@ -359,7 +359,7 @@ void CheckBox::on_paint(Painter& painter, Rect) {
     focus.role = PartRole::focus;
     focus.bounds = bounds;
     focus.states = states;
-    focus.key = PartKey{"focus", {}, {}};
+    focus.key.set(PartKey{"focus", {}, {}});
     paint_part(painter, *this, focus);
 }
 

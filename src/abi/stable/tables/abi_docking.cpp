@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -874,11 +875,11 @@ gf_status docking_set_options_body(gf_object workspace, const gf_dock_options* o
     (*typed).set_floats_shown_while_inactive((flags & GF_DOCK_OPTION_FLOATS_SHOWN_WHILE_INACTIVE) != 0U);
     (*typed).set_document_tabs_shown((flags & GF_DOCK_OPTION_DOCUMENT_TABS_HIDDEN) == 0U);
     (*typed).set_auto_hide_opens_on_hover((flags & GF_DOCK_OPTION_AUTO_HIDE_NO_HOVER) == 0U);
-    std::optional<Color> area{};
+    stxlib::Optional<Color> area{};
     if ((flags & GF_DOCK_OPTION_AREA_BACKGROUND) != 0U) {
         const std::uint32_t rgba = (*options).area_background;
-        area = Color::rgba(static_cast<std::uint8_t>(rgba >> 24U), static_cast<std::uint8_t>(rgba >> 16U),
-                           static_cast<std::uint8_t>(rgba >> 8U), static_cast<std::uint8_t>(rgba));
+        area.set(Color::rgba(static_cast<std::uint8_t>(rgba >> 24U), static_cast<std::uint8_t>(rgba >> 16U),
+                             static_cast<std::uint8_t>(rgba >> 8U), static_cast<std::uint8_t>(rgba)));
     }
     (*typed).set_area_background(area);
     return GF_STATUS_OK;

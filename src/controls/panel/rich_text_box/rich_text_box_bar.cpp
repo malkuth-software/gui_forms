@@ -213,7 +213,7 @@ bool RichTextBox::bar_pointer(PointerEvent& event, Point local) {
             return true;
         }
         const bool over_bar = local.y < bar_height();
-        if (over_bar && cursor.read() != CursorKind::arrow) cursor = CursorKind::arrow;
+        if (over_bar && cursor.read() != stxlib::Optional<CursorKind>::of(CursorKind::arrow)) cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
         return over_bar;
     }
     if (event.action == PointerAction::leave) {

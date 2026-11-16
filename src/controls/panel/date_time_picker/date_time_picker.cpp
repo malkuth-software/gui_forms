@@ -199,8 +199,8 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     // at the left and the check box at the right (Windows Forms).
     const LayoutDirection direction = effective_layout_direction();
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ink{};
-    if (style_authored_) ink = style_.text;
+    stxlib::Optional<Color> ink{};
+    if (style_authored_) ink.set(style_.text);
     const FontSpec field_font = text_font(font.read());
     const double button_width = std::min(24.0, bounds.width);
     const double button_x = std::max(0.0, bounds.width - button_width);
@@ -304,7 +304,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     const double baseline = std::max(field_font.size, (bounds.height + field_font.size) * 0.5 - 1.0);
     content.bounds = {text_left, baseline - box_ascent, std::max(0.0, button_x - text_left - 3.0), box_height};
     content.bounds = directed_rect(content.bounds, bounds, direction);
-    content.measured_text = measured;
+    content.measured_text.set(measured);
     paint_part(painter, *this, content);
     if (focused_ || dropped_down_) {
         PartPaint ring;

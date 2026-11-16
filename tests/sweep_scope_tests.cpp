@@ -164,7 +164,9 @@ void anatomy_and_semantics() {
     require(descriptor.role == SemanticRole::progress_bar, "the scope reads as a meter");
     require(descriptor.name == "LEVEL", "an unnamed scope is named by its caption");
     require(descriptor.value == "LEVEL 42%", "its value is the caption and the percentage");
-    require(descriptor.numeric_value == 42.0 && descriptor.minimum_value == 0.0 && descriptor.maximum_value == 100.0,
+    require(descriptor.numeric_value == stxlib::Optional<double>::of(42.0) &&
+                descriptor.minimum_value == stxlib::Optional<double>::of(0.0) &&
+                descriptor.maximum_value == stxlib::Optional<double>::of(100.0),
             "and its range");
     (*scope).enabled = false;
     require((*scope).states().disabled, "a disabled scope reports it");

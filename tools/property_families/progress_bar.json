@@ -185,8 +185,8 @@
     {
       "name": "effect_seed",
       "capability": "ProgressBarEffectSeed",
-      "value": "std::optional<std::uint64_t>",
-      "initial": "std::nullopt",
+      "value": "stxlib::Optional<std::uint64_t>",
+      "initial": null,
       "comment": "The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.",
       "getter": "effect_seed",
       "setter": "set_effect_seed",
@@ -217,7 +217,7 @@
       "hand": [
         "written: detach both effects, sync_effects, invalidate"
       ],
-      "sample": "std::uint64_t{7U}"
+      "sample": "stxlib::Optional<std::uint64_t>::of(7U)"
     },
     {
       "name": "effect_input",

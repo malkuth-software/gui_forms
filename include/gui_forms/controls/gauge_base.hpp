@@ -73,9 +73,9 @@ private:
     void written(const decltype(decimal_places)& cell);
     void prepare_write(const decltype(show_value)& cell, bool& incoming);
     void written(const decltype(show_value)& cell);
-    void prepare_write(const decltype(low_alarm)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(low_alarm)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(low_alarm)& cell);
-    void prepare_write(const decltype(high_alarm)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(high_alarm)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(high_alarm)& cell);
     // property_codemod end GaugeBase
 };

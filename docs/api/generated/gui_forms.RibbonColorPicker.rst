@@ -33,7 +33,7 @@ gui_forms::RibbonColorPicker
       **command** : ``std::shared_ptr<ColorCommand>``
          The :cpp:class:`ColorCommand <gui_forms::ColorCommand>` it shows and commits to, or null.
 
-      **value** : ``std::optional<Color>``
+      **value** : ``stxlib::Optional<Color>``
          The colour shown, or none for Automatic: the command's, or the picker's
          own. ``set_value`` sets it as the program does.
 
@@ -66,7 +66,7 @@ gui_forms::RibbonColorPicker
 
    :Events:
 
-      **value_changed** : ``Event<const std::optional<Color>&>``
+      **value_changed** : ``Event<const stxlib::Optional<Color>&>``
          Raised after the value shown changes, by the user or the program.
 
       **palette_open_changed** : ``Event<bool>``
@@ -147,7 +147,7 @@ gui_forms::RibbonColorPicker
 
       The :cpp:class:`ColorCommand <gui_forms::ColorCommand>` it shows and commits to, or null.
 
-   .. cpp:member:: std::optional<Color> value
+   .. cpp:member:: stxlib::Optional<Color> value
 
       The colour shown, or none for Automatic: the command's, or the picker's
       own. ``set_value`` sets it as the program does.
@@ -193,7 +193,7 @@ gui_forms::RibbonColorPicker
 
    .. rubric:: Events
 
-   .. cpp:function:: Event<const std::optional<Color>&>& value_changed() noexcept
+   .. cpp:function:: Event<const stxlib::Optional<Color>&>& value_changed() noexcept
 
       Raised after the value shown changes, by the user or the program.
 

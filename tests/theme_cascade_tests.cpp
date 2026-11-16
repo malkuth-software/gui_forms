@@ -156,7 +156,7 @@ void specificity_and_ties() {
             "the ID and the classes count");
     RuleSelector many = by_class("a");
     many.classes.push_back("b");
-    many.role = PartRole::face;
+    many.role.set(PartRole::face);
     many.part = "face";
     many.states.push_back(AnatomyState::hot);
     const RuleSpecificity counted = rule_specificity(many);
@@ -189,7 +189,7 @@ void specificity_and_ties() {
     RuleSpecificity of_class{};
     of_class.classes = 2U;
     of_class.types = 1U;
-    lifted.specificity = of_class;
+    lifted.specificity.set(of_class);
     given.rules.push_back(lifted);
     RuleSelector loud_hot = by_class("loud");
     loud_hot.states.push_back(AnatomyState::hot);
@@ -200,7 +200,7 @@ void specificity_and_ties() {
     require(amplitude_of(given_rules.resolve(face_of("x", loud, hot_states))) == 0.3,
             "the given specificity orders the rule within its level");
     ThemeRule unlifted = rule("unlifted", CascadeLevel::stable_id_rule, by_type(), bulge(0.3));
-    unlifted.specificity = of_class;
+    unlifted.specificity.set(of_class);
     ThemeRuleSheet missing{};
     missing.rules.push_back(unlifted);
     const CompiledThemeRules missing_rules = CompiledThemeRules::compile(missing, builtin_primitive_registry());
@@ -264,7 +264,7 @@ void invalid_rules_are_dropped() {
     sheet.rules.push_back(rule("built in level", CascadeLevel::built_in, by_type(), bulge(0.5)));
     sheet.rules.push_back(rule("forced", CascadeLevel::forced_high_contrast, by_type(), bulge(0.5)));
     RuleSelector label = by_type();
-    label.role = PartRole::label;
+    label.role.set(PartRole::label);
     sheet.rules.push_back(rule("label bulge", CascadeLevel::theme_sheet, label, bulge(0.5)));
     const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
 
@@ -340,7 +340,7 @@ void newer_engine_rules_fall_back() {
     sheet.requires_engine = next;
     sheet.rules.push_back(rule("future", CascadeLevel::theme_sheet, by_type(), bulge(0.5)));
     ThemeRule today = rule("today", CascadeLevel::class_rule, by_class("loud"), bulge(0.7));
-    today.requires_engine = EngineVersion{0, 1};
+    today.requires_engine.set(EngineVersion{0, 1});
     sheet.rules.push_back(today);
     const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
     require(has_diagnostic(rules, RuleDiagnosticKind::needs_newer_engine, "future") && rules.rule_count() == 1U,
@@ -412,7 +412,7 @@ std::unique_ptr<ThemeDefinition> bulge_theme() {
     ThemeDefinition& definition = *held;
     definition.id = "cascade-test";
     RuleSelector faces{};
-    faces.role = PartRole::face;
+    faces.role.set(PartRole::face);
     definition.rules.rules.push_back(rule("faces", CascadeLevel::theme_sheet, faces, bulge(0.5)));
     return held;
 }
@@ -433,7 +433,7 @@ void paint_path() {
     face.role = PartRole::face;
     face.family = ControlVisualRole::button;
     face.bounds = {10.0, 20.0, 40.0, 24.0};
-    face.key = PartKey{"face", {}, {}};
+    face.key.set(PartKey{"face", {}, {}});
     CountingPainter painter{};
     (*theme).engine().paint(painter, *control, face);
     require(painter.composites == 1U && painter.fills == 0U && painter.last_raster &&
@@ -496,21 +496,21 @@ void surface_rules() {
     chain.steps[1].kind = BackdropStepKind::tint;
     chain.steps[1].colour = Color::rgba(255, 255, 255, 128);
     chain.length = 2U;
-    backdrop_rule.backdrop = chain;
+    backdrop_rule.backdrop.set(chain);
     ThemeRuleSheet sheet{};
     sheet.rules.push_back(rule("any", CascadeLevel::theme_sheet, RuleSelector{}, bulge(0.4)));
     sheet.rules.push_back(backdrop_rule);
     // A backdrop on a control rule, and an invalid chain (two blurs, one out
     // of range), are dropped.
     ThemeRule on_control = rule("control", CascadeLevel::theme_sheet, by_type(), bulge(0.6));
-    on_control.backdrop = chain;
+    on_control.backdrop.set(chain);
     sheet.rules.push_back(on_control);
     BackdropDeclaration invalid = chain;
     invalid.steps[1].kind = BackdropStepKind::blur;
     invalid.steps[1].amount = 40.0;
     require(!backdrop_declaration_valid(invalid), "two blurs, one over 32, are no chain");
     ThemeRule invalid_rule = rule("invalid", CascadeLevel::theme_sheet, window, bulge(0.2));
-    invalid_rule.backdrop = invalid;
+    invalid_rule.backdrop.set(invalid);
     sheet.rules.push_back(invalid_rule);
     const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
     require(has_diagnostic(rules, RuleDiagnosticKind::backdrop_invalid, "control", "backdrop"),

@@ -54,7 +54,7 @@ gui_forms::DockWorkspace
 
       **auto_hide_opens_on_hover** : ``bool``
 
-      **area_background** : ``std::optional<Color>``
+      **area_background** : ``stxlib::Optional<Color>``
 
       **closable_documents** : ``std::vector<DockPanelId>``, read-only
          The placed documents that may close, the main site's in tree and tab
@@ -355,11 +355,15 @@ gui_forms::DockWorkspace
 
       Whether resting the pointer on an auto-hidden panel's side tab opens its flyout; off, a press opens it.
 
-   .. cpp:function:: std::optional<Color> area_background() const noexcept
+   .. cpp:function:: stxlib::Optional<Color> area_background() const noexcept
+
+   .. cpp:function:: void set_area_background(stxlib::Optional<Color> colour)
+
+      The colour the sites paint their document area with in place of the theme's well (DockPanel Suite's DockBackColor); none: the theme's.
 
    .. cpp:function:: void set_area_background(std::optional<Color> colour)
 
-      The colour the sites paint their document area with in place of the theme's well (DockPanel Suite's DockBackColor); none: the theme's.
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: std::vector<DockPanelId> closable_documents() const
 

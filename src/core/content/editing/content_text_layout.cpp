@@ -176,7 +176,8 @@ ContentLayoutResult validate_content_text_layout(const ContentTextLayout& layout
         return ContentLayoutResult::refused_too_large;
     }
     if (layout.text_revision != revision) return ContentLayoutResult::stale_revision;
-    if (layout.transform && !valid_transform(*layout.transform)) return ContentLayoutResult::refused_geometry;
+    const ContentLayoutTransform* const mapping = layout.transform.value();
+    if (mapping != nullptr && !valid_transform(*mapping)) return ContentLayoutResult::refused_geometry;
     const ContentLayoutResult lines = validate_lines(layout, text);
     if (lines != ContentLayoutResult::accepted) return lines;
     const ContentLayoutResult clusters = validate_clusters(layout, text);

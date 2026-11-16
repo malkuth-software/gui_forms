@@ -37,6 +37,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <thread>
 #include <vector>
 
@@ -501,7 +502,7 @@ void test_automatic_accommodation_and_user_override() {
 
 void test_content_aware_maximum_extents() {
     std::shared_ptr<gui_forms::SplitContainer> right_bounded = make_control<SplitContainer>(StableId("split.max.right"));
-    (*right_bounded).second_maximum = 180.0;
+    (*right_bounded).second_maximum = stxlib::Optional<double>::of(180.0);
     (*right_bounded).splitter_distance = 100.0;
     Window right_window(right_bounded, {600.0, 160.0});
     right_window.perform_layout();
@@ -513,7 +514,7 @@ void test_content_aware_maximum_extents() {
             "programmatic and pointer distances must share maximum constraints");
 
     std::shared_ptr<gui_forms::SplitContainer> left_bounded = make_control<SplitContainer>(StableId("split.max.left"));
-    (*left_bounded).first_maximum = 200.0;
+    (*left_bounded).first_maximum = stxlib::Optional<double>::of(200.0);
     (*left_bounded).splitter_distance = 500.0;
     Window left_window(left_bounded, {600.0, 160.0});
     left_window.perform_layout();
@@ -522,7 +523,7 @@ void test_content_aware_maximum_extents() {
 
     bool invalid_rejected{};
     try {
-        (*left_bounded).first_maximum = 10.0;
+        (*left_bounded).first_maximum = stxlib::Optional<double>::of(10.0);
     } catch (const std::invalid_argument&) {
         invalid_rejected = true;
     }
@@ -686,9 +687,9 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
 
     const double before_semantic = (*split).splitter_distance.read();
     const SemanticDescriptor semantics = (*split).semantic_descriptor();
-    require(semantics.numeric_value == before_semantic &&
-                semantics.minimum_value.has_value() &&
-                semantics.maximum_value.has_value() &&
+    require(semantics.numeric_value == stxlib::Optional<double>::of(before_semantic) &&
+                semantics.minimum_value.present() &&
+                semantics.maximum_value.present() &&
                 window.perform_semantic_action(
                     "split.proximity", SemanticAction::increment) &&
                 (*split).splitter_distance.read() > before_semantic &&
@@ -905,12 +906,14 @@ void test_seam_drag_engine_parity() {
     const SemanticDescriptor range = (*split).semantic_descriptor();
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::down, 191.0)));
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, 1000.0)));
-    require(near((*split).splitter_distance.read(), *range.maximum_value), "a drag past the end stops at the maximum");
+    require(near((*split).splitter_distance.read(), *range.maximum_value.value()),
+            "a drag past the end stops at the maximum");
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, -50.0)));
-    require(near((*split).splitter_distance.read(), *range.minimum_value),
+    require(near((*split).splitter_distance.read(), *range.minimum_value.value()),
             "a drag past the start stops at the minimum, with no refusal");
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::up, -50.0)));
-    require(near((*split).splitter_distance.read(), *range.minimum_value), "the release keeps the clamped distance");
+    require(near((*split).splitter_distance.read(), *range.minimum_value.value()),
+            "the release keeps the clamped distance");
 }
 
 // Every end but a release puts the distance back with the cancel reason:

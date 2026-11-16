@@ -224,7 +224,7 @@ struct DataGridView::SortingScope final {
 
 DataGridView::DataGridView(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     // The error glyphs are the grid's interface, not its data: each shows
     // its error text as a part tooltip (owner decision, 2026-11-02). Cells
@@ -416,11 +416,11 @@ DataGridViewRowId DataGridView::row_id(DataGridViewRowPosition position) const {
     return identity;
 }
 
-std::optional<DataGridViewRowPosition> DataGridView::row_position(const DataGridViewRowId& row) const {
-    const std::optional<std::size_t> found = find_row(row.value);
-    if (!found) return std::nullopt;
-    const DataGridViewRowPosition position{*found};
-    return position;
+stxlib::Optional<DataGridViewRowPosition> DataGridView::row_position(const DataGridViewRowId& row) const {
+    const stxlib::Optional<std::size_t> found = find_row(row.value);
+    if (found.absent()) return stxlib::Optional<DataGridViewRowPosition>::none();
+    const DataGridViewRowPosition position{*found.value()};
+    return stxlib::Optional<DataGridViewRowPosition>::of(position);
 }
 
 BindingValue DataGridView::cell_value(DataGridViewRowPosition row, std::size_t column) const {
@@ -499,10 +499,10 @@ void inherit_unset(DataGridViewCellStyle& style, const DataGridViewCellStyle& fr
     if (!style.format) style.format = from.format;
     if (!style.null_value) style.null_value = from.null_value;
     if (!style.data_source_null_value) style.data_source_null_value = from.data_source_null_value;
-    if (!style.back_color) style.back_color = from.back_color;
-    if (!style.fore_color) style.fore_color = from.fore_color;
-    if (!style.selection_back_color) style.selection_back_color = from.selection_back_color;
-    if (!style.selection_fore_color) style.selection_fore_color = from.selection_fore_color;
+    if (style.back_color.absent()) style.back_color = from.back_color;
+    if (style.fore_color.absent()) style.fore_color = from.fore_color;
+    if (style.selection_back_color.absent()) style.selection_back_color = from.selection_back_color;
+    if (style.selection_fore_color.absent()) style.selection_fore_color = from.selection_fore_color;
 }
 
 } // namespace
@@ -671,9 +671,9 @@ void DataGridView::reset_row_state() {
     row_styles_.clear();
     // The rows are no longer in a sort's order; an automatic sort's glyph
     // goes with it.
-    if (sorted_column_ && *sorted_column_ < columns_.size() &&
-        column_sort_mode(*sorted_column_) == DataGridViewColumnSortMode::automatic) {
-        columns_[*sorted_column_].sort_glyph = DataGridViewSortDirection::none;
+    if (sorted_column_.present() && *sorted_column_.value() < columns_.size() &&
+        column_sort_mode(*sorted_column_.value()) == DataGridViewColumnSortMode::automatic) {
+        columns_[*sorted_column_.value()].sort_glyph = DataGridViewSortDirection::none;
     }
     sorted_column_.reset();
     sort_order_ = DataGridViewSortDirection::none;
@@ -717,34 +717,34 @@ void DataGridView::index_rows_from(std::size_t first) {
     }
 }
 
-std::optional<std::size_t> DataGridView::find_row(std::string_view row_id) const {
+stxlib::Optional<std::size_t> DataGridView::find_row(std::string_view row_id) const {
     if (row_source_ == DataGridViewRowSource::virtual_rows) {
-        const std::optional<std::size_t> position = virtual_order_.position_of(row_id);
-        if (position) return position;
+        const stxlib::Optional<std::size_t> position = virtual_order_.position_of(row_id);
+        if (position.present()) return position;
         // The new row is last.
-        if (new_row_shown() && row_id == new_row_.stable_id.value) return data_row_count();
-        return std::nullopt;
+        if (new_row_shown() && row_id == new_row_.stable_id.value) return stxlib::Optional<std::size_t>::of(data_row_count());
+        return stxlib::Optional<std::size_t>::none();
     }
-    std::optional<std::size_t> indexed{};
+    stxlib::Optional<std::size_t> indexed{};
     if (row_source_ == DataGridViewRowSource::binding_source) {
         if (bound_index_) indexed = (*bound_index_).find(row_id);
     } else {
         const RowPositions::const_iterator found = row_positions_.find(row_id);
-        if (found != row_positions_.end()) indexed = (*found).second;
+        if (found != row_positions_.end()) indexed.set((*found).second);
     }
-    if (!indexed) {
+    if (indexed.absent()) {
         // The new row is last; a data row that took its ID is found first.
-        if (new_row_shown() && row_id == new_row_.stable_id.value) return data_row_count();
-        return std::nullopt;
+        if (new_row_shown() && row_id == new_row_.stable_id.value) return stxlib::Optional<std::size_t>::of(data_row_count());
+        return stxlib::Optional<std::size_t>::none();
     }
-    const std::size_t position = *indexed;
+    const std::size_t position = *indexed.value();
     // A binding source that changed without raising list_changed leaves the
     // index behind its records; a position now holding another row is not
     // this row.
-    if (position >= data_row_count()) return std::nullopt;
+    if (position >= data_row_count()) return stxlib::Optional<std::size_t>::none();
     const DataGridViewRowPosition row{position};
-    if (row_id_text(row) != row_id) return std::nullopt;
-    return position;
+    if (row_id_text(row) != row_id) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(position);
 }
 
 DataGridViewRowPosition DataGridView::event_position(std::string_view row_id) const {
@@ -754,15 +754,15 @@ DataGridViewRowPosition DataGridView::event_position(std::string_view row_id) co
         if (new_row_shown() && row_id == new_row_.stable_id.value) position.value = data_row_count();
         return position;
     }
-    std::optional<std::size_t> indexed{};
+    stxlib::Optional<std::size_t> indexed{};
     if (row_source_ == DataGridViewRowSource::binding_source) {
         if (bound_index_) indexed = (*bound_index_).find(row_id);
     } else {
         const RowPositions::const_iterator found = row_positions_.find(row_id);
-        if (found != row_positions_.end()) indexed = (*found).second;
+        if (found != row_positions_.end()) indexed.set((*found).second);
     }
-    if (indexed) {
-        position.value = *indexed;
+    if (indexed.present()) {
+        position.value = *indexed.value();
     } else if (row_id == new_row_.stable_id.value) {
         position.value = data_row_count();
     }
@@ -783,11 +783,11 @@ DataGridView::CellKey DataGridView::key_of(DataGridViewCellAddress cell) const {
     return key;
 }
 
-std::optional<DataGridViewCellAddress> DataGridView::address_of(const CellKey& cell) const {
-    const std::optional<std::size_t> position = find_row(cell.row_id);
-    if (!position) return std::nullopt;
-    const DataGridViewCellAddress address{DataGridViewRowPosition{*position}, cell.column};
-    return address;
+stxlib::Optional<DataGridViewCellAddress> DataGridView::address_of(const CellKey& cell) const {
+    const stxlib::Optional<std::size_t> position = find_row(cell.row_id);
+    if (position.absent()) return stxlib::Optional<DataGridViewCellAddress>::none();
+    const DataGridViewCellAddress address{DataGridViewRowPosition{*position.value()}, cell.column};
+    return stxlib::Optional<DataGridViewCellAddress>::of(address);
 }
 
 DataGridView::PressIdentity DataGridView::press_identity(const HitResult& hit) const {
@@ -810,20 +810,20 @@ std::optional<DataGridView::HitResult> DataGridView::resolve_press(const HitResu
                                                                    const PressIdentity& pressed) const {
     HitResult resolved = hit;
     if (pressed.row) {
-        const std::optional<std::size_t> row = find_row(pressed.row_id);
-        if (!row) return std::nullopt;
-        resolved.row = DataGridViewRowPosition{*row};
+        const stxlib::Optional<std::size_t> row = find_row(pressed.row_id);
+        if (row.absent()) return std::nullopt;
+        resolved.row = DataGridViewRowPosition{*row.value()};
     }
     if (pressed.column) {
-        const std::optional<std::size_t> column = column_index(pressed.column_name);
-        if (!column) return std::nullopt;
-        resolved.column = *column;
+        const stxlib::Optional<std::size_t> column = column_index(pressed.column_name);
+        if (column.absent()) return std::nullopt;
+        resolved.column = *column.value();
     }
     return resolved;
 }
 
-std::optional<std::size_t> DataGridView::current_position() const {
-    if (!current_) return std::nullopt;
+stxlib::Optional<std::size_t> DataGridView::current_position() const {
+    if (!current_) return stxlib::Optional<std::size_t>::none();
     return find_row((*current_).row_id);
 }
 
@@ -838,11 +838,11 @@ bool DataGridView::is_current_cell(DataGridViewRowPosition row, std::size_t colu
     return result;
 }
 
-void DataGridView::drop_missing_rows(std::optional<std::size_t> former_current) {
+void DataGridView::drop_missing_rows(stxlib::Optional<std::size_t> former_current) {
     const std::uint64_t before = selection_revision_;
     RowIdSet::iterator row = selected_rows_.begin();
     while (row != selected_rows_.end()) {
-        if (find_row(*row)) {
+        if (find_row(*row).present()) {
             ++row;
             continue;
         }
@@ -851,19 +851,19 @@ void DataGridView::drop_missing_rows(std::optional<std::size_t> former_current) 
     }
     SelectedCells::iterator cells = selected_cells_.begin();
     while (cells != selected_cells_.end()) {
-        if (find_row((*cells).first)) {
+        if (find_row((*cells).first).present()) {
             ++cells;
             continue;
         }
         cells = selected_cells_.erase(cells);
         ++selection_revision_;
     }
-    if (anchor_ && !find_row((*anchor_).row_id)) anchor_.reset();
-    if (pressed_content_ && !find_row((*pressed_content_).row_id)) pressed_content_.reset();
-    if (pressed_cell_ && !find_row((*pressed_cell_).row_id)) pressed_cell_.reset();
+    if (anchor_ && find_row((*anchor_).row_id).absent()) anchor_.reset();
+    if (pressed_content_ && find_row((*pressed_content_).row_id).absent()) pressed_content_.reset();
+    if (pressed_cell_ && find_row((*pressed_cell_).row_id).absent()) pressed_cell_.reset();
     SelectedCells::iterator visited = visited_links_.begin();
     while (visited != visited_links_.end()) {
-        if (find_row((*visited).first)) {
+        if (find_row((*visited).first).present()) {
             ++visited;
             continue;
         }
@@ -871,7 +871,7 @@ void DataGridView::drop_missing_rows(std::optional<std::size_t> former_current) 
     }
     RowHeightsById::iterator height = own_row_heights_.begin();
     while (height != own_row_heights_.end()) {
-        if (find_row((*height).first)) {
+        if (find_row((*height).first).present()) {
             ++height;
             continue;
         }
@@ -879,7 +879,7 @@ void DataGridView::drop_missing_rows(std::optional<std::size_t> former_current) 
     }
     CellErrorRows::iterator errors = cell_errors_.begin();
     while (errors != cell_errors_.end()) {
-        if (find_row((*errors).first)) {
+        if (find_row((*errors).first).present()) {
             ++errors;
             continue;
         }
@@ -887,7 +887,7 @@ void DataGridView::drop_missing_rows(std::optional<std::size_t> former_current) 
     }
     RowErrors::iterator row_error = row_errors_.begin();
     while (row_error != row_errors_.end()) {
-        if (find_row((*row_error).first)) {
+        if (find_row((*row_error).first).present()) {
             ++row_error;
             continue;
         }
@@ -895,7 +895,7 @@ void DataGridView::drop_missing_rows(std::optional<std::size_t> former_current) 
     }
     CellStyleRows::iterator styles = cell_styles_.begin();
     while (styles != cell_styles_.end()) {
-        if (find_row((*styles).first)) {
+        if (find_row((*styles).first).present()) {
             ++styles;
             continue;
         }
@@ -903,21 +903,21 @@ void DataGridView::drop_missing_rows(std::optional<std::size_t> former_current) 
     }
     RowStyles::iterator row_style = row_styles_.begin();
     while (row_style != row_styles_.end()) {
-        if (find_row((*row_style).first)) {
+        if (find_row((*row_style).first).present()) {
             ++row_style;
             continue;
         }
         row_style = row_styles_.erase(row_style);
     }
-    if (added_row_ && !find_row(*added_row_)) added_row_.reset();
+    if (added_row_ && find_row(*added_row_).absent()) added_row_.reset();
     const std::size_t count = row_count();
     if (first_row_ >= count) first_row_ = 0U;
-    if (current_ && !find_row((*current_).row_id)) {
+    if (current_ && find_row((*current_).row_id).absent()) {
         // The current row is gone: the row now at its position, or the new
         // last row, becomes current.
         std::optional<CellKey> next{};
-        if (count > 0U && former_current) {
-            const DataGridViewRowPosition replacement{std::min(*former_current, count - 1U)};
+        if (count > 0U && former_current.present()) {
+            const DataGridViewRowPosition replacement{std::min(*former_current.value(), count - 1U)};
             next = CellKey{row_id_text(replacement), (*current_).column};
         }
         current_.reset();
@@ -1011,7 +1011,7 @@ void DataGridView::add_column(DataGridViewColumn column) {
     require_mutable();
     require_not_sorting();
     validate_column(column);
-    if (column_index(column.name)) {
+    if (column_index(column.name).present()) {
         throw std::invalid_argument("DataGridView column names must be unique");
     }
     columns_.push_back(std::move(column));
@@ -1034,9 +1034,9 @@ void DataGridView::remove_column_at(std::size_t column) {
     // handler that removed it already did what was asked.
     const std::string name = columns_[column].name;
     reset_row_state();
-    const std::optional<std::size_t> found = column_index(name);
-    if (!found) return;
-    column = *found;
+    const stxlib::Optional<std::size_t> found = column_index(name);
+    if (found.absent()) return;
+    column = *found.value();
     const DataGridViewColumnChangedEvent removed{column, columns_[column].name};
     const std::ptrdiff_t offset = static_cast<std::ptrdiff_t>(column);
     columns_.erase(columns_.begin() + offset);
@@ -1058,7 +1058,7 @@ void DataGridView::insert_column(std::size_t column, DataGridViewColumn inserted
     require_not_sorting();
     if (column > columns_.size()) throw std::out_of_range("DataGridView column insertion is past the end");
     validate_column(inserted);
-    if (column_index(inserted.name)) {
+    if (column_index(inserted.name).present()) {
         throw std::invalid_argument("DataGridView column names must be unique");
     }
     // Validated. The row state is keyed by column index, which the
@@ -1067,7 +1067,7 @@ void DataGridView::insert_column(std::size_t column, DataGridViewColumn inserted
     // that makes the insertion invalid refuses it with the row state reset
     // and the columns as the handlers left them (A-gf-controls-02-F7).
     reset_row_state();
-    if (column > columns_.size() || column_index(inserted.name)) {
+    if (column > columns_.size() || column_index(inserted.name).present()) {
         throw std::logic_error("DataGridView columns changed under the insertion's row reset");
     }
     const std::ptrdiff_t offset = static_cast<std::ptrdiff_t>(column);
@@ -1224,17 +1224,17 @@ void DataGridView::written(const decltype(allow_user_to_order_columns)&) {
 }
 
 void DataGridView::end_column_order() {
-    if (!ordering_ && !order_target_) return;
+    if (!ordering_ && order_target_.absent()) return;
     ordering_ = false;
     order_target_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-std::optional<std::size_t> DataGridView::column_index(std::string_view name) const noexcept {
+stxlib::Optional<std::size_t> DataGridView::column_index(std::string_view name) const noexcept {
     for (std::size_t index = 0; index < columns_.size(); ++index) {
-        if (columns_[index].name == name) return index;
+        if (columns_[index].name == name) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 void DataGridView::set_column_width(std::size_t column, double width) {
@@ -1317,8 +1317,8 @@ void DataGridView::set_column_visible(std::size_t column, bool column_visible) {
     if (!current_hidden || !is_alive()) return;
     // The current cell leaves the hidden column for a shown one in its row:
     // the next in display order, else the one before.
-    const std::optional<DataGridViewCellAddress> current = current_cell();
-    if (!current) return;
+    const stxlib::Optional<DataGridViewCellAddress> current = current_cell();
+    if (current.absent()) return;
     if (shown_order_.empty()) {
         if (!validate_row_change(std::nullopt)) return;
         anchor_.reset();
@@ -1327,7 +1327,7 @@ void DataGridView::set_column_visible(std::size_t column, bool column_visible) {
     }
     const std::size_t next = shown_indices_[column];
     const std::size_t shown = next < shown_order_.size() ? next : shown_order_.size() - 1U;
-    const DataGridViewCellAddress target{(*current).row, shown_order_[shown]};
+    const DataGridViewCellAddress target{(*current.value()).row, shown_order_[shown]};
     static_cast<void>(move_current(target, SelectionGesture::replace));
 }
 
@@ -1514,8 +1514,8 @@ void DataGridView::set_virtual_row_order(std::vector<DataGridViewRowId> order) {
     const std::size_t former_count = data_row_count();
     // The current row's position in the old order, for the case that it is
     // gone from the new one.
-    const std::optional<std::size_t> former =
-        current_ ? virtual_order_.held_position((*current_).row_id) : std::optional<std::size_t>{};
+    const stxlib::Optional<std::size_t> former =
+        current_ ? virtual_order_.held_position((*current_).row_id) : stxlib::Optional<std::size_t>::none();
     bool current_kept = false;
     for (const DataGridViewRowId& row : order) {
         if (current_ && row.value == (*current_).row_id) current_kept = true;
@@ -1528,8 +1528,8 @@ void DataGridView::set_virtual_row_order(std::vector<DataGridViewRowId> order) {
     virtual_order_.reset(order);
     std::size_t first = first_row_;
     if (top) {
-        const std::optional<std::size_t> found = virtual_order_.position_of(*top);
-        if (found) first = *found;
+        const stxlib::Optional<std::size_t> found = virtual_order_.position_of(*top);
+        if (found.present()) first = *found.value();
     }
     first_row_ = first;
     drop_missing_rows(former);
@@ -1547,8 +1547,8 @@ std::optional<std::string> DataGridView::held_top_row() const {
 void DataGridView::after_reported_change(const std::optional<std::string>& top, std::size_t changed) {
     const std::size_t count = virtual_order_.count();
     if (top) {
-        const std::optional<std::size_t> found = virtual_order_.position_of(*top);
-        if (found) first_row_ = *found;
+        const stxlib::Optional<std::size_t> found = virtual_order_.position_of(*top);
+        if (found.present()) first_row_ = *found.value();
     }
     if (first_row_ >= count) first_row_ = count == 0U ? 0U : count - 1U;
     changes_this_pass_ += changed;
@@ -1580,8 +1580,8 @@ void DataGridView::remove_virtual_rows(std::vector<DataGridViewRowId> ids) {
         }
     }
     const std::optional<std::string> top = held_top_row();
-    const std::optional<std::size_t> former =
-        current_ ? virtual_order_.held_position((*current_).row_id) : std::optional<std::size_t>{};
+    const stxlib::Optional<std::size_t> former =
+        current_ ? virtual_order_.held_position((*current_).row_id) : stxlib::Optional<std::size_t>::none();
     bool current_removed = false;
     for (const DataGridViewRowId& row : ids) {
         if (current_ && row.value == (*current_).row_id) current_removed = true;
@@ -1592,8 +1592,8 @@ void DataGridView::remove_virtual_rows(std::vector<DataGridViewRowId> ids) {
     std::vector<std::size_t> removed_positions{};
     removed_positions.reserve(ids.size());
     for (const DataGridViewRowId& row : ids) {
-        const std::optional<std::size_t> held = virtual_order_.held_position(row.value);
-        if (held) removed_positions.push_back(*held);
+        const stxlib::Optional<std::size_t> held = virtual_order_.held_position(row.value);
+        if (held.present()) removed_positions.push_back(*held.value());
     }
     std::sort(removed_positions.begin(), removed_positions.end(), std::greater<std::size_t>{});
     virtual_order_.remove(ids);
@@ -1616,8 +1616,8 @@ void DataGridView::remove_virtual_rows(std::vector<DataGridViewRowId> ids) {
     if (current_removed) {
         const std::size_t count = virtual_order_.count();
         std::optional<CellKey> next{};
-        if (count > 0U && former) {
-            const DataGridViewRowPosition replacement{std::min(*former, count - 1U)};
+        if (count > 0U && former.present()) {
+            const DataGridViewRowPosition replacement{std::min(*former.value(), count - 1U)};
             next = CellKey{row_id_text(replacement), (*current_).column};
         }
         current_.reset();
@@ -1841,7 +1841,7 @@ std::string DataGridView::generated_column_name(std::string_view field) const {
     while (!base.empty() && base.back() == '-') base.pop_back();
     if (base.empty()) base = "column";
     std::string name = base;
-    for (std::size_t suffix = 2U; column_index(name); ++suffix) {
+    for (std::size_t suffix = 2U; column_index(name).present(); ++suffix) {
         name = base + "-" + std::to_string(suffix);
     }
     return name;
@@ -1866,10 +1866,10 @@ void DataGridView::on_source_list_changed(const BindingListChange& change) {
     // notification come one by one, each relative to the list the ones
     // before it left (BindingListChange), which is the order the index
     // follows them in.
-    std::optional<std::size_t> former{};
+    stxlib::Optional<std::size_t> former{};
     if (current_) former = (*bound_index_).find((*current_).row_id);
-    const bool current_removed = removed && former && change.index >= 0 &&
-                                 *former == static_cast<std::size_t>(change.index);
+    const bool current_removed = removed && former.present() && change.index >= 0 &&
+                                 *former.value() == static_cast<std::size_t>(change.index);
     if (editing_ && current_ && (current_removed || reset)) cancel_edit();
     if (current_removed) bound_removed_current_ = former;
     bool followed = false;
@@ -1891,7 +1891,7 @@ void DataGridView::on_source_list_changed(const BindingListChange& change) {
         // A record that took the new row's ID, other than the one
         // add_new_row is adding, moves the new row to another ID.
         if (!adding_row_ && row_id_taken(new_row_.stable_id.value)) renew_new_row_id(true);
-        const std::optional<std::size_t> held = bound_removed_current_ ? bound_removed_current_ : former;
+        const stxlib::Optional<std::size_t> held = bound_removed_current_.present() ? bound_removed_current_ : former;
         bound_removed_current_.reset();
         drop_missing_rows(held);
     }
@@ -1954,7 +1954,7 @@ bool DataGridView::sort(std::size_t column, DataGridViewSortDirection direction)
     for (std::size_t index = 0; index < columns_.size(); ++index) {
         columns_[index].sort_glyph = index == column ? direction : DataGridViewSortDirection::none;
     }
-    sorted_column_ = column;
+    sorted_column_.set(column);
     sort_order_ = direction;
     rows_changed();
     sorted_.emit();
@@ -2030,7 +2030,7 @@ void DataGridView::sort_from_header(std::size_t column) {
     if (!is_alive() || column >= columns_.size() || row_source_ != DataGridViewRowSource::unbound) return;
     if (column_sort_mode(column) != DataGridViewColumnSortMode::automatic) return;
     DataGridViewSortDirection direction = DataGridViewSortDirection::ascending;
-    if (sorted_column_ == column && sort_order_ == DataGridViewSortDirection::ascending) {
+    if (sorted_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == DataGridViewSortDirection::ascending) {
         direction = DataGridViewSortDirection::descending;
     }
     static_cast<void>(sort(column, direction));
@@ -2268,10 +2268,10 @@ double DataGridView::scrolling_left(std::size_t display) const noexcept {
     return left;
 }
 
-std::optional<std::size_t> DataGridView::first_displayed_scrolling_column() const {
+stxlib::Optional<std::size_t> DataGridView::first_displayed_scrolling_column() const {
     const IndexSpan displays = display_span(grid_layout());
-    if (displays.first >= displays.end) return std::nullopt;
-    return shown_order_[displays.first];
+    if (displays.first >= displays.end) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(shown_order_[displays.first]);
 }
 
 double DataGridView::first_displayed_scrolling_column_hidden_width() const {
@@ -2721,7 +2721,7 @@ bool DataGridView::validate_row_change(const std::optional<CellKey>& target) {
     if (!current_ || synchronizing_position_) return true;
     if (target && (*target).row_id == (*current_).row_id) return true;
     const std::string row_id = (*current_).row_id;
-    if (!find_row(row_id)) return true;
+    if (find_row(row_id).absent()) return true;
     const DataGridViewRowEvent leaving = row_event(row_id);
     DataGridViewRowCancelEvent validating{leaving.row_id, leaving.row, false};
     changing_current_ = true;
@@ -2751,10 +2751,10 @@ void DataGridView::apply_current(std::optional<CellKey> cell, bool validated) {
     if (current_ && row_source_ == DataGridViewRowSource::binding_source && data_source_ &&
         !synchronizing_position_) {
         // The new row is no record: the source's position stays where it is.
-        const std::optional<std::size_t> position = find_row((*current_).row_id);
-        if (position && *position < data_row_count()) {
+        const stxlib::Optional<std::size_t> position = find_row((*current_).row_id);
+        if (position.present() && *position.value() < data_row_count()) {
             synchronizing_position_ = true;
-            static_cast<void>((*data_source_).set_position(static_cast<std::ptrdiff_t>(*position)));
+            static_cast<void>((*data_source_).set_position(static_cast<std::ptrdiff_t>(*position.value())));
             synchronizing_position_ = false;
         }
     }
@@ -2794,19 +2794,19 @@ bool DataGridView::move_current(DataGridViewCellAddress target, SelectionGesture
     const bool validated = current_.has_value() && (*current_).row_id != target_key.row_id && !synchronizing_position_;
     // A commit's or validation's handlers may have moved rows; the target is
     // kept by ID.
-    const std::optional<DataGridViewCellAddress> placed = address_of(target_key);
-    if (!placed) return false;
-    const DataGridViewCellAddress at = *placed;
+    const stxlib::Optional<DataGridViewCellAddress> placed = address_of(target_key);
+    if (placed.absent()) return false;
+    const DataGridViewCellAddress at = *placed.value();
     const std::uint64_t before = selection_revision_;
     const bool full_row = selection_mode.read() == DataGridViewSelectionMode::full_row_select;
     if (gesture == SelectionGesture::extend && multi_select.read()) {
         // The range runs from the anchor, else the current cell, else the
         // target, at its row's present position.
         DataGridViewCellAddress from = at;
-        std::optional<DataGridViewCellAddress> origin{};
+        stxlib::Optional<DataGridViewCellAddress> origin{};
         if (anchor_) origin = address_of(*anchor_);
-        if (!origin && current_) origin = address_of(*current_);
-        if (origin) from = *origin;
+        if (origin.absent() && current_) origin = address_of(*current_);
+        if (origin.present()) from = *origin.value();
         clear_selection_state();
         select_range(from, at);
         anchor_ = key_of(from);
@@ -2876,25 +2876,25 @@ void DataGridView::written(const decltype(multi_select)&) {
     on_multi_select_changed();
 }
 
-std::optional<DataGridViewCellAddress> DataGridView::current_cell() const {
-    if (!current_) return std::nullopt;
+stxlib::Optional<DataGridViewCellAddress> DataGridView::current_cell() const {
+    if (!current_) return stxlib::Optional<DataGridViewCellAddress>::none();
     return address_of(*current_);
 }
 
 std::optional<DataGridViewRowId> DataGridView::current_row_id() const {
-    if (!current_ || !find_row((*current_).row_id)) return std::nullopt;
+    if (!current_ || find_row((*current_).row_id).absent()) return std::nullopt;
     const DataGridViewRowId identity{(*current_).row_id};
     return identity;
 }
 
-bool DataGridView::set_current_cell(std::optional<DataGridViewCellAddress> cell) {
+bool DataGridView::set_current_cell(stxlib::Optional<DataGridViewCellAddress> cell) {
     require_mutable();
     require_settled_current();
-    if (cell) require_cell((*cell).row, (*cell).column);
-    if (cell && !columns_[(*cell).column].visible) {
+    if (cell.present()) require_cell((*cell.value()).row, (*cell.value()).column);
+    if (cell.present() && !columns_[(*cell.value()).column].visible) {
         throw std::logic_error("DataGridView current cell cannot be in a hidden column");
     }
-    if (!cell) {
+    if (cell.absent()) {
         if (editing_ && !end_edit()) return false;
         if (!validate_row_change(std::nullopt)) return false;
         const bool validated = current_.has_value();
@@ -2902,7 +2902,7 @@ bool DataGridView::set_current_cell(std::optional<DataGridViewCellAddress> cell)
         apply_current(std::nullopt, validated);
         return true;
     }
-    const bool moved = move_current(*cell, SelectionGesture::replace);
+    const bool moved = move_current(*cell.value(), SelectionGesture::replace);
     return moved;
 }
 
@@ -2999,9 +2999,9 @@ std::vector<DataGridViewCellAddress> DataGridView::selected_cells() const {
         const std::size_t count = row_count();
         cells.reserve(selected_cell_count() + selected_columns_.size() * count);
         for (const SelectedCells::value_type& entry : selected_cells_) {
-            const std::optional<std::size_t> position = find_row(entry.first);
-            if (!position) continue;
-            const DataGridViewRowPosition row{*position};
+            const stxlib::Optional<std::size_t> position = find_row(entry.first);
+            if (position.absent()) continue;
+            const DataGridViewRowPosition row{*position.value()};
             for (const std::size_t column : entry.second) cells.push_back({row, column});
         }
         for (std::size_t position = 0U; position < count && !selected_columns_.empty(); ++position) {
@@ -3026,8 +3026,8 @@ std::vector<DataGridViewRowPosition> DataGridView::selected_rows() const {
     if (selection_mode.read() == DataGridViewSelectionMode::full_row_select) {
         rows.reserve(selected_rows_.size());
         for (const std::string& row_id : selected_rows_) {
-            const std::optional<std::size_t> position = find_row(row_id);
-            if (position) rows.push_back(DataGridViewRowPosition{*position});
+            const stxlib::Optional<std::size_t> position = find_row(row_id);
+            if (position.present()) rows.push_back(DataGridViewRowPosition{*position.value()});
         }
     } else if (!columns_.empty() && selected_columns_.size() == columns_.size()) {
         // Every column selected selects every row.
@@ -3037,8 +3037,8 @@ std::vector<DataGridViewRowPosition> DataGridView::selected_rows() const {
     } else if (!columns_.empty()) {
         for (const SelectedCells::value_type& entry : selected_cells_) {
             if (entry.second.size() != columns_.size()) continue;
-            const std::optional<std::size_t> position = find_row(entry.first);
-            if (position) rows.push_back(DataGridViewRowPosition{*position});
+            const stxlib::Optional<std::size_t> position = find_row(entry.first);
+            if (position.present()) rows.push_back(DataGridViewRowPosition{*position.value()});
         }
     }
     std::sort(rows.begin(), rows.end());
@@ -3070,42 +3070,42 @@ void DataGridView::select_all() {
 bool DataGridView::begin_edit(bool select_all) {
     require_mutable();
     if (editing_) return true;
-    const std::optional<DataGridViewCellAddress> cell = current_cell();
-    if (!cell) return false;
-    const DataGridViewColumnKind kind = columns_[(*cell).column].kind;
+    const stxlib::Optional<DataGridViewCellAddress> cell = current_cell();
+    if (cell.absent()) return false;
+    const DataGridViewColumnKind kind = columns_[(*cell.value()).column].kind;
     if (kind == DataGridViewColumnKind::combo_box) return open_choices();
     if (kind != DataGridViewColumnKind::text) return false;
-    const bool begun = begin_text_edit(cell_text((*cell).row, (*cell).column), select_all);
+    const bool begun = begin_text_edit(cell_text((*cell.value()).row, (*cell.value()).column), select_all);
     return begun;
 }
 
 bool DataGridView::begin_text_edit(std::string initial_text, bool select_all) {
-    const std::optional<DataGridViewCellAddress> placed = current_cell();
-    if (!placed || !editor_) return false;
-    const DataGridViewCellAddress cell = *placed;
+    const stxlib::Optional<DataGridViewCellAddress> placed = current_cell();
+    if (placed.absent() || !editor_) return false;
+    const DataGridViewCellAddress cell = *placed.value();
     if (cell_read_only(cell.row, cell.column)) return false;
     const CellKey key = *current_;
     DataGridViewCellCancelEvent request{DataGridViewRowId{key.row_id}, cell.row, cell.column, false};
     cell_begin_edit_.emit(request);
     // A handler may cancel, or move the current cell or rows, or end the grid.
     if (request.cancel || !is_alive() || !current_ || !(*current_ == key)) return false;
-    const std::optional<DataGridViewCellAddress> moved = current_cell();
-    if (!moved) return false;
-    scroll_into_view(*moved);
+    const stxlib::Optional<DataGridViewCellAddress> moved = current_cell();
+    if (moved.absent()) return false;
+    scroll_into_view(*moved.value());
     editing_ = true;
     edit_kind_ = EditKind::text;
     edit_invalid_ = false;
     TextBox& editor = *editor_;
     // Typed text that differs from the cell's makes the edit dirty at once.
-    const bool dirty = initial_text != cell_text((*moved).row, (*moved).column);
+    const bool dirty = initial_text != cell_text((*moved.value()).row, (*moved.value()).column);
     writing_editor_ = true;
     editor.text = std::move(initial_text);
     writing_editor_ = false;
     set_child_layout_collapsed(editor_, false);
     const Parts editor_parts = grid_parts(grid_layout());
     set_child_layout(editor_, editor_parts.editor.bounds);
-    const DataGridViewEditingControlShowingEvent showing{DataGridViewRowId{key.row_id}, (*moved).row,
-                                                         (*moved).column, DataGridViewEditingControlKind::text_box};
+    const DataGridViewEditingControlShowingEvent showing{DataGridViewRowId{key.row_id}, (*moved.value()).row,
+                                                         (*moved.value()).column, DataGridViewEditingControlKind::text_box};
     editing_control_showing_.emit(showing);
     // A handler may end the edit, move the current cell or end the grid.
     if (!is_alive() || !editing_ || edit_kind_ != EditKind::text || !current_ || !(*current_ == key)) return false;
@@ -3172,8 +3172,8 @@ DataGridView::UserStore DataGridView::store_user_value(DataGridViewCellAddress c
     if (stored && adding && added_row_) key.row_id = *added_row_;
     if (stored) {
         // Adding the row ran the program's handlers; the cell stays on its ID.
-        const std::optional<DataGridViewCellAddress> at = address_of(key);
-        stored = at && store_value((*at).row, key.column, value);
+        const stxlib::Optional<DataGridViewCellAddress> at = address_of(key);
+        stored = at.present() && store_value((*at.value()).row, key.column, value);
     }
     if (stored) {
         if (current_ && (*current_).row_id == key.row_id) row_dirty_ = true;
@@ -3202,9 +3202,9 @@ DataGridView::CommitOutcome DataGridView::commit_text(const CellKey& key, DataGr
     cell_parsing_.emit(parsing);
     if (!is_alive() || !editing_) return CommitOutcome::discarded;
     // A handler may have moved rows; the edit stays on its row's ID.
-    const std::optional<DataGridViewCellAddress> placed = address_of(key);
-    if (!placed) return CommitOutcome::discarded;
-    at = *placed;
+    const stxlib::Optional<DataGridViewCellAddress> placed = address_of(key);
+    if (placed.absent()) return CommitOutcome::discarded;
+    at = *placed.value();
     // The typed text converts to the column's value kind; empty text is an
     // empty value except in a text column. Text equal to the style's null
     // value stores its data source null value.
@@ -3258,10 +3258,10 @@ bool DataGridView::commit_edit() {
     require_not_sorting();
     if (!editing_ || edit_kind_ != EditKind::text || !current_) return true;
     const CellKey key = *current_;
-    const std::optional<DataGridViewCellAddress> placed = address_of(key);
-    if (!placed) return false;
+    const stxlib::Optional<DataGridViewCellAddress> placed = address_of(key);
+    if (placed.absent()) return false;
     const std::string text((*editor_).text.read());
-    const CommitOutcome outcome = commit_text(key, *placed, text);
+    const CommitOutcome outcome = commit_text(key, *placed.value(), text);
     if (outcome == CommitOutcome::kept_invalid) return false;
     if (outcome == CommitOutcome::discarded) {
         cancel_edit();
@@ -3282,10 +3282,10 @@ bool DataGridView::commit_edit() {
 bool DataGridView::refresh_edit() {
     require_mutable();
     if (!editing_ || edit_kind_ != EditKind::text || !current_ || !editor_) return false;
-    const std::optional<DataGridViewCellAddress> placed = current_cell();
-    if (!placed) return false;
+    const stxlib::Optional<DataGridViewCellAddress> placed = current_cell();
+    if (placed.absent()) return false;
     writing_editor_ = true;
-    (*editor_).text = cell_text((*placed).row, (*placed).column);
+    (*editor_).text = cell_text((*placed.value()).row, (*placed.value()).column);
     writing_editor_ = false;
     (*editor_).select_all();
     edit_invalid_ = false;
@@ -3303,14 +3303,14 @@ bool DataGridView::end_edit() {
         return true;
     }
     const CellKey key = *current_;
-    const std::optional<DataGridViewCellAddress> placed = address_of(key);
-    if (!placed) {
+    const stxlib::Optional<DataGridViewCellAddress> placed = address_of(key);
+    if (placed.absent()) {
         // The edited row is gone without its edit being discarded.
         cancel_edit();
         return true;
     }
     const std::string text((*editor_).text.read());
-    DataGridViewCellValidatingEvent validating{DataGridViewRowId{key.row_id}, (*placed).row, key.column, text,
+    DataGridViewCellValidatingEvent validating{DataGridViewRowId{key.row_id}, (*placed.value()).row, key.column, text,
                                                false};
     cell_validating_.emit(validating);
     if (!is_alive() || !editing_) return !editing_;
@@ -3320,12 +3320,12 @@ bool DataGridView::end_edit() {
         return false;
     }
     // A handler may have moved rows; the edit stays on its row's ID.
-    const std::optional<DataGridViewCellAddress> at = address_of(key);
-    if (!at) {
+    const stxlib::Optional<DataGridViewCellAddress> at = address_of(key);
+    if (at.absent()) {
         cancel_edit();
         return true;
     }
-    const CommitOutcome outcome = commit_text(key, *at, text);
+    const CommitOutcome outcome = commit_text(key, *at.value(), text);
     if (!is_alive()) return true;
     if (outcome == CommitOutcome::kept_invalid) return false;
     if (outcome == CommitOutcome::discarded) {
@@ -3382,9 +3382,9 @@ void DataGridView::on_editor_focus(bool focused) {
 
 bool DataGridView::open_choices() {
     if (!current_ || !choices_ || window() == nullptr) return false;
-    const std::optional<DataGridViewCellAddress> placed = current_cell();
-    if (!placed) return false;
-    const DataGridViewCellAddress cell = *placed;
+    const stxlib::Optional<DataGridViewCellAddress> placed = current_cell();
+    if (placed.absent()) return false;
+    const DataGridViewCellAddress cell = *placed.value();
     const CellKey key = *current_;
     const DataGridViewColumn& column = columns_[cell.column];
     if (column.kind != DataGridViewColumnKind::combo_box || column.items.empty() ||
@@ -3394,9 +3394,9 @@ bool DataGridView::open_choices() {
     DataGridViewCellCancelEvent request{DataGridViewRowId{key.row_id}, cell.row, cell.column, false};
     cell_begin_edit_.emit(request);
     if (request.cancel || !is_alive() || !current_ || !(*current_ == key)) return false;
-    const std::optional<DataGridViewCellAddress> moved = current_cell();
-    if (!moved) return false;
-    const DataGridViewCellAddress at = *moved;
+    const stxlib::Optional<DataGridViewCellAddress> moved = current_cell();
+    if (moved.absent()) return false;
+    const DataGridViewCellAddress at = *moved.value();
     scroll_into_view(at);
     const std::string prefix = std::string(stable_id().value()) + ".choice.";
     const std::string current_text = cell_text(at.row, at.column);
@@ -3442,24 +3442,24 @@ bool DataGridView::open_choices() {
 
 void DataGridView::on_choice_invoked(const MenuItemInvocation& invocation) {
     if (edit_kind_ != EditKind::choice || !current_) return;
-    const std::optional<DataGridViewCellAddress> placed = current_cell();
-    if (!placed) return;
-    const DataGridViewCellAddress cell = *placed;
+    const stxlib::Optional<DataGridViewCellAddress> placed = current_cell();
+    if (placed.absent()) return;
+    const DataGridViewCellAddress cell = *placed.value();
     const CellKey key = *current_;
     const std::string prefix = std::string(stable_id().value()) + ".choice.";
     if (invocation.item_id.compare(0U, prefix.size(), prefix) != 0) return;
     const std::vector<std::string>& items = columns_[cell.column].items;
-    std::optional<std::size_t> chosen{};
+    stxlib::Optional<std::size_t> chosen{};
     for (std::size_t index = 0; index < items.size(); ++index) {
         if (invocation.item_id == prefix + std::to_string(index)) {
-            chosen = index;
+            chosen.set(index);
             break;
         }
     }
-    if (!chosen) return;
-    const BindingValue value{items[*chosen]};
+    if (chosen.absent()) return;
+    const BindingValue value{items[*chosen.value()]};
     const BindingValue previous = stored_value(cell.row, cell.column);
-    if (previous == value || !store_user_value(cell, value, items[*chosen]).stored) return;
+    if (previous == value || !store_user_value(cell, value, items[*chosen.value()]).stored) return;
     cell_changed(key);
     const DataGridViewCellEvent changed = cell_event(key);
     cell_value_changed_.emit(changed);
@@ -3484,11 +3484,11 @@ void DataGridView::close_drop_down() noexcept {
     if (choices_) (*choices_).close();
 }
 
-std::optional<bool> DataGridView::check_state(DataGridViewRowPosition row, std::size_t column) const {
+stxlib::Optional<bool> DataGridView::check_state(DataGridViewRowPosition row, std::size_t column) const {
     const BindingValue value = stored_value(row, column);
-    if (columns_[column].three_state && std::holds_alternative<std::monostate>(value)) return std::nullopt;
+    if (columns_[column].three_state && std::holds_alternative<std::monostate>(value)) return stxlib::Optional<bool>::none();
     const bool checked = binding_value_to_bool(value).value_or(false);
-    return checked;
+    return stxlib::Optional<bool>::of(checked);
 }
 
 bool DataGridView::shows_drop_down(DataGridViewRowPosition row, std::size_t column) const {
@@ -3506,12 +3506,12 @@ bool DataGridView::toggle_check(DataGridViewCellAddress cell) {
     }
     // Two states toggle; three run unchecked, checked, indeterminate (an
     // empty value), as Windows Forms' ThreeState cells do.
-    const std::optional<bool> state = check_state(cell.row, cell.column);
+    const stxlib::Optional<bool> state = check_state(cell.row, cell.column);
     BindingValue value{false};
     std::string shown = "false";
-    if (!state) {
+    if (state.absent()) {
         value = BindingValue{false};
-    } else if (!*state) {
+    } else if (!*state.value()) {
         value = BindingValue{true};
         shown = "true";
     } else if (columns_[cell.column].three_state) {
@@ -3547,9 +3547,9 @@ void DataGridView::click_content(DataGridViewCellAddress cell) {
 // The current cell's own action: a check box toggles, a button clicks, a
 // combo box opens its choices and a text cell begins an edit.
 bool DataGridView::activate_current() {
-    const std::optional<DataGridViewCellAddress> current = current_cell();
-    if (!current) return false;
-    const DataGridViewCellAddress cell = *current;
+    const stxlib::Optional<DataGridViewCellAddress> current = current_cell();
+    if (current.absent()) return false;
+    const DataGridViewCellAddress cell = *current.value();
     const DataGridViewColumnKind kind = columns_[cell.column].kind;
     if (kind == DataGridViewColumnKind::check_box) return toggle_check(cell);
     if (kind == DataGridViewColumnKind::button || kind == DataGridViewColumnKind::link) {
@@ -3562,10 +3562,10 @@ bool DataGridView::activate_current() {
 
 // -- adding and deleting rows ----------------------------------------------------
 
-std::optional<DataGridViewRowPosition> DataGridView::new_row_index() const noexcept {
-    if (!new_row_shown()) return std::nullopt;
+stxlib::Optional<DataGridViewRowPosition> DataGridView::new_row_index() const noexcept {
+    if (!new_row_shown()) return stxlib::Optional<DataGridViewRowPosition>::none();
     const DataGridViewRowPosition position{data_row_count()};
-    return position;
+    return stxlib::Optional<DataGridViewRowPosition>::of(position);
 }
 
 bool DataGridView::read_view(const decltype(allow_user_to_add_rows)&) const {
@@ -3575,7 +3575,7 @@ bool DataGridView::read_view(const decltype(allow_user_to_add_rows)&) const {
 void DataGridView::write_view(const decltype(allow_user_to_add_rows)&, bool allow) {
     require_mutable();
     if (allow_add_rows_ == allow) return;
-    const std::optional<std::size_t> former = current_position();
+    const stxlib::Optional<std::size_t> former = current_position();
     if (!allow && editing_ && current_ && (*current_).row_id == new_row_.stable_id.value) cancel_edit();
     allow_add_rows_ = allow;
     if (allow) renew_new_row_id(false);
@@ -3737,22 +3737,22 @@ bool DataGridView::add_new_row() {
     if (raised_added && !raise_rows_added(position.value, 1U)) return false;
     const DataGridViewRowEvent added{DataGridViewRowId{row_id}, position};
     user_added_row_.emit(added);
-    const bool present = is_alive() && find_row(row_id).has_value();
+    const bool present = is_alive() && find_row(row_id).present();
     return present;
 }
 
 void DataGridView::remove_row_by_id(const std::string& row_id) {
-    const std::optional<std::size_t> position = find_row(row_id);
-    if (!position || is_new_row(DataGridViewRowPosition{*position})) return;
+    const stxlib::Optional<std::size_t> position = find_row(row_id);
+    if (position.absent() || is_new_row(DataGridViewRowPosition{*position.value()})) return;
     if (row_source_ == DataGridViewRowSource::binding_source) {
         if (current_ && (*current_).row_id == row_id && editing_) cancel_edit();
-        static_cast<void>((*data_source_).remove_at(*position));
+        static_cast<void>((*data_source_).remove_at(*position.value()));
         return;
     }
     if (row_source_ != DataGridViewRowSource::unbound) {
         throw std::logic_error("DataGridView rows are removed only from unbound rows");
     }
-    rows.erase(*position, 1U);
+    rows.erase(*position.value(), 1U);
 }
 
 bool DataGridView::cancel_row_edit() {
@@ -3784,12 +3784,12 @@ bool DataGridView::delete_selected_rows() {
     }
     if (doomed.empty()) return false;
     for (const std::string& row_id : doomed) {
-        if (!find_row(row_id)) continue;
+        if (find_row(row_id).absent()) continue;
         const DataGridViewRowEvent target = row_event(row_id);
         DataGridViewRowCancelEvent deleting{target.row_id, target.row, false};
         user_deleting_row_.emit(deleting);
         if (!is_alive()) return true;
-        if (deleting.cancel || !find_row(row_id)) continue;
+        if (deleting.cancel || find_row(row_id).absent()) continue;
         const DataGridViewRowEvent deleted = row_event(row_id);
         if (added_row_ == row_id) added_row_.reset();
         remove_row_by_id(row_id);
@@ -4117,8 +4117,8 @@ void DataGridView::handle_pointer(PointerEvent& event) {
     const Point local = point_from_window(event.position);
     if (!raise_cell_mouse(event, local)) return;
     const GridLayout layout = grid_layout();
-    if (resizing_column_ && !has_pointer_capture()) resizing_column_.reset();
-    if (resizing_row_ && !has_pointer_capture() && event.action != PointerAction::up) resizing_row_.reset();
+    if (resizing_column_.present() && !has_pointer_capture()) resizing_column_.reset();
+    if (resizing_row_.present() && !has_pointer_capture() && event.action != PointerAction::up) resizing_row_.reset();
     if (resizing_headers_ && !has_pointer_capture() && event.action != PointerAction::up) resizing_headers_ = false;
     if (resizing_headers_) {
         if (event.action == PointerAction::move) {
@@ -4133,11 +4133,11 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         event.handled = true;
         return;
     }
-    if (resizing_row_) {
-        if (event.action == PointerAction::move && *resizing_row_ < row_count()) {
+    if (resizing_row_.present()) {
+        if (event.action == PointerAction::move && *resizing_row_.value() < row_count()) {
             const double delta = (local.y - resize_start_y_) / layout.scale;
             const double height = std::clamp(resize_start_height_ + delta, minimum_row_height.read(), 4096.0);
-            set_row_height_at(DataGridViewRowPosition{*resizing_row_}, height);
+            set_row_height_at(DataGridViewRowPosition{*resizing_row_.value()}, height);
         } else if (event.action == PointerAction::up) {
             resizing_row_.reset();
             Window* const host = window();
@@ -4153,15 +4153,15 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         end_column_order();
         pressed_column_.reset();
     }
-    if (resizing_column_) {
+    if (resizing_column_.present()) {
         if (event.action == PointerAction::move) {
-            const DataGridViewColumn& column = columns_[*resizing_column_];
+            const DataGridViewColumn& column = columns_[*resizing_column_.value()];
             // Right to left the divider is at the column's left edge, so
             // dragging it left widens the column.
             const double moved = layout.mirrored ? resize_start_x_ - local.x : local.x - resize_start_x_;
             const double delta = moved / layout.scale;
             const double width = std::max(column.minimum_width, resize_start_width_ + delta);
-            set_column_width(*resizing_column_, width);
+            set_column_width(*resizing_column_.value(), width);
         } else if (event.action == PointerAction::up) {
             resizing_column_.reset();
             Window* const host = window();
@@ -4172,22 +4172,22 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::leave) {
-        if (hot_column_) {
+        if (hot_column_.present()) {
             hot_column_.reset();
             invalidate(Dirty::paint);
         }
-        if (cursor.read() != CursorKind::arrow) cursor = CursorKind::arrow;
+        if (cursor.read() != stxlib::Optional<CursorKind>::of(CursorKind::arrow)) cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
         return;
     }
     const HitResult hit = hit_test(local);
-    if (event.action == PointerAction::move && pressed_column_ && allow_user_to_order_columns.read() && has_pointer_capture()) {
+    if (event.action == PointerAction::move && pressed_column_.present() && allow_user_to_order_columns.read() && has_pointer_capture()) {
         // A header press becomes a drag once the pointer moves 4 units.
         const double moved = std::abs(local.x - order_start_x_) / layout.scale;
         if (!ordering_ && moved >= 4.0) ordering_ = true;
         if (ordering_) {
             const DataGridViewDisplayIndex target = order_target_at(local.x, layout);
-            if (order_target_ != target) {
-                order_target_ = target;
+            if (order_target_ != stxlib::Optional<DataGridViewDisplayIndex>::of(target)) {
+                order_target_.set(target);
                 invalidate(Dirty::paint | Dirty::semantics);
             }
         }
@@ -4195,8 +4195,8 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
-        std::optional<std::size_t> hot{};
-        if (hit.zone == HitZone::column_header || hit.zone == HitZone::column_divider) hot = hit.column;
+        stxlib::Optional<std::size_t> hot{};
+        if (hit.zone == HitZone::column_header || hit.zone == HitZone::column_divider) hot.set(hit.column);
         if (hot_column_ != hot) {
             hot_column_ = hot;
             invalidate(Dirty::paint);
@@ -4215,7 +4215,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         if (hit.zone == HitZone::column_divider && column_resizable(hit.column)) {
             wanted = CursorKind::resize_horizontal;
         }
-        if (cursor.read() != wanted) cursor = wanted;
+        if (cursor.read() != stxlib::Optional<CursorKind>::of(wanted)) cursor = stxlib::Optional<CursorKind>::of(wanted);
         return;
     }
     if (event.action == PointerAction::wheel) {
@@ -4271,7 +4271,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         if (shift) gesture = SelectionGesture::extend;
         else if (control) gesture = SelectionGesture::toggle;
         if (target.zone == HitZone::column_divider && column_resizable(target.column)) {
-            resizing_column_ = target.column;
+            resizing_column_.set(target.column);
             resize_start_x_ = local.x;
             resize_start_width_ = columns_[target.column].width;
             // Read again: the focus change above ran the program's handlers.
@@ -4290,7 +4290,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             return;
         }
         if (target.zone == HitZone::row_divider) {
-            resizing_row_ = target.row.value;
+            resizing_row_.set(target.row.value);
             resize_start_y_ = local.y;
             resize_start_height_ = row_height_at(target.row);
             Window* const capture_host = window();
@@ -4299,7 +4299,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             return;
         }
         if (target.zone == HitZone::column_header || target.zone == HitZone::column_divider) {
-            pressed_column_ = target.column;
+            pressed_column_.set(target.column);
             if (allow_user_to_order_columns.read()) {
                 // Captured, so that a drag can leave the header band.
                 order_start_x_ = local.x;
@@ -4315,7 +4315,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         }
         if (target.zone == HitZone::row_header) {
             const std::string row_id = row_id_text(target.row);
-            if (!click_row_header(target.row, gesture) || !is_alive() || !find_row(row_id)) return;
+            if (!click_row_header(target.row, gesture) || !is_alive() || find_row(row_id).absent()) return;
             row_header_click_.emit(row_event(row_id));
             return;
         }
@@ -4355,20 +4355,20 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::up) {
-        if (pressed_column_) {
-            const std::size_t pressed = *pressed_column_;
+        if (pressed_column_.present()) {
+            const std::size_t pressed = *pressed_column_.value();
             pressed_column_.reset();
             invalidate(Dirty::paint);
             // The drag is read before the capture goes: releasing it may
             // deliver a leave that ends the drag.
             const bool dragged = ordering_;
-            const std::optional<DataGridViewDisplayIndex> target = order_target_;
+            const stxlib::Optional<DataGridViewDisplayIndex> target = order_target_;
             end_column_order();
             Window* const host = window();
             if (host != nullptr && has_pointer_capture()) (*host).release_pointer();
             if (dragged) {
                 // A drag moves the column and is no header click.
-                if (target && is_alive() && pressed < columns_.size()) set_column_display_index(pressed, *target);
+                if (target.present() && is_alive() && pressed < columns_.size()) set_column_display_index(pressed, *target.value());
                 event.handled = true;
                 return;
             }
@@ -4391,9 +4391,9 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             const CellKey pressed = *pressed_content_;
             pressed_content_.reset();
             invalidate(Dirty::paint | Dirty::semantics);
-            const std::optional<DataGridViewCellAddress> at = address_of(pressed);
-            if (at && hit.zone == HitZone::cell && hit.row == (*at).row && hit.column == (*at).column) {
-                click_content(*at);
+            const stxlib::Optional<DataGridViewCellAddress> at = address_of(pressed);
+            if (at.present() && hit.zone == HitZone::cell && hit.row == (*at.value()).row && hit.column == (*at.value()).column) {
+                click_content(*at.value());
             }
             event.handled = true;
             if (!is_alive()) return;
@@ -4405,12 +4405,12 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             pressed_cell_double_ = false;
             // Read again: click_content ran the program's handlers.
             const HitResult released = hit_test(local);
-            const std::optional<DataGridViewCellAddress> at = address_of(pressed);
-            if (!at || released.zone != HitZone::cell || !(released.row == (*at).row) || released.column != (*at).column) {
+            const stxlib::Optional<DataGridViewCellAddress> at = address_of(pressed);
+            if (at.absent() || released.zone != HitZone::cell || !(released.row == (*at.value()).row) || released.column != (*at.value()).column) {
                 return;
             }
             cell_click_.emit(cell_event(pressed));
-            if (!is_alive() || !twice || !find_row(pressed.row_id) || pressed.column >= columns_.size()) return;
+            if (!is_alive() || !twice || find_row(pressed.row_id).absent() || pressed.column >= columns_.size()) return;
             cell_double_click_.emit(cell_event(pressed));
         }
     }
@@ -4422,24 +4422,24 @@ DataGridView::MouseTarget DataGridView::mouse_target_at(Point local) const {
     switch (hit.type) {
         case DataGridViewHitTestType::cell:
             target.area = DataGridViewHitTestType::cell;
-            target.row_id = row_id_text(*hit.row);
-            target.column = *hit.column;
+            target.row_id = row_id_text(*hit.row.value());
+            target.column = *hit.column.value();
             break;
         case DataGridViewHitTestType::column_header:
         case DataGridViewHitTestType::column_divider:
             target.area = DataGridViewHitTestType::column_header;
-            target.column = *hit.column;
+            target.column = *hit.column.value();
             break;
         case DataGridViewHitTestType::column_headers_divider:
             // The header band's edge belongs to the header under it.
-            if (!hit.column) break;
+            if (hit.column.absent()) break;
             target.area = DataGridViewHitTestType::column_header;
-            target.column = *hit.column;
+            target.column = *hit.column.value();
             break;
         case DataGridViewHitTestType::row_header:
         case DataGridViewHitTestType::row_divider:
             target.area = DataGridViewHitTestType::row_header;
-            target.row_id = row_id_text(*hit.row);
+            target.row_id = row_id_text(*hit.row.value());
             break;
         case DataGridViewHitTestType::top_left:
             target.area = DataGridViewHitTestType::top_left;
@@ -4461,21 +4461,21 @@ DataGridViewCellMouseEvent DataGridView::cell_mouse_event(const MouseTarget& tar
     raised.modifiers = event.modifiers;
     const GridLayout layout = grid_layout();
     Point origin{layout.client.x, layout.client.y};
-    std::optional<std::size_t> position{};
+    stxlib::Optional<std::size_t> position{};
     if (!target.row_id.empty()) {
         raised.row_id.value = target.row_id;
         position = find_row(target.row_id);
-        if (position) raised.row = DataGridViewRowPosition{*position};
+        if (position.present()) raised.row.set(DataGridViewRowPosition{*position.value()});
     }
     const bool column_known = target.column < columns_.size();
     if (target.area == DataGridViewHitTestType::cell || target.area == DataGridViewHitTestType::column_header) {
-        raised.column = target.column;
+        raised.column.set(target.column);
     }
-    if (target.area == DataGridViewHitTestType::cell && position && column_known) {
-        const Rect bounds = cell_bounds(DataGridViewRowPosition{*position}, target.column, layout);
+    if (target.area == DataGridViewHitTestType::cell && position.present() && column_known) {
+        const Rect bounds = cell_bounds(DataGridViewRowPosition{*position.value()}, target.column, layout);
         origin = Point{bounds.x, bounds.y};
-    } else if (target.area == DataGridViewHitTestType::row_header && position) {
-        const Rect bounds = row_header_bounds(DataGridViewRowPosition{*position}, layout);
+    } else if (target.area == DataGridViewHitTestType::row_header && position.present()) {
+        const Rect bounds = row_header_bounds(DataGridViewRowPosition{*position.value()}, layout);
         origin = Point{bounds.x, bounds.y};
     } else if (target.area == DataGridViewHitTestType::column_header && column_known) {
         const Rect bounds = column_header_bounds(target.column, layout);
@@ -4493,7 +4493,7 @@ bool DataGridView::raise_cell_mouse(const PointerEvent& event, Point local) {
                          action == PointerAction::leave || action == PointerAction::down || action == PointerAction::up;
     if (!tracked) return true;
     // A resize or column drag owns the pointer.
-    if (resizing_column_ || resizing_row_ || resizing_headers_ || ordering_) return true;
+    if (resizing_column_.present() || resizing_row_.present() || resizing_headers_ || ordering_) return true;
     MouseTarget target{};
     if (action != PointerAction::leave) target = mouse_target_at(local);
     if (!(target == hovered_target_)) {
@@ -4554,31 +4554,31 @@ DataGridViewHitTestInfo DataGridView::hit_test_at(Point local) const {
     switch (hit.zone) {
         case HitZone::cell:
             info.type = DataGridViewHitTestType::cell;
-            info.row = hit.row;
-            info.column = hit.column;
+            info.row.set(hit.row);
+            info.column.set(hit.column);
             break;
         case HitZone::column_header:
             info.type = DataGridViewHitTestType::column_header;
-            info.column = hit.column;
+            info.column.set(hit.column);
             break;
         case HitZone::column_divider:
             info.type = DataGridViewHitTestType::column_divider;
-            info.column = hit.column;
+            info.column.set(hit.column);
             break;
         case HitZone::row_header:
             info.type = DataGridViewHitTestType::row_header;
-            info.row = hit.row;
+            info.row.set(hit.row);
             break;
         case HitZone::row_divider:
             info.type = DataGridViewHitTestType::row_divider;
-            info.row = hit.row;
+            info.row.set(hit.row);
             break;
         case HitZone::top_left:
             info.type = DataGridViewHitTestType::top_left;
             break;
         case HitZone::column_headers_divider:
             info.type = DataGridViewHitTestType::column_headers_divider;
-            if (hit.edge_column) info.column = hit.column;
+            if (hit.edge_column) info.column.set(hit.column);
             break;
         case HitZone::none:
         default:
@@ -4642,10 +4642,10 @@ void DataGridView::on_key_preview(KeyEvent& event) {
     if (key == PhysicalKey::enter) {
         event.handled = true;
         if (!end_edit()) return;
-        const std::optional<DataGridViewCellAddress> cell = current_cell();
-        if (!cell) return;
-        const DataGridViewRowPosition next{(*cell).row.value + 1U};
-        if (next.value < row_count()) static_cast<void>(move_current({next, (*cell).column}, SelectionGesture::replace));
+        const stxlib::Optional<DataGridViewCellAddress> cell = current_cell();
+        if (cell.absent()) return;
+        const DataGridViewRowPosition next{(*cell.value()).row.value + 1U};
+        if (next.value < row_count()) static_cast<void>(move_current({next, (*cell.value()).column}, SelectionGesture::replace));
         return;
     }
     if (key == PhysicalKey::tab) {
@@ -4718,10 +4718,10 @@ void DataGridView::handle_key(KeyEvent& event) {
     }
     if (key == PhysicalKey::enter) {
         // Enter moves to the cell below, as in Windows Forms.
-        const std::optional<DataGridViewCellAddress> cell = current_cell();
-        if (cell && (*cell).row.value + 1U < row_count()) {
-            const DataGridViewRowPosition next{(*cell).row.value + 1U};
-            static_cast<void>(move_current({next, (*cell).column}, SelectionGesture::replace));
+        const stxlib::Optional<DataGridViewCellAddress> cell = current_cell();
+        if (cell.present() && (*cell.value()).row.value + 1U < row_count()) {
+            const DataGridViewRowPosition next{(*cell.value()).row.value + 1U};
+            static_cast<void>(move_current({next, (*cell.value()).column}, SelectionGesture::replace));
         }
         event.handled = true;
         return;
@@ -4756,14 +4756,14 @@ bool DataGridView::tab_key(bool backward) {
     const std::size_t count = row_count();
     const std::size_t columns = shown_order_.size();
     if (count == 0U || columns == 0U) return false;
-    const std::optional<DataGridViewCellAddress> current = current_cell();
-    if (!current) {
+    const stxlib::Optional<DataGridViewCellAddress> current = current_cell();
+    if (current.absent()) {
         const DataGridViewCellAddress first{DataGridViewRowPosition{0U}, shown_order_.front()};
         const bool moved = move_current(first, SelectionGesture::replace);
         return moved;
     }
-    DataGridViewRowPosition row = (*current).row;
-    std::size_t display = std::min(shown_indices_[(*current).column], columns - 1U);
+    DataGridViewRowPosition row = (*current.value()).row;
+    std::size_t display = std::min(shown_indices_[(*current.value()).column], columns - 1U);
     if (backward) {
         if (display > 0U) {
             --display;
@@ -4806,9 +4806,9 @@ bool DataGridView::navigation_key(KeyEvent& event) {
     const bool control = has_modifier(event.modifiers, Modifier::control);
     const bool shift = has_modifier(event.modifiers, Modifier::shift);
     const bool full_row = selection_mode.read() == DataGridViewSelectionMode::full_row_select;
-    const std::optional<DataGridViewCellAddress> current = current_cell();
+    const stxlib::Optional<DataGridViewCellAddress> current = current_cell();
     const DataGridViewCellAddress from =
-        current ? *current : DataGridViewCellAddress{DataGridViewRowPosition{first_shown_row()}, shown_order_.front()};
+        current.present() ? *current.value() : DataGridViewCellAddress{DataGridViewRowPosition{first_shown_row()}, shown_order_.front()};
     const std::size_t row = from.row.value;
     const std::size_t last_row = count - 1U;
     // Columns move by display index: the first, previous, next and last
@@ -4898,7 +4898,7 @@ void DataGridView::on_window_focus_moved(const FocusedControlChange& change) {
     if (editing_ && !end_edit() && is_alive()) cancel_edit();
     if (!is_alive() || !current_) return;
     const std::string row_id = (*current_).row_id;
-    if (!find_row(row_id)) return;
+    if (find_row(row_id).absent()) return;
     if (!validate_row_change(std::nullopt) || !is_alive()) return;
     row_validated_.emit(row_event(row_id));
 }
@@ -4975,9 +4975,9 @@ bool DataGridView::click_row_header(DataGridViewRowPosition row, SelectionGestur
     const std::string row_id = row_id_text(row);
     if (!move_current({row, column}, gesture)) return false;
     if (!is_alive()) return true;
-    const std::optional<std::size_t> settled = find_row(row_id);
-    if (!settled || shown_order_.empty()) return false;
-    const DataGridViewRowPosition at{*settled};
+    const stxlib::Optional<std::size_t> settled = find_row(row_id);
+    if (settled.absent() || shown_order_.empty()) return false;
+    const DataGridViewRowPosition at{*settled.value()};
     const DataGridViewSelectionMode mode = selection_mode.read();
     const bool cell_mode = mode == DataGridViewSelectionMode::cell_select ||
                            mode == DataGridViewSelectionMode::row_header_select ||
@@ -4990,16 +4990,16 @@ bool DataGridView::click_row_header(DataGridViewRowPosition row, SelectionGestur
     return true;
 }
 
-std::optional<DataGridViewCellAddress> DataGridView::cell_from_stable_id(std::string_view id) const {
+stxlib::Optional<DataGridViewCellAddress> DataGridView::cell_from_stable_id(std::string_view id) const {
     // Column names hold no '.', so the last '.' separates row and column.
     const std::size_t dot = id.rfind('.');
-    if (dot == std::string_view::npos) return std::nullopt;
-    const std::optional<std::size_t> column = column_index(id.substr(dot + 1U));
-    if (!column) return std::nullopt;
-    const std::optional<std::size_t> row = find_row(id.substr(0U, dot));
-    if (!row) return std::nullopt;
-    const DataGridViewCellAddress cell{DataGridViewRowPosition{*row}, *column};
-    return cell;
+    if (dot == std::string_view::npos) return stxlib::Optional<DataGridViewCellAddress>::none();
+    const stxlib::Optional<std::size_t> column = column_index(id.substr(dot + 1U));
+    if (column.absent()) return stxlib::Optional<DataGridViewCellAddress>::none();
+    const stxlib::Optional<std::size_t> row = find_row(id.substr(0U, dot));
+    if (row.absent()) return stxlib::Optional<DataGridViewCellAddress>::none();
+    const DataGridViewCellAddress cell{DataGridViewRowPosition{*row.value()}, *column.value()};
+    return stxlib::Optional<DataGridViewCellAddress>::of(cell);
 }
 
 SemanticDescriptor DataGridView::semantic_descriptor() const {
@@ -5007,14 +5007,14 @@ SemanticDescriptor DataGridView::semantic_descriptor() const {
     // every column, realized or not.
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::table;
-    descriptor.row_count = row_count();
-    descriptor.column_count = columns_.size();
+    descriptor.row_count.set(row_count());
+    descriptor.column_count.set(columns_.size());
     if (multi_select.read()) descriptor.states |= SemanticState::multiselectable;
     descriptor.name = accessible_name.read().empty() ? "Data grid" : accessible_name.read();
     descriptor.description = accessible_description.read();
-    const std::optional<DataGridViewCellAddress> current = current_cell();
-    if (current && (*current).column < columns_.size()) {
-        descriptor.value = cell_text((*current).row, (*current).column);
+    const stxlib::Optional<DataGridViewCellAddress> current = current_cell();
+    if (current.present() && (*current.value()).column < columns_.size()) {
+        descriptor.value = cell_text((*current.value()).row, (*current.value()).column);
     }
     descriptor.actions = {SemanticAction::focus};
     if (read_only.read()) descriptor.states |= SemanticState::read_only;
@@ -5043,7 +5043,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             node.stable_id = column_stable_id(column);
             node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
             node.role = SemanticRole::column_header;
-            node.column_index = display + 1U;
+            node.column_index.set(display + 1U);
             node.name = columns_[column].header_text.empty() ? columns_[column].name : columns_[column].header_text;
             if (show_cell_tool_tips.read()) node.tool_tip = columns_[column].tool_tip_text;
             node.bounds = {absolute.x + placed.column_header.bounds.x, absolute.y + placed.column_header.bounds.y,
@@ -5062,7 +5062,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
         row_node.stable_id = row_id_text(row);
         row_node.runtime_id = virtual_semantic_runtime_id(row_node.stable_id);
         row_node.role = SemanticRole::row;
-        row_node.row_index = position + 1U;
+        row_node.row_index.set(position + 1U);
         const bool labelled = row_source_ == DataGridViewRowSource::unbound && position < rows.read().size() &&
                               !rows.read()[position].header_text.empty();
         row_node.name = labelled ? rows.read()[position].header_text : "Row " + std::to_string(position + 1U);
@@ -5087,7 +5087,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             header.stable_id = header_prefix + row_node.stable_id;
             header.runtime_id = virtual_semantic_runtime_id(header.stable_id);
             header.role = SemanticRole::row_header;
-            header.row_index = position + 1U;
+            header.row_index.set(position + 1U);
             header.name = row_node.name;
             header.bounds = {absolute.x + placed_row.row_header.bounds.x, absolute.y + placed_row.row_header.bounds.y,
                              placed_row.row_header.bounds.width, placed_row.row_header.bounds.height};
@@ -5108,8 +5108,8 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             cell.runtime_id = virtual_semantic_runtime_id(cell.stable_id);
             cell.name = definition.header_text.empty() ? definition.name : definition.header_text;
             cell.value = cell_text(row, column);
-            cell.row_index = position + 1U;
-            cell.column_index = display + 1U;
+            cell.row_index.set(position + 1U);
+            cell.column_index.set(display + 1U);
             cell.bounds = {absolute.x + placed.cell.bounds.x, absolute.y + placed.cell.bounds.y,
                            placed.cell.bounds.width, placed.cell.bounds.height};
             cell.states = SemanticState::visible | SemanticState::enabled | SemanticState::focusable;
@@ -5132,9 +5132,9 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             cell.role = SemanticRole::cell;
             if (definition.kind == DataGridViewColumnKind::check_box) {
                 cell.states |= SemanticState::checkable;
-                const std::optional<bool> state = check_state(row, column);
-                if (state && *state) cell.states |= SemanticState::checked;
-                if (!state) cell.states |= SemanticState::mixed;
+                const stxlib::Optional<bool> state = check_state(row, column);
+                if (state == stxlib::Optional<bool>::of(true)) cell.states |= SemanticState::checked;
+                if (state.absent()) cell.states |= SemanticState::mixed;
                 if (!cell_is_read_only) cell.actions.push_back(SemanticAction::press);
             } else if (definition.kind == DataGridViewColumnKind::button) {
                 cell.name = cell.value;
@@ -5183,16 +5183,16 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
                                             std::string_view value) {
     const std::string column_prefix = std::string(stable_id().value()) + ".column.";
     if (id.compare(0U, column_prefix.size(), column_prefix) == 0) {
-        const std::optional<std::size_t> column = column_index(id.substr(column_prefix.size()));
-        if (!column || action != SemanticAction::press) return false;
+        const stxlib::Optional<std::size_t> column = column_index(id.substr(column_prefix.size()));
+        if (column.absent() || action != SemanticAction::press) return false;
         const std::string column_name(id.substr(column_prefix.size()));
-        column_header_click_.emit(*column);
+        column_header_click_.emit(*column.value());
         // The click's handlers may have moved or removed the column: it is
         // found again by its name (A-gf-controls-02-F6).
         if (!is_alive()) return true;
-        const std::optional<std::size_t> clicked = column_index(column_name);
-        if (!clicked) return true;
-        const std::size_t pressed = *clicked;
+        const stxlib::Optional<std::size_t> clicked = column_index(column_name);
+        if (clicked.absent()) return true;
+        const std::size_t pressed = *clicked.value();
         if (header_selects_column()) {
             select_column_from_header(pressed, false);
         } else {
@@ -5202,8 +5202,8 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
     }
     const std::string header_prefix = row_header_prefix();
     if (id.compare(0U, header_prefix.size(), header_prefix) == 0) {
-        const std::optional<std::size_t> row = find_row(id.substr(header_prefix.size()));
-        if (!row || columns_.empty() || action != SemanticAction::press) return false;
+        const stxlib::Optional<std::size_t> row = find_row(id.substr(header_prefix.size()));
+        if (row.absent() || columns_.empty() || action != SemanticAction::press) return false;
         const Control::Ptr lifetime = shared_from_this();
         Window* const host = window();
         if (host != nullptr) static_cast<void>((*host).request_focus(lifetime));
@@ -5211,16 +5211,16 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
         // again by its ID (A-gf-controls-02-F6).
         if (!is_alive()) return true;
         const std::string row_id(id.substr(header_prefix.size()));
-        const std::optional<std::size_t> focused_row = find_row(row_id);
-        if (!focused_row) return false;
-        const bool clicked = click_row_header(DataGridViewRowPosition{*focused_row}, SelectionGesture::replace);
-        if (clicked && is_alive() && find_row(row_id)) row_header_click_.emit(row_event(row_id));
+        const stxlib::Optional<std::size_t> focused_row = find_row(row_id);
+        if (focused_row.absent()) return false;
+        const bool clicked = click_row_header(DataGridViewRowPosition{*focused_row.value()}, SelectionGesture::replace);
+        if (clicked && is_alive() && find_row(row_id).present()) row_header_click_.emit(row_event(row_id));
         return clicked;
     }
-    const std::optional<DataGridViewCellAddress> cell = cell_from_stable_id(id);
-    if (!cell) {
-        const std::optional<std::size_t> row = find_row(id);
-        if (!row || columns_.empty()) return false;
+    const stxlib::Optional<DataGridViewCellAddress> cell = cell_from_stable_id(id);
+    if (cell.absent()) {
+        const stxlib::Optional<std::size_t> row = find_row(id);
+        if (row.absent() || columns_.empty()) return false;
         if (action != SemanticAction::focus && action != SemanticAction::select) return false;
         const Control::Ptr lifetime = shared_from_this();
         Window* const host = window();
@@ -5230,18 +5230,18 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
         // The focus change and the move run the program's handlers: the row
         // is found again by its ID after each (A-gf-controls-02-F6).
         if (!is_alive()) return true;
-        const std::optional<std::size_t> focused_row = find_row(id);
-        if (!focused_row) return false;
+        const stxlib::Optional<std::size_t> focused_row = find_row(id);
+        if (focused_row.absent()) return false;
         const std::size_t column = current_ ? (*current_).column : 0U;
-        const bool moved = move_current({DataGridViewRowPosition{*focused_row}, column}, SelectionGesture::replace);
+        const bool moved = move_current({DataGridViewRowPosition{*focused_row.value()}, column}, SelectionGesture::replace);
         if (!moved) return false;
         if (!is_alive()) return true;
         // A row's select selects the row, as its published state reports it:
         // in cell mode moving the current cell selects only that cell.
         if (action == SemanticAction::select) {
-            const std::optional<std::size_t> moved_row = find_row(id);
-            if (!moved_row) return false;
-            set_row_selected(DataGridViewRowPosition{*moved_row}, true);
+            const stxlib::Optional<std::size_t> moved_row = find_row(id);
+            if (moved_row.absent()) return false;
+            set_row_selected(DataGridViewRowPosition{*moved_row.value()}, true);
         }
         return true;
     }
@@ -5254,14 +5254,14 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
     // move or remove the row or the column: the cell is found again by its
     // identity after each (A-gf-controls-02-F6).
     if (!is_alive()) return true;
-    const std::optional<DataGridViewCellAddress> focused_cell = cell_from_stable_id(id);
-    if (!focused_cell) return false;
-    if (!move_current(*focused_cell, SelectionGesture::replace)) return false;
+    const stxlib::Optional<DataGridViewCellAddress> focused_cell = cell_from_stable_id(id);
+    if (focused_cell.absent()) return false;
+    if (!move_current(*focused_cell.value(), SelectionGesture::replace)) return false;
     if (!is_alive()) return true;
     if (action == SemanticAction::focus || action == SemanticAction::select) return true;
-    const std::optional<DataGridViewCellAddress> moved_cell = cell_from_stable_id(id);
-    if (!moved_cell) return false;
-    const DataGridViewColumn& column = columns_[(*moved_cell).column];
+    const stxlib::Optional<DataGridViewCellAddress> moved_cell = cell_from_stable_id(id);
+    if (moved_cell.absent()) return false;
+    const DataGridViewColumn& column = columns_[(*moved_cell.value()).column];
     if (action == SemanticAction::press) {
         if (column.kind != DataGridViewColumnKind::check_box && column.kind != DataGridViewColumnKind::button &&
             column.kind != DataGridViewColumnKind::link) {
@@ -5276,15 +5276,15 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
     }
     // The cell may have moved while it became current; act on its present
     // position.
-    const std::optional<DataGridViewCellAddress> current = current_cell();
-    if (!current || action != SemanticAction::set_value || cell_read_only((*current).row, (*current).column)) {
+    const stxlib::Optional<DataGridViewCellAddress> current = current_cell();
+    if (current.absent() || action != SemanticAction::set_value || cell_read_only((*current.value()).row, (*current.value()).column)) {
         return false;
     }
     if (column.kind == DataGridViewColumnKind::combo_box) {
         const std::vector<std::string>::const_iterator found =
             std::find(column.items.begin(), column.items.end(), value);
         if (found == column.items.end()) return false;
-        const bool stored = set_cell_value((*current).row, (*current).column, BindingValue{std::string(value)});
+        const bool stored = set_cell_value((*current.value()).row, (*current.value()).column, BindingValue{std::string(value)});
         return stored;
     }
     if (column.kind != DataGridViewColumnKind::text) return false;
@@ -5522,7 +5522,7 @@ void DataGridView::written(const decltype(enable_headers_visual_styles)&) {
     invalidate(Dirty::paint);
 }
 
-void DataGridView::prepare_write(const decltype(grid_color)&, std::optional<Color>&) {
+void DataGridView::prepare_write(const decltype(grid_color)&, stxlib::Optional<Color>&) {
     require_mutable();
 }
 
@@ -5533,7 +5533,7 @@ void DataGridView::written(const decltype(grid_color)&) {
 
 void DataGridView::on_grid_color_changed() {}
 
-void DataGridView::prepare_write(const decltype(background_color)&, std::optional<Color>&) {
+void DataGridView::prepare_write(const decltype(background_color)&, stxlib::Optional<Color>&) {
     require_mutable();
 }
 

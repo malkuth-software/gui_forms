@@ -732,7 +732,7 @@ void test_shared_scalar_state() {
     require(allocations == 0U && first.value.read() == 99.0 && second.value.read() == 99.0,
             "steady state scalar propagation must allocate nothing");
     const gf::SemanticDescriptor semantic = first.semantic_descriptor();
-    require(semantic.numeric_value == 99.0,
+    require(semantic.numeric_value == stxlib::Optional<double>::of(99.0),
             "accessibility must observe the bound value");
     gf::KeyEvent input{.action = gf::KeyAction::down,
                       .physical_key = gf::PhysicalKey::left};

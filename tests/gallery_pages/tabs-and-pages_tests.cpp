@@ -19,7 +19,7 @@ void test_tabs_and_pages(gui_forms::Window& window) {
     std::shared_ptr<gui_forms::CheckBox> toggle = std::dynamic_pointer_cast<CheckBox>(
         window.find("gallery.tabs.primary.activity.toggle"));
     require(tabs && status && toggle && (*tabs).page_count() == 4U &&
-                (*tabs).selected_index.read() == 1U && (*toggle).checked.read(),
+                (*tabs).selected_index.read() == stxlib::Optional<std::size_t>::of(1U) && (*toggle).checked.read(),
             "gallery tab page must retain a real public TabControl page model");
     // The Activity toggle binds a Value<bool>; the page observes the value.
     click(window, toggle);
@@ -34,18 +34,18 @@ void test_tabs_and_pages(gui_forms::Window& window) {
                                      security_click}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary,
                                          security_click}) &&
-                (*tabs).selected_index.read() == 2U &&
+                (*tabs).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) &&
                 (*window.find("gallery.tabs.primary.security.radio")).effectively_visible() &&
                 !(*toggle).effectively_visible() &&
                 (*status).text.read().find("Security selected") != std::string::npos,
             "gallery tabs must select pages through public pointer behavior");
     require(window.perform_semantic_action(
                 "gallery.tabs.primary.diagnostics.tab", SemanticAction::select) &&
-                (*tabs).selected_index.read() == 3U &&
+                (*tabs).selected_index.read() == stxlib::Optional<std::size_t>::of(3U) &&
                 (*status).text.read().find("Diagnostics selected") != std::string::npos,
             "gallery tabs must share semantic and pointer selection behavior");
-    (*tabs).selected_index = 0U;
-    require((*tabs).selected_index.read() == 0U &&
+    (*tabs).selected_index = stxlib::Optional<std::size_t>::of(0U);
+    require((*tabs).selected_index.read() == stxlib::Optional<std::size_t>::of(0U) &&
                 (*status).text.read().find("Overview selected") != std::string::npos,
             "programmatic selection must reach the same state event as user input");
 
@@ -85,7 +85,7 @@ void test_tabs_and_pages(gui_forms::Window& window) {
                 (*(*documents).strip()).overflowing() && (*(*documents).strip()).parts().list_count.present,
             "the gallery's document view holds ten documents, one pinned, overflowing into the counted list");
     require(window.perform_semantic_action("gallery.tabs.documents.strip.tab.doc.1", SemanticAction::close) &&
-                !(*documents).pages().find(PageId{"doc.1"}) &&
+                (*documents).pages().find(PageId{"doc.1"}).absent() &&
                 (*documents_status).text.read().find("Closed page_view.cpp") != std::string::npos,
             "closing a gallery document removes it and reports the cause");
     require((*(*documents).strip()).reorder_enabled.read(), "the gallery's documents reorder by dragging");

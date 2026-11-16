@@ -268,14 +268,16 @@ void check_provider_range(Checks& checks, Window& window, ProviderFixture& fixtu
         return;
     }
     expect(checks,
-           (*number).numeric_value.has_value() && (*number).minimum_value == 0.0 && (*number).maximum_value == 10.0,
+           (*number).numeric_value.present() && (*number).minimum_value == stxlib::Optional<double>::of(0.0) &&
+           (*number).maximum_value == stxlib::Optional<double>::of(10.0),
            "the numeric field publishes its value and range");
     expect(checks,
            perform_on_control(window, *fixture.number, SemanticAction::set_value, "7") &&
                (*fixture.number).value.read() == 7.0,
            "set_value 7 sets the numeric field");
     const std::optional<SemanticNode> seven = read_node(window, "uia.number");
-    expect(checks, seven && (*seven).numeric_value == 7.0, "the node's numeric value is 7");
+    expect(checks, seven &&
+                (*seven).numeric_value == stxlib::Optional<double>::of(7.0), "the node's numeric value is 7");
     // The Windows adapter refuses a value past the maximum before it reaches
     // the control (the provider test checks that); the control itself never
     // holds one.
@@ -295,7 +297,7 @@ void check_provider_selection(Checks& checks, Window& window, ProviderFixture& f
     expect(checks, has_action(second, SemanticAction::select), "a list item publishes select");
     expect(checks,
            perform_on_child(window, *fixture.list, second.stable_id, SemanticAction::select) &&
-               (*fixture.list).selected_index() == 1U,
+               (*fixture.list).selected_index() == stxlib::Optional<std::size_t>::of(1U),
            "select selects the item");
     const std::optional<SemanticNode> after = read_node(window, "uia.list");
     if (!after) return;
@@ -409,13 +411,13 @@ bool boundaries_are(const std::vector<Utf8Offset>& boundaries, std::initializer_
 void check_text_offered(Checks& checks, Window& window, TextFixture& fixture) {
     const std::optional<SemanticNode> single = read_node(window, "uiatext.single");
     expect(checks,
-           single && (*single).role == SemanticRole::text_box && (*single).text_selection.has_value() &&
+           single && (*single).role == SemanticRole::text_box && (*single).text_selection.present() &&
                !has_state(*single, SemanticState::protected_content),
            "a text box publishes a text selection (its text can be read)");
     const std::optional<SemanticNode> password = read_node(window, "uiatext.password");
     expect(checks,
            password && has_state(*password, SemanticState::protected_content) &&
-               !(*password).text_selection.has_value(),
+               !(*password).text_selection.present(),
            "a password box is protected and publishes no text selection");
     SemanticTextLayout layout;
     expect(checks,
@@ -465,9 +467,9 @@ void check_text_selection(Checks& checks, Window& window, TextFixture& fixture) 
     (*fixture.single).select(Utf8Offset{1U}, Utf8Offset{6U});
     const std::optional<SemanticNode> selected = read_node(window, "uiatext.single");
     expect(checks,
-           selected && (*selected).text_selection &&
-               (*(*selected).text_selection).anchor == Utf8Offset{1U} &&
-               (*(*selected).text_selection).caret == Utf8Offset{6U},
+           selected && (*selected).text_selection.present() &&
+               (*(*selected).text_selection.value()).anchor == Utf8Offset{1U} &&
+               (*(*selected).text_selection.value()).caret == Utf8Offset{6U},
            "the node publishes the model's selection and caret");
     const SemanticTextResult moved =
         window.set_semantic_text_selection((*fixture.single).runtime_id(), {Utf8Offset{7U}, Utf8Offset{10U}});
@@ -476,8 +478,8 @@ void check_text_selection(Checks& checks, Window& window, TextFixture& fixture) 
            "a host's selection sets the model's, anchored at its start");
     const std::optional<SemanticNode> after = read_node(window, "uiatext.single");
     expect(checks,
-           after && (*after).text_selection && (*(*after).text_selection).anchor == Utf8Offset{7U} &&
-               (*(*after).text_selection).caret == Utf8Offset{10U},
+           after && (*after).text_selection.present() && (*(*after).text_selection.value()).anchor == Utf8Offset{7U} &&
+               (*(*after).text_selection.value()).caret == Utf8Offset{10U},
            "the snapshot follows the host's selection");
 }
 
@@ -487,7 +489,8 @@ void check_text_changes(Checks& checks, Window& window, TextFixture& fixture) {
     const SemanticSnapshot selected = window.semantic_snapshot();
     const SemanticNode* node = find_node(selected.roots, "uiatext.single");
     expect(checks,
-           node != nullptr && (*node).text_selection && (*(*node).text_selection).caret == Utf8Offset{2U} &&
+           node != nullptr && (*node).text_selection.present() &&
+           (*(*node).text_selection.value()).caret == Utf8Offset{2U} &&
                selected.generation != before,
            "a selection change shows in the next snapshot, with a new generation");
     (*fixture.single).text = "Changed";

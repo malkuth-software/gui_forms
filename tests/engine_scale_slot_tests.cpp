@@ -124,7 +124,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, 40.0, 24.0};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         part.granted_overflow = overflow;
         if (hot) part.states.insert(AnatomyState::hot);
         return part;
@@ -422,7 +422,7 @@ void engine_slots_shrink_to_the_centre() {
             "where the padding leaves no room across, the slot is the centre line");
 
     PartPaint plain = part;
-    plain.key = PartKey{"other", {}, {}};
+    plain.key.set(PartKey{"other", {}, {}});
     require(engine.text_slot(*made.pad, plain) == plain.bounds, "a part the recipe draws has its bounds");
 }
 

@@ -216,7 +216,7 @@ void geometry() {
     require(parts.tab_rail.present && parts.application_button.present && parts.command_plane.present &&
                 parts.command_plane.bounds.y == parts.tab_rail.bounds.height,
             "the tab row is above the command plane");
-    require(find_part(anatomy, "help_button") && !parts.help_button.present,
+    require(find_part(anatomy, "help_button").present() && !parts.help_button.present,
             "the help button's part is reserved and not yet placed (owner, N4)");
     const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
     require(tabs.size() == 2U && tabs[0].states.selected && !tabs[1].states.selected &&
@@ -306,7 +306,7 @@ void tab_navigation() {
     SubscriptionToken launched = (*ribbon).dialog_launcher_clicked().subscribe(RecordLaunch{&launches});
     require(window.request_focus(ribbon), "the ribbon takes focus on its selected tab");
     require(key(window, PhysicalKey::tab) && (*ribbon).realized_tabs()[1].states.focus_visible &&
-                (*ribbon).selected_tab.read() == std::size_t{0U},
+                (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U),
             "Tab moves along the tab row without selecting");
     require(key(window, PhysicalKey::tab) && key(window, PhysicalKey::tab, Modifier::shift) &&
                 (*ribbon).realized_tabs()[1].states.focus_visible,
@@ -393,7 +393,7 @@ void menus_repaint_only_their_command() {
     require(!closed.empty() && damage_only_part_or_below(closed, part, shadow),
             "closing it repaints its command and where the menu was, not the ribbon");
     // The table drop-down is on the Insert tab: select it first.
-    (*ribbon).selected_tab = std::size_t{1U};
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(1U);
     window.perform_layout();
     const std::vector<Ribbon::CommandItem> closed_items = (*ribbon).realized_commands();
     const Rect table = command_named(closed_items, "table").parts.command_face.bounds;
@@ -430,7 +430,7 @@ void minimize_by_tab_click() {
     click(window, centre(tabs[1].parts.tab.bounds));
     window.perform_layout();
     require((*ribbon).minimized.read() && (*ribbon).plane_popup_open() &&
-                (*ribbon).selected_tab.read() == std::size_t{1U} && !(*font).effectively_visible() &&
+                (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U) && !(*font).effectively_visible() &&
                 (*(*ribbon).text_box("find")).effectively_visible(),
             "clicking another tab while minimized selects it and opens its plane in the popup");
     (*ribbon).close_plane_popup();
@@ -471,7 +471,7 @@ void minimized_popup() {
     window.perform_layout();
     const Control::Ptr popup = (*ribbon).plane_popup();
     require((*ribbon).plane_popup_open() && popup != nullptr && (*ribbon).minimized.read() &&
-                (*ribbon).selected_tab.read() == std::size_t{1U},
+                (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U),
             "while minimized, another tab opens the popup and the ribbon stays minimized");
     const Rect placed = (*popup).absolute_bounds();
     require(placed.x == 0.0 && placed.y == 27.0 && placed.width == 900.0 && placed.height > 0.0 &&
@@ -498,7 +498,7 @@ void minimized_popup() {
     (*ribbon).minimized = true;
     window.perform_layout();
     // A command run from the popup closes it.
-    (*ribbon).selected_tab = std::size_t{0U};
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(0U);
     window.perform_layout();
     require((*ribbon).show_plane_popup(), "the Home tab's popup opens");
     window.perform_layout();
@@ -579,8 +579,8 @@ void semantics_and_region() {
             "the File tab is a menu button with an overlay");
     require(nodes[1].role == SemanticRole::tab_group && nodes[1].children.size() == 2U &&
                 nodes[1].children[0].role == SemanticRole::tab && nodes[1].children[0].name == "Home" &&
-                nodes[1].children[1].position_in_set == std::size_t{2U} &&
-                nodes[1].children[1].set_size == std::size_t{2U},
+                nodes[1].children[1].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                nodes[1].children[1].set_size == stxlib::Optional<std::size_t>::of(2U),
             "the tab row is a tab list with positioned tabs");
     const SemanticNode& plane = nodes[2];
     require(plane.role == SemanticRole::tab_panel && plane.name == "Home" && plane.children.size() == 2U &&
@@ -588,8 +588,9 @@ void semantics_and_region() {
             "the command plane holds the selected tab's groups, named by caption");
     const SemanticNode& clipboard = plane.children[0];
     require(clipboard.children.size() == 5U && clipboard.children[0].role == SemanticRole::split_button &&
-                clipboard.children[0].has_popup && clipboard.children[0].position_in_set == std::size_t{1U} &&
-                clipboard.children[0].set_size == std::size_t{4U} &&
+                clipboard.children[0].has_popup &&
+                clipboard.children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                clipboard.children[0].set_size == stxlib::Optional<std::size_t>::of(4U) &&
                 clipboard.children[4].name == "Clipboard dialog launcher",
             "commands carry split roles, overlays and positions; the launcher is a button");
     require(nodes[1].children[0].access_key == "H" && nodes[1].children[1].access_key == "I" &&
@@ -597,7 +598,7 @@ void semantics_and_region() {
                 clipboard.children[1].access_key.empty(),
             "a tab's or a command's mnemonic is its access key; a command without one has none");
     require((*ribbon).on_semantic_child_action("ribbon.tab.insert", SemanticAction::select, {}) &&
-                (*ribbon).selected_tab.read() == std::size_t{1U},
+                (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U),
             "selecting a tab node selects the tab");
     const std::string json = window.semantic_snapshot().to_json();
     require(json.find("\"role\":\"menu_button\"") != std::string::npos, "the snapshot carries the ribbon's nodes");

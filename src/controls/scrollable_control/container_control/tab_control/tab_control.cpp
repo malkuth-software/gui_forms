@@ -170,17 +170,18 @@ std::shared_ptr<TabPage> TabControl::page_at(std::size_t index) const {
     return live[index];
 }
 
-std::optional<std::size_t> TabControl::index_of(
+stxlib::Optional<std::size_t> TabControl::index_of(
     const std::shared_ptr<TabPage>& page) const {
-    if (!page) return std::nullopt;
+    if (!page) return stxlib::Optional<std::size_t>::none();
     const std::vector<std::shared_ptr<TabPage>> live = pages();
     const std::vector<std::shared_ptr<TabPage>>::const_iterator found =
         std::find(live.begin(), live.end(), page);
-    if (found == live.end()) return std::nullopt;
-    return static_cast<std::size_t>(found - live.begin());
+    if (found == live.end()) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> index = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(found - live.begin()));
+    return index;
 }
 
-std::optional<std::size_t> TabControl::read_view(const decltype(selected_index)&) const {
+stxlib::Optional<std::size_t> TabControl::read_view(const decltype(selected_index)&) const {
     return index_of(selected_page_.lock());
 }
 
@@ -190,7 +191,7 @@ std::optional<std::size_t> TabControl::read_view(const decltype(selected_index)&
 void TabControl::add_page(std::shared_ptr<TabPage> page) {
     require_mutable();
     if (!page) throw std::invalid_argument("TabControl page may not be null");
-    if (index_of(page)) return;
+    if (index_of(page).present()) return;
     synchronize_tab_set();
     PageRecord record{};
     record.id = tab_page_id(*page);
@@ -226,7 +227,7 @@ void TabControl::add_page(std::shared_ptr<TabPage> page) {
         selected_page_ = page;
         (*page).visible = true;
         select_in_tab_set(page);
-        const TabSelectionChange change{std::nullopt, 0U};
+        const TabSelectionChange change{stxlib::Optional<std::size_t>::none(), stxlib::Optional<std::size_t>::of(0U)};
         publish_change(selected_index_changed_, change);
     } else {
         select_in_tab_set(selected_page_.lock());
@@ -244,7 +245,7 @@ std::shared_ptr<TabPage> TabControl::remove_page(const TabPage& page) {
         ++removed_index;
     }
     if (removed_index == live_before.size()) return {};
-    const std::optional<std::size_t> old_selected = selected_index.read();
+    const stxlib::Optional<std::size_t> old_selected = selected_index.read();
     const bool removing_selected = selected_page_.lock().get() == &page;
     std::vector<std::weak_ptr<TabPage>>::iterator candidate = pages_.begin();
     while (candidate != pages_.end()) {
@@ -268,7 +269,7 @@ std::shared_ptr<TabPage> TabControl::remove_page(const TabPage& page) {
         }
     }
     synchronize_tab_set();
-    const std::optional<std::size_t> new_selected = selected_index.read();
+    const stxlib::Optional<std::size_t> new_selected = selected_index.read();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
                Dirty::hit_test | Dirty::semantics);
     if (old_selected != new_selected || removing_selected) {
@@ -303,7 +304,7 @@ void TabControl::restore_page_focus(const std::shared_ptr<TabPage>& page,
 // page held, makes the strip's set agree, moves the focus into the new page
 // when the old page held it, then raises selected_index_changed.
 void TabControl::show_selected(std::size_t index, const std::vector<std::shared_ptr<TabPage>>& live) {
-    const std::optional<std::size_t> old_index = selected_index.read();
+    const stxlib::Optional<std::size_t> old_index = selected_index.read();
     const std::shared_ptr<TabPage> old_page = selected_page_.lock();
     bool selection_owned_focus{};
     if (old_page && window() != nullptr) {
@@ -318,49 +319,49 @@ void TabControl::show_selected(std::size_t index, const std::vector<std::shared_
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
     restore_page_focus(live[index], selection_owned_focus);
-    if (old_page && old_index) {
-        const TabControlEvent left{old_page, *old_index, TabControlAction::deselected};
+    if (old_page && old_index.present()) {
+        const TabControlEvent left{old_page, *old_index.value(), TabControlAction::deselected};
         publish_change(deselected_, left);
     }
     const TabControlEvent chosen{live[index], index, TabControlAction::selected};
     publish_change(selected_, chosen);
-    const TabSelectionChange change{old_index, index};
+    const TabSelectionChange change{old_index, stxlib::Optional<std::size_t>::of(index)};
     publish_change(selected_index_changed_, change);
 }
 
 bool TabControl::selection_allowed(const std::shared_ptr<TabPage>& target) {
     const Control::Ptr lifetime = shared_from_this();
     const std::shared_ptr<TabPage> current = selected_page_.lock();
-    const std::optional<std::size_t> current_index = index_of(current);
-    if (current && current_index) {
-        TabControlCancelEvent leaving{current, *current_index, TabControlAction::deselecting, false};
+    const stxlib::Optional<std::size_t> current_index = index_of(current);
+    if (current && current_index.present()) {
+        TabControlCancelEvent leaving{current, *current_index.value(), TabControlAction::deselecting, false};
         deselecting_.emit(leaving);
         if (!is_alive() || leaving.cancel) return false;
     }
-    const std::optional<std::size_t> target_index = index_of(target);
-    if (!target_index) return false;
-    TabControlCancelEvent choosing{target, *target_index, TabControlAction::selecting, false};
+    const stxlib::Optional<std::size_t> target_index = index_of(target);
+    if (target_index.absent()) return false;
+    TabControlCancelEvent choosing{target, *target_index.value(), TabControlAction::selecting, false};
     selecting_.emit(choosing);
     if (!is_alive() || choosing.cancel) return false;
-    const bool result = index_of(target).has_value();
+    const bool result = index_of(target).present();
     return result;
 }
 
-void TabControl::write_view(const decltype(selected_index)&, std::optional<std::size_t> incoming) {
+void TabControl::write_view(const decltype(selected_index)&, stxlib::Optional<std::size_t> incoming) {
     require_mutable();
-    if (!incoming) throw std::invalid_argument("TabControl selection cannot be cleared");
-    const std::size_t index = *incoming;
+    if (incoming.absent()) throw std::invalid_argument("TabControl selection cannot be cleared");
+    const std::size_t index = *incoming.value();
     const std::vector<std::shared_ptr<TabPage>> live = pages();
     if (index >= live.size()) throw std::out_of_range("TabControl selected index");
-    const std::optional<std::size_t> old_index = index_of(selected_page_.lock());
-    if (old_index && *old_index == index) return;
+    const stxlib::Optional<std::size_t> old_index = index_of(selected_page_.lock());
+    if (old_index.present() && *old_index.value() == index) return;
     const std::shared_ptr<TabPage> target = live[index];
     if (!selection_allowed(target)) return;
     // The handlers may have moved the page or selected it themselves.
     const std::vector<std::shared_ptr<TabPage>> now = pages();
-    const std::optional<std::size_t> placed = index_of(target);
-    if (!placed || selected_page_.lock() == target) return;
-    show_selected(*placed, now);
+    const stxlib::Optional<std::size_t> placed = index_of(target);
+    if (placed.absent() || selected_page_.lock() == target) return;
+    show_selected(*placed.value(), now);
 }
 
 std::shared_ptr<TabPage> TabControl::read_view(const decltype(selected_tab)&) const {
@@ -369,8 +370,8 @@ std::shared_ptr<TabPage> TabControl::read_view(const decltype(selected_tab)&) co
 }
 
 void TabControl::write_view(const decltype(selected_tab)&, std::shared_ptr<TabPage> incoming) {
-    const std::optional<std::size_t> index = index_of(incoming);
-    if (!index) throw std::invalid_argument("TabPage does not belong to TabControl");
+    const stxlib::Optional<std::size_t> index = index_of(incoming);
+    if (index.absent()) throw std::invalid_argument("TabPage does not belong to TabControl");
     selected_index = index;
 }
 
@@ -738,7 +739,7 @@ void TabControl::select_relative(int delta) {
     const std::size_t current = selected_index.read().value_or(0U);
     const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(live.size());
     const std::ptrdiff_t next = (static_cast<std::ptrdiff_t>(current) + delta + count) % count;
-    selected_index = static_cast<std::size_t>(next);
+    selected_index = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(next));
 }
 
 // From anywhere inside the control, before the focused control sees them:
@@ -797,7 +798,7 @@ SemanticDescriptor TabControl::semantic_descriptor() const {
     const std::shared_ptr<TabPage> selected = selected_page_.lock();
     if (selected) descriptor.value = (*selected).text.read();
     const bool row = alignment.read() == TabAlignment::top || alignment.read() == TabAlignment::bottom;
-    descriptor.orientation = row ? SemanticOrientation::horizontal : SemanticOrientation::vertical;
+    descriptor.orientation.set(row ? SemanticOrientation::horizontal : SemanticOrientation::vertical);
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;
@@ -848,7 +849,7 @@ bool TabControl::on_semantic_child_action(std::string_view child_stable_id,
         if (window() != nullptr) {
             static_cast<void>((*window()).request_focus(shared_from_this()));
         }
-        selected_index = index;
+        selected_index = stxlib::Optional<std::size_t>::of(index);
         return true;
     }
     return false;
@@ -950,8 +951,8 @@ void TabControl::publish_realized_item_geometry(std::size_t item,
 
 AnatomyStateSet TabControl::realized_item_anatomy_states(std::size_t item) const {
     AnatomyStateSet states{};
-    const std::optional<std::size_t> selected = selected_index.read();
-    if (selected && *selected == item) {
+    const stxlib::Optional<std::size_t> selected = selected_index.read();
+    if (selected.present() && *selected.value() == item) {
         states.insert(AnatomyState::selected);
     }
     return states;

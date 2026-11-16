@@ -287,7 +287,8 @@ Rect material_box(const PrimitiveTarget& target, double outset) noexcept {
 }
 
 double material_radius(const SurfaceMaterial& material, const PrimitiveTarget& target) noexcept {
-    const double logical = target.corner_radius ? std::max(0.0, *target.corner_radius) : material.corner_radius;
+    const double logical =
+        target.corner_radius.present() ? std::max(0.0, *target.corner_radius.value()) : material.corner_radius;
     const double radius = logical * target.scale.value;
     return radius;
 }
@@ -310,12 +311,12 @@ MaterialOutline material_outline(const SurfaceMaterial& material, const Primitiv
     outline.kind = kind;
     outline.radius = material_radius(material, target);
     // A part's own radius overrides the material's corners.
-    const bool own_radius = target.corner_radius.has_value();
-    if (kind == PartShapeKind::rounded_rectangle && (own_radius || !material.corner_radii)) return outline;
+    const bool own_radius = target.corner_radius.present();
+    if (kind == PartShapeKind::rounded_rectangle && (own_radius || material.corner_radii.absent())) return outline;
     outline.uniform = false;
     if (kind == PartShapeKind::rounded_rectangle) {
         const double scale = target.scale.value;
-        const MaterialCornerRadii& corners = *material.corner_radii;
+        const MaterialCornerRadii& corners = (*material.corner_radii.value());
         outline.corners = PartCornerRadii{corners.top_left * scale, corners.top_right * scale,
                                           corners.bottom_right * scale, corners.bottom_left * scale};
     }
@@ -654,30 +655,32 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
         resolved.composite = layer.composite;
     }
     look.mask_count = mask_count;
-    if (material.border) {
-        const double width = (*material.border).width * scale;
+    if (material.border.present()) {
+        const double width = (*material.border.value()).width * scale;
         look.border = true;
-        look.border_colour = (*material.border).color;
+        look.border_colour = (*material.border.value()).color;
         look.border_inner = Rect{box.x + width, box.y + width, std::max(0.0, box.width - width * 2.0),
                                  std::max(0.0, box.height - width * 2.0)};
         look.border_inner_shape = grown(outline, look.border_inner, -width).shape;
-        look.border_path = border_path((*material.border).style, outline, box, width);
+        look.border_path = border_path((*material.border.value()).style, outline, box, width);
     }
     const MaterialBorderEdges& edges = material.border_edges;
     // A rounded box draws its single edges and keylines as rings (their
     // widths are equal: valid_surface_material); a square one as bands.
     const bool rounded_edges = radius > 0.0 && !edges.empty();
     if (rounded_edges) {
-        const std::array<const std::optional<MaterialBorder>*, 4> sides{&edges.top, &edges.right, &edges.bottom,
-                                                                         &edges.left};
+        const std::array<const stxlib::Optional<MaterialBorder>*, 4> sides{&edges.top, &edges.right, &edges.bottom,
+                                                                            &edges.left};
         double width = 0.0;
-        for (const std::optional<MaterialBorder>* side : sides) {
-            if (*side) width = std::max(width, (**side).width * scale);
+        for (const stxlib::Optional<MaterialBorder>* side : sides) {
+            const MaterialBorder* const border = (*side).value();
+            if (border != nullptr) width = std::max(width, (*border).width * scale);
         }
         std::optional<ResolvedRing> ring = rounded_ring(outline, box, 0.0, width);
         if (ring) {
             for (std::size_t index = 0U; index < sides.size(); ++index) {
-                if (*sides[index]) (*ring).colours[index] = (**sides[index]).color;
+                const MaterialBorder* const border = (*sides[index]).value();
+                if (border != nullptr) (*ring).colours[index] = (*border).color;
             }
             add_ring(look, *ring);
         }
@@ -688,21 +691,21 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
             add_ring(look, *line);
         }
     }
-    if (edges.top && !rounded_edges) {
-        const double width = (*edges.top).width * scale;
-        add_band(look, Rect{box.x, box.y, box.width, width}, (*edges.top).color, false);
+    if (edges.top.present() && !rounded_edges) {
+        const double width = (*edges.top.value()).width * scale;
+        add_band(look, Rect{box.x, box.y, box.width, width}, (*edges.top.value()).color, false);
     }
-    if (edges.right && !rounded_edges) {
-        const double width = (*edges.right).width * scale;
-        add_band(look, Rect{box.right() - width, box.y, width, box.height}, (*edges.right).color, false);
+    if (edges.right.present() && !rounded_edges) {
+        const double width = (*edges.right.value()).width * scale;
+        add_band(look, Rect{box.right() - width, box.y, width, box.height}, (*edges.right.value()).color, false);
     }
-    if (edges.bottom && !rounded_edges) {
-        const double width = (*edges.bottom).width * scale;
-        add_band(look, Rect{box.x, box.bottom() - width, box.width, width}, (*edges.bottom).color, false);
+    if (edges.bottom.present() && !rounded_edges) {
+        const double width = (*edges.bottom.value()).width * scale;
+        add_band(look, Rect{box.x, box.bottom() - width, box.width, width}, (*edges.bottom.value()).color, false);
     }
-    if (edges.left && !rounded_edges) {
-        const double width = (*edges.left).width * scale;
-        add_band(look, Rect{box.x, box.y, width, box.height}, (*edges.left).color, false);
+    if (edges.left.present() && !rounded_edges) {
+        const double width = (*edges.left.value()).width * scale;
+        add_band(look, Rect{box.x, box.y, width, box.height}, (*edges.left.value()).color, false);
     }
     const bool clip_keylines = radius > 0.0;
     if (!rounded_edges) {
@@ -1423,8 +1426,8 @@ struct PartFilters final {
 
 PartFilters part_filters(const SurfaceMaterial& material, double scale) noexcept {
     PartFilters filters{};
-    if (material.drop_shadow) {
-        const MaterialDropShadow& shadow = *material.drop_shadow;
+    if (material.drop_shadow.present()) {
+        const MaterialDropShadow& shadow = (*material.drop_shadow.value());
         filters.shadow = true;
         filters.shadow_half = box_blur_half(shadow.blur_radius, scale);
         filters.shadow_x = static_cast<std::int64_t>(std::floor(shadow.offset.x * scale + 0.5));
@@ -1936,17 +1939,17 @@ BakeEffort bake_effort_at(const SurfaceMaterial& authored, const PrimitiveTarget
     }
     // A glow is an outer shadow's kernel with an addition for its blend.
     per_pixel = per_pixel + material.glows.size() * std::uint64_t{weights.outer_shadow};
-    if (material.border) per_pixel = per_pixel + weights.border;
-    if (material.border && (*material.border).style != MaterialBorderStyle::solid) {
+    if (material.border.present()) per_pixel = per_pixel + weights.border;
+    if (material.border.present() && (*material.border.value()).style != MaterialBorderStyle::solid) {
         per_pixel = per_pixel + weights.border_pattern;
     }
     const MaterialBorderEdges& edges = material.border_edges;
-    const std::uint64_t edge_count = std::uint64_t{edges.top.has_value()} + std::uint64_t{edges.right.has_value()} +
-                                     std::uint64_t{edges.bottom.has_value()} + std::uint64_t{edges.left.has_value()};
+    const std::uint64_t edge_count = std::uint64_t{edges.top.present()} + std::uint64_t{edges.right.present()} +
+                                     std::uint64_t{edges.bottom.present()} + std::uint64_t{edges.left.present()};
     per_pixel = per_pixel + edge_count * weights.border_edge;
     per_pixel = per_pixel + material.keylines.size() * std::uint64_t{weights.keyline};
     if (material.colour_filter) per_pixel = per_pixel + weights.colour_filter;
-    if (material.drop_shadow) per_pixel = per_pixel + weights.drop_shadow;
+    if (material.drop_shadow.present()) per_pixel = per_pixel + weights.drop_shadow;
     if (material.filter_blur > 0.0) per_pixel = per_pixel + weights.filter_blur;
     if (std::any_of(material.fills.begin(), material.fills.end(), &blends_apart)) {
         per_pixel = per_pixel + weights.fill_blend;
@@ -1956,7 +1959,8 @@ BakeEffort bake_effort_at(const SurfaceMaterial& authored, const PrimitiveTarget
     const std::uint64_t pixels = std::uint64_t{extent.width} * extent.height;
     const std::uint64_t corners = corner_pixels(resolve_look(material, target, outset, shape), extent);
     const std::uint64_t reflected =
-        material.reflection ? reflected_pixels(*material.reflection, target.scale.value, extent) : std::uint64_t{0};
+        material.reflection.present() ? reflected_pixels((*material.reflection.value()), target.scale.value, extent)
+            : std::uint64_t{0};
     const BakeEffort effort{pixels * per_pixel + corners * weights.outer_corner + reflected * weights.reflection};
     return effort;
 }
@@ -2039,7 +2043,8 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
     const double radius = std::min(largest, std::min(box.width, box.height) * 0.5);
     AxisReach reach{};
     // A dashed or dotted border changes all the way round.
-    if (material.border && (*material.border).style != MaterialBorderStyle::solid) reach.varies = true;
+    if (material.border.present() &&
+        (*material.border.value()).style != MaterialBorderStyle::solid) reach.varies = true;
     // The box's own edge, and its corners' arcs.
     reach_at_least(reach, radius + 1.0, radius + 1.0, radius * 2.0 + 1.0);
     for (const MaterialFillLayer& layer : material.fills) {
@@ -2070,8 +2075,8 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
         const double blurred = shadow_reach(glow.blur_radius, scale, radius + spread);
         reach_at_least(reach, blurred - spread + 1.0, blurred - spread + 1.0, 1.0 - spread * 2.0);
     }
-    if (material.border) {
-        const double width = (*material.border).width * scale;
+    if (material.border.present()) {
+        const double width = (*material.border.value()).width * scale;
         const double inner = std::max(radius, width) + 1.0;
         reach_at_least(reach, inner, inner, width * 2.0 + 1.0);
     }
@@ -2079,20 +2084,22 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
     // Rounded single edges and keylines are rings, reaching in as a border.
     if (radius > 0.0 && !edges.empty()) {
         double depth = 0.0;
-        if (edges.top) depth = std::max(depth, (*edges.top).width * scale);
-        if (edges.right) depth = std::max(depth, (*edges.right).width * scale);
-        if (edges.bottom) depth = std::max(depth, (*edges.bottom).width * scale);
-        if (edges.left) depth = std::max(depth, (*edges.left).width * scale);
+        if (edges.top.present()) depth = std::max(depth, (*edges.top.value()).width * scale);
+        if (edges.right.present()) depth = std::max(depth, (*edges.right.value()).width * scale);
+        if (edges.bottom.present()) depth = std::max(depth, (*edges.bottom.value()).width * scale);
+        if (edges.left.present()) depth = std::max(depth, (*edges.left.value()).width * scale);
         for (const MaterialKeyline& keyline : material.keylines) {
             depth = std::max(depth, (keyline.inset + keyline.width) * scale);
         }
         const double inner = std::max(radius, depth) + 1.0;
         reach_at_least(reach, inner, inner, depth * 2.0 + 1.0);
     }
-    if (edges.top) band_reach(reach, MaterialEdge::top, 0.0, (*edges.top).width * scale, across);
-    if (edges.right) band_reach(reach, MaterialEdge::right, 0.0, (*edges.right).width * scale, across);
-    if (edges.bottom) band_reach(reach, MaterialEdge::bottom, 0.0, (*edges.bottom).width * scale, across);
-    if (edges.left) band_reach(reach, MaterialEdge::left, 0.0, (*edges.left).width * scale, across);
+    if (edges.top.present()) band_reach(reach, MaterialEdge::top, 0.0, (*edges.top.value()).width * scale, across);
+    if (edges.right.present()) band_reach(reach, MaterialEdge::right, 0.0, (*edges.right.value()).width * scale,
+                                          across);
+    if (edges.bottom.present()) band_reach(reach, MaterialEdge::bottom, 0.0, (*edges.bottom.value()).width * scale,
+                                           across);
+    if (edges.left.present()) band_reach(reach, MaterialEdge::left, 0.0, (*edges.left.value()).width * scale, across);
     for (const MaterialKeyline& keyline : material.keylines) {
         band_reach(reach, keyline.edge, keyline.inset * scale, keyline.width * scale, across);
     }
@@ -2106,11 +2113,11 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
     // axis; one about the left or right edge likewise the columns.
     // One of the backplane differs with where the part lies, so it varies
     // along both axes.
-    if (material.reflection && (*material.reflection).source == MaterialReflectionSource::backplane) {
+    if (material.reflection.present() && (*material.reflection.value()).source == MaterialReflectionSource::backplane) {
         reach.varies = true;
     }
-    if (material.reflection) {
-        const MaterialReflection& reflection = *material.reflection;
+    if (material.reflection.present()) {
+        const MaterialReflection& reflection = (*material.reflection.value());
         const bool rows = reflection.edge == MaterialEdge::top || reflection.edge == MaterialEdge::bottom;
         if (rows != across) {
             const double lines = (reflection.gap + reflection.reach) * scale + 1.0;
@@ -2541,8 +2548,8 @@ void bake_material(const SurfaceMaterial& authored, const PrimitiveTarget& targe
     bake_look(look, images, destination, spans, material_dither(material, look));
     apply_part_filters(material, target, destination);
     apply_mask(look, images, destination);
-    if (material.reflection) {
-        const MaterialReflection& reflection = *material.reflection;
+    if (material.reflection.present()) {
+        const MaterialReflection& reflection = (*material.reflection.value());
         ReflectionSource source{destination.pixels, destination.row_bytes, 0U};
         const bool from_backplane = reflection.source == MaterialReflectionSource::backplane;
         // The backplane image as lent covers the destination grown by its

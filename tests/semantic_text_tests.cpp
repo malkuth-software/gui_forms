@@ -75,7 +75,9 @@ std::optional<SemanticTextSelection> published_selection(Window& window, std::st
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* node = find_node(snapshot.roots, stable_id);
     if (node == nullptr) return std::nullopt;
-    const std::optional<SemanticTextSelection> selection = (*node).text_selection;
+    const SemanticTextSelection* const published = (*node).text_selection.value();
+    if (published == nullptr) return std::nullopt;
+    const std::optional<SemanticTextSelection> selection(*published);
     return selection;
 }
 

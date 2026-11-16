@@ -64,9 +64,10 @@ bool fills_need_no_resources(const SurfaceMaterial& material) noexcept {
 bool lone_square_fill(const SurfaceMaterial& material) noexcept {
     const bool lone = material.fills.size() == 1U && material.fills[0].kind == MaterialFillKind::solid &&
                       material.fills[0].blend == MaterialBlendMode::normal;
-    const bool bare = material.shadows.empty() && material.glows.empty() && !material.border &&
-                      !material.border_edges.top && !material.border_edges.right &&
-                      !material.border_edges.bottom && !material.border_edges.left && material.keylines.empty();
+    const bool bare = material.shadows.empty() && material.glows.empty() && material.border.absent() &&
+                      material.border_edges.top.absent() && material.border_edges.right.absent() &&
+                      material.border_edges.bottom.absent() && material.border_edges.left.absent() &&
+                          material.keylines.empty();
     const bool square = material.corner_radius == 0.0;
     return lone && bare && square;
 }
@@ -80,8 +81,9 @@ MaterialPainting material_painting(const SurfaceMaterial& material) noexcept {
 }
 
 std::optional<SurfaceMaterial> material_as_painted(const SurfaceMaterial& material) {
-    const bool unpainted = material.corner_radii || material.colour_filter || material.drop_shadow ||
-                           material.filter_blur != 0.0 || !material.masks.empty() || material.reflection;
+    const bool unpainted = material.corner_radii.present() || material.colour_filter ||
+                           material.drop_shadow.present() || material.filter_blur != 0.0 || !material.masks.empty() ||
+                           material.reflection.present();
     if (!unpainted) return std::nullopt;
     std::optional<SurfaceMaterial> painted{material};
     (*painted).corner_radii.reset();

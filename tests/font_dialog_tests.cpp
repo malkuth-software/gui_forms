@@ -83,13 +83,13 @@ void faces_and_styles() {
             "the default is 9-unit Carlito, with four styles");
     dialog.font = FontSpec{FontRole::monospace, 14.0, 600, true};
     require(dialog.selection() == FontSpec{FontRole::monospace, 14.0, 700, true} &&
-                (*dialog.face_list()).selected_index() == 2U && (*dialog.style_list()).selected_index() == 3U &&
+                (*dialog.face_list()).selected_index() == stxlib::Optional<std::size_t>::of(2U) && (*dialog.style_list()).selected_index() == stxlib::Optional<std::size_t>::of(3U) &&
                 (*dialog.size_box()).value.read() == 14.0,
             "a font is shown at the nearest weight the faces have");
     (*dialog.face_list()).select_index(0U);
     require(dialog.selection().role == FontRole::control && !dialog.selection().italic &&
                 dialog.selection().weight == 700U && (*dialog.style_list()).items.read().size() == 2U &&
-                (*dialog.style_list()).selected_index() == 1U,
+                (*dialog.style_list()).selected_index() == stxlib::Optional<std::size_t>::of(1U),
             "Portsmouth Rapids has no italics: the style list shrinks and italic is dropped");
     (*dialog.style_list()).select_index(0U);
     (*dialog.size_box()).value = 20.0;

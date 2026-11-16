@@ -17,6 +17,7 @@
 #include <array>
 #include <cmath>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 // Identical bits on every host need the same operations in the same order:
@@ -1013,17 +1014,17 @@ bool ValuePass::colour_from_role(std::uint32_t function) {
     // A built-in role, else one of the theme's application roles: its
     // slot follows the built-in ones, and it carries its fallback's
     // meaning.
-    std::optional<ColourRole> role = colour_role_from_name(lower);
-    std::size_t position = role ? static_cast<std::size_t>(*role) : palette_slot_count;
-    bool paired = role ? colour_role_paired(*role) : false;
-    for (std::size_t index = 0U; !role && index < context_.application_roles.size(); ++index) {
+    stxlib::Optional<ColourRole> role = colour_role_from_name(lower);
+    std::size_t position = role.present() ? static_cast<std::size_t>(*role.value()) : palette_slot_count;
+    bool paired = role.present() ? colour_role_paired(*role.value()) : false;
+    for (std::size_t index = 0U; role.absent() && index < context_.application_roles.size(); ++index) {
         const ApplicationRoleName& declared = context_.application_roles[index];
         if (declared.name != lower) continue;
-        role = declared.fallback;
+        role.set(declared.fallback);
         position = colour_role_count + index;
         paired = declared.paired;
     }
-    if (!role || position >= palette_slot_count) {
+    if (role.absent() || position >= palette_slot_count) {
         report(DiagnosticCode::keyword_unknown, written.token, clipped_theme_detail(written.text));
         return false;
     }
@@ -1062,7 +1063,7 @@ bool ValuePass::colour_from_role(std::uint32_t function) {
     replace_with_colour(function, colour);
     ColourOrigin origin{};
     origin.source = ColourSource::role;
-    origin.role = *role;
+    origin.role = *role.value();
     origin.side = side;
     value_.components.back().origin = origin;
     return true;
@@ -1095,11 +1096,11 @@ bool ValuePass::colour_from_env(std::uint32_t function) {
         report(DiagnosticCode::keyword_unknown, named.token, clipped_theme_detail(named.text));
         return false;
     }
-    std::optional<Color> hint{};
+    stxlib::Optional<Color> hint{};
     if (context_.system_colours != nullptr) {
         hint = accent ? (*context_.system_colours).accent : (*context_.system_colours).highlight;
     }
-    const Color colour = hint ? *hint : *fallback;
+    const Color colour = hint.present() ? *hint.value() : *fallback;
     replace_with_colour(function, colour);
     return true;
 }
@@ -1406,13 +1407,13 @@ bool ValuePass::push_name_operand(std::size_t at, ExpressionFunction function) {
     const std::string_view written = text_of(argument);
     const std::string registered = registered_name_from_kebab(written);
     if (function == ExpressionFunction::state) {
-        const std::optional<AnatomyState> state =
-            registered.empty() ? std::optional<AnatomyState>{} : anatomy_state_from_name(registered);
-        if (!state) {
+        const stxlib::Optional<AnatomyState> state =
+            registered.empty() ? stxlib::Optional<AnatomyState>::none() : anatomy_state_from_name(registered);
+        if (state.absent()) {
             report(DiagnosticCode::value_syntax, stream_[argument].token, clipped_theme_detail(written));
             return false;
         }
-        push_operand(ExpressionInstruction::state(*state), ValueUnit::none, false);
+        push_operand(ExpressionInstruction::state(*state.value()), ValueUnit::none, false);
         return true;
     }
     std::size_t position = context_.parameters.size();

@@ -19,6 +19,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // One user edit the editor accepted (ContentTextEditor::user_edit): its kind
@@ -149,7 +151,7 @@ public:
 
     // The caret's bar in local coordinates, from the current layout; none
     // without one. With a layout transform, the bounds of its mapped quad.
-    [[nodiscard]] std::optional<Rect> caret_rectangle() const;
+    [[nodiscard]] stxlib::Optional<Rect> caret_rectangle() const;
     // The selection's boxes in local coordinates, one per cluster part it
     // covers, from the current layout. With a layout transform, the bounds
     // of their mapped quads.
@@ -248,7 +250,7 @@ protected:
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
     [[nodiscard]] SemanticTextResult on_semantic_text_layout(SemanticTextLayout& layout) override;
     [[nodiscard]] SemanticTextResult on_set_semantic_text_selection(SemanticTextSelection selection) override;
-    [[nodiscard]] std::optional<Rect> text_input_caret() const override;
+    [[nodiscard]] stxlib::Optional<Rect> text_input_caret() const override;
 
 private:
     // The table's reads and writes (BindingValue booleans, already

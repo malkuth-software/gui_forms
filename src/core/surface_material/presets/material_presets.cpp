@@ -79,7 +79,7 @@ SurfaceMaterial gloss_material(const GlossColours& colours, double corner_radius
     material.fills.clear();
     material.fills.push_back(MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 1.0}, stops, std::size(stops)));
     const double border_width = 1.0;
-    material.border = MaterialBorder{colours.border, border_width};
+    material.border.set(MaterialBorder{colours.border, border_width});
     MaterialKeyline shine{};
     shine.edge = MaterialEdge::top;
     shine.color = colours.shine;
@@ -113,7 +113,7 @@ SurfaceMaterial finished_surface_material(const SurfaceMaterial& material) {
     shine.edge = MaterialEdge::top;
     shine.color = Color::rgba(255, 255, 255, channel_of(finish_shine_alpha * finish));
     shine.width = 1.0;
-    shine.inset = material.border ? (*material.border).width : 0.0;
+    shine.inset = material.border.present() ? (*material.border.value()).width : 0.0;
     result.keylines.push_back(shine);
     return result;
 }

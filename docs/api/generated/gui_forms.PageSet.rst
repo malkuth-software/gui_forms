@@ -261,7 +261,7 @@ gui_forms::PageSet
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<PagePosition> find(const PageId& id) const
+   .. cpp:function:: stxlib::Optional<PagePosition> find(const PageId& id) const
 
       The position of a page, or none when it is not in the set.
 

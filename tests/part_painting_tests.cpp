@@ -14,6 +14,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace {
@@ -307,7 +308,7 @@ void overlay_shadow(const Control& control) {
                     operation.radius == 0.0,
                 "each layer is cast from the surface's rect with the theme's offset, blur and colour");
     }
-    shadow.corner_radius = 5.0;
+    shadow.corner_radius.set(5.0);
     RecordingPainter rounded;
     paint_part(rounded, control, shadow);
     require(rounded.operations.size() == layers.size() && rounded.operations[0].radius == 5.0,
@@ -375,13 +376,13 @@ void content_colors(const Control& control) {
     fill.role = PartRole::fill;
     fill.family = ControlVisualRole::menu_item;
     fill.bounds = {4.0, 4.0, 12.0, 12.0};
-    fill.content_color = sample;
+    fill.content_color.set(sample);
     RecordingPainter flat;
     paint_part(flat, control, fill);
     require(flat.operations.size() == 1U && flat.operations[0].kind == "fill" &&
                 flat.operations[0].bounds == fill.bounds && flat.operations[0].color == sample,
             "a fill with a content colour is that colour, flat, and nothing else");
-    fill.corner_radius = 2.0;
+    fill.corner_radius.set(2.0);
     RecordingPainter rounded;
     paint_part(rounded, control, fill);
     require(rounded.operations.size() == 1U && rounded.operations[0].kind == "fill_rounded" &&
@@ -410,7 +411,7 @@ void content_colors(const Control& control) {
         plain.text = lend_paint_text("Text");
         RecordingPainter without;
         paint_part(without, control, plain);
-        plain.content_color = sample;
+        plain.content_color.set(sample);
         RecordingPainter with;
         paint_part(with, control, plain);
         bool same = with.operations.size() == without.operations.size();
@@ -422,8 +423,8 @@ void content_colors(const Control& control) {
     }
     PartGeometry first = PartGeometry::from_bounds({0.0, 0.0, 10.0, 10.0});
     PartGeometry second = first;
-    second.content_color = sample;
-    require(!(first == second) && second.content_color == sample,
+    second.content_color.set(sample);
+    require(!(first == second) && second.content_color == stxlib::Optional<Color>::of(sample),
             "a part's geometry record carries its content colour");
 }
 
@@ -448,7 +449,7 @@ void authored_colors(const Control& control) {
     face.bounds = {0.0, 0.0, 60.0, 24.0};
     RecordingPainter plain_face;
     paint_part(plain_face, control, face);
-    face.authored_background = ground;
+    face.authored_background.set(ground);
     RecordingPainter styled_face;
     paint_part(styled_face, control, face);
     const bool filled = recorded(styled_face, "fill", ground) || recorded(styled_face, "fill_rounded", ground);
@@ -456,7 +457,7 @@ void authored_colors(const Control& control) {
                           plain_face.count("stroke") + plain_face.count("stroke_rounded"),
             "a face paints the authored background as its fill and keeps its border");
     face.authored_background.reset();
-    face.authored_foreground = ink;
+    face.authored_foreground.set(ink);
     RecordingPainter inked_face;
     paint_part(inked_face, control, face);
     require(!recorded(inked_face, "fill", ink) && !recorded(inked_face, "fill_rounded", ink),
@@ -467,8 +468,8 @@ void authored_colors(const Control& control) {
     label.family = ControlVisualRole::button;
     label.bounds = {0.0, 0.0, 60.0, 24.0};
     label.text = lend_paint_text("Cell");
-    label.authored_foreground = ink;
-    label.authored_background = ground;
+    label.authored_foreground.set(ink);
+    label.authored_background.set(ground);
     RecordingPainter styled_label;
     paint_part(styled_label, control, label);
     const bool grounded = recorded(styled_label, "fill", ground) || recorded(styled_label, "fill_rounded", ground);
@@ -487,7 +488,7 @@ void authored_colors(const Control& control) {
     check.family = ControlVisualRole::button;
     check.mark = PartMark::check;
     check.bounds = {0.0, 0.0, 12.0, 9.0};
-    check.authored_foreground = ink;
+    check.authored_foreground.set(ink);
     RecordingPainter inked_check;
     paint_part(inked_check, control, check);
     require(inked_check.count("line") == 2U && recorded(inked_check, "line", ink),
@@ -496,7 +497,7 @@ void authored_colors(const Control& control) {
     rule.role = PartRole::divider;
     rule.family = ControlVisualRole::panel;
     rule.bounds = {0.0, 0.0, 60.0, 1.0};
-    rule.authored_foreground = ink;
+    rule.authored_foreground.set(ink);
     RecordingPainter inked_rule;
     paint_part(inked_rule, control, rule);
     require(inked_rule.operations.size() == 1U && recorded(inked_rule, "line", ink),
@@ -506,18 +507,18 @@ void authored_colors(const Control& control) {
     sample.role = PartRole::fill;
     sample.family = ControlVisualRole::menu_item;
     sample.bounds = {0.0, 0.0, 12.0, 12.0};
-    sample.content_color = Color::rgba(192, 0, 0);
-    sample.authored_background = ground;
+    sample.content_color.set(Color::rgba(192, 0, 0));
+    sample.authored_background.set(ground);
     RecordingPainter shown;
     paint_part(shown, control, sample);
-    require(shown.operations.size() == 1U && shown.operations[0].color == *sample.content_color,
+    require(shown.operations.size() == 1U && shown.operations[0].color == *sample.content_color.value(),
             "a fill with a content colour shows the content colour");
 
     PartGeometry first = PartGeometry::from_bounds({0.0, 0.0, 10.0, 10.0});
     PartGeometry second = first;
-    second.authored_background = ground;
+    second.authored_background.set(ground);
     PartGeometry third = first;
-    third.authored_foreground = ink;
+    third.authored_foreground.set(ink);
     require(!(first == second) && !(first == third) && !(second == third),
             "a part's geometry record carries its authored colours");
 }
@@ -536,10 +537,11 @@ void control_colors() {
     const std::shared_ptr<Control> parent = make_control<Control>(StableId("part.colors"));
     const std::shared_ptr<Control> child = make_control<Control>(StableId("part.colors.child"));
     (*parent).add_child(child);
-    (*parent).back_color = ground;
-    (*parent).fore_color = ink;
-    require(!(*child).back_color.read() && !(*child).fore_color.read() && (*child).ambient_back_color() == ground &&
-                (*child).ambient_fore_color() == ink,
+    (*parent).back_color = stxlib::Optional<Color>::of(ground);
+    (*parent).fore_color = stxlib::Optional<Color>::of(ink);
+    require((*child).back_color.read().absent() && (*child).fore_color.read().absent() &&
+                (*child).ambient_back_color() == stxlib::Optional<Color>::of(ground) &&
+                (*child).ambient_fore_color() == stxlib::Optional<Color>::of(ink),
             "a control without its own colours takes its parent's");
 
     PartPaint face;
@@ -556,12 +558,12 @@ void control_colors() {
     paint_part(inherited_well, *child, well);
     require(!recorded(inherited_well, "fill", ground) && !recorded(inherited_well, "fill_rounded", ground),
             "an inherited background leaves a well alone");
-    (*child).back_color = own;
+    (*child).back_color = stxlib::Optional<Color>::of(own);
     RecordingPainter own_well;
     paint_part(own_well, *child, well);
     require(recorded(own_well, "fill", own) || recorded(own_well, "fill_rounded", own),
             "a control's own background fills its well");
-    face.authored_background = part_ground;
+    face.authored_background.set(part_ground);
     RecordingPainter part_face;
     paint_part(part_face, *child, face);
     const bool part_filled = recorded(part_face, "fill", part_ground) || recorded(part_face, "fill_rounded", part_ground);
@@ -584,11 +586,11 @@ void control_colors() {
     require(recorded(disabled_label, "text", disabled_text) && !recorded(disabled_label, "text", ink),
             "a disabled label keeps the theme's disabled text under a control's foreground");
 
-    (*child).back_color = std::nullopt;
-    require((*child).ambient_back_color() == ground, "clearing a control's colour restores its parent's");
-    (*parent).back_color = std::nullopt;
-    (*parent).fore_color = std::nullopt;
-    require(!(*child).ambient_back_color() && !(*child).ambient_fore_color(),
+    (*child).back_color = stxlib::Optional<Color>::none();
+    require((*child).ambient_back_color() == stxlib::Optional<Color>::of(ground), "clearing a control's colour restores its parent's");
+    (*parent).back_color = stxlib::Optional<Color>::none();
+    (*parent).fore_color = stxlib::Optional<Color>::none();
+    require((*child).ambient_back_color().absent() && (*child).ambient_fore_color().absent(),
             "with no colours set anywhere the theme's stand");
 }
 
@@ -612,7 +614,8 @@ void families() {
     const ControlVisualRecipe& tool_tip = (*theme).resolve(ControlVisualRole::tool_tip, normal);
     const ControlVisualRecipe& card = (*theme).resolve(ControlVisualRole::card, normal);
     require(tool_tip.material.fills.front().color == Color::rgba(255, 255, 225) &&
-                tool_tip.material.border && (*tool_tip.material.border).color == Color::rgba(104, 111, 118) &&
+                tool_tip.material.border.present() && (*tool_tip.material.border.value()).color == Color::rgba(104, 111,
+                                                                                                               118) &&
                 tool_tip.material.corner_radius == 0.0 && tool_tip.text == Color::rgba(0, 0, 0) &&
                 !(tool_tip.material == card.material),
             "windows-professional's tooltip family keeps the plain tooltip's face, edge and text");
@@ -637,7 +640,8 @@ void families() {
                 const ControlVisualRecipe& recipe = (*theme).resolve(family, context);
                 const bool clear = std::all_of(recipe.material.fills.begin(), recipe.material.fills.end(),
                                                &clear_fill) &&
-                                   (!recipe.material.border || (*recipe.material.border).color.alpha == 0U);
+                                   (recipe.material.border.absent() ||
+                                    (*recipe.material.border.value()).color.alpha == 0U);
                 require(recipe.text == text && clear, "a link family draws only its text, in the link's colour");
             }
         }
@@ -768,7 +772,7 @@ void pointed_faces(const Control& control) {
     face.bounds = bounds;
     RecordingPainter square;
     paint_part(square, control, face);
-    face.point = 8.0;
+    face.point.set(8.0);
     RecordingPainter pointed;
     paint_part(pointed, control, face);
     require(pointed.operations.size() > square.operations.size(), "a pointed face paints its nose strips");
@@ -778,7 +782,7 @@ void pointed_faces(const Control& control) {
     label.text = lend_paint_text("Segment");
     RecordingPainter plain_label;
     paint_part(plain_label, control, label);
-    label.point = 8.0;
+    label.point.set(8.0);
     RecordingPainter pointed_label;
     paint_part(pointed_label, control, label);
     require(pointed_label.operations.size() == plain_label.operations.size(), "a label ignores the point");

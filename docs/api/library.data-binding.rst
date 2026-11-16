@@ -902,9 +902,9 @@ Types
 
       Records an edit already stored. A replacement needs room reserved for its position; a position past the bitset's reach (2^32) lowers the watermark instead.
 
-   .. cpp:function:: std::optional<std::size_t> take(std::vector<std::uint32_t>& replaced)
+   .. cpp:function:: stxlib::Optional<std::size_t> take(std::vector<std::uint32_t>& replaced)
 
-      Appends the replaced positions below the watermark to ``replaced``, in increasing order (the caller's storage, reused; not emptied first), clears the record and returns the watermark, or nullopt when no structural edit is pending. If appending fails, the record becomes "everything dirty" (watermark 0) for the next take, and the failure propagates.
+      Appends the replaced positions below the watermark to ``replaced``, in increasing order (the caller's storage, reused; not emptied first), clears the record and returns the watermark, or none when no structural edit is pending. If appending fails, the record becomes "everything dirty" (watermark 0) for the next take, and the failure propagates.
 
    .. cpp:function:: void clear() noexcept
 
@@ -952,9 +952,9 @@ Types
 
       The element at :cpp:func:`index <gui_forms::CollectionEdit::index>` replaced by another value.
 
-   .. cpp:function:: std::optional<std::size_t> remap(std::size_t before) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> remap(std::size_t before) const noexcept
 
-      Where an element at position ``before`` is after the edit, or nullopt when the edit removed it. An assignment keeps the positions below its new length (the elements there are new; the position is what a selection without stable identities keeps); a replacement keeps every position.
+      Where an element at position ``before`` is after the edit, or none when the edit removed it. An assignment keeps the positions below its new length (the elements there are new; the position is what a selection without stable identities keeps); a replacement keeps every position.
 
 .. cpp:namespace:: gui_forms
 
@@ -2072,7 +2072,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr TypeTag<BindingValue> binding_value
 
-.. cpp:var:: constexpr TypeTag<std::optional<Color>> optional_color
+.. cpp:var:: constexpr TypeTag<stxlib::Optional<Color>> optional_color
 
 .. cpp:namespace:: gui_forms
 

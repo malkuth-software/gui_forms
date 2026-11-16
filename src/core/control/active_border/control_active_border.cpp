@@ -16,38 +16,38 @@
 
 namespace gui_forms {
 
-void Control::set_active_border(std::optional<ActiveBorder> border) {
+void Control::set_active_border(stxlib::Optional<ActiveBorder> border) {
     require_mutable();
-    if (border && !active_border_valid(*border)) {
+    if (border.present() && !active_border_valid(*border.value())) {
         throw std::invalid_argument(
             "an active border needs a width in (0, 8], an offset within 8, a corner radius in [0, 64] and a "
             "frequency of at least 0");
     }
-    if (!border) {
+    if (border.absent()) {
         if (!active_border_) return;
         (*active_border_).timer.stop();
         active_border_.reset();
         invalidate(Dirty::paint);
         return;
     }
-    if (active_border_ && (*active_border_).border == *border) return;
+    if (active_border_ && (*active_border_).border == *border.value()) return;
     if (!active_border_) active_border_ = std::make_unique<ActiveBorderState>();
     ActiveBorderState& state = *active_border_;
-    state.border = *border;
+    state.border = *border.value();
     // The next paint resolves the new pose and restarts its motion lit.
     state.timer.stop();
     state.pose.reset();
     invalidate(Dirty::paint);
 }
 
-std::optional<ActiveBorder> Control::active_border() const {
-    if (!active_border_) return std::nullopt;
-    const std::optional<ActiveBorder> border = (*active_border_).border;
+stxlib::Optional<ActiveBorder> Control::active_border() const {
+    if (!active_border_) return stxlib::Optional<ActiveBorder>::none();
+    const stxlib::Optional<ActiveBorder> border = stxlib::Optional<ActiveBorder>::of((*active_border_).border);
     return border;
 }
 
-std::optional<ActiveBorderPose> Control::active_border_pose() const noexcept {
-    if (!active_border_) return std::nullopt;
+stxlib::Optional<ActiveBorderPose> Control::active_border_pose() const noexcept {
+    if (!active_border_) return stxlib::Optional<ActiveBorderPose>::none();
     return (*active_border_).pose;
 }
 

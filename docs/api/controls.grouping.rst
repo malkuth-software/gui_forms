@@ -1759,7 +1759,7 @@ Related types
 
       Content-only owner drawing of the tabs (owner decision W-Q6; Windows Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw draw_item_content is raised for each painted tab's icon and label, with the tab's index and its page's stable ID; the tab's plate and focus cue stay painted by role. See PageStrip::draw_item_content.
 
-   .. cpp:member:: std::optional<std::size_t> selected_index
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_index
 
       The selected page's index, or none without pages. A write past the end throws std::out_of_range, none throws std::invalid_argument; deselecting and selecting may cancel it (see selected_index_changed). A view onto the selected page.
 
@@ -1843,11 +1843,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(TabControlSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(TabControlSelectedIndexCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const TabControlSelectedIndexCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const TabControlSelectedIndexCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, TabControlSelectedIndexCapability<Declaring>> selected_index
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, TabControlSelectedIndexCapability<Declaring>> selected_index
 
 .. cpp:namespace:: gui_forms
 
@@ -1948,9 +1948,9 @@ Related types
 
    TabSelectionChange reports previous/current tab indices and stable page identities after one accepted selection.
 
-   .. cpp:member:: std::optional<std::size_t> old_index
+   .. cpp:member:: stxlib::Optional<std::size_t> old_index
 
-   .. cpp:member:: std::optional<std::size_t> new_index
+   .. cpp:member:: stxlib::Optional<std::size_t> new_index
 
 .. cpp:namespace:: gui_forms
 
@@ -1970,7 +1970,7 @@ Related types
 
    .. rubric:: Extension points
 
-   .. cpp:function:: static std::optional<std::size_t> take_dirty(TextItemsCapability& capability, std::vector<std::uint32_t>& replaced)
+   .. cpp:function:: static stxlib::Optional<std::size_t> take_dirty(TextItemsCapability& capability, std::vector<std::uint32_t>& replaced)
 
       *Protected.*
 

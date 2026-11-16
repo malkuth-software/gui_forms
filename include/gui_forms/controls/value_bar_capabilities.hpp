@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -29,9 +30,9 @@ namespace gui_forms {
 // The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.
 template <typename Declaring>
 struct ValueBarSoftMinimumCapability {
-    PropertyCell<std::optional<double>, ValueBarSoftMinimumCapability<Declaring>> soft_minimum{std::nullopt};
+    PropertyCell<stxlib::Optional<double>, ValueBarSoftMinimumCapability<Declaring>> soft_minimum{};
 
-    static void assign(ValueBarSoftMinimumCapability& capability, std::optional<double> incoming) {
+    static void assign(ValueBarSoftMinimumCapability& capability, stxlib::Optional<double> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.soft_minimum), incoming);
         if (!capability.soft_minimum.replace(std::move(incoming))) return;
@@ -42,9 +43,9 @@ struct ValueBarSoftMinimumCapability {
 // The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.
 template <typename Declaring>
 struct ValueBarSoftMaximumCapability {
-    PropertyCell<std::optional<double>, ValueBarSoftMaximumCapability<Declaring>> soft_maximum{std::nullopt};
+    PropertyCell<stxlib::Optional<double>, ValueBarSoftMaximumCapability<Declaring>> soft_maximum{};
 
-    static void assign(ValueBarSoftMaximumCapability& capability, std::optional<double> incoming) {
+    static void assign(ValueBarSoftMaximumCapability& capability, stxlib::Optional<double> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.soft_maximum), incoming);
         if (!capability.soft_maximum.replace(std::move(incoming))) return;
@@ -55,9 +56,9 @@ struct ValueBarSoftMaximumCapability {
 // Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.
 template <typename Declaring>
 struct ValueBarSnapStepCapability {
-    PropertyCell<std::optional<double>, ValueBarSnapStepCapability<Declaring>> snap_step{std::nullopt};
+    PropertyCell<stxlib::Optional<double>, ValueBarSnapStepCapability<Declaring>> snap_step{};
 
-    static void assign(ValueBarSnapStepCapability& capability, std::optional<double> incoming) {
+    static void assign(ValueBarSnapStepCapability& capability, stxlib::Optional<double> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.snap_step), incoming);
         if (!capability.snap_step.replace(std::move(incoming))) return;
@@ -133,9 +134,9 @@ struct ValueBarLabelCapability {
 // Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.
 template <typename Declaring>
 struct ValueBarScrubRateCapability {
-    PropertyCell<std::optional<double>, ValueBarScrubRateCapability<Declaring>> scrub_rate{std::nullopt};
+    PropertyCell<stxlib::Optional<double>, ValueBarScrubRateCapability<Declaring>> scrub_rate{};
 
-    static void assign(ValueBarScrubRateCapability& capability, std::optional<double> incoming) {
+    static void assign(ValueBarScrubRateCapability& capability, stxlib::Optional<double> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.scrub_rate), incoming);
         if (!capability.scrub_rate.replace(std::move(incoming))) return;

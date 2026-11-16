@@ -43,7 +43,7 @@ SpinPartGeometry spin_part_geometry(const SpinButtons& spin) {
 
 SpinButtons::SpinButtons(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = false;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 AnatomyStateSet SpinButtons::half_states(SpinHalf half) const noexcept {
@@ -64,13 +64,13 @@ void paint_spin_half(Painter& painter, const Control& owner, Rect half, AnatomyS
     actuator.bounds = half;
     actuator.states = states;
     actuator.family = ControlVisualRole::button;
-    actuator.key = PartKey{arrow_part, {}, {}};
+    actuator.key.set(PartKey{arrow_part, {}, {}});
     paint_part(painter, owner, actuator);
     PartPaint glyph = actuator;
     glyph.role = PartRole::glyph;
     glyph.bounds = spin_glyph(half);
     glyph.mark = arrow;
-    glyph.key = PartKey{glyph_part, {}, {}};
+    glyph.key.set(PartKey{glyph_part, {}, {}});
     paint_part(painter, owner, glyph);
 }
 

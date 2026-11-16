@@ -154,6 +154,10 @@ jobs:
           # D15 (decision 6a): the standard-library rules, STXlib's check_std_rules
           # copied at 60dea8f; tools/std_rules_allowance.txt only shrinks.
           python3 -I tools/check_std_rules.py --config tools/std_rules.toml
+          # D15 (stage V0): the std:: census of the C++ surface only falls
+          # (manifests/std_surface_census.json).
+          python3 -B -m unittest discover -s tools -p test_std_surface_census.py
+          python3 -I tools/std_surface_census.py check
           # Every public declaration carries its library's export macro.
           python3 -B tools/export_annotations.py check
           # 1.0 condition 3: every control and member, supported, deferred or excluded.

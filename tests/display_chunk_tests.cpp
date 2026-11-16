@@ -26,6 +26,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -131,10 +132,10 @@ void test_plane_order_and_exposure_reuse() {
 
 void test_local_rebuild_and_generation() {
     Fixture fixture;
-    const std::optional<DisplayChunkInfo> root_before = (*fixture.root).display_chunk_info();
-    const std::optional<DisplayChunkInfo> control_before = (*fixture.control).display_chunk_info();
-    const std::optional<DisplayChunkInfo> overlay_before = (*fixture.overlay).display_chunk_info();
-    require(root_before && control_before && overlay_before,
+    const stxlib::Optional<DisplayChunkInfo> root_before = (*fixture.root).display_chunk_info();
+    const stxlib::Optional<DisplayChunkInfo> control_before = (*fixture.control).display_chunk_info();
+    const stxlib::Optional<DisplayChunkInfo> overlay_before = (*fixture.overlay).display_chunk_info();
+    require(root_before.present() && control_before.present() && overlay_before.present(),
             "initial paint must populate every display chunk");
 
     (*fixture.control).invalidate(invalidation::paint_only);
@@ -145,12 +146,14 @@ void test_local_rebuild_and_generation() {
     require(!damage.empty(), "control invalidation must damage the control plane");
     (*fixture.window).paint(fixture.painter, damage.bounds());
 
-    const std::optional<DisplayChunkInfo> root_after = (*fixture.root).display_chunk_info();
-    const std::optional<DisplayChunkInfo> control_after = (*fixture.control).display_chunk_info();
-    const std::optional<DisplayChunkInfo> overlay_after = (*fixture.overlay).display_chunk_info();
-    require((*root_after).generation == (*root_before).generation &&
-                (*overlay_after).generation == (*overlay_before).generation &&
-                (*control_after).generation > (*control_before).generation,
+    const stxlib::Optional<DisplayChunkInfo> root_after = (*fixture.root).display_chunk_info();
+    const stxlib::Optional<DisplayChunkInfo> control_after = (*fixture.control).display_chunk_info();
+    const stxlib::Optional<DisplayChunkInfo> overlay_after = (*fixture.overlay).display_chunk_info();
+    require(root_after.present() && control_after.present() && overlay_after.present(),
+            "every chunk is kept through the paint");
+    require((*root_after.value()).generation == (*root_before.value()).generation &&
+                (*overlay_after.value()).generation == (*overlay_before.value()).generation &&
+                (*control_after.value()).generation > (*control_before.value()).generation,
             "only the invalidated control chunk may advance generation");
     const MetricsSnapshot metrics = (*fixture.window).metrics_snapshot();
     require(metrics.display_chunks_rebuilt == 1 && metrics.display_chunks_reused == 2 &&
@@ -165,7 +168,7 @@ void test_plane_migration_damages_old_and_new_planes() {
             "paint-plane migration must clear the old plane");
     require(!(*fixture.window).take_damage(PaintPlane::overlay).empty(),
             "paint-plane migration must damage the new plane");
-    require(!(*fixture.control).display_chunk_info().has_value(),
+    require((*fixture.control).display_chunk_info().absent(),
             "paint-plane migration must discard an incompatible cached chunk");
 }
 
@@ -183,15 +186,16 @@ void test_arrangement_recomposes_every_plane() {
 
 void test_invalid_plane_rejection_preserves_state() {
     Fixture fixture;
-    const std::optional<DisplayChunkInfo> before = (*fixture.control).display_chunk_info();
+    const stxlib::Optional<DisplayChunkInfo> before = (*fixture.control).display_chunk_info();
     bool setter_rejected = false;
     try {
         (*fixture.control).set_paint_plane(static_cast<PaintPlane>(99));
     } catch (const std::invalid_argument&) {
         setter_rejected = true;
     }
-    require(setter_rejected && (*fixture.control).paint_plane() == PaintPlane::control &&
-                (*(*fixture.control).display_chunk_info()).generation == (*before).generation,
+    const stxlib::Optional<DisplayChunkInfo> after = (*fixture.control).display_chunk_info();
+    require(setter_rejected && (*fixture.control).paint_plane() == PaintPlane::control && before.present() &&
+                after.present() && (*after.value()).generation == (*before.value()).generation,
             "invalid paint-plane mutation must be rejected without changing cache state");
 
     (*fixture.control).invalidate(invalidation::paint_only);
@@ -287,8 +291,8 @@ public:
         part.role = role;
         part.bounds = local_bounds();
         part.family = ControlVisualRole::panel;
-        part.authored_background = colour;
-        part.corner_radius = 0.0;
+        part.authored_background.set(colour);
+        part.corner_radius.set(0.0);
         paint_part(painter, *this, part);
     }
     PartRole role{PartRole::well};

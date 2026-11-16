@@ -654,7 +654,7 @@ Related types
 
    .. cpp:member:: std::size_t nodes
 
-   .. cpp:member:: std::optional<LinkId> link
+   .. cpp:member:: stxlib::Optional<LinkId> link
 
 .. cpp:namespace:: gui_forms
 
@@ -989,7 +989,7 @@ Related types
 
    .. cpp:member:: Point local
 
-   .. cpp:member:: std::optional<PortRef> from
+   .. cpp:member:: stxlib::Optional<PortRef> from
 
 .. cpp:namespace:: gui_forms
 
@@ -2000,7 +2000,7 @@ Related types
 
    .. cpp:function:: SubSurfaceStatistics statistics() const
 
-   .. cpp:function:: std::optional<Rect> text_input_caret() const
+   .. cpp:function:: stxlib::Optional<Rect> text_input_caret() const
 
       The sub-surface's text input caret (SurfaceRoot::text_input_caret) in its own coordinates, as its thread last published it at the end of a turn; none while nothing there has focus (design note section 4: the input method follows it without a synchronous call).
 

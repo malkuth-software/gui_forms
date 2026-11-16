@@ -84,17 +84,17 @@ constexpr std::uint32_t maximum_semantic_snapshot_passes = 4;
 // (audit B11: its own bound, no longer the semantic snapshot's).
 constexpr std::uint32_t maximum_hit_test_passes = 4;
 
-[[nodiscard]] std::optional<char32_t> physical_mnemonic(
+[[nodiscard]] stxlib::Optional<char32_t> physical_mnemonic(
     std::uint32_t physical_key) noexcept {
     // USB HID keyboard usages are contiguous for A-Z and for 1-9,0.
     if (physical_key >= 0x04U && physical_key <= 0x1DU) {
-        return U'a' + static_cast<char32_t>(physical_key - 0x04U);
+        return stxlib::Optional<char32_t>::of(U'a' + static_cast<char32_t>(physical_key - 0x04U));
     }
     if (physical_key >= 0x1EU && physical_key <= 0x26U) {
-        return U'1' + static_cast<char32_t>(physical_key - 0x1EU);
+        return stxlib::Optional<char32_t>::of(U'1' + static_cast<char32_t>(physical_key - 0x1EU));
     }
-    if (physical_key == 0x27U) return U'0';
-    return std::nullopt;
+    if (physical_key == 0x27U) return stxlib::Optional<char32_t>::of(U'0');
+    return stxlib::Optional<char32_t>::none();
 }
 
 // The position after `visited` (found at `position`) in `parent`'s child
@@ -1276,9 +1276,9 @@ bool SurfaceRoot::dispatch_dialog_key(const KeyEvent& event) {
     const bool control = has_modifier(event.modifiers, Modifier::control);
     const bool meta = has_modifier(event.modifiers, Modifier::meta);
     if (alt && !control && !meta) {
-        const std::optional<char32_t> character =
+        const stxlib::Optional<char32_t> character =
             physical_mnemonic(event.physical_key);
-        if (character) return dispatch_mnemonic(*character);
+        if (character.present()) return dispatch_mnemonic(*character.value());
     }
     if (!alt && !control && !meta) {
         if (event.physical_key == PhysicalKey::enter) {
@@ -1642,15 +1642,18 @@ std::vector<Control::Ptr> SurfaceRoot::focus_candidates(
     return result;
 }
 
-std::optional<Rect> SurfaceRoot::text_input_caret() {
+stxlib::Optional<Rect> SurfaceRoot::text_input_caret() {
     require_root_thread("text input caret");
     const Control::Ptr focused = focused_.lock();
-    if (!focused || !eligible(focused)) return std::nullopt;
+    if (!focused || !eligible(focused)) return stxlib::Optional<Rect>::none();
     const Rect bounds = (*focused).absolute_bounds();
-    const std::optional<Rect> local = (*focused).text_input_caret();
+    const stxlib::Optional<Rect> local = (*focused).text_input_caret();
     Rect caret{bounds.x, bounds.y, 1.0, bounds.height};
-    if (local) caret = Rect{bounds.x + (*local).x, bounds.y + (*local).y, (*local).width, (*local).height};
-    return caret;
+    if (local.present()) {
+        const Rect& own = *local.value();
+        caret = Rect{bounds.x + own.x, bounds.y + own.y, own.width, own.height};
+    }
+    return stxlib::Optional<Rect>::of(caret);
 }
 
 bool SurfaceRoot::move_focus(bool forward) {
@@ -3959,7 +3962,7 @@ void SurfaceRoot::sync_invalidation_overlay() {
     }
 }
 
-void SurfaceRoot::set_invalidation_overlay(std::optional<bool> enabled) {
+void SurfaceRoot::set_invalidation_overlay(stxlib::Optional<bool> enabled) {
     require_root_thread("invalidation overlay setting");
     invalidation_overlay_setting_ = enabled;
     // Applied by the next sync, as a process switch change is.

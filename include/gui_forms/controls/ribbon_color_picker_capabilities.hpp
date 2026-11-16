@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <utility>
 
@@ -43,16 +44,16 @@ struct RibbonColorPickerCommandCapability {
 // The colour shown, or none for Automatic: the command's, or the picker's own. A write goes to the command's set_value when there is one.
 template <typename Declaring>
 struct RibbonColorPickerValueCapability {
-    PropertyView<std::optional<Color>, RibbonColorPickerValueCapability<Declaring>> value;
+    PropertyView<stxlib::Optional<Color>, RibbonColorPickerValueCapability<Declaring>> value;
 
-    static void assign(RibbonColorPickerValueCapability& capability, std::optional<Color> incoming) {
+    static void assign(RibbonColorPickerValueCapability& capability, stxlib::Optional<Color> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.write_view(std::as_const(capability.value), std::move(incoming));
     }
 
-    static std::optional<Color> read(const RibbonColorPickerValueCapability& capability) {
+    static stxlib::Optional<Color> read(const RibbonColorPickerValueCapability& capability) {
         const Declaring& control = static_cast<const Declaring&>(capability);
-        std::optional<Color> current = control.read_view(capability.value);
+        stxlib::Optional<Color> current = control.read_view(capability.value);
         return current;
     }
 };

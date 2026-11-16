@@ -127,7 +127,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
                 (*tree_list).row_node_id(0U) == "root",
             "the TreeListView must show the fixture with root, src and controls expanded");
     require((*tree_list).on_semantic_child_action("gallery.tree.tree-list.column.name", SemanticAction::press, {}) &&
-                (*tree_list).sort_column() == 0U && (*tree_list).row_node_id(1U) == "assets" &&
+                (*tree_list).sort_column() == stxlib::Optional<std::size_t>::of(0U) && (*tree_list).row_node_id(1U) == "assets" &&
                 (*status).text.read().find("TreeListView siblings sorted by Name ascending") == 0U,
             "pressing a TreeListView header must sort the siblings and report it");
 
@@ -136,27 +136,27 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     const std::shared_ptr<DataGridView> grid =
         std::dynamic_pointer_cast<DataGridView>(window.find("gallery.tree.grid"));
     require(grid != nullptr, "the page must hold the project grid");
-    const std::optional<std::size_t> preview = (*grid).column_index("preview");
-    const std::optional<DataGridViewRowPosition> logo = (*grid).row_position(DataGridViewRowId{"logo.png"});
-    const std::optional<DataGridViewRowPosition> source = (*grid).row_position(DataGridViewRowId{"button.cpp"});
-    require(preview && logo && source && (*grid).columns()[*preview].kind == DataGridViewColumnKind::image,
+    const stxlib::Optional<std::size_t> preview = (*grid).column_index("preview");
+    const stxlib::Optional<DataGridViewRowPosition> logo = (*grid).row_position(DataGridViewRowId{"logo.png"});
+    const stxlib::Optional<DataGridViewRowPosition> source = (*grid).row_position(DataGridViewRowId{"button.cpp"});
+    require(preview.present() && logo.present() && source.present() && (*grid).columns()[*preview.value()].kind == DataGridViewColumnKind::image,
             "the grid must have an image column and the fixture's files");
-    const BindingValue logo_value = (*grid).cell_value(*logo, *preview);
+    const BindingValue logo_value = (*grid).cell_value(*logo.value(), *preview.value());
     const ImageId* const logo_image = std::get_if<ImageId>(&logo_value);
     require(logo_image != nullptr && (*logo_image).value != 0U &&
-                (*grid).cell_text(*logo, *preview) == "Image preview" &&
-                (*grid).cell_text(*source, *preview).empty(),
+                (*grid).cell_text(*logo.value(), *preview.value()) == "Image preview" &&
+                (*grid).cell_text(*source.value(), *preview.value()).empty(),
             "the PNG file's preview cell must hold the installed image, and a source file's none");
 
     // The link column: every file's link shows the column's text, and
     // pressing it follows the link, which is then visited.
-    const std::optional<std::size_t> history = (*grid).column_index("history");
-    require(history && (*grid).columns()[*history].kind == DataGridViewColumnKind::link &&
-                (*grid).cell_text(*source, *history) == "Changes" && !(*grid).link_visited(*source, *history),
+    const stxlib::Optional<std::size_t> history = (*grid).column_index("history");
+    require(history.present() && (*grid).columns()[*history.value()].kind == DataGridViewColumnKind::link &&
+                (*grid).cell_text(*source.value(), *history.value()) == "Changes" && !(*grid).link_visited(*source.value(), *history.value()),
             "the grid must have a link column whose empty cells show its text");
     require((*grid).on_semantic_child_action("button.cpp.history", SemanticAction::press, {}) &&
                 (*status).text.read().find("History of button.cpp") == 0U &&
-                (*grid).link_visited(*(*grid).row_position(DataGridViewRowId{"button.cpp"}), *history),
+                (*grid).link_visited(*source.value(), *history.value()),
             "pressing a link cell must report the link and leave it visited");
 
     // VirtualRowsView: the seeded message history, measured only near its

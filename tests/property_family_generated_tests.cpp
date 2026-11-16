@@ -210,12 +210,12 @@ void test_block_panel_properties() {
         expect((*control).text_align.read() == sample, "BlockPanel.text_align: a write stores");
     }
     {
-        const std::optional<LineStrut> sample = LineStrut{4.0, 2.0, 1.0};
+        const stxlib::Optional<LineStrut> sample = stxlib::Optional<LineStrut>::of(LineStrut{4.0, 2.0, 1.0});
         (*control).line_strut = sample;
         expect((*control).line_strut.read() == sample, "BlockPanel.line_strut: a write stores");
     }
     {
-        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        const stxlib::Optional<FontSpec> sample = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false});
         (*control).font = sample;
         expect((*control).font.read() == sample, "BlockPanel.font: a write stores");
     }
@@ -367,7 +367,7 @@ void test_button_base_properties() {
         expect((*control).use_mnemonic.read() == sample, "ButtonBase.use_mnemonic: a write stores");
     }
     {
-        const std::optional<bool> sample = std::optional<bool>{true};
+        const stxlib::Optional<bool> sample = stxlib::Optional<bool>::of(true);
         int raises = 0;
         const SubscriptionToken token = (*control).expanded_changed().subscribe(RaiseCounter{&raises});
         (*control).expanded_state = sample;
@@ -721,12 +721,12 @@ void test_data_grid_view_properties() {
         expect((*control).enable_headers_visual_styles.read() == sample, "DataGridView.enable_headers_visual_styles: a write stores");
     }
     {
-        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10U, 20U, 30U)};
+        const stxlib::Optional<Color> sample = stxlib::Optional<Color>::of(Color::rgba(10U, 20U, 30U));
         (*control).grid_color = sample;
         expect((*control).grid_color.read() == sample, "DataGridView.grid_color: a write stores");
     }
     {
-        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10U, 20U, 30U)};
+        const stxlib::Optional<Color> sample = stxlib::Optional<Color>::of(Color::rgba(10U, 20U, 30U));
         (*control).background_color = sample;
         expect((*control).background_color.read() == sample, "DataGridView.background_color: a write stores");
     }
@@ -1319,11 +1319,11 @@ void test_indicator_lamp_properties() {
                "IndicatorLamp.light_planes: the table reads the cell");
     }
     {
-        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10, 20, 30)};
+        const stxlib::Optional<Color> sample = stxlib::Optional<Color>::of(Color::rgba(10, 20, 30));
         (*control).lamp_color = sample;
         expect((*control).lamp_color.read() == sample, "IndicatorLamp.lamp_color: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("lamp_color");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<Color>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<Color>>::to_binding(sample),
                "IndicatorLamp.lamp_color: the table reads the cell");
     }
 }
@@ -1385,7 +1385,7 @@ void test_label_properties() {
                "Label.text: the table reads the cell");
     }
     {
-        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        const stxlib::Optional<FontSpec> sample = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false});
         (*control).font = sample;
         expect((*control).font.read() == sample, "Label.font: a write stores");
         expect((*control).property_value("font").has_value(), "Label.font: the table reads it");
@@ -2275,7 +2275,7 @@ void test_progress_bar_properties() {
                "ProgressBar.effect: the table reads the cell");
     }
     {
-        const std::optional<std::uint64_t> sample = std::uint64_t{7U};
+        const stxlib::Optional<std::uint64_t> sample = stxlib::Optional<std::uint64_t>::of(7U);
         (*control).effect_seed = sample;
         expect((*control).effect_seed.read() == sample, "ProgressBar.effect_seed: a write stores");
         expect((*control).property_value("effect_seed").has_value(), "ProgressBar.effect_seed: the table reads it");
@@ -2742,12 +2742,12 @@ void test_split_container_properties() {
         expect((*control).second_minimum.read() == sample, "SplitContainer.second_minimum: a write stores");
     }
     {
-        const std::optional<double> sample = std::optional<double>{400.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(400.0);
         (*control).first_maximum = sample;
         expect((*control).first_maximum.read() == sample, "SplitContainer.first_maximum: a write stores");
     }
     {
-        const std::optional<double> sample = std::optional<double>{400.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(400.0);
         (*control).second_maximum = sample;
         expect((*control).second_maximum.read() == sample, "SplitContainer.second_maximum: a write stores");
     }
@@ -2921,7 +2921,7 @@ void test_text_block_properties() {
                "TextBlock.text: the table reads the cell");
     }
     {
-        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        const stxlib::Optional<FontSpec> sample = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false});
         (*control).font = sample;
         expect((*control).font.read() == sample, "TextBlock.font: a write stores");
         expect((*control).property_value("font").has_value(), "TextBlock.font: the table reads it");
@@ -2935,7 +2935,7 @@ void test_text_block_properties() {
                "TextBlock.text_align: the table reads the cell");
     }
     {
-        const std::optional<double> sample = 18.0;
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(18.0);
         (*control).line_height = sample;
         expect((*control).line_height.read() == sample, "TextBlock.line_height: a write stores");
         expect((*control).property_value("line_height").has_value(), "TextBlock.line_height: the table reads it");
@@ -3262,27 +3262,27 @@ void test_typography_specimen_properties() {
 void test_value_bar_properties() {
     std::shared_ptr<ValueBar> control = make_control<ValueBar>(StableId("generated.valuebar"));
     {
-        const std::optional<double> sample = std::optional<double>{10.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(10.0);
         (*control).soft_minimum = sample;
         expect((*control).soft_minimum.read() == sample, "ValueBar.soft_minimum: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("soft_minimum");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.soft_minimum: the table reads the cell");
     }
     {
-        const std::optional<double> sample = std::optional<double>{90.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(90.0);
         (*control).soft_maximum = sample;
         expect((*control).soft_maximum.read() == sample, "ValueBar.soft_maximum: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("soft_maximum");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.soft_maximum: the table reads the cell");
     }
     {
-        const std::optional<double> sample = std::optional<double>{5.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(5.0);
         (*control).snap_step = sample;
         expect((*control).snap_step.read() == sample, "ValueBar.snap_step: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("snap_step");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.snap_step: the table reads the cell");
     }
     {
@@ -3326,11 +3326,11 @@ void test_value_bar_properties() {
                "ValueBar.label: the table reads the cell");
     }
     {
-        const std::optional<double> sample = std::optional<double>{0.5};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(0.5);
         (*control).scrub_rate = sample;
         expect((*control).scrub_rate.read() == sample, "ValueBar.scrub_rate: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("scrub_rate");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.scrub_rate: the table reads the cell");
     }
 }

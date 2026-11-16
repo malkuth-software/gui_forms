@@ -222,7 +222,7 @@ ButtonBase::ButtonBase(StableId stable_id, std::string initial_text)
     // As in WinForms, a button raises no DoubleClick: each press it counts
     // as part of a double-click is a Click of its own.
     Control::set_style(ControlStyles::standard_double_click, false);
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 bool ButtonBase::should_serialize_image() const noexcept {
@@ -801,8 +801,9 @@ AnatomyStateSet ButtonBase::button_anatomy_states() const {
         states.erase(AnatomyState::normal);
         states.insert(AnatomyState::hot);
     }
-    if (expanded_state.read().has_value()) {
-        if (*expanded_state.read()) {
+    const bool* expanded = expanded_state.read().value();
+    if (expanded != nullptr) {
+        if (*expanded) {
             states.insert(AnatomyState::open);
         } else {
             states.insert(AnatomyState::closed);
@@ -866,10 +867,10 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         face.role = PartRole::face;
         face.bounds = visual_bounds;
         face.states = states;
-        face.key = PartKey{"face", {}, {}};
+        face.key.set(PartKey{"face", {}, {}});
         if (authored) {
-            face.authored_background = (*authored).face;
-            face.authored_foreground = (*authored).text;
+            face.authored_background.set((*authored).face);
+            face.authored_foreground.set((*authored).text);
         }
         paint_part(painter, *this, face);
         if (layer.state) {
@@ -879,7 +880,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
             states.insert(*layer.state);
             PartPaint lit = face;
             lit.states = states;
-            lit.key = PartKey{"face", "layer", {}};
+            lit.key.set(PartKey{"face", "layer", {}});
             const double level = std::clamp(layer.level, 0.0, 1.0);
             painter.begin_group(PaintGroup{.bounds = visual_bounds, .opacity = level});
             paint_part(painter, *this, lit);
@@ -894,7 +895,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         cue.role = PartRole::preselect;
         paint_part(painter, *this, cue);
         cue.role = PartRole::focus;
-        cue.key = PartKey{"focus", {}, {}};
+        cue.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, cue);
     } else {
         paint_connected_surface_material(
@@ -913,7 +914,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
             cue.family = role;
             cue.bounds = visual_bounds;
             cue.states = states;
-            cue.corner_radius = 0.0;
+            cue.corner_radius.set(0.0);
             cue.role = PartRole::preselect;
             paint_part(painter, *this, cue);
             cue.role = PartRole::focus;
@@ -929,9 +930,9 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     ink.family = role;
     ink.states = states;
     if (authored) {
-        ink.authored = (*authored).text;
+        ink.authored.set((*authored).text);
     } else if (!engine_drawn) {
-        ink.authored = recipe.text;
+        ink.authored.set(recipe.text);
     }
     paint_leading_mark(painter, visual_bounds, layer.leading_mark, command_alignment, role, states, offset);
     const std::string display = display_text();
@@ -945,14 +946,14 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     // text, else the theme's.
     const bool authored = style_override_.has_value();
     const BasicControlStyle& colours = style();
-    const std::optional<Color> own_face = back_color.read();
-    const std::optional<Color> own_ink = fore_color.read();
-    if (own_face) {
+    const Color* own_face = back_color.read().value();
+    const Color* own_ink = fore_color.read().value();
+    if (own_face != nullptr) {
         painter.fill_rect(bounds, *own_face);
     } else if (authored && (*style_override_).face_light.alpha != 0U) {
         painter.fill_rect(bounds, (*style_override_).face_light);
     }
-    const Color ink = own_ink ? *own_ink : authored ? (*style_override_).text : colours.text;
+    const Color ink = own_ink != nullptr ? *own_ink : authored ? (*style_override_).text : colours.text;
     // WinForms derives the hover and pressed faces from the face; a veil of
     // the ink stands for both (12% hot, 24% pressed).
     if (effectively_enabled() && (hovered_ || pressed_visual())) {
@@ -976,14 +977,14 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     cue.family = ControlVisualRole::button;
     cue.bounds = bounds;
     cue.states = states;
-    cue.corner_radius = 0.0;
+    cue.corner_radius.set(0.0);
     cue.role = PartRole::focus;
-    cue.key = PartKey{"focus", {}, {}};
+    cue.key.set(PartKey{"focus", {}, {}});
     paint_part(painter, *this, cue);
     ButtonContentInk content_ink;
     content_ink.family = ControlVisualRole::button;
     content_ink.states = states;
-    if (own_ink || authored) content_ink.authored = ink;
+    if (own_ink || authored) content_ink.authored.set(ink);
     // A flat button draws no face to light; its content and mark still
     // take the layer's state.
     const FaceLayer layer = face_layer();
@@ -1152,10 +1153,10 @@ SemanticDescriptor ButtonBase::semantic_descriptor() const {
     } else {
         // A normal status publishes no state.
     }
-    if (expanded_state.read()) {
-        if (*expanded_state.read()) descriptor.states |= SemanticState::expanded;
-        descriptor.actions.push_back(*expanded_state.read() ? SemanticAction::collapse
-                                                      : SemanticAction::expand);
+    const bool* expanded = expanded_state.read().value();
+    if (expanded != nullptr) {
+        if (*expanded) descriptor.states |= SemanticState::expanded;
+        descriptor.actions.push_back(*expanded ? SemanticAction::collapse : SemanticAction::expand);
     }
     descriptor.exposed = true;
     return descriptor;
@@ -1165,9 +1166,9 @@ bool ButtonBase::on_semantic_action(SemanticAction action, std::string_view valu
     if (action == SemanticAction::press) {
         return perform_click();
     }
-    if (expanded_state.read() &&
-        ((action == SemanticAction::expand && !*expanded_state.read()) ||
-         (action == SemanticAction::collapse && *expanded_state.read()))) {
+    const bool* expanded = expanded_state.read().value();
+    if (expanded != nullptr &&
+        ((action == SemanticAction::expand && !*expanded) || (action == SemanticAction::collapse && *expanded))) {
         on_activate();
         return true;
     }
@@ -1178,7 +1179,7 @@ namespace {
 
 // The events ButtonBase adds to those of Control, in declaration order.
 constexpr std::array<InteractionDeclaration, 3> button_base_interactions{{
-    {.name = "expanded_changed", .payload = "std::optional<bool>", .mutable_payload = false},
+    {.name = "expanded_changed", .payload = "stxlib::Optional<bool>", .mutable_payload = false},
     {.name = "clicked", .payload = "ButtonBase", .mutable_payload = true},
     {.name = "text_changed", .payload = "std::string", .mutable_payload = false},
 }};
@@ -1445,7 +1446,7 @@ void ButtonBase::written(const decltype(use_mnemonic)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
-void ButtonBase::prepare_write(const decltype(expanded_state)&, std::optional<bool>&) {
+void ButtonBase::prepare_write(const decltype(expanded_state)&, stxlib::Optional<bool>&) {
     require_mutable();
 }
 

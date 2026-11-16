@@ -278,7 +278,7 @@ void refusals() {
 
 void solid_and_border() {
     SurfaceMaterial material = solid_material(red);
-    material.border = MaterialBorder{blue, 1.0};
+    material.border.set(MaterialBorder{blue, 1.0});
     const TestRaster raster = draw(material, Size{20.0, 10.0}, 1.0);
     require(raster.extent.width == 36U && raster.extent.height == 26U, "the destination covers the outsets");
     require(raster.pixel(2U, 2U) == (std::array<std::uint8_t, 4>{0U, 0U, 0U, 0U}),
@@ -393,7 +393,7 @@ void keylines_and_inset_shadow() {
     require(shaded.pixel(4U, 14U)[3] == 0U, "and stays inside the box");
 
     SurfaceMaterial edged = solid_material(red);
-    edged.border_edges.bottom = MaterialBorder{blue, 2.0};
+    edged.border_edges.bottom.set(MaterialBorder{blue, 2.0});
     const TestRaster edge = draw(edged, Size{20.0, 12.0}, 1.0);
     require(edge.pixel(18U, 19U) == (std::array<std::uint8_t, 4>{0U, 0U, 255U, 255U}) &&
                 edge.pixel(18U, 18U) == (std::array<std::uint8_t, 4>{0U, 0U, 255U, 255U}) &&
@@ -779,7 +779,8 @@ void gloss_preset() {
                 gloss.keylines[0].width == 1.0 && gloss.keylines[0].inset == 1.0 &&
                 gloss.keylines[0].color == colours.shine,
             "a 1-unit shine under the top, inside the border");
-    require(gloss.border && (*gloss.border).width == 1.0 && gloss.corner_radius == 3.0, "a 1-unit border");
+    require(gloss.border.present() && (*gloss.border.value()).width == 1.0 && gloss.corner_radius == 3.0,
+            "a 1-unit border");
     bool refused = false;
     try {
         static_cast<void>(gloss_material(colours, -1.0));
@@ -1239,7 +1240,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, size.width, size.height};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         if (!enabled.read()) part.states.insert(AnatomyState::disabled);
         return part;
     }
@@ -1455,18 +1456,18 @@ void measure() {
     SurfaceMaterial rounded_base = base;
     rounded_base.corner_radius = 8.0;
     SurfaceMaterial border = rounded_base;
-    border.border = MaterialBorder{blue, 1.0};
+    border.border.set(MaterialBorder{blue, 1.0});
     // A dashed border's pattern (E9.6), past the solid ring's cost, per
     // pixel of the ring, at its dearest: a border 64 wide on a box rounded
     // to a circle, so that every ring pixel is on an arc. The ring lies
     // between radii 120 and 56.
     SurfaceMaterial thick = round_box;
-    thick.border = MaterialBorder{blue, 64.0};
+    thick.border.set(MaterialBorder{blue, 64.0});
     SurfaceMaterial dashed = thick;
-    (*dashed.border).style = MaterialBorderStyle::dashed;
+    (*dashed.border.value()).style = MaterialBorderStyle::dashed;
     const double ring_pixels = 3.14159265358979323846 * (120.0 * 120.0 - 56.0 * 56.0);
     SurfaceMaterial edge = base;
-    edge.border_edges.top = MaterialBorder{blue, 1.0};
+    edge.border_edges.top.set(MaterialBorder{blue, 1.0});
     SurfaceMaterial keyline = base;
     keyline.keylines.push_back(MaterialKeyline{MaterialEdge::top, blue, 1.0, 0.0});
     // The part filters (E9.6), each over the plain base. A box blur's cost
@@ -1474,7 +1475,7 @@ void measure() {
     SurfaceMaterial colour_filtered = base;
     colour_filtered.colour_filter = MaterialColourMatrix::sepia(1.0);
     SurfaceMaterial drop_shadowed = base;
-    drop_shadowed.drop_shadow = MaterialDropShadow{Point{0.0, 2.0}, 4.0, black};
+    drop_shadowed.drop_shadow.set(MaterialDropShadow{Point{0.0, 2.0}, 4.0, black});
     SurfaceMaterial blurred = base;
     blurred.filter_blur = 5.0;
     // A multiply fill (E9.6) against a normal one: the face gathered apart.
@@ -1502,7 +1503,8 @@ void measure() {
     // bottom edge, every line drawn; charged per reflected pixel, of which
     // there are 8 lines of the 240-pixel box's width.
     SurfaceMaterial reflected = base;
-    reflected.reflection = MaterialReflection{MaterialEdge::bottom, 0.0, SurfaceMaterial::maximum_reflection_reach, 1.0, 1.0};
+    reflected.reflection.set(MaterialReflection{MaterialEdge::bottom, 0.0, SurfaceMaterial::maximum_reflection_reach,
+                                                1.0, 1.0});
 
     const double per_pixel_solid = (median_bake_nanoseconds(solid, nullptr) - base_time) / pixels;
     const double per_pixel_linear = (median_bake_nanoseconds(linear, nullptr) - base_time) / pixels;
@@ -1572,7 +1574,7 @@ void measure() {
 void surface_finish() {
     const Color face = Color::rgba(120, 160, 200);
     SurfaceMaterial material = solid_material(face);
-    material.border = MaterialBorder{Color::rgba(40, 60, 90), 1.0};
+    material.border.set(MaterialBorder{Color::rgba(40, 60, 90), 1.0});
     material.corner_radius = 3.0;
     require(finished_surface_material(material) == material, "a material without a finish is drawn as it is");
     material.finish = 1.0;
@@ -1819,7 +1821,7 @@ void bake_spans_match_every_pixel() {
     std::vector<SurfaceMaterial> materials{};
     materials.push_back(solid_material(Color::rgba(240, 240, 244)));
     SurfaceMaterial bordered = materials.back();
-    bordered.border = MaterialBorder{Color::rgba(90, 100, 120), 1.0};
+    bordered.border.set(MaterialBorder{Color::rgba(90, 100, 120), 1.0});
     bordered.corner_radius = 4.0;
     materials.push_back(bordered);
     SurfaceMaterial vertical = bordered;
@@ -1848,13 +1850,13 @@ void bake_spans_match_every_pixel() {
     edged.corner_radius = 6.0;
     edged.keylines.push_back(MaterialKeyline{MaterialEdge::top, blue, 1.0, 0.0});
     edged.keylines.push_back(MaterialKeyline{MaterialEdge::left, white_half, 2.0, 1.0});
-    edged.border_edges.bottom = MaterialBorder{blue, 2.0};
+    edged.border_edges.bottom.set(MaterialBorder{blue, 2.0});
     materials.push_back(edged);
     SurfaceMaterial lit = solid_material(red);
     lit.glows.push_back(glow_of(white_half, 2.0, 0.0));
     materials.push_back(lit);
     SurfaceMaterial dashed = bordered;
-    dashed.border = MaterialBorder{blue, 2.0, MaterialBorderStyle::dashed};
+    dashed.border.set(MaterialBorder{blue, 2.0, MaterialBorderStyle::dashed});
     materials.push_back(dashed);
     const std::array<Size, 3> sizes{Size{120.0, 28.0}, Size{400.0, 300.0}, Size{37.5, 19.25}};
     const std::array<double, 3> scales{1.0, 1.5, 2.0};

@@ -29,9 +29,11 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 
 namespace {
 
@@ -427,23 +429,23 @@ void test_window_and_program_switches() {
     settings.initial_delay = 1ms;
     fixture.window.set_tool_tip_settings(settings);
     (*fixture.button).tool_tip_text = "Switched help";
-    require(!fixture.window.tool_tips_shown_setting() && fixture.window.tool_tips_shown(),
+    require(fixture.window.tool_tips_shown_setting().absent() && fixture.window.tool_tips_shown(),
             "a window follows the program, which shows tooltips by default");
     hover(fixture.window, {60.0, 60.0});
     fire_next(fixture.window);
     require(fixture.window.tool_tip_visible(), "the tooltip shows");
-    fixture.window.set_tool_tips_shown(false);
+    fixture.window.set_tool_tips_shown(stxlib::Optional<bool>::of(false));
     require(!fixture.window.tool_tip_visible(), "turning the window's tooltips off closes the one that shows");
     hover(fixture.window, {390.0, 210.0});
     hover(fixture.window, {60.0, 60.0});
     require(!fixture.window.next_wake(), "a window with tooltips off waits for nothing");
-    fixture.window.set_tool_tips_shown(std::nullopt);
+    fixture.window.set_tool_tips_shown(stxlib::Optional<bool>::none());
     application.set_tool_tips_shown(false);
     require(!fixture.window.tool_tips_shown(), "an unset window follows the program's switch");
     hover(fixture.window, {390.0, 210.0});
     hover(fixture.window, {60.0, 60.0});
     require(!fixture.window.next_wake(), "the program's switch stops the wait");
-    fixture.window.set_tool_tips_shown(true);
+    fixture.window.set_tool_tips_shown(stxlib::Optional<bool>::of(true));
     require(fixture.window.tool_tips_shown(), "the window's own switch wins over the program's");
     hover(fixture.window, {390.0, 210.0});
     hover(fixture.window, {60.0, 60.0});
@@ -451,7 +453,7 @@ void test_window_and_program_switches() {
     require(fixture.window.tool_tip_visible(), "a window switched on shows its tooltips");
     application.set_tool_tips_shown(true);
     fixture.window.show_tool_tip(fixture.button, 0ms);
-    fixture.window.set_tool_tips_shown(false);
+    fixture.window.set_tool_tips_shown(stxlib::Optional<bool>::of(false));
     require(fixture.window.tool_tip_visible(), "a tooltip the program showed stays whatever the switches");
     fixture.window.hide_tool_tip();
     require(!fixture.window.tool_tip_visible(), "hide closes it");
@@ -671,7 +673,7 @@ void test_tab_header_tooltips() {
     require(window.tool_tip_visible() && window.tool_tip_item_id() == "tab-tips.second.tab" &&
                 window.tool_tip_text() == "Network and cache settings",
             "resting over the header shows the page's tooltip");
-    (*tabs).selected_index = 1U;
+    (*tabs).selected_index = stxlib::Optional<std::size_t>::of(1U);
     window.perform_layout();
     hover(window, {200.0, 160.0});
     require(!window.tool_tip_visible(), "leaving the header closes it");
@@ -809,8 +811,8 @@ void test_tooltip_ink_is_black_and_ignores_inherited_colours() {
     Fixture fixture;
     const Color white = Color::rgba(255, 255, 255);
     const Color night = Color::rgba(32, 34, 40);
-    (*fixture.root).fore_color = white;
-    (*fixture.root).back_color = night;
+    (*fixture.root).fore_color = stxlib::Optional<Color>::of(white);
+    (*fixture.root).back_color = stxlib::Optional<Color>::of(night);
     ToolTip tips(fixture.window);
     tips.initial_delay = 30ms;
     tips.auto_pop_delay = 2000ms;

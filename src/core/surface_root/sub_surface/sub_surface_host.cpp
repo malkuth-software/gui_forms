@@ -603,9 +603,9 @@ void SubSurfaceHost::hold_capture_for(const PointerEvent& event) {
     took_capture_ = false;
 }
 
-std::optional<Rect> SubSurfaceHost::text_input_caret() const {
-    if (!thread_) return std::nullopt;
-    const std::optional<Rect> caret = (*thread_).text_input_caret();
+stxlib::Optional<Rect> SubSurfaceHost::text_input_caret() const {
+    if (!thread_) return stxlib::Optional<Rect>::none();
+    const stxlib::Optional<Rect> caret = (*thread_).text_input_caret();
     return caret;
 }
 

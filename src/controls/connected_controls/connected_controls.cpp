@@ -15,10 +15,10 @@ bool valid_axis(const ConnectedControlAxis axis) noexcept {
            axis == ConnectedControlAxis::vertical;
 }
 
-std::optional<MaterialBorder> leading_border(
+stxlib::Optional<MaterialBorder> leading_border(
     const SurfaceMaterial& material,
     const ConnectedControlAxis axis) noexcept {
-    if (material.border) return material.border;
+    if (material.border.present()) return material.border;
     return axis == ConnectedControlAxis::horizontal
         ? material.border_edges.left : material.border_edges.top;
 }
@@ -116,9 +116,9 @@ ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(
     }
 
     if (has_leading) {
-        const std::optional<MaterialBorder> border =
-            leading_border(material, (*topology).axis);
-        if (border && std::isfinite((*border).width) && (*border).width > 0.0) {
+        const stxlib::Optional<MaterialBorder> leading = leading_border(material, (*topology).axis);
+        const MaterialBorder* const border = leading.value();
+        if (border != nullptr && std::isfinite((*border).width) && (*border).width > 0.0) {
             ConnectedControlSeam seam;
             seam.color = (*border).color;
             seam.width = (*border).width;

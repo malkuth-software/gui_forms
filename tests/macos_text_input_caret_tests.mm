@@ -12,7 +12,7 @@
 #include <exception>
 #include <functional>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -30,8 +30,8 @@ public:
     explicit CaretControl(gui_forms::StableId stable_id) : Control(std::move(stable_id)) {
         focusable = true;
     }
-    [[nodiscard]] std::optional<gui_forms::Rect> text_input_caret() const override {
-        return gui_forms::Rect{10.0, 4.0, 2.0, 16.0};
+    [[nodiscard]] stxlib::Optional<gui_forms::Rect> text_input_caret() const override {
+        return stxlib::Optional<gui_forms::Rect>::of(gui_forms::Rect{10.0, 4.0, 2.0, 16.0});
     }
 };
 

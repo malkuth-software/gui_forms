@@ -41,6 +41,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -256,7 +257,7 @@ void test_inherited_values() {
     require((*leaf).effectively_visible() && (*leaf).effectively_enabled(), "a leaf starts visible and enabled");
     require((*leaf).effective_cursor() == CursorKind::arrow &&
                 (*leaf).effective_layout_direction() == LayoutDirection::left_to_right &&
-                !(*leaf).ambient_back_color() && !(*leaf).on_ceremonial_surface(),
+                (*leaf).ambient_back_color().absent() && !(*leaf).on_ceremonial_surface(),
             "a leaf starts with the defaults");
 
     (*middle).visible = false;
@@ -268,22 +269,22 @@ void test_inherited_values() {
     (*root).enabled = true;
     require((*leaf).effectively_enabled(), "enabling it again enables the leaf");
 
-    (*middle).cursor = CursorKind::hand;
+    (*middle).cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
     require((*leaf).effective_cursor() == CursorKind::hand, "a cursor is inherited");
-    (*leaf).cursor = CursorKind::text;
+    (*leaf).cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
     require((*leaf).effective_cursor() == CursorKind::text, "a cursor of its own wins");
     (*root).layout_direction = LayoutDirection::right_to_left;
     require((*leaf).effective_layout_direction() == LayoutDirection::right_to_left, "a direction is inherited");
     const Color shade{10, 20, 30, 255};
-    (*middle).back_color = shade;
-    require((*leaf).ambient_back_color() == std::optional<Color>(shade), "a back colour is inherited");
+    (*middle).back_color = stxlib::Optional<Color>::of(shade);
+    require((*leaf).ambient_back_color() == stxlib::Optional<Color>::of(shade), "a back colour is inherited");
     (*root).ceremonial = true;
     require((*leaf).on_ceremonial_surface(), "a ceremonial ancestor makes the surface ceremonial");
 
     // Reparenting: the leaf takes its new ancestors' values.
     Control::Ptr moved = (*middle).remove_child((*leaf).runtime_id());
     (*elsewhere).add_child(moved);
-    require((*leaf).ambient_back_color() == std::nullopt, "the old parent's colour stays behind");
+    require((*leaf).ambient_back_color().absent(), "the old parent's colour stays behind");
     require((*leaf).effective_cursor() == CursorKind::text && (*leaf).on_ceremonial_surface() &&
                 (*leaf).effective_layout_direction() == LayoutDirection::right_to_left,
             "the values the new ancestors give hold after the move");

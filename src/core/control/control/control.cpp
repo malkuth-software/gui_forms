@@ -388,13 +388,14 @@ BindingValue PropertyValueTraits<LayoutDirection>::to_binding(LayoutDirection va
     return general;
 }
 
-PropertyType PropertyValueTraits<std::optional<CursorKind>>::type() {
+PropertyType PropertyValueTraits<stxlib::Optional<CursorKind>>::type() {
     return PropertyType{BindingValueKind::enumeration, false, cursor_kind_property_enum()};
 }
 
-BindingValue PropertyValueTraits<std::optional<CursorKind>>::to_binding(std::optional<CursorKind> value) {
+BindingValue PropertyValueTraits<stxlib::Optional<CursorKind>>::to_binding(stxlib::Optional<CursorKind> value) {
     std::int64_t encoded = 0;
-    if (value) encoded = static_cast<std::int64_t>(*value) + 1;
+    const CursorKind* kind = value.value();
+    if (kind != nullptr) encoded = static_cast<std::int64_t>(*kind) + 1;
     const BindingValue general = current_enum_property_value_impl(cursor_kind_property_enum(), encoded);
     return general;
 }
@@ -419,17 +420,17 @@ LayoutDirection PropertyValueTraits<LayoutDirection>::from_binding(const Binding
     return static_cast<LayoutDirection>(choice.value);
 }
 
-std::optional<CursorKind> PropertyValueTraits<std::optional<CursorKind>>::from_binding(const BindingValue& value) {
+stxlib::Optional<CursorKind> PropertyValueTraits<stxlib::Optional<CursorKind>>::from_binding(const BindingValue& value) {
     const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
-    if (choice.value == 0) return std::nullopt;
-    return static_cast<CursorKind>(choice.value - 1);
+    if (choice.value == 0) return stxlib::Optional<CursorKind>::none();
+    const stxlib::Optional<CursorKind> kind = stxlib::Optional<CursorKind>::of(static_cast<CursorKind>(choice.value - 1));
+    return kind;
 }
 
 BindingValue Control::cursor_property_value() const {
     std::int64_t value = 0;
-    if (cursor.read()) {
-        value = static_cast<std::int64_t>(*cursor.read()) + 1;
-    }
+    const CursorKind* own = cursor.read().value();
+    if (own != nullptr) value = static_cast<std::int64_t>(*own) + 1;
     const BindingValue current = current_enum_property_value(cursor_kind_property_enum(), value);
     return current;
 }
@@ -451,10 +452,10 @@ void Control::set_right_to_left_property_value(const BindingValue& value) {
 void Control::set_cursor_property_value(const BindingValue& value) {
     const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
     if (choice.value == 0) {
-        cursor = std::nullopt;
+        cursor = stxlib::Optional<CursorKind>::none();
         return;
     }
-    cursor = static_cast<CursorKind>(choice.value - 1);
+    cursor = stxlib::Optional<CursorKind>::of(static_cast<CursorKind>(choice.value - 1));
 }
 
 BindingValue Control::classes_property_value() const {
@@ -479,18 +480,17 @@ void Control::set_classes_property_value(const BindingValue& value) {
 }
 
 BindingValue Control::back_color_property_value() const {
-    if (!back_color.read()) {
-        return BindingValue{};
-    }
-    return BindingValue{*back_color.read()};
+    const Color* own = back_color.read().value();
+    if (own == nullptr) return BindingValue{};
+    return BindingValue{*own};
 }
 
 void Control::set_back_color_property_value(const BindingValue& value) {
     if (std::holds_alternative<std::monostate>(value)) {
-        back_color = std::nullopt;
+        back_color = stxlib::Optional<Color>::none();
         return;
     }
-    back_color = std::get<Color>(value);
+    back_color = stxlib::Optional<Color>::of(std::get<Color>(value));
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> Control::active_border_motion_property_enum() {
@@ -500,16 +500,16 @@ std::shared_ptr<const PropertyEnumDescriptor> Control::active_border_motion_prop
 }
 
 BindingValue Control::active_border_property_value(RegisteredProperty property) const {
-    const std::optional<ActiveBorder> current = active_border();
+    const stxlib::Optional<ActiveBorder> current = active_border();
     const ActiveBorder border = current.value_or(ActiveBorder{});
     switch (property) {
-    case RegisteredProperty::active_border: return BindingValue{current.has_value()};
+    case RegisteredProperty::active_border: return BindingValue{current.present()};
     case RegisteredProperty::active_border_color:
-        if (!border.colour) return BindingValue{};
-        return BindingValue{*border.colour};
+        if (border.colour.absent()) return BindingValue{};
+        return BindingValue{*border.colour.value()};
     case RegisteredProperty::active_border_alternate_color:
-        if (!border.alternate) return BindingValue{};
-        return BindingValue{*border.alternate};
+        if (border.alternate.absent()) return BindingValue{};
+        return BindingValue{*border.alternate.value()};
     case RegisteredProperty::active_border_width: return BindingValue{border.width};
     case RegisteredProperty::active_border_offset: return BindingValue{border.offset};
     case RegisteredProperty::active_border_corner_radius: return BindingValue{border.corner_radius};
@@ -527,20 +527,20 @@ void Control::set_active_border_property_value(RegisteredProperty property, cons
     if (property == RegisteredProperty::active_border) {
         const bool shown = std::get<bool>(value);
         if (!shown) {
-            set_active_border(std::nullopt);
+            set_active_border(stxlib::Optional<ActiveBorder>::none());
             return;
         }
-        set_active_border(active_border().value_or(ActiveBorder{}));
+        set_active_border(stxlib::Optional<ActiveBorder>::of(active_border().value_or(ActiveBorder{})));
         return;
     }
     ActiveBorder border = active_border().value_or(ActiveBorder{});
     const bool cleared = std::holds_alternative<std::monostate>(value);
     switch (property) {
     case RegisteredProperty::active_border_color:
-        border.colour = cleared ? std::optional<Color>{} : std::optional<Color>{std::get<Color>(value)};
+        border.colour = cleared ? stxlib::Optional<Color>::none() : stxlib::Optional<Color>::of(std::get<Color>(value));
         break;
     case RegisteredProperty::active_border_alternate_color:
-        border.alternate = cleared ? std::optional<Color>{} : std::optional<Color>{std::get<Color>(value)};
+        border.alternate = cleared ? stxlib::Optional<Color>::none() : stxlib::Optional<Color>::of(std::get<Color>(value));
         break;
     case RegisteredProperty::active_border_width: border.width = std::get<double>(value); break;
     case RegisteredProperty::active_border_offset: border.offset = std::get<double>(value); break;
@@ -558,22 +558,21 @@ void Control::set_active_border_property_value(RegisteredProperty property, cons
     }
     // set_active_border validates the whole border before it changes
     // anything.
-    set_active_border(border);
+    set_active_border(stxlib::Optional<ActiveBorder>::of(border));
 }
 
 BindingValue Control::fore_color_property_value() const {
-    if (!fore_color.read()) {
-        return BindingValue{};
-    }
-    return BindingValue{*fore_color.read()};
+    const Color* own = fore_color.read().value();
+    if (own == nullptr) return BindingValue{};
+    return BindingValue{*own};
 }
 
 void Control::set_fore_color_property_value(const BindingValue& value) {
     if (std::holds_alternative<std::monostate>(value)) {
-        fore_color = std::nullopt;
+        fore_color = stxlib::Optional<Color>::none();
         return;
     }
-    fore_color = std::get<Color>(value);
+    fore_color = stxlib::Optional<Color>::of(std::get<Color>(value));
 }
 
 std::shared_ptr<const PropertyEnumDescriptor>
@@ -636,7 +635,7 @@ MnemonicText parse_mnemonic_text(std::string_view text) {
         const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
         const std::size_t length = decoded.length;
         const char32_t scalar = decoded.scalar;
-        if (!result.mnemonic) result.mnemonic = scalar;
+        if (result.mnemonic.absent()) result.mnemonic.set(scalar);
         result.display_text.append(text.substr(offset, length));
         offset += length;
     }
@@ -688,11 +687,11 @@ bool is_mnemonic(char32_t character, std::string_view text) noexcept {
 
 bool is_first_letter(char32_t character, std::string_view text) noexcept {
     if (character == U'&' || text.empty()) return false;
-    std::optional<char32_t> first{};
+    stxlib::Optional<char32_t> first{};
     for (std::size_t offset = 0U; offset < text.size();) {
         if (text[offset] == '&') {
             if (offset + 1U < text.size() && text[offset + 1U] == '&') {
-                if (!first) first = U'&';
+                if (first.absent()) first.set(U'&');
                 offset += 2U;
                 continue;
             }
@@ -702,10 +701,10 @@ bool is_first_letter(char32_t character, std::string_view text) noexcept {
             continue;
         }
         const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
-        if (!first) first = decoded.scalar;
+        if (first.absent()) first.set(decoded.scalar);
         offset += std::max<std::size_t>(decoded.length, 1U);
     }
-    const bool matches = first.has_value() && fold_mnemonic(*first) == fold_mnemonic(character);
+    const bool matches = first.present() && fold_mnemonic(*first.value()) == fold_mnemonic(character);
     return matches;
 }
 
@@ -1268,10 +1267,10 @@ template <Control::RegisteredProperty Property>
 void Control::reset_registered(Component& owner) {
     Control& control = static_cast<Control&>(owner);
     if constexpr (Property == RegisteredProperty::back_color) {
-        control.back_color = std::nullopt;
+        control.back_color = stxlib::Optional<Color>::none();
     } else {
         static_assert(Property == RegisteredProperty::fore_color);
-        control.fore_color = std::nullopt;
+        control.fore_color = stxlib::Optional<Color>::none();
     }
 }
 
@@ -1304,26 +1303,26 @@ PropertyValueOrigin name_origin(const Component& owner) {
 template <Control::RegisteredProperty Property>
 bool Control::active_border_serialized(const Component& owner) {
     const Control& control = static_cast<const Control&>(owner);
-    const std::optional<ActiveBorder> border = control.active_border();
-    if (!border) return false;
+    const stxlib::Optional<ActiveBorder> border = control.active_border();
+    if (border.absent()) return false;
     const ActiveBorder defaults{};
     if constexpr (Property == RegisteredProperty::active_border) {
         return true;
     } else if constexpr (Property == RegisteredProperty::active_border_color) {
-        return (*border).colour != defaults.colour;
+        return (*border.value()).colour != defaults.colour;
     } else if constexpr (Property == RegisteredProperty::active_border_alternate_color) {
-        return (*border).alternate != defaults.alternate;
+        return (*border.value()).alternate != defaults.alternate;
     } else if constexpr (Property == RegisteredProperty::active_border_width) {
-        return (*border).width != defaults.width;
+        return (*border.value()).width != defaults.width;
     } else if constexpr (Property == RegisteredProperty::active_border_offset) {
-        return (*border).offset != defaults.offset;
+        return (*border.value()).offset != defaults.offset;
     } else if constexpr (Property == RegisteredProperty::active_border_corner_radius) {
-        return (*border).corner_radius != defaults.corner_radius;
+        return (*border.value()).corner_radius != defaults.corner_radius;
     } else if constexpr (Property == RegisteredProperty::active_border_motion) {
-        return (*border).motion != defaults.motion;
+        return (*border.value()).motion != defaults.motion;
     } else {
         static_assert(Property == RegisteredProperty::active_border_frequency);
-        return (*border).frequency != defaults.frequency;
+        return (*border.value()).frequency != defaults.frequency;
     }
 }
 
@@ -1666,16 +1665,16 @@ bool Control::application_colours_suspended() const noexcept {
     return suspended;
 }
 
-std::optional<ThemeRoleColours> Control::theme_role_colours(std::string_view name) const noexcept {
+stxlib::Optional<ThemeRoleColours> Control::theme_role_colours(std::string_view name) const noexcept {
     MediaFacts facts{};
     if (surface_root_ != nullptr) facts = window_media_facts(*surface_root_);
     const Theme& effective = effective_theme();
-    std::optional<ThemeRoleColours> colours = effective.application_role(name, facts);
-    if (colours) return colours;
+    const stxlib::Optional<ThemeRoleColours> from_effective = effective.application_role(name, facts);
+    if (from_effective.present()) return from_effective;
     const Theme& chosen = chosen_theme();
-    if (&chosen == &effective) return std::nullopt;
-    colours = chosen.application_role(name, facts);
-    return colours;
+    if (&chosen == &effective) return stxlib::Optional<ThemeRoleColours>::none();
+    const stxlib::Optional<ThemeRoleColours> from_chosen = chosen.application_role(name, facts);
+    return from_chosen;
 }
 
 void Control::warn_inline_colour(std::string_view property) const {
@@ -1943,13 +1942,13 @@ void Control::clear_authored_surface_material() {
     invalidate(Dirty::paint);
 }
 
-std::optional<Color> Control::ambient_back_color() const noexcept {
-    const std::optional<Color> colour = inherited_values().back_color;
+stxlib::Optional<Color> Control::ambient_back_color() const noexcept {
+    const stxlib::Optional<Color> colour = inherited_values().back_color;
     return colour;
 }
 
-std::optional<Color> Control::ambient_fore_color() const noexcept {
-    const std::optional<Color> colour = inherited_values().fore_color;
+stxlib::Optional<Color> Control::ambient_fore_color() const noexcept {
+    const stxlib::Optional<Color> colour = inherited_values().fore_color;
     return colour;
 }
 
@@ -1986,16 +1985,17 @@ void Control::set_owned_decorations(
                 valid_offsets = false;
             }
         }
-        const std::optional<MaterialBorder>* borders[]{
+        const stxlib::Optional<MaterialBorder>* borders[]{
             &decoration.border_edges.top, &decoration.border_edges.right,
             &decoration.border_edges.bottom, &decoration.border_edges.left,
         };
         bool valid_borders = !decoration.border_edges.empty();
-        for (const std::optional<MaterialBorder>* border : borders) {
-            if ((*border).has_value() &&
-                (!std::isfinite((*border).value().width) ||
-                 (*border).value().width <= 0.0 ||
-                 (*border).value().width > 64.0)) {
+        for (const stxlib::Optional<MaterialBorder>* border : borders) {
+            const MaterialBorder* const present = (*border).value();
+            if (present != nullptr &&
+                (!std::isfinite((*present).width) ||
+                 (*present).width <= 0.0 ||
+                 (*present).width > 64.0)) {
                 valid_borders = false;
             }
         }
@@ -2821,7 +2821,7 @@ void Control::attach_child(Ptr child, std::size_t index) {
     // to its previous parent at its previous index.
     if (surface_root_) detail::SurfaceTreeAccess::validate_subtree_registration(*surface_root_, *child);
     const Ptr previous_parent = (*child).parent();
-    std::optional<std::size_t> previous_index{};
+    stxlib::Optional<std::size_t> previous_index{};
     if (previous_parent) {
         previous_index = (*previous_parent).child_index_from_top((*child).runtime_id());
         // The move announces its net direction change once, below: the
@@ -2957,15 +2957,15 @@ void Control::raise_height_bounds(std::size_t child_height) noexcept {
 // the index it had there. A second failure leaves it parentless; the first
 // failure is the one reported.
 void Control::restore_to_previous_parent(const Ptr& child, const Ptr& previous_parent,
-                                         std::optional<std::size_t> previous_index) noexcept {
+                                         stxlib::Optional<std::size_t> previous_index) noexcept {
     if (!previous_parent || !(*previous_parent).is_alive() || !(*child).is_alive() ||
         (*child).parent()) {
         return;
     }
     try {
         (*previous_parent).add_child(child);
-        if (previous_index) {
-            static_cast<void>((*previous_parent).set_child_index_from_top((*child).runtime_id(), *previous_index));
+        if (previous_index.present()) {
+            static_cast<void>((*previous_parent).set_child_index_from_top((*child).runtime_id(), *previous_index.value()));
         }
     } catch (...) {
         // Left parentless, as before audit A9; the caller rethrows the
@@ -3051,16 +3051,16 @@ bool Control::set_child_index_from_top(RuntimeId child_id, std::size_t index) {
     return true;
 }
 
-std::optional<std::size_t> Control::child_index_from_top(RuntimeId child_id) const noexcept {
+stxlib::Optional<std::size_t> Control::child_index_from_top(RuntimeId child_id) const noexcept {
     ChildList::const_iterator found = children_.begin();
     while (found != children_.end() &&
            (!*found || (*(*found)).runtime_id() != child_id)) {
         ++found;
     }
-    if (found == children_.end()) return std::nullopt;
+    if (found == children_.end()) return stxlib::Optional<std::size_t>::none();
     const std::size_t painter_index = static_cast<std::size_t>(
         std::distance(children_.begin(), found));
-    return children_.size() - 1U - painter_index;
+    return stxlib::Optional<std::size_t>::of(children_.size() - 1U - painter_index);
 }
 
 void Control::clear_children() {
@@ -3157,8 +3157,8 @@ void Control::set_child_layout(const Ptr& child, Rect bounds) {
         throw std::invalid_argument(
             "GUI.Forms child layout bounds must be finite and nonnegative");
     }
-    if ((*child).layout_slot_ == bounds) return;
-    (*child).layout_slot_ = bounds;
+    if ((*child).layout_slot_ == stxlib::Optional<Rect>::of(bounds)) return;
+    (*child).layout_slot_.set(bounds);
     if (surface_root_ != nullptr) {
         detail::SurfaceTreeAccess::mark_child_layout_slot(*surface_root_, *child);
     } else {
@@ -3331,7 +3331,7 @@ void Control::written(const decltype(tool_tip_text)&) {
     if (surface_root_ != nullptr) detail::SurfaceTreeAccess::tool_tip_text_changed(*surface_root_, *this);
 }
 
-void Control::prepare_write(const decltype(cursor)&, std::optional<CursorKind>&) {
+void Control::prepare_write(const decltype(cursor)&, stxlib::Optional<CursorKind>&) {
     require_mutable();
     // A stock cursor replaces a custom image even when the stock value is
     // unchanged; the compare after this hook then skips the rest.
@@ -3348,9 +3348,9 @@ void Control::written(const decltype(cursor)&) {
 
 void Control::on_cursor_changed() {}
 
-void Control::prepare_write(const decltype(back_color)&, std::optional<Color>& value) {
+void Control::prepare_write(const decltype(back_color)&, stxlib::Optional<Color>& value) {
     require_mutable();
-    if (!value || value == back_color.read() || back_color_warned_) return;
+    if (value.absent() || value == back_color.read() || back_color_warned_) return;
     back_color_warned_ = true;
     warn_inline_colour("back_color");
 }
@@ -3363,9 +3363,9 @@ void Control::written(const decltype(back_color)&) {
 
 void Control::on_back_color_changed() {}
 
-void Control::prepare_write(const decltype(fore_color)&, std::optional<Color>& value) {
+void Control::prepare_write(const decltype(fore_color)&, stxlib::Optional<Color>& value) {
     require_mutable();
-    if (!value || value == fore_color.read() || fore_color_warned_) return;
+    if (value.absent() || value == fore_color.read() || fore_color_warned_) return;
     fore_color_warned_ = true;
     warn_inline_colour("fore_color");
 }
@@ -3666,7 +3666,7 @@ void Control::recapture_anchor_reference() {
     const bool arranged = arranged_bounds_.width > 0.0 || arranged_bounds_.height > 0.0;
     if (!owner_arranged || !arranged) return;
     const Rect client = client_rect({owner_bounds.width, owner_bounds.height}, (*owner).padding.read());
-    anchor_reference_ = AnchorReference{arranged_bounds_, client};
+    anchor_reference_.set(AnchorReference{arranged_bounds_, client});
 }
 
 Size Control::get_preferred_size(Size proposed) {
@@ -4085,9 +4085,9 @@ void Control::prepare_composite_looks() {
 
 void Control::set_custom_cursor(CursorImagesPtr images, CursorKind fallback) {
     require_mutable();
-    if (cursor_images_ == images && cursor.read() == fallback) return;
+    if (cursor_images_ == images && cursor.read() == stxlib::Optional<CursorKind>::of(fallback)) return;
     // The stock write drops the old images first (its prepare hook).
-    cursor = fallback;
+    cursor = stxlib::Optional<CursorKind>::of(fallback);
     cursor_images_ = std::move(images);
     invalidate(Dirty::semantics);
 }
@@ -4096,7 +4096,7 @@ CursorImagesPtr Control::effective_cursor_images() const noexcept {
     const Control* current = this;
     Ptr owner;
     while (current != nullptr) {
-        if ((*current).cursor.read().has_value()) return (*current).cursor_images_;
+        if ((*current).cursor.read().present()) return (*current).cursor_images_;
         owner = (*current).parent_.lock();
         current = owner.get();
     }
@@ -4134,14 +4134,14 @@ const Control::InheritedValues& Control::inherited_values() const noexcept {
     if (visual_parent) {
         const InheritedValues& above = (*visual_parent).inherited_values();
         if (computed.theme_override == nullptr) computed.theme_override = above.theme_override;
-        if (!computed.back_color && !stops_inherited_colours_) computed.back_color = above.back_color;
-        if (!computed.fore_color && !stops_inherited_colours_) computed.fore_color = above.fore_color;
-        computed.cursor = cursor.read() ? *cursor.read() : above.cursor;
+        if (computed.back_color.absent() && !stops_inherited_colours_) computed.back_color = above.back_color;
+        if (computed.fore_color.absent() && !stops_inherited_colours_) computed.fore_color = above.fore_color;
+        computed.cursor = cursor.read().value_or(above.cursor);
         computed.visible = computed.visible && above.visible;
         computed.enabled = computed.enabled && above.enabled;
         computed.ceremonial = computed.ceremonial || above.ceremonial;
     } else {
-        computed.cursor = cursor.read() ? *cursor.read() : CursorKind::arrow;
+        computed.cursor = cursor.read().value_or(CursorKind::arrow);
     }
     computed.generation = now;
     inherited_ = computed;
@@ -4256,8 +4256,9 @@ void Control::refresh_theme_content_effect() {
     theme_content_effect_ = std::move(resolved);
 }
 
-std::optional<DisplayChunkInfo> Control::display_chunk_info() const noexcept {
-    return display_chunk_ ? std::optional((*display_chunk_).info()) : std::nullopt;
+stxlib::Optional<DisplayChunkInfo> Control::display_chunk_info() const noexcept {
+    if (!display_chunk_) return stxlib::Optional<DisplayChunkInfo>::none();
+    return stxlib::Optional<DisplayChunkInfo>::of((*display_chunk_).info());
 }
 
 void Control::invalidate(Dirty requested_dirty) {
@@ -4587,14 +4588,14 @@ Size Control::measure_for_layout(const LayoutConstraint& constraint) {
     return measured;
 }
 
-std::optional<double> Control::first_baseline(double width) {
+stxlib::Optional<double> Control::first_baseline(double width) {
     static_cast<void>(width);
-    return std::nullopt;
+    return stxlib::Optional<double>::none();
 }
 
-std::optional<double> Control::last_baseline(double width) {
+stxlib::Optional<double> Control::last_baseline(double width) {
     static_cast<void>(width);
-    return std::nullopt;
+    return stxlib::Optional<double>::none();
 }
 
 Size Control::measure_intrinsic(const LayoutConstraint& constraint) {
@@ -4693,8 +4694,8 @@ void Control::arrange(Rect final_bounds) {
             // reference; an automatically sized child takes its reference
             // from its preferred size when shown.
             const bool sized_client = client.width > 0.0 && client.height > 0.0;
-            if (sized_client && !(*child).auto_size.read() && !(*child).anchor_reference_) {
-                (*child).anchor_reference_ = AnchorReference{(*child).requested_bounds_, client};
+            if (sized_client && !(*child).auto_size.read() && (*child).anchor_reference_.absent()) {
+                (*child).anchor_reference_.set(AnchorReference{(*child).requested_bounds_, client});
             }
             continue;
         }
@@ -4735,13 +4736,13 @@ void Control::arrange(Rect final_bounds) {
         if ((*child).auto_size.read() || unrequested_extent) {
             // The preferred size follows the content, so the reference is
             // taken again each layout.
-            (*child).anchor_reference_ = AnchorReference{authored, client};
-        } else if (!(*child).anchor_reference_) {
-            (*child).anchor_reference_ = AnchorReference{
-                authored, client};
+            (*child).anchor_reference_.set(AnchorReference{authored, client});
+        } else if ((*child).anchor_reference_.absent()) {
+            (*child).anchor_reference_.set(AnchorReference{
+                authored, client});
         }
-        const Rect anchored = anchored_bounds((*(*child).anchor_reference_).bounds,
-                                              (*(*child).anchor_reference_).client, client,
+        const Rect anchored = anchored_bounds((*(*child).anchor_reference_.value()).bounds,
+                                              (*(*child).anchor_reference_.value()).client, client,
                                               (*child).anchor.read());
         set_child_layout(child, mirrored ? mirror_horizontally(anchored, viewport) : anchored);
     }
@@ -4807,10 +4808,11 @@ void Control::warn_clear_face() const noexcept {
 }
 
 void Control::paint_back_color(Painter& painter, Rect bounds) const {
-    if (!back_color.read()) return;
+    const Color* own = back_color.read().value();
+    if (own == nullptr) return;
     const bool high_contrast = surface_root_ != nullptr && (*surface_root_).presentation_settings().high_contrast;
     if (high_contrast || application_colours_suspended()) return;
-    painter.fill_rect(bounds, *back_color.read());
+    painter.fill_rect(bounds, *own);
 }
 
 void Control::paint_authored_surface(Painter& painter, Rect bounds) const {
@@ -4825,28 +4827,28 @@ void Control::paint_owned_decorations(
         if (decoration.layer != layer) continue;
         const Rect box = owner_decoration_box(decoration, bounds);
         const MaterialBorderEdges& edges = decoration.border_edges;
-        if (edges.top) {
-            const double y = box.y + (*edges.top).width * 0.5;
+        if (edges.top.present()) {
+            const double y = box.y + (*edges.top.value()).width * 0.5;
             draw_owner_decoration_edge(
-                painter, {box.x, y}, {box.x + box.width, y}, *edges.top,
+                painter, {box.x, y}, {box.x + box.width, y}, (*edges.top.value()),
                 box, decoration.rotation_degrees);
         }
-        if (edges.right) {
-            const double x = box.x + box.width - (*edges.right).width * 0.5;
+        if (edges.right.present()) {
+            const double x = box.x + box.width - (*edges.right.value()).width * 0.5;
             draw_owner_decoration_edge(
-                painter, {x, box.y}, {x, box.y + box.height}, *edges.right,
+                painter, {x, box.y}, {x, box.y + box.height}, (*edges.right.value()),
                 box, decoration.rotation_degrees);
         }
-        if (edges.bottom) {
-            const double y = box.y + box.height - (*edges.bottom).width * 0.5;
+        if (edges.bottom.present()) {
+            const double y = box.y + box.height - (*edges.bottom.value()).width * 0.5;
             draw_owner_decoration_edge(
-                painter, {box.x, y}, {box.x + box.width, y}, *edges.bottom,
+                painter, {box.x, y}, {box.x + box.width, y}, (*edges.bottom.value()),
                 box, decoration.rotation_degrees);
         }
-        if (edges.left) {
-            const double x = box.x + (*edges.left).width * 0.5;
+        if (edges.left.present()) {
+            const double x = box.x + (*edges.left.value()).width * 0.5;
             draw_owner_decoration_edge(
-                painter, {x, box.y}, {x, box.y + box.height}, *edges.left,
+                painter, {x, box.y}, {x, box.y + box.height}, (*edges.left.value()),
                 box, decoration.rotation_degrees);
         }
     }
@@ -5084,7 +5086,7 @@ void Control::on_drag_bubble(DragEvent&) {}
 void Control::on_focus_changed(bool) {}
 bool Control::reveal_focused_descendant(const Control&) { return false; }
 Control::Ptr Control::focus_target() const { return nullptr; }
-std::optional<Rect> Control::text_input_caret() const { return std::nullopt; }
+stxlib::Optional<Rect> Control::text_input_caret() const { return stxlib::Optional<Rect>::none(); }
 void Control::on_focus_cue_changed(bool) {}
 void Control::on_activate() {}
 

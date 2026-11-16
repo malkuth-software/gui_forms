@@ -247,7 +247,7 @@ void EasingPreview::on_paint(Painter& painter, Rect) {
         face.family = ControlVisualRole::editor;
         face.role = PartRole::face;
         face.bounds = bounds;
-        face.key = PartKey{"face", {}, {}};
+        face.key.set(PartKey{"face", {}, {}});
         paint_part(painter, *this, face);
     }
     painter.stroke_rect({0.5, 0.5, std::max(0.0, bounds.width - 1.0),
@@ -292,9 +292,9 @@ SemanticDescriptor EasingPreview::semantic_descriptor() const {
     const MotionPolicy policy = effective_motion_policy();
     const double presented = policy.presentation_phase(phase_);
     descriptor.value = motion_readout(presented);
-    descriptor.numeric_value = presented;
-    descriptor.minimum_value = 0.0;
-    descriptor.maximum_value = 1.0;
+    descriptor.numeric_value.set(presented);
+    descriptor.minimum_value.set(0.0);
+    descriptor.maximum_value.set(1.0);
     if (policy.active()) descriptor.states |= SemanticState::busy;
     descriptor.exposed = true;
     return descriptor;

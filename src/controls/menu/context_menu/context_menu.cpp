@@ -44,11 +44,11 @@ namespace {
 
 // The one character a text event types, or none when it types several, is
 // malformed or is still composing.
-[[nodiscard]] std::optional<char32_t> typed_character(
+[[nodiscard]] stxlib::Optional<char32_t> typed_character(
     const TextInputEvent& event) noexcept {
-    if (event.composing || event.text_utf8.empty()) return std::nullopt;
+    if (event.composing || event.text_utf8.empty()) return stxlib::Optional<char32_t>::none();
     const Utf8ValidationResult validation = validate_utf8(event.text_utf8);
-    if (!validation.valid() || validation.scalar_count != 1U) return std::nullopt;
+    if (!validation.valid() || validation.scalar_count != 1U) return stxlib::Optional<char32_t>::none();
     const std::string_view text = event.text_utf8;
     const char32_t lead = static_cast<unsigned char>(text[0]);
     char32_t scalar = lead;
@@ -59,7 +59,7 @@ namespace {
         scalar = (scalar << 6U) |
                  (static_cast<char32_t>(static_cast<unsigned char>(text[offset])) & 0x3FU);
     }
-    return scalar;
+    return stxlib::Optional<char32_t>::of(scalar);
 }
 
 } // namespace
@@ -204,7 +204,7 @@ struct ContextMenu::Impl final {
                 shadow.role = PartRole::shadow;
                 shadow.family = ControlVisualRole::panel;
                 shadow.bounds = local_bounds();
-                shadow.corner_radius = 0.0;
+                shadow.corner_radius.set(0.0);
                 paint_part(painter, *this, shadow);
             }
             Panel::on_paint(painter, local_damage);
@@ -215,7 +215,7 @@ struct ContextMenu::Impl final {
             gutter.family = ControlVisualRole::menu_item;
             gutter.role = PartRole::well;
             gutter.control_type = menu_item_control_type;
-            gutter.key = PartKey{menu_gutter_part, {}, {}};
+            gutter.key.set(PartKey{menu_gutter_part, {}, {}});
             gutter.bounds = {menu_border, menu_border, menu_gutter_width,
                              std::max(0.0, bounds.height - menu_border * 2.0)};
             paint_part(painter, *this, gutter);
@@ -282,8 +282,8 @@ struct ContextMenu::Impl final {
         // A plain letter in an open menu acts as that item's mnemonic, as in
         // a native Windows menu; Alt is not needed.
         void on_text_input(TextInputEvent& event) override {
-            const std::optional<char32_t> character = typed_character(event);
-            if (character && impl_.type_mnemonic(depth_, std::nullopt, *character)) {
+            const stxlib::Optional<char32_t> character = typed_character(event);
+            if (character.present() && impl_.type_mnemonic(depth_, std::nullopt, *character.value())) {
                 event.handled = true;
             }
         }
@@ -395,9 +395,8 @@ struct ContextMenu::Impl final {
             set_paint_plane(PaintPlane::overlay);
             enabled = item.kind != MenuItemKind::separator && enabled_item();
             focusable = item.kind != MenuItemKind::separator && enabled_item();
-            cursor = item.kind != MenuItemKind::separator && enabled_item()
-                ? std::optional<CursorKind>{CursorKind::hand}
-                : std::optional<CursorKind>{};
+            cursor = item.kind != MenuItemKind::separator && enabled_item() ? stxlib::Optional<CursorKind>::of(CursorKind::hand)
+                                                                            : stxlib::Optional<CursorKind>::none();
         }
 
         [[nodiscard]] bool enabled_item() const noexcept {
@@ -456,7 +455,7 @@ struct ContextMenu::Impl final {
                             std::max(0.0, bounds.height - 2.0)};
             plate.states = states;
             plate.control_type = menu_item_control_type;
-            plate.key = PartKey{menu_item_part, item_.stable_id, {}};
+            plate.key.set(PartKey{menu_item_part, item_.stable_id, {}});
             paint_part(painter, *this, plate);
             const bool checked = (item_.kind == MenuItemKind::check || item_.kind == MenuItemKind::radio) &&
                                  item_.command_state.checked;
@@ -502,7 +501,7 @@ struct ContextMenu::Impl final {
             label.font = font;
             // A destructive command's red ink, provisionally an authored
             // colour until the theme has a text tone for it (asked).
-            if (item_.command_state.destructive) label.authored_foreground = menu_ink(item_, style);
+            if (item_.command_state.destructive) label.authored_foreground.set(menu_ink(item_, style));
             const double label_width = std::max(0.0, bounds.width - label_left);
             if (impl_.right_to_left) {
                 // Right-aligned against the gutter, which is on the right.
@@ -523,7 +522,7 @@ struct ContextMenu::Impl final {
                 shortcut.states = states;
                 shortcut.text = lend_paint_text(item_.command_state.shortcut);
                 shortcut.font = shortcut_font;
-                shortcut.measured_text = size;
+                shortcut.measured_text.set(size);
                 // Right-aligned in the shortcut column, before the chevron's
                 // trailing space.
                 const double shortcut_x =
@@ -621,8 +620,8 @@ struct ContextMenu::Impl final {
 
         void on_text_input(TextInputEvent& event) override {
             if (!focused_) return;
-            const std::optional<char32_t> character = typed_character(event);
-            if (character && impl_.type_mnemonic(depth_, index_, *character)) {
+            const stxlib::Optional<char32_t> character = typed_character(event);
+            if (character.present() && impl_.type_mnemonic(depth_, index_, *character.value())) {
                 event.handled = true;
             }
         }

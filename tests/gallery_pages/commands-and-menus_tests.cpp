@@ -67,7 +67,7 @@ void test_commands_and_menus(gui_forms::Window& window) {
     // panel tab whose control fills the command plane.
     const std::shared_ptr<Ribbon> ribbon = std::dynamic_pointer_cast<Ribbon>(window.find("gallery.commands.ribbon.bar"));
     require(ribbon != nullptr, "the commands page publishes its ribbon");
-    (*ribbon).selected_tab = std::size_t{1U};
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(1U);
     window.perform_layout();
     bool left_label = false;
     bool label_above = false;
@@ -84,12 +84,12 @@ void test_commands_and_menus(gui_forms::Window& window) {
     }
     require(left_label && label_above, "the ribbon's number fields show labels at their left and above");
     const Control::Ptr palette = window.find("gallery.commands.ribbon.palette");
-    (*ribbon).selected_tab = std::size_t{2U};
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(2U);
     window.perform_layout();
     require(palette && (*palette).parent() == ribbon &&
                 (*palette).committed_arranged_bounds() == (*ribbon).parts().command_plane.bounds,
             "the Palette panel tab's control fills the ribbon's command plane");
-    (*ribbon).selected_tab = std::size_t{0U};
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(0U);
     window.perform_layout();
 
     std::string semantics = window.semantic_snapshot().to_json();

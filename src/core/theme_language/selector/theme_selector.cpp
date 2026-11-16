@@ -126,9 +126,9 @@ template <std::size_t Count>
 // Whether `anatomy` declares the part `registered` among its own parts or
 // its item systems'.
 [[nodiscard]] bool declares_part(const ControlAnatomy& anatomy, std::string_view registered) noexcept {
-    if (find_declared_part(anatomy.parts, registered).has_value()) return true;
+    if (find_declared_part(anatomy.parts, registered).present()) return true;
     for (const ItemSystemDeclaration& system : anatomy.item_systems) {
-        if (find_declared_part(system.parts, registered).has_value()) return true;
+        if (find_declared_part(system.parts, registered).present()) return true;
     }
     return false;
 }
@@ -138,9 +138,9 @@ template <std::size_t Count>
 // control type's own. A part of the control's own shares its states.
 [[nodiscard]] std::span<const CustomStateDeclaration> custom_state_scope(const ControlAnatomy& anatomy,
                                                                          std::string_view part) noexcept {
-    if (part.empty() || find_declared_part(anatomy.parts, part).has_value()) return anatomy.custom_states;
+    if (part.empty() || find_declared_part(anatomy.parts, part).present()) return anatomy.custom_states;
     for (const ItemSystemDeclaration& system : anatomy.item_systems) {
-        if (find_declared_part(system.parts, part).has_value()) return system.custom_states;
+        if (find_declared_part(system.parts, part).present()) return system.custom_states;
     }
     return anatomy.custom_states;
 }
@@ -512,16 +512,16 @@ bool SelectorPass::read_pseudo() {
         // Precedence (R2-13): a standard state first; otherwise a custom
         // state of the selector's control type, resolved once the
         // selector is expanded (materialize).
-        const std::optional<AnatomyState> state = anatomy_state_from_name(registered);
+        const stxlib::Optional<AnatomyState> state = anatomy_state_from_name(registered);
         Simple simple{};
         simple.token = argument.name;
         simple.name = written;
-        if (!state) {
+        if (state.absent()) {
             simple.kind = SimpleKind::custom_state;
             return add_simple(simple);
         }
         simple.kind = SimpleKind::state;
-        simple.state = *state;
+        simple.state = *state.value();
         return add_simple(simple);
     }
     if (names_one_of(name, refused_pseudo_classes)) {
@@ -589,13 +589,13 @@ bool SelectorPass::read_pseudo_element(std::uint32_t name_token) {
         simple.kind = SimpleKind::part;
         return add_simple(simple);
     }
-    const std::optional<PartRole> found = part_role_from_name(registered);
-    if (!found) {
+    const stxlib::Optional<PartRole> found = part_role_from_name(registered);
+    if (found.absent()) {
         note_unknown(argument.name, written);
         return true;
     }
     simple.kind = SimpleKind::role;
-    simple.role = *found;
+    simple.role = *found.value();
     return add_simple(simple);
 }
 
@@ -939,7 +939,7 @@ std::optional<CustomStateIndex> SelectorPass::resolve_custom_state(const Simple&
         detail = "no control type to declare ";
     } else {
         detail = kebab_case_of((*anatomy).control_id);
-        const bool item_part = !part.empty() && !find_declared_part((*anatomy).parts, part).has_value();
+        const bool item_part = !part.empty() && find_declared_part((*anatomy).parts, part).absent();
         if (item_part) {
             detail += "::part(";
             detail += kebab_case_of(part);
@@ -997,11 +997,11 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
             }
             selector.stable_id = std::string(simple.name);
         } else if (simple.kind == SimpleKind::role) {
-            if (selector.role && *selector.role != simple.role) {
+            if (selector.role.present() && *selector.role.value() != simple.role) {
                 report(DiagnosticCode::selector_syntax, simple.token, "two part roles");
                 return false;
             }
-            selector.role = simple.role;
+            selector.role.set(simple.role);
         } else if (simple.kind == SimpleKind::style_class) {
             bool present = false;
             for (const std::string& name : selector.classes) {
@@ -1043,7 +1043,7 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
     // A surface selector names the surface and its root's classes and ID
     // only: its rules style no part of a control.
     const bool surface_with_more = selector.surface != SurfaceKind::none &&
-                                   (!selector.control_type.empty() || !selector.part.empty() || selector.role ||
+                                   (!selector.control_type.empty() || !selector.part.empty() || selector.role.present() ||
                                     !selector.states.empty() || names_custom_state ||
                                     !selector.item_id.empty() || !selector.item_classes.empty());
     if (surface_with_more) {

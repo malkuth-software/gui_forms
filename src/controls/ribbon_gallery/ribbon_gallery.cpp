@@ -54,7 +54,7 @@ RibbonGallery::RibbonGallery(StableId stable_id, RibbonGalleryForm form)
         throw std::invalid_argument("RibbonGallery form is invalid");
     }
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(form_ == RibbonGalleryForm::drop_down ? PaintPlane::overlay : PaintPlane::control);
 }
 
@@ -815,18 +815,18 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
             node.actions = {SemanticAction::focus, SemanticAction::select, SemanticAction::press};
             if (grouped && !groups.empty()) {
                 SemanticNode& group = groups.back();
-                node.position_in_set = position - group_start + 1U;
+                node.position_in_set.set(position - group_start + 1U);
                 group.children.push_back(std::move(node));
             } else {
-                node.position_in_set = position + 1U;
+                node.position_in_set.set(position + 1U);
                 nodes.push_back(std::move(node));
             }
         }
     }
     // Set sizes once every item of a set is known.
-    for (SemanticNode& node : nodes) node.set_size = nodes.size();
+    for (SemanticNode& node : nodes) node.set_size.set(nodes.size());
     for (SemanticNode& group : groups) {
-        for (SemanticNode& child : group.children) child.set_size = group.children.size();
+        for (SemanticNode& child : group.children) child.set_size.set(group.children.size());
         nodes.push_back(std::move(group));
     }
     const Parts placed = gallery_parts(layout);

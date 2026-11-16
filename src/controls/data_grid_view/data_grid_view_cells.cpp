@@ -265,7 +265,7 @@ void DataGridViewCells::on_paint(Painter& painter, Rect) {
     well.bounds = snapshot_.well.bounds;
     well.authored_background = snapshot_.well.authored_background;
     paint_part(painter, *this, well);
-    if (well.authored_background && !snapshot_.cells_extent.empty()) {
+    if (well.authored_background.present() && !snapshot_.cells_extent.empty()) {
         // Under the cells the well keeps the theme's ground: the same well
         // painted again without the authored colour, cut to the cells.
         well.authored_background.reset();

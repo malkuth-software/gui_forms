@@ -127,9 +127,9 @@ std::string order(const PageSet& pages) {
 }
 
 std::size_t position_of(const PageSet& pages, std::string_view id) {
-    const std::optional<PagePosition> found = pages.find(PageId{std::string(id)});
-    require(found.has_value(), "the page is in the set");
-    return (*found).value;
+    const stxlib::Optional<PagePosition> found = pages.find(PageId{std::string(id)});
+    require(found.present(), "the page is in the set");
+    return (*found.value()).value;
 }
 
 void select(PageSet& pages, std::string_view id) {
@@ -355,7 +355,7 @@ void close_policy_and_most_recent() {
     select(pages, "d3");
     select(pages, "d2");
     require(window.request_focus((*view).strip()), "the strip takes focus");
-    require(window.dispatch_key(key(PhysicalKey::f4, Modifier::control)) && !pages.find(PageId{"d2"}) &&
+    require(window.dispatch_key(key(PhysicalKey::f4, Modifier::control)) && pages.find(PageId{"d2"}).absent() &&
                 selected_id(pages) == "d3",
             "an unhandled close removes the page and selects the most recently active one");
     (*view).close_policy = PageViewClosePolicy::request_only;
@@ -372,12 +372,12 @@ void close_policy_and_most_recent() {
                 pages.count() == 4U && selected_id(pages) == "d3" && pages.revision() == revision,
             "a handler that takes the request (a cancelled prompt) leaves the set unchanged");
     log.take = false;
-    require(window.perform_semantic_action("docs.strip.tab.d0", SemanticAction::close) && !pages.find(PageId{"d0"}),
+    require(window.perform_semantic_action("docs.strip.tab.d0", SemanticAction::close) && pages.find(PageId{"d0"}).absent(),
             "an unhandled semantic close removes the page");
     select(pages, "fixed");
     const std::size_t asked = log.requests.size();
     static_cast<void>(window.dispatch_key(key(PhysicalKey::f4, Modifier::control)));
-    require(log.requests.size() == asked && pages.find(PageId{"fixed"}), "a page that is not closable is not asked");
+    require(log.requests.size() == asked && pages.find(PageId{"fixed"}).present(), "a page that is not closable is not asked");
     require(!(*(*view).strip()).request_close(PageId{"missing"}, PageCloseCause::keyboard) &&
                 log.requests.size() == asked,
             "a page that is not in the set is not asked");
@@ -400,7 +400,7 @@ void frozen_widths_during_successive_closes() {
     const Point under = centre(first_close);
     hover(window, under);
     click(window, under);
-    require(!(*view).pages().find(PageId{"d0"}) && strip.widths_frozen() && selected_id((*view).pages()) == "d1",
+    require((*view).pages().find(PageId{"d0"}).absent() && strip.widths_frozen() && selected_id((*view).pages()) == "d1",
             "the first close removes the page and freezes the widths");
     const PageStrip::Item next = item_of(strip, "d1");
     require(near(next.parts.tab.bounds.width, shrunk) && near(item_of(strip, "d7").parts.tab.bounds.width, shrunk),
@@ -408,7 +408,7 @@ void frozen_widths_during_successive_closes() {
     require(next.parts.tab_close.present && next.parts.tab_close.bounds == first_close,
             "the next tab's close button arrives under the pointer");
     click(window, under);
-    require(!(*view).pages().find(PageId{"d1"}) && (*view).pages().count() == 6U && strip.widths_frozen() &&
+    require((*view).pages().find(PageId{"d1"}).absent() && (*view).pages().count() == 6U && strip.widths_frozen() &&
                 near(item_of(strip, "d2").parts.tab.bounds.width, shrunk),
             "a second click at the same place closes the next tab, widths still frozen");
     hover(window, {300.0, 150.0});

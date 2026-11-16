@@ -215,11 +215,11 @@ gf_status find_row(const DataGridView& grid, gf_utf8_view row_id, SlotIdentity s
         return read;
     }
     const DataGridViewRowId identity{std::string(text)};
-    const std::optional<DataGridViewRowPosition> found = grid.row_position(identity);
-    if (!found) {
+    const stxlib::Optional<DataGridViewRowPosition> found = grid.row_position(identity);
+    if (found.absent()) {
         return fail(GF_STATUS_NOT_FOUND, slot, "no row of the grid has that row ID");
     }
-    position = *found;
+    position = *found.value();
     return GF_STATUS_OK;
 }
 
@@ -412,11 +412,11 @@ gf_status data_grid_column_index_body(gf_object grid, gf_utf8_view name, std::ui
     if (entered != GF_STATUS_OK) {
         return entered;
     }
-    const std::optional<std::size_t> found = (*typed).column_index(text);
-    if (!found) {
+    const stxlib::Optional<std::size_t> found = (*typed).column_index(text);
+    if (found.absent()) {
         return fail(GF_STATUS_NOT_FOUND, column_index_slot, "no column of the grid has that name");
     }
-    *index = *found;
+    *index = *found.value();
     return GF_STATUS_OK;
 }
 
@@ -520,9 +520,9 @@ gf_status data_grid_row_count_body(gf_object grid, std::uint64_t* count, std::in
     if (entered != GF_STATUS_OK) {
         return entered;
     }
-    const std::optional<DataGridViewRowPosition> shown_new = (*typed).new_row_index();
+    const stxlib::Optional<DataGridViewRowPosition> shown_new = (*typed).new_row_index();
     *count = (*typed).row_count();
-    *new_row = shown_new ? static_cast<std::int64_t>((*shown_new).value) : -1;
+    *new_row = shown_new.present() ? static_cast<std::int64_t>((*shown_new.value()).value) : -1;
     return GF_STATUS_OK;
 }
 
@@ -843,14 +843,14 @@ gf_status data_grid_current_cell_body(gf_object grid, std::uint32_t* present, st
     if (entered != GF_STATUS_OK) {
         return entered;
     }
-    const std::optional<DataGridViewCellAddress> current = (*typed).current_cell();
-    if (!current) {
+    const stxlib::Optional<DataGridViewCellAddress> current = (*typed).current_cell();
+    if (current.absent()) {
         *present = 0U;
         return GF_STATUS_OK;
     }
     *present = 1U;
-    *row = (*current).row.value;
-    *column = (*current).column;
+    *row = (*current.value()).row.value;
+    *column = (*current.value()).column;
     return GF_STATUS_OK;
 }
 
@@ -870,7 +870,7 @@ gf_status data_grid_set_current_cell_body(gf_object grid, gf_utf8_view row_id, s
         return read;
     }
     GridPtr typed;
-    std::optional<DataGridViewCellAddress> target;
+    stxlib::Optional<DataGridViewCellAddress> target;
     if (text.empty()) {
         const gf_status entered = enter_typed_control(grid, set_current_cell_slot, not_data_grid, typed);
         if (entered != GF_STATUS_OK) {
@@ -882,7 +882,7 @@ gf_status data_grid_set_current_cell_body(gf_object grid, gf_utf8_view row_id, s
         if (entered != GF_STATUS_OK) {
             return entered;
         }
-        target = DataGridViewCellAddress{position, static_cast<std::size_t>(column)};
+        target.set(DataGridViewCellAddress{position, static_cast<std::size_t>(column)});
     }
     const bool set = (*typed).set_current_cell(target);
     *moved = set ? 1U : 0U;

@@ -389,7 +389,7 @@ void combo_box_list_shows_in_a_popup() {
     require((*desk.model).find("desk.combo.overlay.list") == nullptr,
             "the list is not in the owner's tree");
     require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches the list");
-    require((*combo).selected_index.read().has_value(), "the list's selection follows the keys");
+    require((*combo).selected_index.read().present(), "the list's selection follows the keys");
     require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)), "Escape reaches the owner's layer");
     require(!(*combo).dropped_down.read() && visible_popups(desk) == 0U, "Escape closes the list and hides its Popup");
     desk.windowing().set_popup_windows(false);

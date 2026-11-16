@@ -16,6 +16,8 @@
 #include <thread>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class Theme;
@@ -476,7 +478,7 @@ public:
     // its own coordinates, as its thread last published it at the end of a
     // turn; none while nothing there has focus (design note section 4: the
     // input method follows it without a synchronous call).
-    [[nodiscard]] std::optional<Rect> text_input_caret() const;
+    [[nodiscard]] stxlib::Optional<Rect> text_input_caret() const;
 
 private:
     std::shared_ptr<detail::SubSurfaceChannel> channel_;

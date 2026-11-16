@@ -103,10 +103,10 @@ gui_forms::DataGridView
       **enable_headers_visual_styles** : ``bool``, default ``true``
          Whether the theme draws the headers, their styles' colours unused.
 
-      **grid_color** : ``std::optional<Color>``, default none
+      **grid_color** : ``stxlib::Optional<Color>``, default none
          The grid lines' colour, an authored colour (owner decision T4-1).
 
-      **background_color** : ``std::optional<Color>``, default none
+      **background_color** : ``stxlib::Optional<Color>``, default none
          The colour where no cell is; the theme's ground stays under the cells.
 
       **border_style** : ``BorderStyle``, default ``BorderStyle::line``
@@ -228,7 +228,7 @@ gui_forms::DataGridView
          and bound rows by their source, so both refuse it with
          ``std::logic_error``.
 
-      **sorted_column** : ``std::optional<std::size_t>``, default none, read-only
+      **sorted_column** : ``stxlib::Optional<std::size_t>``, default none, read-only
          The column the last sort ordered by, while the rows keep its order.
 
       **sort_order** : ``DataGridViewSortDirection``, default ``DataGridViewSortDirection::none``, read-only
@@ -257,7 +257,7 @@ gui_forms::DataGridView
          changes, index writes, slot moves, chunk-table rebuilds, whole builds,
          window requests, IDs requested, position queries and mode switches.
 
-      **new_row_index** : ``std::optional<DataGridViewRowPosition>``, read-only
+      **new_row_index** : ``stxlib::Optional<DataGridViewRowPosition>``, read-only
          -- adding and deleting rows (owner decision B1-2) ------------------ With allow_user_to_add_rows (a capability, on by default) unbound and bound grids show a new row after the last row (Windows Forms' new row); virtual grids do not. A bound grid shows it while its source allows new records; a read-only grid or one without columns never does. The new row has a generated ID and empty values; when it becomes current, default_values_needed gives it its first values. The first value the user commits to it (an edit, a toggle or a choice) makes it a row of the grid's, or a record of the source's, with the same ID: user_added_row is raised, and a new row appears after it. Until the current cell leaves it, the added row can be discarded with cancel_row_edit (Escape when no cell is in edit). The new row's position, while it is shown.
 
       **inherited_row_header_style** : ``DataGridViewCellStyle``, read-only
@@ -274,7 +274,7 @@ gui_forms::DataGridView
       **horizontal_scroll_offset** : ``double``
          How far the cells are scrolled left, in logical units at text scale 1.
 
-      **first_displayed_scrolling_column** : ``std::optional<std::size_t>``
+      **first_displayed_scrolling_column** : ``stxlib::Optional<std::size_t>``
          The first scrolling column shown, wholly or in part, past the frozen columns (Windows Forms' FirstDisplayedScrollingColumnIndex), or none; and how much of it is scrolled out of view, in logical units at text scale 1 (FirstDisplayedScrollingColumnHiddenWidth).
 
       **first_displayed_scrolling_column_hidden_width** : ``double``, read-only
@@ -288,7 +288,7 @@ gui_forms::DataGridView
       **horizontal_scroll_bar** : ``std::shared_ptr<HScrollBar>``, read-only
          The child :cpp:class:`HScrollBar <gui_forms::HScrollBar>` that scrolls by logical units.
 
-      **current_cell** : ``std::optional<DataGridViewCellAddress>``
+      **current_cell** : ``stxlib::Optional<DataGridViewCellAddress>``
          The cell keyboard input acts on, at its row's present position, or none.
          :cpp:func:`set_current_cell <gui_forms::DataGridView::set_current_cell>` moves it, committing any edit first, and selects it
          alone; it returns false and changes nothing when the edit does not
@@ -345,7 +345,7 @@ gui_forms::DataGridView
       **selection_changed** : ``Event<>``
          Raised once after an operation changes which cells or rows are selected.
 
-      **current_cell_changed** : ``Event<std::optional<DataGridViewCellAddress>>``
+      **current_cell_changed** : ``Event<stxlib::Optional<DataGridViewCellAddress>>``
          Raised after the current cell moves to another cell, with the new cell or
          none; not when only its row's position changes.
 
@@ -961,7 +961,8 @@ gui_forms::DataGridView
               gf::make_control<gf::DataGridView>(gf::StableId("radio.virtual"));
           (*grid).set_columns({{.name = "name", .header_text = "Station", .width = 160.0}});
           (*grid).set_virtual_rows(std::make_shared<Stations>(), {{"a"}, {"b"}, {"c"}});
-          (*grid).set_current_cell(gf::DataGridViewCellAddress{gf::DataGridViewRowPosition{1U}, 0U});
+          (*grid).set_current_cell(stxlib::Optional<gf::DataGridViewCellAddress>::of(
+              gf::DataGridViewCellAddress{gf::DataGridViewRowPosition{1U}, 0U}));
           (*grid).set_virtual_row_order({{"c"}, {"d"}, {"b"}, {"a"}});   // the application sorted and added
           // current_row_id() is still {"b"}, now at position 2
       }
@@ -1048,11 +1049,11 @@ gui_forms::DataGridView
 
       Whether the theme draws the headers, their styles' colours unused.
 
-   .. cpp:member:: std::optional<Color> grid_color
+   .. cpp:member:: stxlib::Optional<Color> grid_color
 
       The grid lines' colour, an authored colour (owner decision T4-1).
 
-   .. cpp:member:: std::optional<Color> background_color
+   .. cpp:member:: stxlib::Optional<Color> background_color
 
       The colour where no cell is; the theme's ground stays under the cells.
 
@@ -1213,7 +1214,7 @@ gui_forms::DataGridView
 
       Sets :cpp:func:`row_count <gui_forms::DataGridView::row_count>`; see the property's description above.
 
-   .. cpp:function:: std::optional<std::size_t> sorted_column() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> sorted_column() const noexcept
 
       The column the last sort ordered by, while the rows keep its order.
 
@@ -1253,7 +1254,7 @@ gui_forms::DataGridView
       changes, index writes, slot moves, chunk-table rebuilds, whole builds,
       window requests, IDs requested, position queries and mode switches.
 
-   .. cpp:function:: std::optional<DataGridViewRowPosition> new_row_index() const noexcept
+   .. cpp:function:: stxlib::Optional<DataGridViewRowPosition> new_row_index() const noexcept
 
       -- adding and deleting rows (owner decision B1-2) ------------------ With allow_user_to_add_rows (a capability, on by default) unbound and bound grids show a new row after the last row (Windows Forms' new row); virtual grids do not. A bound grid shows it while its source allows new records; a read-only grid or one without columns never does. The new row has a generated ID and empty values; when it becomes current, default_values_needed gives it its first values. The first value the user commits to it (an edit, a toggle or a choice) makes it a row of the grid's, or a record of the source's, with the same ID: user_added_row is raised, and a new row appears after it. Until the current cell leaves it, the added row can be discarded with cancel_row_edit (Escape when no cell is in edit). The new row's position, while it is shown.
 
@@ -1283,7 +1284,7 @@ gui_forms::DataGridView
 
       Sets :cpp:func:`horizontal_scroll_offset <gui_forms::DataGridView::horizontal_scroll_offset>`; see the property's description above.
 
-   .. cpp:function:: std::optional<std::size_t> first_displayed_scrolling_column() const
+   .. cpp:function:: stxlib::Optional<std::size_t> first_displayed_scrolling_column() const
 
       The first scrolling column shown, wholly or in part, past the frozen columns (Windows Forms' FirstDisplayedScrollingColumnIndex), or none; and how much of it is scrolled out of view, in logical units at text scale 1 (FirstDisplayedScrollingColumnHiddenWidth).
 
@@ -1305,12 +1306,16 @@ gui_forms::DataGridView
 
       The child :cpp:class:`HScrollBar <gui_forms::HScrollBar>` that scrolls by logical units.
 
-   .. cpp:function:: std::optional<DataGridViewCellAddress> current_cell() const
+   .. cpp:function:: stxlib::Optional<DataGridViewCellAddress> current_cell() const
 
       The cell keyboard input acts on, at its row's present position, or none.
       :cpp:func:`set_current_cell <gui_forms::DataGridView::set_current_cell>` moves it, committing any edit first, and selects it
       alone; it returns false and changes nothing when the edit does not
       commit.
+
+   .. cpp:function:: bool set_current_cell(stxlib::Optional<DataGridViewCellAddress> cell)
+
+      Sets :cpp:func:`current_cell <gui_forms::DataGridView::current_cell>`; see the property's description above.
 
    .. cpp:function:: bool set_current_cell(std::optional<DataGridViewCellAddress> cell)
 
@@ -1380,7 +1385,7 @@ gui_forms::DataGridView
 
       Raised once after an operation changes which cells or rows are selected.
 
-   .. cpp:function:: Event<std::optional<DataGridViewCellAddress>>& current_cell_changed() noexcept
+   .. cpp:function:: Event<stxlib::Optional<DataGridViewCellAddress>>& current_cell_changed() noexcept
 
       Raised after the current cell moves to another cell, with the new cell or
       none; not when only its row's position changes.
@@ -1574,7 +1579,7 @@ gui_forms::DataGridView
 
       Inserts a column at an index, at most the column count (the count appends, as add_column does). The columns from that index on move up one index, unbound rows' values move with their columns and the new column's cells start empty; in display order the new column takes display index ``column`` (the last, past it) and the columns from there move up one. As remove_column_at, it ends any edit and clears the selection, the current cell and what the grid keeps by row ID and column index (error text, styles, visited links, a sort). Throws as add_column does, and std::out_of_range for an index past the count; std::logic_error when a handler of the row reset (the events above) changed the columns so that the insertion no longer fits, leaving the row state reset and the columns as the handlers left them.
 
-   .. cpp:function:: std::optional<std::size_t> column_index(std::string_view name) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> column_index(std::string_view name) const noexcept
 
       The position of the column with a name, or none.
 
@@ -1614,7 +1619,7 @@ gui_forms::DataGridView
 
       The row at a position as a value made on demand, for any row source (Windows Forms' Rows.SharedRow): its ID and one value per column, read as cell_value reads them (a virtual row asks its provider). The grid keeps no row object for virtual or bound rows, so a million rows cost no million rows; the copy is the caller's, and editing it changes nothing (unbound rows are edited through :cpp:member:`rows <gui_forms::DataGridView::rows>`, the others through their source). Row-wide defaults, Windows Forms' RowTemplate, are the grid's row_height, minimum_row_height and rows_default_cell_style. Throws std::out_of_range past the end.
 
-   .. cpp:function:: std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const
+   .. cpp:function:: stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const
 
       The present position of the row with a stable ID, or none.
 

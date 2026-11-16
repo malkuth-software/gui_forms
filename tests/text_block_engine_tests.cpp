@@ -19,6 +19,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -32,6 +33,14 @@ using render::text::HarfBuzzFontEngine;
 
 void require(bool condition, const std::string& message) {
     if (!condition) throw std::runtime_error(message);
+}
+
+// A baseline the test expects; none fails the test instead of reading an
+// absent value.
+double present_baseline(const stxlib::Optional<double>& baseline, const std::string& what) {
+    require(baseline.present(), what + ": a baseline");
+    const double value = *baseline.value();
+    return value;
 }
 
 void require_near(double actual, double expected, double tolerance, const std::string& what) {
@@ -177,14 +186,14 @@ void test_design_metrics_and_line_boxes(const std::filesystem::path& fonts) {
     // px line box, and as wide as the engine shapes it.
     EngineMetrics metrics(carlito);
     std::shared_ptr<TextBlock> block = make_control<TextBlock>(StableId("engine.text"), "Settings");
-    (*block).font = content(13.0);
+    (*block).font = stxlib::Optional<FontSpec>::of(content(13.0));
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{400.0, 300.0});
     (*held).set_text_metrics_provider(&metrics);
     const LayoutConstraint widest{max_content_extent(), max_content_extent()};
     const Size measured = (*block).measure_for_layout(widest);
     require_near(measured.width, resolved.logical_size.width, 0.0, "the block is as wide as its shaped line");
     require_near(measured.height, 15.0, 0.0, "and one line box tall");
-    require_near((*block).first_baseline(measured.width).value(), 12.0, 0.0, "its baseline is Chromium's");
+    require_near(present_baseline((*block).first_baseline(measured.width), "its baseline is Chromium's"), 12.0, 0.0, "its baseline is Chromium's");
 }
 
 } // namespace

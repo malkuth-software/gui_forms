@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -121,9 +122,9 @@ struct ProgressBarEffectCapability {
 // The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
 template <typename Declaring>
 struct ProgressBarEffectSeedCapability {
-    PropertyCell<std::optional<std::uint64_t>, ProgressBarEffectSeedCapability<Declaring>> effect_seed{std::nullopt};
+    PropertyCell<stxlib::Optional<std::uint64_t>, ProgressBarEffectSeedCapability<Declaring>> effect_seed{};
 
-    static void assign(ProgressBarEffectSeedCapability& capability, std::optional<std::uint64_t> incoming) {
+    static void assign(ProgressBarEffectSeedCapability& capability, stxlib::Optional<std::uint64_t> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.effect_seed), incoming);
         if (!capability.effect_seed.replace(std::move(incoming))) return;

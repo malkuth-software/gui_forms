@@ -30,6 +30,7 @@
 #include <cstdio>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -175,7 +176,7 @@ struct PageContext final {
         // The open page's row is the list's selection, focused and in view.
         if (navigation && index < (*navigation).item_count()) {
             (*navigation).set_selected(index, true);
-            (*navigation).set_focused_index(index);
+            (*navigation).set_focused_index(stxlib::Optional<std::size_t>::of(index));
             (*navigation).ensure_visible(index);
         }
         if (ui_timer) {
@@ -199,8 +200,7 @@ inline std::shared_ptr<Label> label(std::string id, std::string text,
                              double size = 12.0, int weight = 400,
                              std::string_view role_class = "ink") {
     std::shared_ptr<gui_forms::Label> control = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*control).font = FontSpec{FontRole::content, size,
-                       static_cast<std::uint16_t>(weight), false};
+    (*control).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, size, static_cast<std::uint16_t>(weight), false});
     static_cast<void>((*control).add_class(role_class));
     return control;
 }
@@ -236,8 +236,8 @@ inline void insert_before(ScaledGroupBox& group, Control::Ptr child, Rect design
                           const Control& successor) {
     const RuntimeId id = (*child).runtime_id();
     group.add_at(std::move(child), design_bounds);
-    const std::optional<std::size_t> index = group.child_index_from_top(successor.runtime_id());
-    if (!index || !group.set_child_index_from_top(id, *index)) {
+    const stxlib::Optional<std::size_t> index = group.child_index_from_top(successor.runtime_id());
+    if (index.absent() || !group.set_child_index_from_top(id, *index.value())) {
         throw std::logic_error("insert_before: the successor is not the group's child");
     }
 }

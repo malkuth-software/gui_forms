@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -174,7 +175,7 @@ void test_matches_text_block(HarfBuzzFontEngine& engine) {
             for (const LayoutDirection direction : directions) {
                 const std::string what = text + " at " + std::to_string(width);
                 std::shared_ptr<TextBlock> block = make_control<TextBlock>(StableId("engine.paragraph"), text);
-                (*block).font = content(13.0);
+                (*block).font = stxlib::Optional<FontSpec>::of(content(13.0));
                 (*block).margin = {0.0, 0.0, 0.0, 0.0};
                 (*block).padding = {0.0, 0.0, 0.0, 0.0};
                 (*block).layout_direction = direction;
@@ -187,7 +188,7 @@ void test_matches_text_block(HarfBuzzFontEngine& engine) {
 
                 ParagraphStyle style{};
                 style.font = (*block).text_font((*block).resolved_font());
-                style.line_box = paragraph_line_box(&metrics, style.font, std::nullopt);
+                style.line_box = paragraph_line_box(&metrics, style.font, stxlib::Optional<double>::none());
                 style.width = width;
                 style.white_space = ParagraphWhiteSpace::collapse;
                 style.direction = direction == LayoutDirection::right_to_left ? TextDirection::right_to_left
@@ -239,7 +240,7 @@ void test_break_word_keeps_emoji_sequences(HarfBuzzFontEngine& engine) {
     const std::array<std::size_t, 5> boundaries{0U, 18U, 26U, 32U, 50U};
     ParagraphStyle style{};
     style.font = content(13.0);
-    style.line_box = paragraph_line_box(&metrics, style.font, std::nullopt);
+    style.line_box = paragraph_line_box(&metrics, style.font, stxlib::Optional<double>::none());
     style.width = 1.0;
     style.overflow_wrap = ParagraphOverflowWrap::break_word;
     ParagraphBuffers buffers{};

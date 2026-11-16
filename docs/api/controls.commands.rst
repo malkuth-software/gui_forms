@@ -262,7 +262,7 @@ Related types
 
       Whether an ampersand in the text marks the access key (UseMnemonic).
 
-   .. cpp:member:: std::optional<bool> expanded_state
+   .. cpp:member:: stxlib::Optional<bool> expanded_state
 
       Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
 
@@ -609,9 +609,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ExpandedStateCapability& capability, std::optional<bool> incoming)
+   .. cpp:function:: static void assign(ExpandedStateCapability& capability, stxlib::Optional<bool> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<bool>, ExpandedStateCapability<Declaring>> expanded_state
+   .. cpp:member:: PropertyCell<stxlib::Optional<bool>, ExpandedStateCapability<Declaring>> expanded_state
 
 .. cpp:namespace:: gui_forms
 

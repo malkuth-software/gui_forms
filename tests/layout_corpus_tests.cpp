@@ -63,6 +63,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <sstream>
 #include <stdexcept>
@@ -778,10 +779,10 @@ private:
             panel.text_align = own.text_align;
             if (own.zero_font) {
                 const double half = own.line_height < 0.0 ? 0.0 : own.line_height / 2.0;
-                panel.line_strut = LineStrut{half, half, 0.0};
+                panel.line_strut = stxlib::Optional<LineStrut>::of(LineStrut{half, half, 0.0});
             } else {
                 // The strut comes from the panel's font, as CSS's does.
-                panel.font = own.font;
+                panel.font = stxlib::Optional<FontSpec>::of(own.font);
             }
         }
         if (text_leaf) {
@@ -789,9 +790,9 @@ private:
                 fault(where, "a text-block takes a font in rem and a unitless line-height, which scale with the text");
             }
             TextBlock& leaf = static_cast<TextBlock&>(control);
-            leaf.font = own.font;
+            leaf.font = stxlib::Optional<FontSpec>::of(own.font);
             leaf.text_align = own.text_align;
-            if (own.line_height_number >= 0.0) leaf.line_height = own.line_height_number * own.font.size;
+            if (own.line_height_number >= 0.0) leaf.line_height = stxlib::Optional<double>::of(own.line_height_number * own.font.size);
         }
         const std::vector<StyleDeclaration> declarations =
             style_text == nullptr || reader_context ? std::vector<StyleDeclaration>{}
@@ -1482,9 +1483,9 @@ std::optional<double> leaf_baseline(const BuiltIdentity& built) {
     if (!built.text_leaf) return std::nullopt;
     Control& control = *built.control;
     const Rect bounds = control.absolute_bounds();
-    const std::optional<double> baseline = control.first_baseline(bounds.width);
-    if (!baseline) return std::nullopt;
-    return bounds.y + *baseline;
+    const stxlib::Optional<double> baseline = control.first_baseline(bounds.width);
+    if (baseline.absent()) return std::nullopt;
+    return bounds.y + *baseline.value();
 }
 
 std::map<std::string, std::string> expected_differences(const XmlElement& element) {

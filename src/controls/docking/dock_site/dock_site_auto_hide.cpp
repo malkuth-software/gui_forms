@@ -99,7 +99,7 @@ class DockSite::Flyout final : public Control {
 public:
     Flyout(StableId stable_id, DockSite& site) : Control(std::move(stable_id)), site_(&site) {
         set_paint_plane(PaintPlane::overlay);
-        cursor = CursorKind::arrow;
+        cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
         // Focus lands here when the panel has nothing focusable, so Escape
         // still reaches the flyout.
         focusable = true;
@@ -311,19 +311,19 @@ void DockSite::sync_side_strips() {
             for (std::size_t index = 0; index < wanted.size(); ++index) {
                 const PageId page{wanted[index].value};
                 const std::string title = (*workspace_).panel_title(wanted[index]);
-                const std::optional<PagePosition> found = pages.find(page);
-                if (!found) {
+                const stxlib::Optional<PagePosition> found = pages.find(page);
+                if (found.absent()) {
                     PageRecord record{};
                     record.id = page;
                     record.title = title;
                     static_cast<void>(pages.insert(record, PagePlacement::at(PagePosition{index})));
                     continue;
                 }
-                if ((*found).value != index) static_cast<void>(pages.move(page, PagePosition{index}));
+                if ((*found.value()).value != index) static_cast<void>(pages.move(page, PagePosition{index}));
                 if (pages.record_at(PagePosition{index}).title != title) static_cast<void>(pages.set_title(page, title));
             }
             // The tab of the open flyout is the selected one.
-            if (flyout_panel_ && pages.find(PageId{(*flyout_panel_).value})) {
+            if (flyout_panel_ && pages.find(PageId{(*flyout_panel_).value}).present()) {
                 static_cast<void>(pages.select(PageId{(*flyout_panel_).value}, PageSelectionCause::programmatic));
             }
             batch.close();
@@ -592,10 +592,10 @@ bool DockSite::open_flyout(const DockPanelId& panel, DockFlyoutCause cause) {
     // The flyout is an overlay root, so the colours the program set on the
     // form (WinForms ambient BackColor and ForeColor) stop at it; it takes
     // the site's.
-    const std::optional<Color> site_back = ambient_back_color();
-    if (site_back) (*flyout_).back_color = site_back;
-    const std::optional<Color> site_fore = ambient_fore_color();
-    if (site_fore) (*flyout_).fore_color = site_fore;
+    const stxlib::Optional<Color> site_back = ambient_back_color();
+    if (site_back.present()) (*flyout_).back_color = site_back;
+    const stxlib::Optional<Color> site_fore = ambient_fore_color();
+    if (site_fore.present()) (*flyout_).fore_color = site_fore;
     flyout_root_ = flyout_;
     move_view_to_flyout(*slot);
     // The slide starts under the strip; under reduced motion or in an
@@ -878,7 +878,7 @@ void DockSite::on_flyout_pointer(PointerEvent& event) {
             hot_ = hit;
             CursorKind cursor = CursorKind::arrow;
             if (hit.zone == Zone::grip) cursor = across(edge) ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
-            (*flyout_).cursor = cursor;
+            (*flyout_).cursor = stxlib::Optional<CursorKind>::of(cursor);
             (*flyout_).invalidate(Dirty::paint);
             invalidate(Dirty::paint);
         }
@@ -964,12 +964,12 @@ void DockSite::paint_flyout(Painter& painter, const Control& surface) const {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::shadow;
     part.bounds = moved(placed.full, offset);
-    part.corner_radius = 0.0;
-    part.key = PartKey{"flyout_shadow", {}, {}};
+    part.corner_radius.set(0.0);
+    part.key.set(PartKey{"flyout_shadow", {}, {}});
     paint_part(painter, surface, part);
     part.corner_radius.reset();
     part.role = PartRole::face;
-    part.key = PartKey{"flyout_face", {}, {}};
+    part.key.set(PartKey{"flyout_face", {}, {}});
     paint_part(painter, surface, part);
     paint_caption(painter, surface, stacks_[index], index, offset);
     PartPaint grip{};
@@ -977,7 +977,7 @@ void DockSite::paint_flyout(Painter& painter, const Control& surface) const {
     grip.role = PartRole::grip;
     grip.mark = PartMark::grip_dots;
     grip.bounds = moved(placed.grip, offset);
-    grip.key = PartKey{"flyout_grip", {}, {}};
+    grip.key.set(PartKey{"flyout_grip", {}, {}});
     if (hot_.zone == Zone::grip) grip.states.insert(AnatomyState::hot);
     if (grip_captured_) grip.states.insert(AnatomyState::captured);
     paint_part(painter, surface, grip);

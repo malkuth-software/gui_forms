@@ -39,6 +39,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -344,7 +345,7 @@ void test_lamp_colour_and_kept_composite() {
 
 void test_light_plane_properties() {
     const std::shared_ptr<IndicatorLamp> lamp = make_control<IndicatorLamp>(StableId("lamp"));
-    require((*lamp).light_planes.read().empty() && !(*lamp).lamp_color.read().has_value(),
+    require((*lamp).light_planes.read().empty() && (*lamp).lamp_color.read().absent(),
             "a new lamp names no bake and takes the theme's colour");
     (*lamp).light_planes = std::string("indicator_clear_up");
     require((*lamp).light_planes.read() == "indicator_clear_up", "a bake is named");
@@ -361,8 +362,8 @@ void test_light_plane_properties() {
     }
     (*lamp).light_planes = std::string{};
     require((*lamp).light_planes.read().empty(), "an empty name draws the theme's lens");
-    (*lamp).lamp_color = std::optional<Color>{Color::rgba(111, 255, 137)};
-    require((*lamp).lamp_color.read() == std::optional<Color>{Color::rgba(111, 255, 137)}, "a lamp colour is kept");
+    (*lamp).lamp_color = stxlib::Optional<Color>::of(Color::rgba(111, 255, 137));
+    require((*lamp).lamp_color.read() == stxlib::Optional<Color>::of(Color::rgba(111, 255, 137)), "a lamp colour is kept");
     require(!(*lamp).light_planes_shown(), "outside a window no bake is shown");
 }
 
@@ -476,10 +477,10 @@ void test_baked_lens() {
     // The lens in the capture's pixels: the margin, then the client area.
     const Rect lens{4.0, 4.0, 30.0, 20.0};
     const std::optional<WindowCapture> dark = capture_lamp(attached, made);
-    (*made.lamp).lamp_color = std::optional<Color>{Color::rgba(111, 255, 137)};
+    (*made.lamp).lamp_color = stxlib::Optional<Color>::of(Color::rgba(111, 255, 137));
     (*made.lamp).state = IndicatorLampState::on;
     const std::optional<WindowCapture> green = capture_lamp(attached, made);
-    (*made.lamp).lamp_color = std::optional<Color>{Color::rgba(255, 97, 56)};
+    (*made.lamp).lamp_color = stxlib::Optional<Color>::of(Color::rgba(255, 97, 56));
     const std::optional<WindowCapture> red = capture_lamp(attached, made);
     require(dark.has_value() && green.has_value() && red.has_value(), "the baked lamp is captured");
     if (!dark || !green || !red) {

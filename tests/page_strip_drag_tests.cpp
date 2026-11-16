@@ -367,10 +367,10 @@ void insertion_tables() {
         {251.0, 2U}, {300.0, 3U}, {351.0, 3U}, {353.0, 4U}, {402.0, 4U}, {590.0, 4U},
     };
     for (const InsertionRow& row : table) {
-        const std::optional<PagePosition> gap = (*strip).insertion_position_at({row.x, 13.0});
-        require(gap && (*gap).value == row.gap, "the insertion table's gap matches");
+        const stxlib::Optional<PagePosition> gap = (*strip).insertion_position_at({row.x, 13.0});
+        require(gap.present() && (*gap.value()).value == row.gap, "the insertion table's gap matches");
     }
-    require(!(*strip).insertion_position_at({100.0, 40.0}), "a point outside the strip has no gap");
+    require((*strip).insertion_position_at({100.0, 40.0}).absent(), "a point outside the strip has no gap");
     require((*strip).show_insertion_mark(PagePosition{2U}), "the mark shows at a gap between tabs");
     const PageStrip::Parts parts = (*strip).parts();
     require(parts.insertion_mark.present && near(parts.insertion_mark.bounds.x + 1.0, 202.0) &&
@@ -380,7 +380,7 @@ void insertion_tables() {
     require((*strip).show_insertion_mark(PagePosition{4U}) &&
                 near((*strip).parts().insertion_mark.bounds.x + 1.0, 402.0),
             "the gap after the last tab marks its end");
-    require(!(*strip).show_insertion_mark(PagePosition{5U}) && !(*strip).insertion_mark(),
+    require(!(*strip).show_insertion_mark(PagePosition{5U}) && (*strip).insertion_mark().absent(),
             "a gap beyond the set shows nothing");
     require((*strip).show_insertion_mark(PagePosition{1U}), "the mark shows again");
     (*strip).clear_insertion_mark();
@@ -391,9 +391,9 @@ void insertion_tables() {
     std::shared_ptr<PageStrip> pinned = fixed_strip(pinned_pages);
     Window pinned_window(pinned, {600.0, 26.0});
     pinned_window.perform_layout();
-    const std::optional<PagePosition> front = (*pinned).insertion_position_at({10.0, 13.0});
-    const std::optional<PagePosition> later = (*pinned).insertion_position_at({160.0, 13.0});
-    require(front && (*front).value == 1U && later && (*later).value == 2U,
+    const stxlib::Optional<PagePosition> front = (*pinned).insertion_position_at({10.0, 13.0});
+    const stxlib::Optional<PagePosition> later = (*pinned).insertion_position_at({160.0, 13.0});
+    require(front.present() && (*front.value()).value == 1U && later.present() && (*later.value()).value == 2U,
             "a gap never lies inside the pinned group");
 }
 

@@ -14,6 +14,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -138,7 +139,7 @@ private:
 Callout::Callout(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     const std::string prefix((*this).stable_id().value());
     title_label_ = make_control<Label>(StableId(prefix + ".title"));
     (*title_label_).text_wrapping = TextWrapping::word;
@@ -172,7 +173,7 @@ void Callout::sync_children() {
     FontSpec title_font = text_font(effective_theme().structure().typography.control);
     title_font.weight = 600;
     title_font.size += title_size_increase;
-    (*title_label_).font = title_font;
+    (*title_label_).font = stxlib::Optional<FontSpec>::of(title_font);
     (*title_label_).text = title.read();
     set_child_layout_collapsed(title_label_, title.read().empty());
     (*text_label_).text = text.read();
@@ -269,7 +270,7 @@ void Callout::on_paint(Painter& painter, Rect) {
     PartPaint beak{.role = PartRole::beak, .bounds = placed.beak, .states = states,
                    .family = ControlVisualRole::tool_tip};
     beak.mark = beak_down_ ? PartMark::arrow_down : PartMark::arrow_up;
-    beak.key = PartKey{"beak", {}, {}};
+    beak.key.set(PartKey{"beak", {}, {}});
     paint_part(painter, *this, beak);
     AnatomyStateSet close_states = states;
     if (hot_close_) close_states.insert(AnatomyState::hot);
@@ -277,7 +278,7 @@ void Callout::on_paint(Painter& painter, Rect) {
     PartPaint close_mark{.role = PartRole::glyph, .bounds = placed.close, .states = close_states,
                          .family = ControlVisualRole::tool_tip};
     close_mark.mark = PartMark::close;
-    close_mark.key = PartKey{"close", {}, {}};
+    close_mark.key.set(PartKey{"close", {}, {}});
     paint_part(painter, *this, close_mark);
 }
 

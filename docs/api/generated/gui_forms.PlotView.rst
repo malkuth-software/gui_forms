@@ -38,7 +38,7 @@ gui_forms::PlotView
 
       **handles** : ``std::span<const PlotHandle>``
 
-      **dragged_handle** : ``std::optional<std::uint32_t>``, read-only
+      **dragged_handle** : ``stxlib::Optional<std::uint32_t>``, read-only
          The handle being dragged, if any.
 
       **series_items** : ``std::vector<PlotSeriesItem*>``, read-only
@@ -47,7 +47,7 @@ gui_forms::PlotView
       **query** : ``PlotQuery``, read-only
          The query rectangle, if one is kept.
 
-      **cursor** : ``std::optional<PlotPointPick>``
+      **cursor** : ``stxlib::Optional<PlotPointPick>``
          The keyboard point cursor's point, if it is on one.
 
       **summary** : ``std::string``, read-only
@@ -159,7 +159,7 @@ gui_forms::PlotView
 
       Replaces the handles. Throws std::invalid_argument, changing nothing, for a non-finite position, a repeated id or more than maximum_plot_handles; a running handle drag is cancelled first (model_changed).
 
-   .. cpp:function:: std::optional<std::uint32_t> dragged_handle() const noexcept
+   .. cpp:function:: stxlib::Optional<std::uint32_t> dragged_handle() const noexcept
 
       The handle being dragged, if any.
 
@@ -171,7 +171,7 @@ gui_forms::PlotView
 
       The query rectangle, if one is kept.
 
-   .. cpp:function:: std::optional<PlotPointPick> cursor() const
+   .. cpp:function:: stxlib::Optional<PlotPointPick> cursor() const
 
       The keyboard point cursor's point, if it is on one.
 
@@ -229,7 +229,7 @@ gui_forms::PlotView
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<Point> handle_point(std::uint32_t id) const
+   .. cpp:function:: stxlib::Optional<Point> handle_point(std::uint32_t id) const
 
       The handle's centre in local coordinates on the first axes, if the plot is laid out (tests and owner-drawn labels).
 

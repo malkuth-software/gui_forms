@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -31,9 +32,9 @@ namespace gui_forms {
 // The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
 template <typename Declaring>
 struct TextBlockFontCapability {
-    PropertyCell<std::optional<FontSpec>, TextBlockFontCapability<Declaring>> font{};
+    PropertyCell<stxlib::Optional<FontSpec>, TextBlockFontCapability<Declaring>> font{};
 
-    static void assign(TextBlockFontCapability& capability, std::optional<FontSpec> incoming) {
+    static void assign(TextBlockFontCapability& capability, stxlib::Optional<FontSpec> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.font), incoming);
         if (!capability.font.replace(std::move(incoming))) return;
@@ -57,9 +58,9 @@ struct TextBlockTextAlignCapability {
 // CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).
 template <typename Declaring>
 struct TextBlockLineHeightCapability {
-    PropertyCell<std::optional<double>, TextBlockLineHeightCapability<Declaring>> line_height{};
+    PropertyCell<stxlib::Optional<double>, TextBlockLineHeightCapability<Declaring>> line_height{};
 
-    static void assign(TextBlockLineHeightCapability& capability, std::optional<double> incoming) {
+    static void assign(TextBlockLineHeightCapability& capability, stxlib::Optional<double> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.line_height), incoming);
         if (!capability.line_height.replace(std::move(incoming))) return;

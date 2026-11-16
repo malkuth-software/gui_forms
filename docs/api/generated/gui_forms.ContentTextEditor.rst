@@ -65,7 +65,7 @@ gui_forms::ContentTextEditor
       **live_surface** : ``std::shared_ptr<LiveSurface>``, read-only
          The :cpp:class:`LiveSurface <gui_forms::LiveSurface>` the frames go into; null before :cpp:func:`open_frames <gui_forms::ContentTextEditor::open_frames>`.
 
-      **caret_rectangle** : ``std::optional<Rect>``, read-only
+      **caret_rectangle** : ``stxlib::Optional<Rect>``, read-only
          The caret's bar in local coordinates, from the current layout; none
          without one.
 
@@ -240,7 +240,7 @@ gui_forms::ContentTextEditor
 
       The :cpp:class:`LiveSurface <gui_forms::LiveSurface>` the frames go into; null before :cpp:func:`open_frames <gui_forms::ContentTextEditor::open_frames>`.
 
-   .. cpp:function:: std::optional<Rect> caret_rectangle() const
+   .. cpp:function:: stxlib::Optional<Rect> caret_rectangle() const
 
       The caret's bar in local coordinates, from the current layout; none
       without one.
@@ -412,7 +412,7 @@ gui_forms::ContentTextEditor
 
       *Protected.*
 
-   .. cpp:function:: std::optional<Rect> text_input_caret() const override
+   .. cpp:function:: stxlib::Optional<Rect> text_input_caret() const override
 
       *Protected.*
 

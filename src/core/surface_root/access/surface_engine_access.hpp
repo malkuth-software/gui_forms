@@ -81,8 +81,8 @@ public:
         return result;
     }
     // The pointer's window position, or none while it is outside the window.
-    [[nodiscard]] static std::optional<Point> pointer(const SurfaceRoot& root) noexcept {
-        const std::optional<Point> result = root.engine_pointer();
+    [[nodiscard]] static stxlib::Optional<Point> pointer(const SurfaceRoot& root) noexcept {
+        const stxlib::Optional<Point> result = root.engine_pointer();
         return result;
     }
     [[nodiscard]] static PartRasterResult part_raster(SurfaceRoot& root, PartRecordHandle handle,

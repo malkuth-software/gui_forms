@@ -283,8 +283,8 @@ public:
         part.role = role_;
         part.family = ControlVisualRole::button;
         part.bounds = engine_samples::feature_sample_bounds;
-        part.corner_radius = engine_samples::feature_sample_corner_radius;
-        part.key = PartKey{"subject", {}, {}};
+        part.corner_radius.set(engine_samples::feature_sample_corner_radius);
+        part.key.set(PartKey{"subject", {}, {}});
         part.states = states;
         part.granted_overflow = overflow;
         paint_part(painter, *this, part);
@@ -335,7 +335,7 @@ std::unique_ptr<SubjectFixture> make_subject(const EnginePrimitive& primitive, d
     rule.label = "gate";
     rule.level = CascadeLevel::theme_sheet;
     rule.selector.stable_id = "subject";
-    rule.selector.role = role;
+    rule.selector.role.set(role);
     rule.declarations.push_back(RuleDeclaration::primitive(std::string(descriptor.name)));
     definition.rules.rules.push_back(rule);
     std::unique_ptr<SubjectFixture> fixture = std::make_unique<SubjectFixture>();
@@ -724,7 +724,7 @@ std::uint64_t sample_bake_effort(const EngineFeatureSample& sample, double scale
     target.logical_size = Size{engine_samples::feature_sample_bounds.width, engine_samples::feature_sample_bounds.height};
     target.scale = DeviceScale{scale};
     target.material = &material;
-    target.corner_radius = engine_samples::feature_sample_corner_radius;
+    target.corner_radius.set(engine_samples::feature_sample_corner_radius);
     const engine_primitives::BakeEffort effort = engine_primitives::material_bake_effort(material, target);
     return effort.units;
 }
@@ -1069,14 +1069,16 @@ void add_material_features(std::vector<std::string>& keys, const SurfaceMaterial
     for (const MaterialGlow& glow : material.glows) {
         add_key(keys, "glow." + std::string(glow_placement_name(glow.placement)));
     }
-    if (material.border) add_key(keys, "border." + std::string(border_style_name((*material.border).style)));
+    if (material.border.present()) {
+        add_key(keys, "border." + std::string(border_style_name((*material.border.value()).style)));
+    }
     if (!material.border_edges.empty()) add_key(keys, "border.edges");
     for (const MaterialKeyline& keyline : material.keylines) {
         add_key(keys, "keyline." + std::string(edge_name(keyline.edge)));
     }
-    if (material.corner_radii) add_key(keys, "corner_radii");
+    if (material.corner_radii.present()) add_key(keys, "corner_radii");
     if (material.colour_filter) add_key(keys, "colour_filter");
-    if (material.drop_shadow) add_key(keys, "drop_shadow");
+    if (material.drop_shadow.present()) add_key(keys, "drop_shadow");
     if (material.filter_blur > 0.0) add_key(keys, "filter_blur");
     if (material.finish > 0.0) add_key(keys, "finish");
     for (const MaterialMaskLayer& mask : material.masks) {
@@ -1574,7 +1576,7 @@ std::unique_ptr<SampleFixture> material_window(const SurfaceMaterial& material, 
     rule.label = "specimen";
     rule.level = CascadeLevel::theme_sheet;
     rule.selector.stable_id = std::string(engine_samples::feature_sample_subject);
-    rule.selector.role = PartRole::face;
+    rule.selector.role.set(PartRole::face);
     rule.declarations.push_back(RuleDeclaration::primitive("material"));
     rule.declarations.push_back(RuleDeclaration::choice_value("recipe", "button"));
     rule.declarations.push_back(RuleDeclaration::choice_value("shape", "rounded_rectangle"));
@@ -1621,7 +1623,7 @@ void specimen_finish(SpecimenSink& sink) {
             material.fills.clear();
             const std::vector<GradientStop> stops{GradientStop{0.0, base.top}, GradientStop{1.0, base.bottom}};
             material.fills.push_back(MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 1.0}, stops));
-            material.border = MaterialBorder{Color::rgba(40, 52, 66), 1.0};
+            material.border.set(MaterialBorder{Color::rgba(40, 52, 66), 1.0});
             material.corner_radius = engine_samples::feature_sample_corner_radius;
             material.finish = finish;
             for (const Backplane backplane : specimen_backplanes) {
@@ -1693,7 +1695,7 @@ void specimen_tokens(SpecimenSink& sink) {
                                                    std::vector<GradientStop>{
                                                        GradientStop{0.0, Color::rgba(232, 238, 246)},
                                                        GradientStop{1.0, Color::rgba(92, 156, 222)}}));
-    face.border = MaterialBorder{Color::rgba(40, 52, 66), 1.0};
+    face.border.set(MaterialBorder{Color::rgba(40, 52, 66), 1.0});
     face.corner_radius = engine_samples::feature_sample_corner_radius;
     // 600 ms asked, 400 ms given. The move starts on the first frame after
     // the change (16 ms): frames at 96 to 384 ms, at rest by 416, and still

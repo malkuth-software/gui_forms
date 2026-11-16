@@ -1134,7 +1134,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:member:: std::optional<std::size_t> selected_index
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_index
 
       The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.
 
@@ -1293,11 +1293,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ComboBoxSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(ComboBoxSelectedIndexCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const ComboBoxSelectedIndexCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const ComboBoxSelectedIndexCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, ComboBoxSelectedIndexCapability<Declaring>> selected_index
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, ComboBoxSelectedIndexCapability<Declaring>> selected_index
 
 .. cpp:namespace:: gui_forms
 
@@ -1732,9 +1732,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(DataGridViewBackgroundColorCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(DataGridViewBackgroundColorCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<Color>, DataGridViewBackgroundColorCapability<Declaring>> background_color
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, DataGridViewBackgroundColorCapability<Declaring>> background_color
 
 .. cpp:namespace:: gui_forms
 
@@ -1833,11 +1833,11 @@ Related types
 
       Whether headers take the theme's look over their cell styles (EnableHeadersVisualStyles).
 
-   .. cpp:member:: std::optional<Color> grid_color
+   .. cpp:member:: stxlib::Optional<Color> grid_color
 
       The authored colour of the grid lines; empty takes the theme's (GridColor).
 
-   .. cpp:member:: std::optional<Color> background_color
+   .. cpp:member:: stxlib::Optional<Color> background_color
 
       The authored colour behind the cells; empty takes the theme's (BackgroundColor).
 
@@ -2056,9 +2056,9 @@ Related types
 
    .. cpp:member:: DataGridViewRowId row_id
 
-   .. cpp:member:: std::optional<DataGridViewRowPosition> row
+   .. cpp:member:: stxlib::Optional<DataGridViewRowPosition> row
 
-   .. cpp:member:: std::optional<std::size_t> column
+   .. cpp:member:: stxlib::Optional<std::size_t> column
 
    .. cpp:member:: Point location
 
@@ -2200,9 +2200,9 @@ Related types
 
    .. cpp:member:: std::string inline_style
 
-   .. cpp:member:: std::optional<Color> back_color
+   .. cpp:member:: stxlib::Optional<Color> back_color
 
-   .. cpp:member:: std::optional<Color> fore_color
+   .. cpp:member:: stxlib::Optional<Color> fore_color
 
 .. cpp:namespace:: gui_forms
 
@@ -2372,13 +2372,13 @@ Related types
 
    .. cpp:member:: std::optional<BindingValue> data_source_null_value
 
-   .. cpp:member:: std::optional<Color> back_color
+   .. cpp:member:: stxlib::Optional<Color> back_color
 
-   .. cpp:member:: std::optional<Color> fore_color
+   .. cpp:member:: stxlib::Optional<Color> fore_color
 
-   .. cpp:member:: std::optional<Color> selection_back_color
+   .. cpp:member:: stxlib::Optional<Color> selection_back_color
 
-   .. cpp:member:: std::optional<Color> selection_fore_color
+   .. cpp:member:: stxlib::Optional<Color> selection_fore_color
 
 .. cpp:namespace:: gui_forms
 
@@ -2827,9 +2827,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(DataGridViewGridColorCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(DataGridViewGridColorCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<Color>, DataGridViewGridColorCapability<Declaring>> grid_color
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, DataGridViewGridColorCapability<Declaring>> grid_color
 
 .. cpp:namespace:: gui_forms
 
@@ -2843,9 +2843,9 @@ Related types
 
       Default: ``{DataGridViewHitTestType::none}``.
 
-   .. cpp:member:: std::optional<DataGridViewRowPosition> row
+   .. cpp:member:: stxlib::Optional<DataGridViewRowPosition> row
 
-   .. cpp:member:: std::optional<std::size_t> column
+   .. cpp:member:: stxlib::Optional<std::size_t> column
 
 .. cpp:namespace:: gui_forms
 
@@ -3188,11 +3188,11 @@ Related types
 
       The ID at a position, by value; empty (no row's ID) for a position at or past count(). In window mode a position outside the window is asked of the source.
 
-   .. cpp:function:: std::optional<std::size_t> position_of(std::string_view id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> position_of(std::string_view id) const
 
       The position of an ID now, or none.
 
-   .. cpp:function:: std::optional<std::size_t> held_position(std::string_view id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> held_position(std::string_view id) const
 
       Window mode: the position an ID had in the window held before the last reported change, or none. Edit mode: position_of.
 
@@ -3360,7 +3360,7 @@ Related types
 
       Default: ``{PartMark::none}``.
 
-   .. cpp:member:: std::optional<Color> background
+   .. cpp:member:: stxlib::Optional<Color> background
 
 .. cpp:namespace:: gui_forms
 
@@ -3444,7 +3444,7 @@ Related types
 
    .. cpp:member:: DataGridViewRowPaintParts parts
 
-   .. cpp:member:: std::optional<Color> background
+   .. cpp:member:: stxlib::Optional<Color> background
 
    .. cpp:member:: bool handled
 
@@ -3466,7 +3466,7 @@ Related types
 
    .. rubric:: Extension points
 
-   .. cpp:function:: static std::optional<std::size_t> take_dirty(DataGridViewRowsCapability& capability, std::vector<std::uint32_t>& replaced)
+   .. cpp:function:: static stxlib::Optional<std::size_t> take_dirty(DataGridViewRowsCapability& capability, std::vector<std::uint32_t>& replaced)
 
       *Protected.*
 
@@ -3556,7 +3556,7 @@ Related types
 
       Fills ``out`` with the IDs at positions [first, first + out.size()), which the grid keeps within row_count().
 
-   .. cpp:function:: virtual std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const = 0
+   .. cpp:function:: virtual stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const = 0
 
       The position of a row in the current order, or none when it is gone.
 
@@ -3903,7 +3903,7 @@ Related types
 
    .. cpp:member:: std::vector<std::size_t> current
 
-   .. cpp:member:: std::optional<std::size_t> active_index
+   .. cpp:member:: stxlib::Optional<std::size_t> active_index
 
 .. cpp:namespace:: gui_forms
 
@@ -4477,7 +4477,7 @@ Related types
 
    .. cpp:member:: std::size_t selected_count
 
-   .. cpp:member:: std::optional<std::size_t> focused_index
+   .. cpp:member:: stxlib::Optional<std::size_t> focused_index
 
 .. cpp:namespace:: gui_forms
 
@@ -4490,7 +4490,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<std::size_t> apply(std::optional<std::size_t> index) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> apply(stxlib::Optional<std::size_t> index) const noexcept
 
    .. cpp:member:: std::size_t first
 
@@ -5246,11 +5246,11 @@ Related types
 
       The row's height in logical units at text scale 1, asked once when the row is first shown (the height is kept until splice_rows or refresh_rows drops it). Until then the row counts as ``estimated``, the view's own row height; returning it (the default), zero or a value that is not finite keeps that.
 
-   .. cpp:function:: virtual std::optional<std::size_t> find_row(std::string_view node_id) const
+   .. cpp:function:: virtual stxlib::Optional<std::size_t> find_row(std::string_view node_id) const
 
       The row showing a node, for lookups by ID outside the rows in view (selected_id, ensure_visible, semantic actions); none by default.
 
-   .. cpp:function:: virtual std::optional<std::size_t> find_prefix(std::string_view folded_prefix, std::size_t start) const
+   .. cpp:function:: virtual stxlib::Optional<std::size_t> find_prefix(std::string_view folded_prefix, std::size_t start) const
 
       Type-ahead: the first enabled row at or after ``start`` (wrapping) whose text starts with ``folded_prefix`` (ASCII case folded); none by default, so a virtual view has no type-ahead unless the source provides it.
 
@@ -5288,7 +5288,7 @@ Related types
 
    The sibling order after a header click, the semantic press on a header, or set_sort().
 
-   .. cpp:member:: std::optional<std::size_t> column
+   .. cpp:member:: stxlib::Optional<std::size_t> column
 
    .. cpp:member:: TreeListSortOrder order
 
@@ -5936,9 +5936,9 @@ Related types
 
    A change of the selection, after it happened: the current row before and after (the row the keyboard and the last press are at; in the single mode the selected row) and how many rows are selected now. Raised when the current row or the set of selected rows changes. A current row erased reports ``current`` none.
 
-   .. cpp:member:: std::optional<VirtualRowIndex> previous
+   .. cpp:member:: stxlib::Optional<VirtualRowIndex> previous
 
-   .. cpp:member:: std::optional<VirtualRowIndex> current
+   .. cpp:member:: stxlib::Optional<VirtualRowIndex> current
 
    .. cpp:member:: std::size_t selected_count
 

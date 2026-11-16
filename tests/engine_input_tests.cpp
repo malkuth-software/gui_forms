@@ -25,6 +25,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -90,7 +91,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = face;
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         if (hot) part.states.insert(AnatomyState::hot);
         if (on_behalf_of == nullptr) {
             paint_part(painter, *this, part);
@@ -355,10 +356,10 @@ void published_value_reaches_only_its_readers() {
             "three changes, two parts damaged");
     window.withdraw_value("level");
     static_cast<void>(repaint(*fixture));
-    require(drawn_amplitude(window, "level-reader") == 0.125 && !window.published_value("level"),
+    require(drawn_amplitude(window, "level-reader") == 0.125 && window.published_value("level").absent(),
             "a withdrawn value reads as unpublished");
     require(!window.publish_value("Level", 1.0) && !window.publish_value("level", std::nan("")) &&
-                !window.publish_value("", 1.0) && !window.published_value("Level"),
+                !window.publish_value("", 1.0) && window.published_value("Level").absent(),
             "an invalid name or a value that is not finite is refused");
     metrics = window.metrics_snapshot();
     require(metrics.engine_input_damaged_parts == 3U, "the withdrawal damaged its reader");
@@ -437,7 +438,7 @@ void vocabulary_and_rules() {
     ThemeRuleSheet sheet{};
     ThemeRule rule{};
     rule.label = "sheen";
-    rule.selector.role = PartRole::sheen;
+    rule.selector.role.set(PartRole::sheen);
     rule.declarations.push_back(RuleDeclaration::primitive("pointer_sheen"));
     sheet.rules.push_back(rule);
     const CompiledThemeRules compiled = CompiledThemeRules::compile(sheet, registry);
@@ -455,7 +456,7 @@ void vocabulary_and_rules() {
     const std::array<Instruction, 1> half{Instruction::number(0.5)};
     ThemeRule faults{};
     faults.label = "faults";
-    faults.selector.role = PartRole::face;
+    faults.selector.role.set(PartRole::face);
     faults.declarations.push_back(RuleDeclaration::primitive("bulge"));
     faults.declarations.push_back(RuleDeclaration::expression_value("amplitude", unbalanced, 0.0));
     faults.declarations.push_back(RuleDeclaration::expression_value("light_peak", colour, 0.0));
@@ -490,8 +491,9 @@ void vocabulary_and_rules() {
     require(matched == 7U && checked.diagnostics().size() == 7U,
             "two unusable published names, and each faulty expression dropped with its own diagnostic");
     require(checked.published_values().size() == 3U && checked.published_values()[1].empty() &&
-                checked.published_value_input("level") == published_value_position(0U) &&
-                !checked.published_value_input("Level"),
+                checked.published_value_input("level") ==
+                    stxlib::Optional<ExpressionInputIndex>::of(published_value_position(0U)) &&
+                checked.published_value_input("Level").absent(),
             "an unusable name keeps its position, empty");
 }
 

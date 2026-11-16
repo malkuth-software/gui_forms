@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -122,9 +123,9 @@ struct ButtonUseMnemonicCapability {
 // Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
 template <typename Declaring>
 struct ExpandedStateCapability {
-    PropertyCell<std::optional<bool>, ExpandedStateCapability<Declaring>> expanded_state{};
+    PropertyCell<stxlib::Optional<bool>, ExpandedStateCapability<Declaring>> expanded_state{};
 
-    static void assign(ExpandedStateCapability& capability, std::optional<bool> incoming) {
+    static void assign(ExpandedStateCapability& capability, stxlib::Optional<bool> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.expanded_state), incoming);
         if (!capability.expanded_state.replace(std::move(incoming))) return;

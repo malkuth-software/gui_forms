@@ -29,6 +29,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -64,8 +65,8 @@ std::shared_ptr<Label> label(std::string id, std::string text,
                              FontSpec font, Color color) {
     std::shared_ptr<Label> result = make_control<Label>(
         StableId(std::move(id)), std::move(text));
-    (*result).font = font;
-    (*result).fore_color = color;
+    (*result).font = stxlib::Optional<FontSpec>::of(font);
+    (*result).fore_color = stxlib::Optional<Color>::of(color);
     return result;
 }
 
@@ -80,7 +81,7 @@ SurfaceMaterial office_hot_material() {
         {{0.0, 2.0}, 3.0, 0.0, Color::rgba(36, 69, 94, 68), false},
         {{0.0, 1.0}, 1.0, 0.0, Color::rgba(255, 255, 255, 210), true},
     };
-    result.border = MaterialBorder{Color::rgba(83, 126, 161), 1.0};
+    result.border.set(MaterialBorder{Color::rgba(83, 126, 161), 1.0});
     return result;
 }
 
@@ -97,7 +98,7 @@ SurfaceMaterial office_pressed_material() {
         {{0.0, 2.0}, 3.0, 0.0, Color::rgba(42, 70, 92, 112), true},
         {{0.0, -1.0}, 1.0, 0.0, Color::rgba(255, 255, 255, 118), true},
     };
-    result.border = MaterialBorder{Color::rgba(61, 94, 121), 1.0};
+    result.border.set(MaterialBorder{Color::rgba(61, 94, 121), 1.0});
     result.keylines = {
         {MaterialEdge::bottom, Color::rgba(255, 255, 255, 156), 1.0, 1.0},
     };
@@ -113,7 +114,7 @@ SurfaceMaterial office_disabled_material() {
             {1.0, Color::rgba(207, 213, 218)},
         }),
     };
-    result.border = MaterialBorder{Color::rgba(150, 159, 166), 1.0};
+    result.border.set(MaterialBorder{Color::rgba(150, 159, 166), 1.0});
     result.keylines = {
         {MaterialEdge::top, Color::rgba(255, 255, 255, 150), 1.0, 1.0},
     };
@@ -261,7 +262,7 @@ SurfaceMaterial office_pearl_material() {
         {{0.0, 2.0}, 3.0, 0.0, Color::rgba(52, 77, 99, 52), false},
         {{0.0, 1.0}, 1.0, 0.0, Color::rgba(255, 255, 255, 220), true},
     };
-    result.border = MaterialBorder{Color::rgba(132, 156, 178), 1.0};
+    result.border.set(MaterialBorder{Color::rgba(132, 156, 178), 1.0});
     result.keylines = {
         {MaterialEdge::top, Color::rgba(255, 255, 255, 226), 1.0, 1.0},
         {MaterialEdge::bottom, Color::rgba(116, 139, 160, 132), 1.0, 1.0},

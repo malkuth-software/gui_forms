@@ -32,6 +32,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -66,8 +67,8 @@ std::shared_ptr<Label> label(std::string id, std::string text, FontSpec font,
                              const Color color) {
     std::shared_ptr<Label> result = make_control<Label>(
         StableId(std::move(id)), std::move(text));
-    (*result).font = font;
-    (*result).fore_color = color;
+    (*result).font = stxlib::Optional<FontSpec>::of(font);
+    (*result).fore_color = stxlib::Optional<Color>::of(color);
     return result;
 }
 
@@ -150,7 +151,7 @@ ControlVisualRecipe pearl_recipe(const ControlSurfaceState state,
         {{0.0, 2.0}, 3.0, 0.0, Color::rgba(52, 77, 99, 48), false},
         {{0.0, 1.0}, 1.0, 0.0, Color::rgba(255, 255, 255, 210), true},
     };
-    result.material.border = MaterialBorder{border, 1.0};
+    result.material.border.set(MaterialBorder{border, 1.0});
     result.material.keylines = {
         {MaterialEdge::top, Color::rgba(255, 255, 255, 224), 1.0, 1.0},
         {MaterialEdge::bottom, Color::rgba(102, 127, 150, 110), 1.0, 1.0},
@@ -191,7 +192,7 @@ std::shared_ptr<ButtonType> segment(std::string id, std::string text,
                                     const std::shared_ptr<LabRoot>& root) {
     std::shared_ptr<ButtonType> result = make_control<ButtonType>(
         StableId(std::move(id)), std::move(text));
-    (*result).font = {FontRole::control, 10.0, 600, false, 0.08};
+    (*result).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 10.0, 600, false, 0.08});
     (*result).margin = Insets{};
     add_at(root, result, bounds);
     return result;

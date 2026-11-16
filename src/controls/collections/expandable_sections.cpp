@@ -233,7 +233,7 @@ void ExpandableSections::set_items(std::vector<SectionItem> items) {
             if (value.expanded != nullptr) heading.bind(*value.expanded);
             if (single_open.read() && opened && heading.checked.read()) heading.checked = false;
             opened = opened || heading.checked.read();
-            heading.expanded_state = heading.checked.read();
+            heading.expanded_state = stxlib::Optional<bool>::of(heading.checked.read());
             (*item.content).visible = heading.checked.read();
             // A replacement shows each section as it stands, with no reveal.
             item.reveal = heading.checked.read() ? 1.0 : 0.0;
@@ -265,7 +265,7 @@ void ExpandableSections::on_toggled(const int id, const bool expanded) {
     for (std::size_t index = 0U; index < (*revision).entries.size(); ++index) {
         Entry& item = *(*revision).entries[index];
         if (item.id != id) continue;
-        (*item.heading).expanded_state = expanded;
+        (*item.heading).expanded_state = stxlib::Optional<bool>::of(expanded);
         if (!is_alive() || revision_ != revision) return;
         (*item.content).visible = expanded;
         if (!is_alive() || revision_ != revision) return;

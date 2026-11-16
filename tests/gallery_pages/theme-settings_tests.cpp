@@ -39,11 +39,12 @@ void test_theme_settings(gui_forms::Window& window) {
     require((*dark).effectively_enabled(), "macos-style has a dark variant, so dark is offered");
     click(window, dark);
     const PresentationOverrides* overrides = window.presentation_overrides();
-    require(overrides != nullptr && (*overrides).colour_scheme == ColourScheme::dark,
+    require(overrides != nullptr &&
+                (*overrides).colour_scheme == stxlib::Optional<ColourScheme>::of(ColourScheme::dark),
             "the dark radio writes this window's colour-scheme override");
     click(window, light);
     overrides = window.presentation_overrides();
-    require(overrides != nullptr && (*overrides).colour_scheme == ColourScheme::light,
+    require(overrides != nullptr && (*overrides).colour_scheme == stxlib::Optional<ColourScheme>::of(ColourScheme::light),
             "the light radio writes the light override");
 
     // This window alone: the window's override; the resources keep theirs.
@@ -62,7 +63,7 @@ void test_theme_settings(gui_forms::Window& window) {
 
     click(window, high_contrast);
     overrides = window.presentation_overrides();
-    require(overrides != nullptr && (*overrides).high_contrast == std::optional<bool>(true),
+    require(overrides != nullptr && (*overrides).high_contrast == stxlib::Optional<bool>::of(true),
             "the high-contrast radio writes the window's high-contrast override");
 
     // Restore: the Gallery's own theme everywhere, no override left.
@@ -71,7 +72,7 @@ void test_theme_settings(gui_forms::Window& window) {
             "Restore returns every window to the theme the Gallery started with");
     require(!(*preview).theme_override(), "Restore clears the preview's override");
     overrides = window.presentation_overrides();
-    require(overrides == nullptr || (!(*overrides).colour_scheme && !(*overrides).high_contrast),
+    require(overrides == nullptr || ((*overrides).colour_scheme.absent() && (*overrides).high_contrast.absent()),
             "Restore clears the scheme overrides the page set");
     require((*light).checked.read(), "Restore checks Light again");
 }

@@ -33,6 +33,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -40,6 +41,25 @@
 
 namespace {
 using namespace gui_forms;
+
+// D15 Q3: a setter keeps its deprecated std::optional form for one stage;
+// a plain value or {} must not reach it silently. Each plain call below is
+// refused (a deleted overload or an ambiguity), and the stxlib form is
+// accepted.
+template <typename View>
+concept takes_plain_focus = requires(View& view) { view.set_focused_index(std::size_t{1U}); };
+template <typename View>
+concept takes_empty_focus = requires(View& view) { view.set_focused_index({}); };
+template <typename View>
+concept takes_plain_sort_indicator =
+    requires(View& view) { view.set_sort_indicator(std::size_t{1U}, ListViewSortOrder::ascending); };
+template <typename View>
+concept takes_optional_focus = requires(View& view) {
+    view.set_focused_index(stxlib::Optional<std::size_t>::of(1U));
+    view.set_sort_indicator(stxlib::Optional<std::size_t>::none(), ListViewSortOrder::none);
+};
+static_assert(!takes_plain_focus<ListView> && !takes_empty_focus<ListView>);
+static_assert(!takes_plain_sort_indicator<ListView> && takes_optional_focus<ListView>);
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -221,9 +241,9 @@ void details_parts_and_paint() {
     window.perform_layout();
     const ControlAnatomy& anatomy = (*view).anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none && anatomy.control_id == "list_view" &&
-                anatomy.item_systems.size() == 4U && find_item_system(anatomy, "column").has_value() &&
-                find_item_part(anatomy.item_systems[2], "sort_glyph").has_value() &&
-                find_item_part(anatomy.item_systems[3], "group_caption").has_value(),
+                anatomy.item_systems.size() == 4U && find_item_system(anatomy, "column").present() &&
+                find_item_part(anatomy.item_systems[2], "sort_glyph").present() &&
+                find_item_part(anatomy.item_systems[3], "group_caption").present(),
             "ListView publishes a valid anatomy with item, sub-item, column and group systems");
     const ListView::Parts parts = (*view).parts();
     require(parts.well.present && parts.header.present && !parts.vertical_scroll_bar.present,
@@ -248,7 +268,7 @@ void details_parts_and_paint() {
     require((*view).realized_item_count() == 6U + 12U + 3U && (*view).realized_item_system(0U).value == 0U &&
                 (*view).realized_item_system(6U).value == 1U && (*view).realized_item_system(20U).value == 2U,
             "the generic path lists rows, then sub-items, then columns");
-    (*view).set_sort_indicator(std::size_t{1U}, ListViewSortOrder::ascending);
+    (*view).set_sort_indicator(stxlib::Optional<std::size_t>::of(std::size_t{1U}), ListViewSortOrder::ascending);
     columns = (*view).realized_columns();
     require(columns[1].parts.sort_glyph.present && columns[1].states.sorted_ascending &&
                 !columns[0].states.sorted_ascending,
@@ -272,7 +292,7 @@ void selection_by_pointer_and_keyboard() {
     SubscriptionToken activated = (*view).item_activated().subscribe(RecordActivation{&activations});
     std::vector<ListView::Item> items = (*view).realized_items();
     click(window, to_window(*view, centre(items[1].parts.text.bounds)));
-    require((*view).selected_count() == 1U && (*view).is_selected(1U) && (*view).focused_index() == 1U &&
+    require((*view).selected_count() == 1U && (*view).is_selected(1U) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(1U) &&
                 changes == 1,
             "a click selects the item, focuses it and reports the change");
     click(window, to_window(*view, centre(items[3].parts.text.bounds)), Modifier::control);
@@ -287,22 +307,22 @@ void selection_by_pointer_and_keyboard() {
             "rows publish selected and current");
 
     require(window.request_focus(view), "the view takes focus");
-    require(key(window, PhysicalKey::down) && (*view).focused_index() == 4U && (*view).selected_count() == 1U &&
+    require(key(window, PhysicalKey::down) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(4U) && (*view).selected_count() == 1U &&
                 (*view).is_selected(4U),
             "Down selects the next item alone");
     require(key(window, PhysicalKey::down, Modifier::shift) && key(window, PhysicalKey::down, Modifier::shift) &&
                 (*view).selected_indices() == std::vector<std::size_t>({4U, 5U, 6U}),
             "Shift with Down extends the selection from the anchor");
-    require(key(window, PhysicalKey::down, Modifier::control) && (*view).focused_index() == 7U &&
+    require(key(window, PhysicalKey::down, Modifier::control) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(7U) &&
                 (*view).selected_count() == 3U,
             "Control with Down moves the focus without selecting");
     require(key(window, PhysicalKey::space, Modifier::control) && (*view).is_selected(7U) &&
                 (*view).selected_count() == 4U,
             "Control with Space toggles the focused item");
-    require(key(window, PhysicalKey::end) && (*view).focused_index() == 19U && (*view).is_selected(19U),
+    require(key(window, PhysicalKey::end) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(19U) && (*view).is_selected(19U),
             "End goes to the last item");
     require((*view).top_index() > 0U, "moving to an item out of view scrolls it into view");
-    require(key(window, PhysicalKey::home) && (*view).focused_index() == 0U && (*view).top_index() == 0U,
+    require(key(window, PhysicalKey::home) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(0U) && (*view).top_index() == 0U,
             "Home goes to the first item and scrolls back");
     require(key(window, PhysicalKey::a, Modifier::control) && (*view).selected_count() == 20U,
             "Control with A selects everything");
@@ -326,7 +346,7 @@ void type_ahead() {
     require(window.request_focus(view), "the view takes focus");
     TextInputEvent typed{};
     typed.text_utf8 = "c";
-    require(window.dispatch_text(typed) && (*view).focused_index() == 2U && (*view).is_selected(2U),
+    require(window.dispatch_text(typed) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(2U) && (*view).is_selected(2U),
             "typing a letter selects the next item starting with it, ignoring case");
 }
 
@@ -381,10 +401,10 @@ void columns_click_sort_and_resize() {
     require((*view).is_selected(0U), "the first item is selected");
     (*view).sort_items(0U, ListViewSortOrder::ascending);
     require((*view).items()[0].text == "alpha 1" && (*view).items()[1].text == "bravo 3" &&
-                (*view).sort_column() == 0U && (*view).sort_order() == ListViewSortOrder::ascending,
+                (*view).sort_column() == stxlib::Optional<std::size_t>::of(0U) && (*view).sort_order() == ListViewSortOrder::ascending,
             "sort_items orders by the column's text, folding ASCII case, and shows the glyph");
-    const std::optional<std::size_t> delta = (*view).index_of("item-0");
-    require(delta.has_value() && (*view).is_selected(*delta) && (*view).focused_index() == delta,
+    const stxlib::Optional<std::size_t> delta = (*view).index_of("item-0");
+    require(delta.present() && (*view).is_selected(*delta.value()) && (*view).focused_index() == delta,
             "the selection and focus follow their item through a sort");
     (*view).sort_items(1U, ListViewSortOrder::descending);
     require((*view).items()[0].sub_items[0] == "6 KB", "sort_items sorts sub-item columns descending");
@@ -420,8 +440,9 @@ void views_lay_out_items() {
             "only the details view has headers and sub-items");
     require((*view).parts().horizontal_scroll_bar.present && !(*view).parts().vertical_scroll_bar.present,
             "the list view scrolls sideways");
-    require(window.request_focus(view) && key(window, PhysicalKey::right) && (*view).focused_index().has_value() &&
-                *(*view).focused_index() > 1U,
+    const bool moved_right = window.request_focus(view) && key(window, PhysicalKey::right);
+    const stxlib::Optional<std::size_t> focused_after_right = (*view).focused_index();
+    require(moved_right && focused_after_right.present() && *focused_after_right.value() > 1U,
             "Right moves to the next column of the list view");
 
     (*view).view = ListViewView::small_icon;
@@ -475,8 +496,8 @@ void tile_view() {
         if (item.parts.cell.bounds.y == tile.y) ++per_row;
     }
     require(window.request_focus(view), "the view takes focus");
-    (*view).set_focused_index(std::size_t{0U});
-    require(key(window, PhysicalKey::down) && (*view).focused_index() == std::optional<std::size_t>(per_row),
+    (*view).set_focused_index(stxlib::Optional<std::size_t>::of(std::size_t{0U}));
+    require(key(window, PhysicalKey::down) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(per_row),
             "Down moves to the tile below");
 
     (*view).tile_size = Size{300.0, 24.0};
@@ -563,18 +584,18 @@ void groups() {
     require(painted(painter, "Default") && painted(painter, "Alpha") && painted(painter, "Beta") &&
                 !painted(painter, "Empty"),
             "headers are painted; a group without items is not shown");
-    require(!(*view).item_index_at(to_window(*view, centre(groups[1].parts.group_caption.bounds))) &&
+    require((*view).item_index_at(to_window(*view, centre(groups[1].parts.group_caption.bounds))).absent() &&
                 (*view).item_index_at(to_window(*view, centre(items[2].parts.cell.bounds))) ==
-                    std::optional<std::size_t>(1U),
+                    stxlib::Optional<std::size_t>::of(1U),
             "a header is not an item; an item under the point is");
 
     require(window.request_focus(view), "the view takes focus");
-    (*view).set_focused_index(std::size_t{2U});
-    require(key(window, PhysicalKey::down) && (*view).focused_index() == std::optional<std::size_t>(5U) &&
-                key(window, PhysicalKey::down) && (*view).focused_index() == std::optional<std::size_t>(1U),
+    (*view).set_focused_index(stxlib::Optional<std::size_t>::of(std::size_t{2U}));
+    require(key(window, PhysicalKey::down) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(5U) &&
+                key(window, PhysicalKey::down) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(1U),
             "Down follows the shown order across a header");
-    require(key(window, PhysicalKey::end) && (*view).focused_index() == std::optional<std::size_t>(3U) &&
-                key(window, PhysicalKey::home) && (*view).focused_index() == std::optional<std::size_t>(2U),
+    require(key(window, PhysicalKey::end) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(3U) &&
+                key(window, PhysicalKey::home) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(2U),
             "Home and End go to the first and last shown items");
     click(window, to_window(*view, centre(items[1].parts.text.bounds)));
     click(window, to_window(*view, centre(items[3].parts.text.bounds)), Modifier::shift);
@@ -585,8 +606,10 @@ void groups() {
     const std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     require(children.size() == 3U + 3U && children[3].role == SemanticRole::group &&
                 children[3].name == "Default" && children[3].children.size() == 2U &&
-                children[3].children[0].name == "Charlie 2" && children[3].children[0].row_index == 1U &&
-                children[4].name == "Alpha" && children[4].children[0].row_index == 3U &&
+                children[3].children[0].name == "Charlie 2" &&
+                children[3].children[0].row_index == stxlib::Optional<std::size_t>::of(1U) &&
+                children[4].name == "Alpha" &&
+                children[4].children[0].row_index == stxlib::Optional<std::size_t>::of(3U) &&
                 children[5].stable_id == "list.group.b",
             "each shown group is a group node of its items, rows counted in the shown order");
 
@@ -765,7 +788,7 @@ void insertion_mark() {
     std::shared_ptr<ListView> view = details_view(6U);
     Window window(view, {400.0, 240.0});
     window.perform_layout();
-    require(!(*view).insertion_mark().has_value() && !(*view).parts().insertion_mark.present,
+    require((*view).insertion_mark().absent() && !(*view).parts().insertion_mark.present,
             "a view starts without an insertion mark");
     RecordingPainter plain;
     static_cast<void>(window.paint(plain, {0.0, 0.0, 400.0, 240.0}));
@@ -791,20 +814,20 @@ void insertion_mark() {
             "a mark after the item lies across its bottom");
 
     const Point lower_half{row.x + 20.0, row.y + row.height * 0.75};
-    const std::optional<ListViewInsertionMark> nearest = (*view).insertion_mark_at(to_window(*view, lower_half));
-    require(nearest && (*nearest).index == 2U && (*nearest).after, "a point past an item's middle names the gap after it");
+    const stxlib::Optional<ListViewInsertionMark> nearest = (*view).insertion_mark_at(to_window(*view, lower_half));
+    require(nearest.present() && (*nearest.value()).index == 2U && (*nearest.value()).after, "a point past an item's middle names the gap after it");
     const Point far_below{row.x + 20.0, 1000.0};
-    const std::optional<ListViewInsertionMark> last = (*view).insertion_mark_at(to_window(*view, far_below));
-    require(last && (*last).index == 5U && (*last).after, "a point past the last item names the gap after it");
+    const stxlib::Optional<ListViewInsertionMark> last = (*view).insertion_mark_at(to_window(*view, far_below));
+    require(last.present() && (*last.value()).index == 5U && (*last.value()).after, "a point past the last item names the gap after it");
 
-    require(!(*view).show_insertion_mark({.index = 6U, .after = false}) && !(*view).insertion_mark().has_value(),
+    require(!(*view).show_insertion_mark({.index = 6U, .after = false}) && (*view).insertion_mark().absent(),
             "an index past the items is refused and clears the mark");
     require((*view).show_insertion_mark({.index = 1U, .after = false}), "the mark is shown again");
     (*view).sort_items(0U, ListViewSortOrder::ascending);
-    require(!(*view).insertion_mark().has_value(), "sorting clears the mark");
+    require((*view).insertion_mark().absent(), "sorting clears the mark");
     require((*view).show_insertion_mark({.index = 1U, .after = false}), "the mark is shown once more");
     (*view).set_items(sample_items(4U));
-    require(!(*view).insertion_mark().has_value(), "replacing the items clears the mark");
+    require((*view).insertion_mark().absent(), "replacing the items clears the mark");
 
     (*view).view = ListViewView::large_icon;
     window.perform_layout();
@@ -817,7 +840,7 @@ void insertion_mark() {
                 std::abs(parts.insertion_mark.bounds.x + 1.0 - (cell.x + cell.width)) < 0.001,
             "an icon view's mark stands down the cell's right side when after it");
     (*view).clear_insertion_mark();
-    require(!(*view).insertion_mark().has_value() && !(*view).parts().insertion_mark.present,
+    require((*view).insertion_mark().absent() && !(*view).parts().insertion_mark.present,
             "clear_insertion_mark removes the mark");
 }
 
@@ -833,13 +856,13 @@ void label_editing() {
     SubscriptionToken before_token = (*view).before_label_edit().subscribe(RecordLabelEdits{&before, &cancel_before});
     SubscriptionToken after_token = (*view).after_label_edit().subscribe(RecordLabelEdits{&after, &cancel_after});
     require(window.request_focus(view), "the view takes focus");
-    (*view).set_focused_index(2U);
+    (*view).set_focused_index(stxlib::Optional<std::size_t>::of(2U));
     require(!key(window, PhysicalKey::f2) && !(*view).begin_label_edit(2U) && before.empty() &&
                 !(*view).label_editor(),
             "without label_edit, F2 and begin_label_edit begin nothing and make no editor");
 
     (*view).label_edit = true;
-    require(key(window, PhysicalKey::f2) && (*view).label_edit_index() == 2U && before.size() == 1U &&
+    require(key(window, PhysicalKey::f2) && (*view).label_edit_index() == stxlib::Optional<std::size_t>::of(2U) && before.size() == 1U &&
                 before[0].index == 2U && before[0].item_id == "item-2" && !before[0].label,
             "F2 raises before_label_edit for the focused item and puts it in edit");
     const std::shared_ptr<TextBox> editor = (*view).label_editor();
@@ -851,7 +874,7 @@ void label_editing() {
     require((*view).parts().label_editor.present &&
                 (*view).parts().label_editor.bounds == items[2].parts.text.bounds,
             "the label_editor part covers the item's text");
-    require(window.dispatch_text({"Renamed"}) && key(window, PhysicalKey::enter) && !(*view).label_edit_index() &&
+    require(window.dispatch_text({"Renamed"}) && key(window, PhysicalKey::enter) && (*view).label_edit_index().absent() &&
                 after.size() == 1U && after[0].label == std::optional<std::string>("Renamed") &&
                 (*view).items()[2].text == "Renamed" && window.focused_control() == view_control &&
                 !(*view).parts().label_editor.present,
@@ -870,27 +893,27 @@ void label_editing() {
     cancel_after = false;
 
     cancel_before = true;
-    require(!(*view).begin_label_edit(4U) && !(*view).label_edit_index() && before.size() == 4U,
+    require(!(*view).begin_label_edit(4U) && (*view).label_edit_index().absent() && before.size() == 4U,
             "a before_label_edit handler keeps the item out of edit");
     cancel_before = false;
 
     require((*view).begin_label_edit(1U) && window.dispatch_text({"Clicked"}), "begin_label_edit opens an edit");
     items = (*view).realized_items();
     click(window, to_window(*view, centre(items[5].parts.text.bounds)));
-    require(!(*view).label_edit_index() && (*view).items()[1].text == "Clicked" && (*view).is_selected(5U) &&
-                (*view).focused_index() == 5U,
+    require((*view).label_edit_index().absent() && (*view).items()[1].text == "Clicked" && (*view).is_selected(5U) &&
+                (*view).focused_index() == stxlib::Optional<std::size_t>::of(5U),
             "a press elsewhere in the view commits the edit and then selects as usual");
 
     require((*view).begin_label_edit(3U) && window.dispatch_text({"Focus"}) && window.request_focus(view) &&
-                !(*view).label_edit_index() && (*view).items()[3].text == "Focus",
+                (*view).label_edit_index().absent() && (*view).items()[3].text == "Focus",
             "focus leaving the editor commits the edit");
 
-    require((*view).begin_label_edit(0U) && (*view).begin_label_edit(6U) && (*view).label_edit_index() == 6U &&
+    require((*view).begin_label_edit(0U) && (*view).begin_label_edit(6U) && (*view).label_edit_index() == stxlib::Optional<std::size_t>::of(6U) &&
                 (*view).items()[0].text == "Delta 0" && after.back().index == 0U,
             "beginning another edit commits the one in progress");
     (*view).ensure_visible(19U);
     window.perform_layout();
-    require((*view).label_edit_index() == 6U && window.focused_control() == as_control(editor) &&
+    require((*view).label_edit_index() == stxlib::Optional<std::size_t>::of(6U) && window.focused_control() == as_control(editor) &&
                 !(*view).parts().label_editor.present,
             "scrolling keeps the edit, its editor at no size while the item is out of view");
     (*view).ensure_visible(6U);
@@ -899,13 +922,13 @@ void label_editing() {
 
     const std::size_t ended = after.size();
     (*view).sort_items(0U, ListViewSortOrder::ascending);
-    require(!(*view).label_edit_index() && after.size() == ended + 1U && !after.back().label &&
+    require((*view).label_edit_index().absent() && after.size() == ended + 1U && !after.back().label &&
                 after.back().item_id == "item-6",
             "sorting the items cancels the edit");
 
     require((*view).begin_label_edit(1U), "an edit opens again");
     (*view).label_edit = false;
-    require(!(*view).label_edit_index() && after.size() == ended + 2U && !after.back().label,
+    require((*view).label_edit_index().absent() && after.size() == ended + 2U && !after.back().label,
             "turning label_edit off cancels the edit");
 
     // An after_label_edit handler that replaces the items: the commit finds
@@ -914,7 +937,7 @@ void label_editing() {
     require((*view).begin_label_edit(7U) && window.dispatch_text({"Lost"}), "an edit of the eighth item opens");
     SubscriptionToken reload = (*view).after_label_edit().subscribe(ReloadOnAfterEdit{view.get()});
     (*view).end_label_edit();
-    require((*view).item_count() == 3U && !(*view).label_edit_index() && (*view).items()[0].text == "Delta 0",
+    require((*view).item_count() == 3U && (*view).label_edit_index().absent() && (*view).items()[0].text == "Delta 0",
             "a handler that replaces the items leaves the new items as they are");
     reload.disconnect();
     bool threw = false;
@@ -943,7 +966,7 @@ void slow_click_label_editing() {
 
     click(window, second);
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval + margin));
-    require((*view).focused_index() == 2U && (*view).is_selected(2U) && !(*view).label_edit_index(),
+    require((*view).focused_index() == stxlib::Optional<std::size_t>::of(2U) && (*view).is_selected(2U) && (*view).label_edit_index().absent(),
             "a press that focuses and selects an item begins no edit");
 
     // The clock is read before the click, so the poll at half the interval
@@ -952,33 +975,33 @@ void slow_click_label_editing() {
     const FrameTime before_second_click = FrameClock::now();
     click(window, second);
     static_cast<void>(window.poll_frame_schedule(before_second_click + interval / 2));
-    require(!(*view).label_edit_index(), "the slow click waits for the double-click interval");
+    require((*view).label_edit_index().absent(), "the slow click waits for the double-click interval");
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval + margin));
-    require((*view).label_edit_index() == 2U, "a slow second click on the focused item's text begins its edit");
-    require(key(window, PhysicalKey::escape) && !(*view).label_edit_index(), "Escape cancels the slow click's edit");
+    require((*view).label_edit_index() == stxlib::Optional<std::size_t>::of(2U), "a slow second click on the focused item's text begins its edit");
+    require(key(window, PhysicalKey::escape) && (*view).label_edit_index().absent(), "Escape cancels the slow click's edit");
 
     std::vector<std::size_t> activations;
     SubscriptionToken activated = (*view).item_activated().subscribe(RecordActivation{&activations});
     click(window, second);
     click(window, second, Modifier::none, 2U);
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval + margin));
-    require(activations == std::vector<std::size_t>({2U}) && !(*view).label_edit_index(),
+    require(activations == std::vector<std::size_t>({2U}) && (*view).label_edit_index().absent(),
             "a double click activates the item and begins no edit");
 
     click(window, second, Modifier::control);
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval + margin));
-    require(!(*view).label_edit_index(), "a press with a modifier begins no edit");
+    require((*view).label_edit_index().absent(), "a press with a modifier begins no edit");
 
     click(window, fourth);
     click(window, fourth);
     static_cast<void>(key(window, PhysicalKey::a));
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval + margin));
-    require(!(*view).label_edit_index(), "a key pressed in the wait drops the slow click");
+    require((*view).label_edit_index().absent(), "a key pressed in the wait drops the slow click");
 
     click(window, fourth);
     (*view).sort_items(0U, ListViewSortOrder::descending);
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval + margin));
-    require(!(*view).label_edit_index(), "a changed model drops the slow click");
+    require((*view).label_edit_index().absent(), "a changed model drops the slow click");
 
     window.perform_layout();
     items = (*view).realized_items();
@@ -988,14 +1011,14 @@ void slow_click_label_editing() {
     (*view).label_edit = false;
     (*view).label_edit = true;
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval + margin));
-    require(!(*view).label_edit_index(), "turning label_edit off drops the slow click");
+    require((*view).label_edit_index().absent(), "turning label_edit off drops the slow click");
 
     click(window, first);
     PointerEvent wheel{PointerAction::wheel, PointerButton::none, first};
     wheel.wheel_delta = {0.0, -1.0};
     static_cast<void>(window.dispatch_pointer(wheel));
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval + margin));
-    require(!(*view).label_edit_index(), "scrolling with the wheel drops the slow click");
+    require((*view).label_edit_index().absent(), "scrolling with the wheel drops the slow click");
 }
 
 void virtual_label_editing() {
@@ -1017,7 +1040,7 @@ void virtual_label_editing() {
     (*source).set_count(2U);
     require((*view).begin_label_edit(1U), "an edit opens");
     (*view).refresh_virtual_items();
-    require(!(*view).label_edit_index() && after.size() == 2U && !after[1].label,
+    require((*view).label_edit_index().absent() && after.size() == 2U && !after[1].label,
             "refresh_virtual_items cancels the edit");
 }
 
@@ -1063,7 +1086,7 @@ void virtual_mode() {
     static_cast<void>(window.paint(painter, {0.0, 0.0, 400.0, 240.0}));
     require((*source).retrievals > 0U && (*source).retrievals <= 40U && painted(painter, "Row 3"),
             "painting retrieves only the visible items");
-    require(window.request_focus(view) && key(window, PhysicalKey::end) && (*view).focused_index() == 999'999U &&
+    require(window.request_focus(view) && key(window, PhysicalKey::end) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(999'999U) &&
                 (*view).is_selected(999'999U),
             "End reaches the last virtual item");
     require((*view).realized_items().back().stable_id == "row-999999", "the view scrolls to the end");
@@ -1071,7 +1094,7 @@ void virtual_mode() {
             "select-all selects every virtual item");
     (*source).set_count(10U);
     (*view).refresh_virtual_items();
-    require((*view).item_count() == 10U && (*view).selected_count() == 10U && !(*view).focused_index().has_value(),
+    require((*view).item_count() == 10U && (*view).selected_count() == 10U && (*view).focused_index().absent(),
             "a refresh keeps the selection below the new count and drops a focus past it");
     (*view).check_boxes = true;
     SubscriptionToken stored = (*view).item_checking().subscribe(StoreVirtualCheck{source.get()});
@@ -1106,7 +1129,7 @@ void virtual_splice() {
     Window window(view, {400.0, 240.0});
     window.perform_layout();
     require(window.request_focus(view), "the splice view takes focus");
-    require(key(window, PhysicalKey::end) && (*view).focused_index() == 999'999U, "focus at the end");
+    require(key(window, PhysicalKey::end) && (*view).focused_index() == stxlib::Optional<std::size_t>::of(999'999U), "focus at the end");
     (*view).set_selected(10U, true);
     (*view).set_selected(600'000U, true);
     (*view).set_selected(900'000U, true);
@@ -1114,13 +1137,13 @@ void virtual_splice() {
     (*view).splice_virtual_items(500'000U, 0U, 250'000U);
     require((*view).item_count() == 1'250'000U && (*view).is_selected(10U) && (*view).is_selected(850'000U) &&
                 (*view).is_selected(1'150'000U) && (*view).is_selected(1'249'999U) &&
-                (*view).focused_index() == 1'249'999U && !(*view).is_selected(600'000U),
+                (*view).focused_index() == stxlib::Optional<std::size_t>::of(1'249'999U) && !(*view).is_selected(600'000U),
             "a bulk insertion moves the selection and focus past it");
     (*source).set_count(1'250'000U - 300'000U);
     (*view).splice_virtual_items(800'000U, 300'000U, 0U);
     require((*view).item_count() == 950'000U && (*view).is_selected(10U) && (*view).selected_count() == 3U &&
                 (*view).is_selected(850'000U) &&
-                (*view).focused_index() == 949'999U,
+                (*view).focused_index() == stxlib::Optional<std::size_t>::of(949'999U),
             "a bulk removal drops the selection inside it and shifts the rest");
     window.perform_layout();
     require((*view).realized_items().back().stable_id == "row-949999", "the view still shows the focused end");
@@ -1139,8 +1162,8 @@ void virtual_splice() {
     }
     require(threw, "a splice past the items is refused");
     const ListViewSpliceRemap remap{5U, 8U, 1U};
-    require(remap.apply(std::optional<std::size_t>{4U}) == 4U && !remap.apply(std::optional<std::size_t>{6U}) &&
-                remap.apply(std::optional<std::size_t>{9U}) == 7U && !remap.apply(std::nullopt),
+    require(remap.apply(stxlib::Optional<std::size_t>::of(4U)) == stxlib::Optional<std::size_t>::of(4U) && remap.apply(stxlib::Optional<std::size_t>::of(6U)).absent() &&
+                remap.apply(stxlib::Optional<std::size_t>::of(9U)) == stxlib::Optional<std::size_t>::of(7U) && remap.apply(stxlib::Optional<std::size_t>::none()).absent(),
             "the splice remap keeps, drops and shifts indices");
 }
 
@@ -1150,26 +1173,30 @@ void semantics() {
     Window window(view, {400.0, 240.0});
     window.perform_layout();
     const SemanticDescriptor descriptor = (*view).semantic_descriptor();
-    require(descriptor.role == SemanticRole::table && descriptor.name == "Files" && descriptor.row_count == 3U &&
-                descriptor.column_count == 3U && has_semantic_state(descriptor.states, SemanticState::multiselectable),
+    require(descriptor.role == SemanticRole::table && descriptor.name == "Files" &&
+                descriptor.row_count == stxlib::Optional<std::size_t>::of(3U) &&
+                descriptor.column_count == stxlib::Optional<std::size_t>::of(3U) &&
+                has_semantic_state(descriptor.states, SemanticState::multiselectable),
             "the details view is a named multiple-selection table sized by its items and columns");
     const std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     require(children.size() == 3U + 3U && children[0].role == SemanticRole::column_header &&
-                children[0].name == "Name" && children[0].column_index == 1U && children[2].column_index == 3U &&
+                children[0].name == "Name" && children[0].column_index == stxlib::Optional<std::size_t>::of(1U) &&
+                children[2].column_index == stxlib::Optional<std::size_t>::of(3U) &&
                 children[3].role == SemanticRole::row && children[3].name == "Delta 0" &&
-                children[3].row_index == 1U && children[3].description.empty(),
+                children[3].row_index == stxlib::Optional<std::size_t>::of(1U) && children[3].description.empty(),
             "column headers carry their column and rows carry their row");
     const SemanticNode& row = children[3];
     require(row.children.size() == 3U && row.children[0].role == SemanticRole::cell &&
                 row.children[0].value == "Delta 0" && row.children[1].name == "Size" &&
                 row.children[1].value == "1 KB" && row.children[2].value == "Image" &&
-                row.children[2].row_index == 1U && row.children[2].column_index == 3U,
+                row.children[2].row_index == stxlib::Optional<std::size_t>::of(1U) &&
+                row.children[2].column_index == stxlib::Optional<std::size_t>::of(3U),
             "a row holds one cell per column, the first holding the item's text");
     (*view).multi_select = false;
     (*view).view = ListViewView::list;
     window.perform_layout();
     const SemanticDescriptor list = (*view).semantic_descriptor();
-    require(list.role == SemanticRole::list && !list.row_count &&
+    require(list.role == SemanticRole::list && list.row_count.absent() &&
                 !has_semantic_state(list.states, SemanticState::multiselectable),
             "the other views are lists, multiple-selection only while multi_select is set");
     (*view).view = ListViewView::details;
@@ -1209,7 +1236,7 @@ void capabilities() {
     int changes = 0;
     const SubscriptionToken counted = (*view).selection_changed().subscribe(CountSelection{&changes});
     (*view).select_all();
-    (*view).set_focused_index(2U);
+    (*view).set_focused_index(stxlib::Optional<std::size_t>::of(2U));
     changes = 0;
     (*view).multi_select = false;
     require(changes == 1 && (*view).selected_count() == 1U && (*view).is_selected(2U),
@@ -1351,7 +1378,7 @@ void activation_modes() {
     require(activations.size() == 1U, "a modified click only changes the selection");
     PointerEvent hover{PointerAction::move, PointerButton::none, first};
     static_cast<void>(window.dispatch_pointer(hover));
-    require((*view).cursor.read() == CursorKind::hand, "one_click shows the hand over an item");
+    require((*view).cursor.read() == stxlib::Optional<CursorKind>::of(CursorKind::hand), "one_click shows the hand over an item");
 
     (*view).activation = ListViewActivation::two_click;
     activations.clear();
@@ -1362,7 +1389,7 @@ void activation_modes() {
 
     (*view).activation = ListViewActivation::standard;
     static_cast<void>(window.dispatch_pointer(hover));
-    require((*view).cursor.read() == CursorKind::arrow, "standard keeps the arrow over items");
+    require((*view).cursor.read() == stxlib::Optional<CursorKind>::of(CursorKind::arrow), "standard keeps the arrow over items");
     require(window.request_focus(view) && key(window, PhysicalKey::enter) && activations.size() == 2U,
             "Enter activates in every mode");
     bool refused = false;
@@ -1425,16 +1452,19 @@ void single_column_semantics() {
     Window window(view, {400.0, 320.0});
     window.perform_layout();
     const SemanticDescriptor descriptor = (*view).semantic_descriptor();
-    require(descriptor.role == SemanticRole::list && !descriptor.row_count && !descriptor.column_count,
+    require(descriptor.role == SemanticRole::list && descriptor.row_count.absent() && descriptor.column_count.absent(),
             "a single headerless column describes a list, not a table");
     std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     require(children.size() == 3U && children[0].role == SemanticRole::group && children[0].name == "Default" &&
                 children[0].children.size() == 2U && children[0].children[0].role == SemanticRole::list_item &&
-                children[0].children[0].name == "Charlie 2" && children[0].children[0].position_in_set == 1U &&
-                children[0].children[0].set_size == 2U && children[0].children[1].position_in_set == 2U &&
-                !children[0].children[0].row_index && children[0].children[0].children.empty() &&
-                children[1].name == "Alpha" && children[1].children[0].position_in_set == 1U &&
-                children[1].children[0].set_size == 2U && children[2].name == "Beta",
+                children[0].children[0].name == "Charlie 2" &&
+                children[0].children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                children[0].children[0].set_size == stxlib::Optional<std::size_t>::of(2U) &&
+                children[0].children[1].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                children[0].children[0].row_index.absent() && children[0].children[0].children.empty() &&
+                children[1].name == "Alpha" &&
+                children[1].children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                children[1].children[0].set_size == stxlib::Optional<std::size_t>::of(2U) && children[2].name == "Beta",
             "each group is a node named by its header over its list items, n of the group's m");
     const std::string json = window.semantic_snapshot().to_json();
     require(json.find("\"role\":\"list\"") != std::string::npos &&
@@ -1448,8 +1478,10 @@ void single_column_semantics() {
     window.perform_layout();
     children = (*view).semantic_virtual_children();
     require(children.size() == 6U && children[0].role == SemanticRole::list_item &&
-                children[0].position_in_set == 1U && children[0].set_size == 6U &&
-                children[5].position_in_set == 6U && children[5].set_size == 6U,
+                children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                children[0].set_size == stxlib::Optional<std::size_t>::of(6U) &&
+                children[5].position_in_set == stxlib::Optional<std::size_t>::of(6U) &&
+                children[5].set_size == stxlib::Optional<std::size_t>::of(6U),
             "ungrouped, each item is n of every item");
 
     (*view).header_style = ListViewHeaderStyle::nonclickable;
@@ -1463,7 +1495,8 @@ void single_column_semantics() {
     window.perform_layout();
     children = (*view).semantic_virtual_children();
     const SemanticDescriptor table = (*view).semantic_descriptor();
-    require(table.role == SemanticRole::table && table.column_count == 3U && !children.empty() &&
+    require(table.role == SemanticRole::table && table.column_count == stxlib::Optional<std::size_t>::of(3U) &&
+                !children.empty() &&
                 children[0].role == SemanticRole::row,
             "several columns keep the table without a header");
 }
@@ -1503,9 +1536,9 @@ void focus_handler_shrinks_the_list() {
             PointerEvent up{PointerAction::up, PointerButton::secondary, target};
             static_cast<void>(window.dispatch_pointer(up));
         }
-        const std::optional<std::size_t> focused = (*view).focused_index();
+        const stxlib::Optional<std::size_t> focused = (*view).focused_index();
         require(shrunk && (*view).item_count() == 3U, "the focus handler shrank the list during the press");
-        require((*view).selected_count() == 0U && (!focused || *focused < 3U),
+        require((*view).selected_count() == 0U && (focused.absent() || *focused.value() < 3U),
                 "the press acts on the shrunken list, not on the row it was over before");
     }
 }

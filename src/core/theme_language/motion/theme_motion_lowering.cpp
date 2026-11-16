@@ -1189,12 +1189,12 @@ bool add_loops(const KeyframesDefinition& definition, const AnimationSettings& s
     ambient.period = std::chrono::round<FrameInterval>(std::chrono::duration<double>(settings.duration));
     ambient.frames_per_second = settings.frame_rate;
     ambient.pose = std::chrono::round<FrameInterval>(std::chrono::duration<double>(settings.pose));
-    if (animations.ambient && !(*animations.ambient == ambient)) {
+    if (animations.ambient.present() && !(*animations.ambient.value() == ambient)) {
         fail_at(problem, DiagnosticCode::value_form_not_admitted, token,
                 "loops of one rule with different durations, frame rates or rest poses");
         return false;
     }
-    animations.ambient = ambient;
+    animations.ambient.set(ambient);
     for (const KeyframeTrack& track : definition.tracks) {
         if (!track.parameter) {
             fail_at(problem, DiagnosticCode::value_form_not_admitted, token,
@@ -1216,9 +1216,9 @@ bool add_loops(const KeyframesDefinition& definition, const AnimationSettings& s
 // Whether `rule` declares nothing: no value, no scoped custom property
 // definition (P12), no backdrop, no band and no content effect.
 bool rule_empty(const ThemeRule& rule) noexcept {
-    const bool empty = rule.declarations.empty() && rule.transitions.empty() && !rule.ambient.has_value() &&
+    const bool empty = rule.declarations.empty() && rule.transitions.empty() && rule.ambient.absent() &&
                        rule.materials.empty() && rule.recipe_fields.empty() && rule.scoped_definitions.empty() &&
-                       !rule.backdrop.has_value() && !rule.band.has_value() && rule.content_effect.empty();
+                       rule.backdrop.absent() && rule.band.absent() && rule.content_effect.empty();
     return empty;
 }
 
@@ -1577,7 +1577,7 @@ MotionLoweringOutcome group_transitions(ThemeRuleSheet& sheet, std::span<const M
                 return MotionLoweringOutcome::refused;
             }
             Refinement refinement{};
-            refinement.specificity = rule.specificity ? *rule.specificity : rule_specificity(rule.selector);
+            refinement.specificity = rule.specificity.value_or(rule_specificity(rule.selector));
             refinement.rule = candidate.rule;
             refinement.origin = index;
             refinement.state = refining.states[0];
@@ -1588,7 +1588,7 @@ MotionLoweringOutcome group_transitions(ThemeRuleSheet& sheet, std::span<const M
         for (std::size_t index = 0U; index < sheet.rules.size() && !primitive.empty(); ++index) {
             const ThemeRule& rule = sheet.rules[index];
             if (index == host.rule || selected_primitive(rule) != primitive || !refines(rule, host_rule)) continue;
-            const RuleSpecificity specificity = rule.specificity ? *rule.specificity : rule_specificity(rule.selector);
+            const RuleSpecificity specificity = rule.specificity.value_or(rule_specificity(rule.selector));
             for (std::size_t position = 0U; position < rule.declarations.size(); ++position) {
                 const RuleDeclaration& declaration = rule.declarations[position];
                 if (declaration.property != property || declaration.kind != RuleValueKind::number) continue;

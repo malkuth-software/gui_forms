@@ -9,6 +9,8 @@
 #include <optional>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // A border's line (E9.6): CSS `solid`, `dashed` or `dotted`. A dash is
@@ -181,15 +183,15 @@ struct GUI_FORMS_API MaterialReflection final {
 // the corners, as CSS splits a rounded box's edge colours), and the
 // material's keylines draw as rings the same way.
 struct GUI_FORMS_API MaterialBorderEdges final {
-    std::optional<MaterialBorder> top;
-    std::optional<MaterialBorder> right;
-    std::optional<MaterialBorder> bottom;
-    std::optional<MaterialBorder> left;
+    stxlib::Optional<MaterialBorder> top;
+    stxlib::Optional<MaterialBorder> right;
+    stxlib::Optional<MaterialBorder> bottom;
+    stxlib::Optional<MaterialBorder> left;
     [[nodiscard]] static MaterialBorderEdges from_parts(
         const MaterialBorder* top, const MaterialBorder* right,
         const MaterialBorder* bottom, const MaterialBorder* left);
     [[nodiscard]] bool empty() const noexcept {
-        return !top && !right && !bottom && !left;
+        return top.absent() && right.absent() && bottom.absent() && left.absent();
     }
     friend bool operator==(const MaterialBorderEdges& left_value,
                            const MaterialBorderEdges& right_value) noexcept {
@@ -342,7 +344,7 @@ struct GUI_FORMS_API SurfaceMaterial final {
         MaterialFillLayer::solid(Color::rgba(255, 255, 255))};
     std::vector<MaterialShadow> shadows;
     std::vector<MaterialGlow> glows;
-    std::optional<MaterialBorder> border;
+    stxlib::Optional<MaterialBorder> border;
     MaterialBorderEdges border_edges;
     std::vector<MaterialKeyline> keylines;
     double corner_radius{};
@@ -350,7 +352,7 @@ struct GUI_FORMS_API SurfaceMaterial final {
     // in the engine's material primitive. The built-in path,
     // paint_surface_material, rounds every corner by corner_radius, so a
     // theme sets that to the radius the fallback should draw.
-    std::optional<MaterialCornerRadii> corner_radii;
+    stxlib::Optional<MaterialCornerRadii> corner_radii;
     // The part filters (E9.6, CSS `filter`), applied to the baked raster in
     // this order: the colour filter to each pixel, then the drop shadow
     // beneath, then the blur over the whole. A theme's filter list lowers
@@ -358,7 +360,7 @@ struct GUI_FORMS_API SurfaceMaterial final {
     // built-in path, paint_surface_material, draws none of them, and the
     // window's backplane image draws only the colour filter.
     MaterialColourFilter colour_filter;
-    std::optional<MaterialDropShadow> drop_shadow;
+    stxlib::Optional<MaterialDropShadow> drop_shadow;
     // CSS `filter: blur(σ)` as filter_blur = 2σ logical units, the blur
     // radius convention of shadows; 0 for none.
     double filter_blur{};
@@ -381,7 +383,7 @@ struct GUI_FORMS_API SurfaceMaterial final {
     std::vector<MaterialMaskLayer> masks;
     // A reflection of the finished face (MaterialReflection), drawn after
     // the mask; none by default.
-    std::optional<MaterialReflection> reflection;
+    stxlib::Optional<MaterialReflection> reflection;
     // The final quantization (MaterialDither); none by default.
     MaterialDither dither{MaterialDither::none};
     // The material's own transform (MaterialTransform); the identity by

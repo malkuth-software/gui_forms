@@ -42,6 +42,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -341,8 +342,8 @@ public:
         part.role = PartRole::region;
         part.family = ControlVisualRole::card;
         part.bounds = face;
-        part.corner_radius = 6.0;
-        part.key = PartKey{"glass", {}, {}};
+        part.corner_radius.set(6.0);
+        part.key.set(PartKey{"glass", {}, {}});
         paint_part(painter, *this, part);
     }
     Rect face{20.0, 20.0, 100.0, 30.0};
@@ -363,7 +364,7 @@ std::unique_ptr<ThemeDefinition> glass_theme(double blur) {
     definition.id = "engine-glass";
     ThemeRule rule{};
     rule.label = "glass";
-    rule.selector.role = PartRole::region;
+    rule.selector.role.set(PartRole::region);
     rule.declarations.push_back(RuleDeclaration::primitive("glass"));
     rule.declarations.push_back(RuleDeclaration::number_value("blur", blur));
     definition.rules.rules.push_back(rule);

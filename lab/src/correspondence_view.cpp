@@ -551,29 +551,29 @@ void CorrespondenceView::paint_glyph(Painter& painter, Rect b,
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.states = states;
-    well.corner_radius = 0.0;
+    well.corner_radius.set(0.0);
     PartPaint fill;
     fill.family = ControlVisualRole::editor;
     fill.role = PartRole::fill;
     fill.states = states;
     if (glyph == ObjectGlyph::folder) {
         well.bounds = {b.x + 2.0, b.y + 8.0, b.width - 4.0, b.height - 10.0};
-        well.authored_background = base;
+        well.authored_background.set(base);
         paint_part(painter, *this, well);
         fill.bounds = {b.x + 6.0, b.y + 4.0, b.width * .44, 4.0};
-        fill.content_color = with_alpha(style().highlight, 190);
+        fill.content_color.set(with_alpha(style().highlight, 190));
         paint_part(painter, *this, fill);
         return;
     }
     well.bounds = {b.x + 5.0, b.y + 1.0, b.width - 10.0, b.height - 2.0};
-    well.authored_background = style().paper;
+    well.authored_background.set(style().paper);
     paint_part(painter, *this, well);
     fill.bounds = {b.x + 6.0, b.y + 2.0, b.width - 12.0, 5.0};
-    fill.content_color = base;
+    fill.content_color.set(base);
     paint_part(painter, *this, fill);
     if (glyph == ObjectGlyph::image) {
         fill.bounds = {b.x + 9.0, b.y + 11.0, b.width - 18.0, b.height - 17.0};
-        fill.content_color = with_alpha(base, 120);
+        fill.content_color.set(with_alpha(base, 120));
         paint_part(painter, *this, fill);
     } else {
         fill.bounds = {b.x + 9.0, b.y + 12.5, b.width - 18.0, 1.0};
@@ -704,7 +704,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
         card.role = PartRole::face;
         card.bounds = card_bounds;
         card.states = item_states;
-        if (overridden) card.authored_background = style().paper;
+        if (overridden) card.authored_background.set(style().paper);
         paint_part(painter, *this, card);
         if (selected || hovered) {
             PartPaint plate;
@@ -712,17 +712,17 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
             plate.role = PartRole::selection;
             plate.bounds = card_bounds;
             plate.states = item_states;
-            if (overridden) plate.authored_background = selected ? style().accent_light : style().face_light;
+            if (overridden) plate.authored_background.set(selected ? style().accent_light : style().face_light);
             paint_part(painter, *this, plate);
         }
         // The status rail is a fill; pinned and stale items take the first
         // and second accent indices and an offline item is unavailable
         // (owner decision, 2026-11-02).
-        std::optional<AccentIndex> status_accent{};
+        stxlib::Optional<AccentIndex> status_accent{};
         if (pinned) {
-            status_accent = AccentIndex{0U};
+            status_accent.set(AccentIndex{0U});
         } else if (item.stale && !item.unavailable) {
-            status_accent = AccentIndex{1U};
+            status_accent.set(AccentIndex{1U});
         }
         AnatomyStateSet status_states = item_states;
         if (item.unavailable) status_states.insert(AnatomyState::unavailable);
@@ -775,7 +775,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
             word_label.states = status_states;
             word_label.text = lend_paint_text(layout.state_text);
             word_label.font = word_font;
-            word_label.measured_text = word;
+            word_label.measured_text.set(word);
             paint_text_part_at(painter, *this, word_label, word_origin, word.width);
         }
         if (layout.expanded) {
@@ -1100,9 +1100,9 @@ SemanticDescriptor CorrespondenceView::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.value = selected_id_;
-    descriptor.numeric_value = scroll_offset_;
-    descriptor.minimum_value = 0.0;
-    descriptor.maximum_value = maximum_scroll_offset();
+    descriptor.numeric_value.set(scroll_offset_);
+    descriptor.minimum_value.set(0.0);
+    descriptor.maximum_value.set(maximum_scroll_offset());
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement};
     descriptor.exposed = true;

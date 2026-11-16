@@ -97,7 +97,7 @@ TestRaster draw(const SurfaceMaterial& material, Size logical, double scale,
     target.logical_size = logical;
     target.scale = DeviceScale{scale};
     target.material = &material;
-    if (own_radius >= 0.0) target.corner_radius = own_radius;
+    if (own_radius >= 0.0) target.corner_radius.set(own_radius);
     const EnginePrimitive& primitive = material_primitive();
     const PrimitiveParameterBlock parameters = shaped(shape);
     PrimitivePreparation preparation{};
@@ -245,14 +245,14 @@ SurfaceMaterial layered(double corner_radius) {
     glow.blur_radius = 2.0;
     glow.spread = 1.0;
     material.glows.push_back(glow);
-    material.border = MaterialBorder{ink, 1.0};
+    material.border.set(MaterialBorder{ink, 1.0});
     return material;
 }
 
 void corner_radii() {
     const Size logical{40.0, 20.0};
     SurfaceMaterial corners = layered(0.0);
-    corners.corner_radii = MaterialCornerRadii{10.0, 0.0, 4.0, 0.0};
+    corners.corner_radii.set(MaterialCornerRadii{10.0, 0.0, 4.0, 0.0});
     require(valid_surface_material(corners), "four corners are a valid material");
     const TestRaster drawn = draw(corners, logical, 1.0);
     // The box spans pixels 8 to 47 across and 8 to 27 down.
@@ -263,7 +263,7 @@ void corner_radii() {
 
     // Four equal corners draw as one radius, every layer to the same bytes.
     SurfaceMaterial equal = layered(0.0);
-    equal.corner_radii = MaterialCornerRadii{5.0, 5.0, 5.0, 5.0};
+    equal.corner_radii.set(MaterialCornerRadii{5.0, 5.0, 5.0, 5.0});
     require(raster_hash(draw(equal, logical, 1.0)) == raster_hash(draw(layered(5.0), logical, 1.0)),
             "four equal corners are one radius");
     // A part's own radius overrides the material's corners.
@@ -316,14 +316,14 @@ void patterned_borders() {
     // A clear face, so that only the border draws.
     SurfaceMaterial dashed = filled_with(MaterialFillLayer::solid(Color{0, 0, 0, 0}));
     dashed.corner_radius = 4.0;
-    dashed.border = MaterialBorder{ink, 2.0, MaterialBorderStyle::dashed};
+    dashed.border.set(MaterialBorder{ink, 2.0, MaterialBorderStyle::dashed});
     require(valid_surface_material(dashed), "a dashed border is valid");
     const TestRaster dashes = draw(dashed, logical, 1.0);
     const EdgeCount dash_count = count_top_edge(dashes, 8U, 16U, 59U);
     require(dash_count.drawn > 12U && dash_count.clear > 8U, "dashes and gaps run along the edge");
 
     SurfaceMaterial dotted = dashed;
-    (*dotted.border).style = MaterialBorderStyle::dotted;
+    (*dotted.border.value()).style = MaterialBorderStyle::dotted;
     const TestRaster dots = draw(dotted, logical, 1.0);
     const EdgeCount dot_count = count_top_edge(dots, 9U, 16U, 59U);
     require(dot_count.clear > 8U, "dots leave gaps");
@@ -331,7 +331,7 @@ void patterned_borders() {
 
     // The pattern never draws outside the solid border's ring.
     SurfaceMaterial solid = dashed;
-    (*solid.border).style = MaterialBorderStyle::solid;
+    (*solid.border.value()).style = MaterialBorderStyle::solid;
     const TestRaster ring = draw(solid, logical, 1.0);
     bool within = true;
     for (std::size_t index = 3U; index < ring.bytes.size(); index = index + 4U) {
@@ -361,14 +361,14 @@ void validation() {
     require(!valid_surface_material(material), "a conic fill needs stops");
 
     SurfaceMaterial cornered = filled_with(MaterialFillLayer::solid(red));
-    cornered.corner_radii = MaterialCornerRadii{1.0, -1.0, 0.0, 0.0};
+    cornered.corner_radii.set(MaterialCornerRadii{1.0, -1.0, 0.0, 0.0});
     require(!valid_surface_material(cornered), "a negative corner is refused");
-    cornered.corner_radii = MaterialCornerRadii{1.0, 2.0, 3.0, 4.0};
-    cornered.border_edges.top = MaterialBorder{ink, 1.0};
+    cornered.corner_radii.set(MaterialCornerRadii{1.0, 2.0, 3.0, 4.0});
+    cornered.border_edges.top.set(MaterialBorder{ink, 1.0});
     require(!valid_surface_material(cornered), "single edges are square-cornered");
 
     SurfaceMaterial bordered = filled_with(MaterialFillLayer::solid(red));
-    bordered.border = MaterialBorder{ink, 1.0, static_cast<MaterialBorderStyle>(7U)};
+    bordered.border.set(MaterialBorder{ink, 1.0, static_cast<MaterialBorderStyle>(7U)});
     require(!valid_surface_material(bordered), "a border style outside the enumeration is refused");
 }
 

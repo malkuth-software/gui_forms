@@ -57,6 +57,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -168,7 +169,7 @@ void attachment_and_control_capture() {
                 "without the backplane the margin stays transparent");
 
         options.include_backplane = true;
-        options.colour_scheme = ColourScheme::dark;
+        options.colour_scheme.set(ColourScheme::dark);
         const std::optional<WindowCapture> dark = attached.capture_control(button, options);
         require(dark.has_value() && pixel_at(*dark, 1U, 1U) != pixel_at(*light, 1U, 1U),
                 "a dark capture draws a dark backplane");
@@ -631,9 +632,9 @@ void ancestor_captures_draw_every_descendant() {
         ControlCaptureOptions options{};
         options.scale = scale;
         options.include_backplane = false;
+        const stxlib::Optional<DisplayChunkInfo> chunk_before = (*group).display_chunk_info();
         const std::optional<std::uint64_t> generation_before =
-            (*group).display_chunk_info().has_value() ? std::optional<std::uint64_t>((*(*group).display_chunk_info()).generation)
-                                                      : std::nullopt;
+            chunk_before.present() ? std::optional<std::uint64_t>((*chunk_before.value()).generation) : std::nullopt;
         const std::optional<WindowCapture> whole = window.capture_control(root, options);
         const std::optional<WindowCapture> framed = window.capture_control(group, options);
         const std::optional<WindowCapture> picker = window.capture_control(date, options);
@@ -648,8 +649,8 @@ void ancestor_captures_draw_every_descendant() {
         require(date_in_root.covered > 0U && date_in_root.differing == 0U,
                 "the ancestor's capture draws the DateTimePicker as its own capture does (E1)");
         if (scale != window.scale() && generation_before.has_value()) {
-            const std::optional<DisplayChunkInfo> after = (*group).display_chunk_info();
-            require(after.has_value() && (*after).generation == *generation_before,
+            const stxlib::Optional<DisplayChunkInfo> after = (*group).display_chunk_info();
+            require(after.present() && (*after.value()).generation == *generation_before,
                     "a capture at another scale leaves the retained chunk as it was (E2)");
         }
     }

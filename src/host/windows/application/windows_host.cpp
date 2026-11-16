@@ -3428,11 +3428,11 @@ private:
     // without an input context on this window; a refused placement leaves
     // the input method's own default.
     void place_input_method_windows() {
-        const std::optional<Rect> caret = (*model_).text_input_caret();
-        if (!caret) return;
+        const stxlib::Optional<Rect> caret = (*model_).text_input_caret();
+        if (caret.absent()) return;
         const HIMC context = ImmGetContext(hwnd_);
         if (context == nullptr) return;
-        const RECT device = device_rect(*caret);
+        const RECT device = device_rect(*caret.value());
         COMPOSITIONFORM composition{};
         composition.dwStyle = CFS_POINT;
         composition.ptCurrentPos = POINT{device.left, device.top};
@@ -3709,9 +3709,9 @@ private:
         // The invalidation overlay on, off, or following the program's
         // switch (tools/contention_fuzz.py toggles it under load).
         if (command == "overlay on" || command == "overlay off" || command == "overlay default") {
-            std::optional<bool> enabled{};
-            if (command == "overlay on") enabled = true;
-            if (command == "overlay off") enabled = false;
+            stxlib::Optional<bool> enabled{};
+            if (command == "overlay on") enabled.set(true);
+            if (command == "overlay off") enabled.set(false);
             (*model_).set_invalidation_overlay(enabled);
             collect_damage();
             return TRUE;

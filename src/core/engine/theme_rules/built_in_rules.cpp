@@ -23,7 +23,7 @@ PropertyTransition tile_fade() {
     PresentationState appearing{};
     appearing.when.push_back(AnatomyState::expanding);
     appearing.target = 1.0;
-    appearing.enter_from = 0.0;
+    appearing.enter_from.set(0.0);
     PresentationState shown{};
     shown.target = 1.0;
     fade.states.push_back(appearing);
@@ -140,7 +140,7 @@ ThemeRuleSheet make_built_in_rules() {
     ThemeRule shadow{};
     shadow.label = "overlay_shadow";
     shadow.level = CascadeLevel::built_in;
-    shadow.selector.role = PartRole::shadow;
+    shadow.selector.role.set(PartRole::shadow);
     shadow.declarations.push_back(RuleDeclaration::primitive("overlay_shadow"));
     sheet.rules.push_back(std::move(shadow));
     return sheet;

@@ -6,6 +6,8 @@
 
 #include "anchored-overlays_form.hpp"
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms::gallery::pages {
 namespace {
 
@@ -60,7 +62,7 @@ private:
                                                              document_.gallery_overlays_anchor_2};
         for (std::size_t index = 0; index < anchors.size(); ++index) {
             const std::shared_ptr<Button>& anchor = anchors[index];
-            (*anchor).expanded_state = false;
+            (*anchor).expanded_state = stxlib::Optional<bool>::of(false);
             on((*anchor).clicked(), *this, &AnchoredOverlaysPage::on_anchor_clicked,
                static_cast<int>(index));
             anchors_[index] = anchor;
@@ -106,7 +108,7 @@ private:
         (*layer_).dismiss_on_escape = escape_.get();
         token_ = (*window).open_overlay(anchor.shared_from_this(), layer_);
         scope_ = (*window).begin_focus_scope(layer_, field_);
-        anchor.expanded_state = true;
+        anchor.expanded_state = stxlib::Optional<bool>::of(true);
         if (Event<>* closed = token_.closed_event()) {
             on(*closed, *this, &AnchoredOverlaysPage::on_overlay_closed);
         }
@@ -144,7 +146,7 @@ private:
 
     void release_anchor() {
         if (open_anchor_ < 0) return;
-        (*anchors_[static_cast<std::size_t>(open_anchor_)]).expanded_state = false;
+        (*anchors_[static_cast<std::size_t>(open_anchor_)]).expanded_state = stxlib::Optional<bool>::of(false);
         open_anchor_ = -1;
     }
 

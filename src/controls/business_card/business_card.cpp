@@ -386,7 +386,7 @@ BusinessCard::BusinessCard(StableId stable_id, BusinessCardPresentation presenta
     if (!known) throw std::invalid_argument("BusinessCard presentation is outside BusinessCardPresentation");
     focusable = true;
     tab_stop = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
     // Radians, settled to within half a device pixel of arc at the card's
     // edge (half its width from the axis).
     static_cast<void>(turn_.set_extent(hand_card_size.width * 0.5));
@@ -612,8 +612,8 @@ void BusinessCard::paint_face(Painter& painter, const Layout& placed, Point offs
 
     PartPaint stock{.role = PartRole::face, .bounds = offset_rect(placed.card, offset), .states = states,
                     .family = ControlVisualRole::card};
-    stock.corner_radius = height * 0.03;
-    if (keyed) stock.key = PartKey{"stock", {}, {}};
+    stock.corner_radius.set(height * 0.03);
+    if (keyed) stock.key.set(PartKey{"stock", {}, {}});
     paint_part(painter, *this, stock);
     // The back is the stock alone.
     if (!front) return;
@@ -629,12 +629,12 @@ void BusinessCard::paint_face(Painter& painter, const Layout& placed, Point offs
     vendor.text = lend_paint_text(identity.vendor);
     vendor.font = vendor_font;
     vendor.alignment = PartTextAlignment::center;
-    if (keyed) vendor.key = PartKey{"vendor_name", {}, {}};
+    if (keyed) vendor.key.set(PartKey{"vendor_name", {}, {}});
     paint_part(painter, *this, vendor);
 
     PartPaint rule{.role = PartRole::divider, .bounds = offset_rect(placed.rule, offset), .states = states,
                    .family = ControlVisualRole::card};
-    if (keyed) rule.key = PartKey{"rule", {}, {}};
+    if (keyed) rule.key.set(PartKey{"rule", {}, {}});
     paint_part(painter, *this, rule);
 
     const std::string product = product_line(identity);
@@ -645,7 +645,7 @@ void BusinessCard::paint_face(Painter& painter, const Layout& placed, Point offs
     product_part.text = lend_paint_text(product);
     product_part.font = line_font;
     product_part.alignment = PartTextAlignment::center;
-    if (keyed) product_part.key = PartKey{"product", {}, {}};
+    if (keyed) product_part.key.set(PartKey{"product", {}, {}});
     paint_part(painter, *this, product_part);
 
     if (!placed.website.empty()) {
@@ -660,7 +660,7 @@ void BusinessCard::paint_face(Painter& painter, const Layout& placed, Point offs
         website.font = website_font;
         website.alignment = PartTextAlignment::center;
         website.tone = PartTextTone::secondary;
-        if (keyed) website.key = PartKey{"website", {}, {}};
+        if (keyed) website.key.set(PartKey{"website", {}, {}});
         paint_part(painter, *this, website);
     }
 
@@ -673,7 +673,7 @@ void BusinessCard::paint_face(Painter& painter, const Layout& placed, Point offs
         copyright.font = copyright_font;
         copyright.alignment = PartTextAlignment::center;
         copyright.tone = PartTextTone::secondary;
-        if (keyed) copyright.key = PartKey{"copyright", {}, {}};
+        if (keyed) copyright.key.set(PartKey{"copyright", {}, {}});
         paint_part(painter, *this, copyright);
     }
 
@@ -684,7 +684,7 @@ void BusinessCard::paint_face(Painter& painter, const Layout& placed, Point offs
         PartPaint close{.role = PartRole::glyph, .bounds = offset_rect(placed.close_mark, offset),
                         .states = close_states, .family = ControlVisualRole::card};
         close.mark = PartMark::close;
-        if (keyed) close.key = PartKey{"close_mark", {}, {}};
+        if (keyed) close.key.set(PartKey{"close_mark", {}, {}});
         paint_part(painter, *this, close);
     }
 }
@@ -703,8 +703,8 @@ void BusinessCard::paint_turned(Painter& painter, const Layout& placed) {
                      .bounds = offset_rect(outline.empty() ? placed.card : outline, Point{0.0, height * shadow_drop_share}),
                      .states = states,
                      .family = ControlVisualRole::card};
-    shadow.corner_radius = height * 0.03;
-    shadow.key = PartKey{"shadow", {}, {}};
+    shadow.corner_radius.set(height * 0.03);
+    shadow.key.set(PartKey{"shadow", {}, {}});
     paint_part(painter, *this, shadow);
     if (!faces_ready(scale)) {
         paint_face(painter, placed, Point{}, face_up(), true);
@@ -766,15 +766,15 @@ void BusinessCard::on_paint(Painter& painter, Rect) {
         const Point shadow_offset{-tilt_.x * shadow_lean, height * shadow_drop_share - tilt_.y * shadow_lean};
         PartPaint shadow{.role = PartRole::shadow, .bounds = offset_rect(placed.card, shadow_offset),
                          .states = states, .family = ControlVisualRole::card};
-        shadow.corner_radius = height * 0.03;
-        shadow.key = PartKey{"shadow", {}, {}};
+        shadow.corner_radius.set(height * 0.03);
+        shadow.key.set(PartKey{"shadow", {}, {}});
         paint_part(painter, *this, shadow);
         paint_face(painter, placed, face_offset, face_up(), true);
         if (states.contains(AnatomyState::focus_visible)) {
             PartPaint ring{.role = PartRole::focus, .bounds = offset_rect(placed.card, face_offset),
                            .states = states, .family = ControlVisualRole::card};
-            ring.corner_radius = height * 0.03;
-            ring.key = PartKey{"focus", {}, {}};
+            ring.corner_radius.set(height * 0.03);
+            ring.key.set(PartKey{"focus", {}, {}});
             paint_part(painter, *this, ring);
         }
     }

@@ -102,18 +102,7 @@ gui_forms::SurfaceRoot
       **overrides** : ``WindowOverrides*``, read-only
          Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
-      **invalidation_overlay_setting** : ``std::optional<bool>``, read-only
-
-      **blend_study_setting** : ``std::optional<BlendStudyMode>``, read-only
-
-      **blend_study_mode** : ``BlendStudyMode``, read-only
-         The mode in force: the window's setting, else the process switch.
-
-      **blend_study_snapshot** : ``BlendStudySnapshot``, read-only
-         The frames counted since the window was made or the last reset, the last of them and their sum. UI thread.
-
-      **blend_heat_map** : ``BlendHeatMapView``, read-only
-         The planes the last counted frames left, while a heat-map mode is in force, for the host to composite at present time (compose_blend_heat_map); a view whose mode is off otherwise. Borrowed until the window's next paint or setting change. UI thread.
+      **invalidation_overlay_setting** : ``stxlib::Optional<bool>``, read-only
 
       **text_metrics_provider** : ``TextMetricsProvider*``
 
@@ -282,7 +271,7 @@ gui_forms::SurfaceRoot
 
       **relative_pointer_snapshot** : ``RelativePointerSnapshot``, read-only
 
-      **tool_tips_shown_setting** : ``std::optional<bool>``, read-only
+      **tool_tips_shown_setting** : ``stxlib::Optional<bool>``, read-only
          Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
       **tool_tips_shown** : ``bool``, default follows the application's ``tool_tips_shown()``
@@ -468,8 +457,6 @@ gui_forms::SurfaceRoot
         - The window's outlines while the overlay is on, for its host to composite at present time (InvalidationOverlay::compose); null while it is off.
       * - :cpp:func:`record_presented_area <gui_forms::SurfaceRoot::record_presented_area>`
         - Records an area the host presented without a paint of the window's (a live frame, external content), with its cause and source, while the overlay is on; nothing while it is off.
-      * - :cpp:func:`reset_blend_study <gui_forms::SurfaceRoot::reset_blend_study>`
-        - Zeroes the frames, the last frame and the sums.
       * - :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>`
         - Removes a snapshot's image; false when it is not there.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`
@@ -660,8 +647,6 @@ gui_forms::SurfaceRoot
         - Native host borrows its painter until shutdown; clear before destroying it.
       * - :cpp:func:`set_invalidation_overlay <gui_forms::SurfaceRoot::set_invalidation_overlay>`
         - The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp).
-      * - :cpp:func:`set_blend_study <gui_forms::SurfaceRoot::set_blend_study>`
-        - The blend and opaque study (2026-11-16; see blend_study.hpp).
       * - :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`
         - Host adapters also install a paint wake seam.
       * - :cpp:func:`set_schedule_wake_handler <gui_forms::SurfaceRoot::set_schedule_wake_handler>`
@@ -790,21 +775,7 @@ gui_forms::SurfaceRoot
 
       Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
-   .. cpp:function:: std::optional<bool> invalidation_overlay_setting() const noexcept
-
-   .. cpp:function:: std::optional<BlendStudyMode> blend_study_setting() const noexcept
-
-   .. cpp:function:: BlendStudyMode blend_study_mode() const noexcept
-
-      The mode in force: the window's setting, else the process switch.
-
-   .. cpp:function:: BlendStudySnapshot blend_study_snapshot() const noexcept
-
-      The frames counted since the window was made or the last reset, the last of them and their sum. UI thread.
-
-   .. cpp:function:: BlendHeatMapView blend_heat_map() const& noexcept
-
-      The planes the last counted frames left, while a heat-map mode is in force, for the host to composite at present time (compose_blend_heat_map); a view whose mode is off otherwise. Borrowed until the window's next paint or setting change. UI thread.
+   .. cpp:function:: stxlib::Optional<bool> invalidation_overlay_setting() const noexcept
 
    .. cpp:function:: TextMetricsProvider* text_metrics_provider() const noexcept
 
@@ -1044,7 +1015,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: RelativePointerSnapshot relative_pointer_snapshot() const noexcept
 
-   .. cpp:function:: std::optional<bool> tool_tips_shown_setting() const noexcept
+   .. cpp:function:: stxlib::Optional<bool> tool_tips_shown_setting() const noexcept
 
       Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
@@ -1056,6 +1027,10 @@ gui_forms::SurfaceRoot
       joined (``Application::set_tool_tips_shown``), and shows tooltips when it
       joined none. Turning it off closes a tooltip that
       shows. :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>` shows one regardless.
+
+   .. cpp:function:: void set_tool_tips_shown(stxlib::Optional<bool> shown)
+
+      Sets :cpp:func:`tool_tips_shown <gui_forms::SurfaceRoot::tool_tips_shown>`; see the property's description above.
 
    .. cpp:function:: void set_tool_tips_shown(std::optional<bool> shown)
 
@@ -1328,10 +1303,6 @@ gui_forms::SurfaceRoot
 
       Records an area the host presented without a paint of the window's (a live frame, external content), with its cause and source, while the overlay is on; nothing while it is off. UI thread.
 
-   .. cpp:function:: void reset_blend_study() noexcept
-
-      Zeroes the frames, the last frame and the sums. UI thread.
-
    .. cpp:function:: bool release_control_snapshot(ImageId image)
 
       Removes a snapshot's image; false when it is not there.
@@ -1513,7 +1484,7 @@ gui_forms::SurfaceRoot
 
       Whether :cpp:func:`control <gui_forms::SurfaceRoot::control>` is focused (Control.Focused): it holds focus, or its focus target does.
 
-   .. cpp:function:: std::optional<Rect> text_input_caret()
+   .. cpp:function:: stxlib::Optional<Rect> text_input_caret()
 
       The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control. Hosts read it when the input method asks. Root thread only.
 
@@ -1734,7 +1705,7 @@ gui_forms::SurfaceRoot
       Withdraws a published value; its readers then read it as not published
       and give their expressions' fallbacks.
 
-   .. cpp:function:: std::optional<double> published_value(std::string_view name) const
+   .. cpp:function:: stxlib::Optional<double> published_value(std::string_view name) const
 
       The value published under a name, or none.
 
@@ -1797,13 +1768,13 @@ gui_forms::SurfaceRoot
 
       Native host borrows its painter until shutdown; clear before destroying it. Created framebuffers own their rendering state independently of the host.
 
-   .. cpp:function:: void set_invalidation_overlay(std::optional<bool> enabled)
+   .. cpp:function:: void set_invalidation_overlay(stxlib::Optional<bool> enabled)
 
       The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp). The window's own setting: on, off, or none to follow the process switch (set_invalidation_overlay_default, read from GUI_FORMS_DEBUG_INVALIDATION at first). Turning it off drops the outlines; turning it on records from the next damage. Neither damages the window. UI thread.
 
-   .. cpp:function:: void set_blend_study(std::optional<BlendStudyMode> mode)
+   .. cpp:function:: void set_invalidation_overlay(std::optional<bool> enabled)
 
-      The blend and opaque study (2026-11-16; see blend_study.hpp). The window's own setting: a mode, or none to follow the process switch (set_blend_study_default, read from GUI_FORMS_DEBUG_BLEND at first). While the study is on, each paint counts how its frame's device pixels were written (BlendFrameCounters); turning it off keeps the counts and frees the planes. Neither damages the window. UI thread.
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: void set_paint_wake_handler(std::function<void()> wake)
 

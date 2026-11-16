@@ -344,7 +344,7 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
         face.role = PartRole::face;
         face.bounds = item.bounds;
         face.states = item_states;
-        face.corner_radius = 0.0;
+        face.corner_radius.set(0.0);
         paint_part(painter, *this, face);
         FontSpec item_font = segment_font;
         if (item.kind == VisibleKind::edit ||
@@ -453,8 +453,8 @@ void BreadcrumbTrail::paint_raised(Painter& painter) {
         face.role = PartRole::face;
         face.bounds = bounds;
         face.states = item_states;
-        face.corner_radius = 0.0;
-        if (tip > 0.0) face.point = tip;
+        face.corner_radius.set(0.0);
+        if (tip > 0.0) face.point.set(tip);
         face.point_leading = mirrored;
         paint_part(painter, *this, face);
         FontSpec item_font = segment_font;
@@ -472,7 +472,7 @@ void BreadcrumbTrail::paint_raised(Painter& painter) {
         label.font = item_font;
         const Rect reading_label{text_x, baseline - box_ascent, std::max(0.0, shoulder - text_x - 2.0), box_height};
         label.bounds = mirrored ? horizontally_mirrored(reading_label, bounds) : reading_label;
-        label.measured_text = measured;
+        label.measured_text.set(measured);
         paint_part(painter, *this, label);
         if (active) {
             PartPaint ring;

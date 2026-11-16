@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <stxlib/optional.hpp>
 #include <vector>
 #include <utility>
 
@@ -136,11 +137,11 @@ std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool ow
         const bool typed = !exclusion.control_type.empty() || !selector.control_type.empty();
         if (!exclusion.custom_states.empty() && !typed && !owned) return RuleDiagnosticKind::selector_invalid;
     }
-    if (selector.role && static_cast<std::size_t>(*selector.role) >= part_role_count) {
+    if (selector.role.present() && static_cast<std::size_t>(*selector.role.value()) >= part_role_count) {
         return RuleDiagnosticKind::selector_invalid;
     }
     // A given specificity (EC2) stands in for the selector's class and ID.
-    const RuleSpecificity specificity = rule.specificity ? *rule.specificity : rule_specificity(selector);
+    const RuleSpecificity specificity = rule.specificity.value_or(rule_specificity(selector));
     if (rule.level == CascadeLevel::class_rule && specificity.classes == 0U) {
         return RuleDiagnosticKind::selector_missing_level_field;
     }
@@ -163,7 +164,7 @@ std::optional<RuleDiagnosticKind> primitive_defect(const EnginePrimitive& primit
     if (descriptor.cost.per_device_pixel > maximum_operations_per_device_pixel) {
         return RuleDiagnosticKind::primitive_over_budget;
     }
-    if (selector.role && !paints_role(descriptor, *selector.role)) return RuleDiagnosticKind::primitive_role_mismatch;
+    if (selector.role.present() && !paints_role(descriptor, *selector.role.value())) return RuleDiagnosticKind::primitive_role_mismatch;
     return std::nullopt;
 }
 
@@ -297,7 +298,7 @@ RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept {
     const bool typed = !selector.control_type.empty() || selector.surface != SurfaceKind::none;
     const std::uint32_t type = typed ? 1U : 0U;
     const std::uint32_t named = selector.part.empty() ? 0U : 1U;
-    const std::uint32_t role = selector.role ? 1U : 0U;
+    const std::uint32_t role = selector.role.present() ? 1U : 0U;
     result.types = type + named + role;
     // CSS: a `:not()` counts as its most specific argument. The selector's
     // exclusions are one `:not()`'s arguments (the lowering merges them).
@@ -354,23 +355,26 @@ bool AncestorBloom::holds(const AncestorBloom& needed) const noexcept {
 
 namespace {
 
-bool resolution_bound_valid(const std::optional<double>& bound) noexcept {
-    if (!bound) return true;
-    const bool valid = std::isfinite(*bound) && *bound > 0.0;
+bool resolution_bound_valid(const stxlib::Optional<double>& bound) noexcept {
+    const double* const value = bound.value();
+    if (value == nullptr) return true;
+    const bool valid = std::isfinite(*value) && *value > 0.0;
     return valid;
 }
 
-bool feature_holds(const std::optional<bool>& wanted, bool fact) noexcept {
-    if (!wanted) return true;
-    const bool holds = *wanted == fact;
+bool feature_holds(const stxlib::Optional<bool>& wanted, bool fact) noexcept {
+    const bool* const value = wanted.value();
+    if (value == nullptr) return true;
+    const bool holds = *value == fact;
     return holds;
 }
 
 } // namespace
 
 bool media_condition_unconditional(const MediaCondition& condition) noexcept {
-    const bool unconditional = !condition.dark_scheme && !condition.forced_colours && !condition.reduced_motion &&
-                               !condition.minimum_resolution && !condition.maximum_resolution;
+    const bool unconditional = condition.dark_scheme.absent() && condition.forced_colours.absent() &&
+                               condition.reduced_motion.absent() && condition.minimum_resolution.absent() &&
+                               condition.maximum_resolution.absent();
     return unconditional;
 }
 
@@ -384,8 +388,10 @@ bool media_condition_holds(const MediaCondition& condition, const MediaFacts& fa
     if (!feature_holds(condition.dark_scheme, facts.dark_scheme)) return false;
     if (!feature_holds(condition.forced_colours, facts.forced_colours)) return false;
     if (!feature_holds(condition.reduced_motion, facts.reduced_motion)) return false;
-    if (condition.minimum_resolution && facts.resolution < *condition.minimum_resolution) return false;
-    if (condition.maximum_resolution && facts.resolution > *condition.maximum_resolution) return false;
+    const double* const minimum = condition.minimum_resolution.value();
+    const double* const maximum = condition.maximum_resolution.value();
+    if (minimum != nullptr && facts.resolution < *minimum) return false;
+    if (maximum != nullptr && facts.resolution > *maximum) return false;
     return true;
 }
 
@@ -836,8 +842,8 @@ void compose_fills(const SurfaceMaterial& floor,
 
 // One corner of the floor: its corner_radii's, else its corner_radius.
 double floor_corner(const SurfaceMaterial& floor, std::size_t corner) noexcept {
-    if (!floor.corner_radii) return floor.corner_radius;
-    const MaterialCornerRadii& radii = *floor.corner_radii;
+    if (floor.corner_radii.absent()) return floor.corner_radius;
+    const MaterialCornerRadii& radii = (*floor.corner_radii.value());
     const std::array<double, corner_field_count> corners{radii.top_left, radii.top_right, radii.bottom_right,
                                                          radii.bottom_left};
     return corners[corner];
@@ -865,7 +871,7 @@ void compose_corners(const SurfaceMaterial& floor,
         material.corner_radii.reset();
         return;
     }
-    material.corner_radii = MaterialCornerRadii{corners[0], corners[1], corners[2], corners[3]};
+    material.corner_radii.set(MaterialCornerRadii{corners[0], corners[1], corners[2], corners[3]});
 }
 
 bool edge_field(MaterialField field) noexcept {
@@ -886,8 +892,8 @@ struct AssembledEdge final {
 void apply_edge_declaration(const MaterialDeclaration& declaration, AssembledEdge& edge) {
     const std::size_t part = (static_cast<std::size_t>(declaration.field) - first_edge_field) % 3U;
     if (part == 0U) {
-        edge.drawn = declaration.border_style.has_value();
-        if (declaration.border_style) edge.border.style = *declaration.border_style;
+        edge.drawn = declaration.border_style.present();
+        if (declaration.border_style.present()) edge.border.style = *declaration.border_style.value();
         edge.lines = declaration.edge_lines;
         return;
     }
@@ -900,9 +906,9 @@ void apply_edge_declaration(const MaterialDeclaration& declaration, AssembledEdg
 
 // The edge as a material draws it: none when it is not drawn or has no
 // width.
-std::optional<MaterialBorder> drawn_edge(const AssembledEdge& edge) {
-    if (!edge.drawn || edge.border.width == 0.0) return std::nullopt;
-    return edge.border;
+stxlib::Optional<MaterialBorder> drawn_edge(const AssembledEdge& edge) {
+    if (!edge.drawn || edge.border.width == 0.0) return stxlib::Optional<MaterialBorder>::none();
+    return stxlib::Optional<MaterialBorder>::of(edge.border);
 }
 
 // A colour with each channel halved, rounded down: a groove's or ridge's
@@ -951,22 +957,23 @@ void assemble_edges(const SurfaceMaterial& floor,
                     const std::array<const MaterialDeclaration*, material_field_count>& fields,
                     SurfaceMaterial& material) {
     const bool single = !floor.border_edges.empty();
-    const std::array<const std::optional<MaterialBorder>*, 4> floor_edges{
+    const std::array<const stxlib::Optional<MaterialBorder>*, 4> floor_edges{
         single ? &floor.border_edges.top : &floor.border, single ? &floor.border_edges.right : &floor.border,
         single ? &floor.border_edges.bottom : &floor.border, single ? &floor.border_edges.left : &floor.border};
-    std::array<std::optional<MaterialBorder>, 4> drawn{};
+    std::array<stxlib::Optional<MaterialBorder>, 4> drawn{};
     for (std::size_t edge_index = 0U; edge_index < drawn.size(); ++edge_index) {
-        const std::optional<MaterialBorder>& base = *floor_edges[edge_index];
+        const stxlib::Optional<MaterialBorder>& base = *floor_edges[edge_index];
         AssembledEdge edge{};
-        edge.drawn = base.has_value();
-        if (base) edge.border = *base;
+        edge.drawn = base.present();
+        if (base.present()) edge.border = *base.value();
         for (std::size_t part = 0U; part < 3U; ++part) {
             const MaterialDeclaration* const declaration = fields[first_edge_field + 3U * edge_index + part];
             if (declaration != nullptr && !(*declaration).initial) apply_edge_declaration(*declaration, edge);
         }
         drawn[edge_index] = drawn_edge(edge);
-        if (!drawn[edge_index] || edge.lines == MaterialEdgeLines::single) continue;
-        append_edge_lines(static_cast<MaterialEdge>(edge_index), *drawn[edge_index], edge.lines, material.keylines);
+        if (drawn[edge_index].absent() || edge.lines == MaterialEdgeLines::single) continue;
+        append_edge_lines(static_cast<MaterialEdge>(edge_index), *drawn[edge_index].value(), edge.lines,
+                          material.keylines);
         drawn[edge_index].reset();
     }
     const bool uniform = drawn[0] == drawn[1] && drawn[0] == drawn[2] && drawn[0] == drawn[3];
@@ -1214,14 +1221,14 @@ void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
         walk.visit(keyline.width);
         walk.visit(keyline.inset);
     }
-    if (declaration.drop_shadow) {
-        MaterialDropShadow& shadow = *declaration.drop_shadow;
+    if (declaration.drop_shadow.present()) {
+        MaterialDropShadow& shadow = (*declaration.drop_shadow.value());
         walk.visit(shadow.offset.x);
         walk.visit(shadow.offset.y);
         walk.visit(shadow.blur_radius);
     }
-    if (declaration.reflection) {
-        MaterialReflection& reflection = *declaration.reflection;
+    if (declaration.reflection.present()) {
+        MaterialReflection& reflection = (*declaration.reflection.value());
         walk.visit(reflection.gap);
         walk.visit(reflection.reach);
     }
@@ -1341,7 +1348,7 @@ void walk_material_colours(MaterialDeclaration& declaration, ColourWalk& walk) {
     for (MaterialShadow& shadow : declaration.shadows) walk.visit(shadow.color);
     for (MaterialGlow& glow : declaration.glows) walk.visit(glow.color);
     for (MaterialKeyline& keyline : declaration.keylines) walk.visit(keyline.color);
-    if (declaration.drop_shadow) walk.visit((*declaration.drop_shadow).color);
+    if (declaration.drop_shadow.present()) walk.visit((*declaration.drop_shadow.value()).color);
 }
 
 } // namespace
@@ -1532,12 +1539,14 @@ RuleDeclaration RuleDeclaration::expression_value(std::string_view parameter,
     return result;
 }
 
-std::optional<ExpressionInputIndex> CompiledThemeRules::published_value_input(std::string_view name) const noexcept {
-    if (name.empty()) return std::nullopt;
+stxlib::Optional<ExpressionInputIndex> CompiledThemeRules::published_value_input(std::string_view name) const noexcept {
+    if (name.empty()) return stxlib::Optional<ExpressionInputIndex>::none();
     for (std::size_t index = 0; index < published_values_.size(); ++index) {
-        if (published_values_[index] == name) return published_value_position(index);
+        if (published_values_[index] == name) {
+            return stxlib::Optional<ExpressionInputIndex>::of(published_value_position(index));
+        }
     }
-    return std::nullopt;
+    return stxlib::Optional<ExpressionInputIndex>::none();
 }
 
 // -- compiling -----------------------------------------------------------------
@@ -1680,7 +1689,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         CompiledRule compiled{};
         compiled.level = rule.level;
         compiled.media = rule.media;
-        compiled.specificity = rule.specificity ? *rule.specificity : rule_specificity(rule.selector);
+        compiled.specificity = rule.specificity.value_or(rule_specificity(rule.selector));
         compiled.order = index;
         compiled.source_position = rule.source_position;
         compiled.provenance = rule.provenance;
@@ -1819,12 +1828,12 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         if (!add_scoped(result.diagnostics_, index, rule, result, compiled)) continue;
         if (!add_reads(result.diagnostics_, index, rule, result, compiled)) continue;
         const bool declares = compiled.selects || !compiled.parameters.empty() || !compiled.transitions.empty() ||
-                              compiled.ambient.has_value() || compiled.blend.has_value() || compiled.font.has_value() ||
-                              compiled.effect.has_value() || compiled.effect_primary.has_value() ||
-                              compiled.effect_secondary.has_value() ||
+                              compiled.ambient.present() || compiled.blend.present() || compiled.font.present() ||
+                              compiled.effect.has_value() || compiled.effect_primary.present() ||
+                              compiled.effect_secondary.present() ||
                               !compiled.materials.empty() || !compiled.recipe_fields.empty() ||
-                              !compiled.scoped_definitions.empty() || compiled.backdrop.has_value() ||
-                              compiled.band.has_value() || !compiled.content_effect.empty();
+                              !compiled.scoped_definitions.empty() || compiled.backdrop.present() ||
+                              compiled.band.present() || !compiled.content_effect.empty();
         // A rule of definitions no condition reads declares nothing the
         // cascade uses, and is dropped without a diagnostic.
         if (!declares && !rule.scoped_definitions.empty()) continue;
@@ -1868,7 +1877,7 @@ PaintGroupComposite part_blend_composite(const PartBlend blend) noexcept {
 
 void CompiledThemeRules::add_blend(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                                    const RuleDeclaration& declaration, CompiledRule& compiled) {
-    if (compiled.blend) {
+    if (compiled.blend.present()) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::duplicate_declaration, index, rule, declaration.property));
         return;
     }
@@ -1878,7 +1887,7 @@ void CompiledThemeRules::add_blend(std::vector<RuleDiagnostic>& diagnostics, std
     }
     for (std::size_t position = 0U; position < part_blend_names.size(); ++position) {
         if (part_blend_names[position] != declaration.name) continue;
-        compiled.blend = static_cast<PartBlend>(static_cast<std::uint8_t>(position));
+        compiled.blend.set(static_cast<PartBlend>(static_cast<std::uint8_t>(position)));
         return;
     }
     diagnostics.push_back(diagnostic(RuleDiagnosticKind::blend_invalid, index, rule, declaration.property));
@@ -1888,8 +1897,8 @@ void CompiledThemeRules::add_effect_colour(std::vector<RuleDiagnostic>& diagnost
                                            const ThemeRule& rule, const RuleDeclaration& declaration,
                                            CompiledRule& compiled) {
     const bool primary = declaration.property == effect_primary_property;
-    std::optional<EffectColourDeclaration>& slot = primary ? compiled.effect_primary : compiled.effect_secondary;
-    if (slot) {
+    stxlib::Optional<EffectColourDeclaration>& slot = primary ? compiled.effect_primary : compiled.effect_secondary;
+    if (slot.present()) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::duplicate_declaration, index, rule, declaration.property));
         return;
     }
@@ -1901,7 +1910,7 @@ void CompiledThemeRules::add_effect_colour(std::vector<RuleDiagnostic>& diagnost
     EffectColourDeclaration colour{};
     colour.colour = declaration.colour;
     colour.origin = declaration.origin;
-    slot = colour;
+    slot.set(colour);
 }
 
 void CompiledThemeRules::add_effect(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
@@ -1928,7 +1937,7 @@ void CompiledThemeRules::add_effect(std::vector<RuleDiagnostic>& diagnostics, st
 
 void CompiledThemeRules::add_font(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                                   const RuleDeclaration& declaration, CompiledRule& compiled) {
-    if (compiled.font) {
+    if (compiled.font.present()) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::duplicate_declaration, index, rule, declaration.property));
         return;
     }
@@ -1939,16 +1948,16 @@ void CompiledThemeRules::add_font(std::vector<RuleDiagnostic>& diagnostics, std:
     FontDeclaration font{};
     if (declaration.name == font_inherit_name) {
         font.inherit = true;
-        compiled.font = font;
+        compiled.font.set(font);
         return;
     }
-    const std::optional<TextRole> role = text_role_from_name(declaration.name);
-    if (!role) {
+    const stxlib::Optional<TextRole> role = text_role_from_name(declaration.name);
+    if (role.absent()) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::font_invalid, index, rule, declaration.property));
         return;
     }
-    font.role = *role;
-    compiled.font = font;
+    font.role = *role.value();
+    compiled.font.set(font);
 }
 
 // A field is checked alone, written into the default material: what it
@@ -2349,9 +2358,9 @@ void CompiledThemeRules::add_content_effect(std::vector<RuleDiagnostic>& diagnos
 
 void CompiledThemeRules::add_backdrop(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
                                       const ThemeRule& rule, CompiledRule& compiled) {
-    if (!rule.backdrop) return;
+    if (rule.backdrop.absent()) return;
     const bool on_surface = rule.selector.surface != SurfaceKind::none;
-    if (!on_surface || !backdrop_declaration_valid(*rule.backdrop)) {
+    if (!on_surface || !backdrop_declaration_valid(*rule.backdrop.value())) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::backdrop_invalid, index, rule, "backdrop"));
         return;
     }
@@ -2359,20 +2368,21 @@ void CompiledThemeRules::add_backdrop(std::vector<RuleDiagnostic>& diagnostics, 
 }
 
 bool band_declaration_valid(const BandDeclaration& band) noexcept {
-    if (band.width) {
-        const double width = *band.width;
+    if (band.width.present()) {
+        const double width = *band.width.value();
         if (!std::isfinite(width) || width < 0.0 || width > maximum_theme_band_width) return false;
     }
-    if (band.effect && *band.effect != BandEffect::none && *band.effect != BandEffect::flash) return false;
+    const BandEffect* const effect = band.effect.value();
+    if (effect != nullptr && *effect != BandEffect::none && *effect != BandEffect::flash) return false;
     return true;
 }
 
 void CompiledThemeRules::add_band(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
                                   const ThemeRule& rule, CompiledRule& compiled) {
-    if (!rule.band) return;
+    if (rule.band.absent()) return;
     // Only a window has a band: a popup is not a window's frame.
     const bool on_window = rule.selector.surface == SurfaceKind::window;
-    if (!on_window || (*rule.band).empty() || !band_declaration_valid(*rule.band)) {
+    if (!on_window || (*rule.band.value()).empty() || !band_declaration_valid(*rule.band.value())) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::band_invalid, index, rule, "band"));
         return;
     }
@@ -2387,7 +2397,7 @@ void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnost
     // (Theme::resolve_font with the part's name), the dial and scrim fields
     // and its metrics and shape (RecipeField::block_size on), which are a
     // named part's own geometry.
-    const bool on_role = rule.selector.role.has_value();
+    const bool on_role = rule.selector.role.present();
     const bool on_named_part = !rule.selector.part.empty() && !on_role;
     std::array<bool, recipe_field_count> declared{};
     for (const RecipeDeclaration& declaration : rule.recipe_fields) {
@@ -2451,7 +2461,7 @@ bool usable_states(const PropertyTransition& transition, double minimum, double 
             if (static_cast<std::size_t>(when) >= anatomy_state_count) return false;
         }
         if (!in_range(state.target, minimum, maximum)) return false;
-        if (state.enter_from && !in_range(*state.enter_from, minimum, maximum)) return false;
+        if (state.enter_from.present() && !in_range(*state.enter_from.value(), minimum, maximum)) return false;
         if (!usable_stops(state, transition.curve, minimum, maximum)) return false;
     }
     return true;
@@ -2566,8 +2576,8 @@ void CompiledThemeRules::add_transitions(std::vector<RuleDiagnostic>& diagnostic
 
 void CompiledThemeRules::add_ambient(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
                                      const ThemeRule& rule, CompiledRule& compiled) {
-    if (!rule.ambient) return;
-    const AmbientEffect& ambient = *rule.ambient;
+    if (rule.ambient.absent()) return;
+    const AmbientEffect& ambient = *rule.ambient.value();
     const double rate = ambient.frames_per_second;
     // Refused at load (design language §9.4): no frame cap, or one above 30.
     if (!(rate > 0.0) || !(rate <= maximum_ambient_frames_per_second)) {
@@ -2580,7 +2590,7 @@ void CompiledThemeRules::add_ambient(std::vector<RuleDiagnostic>& diagnostics, s
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::ambient_invalid, index, rule, "ambient"));
         return;
     }
-    compiled.ambient = ambient;
+    compiled.ambient.set(ambient);
 }
 
 CompiledThemeRules::CompiledThemeRules() : serial_(next_rules_serial()) {}
@@ -2754,8 +2764,8 @@ void CompiledThemeRules::raise_user_opacity(std::vector<RuleDiagnostic>& diagnos
                 state.target = user_theme_minimum_opacity;
                 raised = true;
             }
-            if (state.enter_from && *state.enter_from < user_theme_minimum_opacity) {
-                state.enter_from = user_theme_minimum_opacity;
+            if (state.enter_from.present() && *state.enter_from.value() < user_theme_minimum_opacity) {
+                state.enter_from.set(user_theme_minimum_opacity);
                 raised = true;
             }
             for (MotionStop& stop : state.stops) {
@@ -2792,7 +2802,7 @@ bool CompiledThemeRules::matches(const CompiledRule& rule, const PartFacts& fact
     if (!selector.control_type.empty() && selector.control_type != facts.control_type) return false;
     if (!selector.stable_id.empty() && selector.stable_id != facts.stable_id) return false;
     if (!selector.part.empty() && selector.part != facts.part) return false;
-    if (selector.role && *selector.role != facts.role) return false;
+    if (selector.role.present() && *selector.role.value() != facts.role) return false;
     // The control type was compared above, so a custom bit means the
     // same state in the rule and the facts (R2-13).
     const std::uint64_t needed = rule.states.standard_bits();
@@ -3174,7 +3184,7 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         if (rule.recipe_fields.empty() || !matches(rule, facts)) continue;
-        const bool on_named_part = !rule.selector.part.empty() && !rule.selector.role.has_value();
+        const bool on_named_part = !rule.selector.part.empty() && rule.selector.role.absent();
         for (const RecipeDeclaration& declaration : rule.recipe_fields) {
             const std::size_t position = static_cast<std::size_t>(declaration.field);
             result.fields[position] = &declaration;
@@ -3274,8 +3284,8 @@ const BackdropDeclaration* CompiledThemeRules::resolve_backdrop(const PartFacts&
     RuleWalk walk(*this, facts, false, &winners);
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
-        if (!rule.backdrop || !matches(rule, facts)) continue;
-        winner = &*rule.backdrop;
+        if (rule.backdrop.absent() || !matches(rule, facts)) continue;
+        winner = rule.backdrop.value();
     }
     return winner;
 }
@@ -3290,12 +3300,12 @@ BandDeclaration CompiledThemeRules::resolve_band(const PartFacts& facts) const n
     RuleWalk walk(*this, facts, false, &winners);
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
-        if (!rule.band || !matches(rule, facts)) continue;
-        const BandDeclaration& band = *rule.band;
-        if (band.width) merged.width = band.width;
-        if (band.rest_colour) merged.rest_colour = band.rest_colour;
-        if (band.lit_colour) merged.lit_colour = band.lit_colour;
-        if (band.effect) merged.effect = band.effect;
+        if (rule.band.absent() || !matches(rule, facts)) continue;
+        const BandDeclaration& band = *rule.band.value();
+        if (band.width.present()) merged.width = band.width;
+        if (band.rest_colour.present()) merged.rest_colour = band.rest_colour;
+        if (band.lit_colour.present()) merged.lit_colour = band.lit_colour;
+        if (band.effect.present()) merged.effect = band.effect;
     }
     return merged;
 }
@@ -3377,18 +3387,18 @@ void CompiledThemeRules::resolve_transitions(const PartFacts& facts, const Scope
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         const bool presents =
-            !rule.transitions.empty() || rule.ambient || rule.blend || rule.font || rule.effect.has_value() ||
-            rule.effect_primary.has_value() || rule.effect_secondary.has_value();
+            !rule.transitions.empty() || rule.ambient.present() || rule.blend.present() || rule.font.present() ||
+            rule.effect.has_value() || rule.effect_primary.present() || rule.effect_secondary.present();
         if (!presents || !matches(rule, facts)) continue;
-        if (rule.ambient) result.ambient = &*rule.ambient;
-        if (rule.blend) result.blend = *rule.blend;
-        if (rule.font) result.font = *rule.font;
+        if (rule.ambient.present()) result.ambient = rule.ambient.value();
+        if (rule.blend.present()) result.blend = *rule.blend.value();
+        if (rule.font.present()) result.font = *rule.font.value();
         if (rule.effect) {
             result.effect = *rule.effect;
             result.effect_declared = true;
         }
-        if (rule.effect_primary) result.effect_primary = rule.effect_primary;
-        if (rule.effect_secondary) result.effect_secondary = rule.effect_secondary;
+        if (rule.effect_primary.present()) result.effect_primary = rule.effect_primary;
+        if (rule.effect_secondary.present()) result.effect_secondary = rule.effect_secondary;
         const bool same_primitive = primitive && rule.primitive == result.primitive;
         for (const CompiledTransition& transition : rule.transitions) {
             if (transition.property == PresentationProperty::opacity) {

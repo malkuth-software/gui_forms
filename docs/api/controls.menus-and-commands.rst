@@ -444,7 +444,7 @@ Related types
 
       The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<std::size_t> selected_topic
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_topic
 
       The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.
 
@@ -476,11 +476,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BackstageViewSelectedTopicCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(BackstageViewSelectedTopicCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic
 
 .. cpp:namespace:: gui_forms
 
@@ -1242,7 +1242,7 @@ Related types
 
       The font of the control's text (Font).
 
-   .. cpp:member:: std::optional<std::size_t> selected_tab
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_tab
 
       The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
 
@@ -1268,7 +1268,7 @@ Related types
 
       Default: ``{RibbonPaletteEntryKind::palette}``.
 
-   .. cpp:member:: std::optional<Color> color
+   .. cpp:member:: stxlib::Optional<Color> color
 
    .. cpp:member:: PaletteEntryParts parts
 
@@ -1348,7 +1348,7 @@ Related types
 
       The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.
 
-   .. cpp:member:: std::optional<Color> value
+   .. cpp:member:: stxlib::Optional<Color> value
 
       The colour shown, or none for Automatic: the command's, or the picker's own. A write goes to the command's set_value when there is one.
 
@@ -1401,11 +1401,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(RibbonColorPickerValueCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(RibbonColorPickerValueCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:function:: static std::optional<Color> read(const RibbonColorPickerValueCapability& capability)
+   .. cpp:function:: static stxlib::Optional<Color> read(const RibbonColorPickerValueCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<Color>, RibbonColorPickerValueCapability<Declaring>> value
+   .. cpp:member:: PropertyView<stxlib::Optional<Color>, RibbonColorPickerValueCapability<Declaring>> value
 
 .. cpp:namespace:: gui_forms
 
@@ -2053,11 +2053,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(RibbonSelectedTabCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(RibbonSelectedTabCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const RibbonSelectedTabCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const RibbonSelectedTabCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab
 
 .. cpp:namespace:: gui_forms
 

@@ -168,13 +168,13 @@ void install_grid_previews(Window& window, ImageId preview) {
     const std::shared_ptr<DataGridView> grid =
         std::dynamic_pointer_cast<DataGridView>(window.find("gallery.tree.grid"));
     if (!grid) return;
-    const std::optional<std::size_t> kind = (*grid).column_index("kind");
-    const std::optional<std::size_t> image = (*grid).column_index("preview");
-    if (!kind || !image) return;
+    const stxlib::Optional<std::size_t> kind = (*grid).column_index("kind");
+    const stxlib::Optional<std::size_t> image = (*grid).column_index("preview");
+    if (kind.absent() || image.absent()) return;
     for (std::size_t position = 0U; position < (*grid).row_count(); ++position) {
         const DataGridViewRowPosition row{position};
-        if ((*grid).cell_text(row, *kind) != "PNG image") continue;
-        static_cast<void>((*grid).set_cell_value(row, *image, BindingValue{preview}));
+        if ((*grid).cell_text(row, *kind.value()) != "PNG image") continue;
+        static_cast<void>((*grid).set_cell_value(row, *image.value(), BindingValue{preview}));
     }
 }
 
@@ -281,7 +281,7 @@ void install_page_fixtures(Window& window) {
                     {static_cast<double>(test_tile_extent),
                      static_cast<double>(test_tile_extent)},
                     1.0, 0.42)};
-            material.border = MaterialBorder{Color::rgba(76, 105, 129), 1.0};
+            material.border.set(MaterialBorder{Color::rgba(76, 105, 129), 1.0});
             (*panel).material = std::move(material);
         }
     }

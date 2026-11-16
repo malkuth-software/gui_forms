@@ -75,7 +75,7 @@ bool low(std::uint8_t channel) {
 std::optional<WindowCapture> capture(OffscreenAttachment& attached, bool high_contrast = false) {
     OffscreenCaptureOptions options{};
     options.scale = 1.0;
-    options.high_contrast = high_contrast;
+    options.high_contrast.set(high_contrast);
     std::optional<WindowCapture> picture = attached.capture_window(options);
     return picture;
 }

@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -112,9 +113,9 @@ struct ToolTipTextCapability {
 // The pointer's cursor; empty takes the parent's (Cursor).
 template <typename Declaring>
 struct CursorCapability {
-    PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor{};
+    PropertyCell<stxlib::Optional<CursorKind>, CursorCapability<Declaring>> cursor{};
 
-    static void assign(CursorCapability& capability, std::optional<CursorKind> incoming) {
+    static void assign(CursorCapability& capability, stxlib::Optional<CursorKind> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.cursor), incoming);
         if (!capability.cursor.replace(std::move(incoming))) return;
@@ -125,9 +126,9 @@ struct CursorCapability {
 // The own background colour; empty takes the parent's.
 template <typename Declaring>
 struct BackColorCapability {
-    PropertyCell<std::optional<Color>, BackColorCapability<Declaring>> back_color{};
+    PropertyCell<stxlib::Optional<Color>, BackColorCapability<Declaring>> back_color{};
 
-    static void assign(BackColorCapability& capability, std::optional<Color> incoming) {
+    static void assign(BackColorCapability& capability, stxlib::Optional<Color> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.back_color), incoming);
         if (!capability.back_color.replace(std::move(incoming))) return;
@@ -138,9 +139,9 @@ struct BackColorCapability {
 // The own text colour; empty takes the parent's.
 template <typename Declaring>
 struct ForeColorCapability {
-    PropertyCell<std::optional<Color>, ForeColorCapability<Declaring>> fore_color{};
+    PropertyCell<stxlib::Optional<Color>, ForeColorCapability<Declaring>> fore_color{};
 
-    static void assign(ForeColorCapability& capability, std::optional<Color> incoming) {
+    static void assign(ForeColorCapability& capability, stxlib::Optional<Color> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.fore_color), incoming);
         if (!capability.fore_color.replace(std::move(incoming))) return;

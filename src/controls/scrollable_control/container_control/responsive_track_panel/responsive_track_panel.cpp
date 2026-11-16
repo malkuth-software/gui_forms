@@ -148,8 +148,8 @@ const PropertyDescriptor& describe_child_track() {
 
 BindingValue read_child_track(const Component& container, const Control& child) {
     const ResponsiveTrackPanel& panel = static_cast<const ResponsiveTrackPanel&>(container);
-    const std::optional<std::uint32_t> track = panel.child_track[child].read();
-    const BindingValue value = PropertyValueTraits<std::optional<std::uint32_t>>::to_binding(track);
+    const stxlib::Optional<std::uint32_t> track = panel.child_track[child].read();
+    const BindingValue value = PropertyValueTraits<stxlib::Optional<std::uint32_t>>::to_binding(track);
     return value;
 }
 
@@ -158,14 +158,14 @@ BindingValue read_child_track(const Component& container, const Control& child) 
 void write_child_track(Component& container, const Control& child, const BindingValue& value) {
     ResponsiveTrackPanel& panel = static_cast<ResponsiveTrackPanel&>(container);
     if (std::holds_alternative<std::monostate>(value)) {
-        panel.child_track[child] = std::nullopt;
+        panel.child_track[child] = stxlib::Optional<std::uint32_t>::none();
         return;
     }
     const std::uint64_t index = std::get<std::uint64_t>(value);
     if (index > std::numeric_limits<std::uint32_t>::max()) {
         throw std::out_of_range("ResponsiveTrackPanel child track index");
     }
-    panel.child_track[child] = static_cast<std::uint32_t>(index);
+    panel.child_track[child] = stxlib::Optional<std::uint32_t>::of(static_cast<std::uint32_t>(index));
 }
 
 constexpr std::size_t maximum_responsive_tracks = 64U;
@@ -569,10 +569,11 @@ void ResponsiveTrackPanel::set_track_spec(
 }
 
 void ResponsiveTrackPanel::prepare_write(const Control& child,
-                                         const std::optional<std::uint32_t>& incoming) const {
+                                         const stxlib::Optional<std::uint32_t>& incoming) const {
     require_mutable();
     require_direct_child(child);
-    if (incoming && *incoming >= track_specs_.size()) {
+    const std::uint32_t* track = incoming.value();
+    if (track != nullptr && *track >= track_specs_.size()) {
         throw std::out_of_range("ResponsiveTrackPanel child track index");
     }
 }
@@ -582,24 +583,25 @@ void ResponsiveTrackPanel::written(const Control& child) {
     invalidate(invalidation::bounds);
 }
 
-bool ResponsiveTrackPanel::replace_child_track(const Control& child, std::optional<std::uint32_t> value) {
+bool ResponsiveTrackPanel::replace_child_track(const Control& child, stxlib::Optional<std::uint32_t> value) {
     const std::uint64_t id = child.runtime_id().value;
     const ChildTrackMap::iterator found = child_tracks_.find(id);
-    if (!value) {
+    const std::uint32_t* track = value.value();
+    if (track == nullptr) {
         if (found == child_tracks_.end()) return false;
         child_tracks_.erase(found);
         return true;
     }
-    if (found != child_tracks_.end() && (*found).second == *value) return false;
-    child_tracks_[id] = *value;
+    if (found != child_tracks_.end() && (*found).second == *track) return false;
+    child_tracks_[id] = *track;
     return true;
 }
 
-std::optional<std::uint32_t> ResponsiveTrackPanel::stored_child_track(const Control& child) const {
+stxlib::Optional<std::uint32_t> ResponsiveTrackPanel::stored_child_track(const Control& child) const {
     require_direct_child(child);
     const ChildTrackMap::const_iterator found = child_tracks_.find(child.runtime_id().value);
-    if (found == child_tracks_.end()) return std::nullopt;
-    const std::optional<std::uint32_t> value = static_cast<std::uint32_t>((*found).second);
+    if (found == child_tracks_.end()) return stxlib::Optional<std::uint32_t>::none();
+    const stxlib::Optional<std::uint32_t> value = stxlib::Optional<std::uint32_t>::of(static_cast<std::uint32_t>((*found).second));
     return value;
 }
 

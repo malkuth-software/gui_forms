@@ -27,7 +27,7 @@ namespace {
 RasterCanvas::RasterCanvas(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
     tab_stop = true;
-    cursor = CursorKind::crosshair;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::crosshair);
 }
 
 // The bitmap is a view onto bitmap_, so disposal can drop it without a

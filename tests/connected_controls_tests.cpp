@@ -53,7 +53,7 @@ SurfaceMaterial specimen_material() {
     result.shadows = {
         {{0.0, 2.0}, 3.0, 0.0, Color::rgba(10, 20, 30, 60), false},
     };
-    result.border = MaterialBorder{Color::rgba(61, 94, 121), 1.0};
+    result.border.set(MaterialBorder{Color::rgba(61, 94, 121), 1.0});
     result.corner_radius = 5.0;
     return result;
 }

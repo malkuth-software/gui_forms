@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -240,8 +241,18 @@ public:
     [[nodiscard]] bool auto_hide_opens_on_hover() const noexcept { return auto_hide_opens_on_hover_; }
     // The colour the sites paint their document area with in place of the
     // theme's well (DockPanel Suite's DockBackColor); none: the theme's.
-    void set_area_background(std::optional<Color> colour);
-    [[nodiscard]] std::optional<Color> area_background() const noexcept { return area_background_; }
+    void set_area_background(stxlib::Optional<Color> colour);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<Color>")]]
+    void set_area_background(std::optional<Color> colour) {
+        stxlib::Optional<Color> owned{};
+        if (colour.has_value()) owned.set(*colour);
+        set_area_background(owned);
+    }
+    // A plain colour is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<Color>::of(colour).
+    void set_area_background(Color colour) = delete;
+    [[nodiscard]] stxlib::Optional<Color> area_background() const noexcept { return area_background_; }
     // The registered title, or the identity for a panel without one.
     [[nodiscard]] std::string panel_title(const DockPanelId& panel) const;
 
@@ -573,7 +584,7 @@ private:
     std::vector<FloatingVisibility> floating_visibility_{};
     bool document_tabs_shown_{true};
     bool auto_hide_opens_on_hover_{true};
-    std::optional<Color> area_background_{};
+    stxlib::Optional<Color> area_background_{};
     Event<const DockActivationChange&> activation_changed_{};
     Event<DockDocumentClosing&> document_closing_{};
     // property_codemod begin DockWorkspace (tools/property_families/dock_workspace.json; generated, do not edit)

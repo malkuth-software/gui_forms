@@ -68,6 +68,7 @@
 #include <locale>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <sstream>
 #include <string>
@@ -96,17 +97,19 @@ inline void append_string(std::ostringstream& stream, std::string_view value) {
     stream << '"';
 }
 
-inline void append_number(std::ostringstream& stream, const std::optional<double>& value) {
-    if (value) {
-        stream << *value;
+inline void append_number(std::ostringstream& stream, const stxlib::Optional<double>& value) {
+    const double* const number = value.value();
+    if (number != nullptr) {
+        stream << *number;
     } else {
         stream << "null";
     }
 }
 
-inline void append_count(std::ostringstream& stream, const std::optional<std::size_t>& value) {
-    if (value) {
-        stream << *value;
+inline void append_count(std::ostringstream& stream, const stxlib::Optional<std::size_t>& value) {
+    const std::size_t* const count = value.value();
+    if (count != nullptr) {
+        stream << *count;
     } else {
         stream << "null";
     }
@@ -138,8 +141,8 @@ inline void append_node(std::ostringstream& stream, const SemanticNode& node) {
     stream << ",\"controlled_panel\":";
     append_string(stream, node.controlled_panel);
     stream << ",\"orientation\":";
-    if (node.orientation) {
-        append_string(stream, semantic_orientation_name(*node.orientation));
+    if (node.orientation.present()) {
+        append_string(stream, semantic_orientation_name(*node.orientation.value()));
     } else {
         stream << "null";
     }
@@ -159,9 +162,9 @@ inline void append_node(std::ostringstream& stream, const SemanticNode& node) {
     stream << ",\"small_step\":";
     append_number(stream, node.small_step);
     stream << ",\"text_selection\":";
-    if (node.text_selection) {
-        stream << "{\"anchor\":" << (*node.text_selection).anchor.value() << ",\"caret\":"
-               << (*node.text_selection).caret.value() << '}';
+    if (node.text_selection.present()) {
+        stream << "{\"anchor\":" << (*node.text_selection.value()).anchor.value() << ",\"caret\":"
+               << (*node.text_selection.value()).caret.value() << '}';
     } else {
         stream << "null";
     }
@@ -484,14 +487,14 @@ private:
             return refusal;
         }
         const std::string text = (*button).text.read();
-        const std::optional<std::size_t> index = (*parent).child_index_from_top((*control).runtime_id());
+        const stxlib::Optional<std::size_t> index = (*parent).child_index_from_top((*control).runtime_id());
         const Rect bounds = (*control).requested_bounds();
         Control::Ptr removed = (*parent).remove_child((*control).runtime_id());
         removed.reset();
         replacement_ = make_control<Button>(StableId(std::string(stable_id)), text);
         (*replacement_).set_requested_bounds(bounds);
         (*parent).add_child(replacement_);
-        if (index) static_cast<void>((*parent).set_child_index_from_top((*replacement_).runtime_id(), *index));
+        if (index.present()) static_cast<void>((*parent).set_child_index_from_top((*replacement_).runtime_id(), *index.value()));
         replacement_counter_.clicks = 0;
         replacement_clicked_ = (*replacement_).clicked().subscribe(
             Delegate<ButtonBase&>::bind<ClickCounter, &ClickCounter::clicked>(replacement_counter_));

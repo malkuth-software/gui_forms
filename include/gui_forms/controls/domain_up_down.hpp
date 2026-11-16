@@ -8,7 +8,6 @@
 
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -52,7 +51,7 @@ public:
     void down_button() override;
 
     // Raised after the selection changes, with the new selection.
-    [[nodiscard]] Event<std::optional<std::size_t>>& selected_index_changed() noexcept {
+    [[nodiscard]] Event<stxlib::Optional<std::size_t>>& selected_index_changed() noexcept {
         return selected_index_changed_;
     }
 
@@ -116,17 +115,17 @@ private:
     void filter_edit(TextEdit& edit);
     // The next item after the selection (wrapping, the selected item last)
     // whose text starts with `prefix`, ignoring ASCII case.
-    [[nodiscard]] std::optional<std::size_t> next_item_starting_with(std::string_view prefix) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> next_item_starting_with(std::string_view prefix) const;
     // Moves the selection by `offset` items (-1 up, +1 down).
     void step(std::ptrdiff_t offset);
-    void select(std::optional<std::size_t> index, bool show_text);
+    void select(stxlib::Optional<std::size_t> index, bool show_text);
     void match_text();
     void sort_items();
-    [[nodiscard]] std::optional<std::size_t> matching_index(std::string_view candidate) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> matching_index(std::string_view candidate) const;
 
-    std::optional<std::size_t> selected_index_{};
+    stxlib::Optional<std::size_t> selected_index_{};
     bool synchronizing_{};
-    Event<std::optional<std::size_t>> selected_index_changed_;
+    Event<stxlib::Optional<std::size_t>> selected_index_changed_;
     // property_codemod begin DomainUpDown (tools/property_families/domain_up_down.json; generated, do not edit)
 public:
     // DomainUpDown's property table: Panel's entries, then its own.
@@ -149,8 +148,8 @@ private:
     friend struct DomainUpDownSortedCapability<DomainUpDown>;
     friend struct DomainUpDownButtonWidthCapability<DomainUpDown>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
-    void write_view(const decltype(selected_index)& cell, std::optional<std::size_t> incoming);
-    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_index)& cell) const;
+    void write_view(const decltype(selected_index)& cell, stxlib::Optional<std::size_t> incoming);
+    [[nodiscard]] stxlib::Optional<std::size_t> read_view(const decltype(selected_index)& cell) const;
     void write_view(const decltype(text)& cell, std::string incoming);
     [[nodiscard]] std::string read_view(const decltype(text)& cell) const;
     void prepare_write(const decltype(wrap)& cell, bool& incoming);

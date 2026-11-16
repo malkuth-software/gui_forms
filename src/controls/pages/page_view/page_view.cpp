@@ -247,7 +247,7 @@ void PageView::reconcile_panels() {
     std::size_t index = 0U;
     while (index < slots_.size()) {
         PageSlot& slot = slots_[index];
-        if (!pages_.find(slot.page)) {
+        if (pages_.find(slot.page).absent()) {
             detach_panel(slot);
             slots_.erase(slots_.begin() + static_cast<std::ptrdiff_t>(index));
             continue;
@@ -398,7 +398,7 @@ void PageView::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::well;
     part.bounds = areas.content;
-    part.key = PartKey{"content", {}, {}};
+    part.key.set(PartKey{"content", {}, {}});
     paint_part(painter, *this, part);
 }
 

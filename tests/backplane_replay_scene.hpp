@@ -106,8 +106,8 @@ public:
         part.role = PartRole::region;
         part.family = ControlVisualRole::card;
         part.bounds = glass_rect;
-        part.corner_radius = 0.0;
-        part.key = PartKey{"glass", {}, {}};
+        part.corner_radius.set(0.0);
+        part.key.set(PartKey{"glass", {}, {}});
         paint_part(painter, *this, part);
     }
 };
@@ -120,7 +120,7 @@ inline std::shared_ptr<const Theme> glass_theme() {
     definition.id = "backplane-replay-scene";
     ThemeRule rule{};
     rule.label = "glass";
-    rule.selector.role = PartRole::region;
+    rule.selector.role.set(PartRole::region);
     rule.declarations.push_back(RuleDeclaration::primitive("glass"));
     rule.declarations.push_back(RuleDeclaration::number_value("blur", 1.0));
     definition.rules.rules.push_back(rule);

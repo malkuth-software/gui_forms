@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -17,8 +18,8 @@ void validate(const TextDecoration& decoration, const std::optional<Utf8Range> w
     if (decoration.range.end < decoration.range.start) {
         throw std::invalid_argument("A text decoration's range must not end before it starts");
     }
-    if (decoration.style.weight.has_value() &&
-        (*decoration.style.weight < minimum_weight || *decoration.style.weight > maximum_weight)) {
+    if (decoration.style.weight.present() &&
+        (*decoration.style.weight.value() < minimum_weight || *decoration.style.weight.value() > maximum_weight)) {
         throw std::invalid_argument("A text decoration's weight must lie in 1 to 1000");
     }
     if (within.has_value() &&
@@ -41,13 +42,13 @@ struct DecorationIsEmpty final {
 
 // Lays `style`'s set fields over `composed`.
 void overlay(TextDecorationStyle& composed, const TextDecorationStyle& style) noexcept {
-    if (style.ink.has_value()) composed.ink = style.ink;
-    if (style.foreground.has_value()) composed.foreground = style.foreground;
-    if (style.weight.has_value()) composed.weight = style.weight;
-    if (style.italic.has_value()) composed.italic = style.italic;
-    if (style.underline.has_value()) composed.underline = style.underline;
-    if (style.underline_color.has_value()) composed.underline_color = style.underline_color;
-    if (style.background.has_value()) composed.background = style.background;
+    if (style.ink.present()) composed.ink = style.ink;
+    if (style.foreground.present()) composed.foreground = style.foreground;
+    if (style.weight.present()) composed.weight = style.weight;
+    if (style.italic.present()) composed.italic = style.italic;
+    if (style.underline.present()) composed.underline = style.underline;
+    if (style.underline_color.present()) composed.underline_color = style.underline_color;
+    if (style.background.present()) composed.background = style.background;
 }
 
 // The extent of `items` (the smallest range holding them all), or an empty

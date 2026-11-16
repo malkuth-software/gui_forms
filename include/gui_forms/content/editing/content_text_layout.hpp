@@ -11,10 +11,11 @@
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <array>
 #include <cstdint>
-#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -113,7 +114,7 @@ struct GUI_FORMS_API ContentTextLayout final {
     // editor's caret, selection, hit testing, input-method caret and
     // published text layout follow the mapped text. Unset, the boxes are
     // local coordinates, as before.
-    std::optional<ContentLayoutTransform> transform{};
+    stxlib::Optional<ContentLayoutTransform> transform{};
 };
 
 // What validation found. Every result but `accepted` leaves the editor's

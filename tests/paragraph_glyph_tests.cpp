@@ -120,7 +120,7 @@ constexpr Size canvas_size{260.0, 220.0};
 ParagraphStyle style_for(render::SkiaRaster& raster, const double width, const TextDirection direction) {
     ParagraphStyle style{};
     style.font = content_font();
-    style.line_box = paragraph_line_box(&raster, style.font, std::nullopt);
+    style.line_box = paragraph_line_box(&raster, style.font, stxlib::Optional<double>::none());
     style.width = width;
     style.direction = direction;
     style.glyph_output = ParagraphGlyphOutput::runs;

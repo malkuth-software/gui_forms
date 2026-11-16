@@ -299,7 +299,7 @@ private:
     // The input wait() took from the channel; empty between turns.
     std::vector<detail::SubSurfaceInputRecord> inputs_{};
     std::vector<SurfaceRequestOutcome> outcomes_{};
-    std::optional<Rect> published_caret_{};
+    stxlib::Optional<Rect> published_caret_{};
     // The tree's semantic generation at the last published snapshot; zero
     // before the first (generations start at one).
     std::uint64_t published_semantic_generation_{};
@@ -628,7 +628,7 @@ void SubSurfaceLoop::produce(SubSurface& root) {
 }
 
 void SubSurfaceLoop::publish_caret(SubSurface& root) {
-    const std::optional<Rect> caret = root.text_input_caret();
+    const stxlib::Optional<Rect> caret = root.text_input_caret();
     if (caret == published_caret_) return;
     published_caret_ = caret;
     const std::lock_guard<std::mutex> lock((*channel_).mutex);
@@ -942,7 +942,7 @@ SubSurfaceStatistics SubSurfaceThread::statistics() const {
     return (*channel_).statistics;
 }
 
-std::optional<Rect> SubSurfaceThread::text_input_caret() const {
+stxlib::Optional<Rect> SubSurfaceThread::text_input_caret() const {
     const std::lock_guard<std::mutex> lock((*channel_).mutex);
     return (*channel_).text_input_caret;
 }

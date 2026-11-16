@@ -6,6 +6,7 @@
 #include <charconv>
 #include <chrono>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms::correspondence {
@@ -50,8 +51,8 @@ constexpr double search_width = 220.0;
                                                 const FontSpec font, const Color color,
                                                 const double height) {
     std::shared_ptr<Label> label = make_control<Label>(StableId(std::string(id)));
-    (*label).font = font;
-    (*label).fore_color = color;
+    (*label).font = stxlib::Optional<FontSpec>::of(font);
+    (*label).fore_color = stxlib::Optional<Color>::of(color);
     (*label).dock = DockStyle::top;
     (*label).set_requested_bounds({0.0, 0.0, 0.0, height});
     (*label).use_mnemonic = false;
@@ -142,8 +143,8 @@ void CorrespondenceShell::initialize_control_tree() {
     build_menu();
     build_command_row();
     status_ = make_control<Label>(StableId(std::string(ids::status)));
-    (*status_).font = status_font;
-    (*status_).fore_color = muted;
+    (*status_).font = stxlib::Optional<FontSpec>::of(status_font);
+    (*status_).fore_color = stxlib::Optional<Color>::of(muted);
     (*status_).dock = DockStyle::bottom;
     (*status_).set_requested_bounds({0.0, 0.0, 0.0, status_height});
     (*status_).use_mnemonic = false;

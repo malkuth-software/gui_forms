@@ -74,8 +74,8 @@ bool valid_material_border(const MaterialBorder& border) noexcept {
 double filter_reach(const SurfaceMaterial& material) noexcept {
     if (!std::isfinite(material.filter_blur) || material.filter_blur < 0.0) return -1.0;
     double reach = material.filter_blur * 1.5;
-    if (material.drop_shadow) {
-        const MaterialDropShadow& shadow = *material.drop_shadow;
+    if (material.drop_shadow.present()) {
+        const MaterialDropShadow& shadow = (*material.drop_shadow.value());
         if (!finite(shadow.offset) || !std::isfinite(shadow.blur_radius) || shadow.blur_radius < 0.0) return -1.0;
         const double moved = std::max(std::abs(shadow.offset.x), std::abs(shadow.offset.y));
         reach = reach + moved + shadow.blur_radius * 1.5;
@@ -544,7 +544,7 @@ SurfaceMaterial surface(Color top, Color bottom, Color border,
             {0.0, 0.0}, {0.0, 1.0},
             {{0.0, top}, {1.0, bottom}})};
     }
-    result.border = MaterialBorder{border, 1.0};
+    result.border.set(MaterialBorder{border, 1.0});
     result.corner_radius = radius;
     return result;
 }
@@ -630,8 +630,7 @@ void fill_professional_role(ControlRoleRecipes& result, Color top, Color bottom,
             {0.0, 0.0}, {0.0, 1.0},
             {{0.0, selected_top[index]},
              {1.0, selected_bottom[index]}})};
-        selected.material.border =
-            MaterialBorder{Color::rgba(57, 117, 178), 1.0};
+        selected.material.border.set(MaterialBorder{Color::rgba(57, 117, 178), 1.0});
     }
 
     // The high-contrast records are derived from the ordinary ones when the
@@ -665,7 +664,7 @@ void fill_accent_states(ControlRoleRecipes& result) {
     for (const ControlSurfaceState state : pressed_when_selected) {
         ControlVisualRecipe& selected = result.selected[static_cast<std::size_t>(state)];
         selected = values[static_cast<std::size_t>(ControlSurfaceState::pressed)];
-        selected.material.border = MaterialBorder{Color::rgba(57, 117, 178), 1.0};
+        selected.material.border.set(MaterialBorder{Color::rgba(57, 117, 178), 1.0});
     }
     result.selected[static_cast<std::size_t>(ControlSurfaceState::pending)] =
         values[static_cast<std::size_t>(ControlSurfaceState::pending)];
@@ -813,10 +812,10 @@ HighContrastColours high_contrast_colours(ControlSurfaceState state) noexcept {
 ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, Color plate, Color edge,
                                           Color text, Color focus) {
     ControlVisualRecipe result = ordinary;
-    const double edge_width = ordinary.material.border ? (*ordinary.material.border).width : 1.0;
+    const double edge_width = ordinary.material.border.present() ? (*ordinary.material.border.value()).width : 1.0;
     SurfaceMaterial material{};
     material.fills = {MaterialFillLayer::solid(plate)};
-    material.border = MaterialBorder{edge, edge_width};
+    material.border.set(MaterialBorder{edge, edge_width});
     material.corner_radius = ordinary.material.corner_radius;
     material.corner_radii = ordinary.material.corner_radii;
     result.material = std::move(material);
@@ -838,10 +837,11 @@ ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, C
 
 // A text shadow (E9.6): its offset within ±maximum_text_shadow_offset and
 // its blur within [0, maximum_text_shadow_blur].
-bool valid_text_shadow(const std::optional<ControlTextShadow>& shadow) noexcept {
-    if (!shadow) return true;
-    const Point offset = (*shadow).offset;
-    const double blur = (*shadow).blur_radius;
+bool valid_text_shadow(const stxlib::Optional<ControlTextShadow>& shadow) noexcept {
+    const ControlTextShadow* const written = shadow.value();
+    if (written == nullptr) return true;
+    const Point offset = (*written).offset;
+    const double blur = (*written).blur_radius;
     const bool placed = finite(offset) && std::abs(offset.x) <= maximum_text_shadow_offset &&
                         std::abs(offset.y) <= maximum_text_shadow_offset;
     const bool blurred = std::isfinite(blur) && blur >= 0.0 && blur <= maximum_text_shadow_blur;
@@ -1267,13 +1267,14 @@ namespace {
 
 // Whether every present single edge of `edges` has the same width.
 bool equal_edge_widths(const MaterialBorderEdges& edges) noexcept {
-    const std::array<const std::optional<MaterialBorder>*, 4> sides{&edges.top, &edges.right, &edges.bottom,
-                                                                     &edges.left};
+    const std::array<const stxlib::Optional<MaterialBorder>*, 4> sides{&edges.top, &edges.right, &edges.bottom,
+                                                                        &edges.left};
     std::optional<double> width{};
-    for (const std::optional<MaterialBorder>* side : sides) {
-        if (!*side) continue;
-        if (width && *width != (**side).width) return false;
-        width = (**side).width;
+    for (const stxlib::Optional<MaterialBorder>* side : sides) {
+        const MaterialBorder* const border = (*side).value();
+        if (border == nullptr) continue;
+        if (width && *width != (*border).width) return false;
+        width = (*border).width;
     }
     return true;
 }
@@ -1428,10 +1429,10 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         material.corner_radius < 0.0 || material.corner_radius > 4096.0) {
         return false;
     }
-    if (material.border && !valid_material_border(*material.border)) {
+    if (material.border.present() && !valid_material_border(*material.border.value())) {
         return false;
     }
-    if (material.border && !material.border_edges.empty()) return false;
+    if (material.border.present() && !material.border_edges.empty()) return false;
     // Rounded single edges draw as one ring split at the corners, so their
     // widths are equal.
     if (!material.border_edges.empty() && material.corner_radius != 0.0 &&
@@ -1439,19 +1440,20 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         return false;
     }
     // Per-corner radii take no single edges.
-    if (material.corner_radii &&
-        (!valid_corner_radii(*material.corner_radii) ||
+    if (material.corner_radii.present() &&
+        (!valid_corner_radii(*material.corner_radii.value()) ||
          !material.border_edges.empty())) {
         return false;
     }
-    const std::optional<MaterialBorder>* edge_borders[]{
+    const stxlib::Optional<MaterialBorder>* edge_borders[]{
         &material.border_edges.top,
         &material.border_edges.right,
         &material.border_edges.bottom,
         &material.border_edges.left,
     };
-    for (const std::optional<MaterialBorder>* edge : edge_borders) {
-        if (*edge && !valid_material_border(**edge)) return false;
+    for (const stxlib::Optional<MaterialBorder>* edge : edge_borders) {
+        const MaterialBorder* const border = (*edge).value();
+        if (border != nullptr && !valid_material_border(*border)) return false;
     }
     for (const MaterialShadow& shadow : material.shadows) {
         if (!valid_material_shadow(shadow)) return false;
@@ -1494,7 +1496,7 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         if (mask.kind == MaterialFillKind::image) image_masks = image_masks + 1U;
     }
     if (image_masks > SurfaceMaterial::maximum_image_mask_layers) return false;
-    if (material.reflection && !valid_material_reflection(*material.reflection)) return false;
+    if (material.reflection.present() && !valid_material_reflection(*material.reflection.value())) return false;
     if (static_cast<std::uint8_t>(material.dither) > static_cast<std::uint8_t>(MaterialDither::blue_noise)) {
         return false;
     }
@@ -1561,35 +1563,35 @@ void paint_material_layers(Painter& painter, Rect bounds, const SurfaceMaterial&
                 shadow.blur_radius, shadow.spread, shadow.color);
         }
     }
-    if (material.border) {
-        const double inset = (*material.border).width * 0.5;
+    if (material.border.present()) {
+        const double inset = (*material.border.value()).width * 0.5;
         painter.stroke_rounded_rect(
             {bounds.x + inset, bounds.y + inset,
              std::max(0.0, bounds.width - inset * 2.0),
              std::max(0.0, bounds.height - inset * 2.0)},
             std::max(0.0, material.corner_radius - inset),
-            (*material.border).color, (*material.border).width);
+            (*material.border.value()).color, (*material.border.value()).width);
     }
-    if (material.border_edges.top) {
-        const MaterialBorder& border = *material.border_edges.top;
+    if (material.border_edges.top.present()) {
+        const MaterialBorder& border = (*material.border_edges.top.value());
         const double y = bounds.y + border.width * 0.5;
         painter.draw_line({bounds.x, y}, {bounds.x + bounds.width, y},
                           border.color, border.width);
     }
-    if (material.border_edges.right) {
-        const MaterialBorder& border = *material.border_edges.right;
+    if (material.border_edges.right.present()) {
+        const MaterialBorder& border = (*material.border_edges.right.value());
         const double x = bounds.x + bounds.width - border.width * 0.5;
         painter.draw_line({x, bounds.y}, {x, bounds.y + bounds.height},
                           border.color, border.width);
     }
-    if (material.border_edges.bottom) {
-        const MaterialBorder& border = *material.border_edges.bottom;
+    if (material.border_edges.bottom.present()) {
+        const MaterialBorder& border = (*material.border_edges.bottom.value());
         const double y = bounds.y + bounds.height - border.width * 0.5;
         painter.draw_line({bounds.x, y}, {bounds.x + bounds.width, y},
                           border.color, border.width);
     }
-    if (material.border_edges.left) {
-        const MaterialBorder& border = *material.border_edges.left;
+    if (material.border_edges.left.present()) {
+        const MaterialBorder& border = (*material.border_edges.left.value());
         const double x = bounds.x + border.width * 0.5;
         painter.draw_line({x, bounds.y}, {x, bounds.y + bounds.height},
                           border.color, border.width);
@@ -1620,8 +1622,8 @@ void paint_material_layers(Painter& painter, Rect bounds, const SurfaceMaterial&
 Insets surface_material_visual_outsets(const SurfaceMaterial& material) noexcept {
     Insets result = box_shadow_visual_outsets(material.shadows);
     // A reflection (T5 C7) reaches past its one edge.
-    if (material.reflection) {
-        const MaterialReflection& reflection = *material.reflection;
+    if (material.reflection.present()) {
+        const MaterialReflection& reflection = (*material.reflection.value());
         const double reach = reflection.gap + reflection.reach;
         if (reflection.edge == MaterialEdge::top) result.top = std::max(result.top, reach);
         if (reflection.edge == MaterialEdge::right) result.right = std::max(result.right, reach);
@@ -1673,10 +1675,10 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
     if (!valid_surface_material(material) || material.finish != 0.0) return false;
     // A transform or clip path can leave parts of the box undrawn.
     if (surface_material_shaped(material)) return false;
-    if (material.corner_radius != 0.0 || material.corner_radii) return false;
+    if (material.corner_radius != 0.0 || material.corner_radii.present()) return false;
     if (!(surface_material_visual_outsets(material) == Insets{})) return false;
-    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || !material.masks.empty() ||
-        material.reflection) {
+    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow.present() ||
+        !material.masks.empty() || material.reflection.present()) {
         return false;
     }
     for (const MaterialFillLayer& fill : material.fills) {
@@ -1695,22 +1697,22 @@ std::optional<double> surface_material_resize_band(const SurfaceMaterial& materi
     // A dithered material's pixels follow the dither's pattern all along
     // the face, not only near its edges.
     if (material.dither != MaterialDither::none) return std::nullopt;
-    if (material.corner_radii) return std::nullopt;
+    if (material.corner_radii.present()) return std::nullopt;
     if (!material.shadows.empty() || !material.glows.empty() || !material.keylines.empty()) return std::nullopt;
     if (!material.border_edges.empty()) return std::nullopt;
     if (!(surface_material_visual_outsets(material) == Insets{})) return std::nullopt;
-    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || !material.masks.empty() ||
-        material.reflection) {
+    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow.present() ||
+        !material.masks.empty() || material.reflection.present()) {
         return std::nullopt;
     }
     for (const MaterialFillLayer& fill : material.fills) {
         if (fill.kind != MaterialFillKind::solid) return std::nullopt;
     }
     double band = std::max(0.0, material.corner_radius);
-    if (material.border) {
+    if (material.border.present()) {
         // A dashed or dotted border's pattern runs along each edge's length.
-        if ((*material.border).style != MaterialBorderStyle::solid) return std::nullopt;
-        band = std::max(band, (*material.border).width);
+        if ((*material.border.value()).style != MaterialBorderStyle::solid) return std::nullopt;
+        band = std::max(band, (*material.border.value()).width);
     }
     return band;
 }
@@ -1978,14 +1980,14 @@ std::shared_ptr<const StockIconVectors> Theme::stock_icon_replacement(const Stoc
     return nullptr;
 }
 
-std::optional<ThemeRoleColours> Theme::application_role(std::string_view name,
-                                                        const MediaFacts& facts) const noexcept {
+stxlib::Optional<ThemeRoleColours> Theme::application_role(std::string_view name,
+                                                           const MediaFacts& facts) const noexcept {
     const std::vector<ApplicationColourRole>& roles = definition_.rules.application_roles;
     const ApplicationColourRole* found = nullptr;
     for (const ApplicationColourRole& role : roles) {
         if (role.name == name) found = &role;
     }
-    if (found == nullptr) return std::nullopt;
+    if (found == nullptr) return stxlib::Optional<ThemeRoleColours>::none();
     ThemeRoleColours colours{};
     colours.fallback = (*found).fallback;
     colours.paired = (*found).paired;
@@ -2006,8 +2008,8 @@ std::optional<ThemeRoleColours> Theme::application_role(std::string_view name,
         colours.background = pair.background;
         chosen = true;
     }
-    if (!chosen) return std::nullopt;
-    return colours;
+    if (!chosen) return stxlib::Optional<ThemeRoleColours>::none();
+    return stxlib::Optional<ThemeRoleColours>::of(colours);
 }
 
 const detail::ThemeSourceRecord& detail::ThemeAccess::source(const Theme& theme) noexcept {
@@ -2230,50 +2232,50 @@ Color inherited_text(const Control& control, Color fallback) {
 // over `metrics`, in place.
 void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, ControlPartMetrics& metrics) noexcept {
     const RecipeDeclaration* const block = set_recipe_field(fields, RecipeField::block_size);
-    if (block != nullptr) metrics.block_size = (*block).number;
+    if (block != nullptr) metrics.block_size.set((*block).number);
     const RecipeDeclaration* const minimum = set_recipe_field(fields, RecipeField::minimum_inline_size);
-    if (minimum != nullptr) metrics.minimum_inline_size = (*minimum).number;
+    if (minimum != nullptr) metrics.minimum_inline_size.set((*minimum).number);
     const RecipeDeclaration* const padding = set_recipe_field(fields, RecipeField::padding_inline);
-    if (padding != nullptr) metrics.padding_inline = (*padding).number;
+    if (padding != nullptr) metrics.padding_inline.set((*padding).number);
     const RecipeDeclaration* const gap = set_recipe_field(fields, RecipeField::gap);
-    if (gap != nullptr) metrics.gap = (*gap).number;
+    if (gap != nullptr) metrics.gap.set((*gap).number);
     const RecipeDeclaration* const start = set_recipe_field(fields, RecipeField::margin_block_start);
-    if (start != nullptr) metrics.margin_block_start = (*start).number;
+    if (start != nullptr) metrics.margin_block_start.set((*start).number);
     const RecipeDeclaration* const end = set_recipe_field(fields, RecipeField::margin_block_end);
-    if (end != nullptr) metrics.margin_block_end = (*end).number;
+    if (end != nullptr) metrics.margin_block_end.set((*end).number);
     const RecipeDeclaration* const taper = set_recipe_field(fields, RecipeField::taper);
     if (taper != nullptr) metrics.taper = (*taper).number;
     const RecipeDeclaration* const taper_colour = set_recipe_field(fields, RecipeField::taper_colour);
-    if (taper_colour != nullptr) metrics.taper_colour = (*taper_colour).colour;
+    if (taper_colour != nullptr) metrics.taper_colour.set((*taper_colour).colour);
     const RecipeDeclaration* const flare = set_recipe_field(fields, RecipeField::flare);
     if (flare != nullptr) metrics.flare = (*flare).number;
     const RecipeDeclaration* const flare_colour = set_recipe_field(fields, RecipeField::flare_colour);
-    if (flare_colour != nullptr) metrics.flare_colour = (*flare_colour).colour;
+    if (flare_colour != nullptr) metrics.flare_colour.set((*flare_colour).colour);
     const RecipeDeclaration* const shadow_width = set_recipe_field(fields, RecipeField::edge_shadow_width);
     if (shadow_width != nullptr) metrics.edge_shadow_width = (*shadow_width).number;
     const RecipeDeclaration* const shadow_colour = set_recipe_field(fields, RecipeField::edge_shadow_colour);
     if (shadow_colour != nullptr) metrics.edge_shadow_colour = (*shadow_colour).colour;
     ControlStripePattern& stripes = metrics.stripes;
     const RecipeDeclaration* const pitch = set_recipe_field(fields, RecipeField::stripe_pitch);
-    if (pitch != nullptr) stripes.pitch = (*pitch).number;
+    if (pitch != nullptr) stripes.pitch.set((*pitch).number);
     const RecipeDeclaration* const ratio = set_recipe_field(fields, RecipeField::stripe_ratio);
-    if (ratio != nullptr) stripes.ratio = (*ratio).number;
+    if (ratio != nullptr) stripes.ratio.set((*ratio).number);
     const RecipeDeclaration* const angle = set_recipe_field(fields, RecipeField::stripe_angle);
-    if (angle != nullptr) stripes.angle_degrees = (*angle).number;
+    if (angle != nullptr) stripes.angle_degrees.set((*angle).number);
     const RecipeDeclaration* const lean = set_recipe_field(fields, RecipeField::stripe_lean);
-    if (lean != nullptr) stripes.lean = (*lean).stripe_sense;
+    if (lean != nullptr) stripes.lean.set((*lean).stripe_sense);
     const RecipeDeclaration* const direction = set_recipe_field(fields, RecipeField::stripe_direction);
-    if (direction != nullptr) stripes.direction = (*direction).stripe_sense;
+    if (direction != nullptr) stripes.direction.set((*direction).stripe_sense);
     const RecipeDeclaration* const speed = set_recipe_field(fields, RecipeField::stripe_speed);
-    if (speed != nullptr) stripes.speed = (*speed).number;
+    if (speed != nullptr) stripes.speed.set((*speed).number);
     const RecipeDeclaration* const stripe_colour = set_recipe_field(fields, RecipeField::stripe_colour);
-    if (stripe_colour != nullptr) stripes.colour = (*stripe_colour).colour;
+    if (stripe_colour != nullptr) stripes.colour.set((*stripe_colour).colour);
     const RecipeDeclaration* const ground = set_recipe_field(fields, RecipeField::stripe_ground_colour);
-    if (ground != nullptr) stripes.ground = (*ground).colour;
+    if (ground != nullptr) stripes.ground.set((*ground).colour);
     const RecipeDeclaration* const gloss = set_recipe_field(fields, RecipeField::stripe_gloss);
-    if (gloss != nullptr) stripes.gloss = (*gloss).stripe_gloss;
+    if (gloss != nullptr) stripes.gloss.set((*gloss).stripe_gloss);
     const RecipeDeclaration* const reduced = set_recipe_field(fields, RecipeField::stripe_reduced_motion);
-    if (reduced != nullptr) stripes.reduced_motion = (*reduced).stripe_reduced_motion;
+    if (reduced != nullptr) stripes.reduced_motion.set((*reduced).stripe_reduced_motion);
 }
 
 // The node canvas fields `fields` sets (RecipeField::fill_colour on; cp31),
@@ -2287,34 +2289,34 @@ void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, Cont
 // the part's own rule. A texture of no layers is `none`.
 void apply_canvas_paint(const CompiledThemeRules::RecipeResolution& fields, ControlCanvasPaint& canvas) noexcept {
     const RecipeDeclaration* const fill = set_recipe_field(fields, RecipeField::fill_colour);
-    if (fill != nullptr) canvas.fill = (*fill).colour;
+    if (fill != nullptr) canvas.fill.set((*fill).colour);
     const RecipeDeclaration* const stroke = set_recipe_field(fields, RecipeField::stroke_colour);
-    if (stroke != nullptr) canvas.stroke = (*stroke).colour;
+    if (stroke != nullptr) canvas.stroke.set((*stroke).colour);
     const RecipeDeclaration* const width =
         fields.named_part_fields[static_cast<std::size_t>(RecipeField::stroke_width)];
-    if (width != nullptr && !(*width).initial) canvas.stroke_width = (*width).number;
+    if (width != nullptr && !(*width).initial) canvas.stroke_width.set((*width).number);
     const RecipeDeclaration* const dash = set_recipe_field(fields, RecipeField::stroke_dash);
-    if (dash != nullptr) canvas.dash = (*dash).number;
+    if (dash != nullptr) canvas.dash.set((*dash).number);
     const RecipeDeclaration* const gap = set_recipe_field(fields, RecipeField::stroke_gap);
-    if (gap != nullptr) canvas.gap = (*gap).number;
+    if (gap != nullptr) canvas.gap.set((*gap).number);
     const RecipeDeclaration* const halo_width = set_recipe_field(fields, RecipeField::halo_width);
-    if (halo_width != nullptr) canvas.halo_width = (*halo_width).number;
+    if (halo_width != nullptr) canvas.halo_width.set((*halo_width).number);
     const RecipeDeclaration* const halo = set_recipe_field(fields, RecipeField::halo_colour);
-    if (halo != nullptr) canvas.halo = (*halo).colour;
+    if (halo != nullptr) canvas.halo.set((*halo).colour);
     const RecipeDeclaration* const corner = set_recipe_field(fields, RecipeField::corner_radius);
-    if (corner != nullptr) canvas.corner_radius = (*corner).number;
+    if (corner != nullptr) canvas.corner_radius.set((*corner).number);
     const RecipeDeclaration* const spacing = set_recipe_field(fields, RecipeField::grid_spacing);
-    if (spacing != nullptr) canvas.grid_spacing = (*spacing).number;
+    if (spacing != nullptr) canvas.grid_spacing.set((*spacing).number);
     const RecipeDeclaration* const band = set_recipe_field(fields, RecipeField::grid_band);
-    if (band != nullptr) canvas.grid_band = (*band).number;
+    if (band != nullptr) canvas.grid_band.set((*band).number);
     const RecipeDeclaration* const texture = set_recipe_field(fields, RecipeField::texture_layers);
-    if (texture != nullptr) canvas.texture = (*texture).texture;
+    if (texture != nullptr) canvas.texture.set((*texture).texture);
     const RecipeDeclaration* const flow = set_recipe_field(fields, RecipeField::flow_style);
-    if (flow != nullptr) canvas.flow = (*flow).flow_style;
+    if (flow != nullptr) canvas.flow.set((*flow).flow_style);
     const RecipeDeclaration* const speed = set_recipe_field(fields, RecipeField::flow_speed);
-    if (speed != nullptr) canvas.flow_speed = (*speed).number;
+    if (speed != nullptr) canvas.flow_speed.set((*speed).number);
     const RecipeDeclaration* const flow_spacing = set_recipe_field(fields, RecipeField::flow_spacing);
-    if (flow_spacing != nullptr) canvas.flow_spacing = (*flow_spacing).number;
+    if (flow_spacing != nullptr) canvas.flow_spacing.set((*flow_spacing).number);
 }
 
 // The recipe fields `fields` sets, over `recipe` (the floor's copy), in
@@ -2328,7 +2330,7 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     const RecipeDeclaration* const glyph = set_recipe_field(fields, RecipeField::glyph);
     if (glyph != nullptr) recipe.glyph = (*glyph).colour;
     const RecipeDeclaration* const fill_text = set_recipe_field(fields, RecipeField::fill_text);
-    if (fill_text != nullptr) recipe.fill_text = (*fill_text).colour;
+    if (fill_text != nullptr) recipe.fill_text.set((*fill_text).colour);
     const RecipeDeclaration* const default_width = set_recipe_field(fields, RecipeField::default_outline_width);
     if (default_width != nullptr) recipe.default_width = (*default_width).number;
     const RecipeDeclaration* const default_colour = set_recipe_field(fields, RecipeField::default_outline_colour);
@@ -2382,7 +2384,7 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     written.offset = (*shadow).shadow_offset;
     written.blur_radius = (*shadow).shadow_blur;
     written.color = (*shadow).colour;
-    recipe.text_shadow = written;
+    recipe.text_shadow.set(written);
 }
 
 } // namespace

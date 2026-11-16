@@ -43,6 +43,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -1172,7 +1173,7 @@ void panel_tab() {
     Ribbon& ribbon = *fixture.ribbon;
     require((*palette).parent() == fixture.ribbon && !(*palette).effectively_visible(),
             "a panel tab's control is the ribbon's child, hidden while another tab is selected");
-    ribbon.selected_tab = std::size_t{1U};
+    ribbon.selected_tab = stxlib::Optional<std::size_t>::of(1U);
     (*fixture.window).perform_layout();
     const Ribbon::Parts parts = ribbon.parts();
     require((*palette).effectively_visible() && parts.command_plane.present &&
@@ -1184,7 +1185,7 @@ void panel_tab() {
             "the panel follows the command plane's width");
     ribbon.set_tabs(tabs);
     (*fixture.window).perform_layout();
-    require((*palette).parent() == fixture.ribbon && ribbon.selected_tab.read() == std::size_t{1U} &&
+    require((*palette).parent() == fixture.ribbon && ribbon.selected_tab.read() == stxlib::Optional<std::size_t>::of(1U) &&
                 (*palette).effectively_visible(),
             "set_tabs carries the panel over by identity, with the selection");
     std::vector<RibbonTabSpec> with_groups = tabs;

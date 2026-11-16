@@ -84,8 +84,10 @@ CompositorState read_macos_compositor_state(CompositorGeneration generation) {
         const NSAppearanceName matched = [appearance bestMatchFromAppearancesWithNames:names];
         state.dark_scheme = matched != nil && [matched isEqualToString:NSAppearanceNameDarkAqua];
     }
-    state.system_colours.accent = srgb_colour(NSColor.controlAccentColor);
-    state.system_colours.highlight = srgb_colour(NSColor.selectedTextBackgroundColor);
+    const std::optional<Color> accent = srgb_colour(NSColor.controlAccentColor);
+    const std::optional<Color> highlight = srgb_colour(NSColor.selectedTextBackgroundColor);
+    if (accent.has_value()) state.system_colours.accent.set(*accent);
+    if (highlight.has_value()) state.system_colours.highlight.set(*highlight);
     return state;
 }
 

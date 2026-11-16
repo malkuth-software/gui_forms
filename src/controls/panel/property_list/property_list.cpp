@@ -108,7 +108,7 @@ struct PropertyList::Impl final {
         Impl* implementation{};
         std::string row_id;
         std::weak_ptr<ComboBox> choice;
-        void operator()(std::optional<std::size_t>) const {
+        void operator()(stxlib::Optional<std::size_t>) const {
             if ((*implementation).synchronizing) return;
             RowState* row = (*implementation).find_row(row_id);
             const std::shared_ptr<ComboBox> editor = choice.lock();
@@ -273,8 +273,8 @@ struct PropertyList::Impl final {
                         std::find(row.choices.begin(),
                                                     row.choices.end(), row.value);
                     if (selected != row.choices.end()) {
-                        (*editor).selected_index = static_cast<std::size_t>(
-                            std::distance(row.choices.begin(), selected));
+                        (*editor).selected_index = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(
+                            std::distance(row.choices.begin(), selected)));
                     }
                     (*editor).font = FontSpec{FontRole::content, 10.0, 400, false};
                     (*editor).accessible_name = row.name;
@@ -645,9 +645,9 @@ bool PropertyList::set_value(std::string_view row_id, std::string value) {
         const std::vector<std::string>::iterator found =
             std::find(model.choices.begin(), model.choices.end(), value);
         (*choice).selected_index = found == model.choices.end()
-            ? std::optional<std::size_t>{}
-            : std::optional<std::size_t>{static_cast<std::size_t>(
-                std::distance(model.choices.begin(), found))};
+            ? stxlib::Optional<std::size_t>::none()
+            : stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(
+                std::distance(model.choices.begin(), found)));
     } else if (const std::shared_ptr<gui_forms::CheckBox> check =
                    std::dynamic_pointer_cast<CheckBox>((*row).editor)) {
         const bool checked = binding_value_to_bool(
@@ -965,8 +965,8 @@ void PropertyList::on_paint(Painter& painter, Rect) {
     face.role = PartRole::face;
     face.bounds = bounds;
     face.states = states;
-    if (has_background_override()) face.authored_background = background();
-    face.key = PartKey{"face", {}, {}};
+    if (has_background_override()) face.authored_background.set(background());
+    face.key.set(PartKey{"face", {}, {}});
     paint_part(painter, *this, face);
     double y = (*impl_).header_height - (*impl_).scroll_offset;
     for (std::size_t group_index = 0;

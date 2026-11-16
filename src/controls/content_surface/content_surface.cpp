@@ -589,7 +589,7 @@ void ContentSurface::on_paint(Painter& painter, Rect) {
     if (surface_) {
         PartPaint frame{};
         frame.role = PartRole::image;
-        frame.key = PartKey{"content", {}, {}};
+        frame.key.set(PartKey{"content", {}, {}});
         frame.family = ControlVisualRole::panel;
         frame.bounds = bounds;
         frame.states = states;
@@ -599,7 +599,7 @@ void ContentSurface::on_paint(Painter& painter, Rect) {
     if (!veiled()) return;
     PartPaint veil{};
     veil.role = PartRole::scrim;
-    veil.key = PartKey{"veil", {}, {}};
+    veil.key.set(PartKey{"veil", {}, {}});
     veil.family = ControlVisualRole::panel;
     veil.bounds = bounds;
     veil.states = states;
@@ -608,7 +608,7 @@ void ContentSurface::on_paint(Painter& painter, Rect) {
     if (caption.empty()) return;
     PartPaint label{};
     label.role = PartRole::caption;
-    label.key = PartKey{"caption", {}, {}};
+    label.key.set(PartKey{"caption", {}, {}});
     label.family = ControlVisualRole::panel;
     label.font = effective_font(FontSpec{});
     label.bounds = caption_bounds(label.font);

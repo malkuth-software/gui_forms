@@ -747,13 +747,13 @@ Types
 
    .. cpp:function:: bool empty() const noexcept
 
-   .. cpp:member:: std::optional<double> width
+   .. cpp:member:: stxlib::Optional<double> width
 
-   .. cpp:member:: std::optional<Color> rest_colour
+   .. cpp:member:: stxlib::Optional<Color> rest_colour
 
-   .. cpp:member:: std::optional<Color> lit_colour
+   .. cpp:member:: stxlib::Optional<Color> lit_colour
 
-   .. cpp:member:: std::optional<BandEffect> effect
+   .. cpp:member:: stxlib::Optional<BandEffect> effect
 
 .. cpp:namespace:: gui_forms
 
@@ -1266,7 +1266,7 @@ Types
 
       Compiles a composite control's look (its definition's <look> sheet): rules at the sheet levels, a set of their own that the composite and the controls its definition made consult beside their theme's (PartFacts::look_rules), so the look layers over whatever theme is in effect and stands over the theme's rules only where it says something. Without ``theme`` it publishes no values, so its expressions read the engine inputs alone, and its custom properties are its own: one compilation serves every theme. With ``theme`` (the theme in effect's rules), the sheet is a look lowered with that theme's text (detail::compile_theme_look: it reads the theme's application roles or custom properties) and holds copies of the theme's definitions of the names it reads; its expressions read the theme's published values at the theme's positions, and it is used with that theme alone (theme_serial). ``theme`` is read during the call only.
 
-   .. cpp:function:: std::optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept
+   .. cpp:function:: stxlib::Optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept
 
       The position of the published value ``name``, or none when the sheet does not read it.
 
@@ -1306,7 +1306,7 @@ Types
 
    .. cpp:member:: double target
 
-   .. cpp:member:: std::optional<double> enter_from
+   .. cpp:member:: stxlib::Optional<double> enter_from
 
    .. cpp:member:: std::vector<MotionStop> stops
 
@@ -1524,11 +1524,11 @@ Types
 
    .. cpp:member:: bool effect_declared
 
-   .. cpp:member:: std::optional<EffectColourDeclaration> effect_primary
+   .. cpp:member:: stxlib::Optional<EffectColourDeclaration> effect_primary
 
       The part's effect colours (effect_primary_property, effect_secondary_property): the last matching rule's of each, or none.
 
-   .. cpp:member:: std::optional<EffectColourDeclaration> effect_secondary
+   .. cpp:member:: stxlib::Optional<EffectColourDeclaration> effect_secondary
 
    .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> materials
 
@@ -1602,33 +1602,33 @@ Types
 
    A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part. Lengths are logical units, the grid's spacing world units, the flow's speed world units a second. The forced high-contrast records set the colours: the plate, the state's edge and the focus colour. ``texture`` holds no layer for ``background-texture: none``.
 
-   .. cpp:member:: std::optional<Color> fill
+   .. cpp:member:: stxlib::Optional<Color> fill
 
-   .. cpp:member:: std::optional<Color> stroke
+   .. cpp:member:: stxlib::Optional<Color> stroke
 
-   .. cpp:member:: std::optional<double> stroke_width
+   .. cpp:member:: stxlib::Optional<double> stroke_width
 
-   .. cpp:member:: std::optional<double> dash
+   .. cpp:member:: stxlib::Optional<double> dash
 
-   .. cpp:member:: std::optional<double> gap
+   .. cpp:member:: stxlib::Optional<double> gap
 
-   .. cpp:member:: std::optional<double> halo_width
+   .. cpp:member:: stxlib::Optional<double> halo_width
 
-   .. cpp:member:: std::optional<Color> halo
+   .. cpp:member:: stxlib::Optional<Color> halo
 
-   .. cpp:member:: std::optional<double> corner_radius
+   .. cpp:member:: stxlib::Optional<double> corner_radius
 
-   .. cpp:member:: std::optional<double> grid_spacing
+   .. cpp:member:: stxlib::Optional<double> grid_spacing
 
-   .. cpp:member:: std::optional<double> grid_band
+   .. cpp:member:: stxlib::Optional<double> grid_band
 
-   .. cpp:member:: std::optional<CanvasTextureLayers> texture
+   .. cpp:member:: stxlib::Optional<CanvasTextureLayers> texture
 
-   .. cpp:member:: std::optional<CanvasFlowStyle> flow
+   .. cpp:member:: stxlib::Optional<CanvasFlowStyle> flow
 
-   .. cpp:member:: std::optional<double> flow_speed
+   .. cpp:member:: stxlib::Optional<double> flow_speed
 
-   .. cpp:member:: std::optional<double> flow_spacing
+   .. cpp:member:: stxlib::Optional<double> flow_spacing
 
 .. cpp:namespace:: gui_forms
 
@@ -1636,25 +1636,25 @@ Types
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
 
-   .. cpp:member:: std::optional<double> block_size
+   .. cpp:member:: stxlib::Optional<double> block_size
 
-   .. cpp:member:: std::optional<double> minimum_inline_size
+   .. cpp:member:: stxlib::Optional<double> minimum_inline_size
 
-   .. cpp:member:: std::optional<double> padding_inline
+   .. cpp:member:: stxlib::Optional<double> padding_inline
 
-   .. cpp:member:: std::optional<double> gap
+   .. cpp:member:: stxlib::Optional<double> gap
 
-   .. cpp:member:: std::optional<double> margin_block_start
+   .. cpp:member:: stxlib::Optional<double> margin_block_start
 
-   .. cpp:member:: std::optional<double> margin_block_end
+   .. cpp:member:: stxlib::Optional<double> margin_block_end
 
    .. cpp:member:: double taper
 
-   .. cpp:member:: std::optional<Color> taper_colour
+   .. cpp:member:: stxlib::Optional<Color> taper_colour
 
    .. cpp:member:: double flare
 
-   .. cpp:member:: std::optional<Color> flare_colour
+   .. cpp:member:: stxlib::Optional<Color> flare_colour
 
    .. cpp:member:: double edge_shadow_width
 
@@ -1742,25 +1742,25 @@ Types
 
    A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle. Lengths are logical units; a taper, flare or edge shadow of zero draws nothing. A part's stripe pattern (RecipeField::stripe_pitch to stripe_reduced_motion; the barber pole, owner rulings of 2026-11-11), each unset where no rule sets it, when the stripe effect keeps its own value: pitch auto (the fill's inner thickness, at least 8), a pale share of 0.4, 45 degrees, a backward lean travelling forward at 0.8 pitches a second, the fill as the theme paints it under translucent pale bands, a gloss over opaque stripe colours, and still bands under reduced motion. A pitch of 0 is ``auto``.
 
-   .. cpp:member:: std::optional<double> pitch
+   .. cpp:member:: stxlib::Optional<double> pitch
 
-   .. cpp:member:: std::optional<double> ratio
+   .. cpp:member:: stxlib::Optional<double> ratio
 
-   .. cpp:member:: std::optional<double> angle_degrees
+   .. cpp:member:: stxlib::Optional<double> angle_degrees
 
-   .. cpp:member:: std::optional<StripeSense> lean
+   .. cpp:member:: stxlib::Optional<StripeSense> lean
 
-   .. cpp:member:: std::optional<StripeSense> direction
+   .. cpp:member:: stxlib::Optional<StripeSense> direction
 
-   .. cpp:member:: std::optional<double> speed
+   .. cpp:member:: stxlib::Optional<double> speed
 
-   .. cpp:member:: std::optional<Color> colour
+   .. cpp:member:: stxlib::Optional<Color> colour
 
-   .. cpp:member:: std::optional<Color> ground
+   .. cpp:member:: stxlib::Optional<Color> ground
 
-   .. cpp:member:: std::optional<StripeGloss> gloss
+   .. cpp:member:: stxlib::Optional<StripeGloss> gloss
 
-   .. cpp:member:: std::optional<StripeReducedMotion> reduced_motion
+   .. cpp:member:: stxlib::Optional<StripeReducedMotion> reduced_motion
 
 .. cpp:namespace:: gui_forms
 
@@ -1854,7 +1854,7 @@ Types
 
       Default: ``{1.0, 1.0}``.
 
-   .. cpp:member:: std::optional<ControlTextShadow> text_shadow
+   .. cpp:member:: stxlib::Optional<ControlTextShadow> text_shadow
 
       The shadow under the recipe's text, if any (E9.6, data only).
 
@@ -1862,7 +1862,7 @@ Types
 
       The part's metrics and shape, where a rule naming the part sets them.
 
-   .. cpp:member:: std::optional<Color> fill_text
+   .. cpp:member:: stxlib::Optional<Color> fill_text
 
       The text's colour where it lies over a fill (``fill-text-color``, the value bar study's section 3.6), if the theme sets one; none, the built-in recipes' value, draws such text in the fill's own selected text colour.
 
@@ -2603,7 +2603,7 @@ Types
 
    .. cpp:member:: std::string item
 
-   .. cpp:member:: std::optional<std::size_t> item_index
+   .. cpp:member:: stxlib::Optional<std::size_t> item_index
 
       Set only for the index fallback (PartKey::index_fallback).
 
@@ -3751,13 +3751,13 @@ Types
 
    .. cpp:function:: static MaterialBorderEdges from_parts(const MaterialBorder* top, const MaterialBorder* right, const MaterialBorder* bottom, const MaterialBorder* left)
 
-   .. cpp:member:: std::optional<MaterialBorder> top
+   .. cpp:member:: stxlib::Optional<MaterialBorder> top
 
-   .. cpp:member:: std::optional<MaterialBorder> right
+   .. cpp:member:: stxlib::Optional<MaterialBorder> right
 
-   .. cpp:member:: std::optional<MaterialBorder> bottom
+   .. cpp:member:: stxlib::Optional<MaterialBorder> bottom
 
-   .. cpp:member:: std::optional<MaterialBorder> left
+   .. cpp:member:: stxlib::Optional<MaterialBorder> left
 
 .. cpp:namespace:: gui_forms
 
@@ -4005,7 +4005,7 @@ Types
 
    .. cpp:member:: std::vector<MaterialGlowPlacement> glow_placements
 
-   .. cpp:member:: std::optional<MaterialBorderStyle> border_style
+   .. cpp:member:: stxlib::Optional<MaterialBorderStyle> border_style
 
    .. cpp:member:: MaterialEdgeLines edge_lines
 
@@ -4023,7 +4023,7 @@ Types
 
    .. cpp:member:: MaterialColourFilter colour_filter
 
-   .. cpp:member:: std::optional<MaterialDropShadow> drop_shadow
+   .. cpp:member:: stxlib::Optional<MaterialDropShadow> drop_shadow
 
    .. cpp:member:: std::vector<MaterialFillLayer> masks
 
@@ -4031,7 +4031,7 @@ Types
 
    .. cpp:member:: std::vector<MaterialMaskComposite> mask_composites
 
-   .. cpp:member:: std::optional<MaterialReflection> reflection
+   .. cpp:member:: stxlib::Optional<MaterialReflection> reflection
 
    .. cpp:member:: MaterialDither dither
 
@@ -4441,23 +4441,23 @@ Types
 
    A rule's media condition (EC3): every feature it names must hold for the window, and an unnamed feature always holds, so the default condition holds everywhere. The resolution bounds are inclusive, in device pixels per logical unit; each is finite and above zero. A condition no window meets, such as a minimum above the maximum, is admitted: its rule never matches. The theme language's ``@media`` blocks lower to these (one rule a query of a comma list).
 
-   .. cpp:member:: std::optional<bool> dark_scheme
+   .. cpp:member:: stxlib::Optional<bool> dark_scheme
 
       ``prefers-color-scheme``: dark (true) or light (false).
 
-   .. cpp:member:: std::optional<bool> forced_colours
+   .. cpp:member:: stxlib::Optional<bool> forced_colours
 
       ``forced-colors``: active (true) or none (false).
 
-   .. cpp:member:: std::optional<bool> reduced_motion
+   .. cpp:member:: stxlib::Optional<bool> reduced_motion
 
       ``prefers-reduced-motion``: reduce (true) or no-preference (false).
 
-   .. cpp:member:: std::optional<double> minimum_resolution
+   .. cpp:member:: stxlib::Optional<double> minimum_resolution
 
       ``min-resolution`` and ``max-resolution``.
 
-   .. cpp:member:: std::optional<double> maximum_resolution
+   .. cpp:member:: stxlib::Optional<double> maximum_resolution
 
 .. cpp:namespace:: gui_forms
 
@@ -5204,7 +5204,7 @@ Types
 
    .. cpp:member:: std::string_view item
 
-   .. cpp:member:: std::optional<std::size_t> item_index
+   .. cpp:member:: stxlib::Optional<std::size_t> item_index
 
 .. cpp:namespace:: gui_forms
 
@@ -5297,11 +5297,11 @@ Types
 
    .. cpp:member:: ImageId image
 
-   .. cpp:member:: std::optional<double> corner_radius
+   .. cpp:member:: stxlib::Optional<double> corner_radius
 
       A focus or preselect ring follows the same shape: a connected segment's square corners, for one.
 
-   .. cpp:member:: std::optional<double> point
+   .. cpp:member:: stxlib::Optional<double> point
 
       A pointed face (design language §8.5; owner decision 2026-11-02): the surface's trailing end is a nose this many units long, its tip at the middle of the right edge, as a raised breadcrumb segment's. Only surface roles read it; none is a rectangle. Hit testing uses the same shape (pointed_face_contains).
 
@@ -5309,7 +5309,7 @@ Types
 
       The nose is at the left edge instead, its tip at the middle of the left edge: a right-to-left breadcrumb segment's (Control:: right_to_left). Read only with ``point``.
 
-   .. cpp:member:: std::optional<PartProfile> profile
+   .. cpp:member:: stxlib::Optional<PartProfile> profile
 
       The part's profile beside its rectangle (PartProfile), or none. Only surface roles read it; a pointed face ignores it.
 
@@ -5317,21 +5317,21 @@ Types
 
       Whether the part draws its frame. A surface part with frame none is its material's ground: the material's border and per-edge borders are left out, and its fills, keylines, shadows and shape are kept. It is the field of a borderless TextBox (Windows Forms BorderStyle.None), whose composite (a ComboBox, an up-down, the grid's cell editor) draws the frame itself. A primitive that draws no theme material has no ground apart from its frame, so a frameless part it would draw is drawn by the built-in recipe instead. A pointed face with frame none draws no nose edges. Roles that are not surfaces ignore it. Default: ``{PartFrame::drawn}``.
 
-   .. cpp:member:: std::optional<AccentIndex> accent
+   .. cpp:member:: stxlib::Optional<AccentIndex> accent
 
       The part's position in the theme's accent ramp (§8.5), or none. A surface part with an accent is tinted from the ramp over its material; text and mark roles ignore it.
 
-   .. cpp:member:: std::optional<Color> content_color
+   .. cpp:member:: stxlib::Optional<Color> content_color
 
       The colour the part shows as its content (design language 8.5; owner decision W-7), such as a colour picker's sample, or none. Only the fill role honours it: a fill with a content colour is painted that colour, flat, in the part's shape (corner_radius, else square), in place of the recipe's material; every other role ignores it. A swatch is therefore a fill inside a well part that frames it. The colour is data, as an image is: it is drawn as given in ordinary and high-contrast presentation alike (the framing well follows the high-contrast recipe, so the sample stays outlined), and when the part is disabled (T2 GIVEN E2-1: a theme styles only what surrounds it, so a disabled swatch shows through its well, edge and label). A surface part (face or well) with a content colour draws its material, and the colours its theme rules write as CSS's currentcolor take the content colour instead of the text colour: a colour picker's field, spectrum and alpha ramp are gradient rules over the colour they show (the ColorPicker parts in the default and familiar themes' content rules). The dark variant's rule does not darken such a part's material. In forced high contrast (owner ruling, W-7: content is data, not chrome) the part keeps those fills inside high contrast's material: its border (or, without one, a 1-unit border in high contrast's text colour) frames them, and its shadows and glows are dropped. Without the theme engine (no window, or a theme whose rules write no fills for the part), the part draws its recipe and the colour is not shown.
 
-   .. cpp:member:: std::optional<Color> authored_background
+   .. cpp:member:: stxlib::Optional<Color> authored_background
 
       The colours an application authored for this part (design language 8.5; owner decision T4-1), or none, such as a DataGridView cell style's BackColor and ForeColor. They stand where an inline style's colours would stand for this one part: over the theme's ordinary declarations, under its important ones, and never in high contrast, where the role's colours stand (§5.8). Unlike the content colour they are a look, not data. - The background: a surface role (and an indicator or glyph without a mark, which paints its ground) paints it flat in place of the material's fills, keeping the material's border, keylines and shadows and the part's shape. A fill with a content colour shows the content colour. A disabled part keeps it. - The foreground: text roles and the caret draw in it, marks are inked with it and rules (keyline, divider, seam) are drawn in it. A disabled part keeps the theme's disabled colours, so disabled stays greyed; a theme text colour declared important stands over it for text, and a glyph colour declared important for marks. A rule that chooses a primitive for the part at an important level stands over both; a primitive that draws a theme material takes the background in its material's fills, and a primitive's own colour parameters do not read them.
 
-   .. cpp:member:: std::optional<Color> authored_foreground
+   .. cpp:member:: stxlib::Optional<Color> authored_foreground
 
-   .. cpp:member:: std::optional<PartKey> key
+   .. cpp:member:: stxlib::Optional<PartKey> key
 
       The part's identity across frames (T2 GIVEN H3-1), or none. A part with a key has a record in its window's engine part table; one without is drawn statically, with no transitions and no cached raster. It is identity, not vocabulary: it changes nothing a part looks like today. Its views are borrowed for the call.
 
@@ -5343,11 +5343,11 @@ Types
 
       How far past ``bounds`` the control lets the part be drawn when a theme scales it (T2 GIVEN D5-1, E8), in logical units. The presentational scale grows the part about its centre only as far as this allows: with none granted, the default, a part never grows. Layout and the part's hit region ignore it.
 
-   .. cpp:member:: std::optional<Size> measured_text
+   .. cpp:member:: stxlib::Optional<Size> measured_text
 
       The text's measurement in ``font``, when the caller has already made it (paint_text_part_at does), so the text is not measured again; none otherwise. A cache, not vocabulary: it changes nothing drawn, and a caller that sets it must have measured exactly ``text`` in ``font``.
 
-   .. cpp:member:: std::optional<PartArc> arc
+   .. cpp:member:: stxlib::Optional<PartArc> arc
 
       The arc and needle roles' angles (PartArc), or none, when neither draws. Every other role ignores them.
 
@@ -5377,7 +5377,7 @@ Types
 
    .. cpp:member:: double taper
 
-   .. cpp:member:: std::optional<Color> taper_colour
+   .. cpp:member:: stxlib::Optional<Color> taper_colour
 
    .. cpp:member:: double flare
 
@@ -5581,7 +5581,7 @@ Types
 
    .. cpp:member:: double target
 
-   .. cpp:member:: std::optional<double> enter_from
+   .. cpp:member:: stxlib::Optional<double> enter_from
 
    .. cpp:member:: std::vector<MotionStop> stops
 
@@ -5785,7 +5785,7 @@ Types
 
    .. cpp:member:: const SurfaceMaterial* material
 
-   .. cpp:member:: std::optional<double> corner_radius
+   .. cpp:member:: stxlib::Optional<double> corner_radius
 
    .. cpp:member:: const ImageRegistry* images
 
@@ -6334,7 +6334,7 @@ Types
 
    .. cpp:member:: std::string part
 
-   .. cpp:member:: std::optional<PartRole> role
+   .. cpp:member:: stxlib::Optional<PartRole> role
 
    .. cpp:member:: std::vector<AnatomyState> states
 
@@ -6543,7 +6543,7 @@ Types
 
    .. cpp:member:: std::vector<MaterialGlow> glows
 
-   .. cpp:member:: std::optional<MaterialBorder> border
+   .. cpp:member:: stxlib::Optional<MaterialBorder> border
 
    .. cpp:member:: MaterialBorderEdges border_edges
 
@@ -6551,7 +6551,7 @@ Types
 
    .. cpp:member:: double corner_radius
 
-   .. cpp:member:: std::optional<MaterialCornerRadii> corner_radii
+   .. cpp:member:: stxlib::Optional<MaterialCornerRadii> corner_radii
 
       Corners that differ (E9.6): when present they replace corner_radius in the engine's material primitive. The built-in path, paint_surface_material, rounds every corner by corner_radius, so a theme sets that to the radius the fallback should draw.
 
@@ -6559,7 +6559,7 @@ Types
 
       The part filters (E9.6, CSS ``filter``), applied to the baked raster in this order: the colour filter to each pixel, then the drop shadow beneath, then the blur over the whole. A theme's filter list lowers to that order. The engine's material primitive draws them; the built-in path, paint_surface_material, draws none of them, and the window's backplane image draws only the colour filter.
 
-   .. cpp:member:: std::optional<MaterialDropShadow> drop_shadow
+   .. cpp:member:: stxlib::Optional<MaterialDropShadow> drop_shadow
 
    .. cpp:member:: double filter_blur
 
@@ -6573,7 +6573,7 @@ Types
 
       The mask (E9.6, CSS ``mask-image``, ``mask-mode``, ``mask-composite``): up to maximum_mask_layers layers, bottom first (CSS lists the top layer first), at most maximum_image_mask_layers of them images. Each layer's weight at a pixel is its fill's sample there read by its mode (an image's times its opacity); the weights combine from the bottom up by each upper layer's composite, and the result multiplies the whole finished part, its shadows and glows included. Outside the box each layer extends at its edge value, so that a shadow fades with the face beside it. Empty for none. The engine's material primitive draws it; the built-in path, paint_surface_material, draws the material unmasked.
 
-   .. cpp:member:: std::optional<MaterialReflection> reflection
+   .. cpp:member:: stxlib::Optional<MaterialReflection> reflection
 
       A reflection of the finished face (MaterialReflection), drawn after the mask; none by default.
 
@@ -6713,9 +6713,9 @@ Types
 
       The theme's own drawing of the stock icon variant ``icon`` (ThemeDefinition::stock_icons), shared with the theme; null where the theme keeps the built-in drawing.
 
-   .. cpp:function:: std::optional<ThemeRoleColours> application_role(std::string_view name, const MediaFacts& facts) const noexcept
+   .. cpp:function:: stxlib::Optional<ThemeRoleColours> application_role(std::string_view name, const MediaFacts& facts) const noexcept
 
-      The colours of the application colour role ``name`` (lowercase, as the sheet's ``color-roles`` declares it) where ``facts`` hold: its last declaration whose condition holds. Under forced colours with no ``forced-colors`` declaration of its own, its fallback role's high-contrast pair. Nullopt where the theme declares no such role.
+      The colours of the application colour role ``name`` (lowercase, as the sheet's ``color-roles`` declares it) where ``facts`` hold: its last declaration whose condition holds. Under forced colours with no ``forced-colors`` declaration of its own, its fallback role's high-contrast pair. None where the theme declares no such role.
 
 .. cpp:namespace:: gui_forms
 
@@ -7117,9 +7117,13 @@ Types
 
       Removes every entry.
 
-   .. cpp:function:: ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, std::optional<Color> background = {})
+   .. cpp:function:: ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, stxlib::Optional<Color> background = {})
 
       Redefines a colour role: ``foreground`` alone for a single role, ``foreground`` on ``background`` for a paired one (colour_role_paired). Setting a role again replaces its colours in place.
+
+   .. cpp:function:: ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, std::optional<Color> background)
+
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: ThemeOverrideCheck set_colour(const ThemeOverrideTarget& target, ThemeOverrideProperty property, Color colour)
 
@@ -7213,15 +7217,15 @@ Types
 
    .. cpp:member:: RuleSelector selector
 
-   .. cpp:member:: std::optional<RuleSpecificity> specificity
+   .. cpp:member:: stxlib::Optional<RuleSpecificity> specificity
 
    .. cpp:member:: std::vector<RuleDeclaration> declarations
 
-   .. cpp:member:: std::optional<EngineVersion> requires_engine
+   .. cpp:member:: stxlib::Optional<EngineVersion> requires_engine
 
    .. cpp:member:: std::vector<PropertyTransition> transitions
 
-   .. cpp:member:: std::optional<AmbientEffect> ambient
+   .. cpp:member:: stxlib::Optional<AmbientEffect> ambient
 
    .. cpp:member:: std::vector<MaterialDeclaration> materials
 
@@ -7243,11 +7247,11 @@ Types
 
    .. cpp:member:: std::uint32_t source_position
 
-   .. cpp:member:: std::optional<BackdropDeclaration> backdrop
+   .. cpp:member:: stxlib::Optional<BackdropDeclaration> backdrop
 
       A surface rule's backdrop (``backdrop:``), or none.
 
-   .. cpp:member:: std::optional<BandDeclaration> band
+   .. cpp:member:: stxlib::Optional<BandDeclaration> band
 
       A window rule's band (``band-*``), or none.
 
@@ -10346,7 +10350,7 @@ Functions, constants and aliases
 
    The role's name in kebab case, such as ``ink-on-paper``; empty for count.
 
-.. cpp:function:: std::optional<ColourRole> colour_role_from_name(std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<ColourRole> colour_role_from_name(std::string_view name) noexcept
 
    The role ``name`` (kebab case, exact) names, or none.
 
@@ -10374,7 +10378,7 @@ Functions, constants and aliases
 
    The role's name in a sheet: ``ui``, ``field``, ``caption``, ``heading``, ``title``, ``monospace``.
 
-.. cpp:function:: std::optional<TextRole> text_role_from_name(std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<TextRole> text_role_from_name(std::string_view name) noexcept
 
    The role ``name`` names exactly, if any.
 

@@ -51,7 +51,7 @@ MaterialDeclaration number_of(MaterialField field, double value) {
     return declaration;
 }
 
-MaterialDeclaration style_of(MaterialField field, std::optional<MaterialBorderStyle> style) {
+MaterialDeclaration style_of(MaterialField field, stxlib::Optional<MaterialBorderStyle> style) {
     MaterialDeclaration declaration{};
     declaration.field = field;
     declaration.border_style = style;
@@ -263,8 +263,8 @@ std::array<const MaterialDeclaration*, material_field_count> no_fields() {
 
 void test_assembly() {
     SurfaceMaterial floor{};
-    floor.border = border_of(Color::rgba(10, 20, 30), 1.0);
-    (*floor.border).style = MaterialBorderStyle::dashed;
+    floor.border.set(border_of(Color::rgba(10, 20, 30), 1.0));
+    (*floor.border.value()).style = MaterialBorderStyle::dashed;
     floor.corner_radius = 5.0;
     SurfaceMaterial assembled{};
 
@@ -296,10 +296,11 @@ void test_assembly() {
     fields[at(MaterialField::border_top_width)] = &thick;
     fields[at(MaterialField::border_top_colour)] = &black;
     assemble_material(floor, fields, Size{20.0, 40.0}, assembled);
-    MaterialBorder expected_top = *floor.border;
+    MaterialBorder expected_top = (*floor.border.value());
     expected_top.width = 3.0;
     expected_top.color = Color::rgba(0, 0, 0);
-    require(!assembled.border && assembled.border_edges.top == expected_top &&
+    require(assembled.border.absent() &&
+            assembled.border_edges.top == stxlib::Optional<MaterialBorder>::of(expected_top) &&
                 assembled.border_edges.right == floor.border && assembled.border_edges.bottom == floor.border &&
                 assembled.border_edges.left == floor.border,
             "an unequal edge splits the border, keeping the floor's style; the others keep the floor's");
@@ -318,16 +319,19 @@ void test_assembly() {
                                                     MaterialField::border_left_style};
     fields = no_fields();
     for (std::size_t edge = 0U; edge < solids.size(); ++edge) {
-        solids[edge] = style_of(style_fields[edge], MaterialBorderStyle::solid);
+        solids[edge] = style_of(style_fields[edge],
+                                stxlib::Optional<MaterialBorderStyle>::of(MaterialBorderStyle::solid));
         fields[at(style_fields[edge])] = &solids[edge];
     }
     assemble_material(bare, fields, Size{20.0, 40.0}, assembled);
-    require(assembled.border == MaterialBorder{} && assembled.border_edges.empty(),
+    require(assembled.border == stxlib::Optional<MaterialBorder>::of(MaterialBorder{}) &&
+            assembled.border_edges.empty(),
             "four solid edges over no border are the default uniform border");
     const MaterialDeclaration none_width = number_of(MaterialField::border_left_width, 0.0);
     fields[at(MaterialField::border_left_width)] = &none_width;
     assemble_material(bare, fields, Size{20.0, 40.0}, assembled);
-    require(!assembled.border && !assembled.border_edges.left && assembled.border_edges.top == MaterialBorder{},
+    require(assembled.border.absent() && assembled.border_edges.left.absent() &&
+            assembled.border_edges.top == stxlib::Optional<MaterialBorder>::of(MaterialBorder{}),
             "a zero width draws no edge");
     fields = no_fields();
     fields[at(MaterialField::border_top_width)] = &thick;
@@ -336,34 +340,40 @@ void test_assembly() {
 
     // A floor drawn with single edges lends them edge by edge.
     SurfaceMaterial edged{};
-    edged.border_edges.bottom = border_of(Color::rgba(1, 2, 3), 1.0);
-    const MaterialDeclaration no_top = style_of(MaterialField::border_top_style, std::nullopt);
+    edged.border_edges.bottom.set(border_of(Color::rgba(1, 2, 3), 1.0));
+    const MaterialDeclaration no_top = style_of(MaterialField::border_top_style,
+                                                stxlib::Optional<MaterialBorderStyle>::none());
     fields = no_fields();
     fields[at(MaterialField::border_top_style)] = &no_top;
     assemble_material(edged, fields, Size{20.0, 40.0}, assembled);
     require(assembled == edged, "the floor's single edges stay where no edge is set");
-    const MaterialDeclaration bottom_none = style_of(MaterialField::border_bottom_style, std::nullopt);
+    const MaterialDeclaration bottom_none = style_of(MaterialField::border_bottom_style,
+                                                     stxlib::Optional<MaterialBorderStyle>::none());
     fields[at(MaterialField::border_bottom_style)] = &bottom_none;
     assemble_material(edged, fields, Size{20.0, 40.0}, assembled);
-    require(!assembled.border && assembled.border_edges.empty(), "four absent edges are no border");
+    require(assembled.border.absent() && assembled.border_edges.empty(), "four absent edges are no border");
 
     // Relative corners are fractions of the shorter side.
     std::array<MaterialDeclaration, 4> relative = corners_of(0.5, true);
     fields = no_fields();
     point_at(relative, fields);
     assemble_material(floor, fields, Size{20.0, 40.0}, assembled);
-    require(assembled.corner_radius == 10.0 && !assembled.corner_radii, "50% of a 20-unit side is 10");
+    require(assembled.corner_radius == 10.0 && assembled.corner_radii.absent(), "50% of a 20-unit side is 10");
     relative[0].number = 0.25;
     relative[1] = number_of(MaterialField::corner_top_right, 3.0);
     relative[3] = number_of(MaterialField::corner_bottom_left, 1.0);
     assemble_material(floor, fields, Size{20.0, 40.0}, assembled);
-    require(assembled.corner_radii == (MaterialCornerRadii{5.0, 3.0, 10.0, 1.0}) && assembled.corner_radius == 1.0,
+    require(assembled.corner_radii ==
+                    stxlib::Optional<MaterialCornerRadii>::of(MaterialCornerRadii{5.0, 3.0, 10.0, 1.0}) &&
+                assembled.corner_radius == 1.0,
             "each relative corner is resolved, the others kept in units; the built-in path takes the smallest");
     fields = no_fields();
     const MaterialDeclaration one_corner = number_of(MaterialField::corner_bottom_right, 8.0);
     fields[at(MaterialField::corner_bottom_right)] = &one_corner;
     assemble_material(floor, fields, Size{20.0, 40.0}, assembled);
-    require(assembled.corner_radii == (MaterialCornerRadii{5.0, 5.0, 8.0, 5.0}) && assembled.corner_radius == 5.0,
+    require(assembled.corner_radii ==
+                    stxlib::Optional<MaterialCornerRadii>::of(MaterialCornerRadii{5.0, 5.0, 8.0, 5.0}) &&
+                assembled.corner_radius == 5.0,
             "a corner set alone keeps the floor's others: each corner cascades on its own");
     fields = no_fields();
     fields[at(MaterialField::border_top_style)] = &no_top;
@@ -474,7 +484,7 @@ public:
         part.role = PartRole::face;
         part.family = family;
         part.bounds = Rect{20.0, 20.0, 40.0, 24.0};
-        if (keyed) part.key = PartKey{"face", {}, {}};
+        if (keyed) part.key.set(PartKey{"face", {}, {}});
         if (!enabled.read()) part.states.insert(AnatomyState::disabled);
         return part;
     }
@@ -663,7 +673,7 @@ void test_unkeyed_part() {
     theme.keyed = false;
     for (ThemeRule& rule : theme.rules) {
         rule.selector.part.clear();
-        rule.selector.role = PartRole::face;
+        rule.selector.role.set(PartRole::face);
     }
     std::unique_ptr<Fixture> fixture = make_fixture(theme);
     Window& window = *(*fixture).window;

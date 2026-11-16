@@ -14,7 +14,7 @@ The overlay is switchable while the program runs; nothing is rebuilt.
 |---|---|
 | Environment | Set `GUI_FORMS_DEBUG_INVALIDATION=1` before the program starts. Any value other than empty or `0` turns it on. |
 | Whole program (C++) | `Application::set_invalidation_overlay(true)`. Every window and popup window that has no setting of its own shows it, including windows opened later, until it is turned off or the program ends. The free function `set_invalidation_overlay_default(bool)` is the same switch without an `Application`. |
-| One window (C++) | `Window::set_invalidation_overlay(true)`, `false`, or `std::nullopt` to follow the program's switch again. A window's own setting wins over the program's. |
+| One window (C++) | `Window::set_invalidation_overlay(stxlib::Optional<bool>::of(true))`, `::of(false)`, or `stxlib::Optional<bool>::none()` to follow the program's switch again. A window's own setting wins over the program's. |
 | C ABI | `gf_diagnostics_table.set_invalidation_overlay(1)` (since ABI 1.2); `invalidation_overlay(&enabled)` reads it. Any thread. |
 | Gallery | The diagnostics panel's **Show invalidation** check box, for the Gallery window. |
 

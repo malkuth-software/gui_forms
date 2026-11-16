@@ -442,8 +442,10 @@ void semantics() {
     const SemanticDescriptor descriptor = (*gallery).semantic_descriptor();
     require(descriptor.role == SemanticRole::list && descriptor.name == "Styles", "a gallery is a named list");
     const std::vector<SemanticNode> nodes = (*gallery).semantic_virtual_children();
-    require(nodes.size() == 12U && nodes[0].role == SemanticRole::list_item && nodes[0].position_in_set == 1U &&
-                nodes[0].set_size == 9U && nodes[8].position_in_set == 9U,
+    require(nodes.size() == 12U && nodes[0].role == SemanticRole::list_item &&
+                nodes[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                nodes[0].set_size == stxlib::Optional<std::size_t>::of(9U) &&
+                nodes[8].position_in_set == stxlib::Optional<std::size_t>::of(9U),
             "every item is a list item with its position in the set");
     const SemanticNode& more = nodes.back();
     require(more.role == SemanticRole::menu_button && more.has_popup, "the more button is a menu button with an overlay");
@@ -458,8 +460,9 @@ void semantics() {
     (*full).set_items({{"warm", "Warm"}, {"cool", "Cool"}}, std::move(items));
     const std::vector<SemanticNode> grouped = (*full).semantic_virtual_children();
     require(grouped.size() >= 2U && grouped[0].role == SemanticRole::group && grouped[0].name == "Warm" &&
-                grouped[0].children.size() == 3U && grouped[0].children[2].position_in_set == 3U &&
-                grouped[0].children[2].set_size == 3U,
+                grouped[0].children.size() == 3U &&
+                grouped[0].children[2].position_in_set == stxlib::Optional<std::size_t>::of(3U) &&
+                grouped[0].children[2].set_size == stxlib::Optional<std::size_t>::of(3U),
             "the drop-down form groups items by category, positioned within it");
 }
 

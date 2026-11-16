@@ -5,6 +5,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
@@ -93,8 +94,8 @@ Label::Label(StableId stable_id, std::string initial_text) : Control(std::move(s
 }
 
 FontSpec Label::resolved_font() const noexcept {
-    const std::optional<FontSpec>& own = font.read();
-    if (own) return *own;
+    const FontSpec* own = font.read().value();
+    if (own != nullptr) return *own;
     const ThemeTypographyTokens& typography = effective_theme().structure().typography;
     switch (text_style_role.read()) {
     case TextStyleRole::body: return typography.field;
@@ -111,8 +112,8 @@ FontSpec Label::resolved_font() const noexcept {
 // theme's text with the fields of the rules that select this label (its
 // type, stable ID, classes and states) in place (G3).
 Color Label::foreground() const {
-    const std::optional<Color>& own = fore_color.read();
-    if (own) return *own;
+    const Color* own = fore_color.read().value();
+    if (own != nullptr) return *own;
     const ResolvedControlRecipe resolved =
         effective_theme().resolve(*this, ControlVisualRole::panel, visual_context());
     const Color theme_text = resolved.recipe().text;
@@ -125,16 +126,16 @@ BindingValue Label::font_property_value() const {
 }
 
 void Label::reset_font() {
-    font = std::nullopt;
+    font = stxlib::Optional<FontSpec>::none();
 }
 
 bool Label::font_serialized() const {
-    const bool own = font.read().has_value();
+    const bool own = font.read().present();
     return own;
 }
 
 PropertyValueOrigin Label::font_property_origin() const noexcept {
-    return font.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+    return font.read().present() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
 }
 
 BindingValue Label::fore_color_property_value() const {
@@ -143,20 +144,20 @@ BindingValue Label::fore_color_property_value() const {
 }
 
 void Label::write_fore_color_property(const BindingValue& value) {
-    fore_color = std::get<Color>(value);
+    fore_color = stxlib::Optional<Color>::of(std::get<Color>(value));
 }
 
 void Label::reset_fore_color_property() {
-    fore_color = std::nullopt;
+    fore_color = stxlib::Optional<Color>::none();
 }
 
 bool Label::fore_color_serialized() const {
-    const bool own = fore_color.read().has_value();
+    const bool own = fore_color.read().present();
     return own;
 }
 
 PropertyValueOrigin Label::fore_color_property_origin() const noexcept {
-    return fore_color.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+    return fore_color.read().present() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
 }
 
 // Text only changes retained geometry when this label is content-sized.
@@ -178,12 +179,13 @@ void Label::written(const decltype(text)&) {
 
 // A present font must be valid; writing one records that code chose it,
 // and clearing it lets the theme's typography return.
-void Label::prepare_write(const decltype(font)&, std::optional<FontSpec>& incoming) {
+void Label::prepare_write(const decltype(font)&, stxlib::Optional<FontSpec>& incoming) {
     require_mutable();
-    if (incoming && !valid_font_spec(*incoming)) {
+    const FontSpec* face = incoming.value();
+    if (face != nullptr && !valid_font_spec(*face)) {
         throw std::invalid_argument("Label font specification is invalid");
     }
-    set_font_from_code(incoming.has_value());
+    set_font_from_code(face != nullptr);
 }
 
 void Label::written(const decltype(font)&) {
@@ -208,7 +210,7 @@ void Label::prepare_write(const decltype(text_style_role)&, TextStyleRole& incom
 
 // The role chooses the font only while the label has none of its own.
 void Label::written(const decltype(text_style_role)&) {
-    if (!font.read().has_value()) {
+    if (font.read().absent()) {
         invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
     } else {
         invalidate(Dirty::semantics);

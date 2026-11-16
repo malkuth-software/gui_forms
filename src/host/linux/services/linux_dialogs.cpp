@@ -36,7 +36,7 @@ struct SelectFile final {
 };
 struct ChangeFilter final {
   DialogState *state;
-  void operator()(std::optional<std::size_t>) const;
+  void operator()(stxlib::Optional<std::size_t>) const;
 };
 struct EnterName final {
   DialogState *state;
@@ -153,10 +153,12 @@ struct DialogState final {
         continue;
       }
       bool show = is_directory || !folder;
-      if (show && !is_directory && filter && (*filter).selected_index.read() &&
-          *(*filter).selected_index.read() < filters.size()) {
+      const stxlib::Optional<std::size_t> chosen_filter =
+          filter ? (*filter).selected_index.read() : stxlib::Optional<std::size_t>::none();
+      if (show && !is_directory && chosen_filter.present() &&
+          *chosen_filter.value() < filters.size()) {
         const HostFileDialogFilter &selected =
-            filters[*(*filter).selected_index.read()];
+            filters[*chosen_filter.value()];
         // Case-insensitive, so *.png lists photo.PNG.
         show = file_dialog_filter_matches(selected,
                                           item.path().filename().string());
@@ -299,9 +301,11 @@ struct DialogState final {
     HostPathDialogResult accepted{HostDialogOutcome::accepted,
                                   std::move(paths)};
     // The added "All files" is no filter of the request.
-    if (!folder && filter && (*filter).selected_index.read() &&
-        *(*filter).selected_index.read() < filters.size())
-      accepted.chosen_filter = *(*filter).selected_index.read();
+    const stxlib::Optional<std::size_t> chosen_filter =
+        filter ? (*filter).selected_index.read() : stxlib::Optional<std::size_t>::none();
+    if (!folder && chosen_filter.present() &&
+        *chosen_filter.value() < filters.size())
+      accepted.chosen_filter = *chosen_filter.value();
     result.payload = std::move(accepted);
     done = true;
   }
@@ -343,11 +347,12 @@ void PickColor::operator()(Color colour) const {
     (*(*state).status).text = "";
 }
 void SelectFile::operator()(const ListSelectionChange &change) const {
-  if (change.active_index && *change.active_index < (*state).entries.size())
+  if (change.active_index.present() &&
+      *change.active_index.value() < (*state).entries.size())
     (*(*state).name).text =
-        (*state).entries[*change.active_index].path.filename().string();
+        (*state).entries[*change.active_index.value()].path.filename().string();
 }
-void ChangeFilter::operator()(std::optional<std::size_t>) const {
+void ChangeFilter::operator()(stxlib::Optional<std::size_t>) const {
   (*state).refresh((*state).directory);
 }
 void EnterName::operator()(const std::string &) const { (*state).accept(); }
@@ -363,7 +368,7 @@ std::shared_ptr<Label> label(DialogState &state, const char *id,
                              std::string text, Rect bounds) {
   const std::shared_ptr<Label> control =
       make_control<Label>(StableId(std::string(id)), std::move(text));
-  (*control).font = FontSpec{FontRole::content, 15, 400, false};
+  (*control).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 15, 400, false});
   (*control).text_wrapping = TextWrapping::word;
   (*control).set_bounds(bounds);
   (*state.root).add_child(control);
@@ -566,9 +571,9 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     (*state.filter).items = std::move(names);
     // The request's starting filter; the added "All files" follows the
     // request's own.
-    (*state.filter).selected_index = state.initial_filter < state.filters.size()
-                                         ? state.initial_filter
-                                         : std::size_t{0U};
+    (*state.filter).selected_index = stxlib::Optional<std::size_t>::of(
+        state.initial_filter < state.filters.size() ? state.initial_filter
+                                                    : std::size_t{0U});
     (*state.root).add_child(state.filter);
     state.status = label(state, "host.dialog.status", "", {16, 492, 450, 40});
     state.accept_button = state.button("host.dialog.accept",

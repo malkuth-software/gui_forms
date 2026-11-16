@@ -27,6 +27,7 @@
 #include <cstdio>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -86,7 +87,7 @@ SurfaceMaterial mirrored_material(MaterialReflectionSource source) {
     reflection.start_opacity = 0.5;
     reflection.end_opacity = 0.0;
     reflection.source = source;
-    material.reflection = reflection;
+    material.reflection.set(reflection);
     return material;
 }
 
@@ -121,22 +122,22 @@ public:
         glass.role = PartRole::region;
         glass.family = ControlVisualRole::card;
         glass.bounds = glass_bounds;
-        glass.corner_radius = 10.0;
-        glass.key = PartKey{"compositor-lab.glass", {}, {}};
+        glass.corner_radius.set(10.0);
+        glass.key.set(PartKey{"compositor-lab.glass", {}, {}});
         paint_part(painter, *this, glass);
 
         PartPaint backplane_mirror{};
         backplane_mirror.role = PartRole::face;
         backplane_mirror.family = ControlVisualRole::choice;
         backplane_mirror.bounds = backplane_mirror_bounds;
-        backplane_mirror.key = PartKey{"compositor-lab.backplane-mirror", {}, {}};
+        backplane_mirror.key.set(PartKey{"compositor-lab.backplane-mirror", {}, {}});
         paint_part(painter, *this, backplane_mirror);
 
         PartPaint face_mirror{};
         face_mirror.role = PartRole::face;
         face_mirror.family = ControlVisualRole::button;
         face_mirror.bounds = face_mirror_bounds;
-        face_mirror.key = PartKey{"compositor-lab.face-mirror", {}, {}};
+        face_mirror.key.set(PartKey{"compositor-lab.face-mirror", {}, {}});
         paint_part(painter, *this, face_mirror);
     }
 };
@@ -204,7 +205,7 @@ private:
 
 std::shared_ptr<Label> caption(std::string id, std::string text, Rect bounds) {
     std::shared_ptr<Label> made = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*made).fore_color = ink;
+    (*made).fore_color = stxlib::Optional<Color>::of(ink);
     (*made).set_requested_bounds(bounds);
     return made;
 }
@@ -262,12 +263,12 @@ std::shared_ptr<const Theme> compositor_lab_theme() {
 
     ThemeRule glass{};
     glass.label = "compositor-lab.glass";
-    glass.selector.role = PartRole::region;
+    glass.selector.role.set(PartRole::region);
     glass.declarations.push_back(RuleDeclaration::primitive("glass"));
     definition.rules.rules.push_back(glass);
     ThemeRule face{};
     face.label = "compositor-lab.face";
-    face.selector.role = PartRole::face;
+    face.selector.role.set(PartRole::face);
     face.declarations.push_back(RuleDeclaration::primitive("material"));
     definition.rules.rules.push_back(face);
 

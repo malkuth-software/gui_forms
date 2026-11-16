@@ -54,7 +54,7 @@ gui_forms::ComboBox
          edit changes nothing. The same collection is also available to
          bindings as the ``Items`` property.
 
-      **selected_index** : ``std::optional<std::size_t>``, default ``std::nullopt``
+      **selected_index** : ``stxlib::Optional<std::size_t>``, default none
          The index of the selected item, or no value when nothing is selected.
          Setting an index outside the items throws ``std::out_of_range``. Also
          available to bindings as ``SelectedIndex``, with -1 for no selection.
@@ -254,7 +254,7 @@ gui_forms::ComboBox
           gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
       (*density).items = {"Compact", "Comfortable", "Spacious"};
       (*density).placeholder_text = "Choose a density";
-      (*density).selected_index = 1U;
+      (*density).selected_index = stxlib::Optional<std::size_t>::of(1U);
       // (*density).selected_text() is now "Comfortable"
 
    React to the selection with an owned handler. Shrinking the items clears a
@@ -271,15 +271,15 @@ gui_forms::ComboBox
               (*combo).items = {"Compact", "Comfortable", "Spacious"};
               gf::on((*combo).selected_index_changed(), *this, &DensityField::on_density);
           }
-          void on_density(std::optional<std::size_t> index) {
-              density = index ? std::string((*combo).selected_text()) : std::string();
+          void on_density(stxlib::Optional<std::size_t> index) {
+              density = index.present() ? std::string((*combo).selected_text()) : std::string();
           }
       };
 
       void example() {
           DensityField field;
-          (*field.combo).selected_index = 2U;                 // field.density is "Spacious"
-          (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
+          (*field.combo).selected_index = stxlib::Optional<std::size_t>::of(2U);   // field.density is "Spacious"
+          (*field.combo).items = {"Compact", "Comfortable"};   // and now ""
       }
 
    An editable field that completes from its items:
@@ -339,7 +339,7 @@ gui_forms::ComboBox
       edit changes nothing. The same collection is also available to
       bindings as the ``Items`` property.
 
-   .. cpp:member:: std::optional<std::size_t> selected_index
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_index
 
       The index of the selected item, or no value when nothing is selected.
       Setting an index outside the items throws ``std::out_of_range``. Also

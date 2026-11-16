@@ -1841,18 +1841,18 @@ bool MaterialReader::read_style(std::size_t index, MaterialDeclaration& styled) 
         return fail(DiagnosticCode::value_wrong_kind, component.token, "a border style");
     }
     styled.edge_lines = MaterialEdgeLines::single;
-    styled.border_style = MaterialBorderStyle::solid;
+    styled.border_style.set(MaterialBorderStyle::solid);
     if (keyword(index, "none") || keyword(index, "hidden")) {
         styled.border_style.reset();
         return true;
     }
     if (keyword(index, "solid")) return true;
     if (keyword(index, "dashed")) {
-        styled.border_style = MaterialBorderStyle::dashed;
+        styled.border_style.set(MaterialBorderStyle::dashed);
         return true;
     }
     if (keyword(index, "dotted")) {
-        styled.border_style = MaterialBorderStyle::dotted;
+        styled.border_style.set(MaterialBorderStyle::dotted);
         return true;
     }
     if (keyword(index, "double")) {
@@ -2543,7 +2543,7 @@ bool MaterialReader::lower_filter() {
     }
     if (shadowed) {
         shadow.color = filtered_colour(after_shadow, shadow.color);
-        drop.drop_shadow = shadow;
+        drop.drop_shadow.set(shadow);
     }
     blur.number = 2.0 * std::sqrt(variance);
     SurfaceMaterial checked{};
@@ -3153,9 +3153,9 @@ bool MaterialReader::lower_reflection() {
     if (opacity_count > 0U) reflection.start_opacity = opacities[0];
     if (opacity_count > 1U) reflection.end_opacity = opacities[1];
     SurfaceMaterial checked{};
-    checked.reflection = reflection;
+    checked.reflection.set(reflection);
     if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a reflection");
-    declaration.reflection = reflection;
+    declaration.reflection.set(reflection);
     lowering_.declarations.push_back(std::move(declaration));
     return true;
 }

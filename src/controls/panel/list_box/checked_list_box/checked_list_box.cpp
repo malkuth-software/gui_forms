@@ -146,14 +146,14 @@ void CheckedListBox::toggle_on_press(MouseEventArgs& arguments) {
         list_pointer(arguments);
         return;
     }
-    const std::optional<std::size_t> index = arguments.button == PointerButton::primary
-        ? index_at(arguments.window_position) : std::optional<std::size_t>{};
-    const bool was_selected = index && detail::binary_search_contains(
-        selected_indices(), *index);
+    const stxlib::Optional<std::size_t> index = arguments.button == PointerButton::primary
+        ? index_at(arguments.window_position) : stxlib::Optional<std::size_t>::none();
+    const bool was_selected = index.present() && detail::binary_search_contains(
+        selected_indices(), *index.value());
     list_pointer(arguments);
-    if (!is_alive() || !index || *index >= items.read().size()) return;
+    if (!is_alive() || index.absent() || *index.value() >= items.read().size()) return;
     if (check_on_click.read() || was_selected) {
-        toggle_item(*index);
+        toggle_item(*index.value());
         arguments.handled = true;
     }
 }
@@ -163,8 +163,9 @@ void CheckedListBox::on_key_down(KeyEventArgs& arguments) {
     ListControl::on_key_down(arguments);
     if (arguments.handled) return;
     if (arguments.physical_key == PhysicalKey::space && focused_for_extension() && enabled.read()) {
-        if (const std::optional<std::size_t> index = active_index_for_extension()) {
-            toggle_item(*index);
+        const stxlib::Optional<std::size_t> index = active_index_for_extension();
+        if (index.present()) {
+            toggle_item(*index.value());
             arguments.handled = true;
         }
         return;
@@ -200,8 +201,8 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
     // The theme's choice corners up to 2 px, as a check box's well.
     const ControlVisualContext context = part_visual_context(*this, states);
     const double theme_radius = effective_theme().resolve(ControlVisualRole::choice, context).material.corner_radius;
-    well.corner_radius = std::min(2.0, theme_radius);
-    if (has_style_override()) well.authored_background = selected && focused ? style().highlight : style().paper;
+    well.corner_radius.set(std::min(2.0, theme_radius));
+    if (has_style_override()) well.authored_background.set(selected && focused ? style().highlight : style().paper);
     paint_part(painter, *this, well);
     const CheckState state = check_states_[index];
     if (state == CheckState::unchecked) return;
@@ -209,7 +210,7 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
     mark.family = ControlVisualRole::choice;
     mark.role = PartRole::indicator;
     mark.states = states;
-    if (has_style_override()) mark.authored_foreground = style().accent;
+    if (has_style_override()) mark.authored_foreground.set(style().accent);
     if (state == CheckState::checked) {
         mark.mark = PartMark::check;
         mark.states.insert(AnatomyState::checked);
@@ -227,8 +228,8 @@ std::vector<SemanticNode> CheckedListBox::semantic_virtual_children() const {
     // names its row.
     std::vector<SemanticNode> nodes = ListBox::semantic_virtual_children();
     for (SemanticNode& node : nodes) {
-        if (!node.position_in_set || *node.position_in_set == 0U) continue;
-        const std::size_t index = *node.position_in_set - 1U;
+        if (node.position_in_set.absent() || *node.position_in_set.value() == 0U) continue;
+        const std::size_t index = *node.position_in_set.value() - 1U;
         if (index >= check_states_.size()) continue;
         node.role = SemanticRole::check_list_item;
         node.states |= SemanticState::checkable;

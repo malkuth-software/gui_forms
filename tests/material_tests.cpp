@@ -24,6 +24,7 @@
 #include <span>
 #include <stdexcept>
 #include <string_view>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace {
@@ -217,7 +218,7 @@ SurfaceMaterial specimen_material() {
         MaterialFillLayer::radial({0.5, 0.5}, {0.5, 0.5}, glow)};
     material.shadows = {{{0.0, 3.0}, 6.0, 1.0,
                          Color::rgba(15, 25, 45, 80)}};
-    material.border = MaterialBorder{Color::rgba(25, 45, 75), 2.0};
+    material.border.set(MaterialBorder{Color::rgba(25, 45, 75), 2.0});
     material.corner_radius = 9.0;
     return material;
 }
@@ -246,7 +247,7 @@ void test_generated_pointer_count_construction_is_owned_and_bounded() {
                 material.fills[1].stops[1].offset == 0.55 &&
                 material.shadows.size() == 1U &&
                 material.shadows[0].blur_radius == 7.0 &&
-                material.border == border && material.corner_radius == 8.0,
+                material.border == stxlib::Optional<MaterialBorder>::of(border) && material.corner_radius == 8.0,
             "pointer/count construction must copy generated static data into retained ownership");
 
     bool rejected{};
@@ -437,13 +438,14 @@ void test_retained_replay_preserves_material_operations() {
     require(painter.last_spread == GradientSpreadMode::pad,
             "retained material must preserve its explicit gradient spread");
 
-    const std::optional<DisplayChunkInfo> before = (*panel).display_chunk_info();
+    const stxlib::Optional<DisplayChunkInfo> before = (*panel).display_chunk_info();
     (*panel).material = SurfaceMaterial{};
     const DamageRegion damage = window.take_damage();
-    require(before && !damage.empty(),
+    require(before.present() && !damage.empty(),
             "material mutation must invalidate its retained display chunk");
     window.paint(painter, damage.bounds());
-    require((*(*panel).display_chunk_info()).generation > (*before).generation,
+    const stxlib::Optional<DisplayChunkInfo> after = (*panel).display_chunk_info();
+    require(after.present() && (*after.value()).generation > (*before.value()).generation,
             "material mutation must rebuild rather than reuse stale pixels");
 }
 

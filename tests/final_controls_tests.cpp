@@ -49,6 +49,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -189,15 +190,15 @@ void test_gauge_values_and_alarms() {
     require((*gauge).tick_ratios().empty(), "a zero frequency draws no marks");
 
     require(!(*gauge).in_alarm(), "without limits there is no alarm");
-    (*gauge).high_alarm = std::optional<double>{40.0};
+    (*gauge).high_alarm = stxlib::Optional<double>::of(40.0);
     require((*gauge).in_alarm(), "a value over the high limit is in alarm");
     require((*gauge).anatomy_states().contains(AnatomyState::invalid), "an alarm is the invalid state");
     SemanticDescriptor semantics = (*gauge).semantic_descriptor();
     require(semantics.role == SemanticRole::meter && semantics.value == "50.0 kPa (high alarm)" &&
                 has_semantic_state(semantics.states, SemanticState::invalid),
             "assistive technology hears the alarm");
-    (*gauge).high_alarm = std::optional<double>{};
-    (*gauge).low_alarm = std::optional<double>{60.0};
+    (*gauge).high_alarm = stxlib::Optional<double>::none();
+    (*gauge).low_alarm = stxlib::Optional<double>::of(60.0);
     semantics = (*gauge).semantic_descriptor();
     require(semantics.value == "50.0 kPa (low alarm)", "a value under the low limit is a low alarm");
     bool refused = false;
@@ -209,11 +210,11 @@ void test_gauge_values_and_alarms() {
     require(refused, "more than six decimals are refused");
     refused = false;
     try {
-        (*gauge).low_alarm = std::optional<double>{std::nan("")};
+        (*gauge).low_alarm = stxlib::Optional<double>::of(std::nan(""));
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*gauge).low_alarm.read() == std::optional<double>{60.0}, "a limit that is not finite is refused");
+    require(refused && (*gauge).low_alarm.read() == stxlib::Optional<double>::of(60.0), "a limit that is not finite is refused");
 }
 
 void test_gauges_in_window() {
@@ -221,7 +222,7 @@ void test_gauges_in_window() {
     std::shared_ptr<LinearGauge> linear = make_control<LinearGauge>(StableId("final.gauges.linear"));
     (*linear).set_requested_bounds(Rect{10.0, 10.0, 240.0, 30.0});
     (*linear).value = 50.0;
-    (*linear).high_alarm = std::optional<double>{80.0};
+    (*linear).high_alarm = stxlib::Optional<double>::of(80.0);
     (*root).add_child(linear);
     std::shared_ptr<LinearGauge> vertical = make_control<LinearGauge>(StableId("final.gauges.vertical"));
     (*vertical).set_requested_bounds(Rect{260.0, 10.0, 48.0, 160.0});
@@ -253,7 +254,7 @@ void test_gauges_in_window() {
                 dial.caption.present,
             "a radial gauge publishes its face, scale arc, value arc, needle and value");
     require(!dial.alarm_arc.present, "without limits no alarm segment is published");
-    (*radial).high_alarm = std::optional<double>{90.0};
+    (*radial).high_alarm = stxlib::Optional<double>::of(90.0);
     window.perform_layout();
     require((*radial).parts().alarm_arc.present, "a high limit draws an alarm segment");
     (*radial).value = 0.0;
@@ -299,7 +300,8 @@ void test_dial() {
             "Page Up adds the large change");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::end}) && near((*dial).value.read(), 100.0), "End is the maximum");
     const SemanticDescriptor semantics = (*dial).semantic_descriptor();
-    require(semantics.role == SemanticRole::slider && semantics.numeric_value && near(*semantics.numeric_value, 100.0),
+    require(semantics.role == SemanticRole::slider && semantics.numeric_value.present() &&
+                near(*semantics.numeric_value.value(), 100.0),
             "a dial is a slider to assistive technology");
     require((*dial).on_semantic_action(SemanticAction::set_value, "25") && near((*dial).value.read(), 25.0),
             "the set-value action moves the dial");
@@ -787,7 +789,7 @@ void test_high_contrast_gauge_arcs() {
     const ControlVisualRecipe& forced = (*house).resolve(ControlVisualRole::progress, contrast);
     PartPaint track{.role = PartRole::arc, .bounds = Rect{0.0, 0.0, 120.0, 120.0},
                     .family = ControlVisualRole::progress};
-    track.arc = PartArc{-2.0, 4.0};
+    track.arc.set(PartArc{-2.0, 4.0});
     LinePainter outlined;
     paint_part_from_recipe(outlined, track, forced, contrast);
     bool hairlines = !outlined.widths.empty();

@@ -13,6 +13,7 @@
 
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -195,9 +196,9 @@ public:
     // sheet's `color-roles` declares it) where `facts` hold: its last
     // declaration whose condition holds. Under forced colours with no
     // `forced-colors` declaration of its own, its fallback role's
-    // high-contrast pair. Nullopt where the theme declares no such role.
-    [[nodiscard]] std::optional<ThemeRoleColours> application_role(std::string_view name,
-                                                                   const MediaFacts& facts) const noexcept;
+    // high-contrast pair. None where the theme declares no such role.
+    [[nodiscard]] stxlib::Optional<ThemeRoleColours> application_role(std::string_view name,
+                                                                      const MediaFacts& facts) const noexcept;
 
 private:
     // The six-argument resolve() without the control's kept results; sets

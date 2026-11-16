@@ -71,12 +71,13 @@ PartShape shape_of(const CompositePartDefinition& part) noexcept {
 
 // The radius a part is painted with: its declared radius, or the shape's
 // for a pill or a circle (the recipe has no shape kinds of its own yet).
-std::optional<double> paint_radius(const CompositePartDefinition& part, const Rect box) noexcept {
-    if (!part.corner_radius.empty()) return part.corner_radius[0];
+stxlib::Optional<double> paint_radius(const CompositePartDefinition& part, const Rect box) noexcept {
+    if (!part.corner_radius.empty()) return stxlib::Optional<double>::of(part.corner_radius[0]);
     const bool round = part.shape == ControlPartShape::pill || part.shape == ControlPartShape::circle ||
                        part.shape == ControlPartShape::cap_start || part.shape == ControlPartShape::cap_end;
-    if (!round) return std::nullopt;
-    return std::min(box.width, box.height) * 0.5;
+    if (!round) return stxlib::Optional<double>::none();
+    const stxlib::Optional<double> radius = stxlib::Optional<double>::of(std::min(box.width, box.height) * 0.5);
+    return radius;
 }
 
 bool text_role(const PartRole role) noexcept {
@@ -692,7 +693,7 @@ void CompositeControl::on_paint(Painter& painter, const Rect local_damage) {
         paint.mark = part.mark;
         paint.corner_radius = paint_radius(part, paint.bounds);
         paint.font = font;
-        paint.key = PartKey{part.registered, {}, {}};
+        paint.key.set(PartKey{part.registered, {}, {}});
         std::string shown{};
         if (part.text_property && text_role(part.role)) {
             const BindingValue value = read_property(*part.text_property);
@@ -708,7 +709,7 @@ void CompositeControl::on_paint(Painter& painter, const Rect local_damage) {
         const std::size_t part = *(*definition_).focus.visible_cue;
         PartPaint focus{.role = PartRole::focus, .bounds = geometry_.published[part], .states = control_states,
                         .family = (*definition_).family};
-        focus.key = PartKey{"focus", {}, {}};
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }
@@ -1144,12 +1145,12 @@ SemanticDescriptor CompositeControl::semantic_descriptor() const {
     if (!semantics.value.empty()) {
         const CompositeValue value = evaluator.first(semantics.value);
         descriptor.value = evaluator.text(semantics.value);
-        if (value.kind == CompositeValueKind::number) descriptor.numeric_value = value.number;
+        if (value.kind == CompositeValueKind::number) descriptor.numeric_value.set(value.number);
     }
     const std::vector<ExpressionNodeIndex>& range = semantics.range.parsed.terms;
-    if (range.size() >= 1U) descriptor.minimum_value = evaluator.evaluate(semantics.range, range[0]).number;
-    if (range.size() >= 2U) descriptor.maximum_value = evaluator.evaluate(semantics.range, range[1]).number;
-    if (range.size() >= 3U) descriptor.small_step = evaluator.evaluate(semantics.range, range[2]).number;
+    if (range.size() >= 1U) descriptor.minimum_value.set(evaluator.evaluate(semantics.range, range[0]).number);
+    if (range.size() >= 2U) descriptor.maximum_value.set(evaluator.evaluate(semantics.range, range[1]).number);
+    if (range.size() >= 3U) descriptor.small_step.set(evaluator.evaluate(semantics.range, range[2]).number);
     for (const control_language::CompositeSemanticState& state : semantics.states) {
         if (CompositeEvaluator::truthy(evaluator.evaluate(semantics.states_expression, state.condition))) {
             descriptor.states = descriptor.states | state.state;

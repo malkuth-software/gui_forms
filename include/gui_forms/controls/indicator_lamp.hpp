@@ -148,7 +148,7 @@ private:
     void written(const decltype(text)& cell);
     void prepare_write(const decltype(light_planes)& cell, std::string& incoming);
     void written(const decltype(light_planes)& cell);
-    void prepare_write(const decltype(lamp_color)& cell, std::optional<Color>& incoming);
+    void prepare_write(const decltype(lamp_color)& cell, stxlib::Optional<Color>& incoming);
     void written(const decltype(lamp_color)& cell);
     // property_codemod end IndicatorLamp
 };

@@ -73,7 +73,7 @@ gui_forms::ButtonBase
          Whether ``&`` in :cpp:member:`text <gui_forms::ButtonBase::text>` marks a mnemonic. When false the ampersand is drawn
          and Alt shortcuts are ignored.
 
-      **expanded_state** : ``std::optional<bool>``, default ``std::nullopt``
+      **expanded_state** : ``stxlib::Optional<bool>``, default ``std::nullopt``
          Optional disclosure state for a button that opens or shows something. A
          value adds expanded or collapsed state and an expand or collapse action
          to the accessibility tree. Setting a different value raises
@@ -136,7 +136,7 @@ gui_forms::ButtonBase
 
    :Events:
 
-      **expanded_changed** : ``Event<std::optional<bool>>``
+      **expanded_changed** : ``Event<stxlib::Optional<bool>>``
          Raised after :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>` changes. It carries the new state.
 
       **clicked** : ``Event<ButtonBase&>``
@@ -319,7 +319,7 @@ gui_forms::ButtonBase
       Whether ``&`` in :cpp:member:`text <gui_forms::ButtonBase::text>` marks a mnemonic. When false the ampersand is drawn
       and Alt shortcuts are ignored.
 
-   .. cpp:member:: std::optional<bool> expanded_state
+   .. cpp:member:: stxlib::Optional<bool> expanded_state
 
       Optional disclosure state for a button that opens or shows something. A
       value adds expanded or collapsed state and an expand or collapse action
@@ -407,7 +407,7 @@ gui_forms::ButtonBase
 
    .. rubric:: Events
 
-   .. cpp:function:: Event<std::optional<bool>>& expanded_changed() noexcept
+   .. cpp:function:: Event<stxlib::Optional<bool>>& expanded_changed() noexcept
 
       Raised after :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>` changes. It carries the new state.
 

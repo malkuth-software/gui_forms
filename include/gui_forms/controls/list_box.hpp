@@ -7,9 +7,10 @@
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/list_box_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -20,7 +21,7 @@ namespace gui_forms {
 struct GUI_FORMS_API ListSelectionChange final {
     std::vector<std::size_t> previous;
     std::vector<std::size_t> current;
-    std::optional<std::size_t> active_index;
+    stxlib::Optional<std::size_t> active_index;
 };
 
 class GUI_FORMS_API ListBox : public ListControl, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox> {
@@ -122,10 +123,10 @@ protected:
     virtual void paint_row_adornment(Painter& painter, std::size_t index,
                                      Rect row_bounds, bool selected,
                                      bool focused) const;
-    [[nodiscard]] std::optional<std::size_t> active_index_for_extension()
+    [[nodiscard]] stxlib::Optional<std::size_t> active_index_for_extension()
         const noexcept { return active_index_; }
     [[nodiscard]] bool focused_for_extension() const noexcept { return focused_; }
-    [[nodiscard]] std::optional<std::size_t> index_at(
+    [[nodiscard]] stxlib::Optional<std::size_t> index_at(
         Point absolute) const noexcept;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void publish_realized_item_geometry(std::size_t item,
@@ -155,13 +156,13 @@ private:
     void reset_items_property();
     [[nodiscard]] bool should_serialize_items_property() const noexcept;
     void apply_selection(std::vector<std::size_t> selection,
-                         std::optional<std::size_t> active);
+                         stxlib::Optional<std::size_t> active);
     void ensure_visible(std::size_t index);
     [[nodiscard]] std::size_t visible_row_count() const noexcept;
     // Repaints one shown row; nothing for a row outside the shown window.
     void invalidate_row(std::size_t index);
-    // The index of an authored stable item ID, or nullopt.
-    [[nodiscard]] std::optional<std::size_t> index_of_item_stable_id(std::string_view stable_id);
+    // The index of an authored stable item ID, or none.
+    [[nodiscard]] stxlib::Optional<std::size_t> index_of_item_stable_id(std::string_view stable_id);
 
     // Orders indices into item_stable_ids_ by the identity they name.
     struct StableIdOrder {
@@ -186,9 +187,9 @@ private:
     std::vector<std::size_t> edit_selection_;
     // The replaced rows taken at a settle; reused across flushes.
     std::vector<std::uint32_t> settled_rows_;
-    std::optional<std::size_t> active_index_;
-    std::optional<std::size_t> anchor_index_;
-    std::optional<std::size_t> hovered_index_;
+    stxlib::Optional<std::size_t> active_index_;
+    stxlib::Optional<std::size_t> anchor_index_;
+    stxlib::Optional<std::size_t> hovered_index_;
     std::size_t top_index_{};
     bool focused_{};
     Event<const ListSelectionChange&> selection_changed_;

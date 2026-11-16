@@ -302,7 +302,7 @@ void check_state(GateContext& gate) {
     const NSAppearanceName matched = [NSApp.effectiveAppearance bestMatchFromAppearancesWithNames:names];
     const bool system_dark = matched != nil && [matched isEqualToString:NSAppearanceNameDarkAqua];
     if (state.dark_scheme != system_dark) fail(gate, "dark_scheme is the application's effective appearance");
-    if (!state.system_colours.accent) fail(gate, "the host reports the control accent colour");
+    if (state.system_colours.accent.absent()) fail(gate, "the host reports the control accent colour");
 }
 
 void request_for(GateContext& gate, GateStep step) {

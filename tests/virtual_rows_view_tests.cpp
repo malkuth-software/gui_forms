@@ -33,7 +33,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -42,6 +42,30 @@
 
 namespace {
 using namespace gui_forms;
+
+// D15 Q3: a setter keeps its deprecated std::optional form for one stage;
+// a plain value or {} must not reach it silently. Each plain call below is
+// refused (a deleted overload or an ambiguity), and the stxlib form is
+// accepted.
+template <typename View>
+concept takes_plain_selected_row = requires(View& view) { view.set_selected_row(VirtualRowIndex{1U}); };
+template <typename View>
+concept takes_empty_selected_row = requires(View& view) { view.set_selected_row({}); };
+template <typename View>
+concept takes_plain_sort = requires(View& view) { view.set_sort(std::size_t{1U}, VirtualRowsSort::ascending); };
+template <typename View>
+concept takes_empty_sort = requires(View& view) { view.set_sort({}, VirtualRowsSort::ascending); };
+template <typename View>
+concept takes_plain_budget = requires(View& view) { view.set_measured_row_budget(std::size_t{10U}); };
+template <typename View>
+concept takes_optional_row = requires(View& view) {
+    view.set_selected_row(stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{1U}));
+    view.set_sort(stxlib::Optional<std::size_t>::none(), VirtualRowsSort::none);
+    view.set_measured_row_budget(stxlib::Optional<std::size_t>::of(10U));
+};
+static_assert(!takes_plain_selected_row<VirtualRowsView> && !takes_empty_selected_row<VirtualRowsView>);
+static_assert(!takes_plain_sort<VirtualRowsView> && !takes_empty_sort<VirtualRowsView>);
+static_assert(!takes_plain_budget<VirtualRowsView> && takes_optional_row<VirtualRowsView>);
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -160,10 +184,10 @@ public:
 };
 
 struct RecordSelection final {
-    std::vector<std::optional<std::size_t>>* seen{};
+    std::vector<stxlib::Optional<std::size_t>>* seen{};
     void operator()(const VirtualRowSelection& change) const {
-        std::optional<std::size_t> current{};
-        if (change.current.has_value()) current = (*change.current).value;
+        stxlib::Optional<std::size_t> current{};
+        if (change.current.present()) current.set((*change.current.value()).value);
         (*seen).push_back(current);
     }
 };
@@ -192,8 +216,8 @@ std::shared_ptr<VirtualRowsView> make_view(SyntheticRows& rows, std::size_t coun
     return view;
 }
 
-std::optional<VirtualRowIndex> some_row(std::size_t value) {
-    const std::optional<VirtualRowIndex> row = VirtualRowIndex{value};
+stxlib::Optional<VirtualRowIndex> some_row(std::size_t value) {
+    const stxlib::Optional<VirtualRowIndex> row = stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{value});
     return row;
 }
 
@@ -489,7 +513,7 @@ void keyboard_and_activation() {
     std::shared_ptr<VirtualRowsView> view = make_view(rows, 5'000U);
     Window window(view, {400.0, 300.0});
     window.perform_layout();
-    std::vector<std::optional<std::size_t>> selections;
+    std::vector<stxlib::Optional<std::size_t>> selections;
     std::vector<std::size_t> activations;
     SubscriptionToken selected = (*view).selection_changed().subscribe(RecordSelection{&selections});
     SubscriptionToken activated = (*view).row_activated().subscribe(RecordActivation{&activations});
@@ -498,7 +522,9 @@ void keyboard_and_activation() {
             "Down with no selection selects the first visible row");
     require(key(window, PhysicalKey::down) && (*view).selected_row() == some_row(1U),
             "Down moves the selection a row");
-    require(key(window, PhysicalKey::page_down) && (*(*view).selected_row()).value > 5U,
+    const bool paged_down = key(window, PhysicalKey::page_down);
+    const stxlib::Optional<VirtualRowIndex> after_page_down = (*view).selected_row();
+    require(paged_down && after_page_down.present() && (*after_page_down.value()).value > 5U,
             "Page Down moves the selection by a viewport");
     require(key(window, PhysicalKey::end) && (*view).selected_row() == some_row(4'999U) &&
                 (*view).end_visible_row().value == 5'000U,
@@ -510,18 +536,18 @@ void keyboard_and_activation() {
             "Home selects and reveals the first row");
     require(key(window, PhysicalKey::enter) && activations == std::vector<std::size_t>({0U}),
             "Enter activates the selected row");
-    require(selections.size() == 6U && selections.back() == std::optional<std::size_t>(0U),
+    require(selections.size() == 6U && selections.back() == stxlib::Optional<std::size_t>::of(0U),
             "every selection change is raised once");
 
     // The selection follows its row through insertions and is dropped with
     // it by an erasure.
-    (*view).set_selected_row(VirtualRowIndex{10U});
+    (*view).set_selected_row(stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{10U}));
     (*view).insert_rows(VirtualRowIndex{0U}, 5U);
     require((*view).selected_row() == some_row(15U), "an insertion above moves the selection");
     const std::size_t raised = selections.size();
     (*view).erase_rows(VirtualRowIndex{14U}, 3U);
-    require(!(*view).selected_row().has_value() && selections.size() == raised + 1U &&
-                !selections.back().has_value(),
+    require((*view).selected_row().absent() && selections.size() == raised + 1U &&
+                selections.back().absent(),
             "erasing the selected row unselects it and says so");
     static_cast<void>(selected);
     static_cast<void>(activated);
@@ -533,10 +559,10 @@ void accessibility() {
     (*view).accessible_name = "Messages";
     Window window(view, {400.0, 300.0});
     window.perform_layout();
-    (*view).set_selected_row(VirtualRowIndex{2U});
+    (*view).set_selected_row(stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{2U}));
     const SemanticDescriptor descriptor = (*view).semantic_descriptor();
     require(descriptor.role == SemanticRole::list && descriptor.name == "Messages" &&
-                descriptor.row_count == 1'000'000U && descriptor.value == "Row 2",
+                descriptor.row_count == stxlib::Optional<std::size_t>::of(1'000'000U) && descriptor.value == "Row 2",
             "the view is a named list sized by every row, its value the selected row's name");
     std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     const std::size_t realized = (*view).end_visible_row().value - (*view).first_visible_row().value;
@@ -547,7 +573,8 @@ void accessibility() {
             "the live region is present, silent before any announcement");
     require(children[0].role == SemanticRole::list_item && children[0].stable_id == "rows.row-0" &&
                 children[0].name == "Row 0" && children[0].value == "Message text of row 0" &&
-                children[0].position_in_set == 1U && children[0].set_size == 1'000'000U,
+                children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                children[0].set_size == stxlib::Optional<std::size_t>::of(1'000'000U),
             "a row is a list item named by the describe target, placed in the whole set");
     require(has_semantic_state(children[2].states, SemanticState::selected) &&
                 !has_semantic_state(children[1].states, SemanticState::selected),
@@ -573,7 +600,7 @@ void accessibility() {
     (*view).scroll_to_row(VirtualRowIndex{777'777U}, VirtualRowAlignment::start);
     children = (*view).semantic_virtual_children();
     require(!children.empty() && children[0].stable_id == "rows.row-777777" &&
-                children[0].position_in_set == 777'778U,
+                children[0].position_in_set == stxlib::Optional<std::size_t>::of(777'778U),
             "after a jump the children are the rows in view");
     static_cast<void>(activated);
 }
@@ -650,13 +677,13 @@ void themed_background() {
     std::shared_ptr<VirtualRowsView> view = make_view(rows, 100U);
     Window window(view, {400.0, 300.0});
     window.perform_layout();
-    require(!(*view).parts().well.authored_background, "without back_color the theme's ground stands");
+    require(!(*view).parts().well.authored_background.present(), "without back_color the theme's ground stands");
     const Color override_colour = Color::rgba(12, 34, 56);
-    (*view).back_color = override_colour;
+    (*view).back_color = stxlib::Optional<Color>::of(override_colour);
     window.perform_layout();
     RecordingPainter painter;
     (*view).on_paint(painter, (*view).client_rectangle());
-    require((*view).parts().well.authored_background == std::optional<Color>(override_colour) &&
+    require((*view).parts().well.authored_background == stxlib::Optional<Color>::of(override_colour) &&
                 contains_colour(painter.fills, override_colour),
             "back_color overrides the well's ground and is painted through it");
 }
@@ -788,8 +815,8 @@ void measured_row_budget() {
     std::shared_ptr<VirtualRowsView> open = make_view(open_rows, 1'000'000U);
     Window open_window(open, {400.0, 300.0});
     open_window.perform_layout();
-    require(!(*view).measured_row_budget().has_value(), "no budget by default");
-    (*view).set_measured_row_budget(budget);
+    require((*view).measured_row_budget().absent(), "no budget by default");
+    (*view).set_measured_row_budget(stxlib::Optional<std::size_t>::of(budget));
     for (std::size_t step = 0U; step < 400U; ++step) {
         (*view).scroll_to_offset((*view).scroll_offset() + 2'500.0);
         (*open).scroll_to_offset((*open).scroll_offset() + 2'500.0);
@@ -809,12 +836,12 @@ void measured_row_budget() {
     // keeps the rows on screen still.
     const VirtualRowIndex top = (*view).first_visible_row();
     const double top_y = (*view).row_bounds(top).y;
-    (*view).set_measured_row_budget(200U);
+    (*view).set_measured_row_budget(stxlib::Optional<std::size_t>::of(200U));
     require((*view).statistics().index_measured <= 201U + band_rows && (*view).first_visible_row() == top &&
                 (*view).row_bounds(top).y == top_y,
             "forgetting rows above the view does not move the rows on screen");
-    (*view).set_measured_row_budget(std::nullopt);
-    require(!(*view).measured_row_budget().has_value(), "the budget can be lifted");
+    (*view).set_measured_row_budget(stxlib::Optional<std::size_t>::none());
+    require((*view).measured_row_budget().absent(), "the budget can be lifted");
 }
 
 // Extended selection with ListBox's conventions: a press, Shift and Ctrl
@@ -883,7 +910,9 @@ void extended_selection() {
             "an erasure removes its rows from the ranges and joins the rest");
 
     (*view).set_selection_mode(ListSelectionMode::one);
-    const std::size_t current = (*(*view).selected_row()).value;
+    const stxlib::Optional<VirtualRowIndex> selected_now = (*view).selected_row();
+    require(selected_now.present(), "a row is selected before the mode changes");
+    const std::size_t current = (*selected_now.value()).value;
     require(ranges_are(*view, {rows_from(current, 1U)}) &&
                 !has_semantic_state((*view).semantic_descriptor().states, SemanticState::multiselectable),
             "the single mode keeps the current row alone");
@@ -1084,8 +1113,8 @@ void column_model() {
     const Rect cell = (*view).column_cell(1U, row);
     require(cell.x == 100.0 && cell.width == 80.0 && cell.y == row.y && cell.height == row.height,
             "a cell is its column's extent across the row");
-    require((*view).column_at({150.0, 10.0}) == std::optional<std::size_t>(1U) &&
-                !(*view).column_at({300.0, 10.0}).has_value(),
+    require((*view).column_at({150.0, 10.0}) == stxlib::Optional<std::size_t>::of(1U) &&
+                (*view).column_at({300.0, 10.0}).absent(),
             "column_at finds the column under a point, and none past the last");
 
     std::vector<std::size_t> resized;
@@ -1103,19 +1132,19 @@ void column_model() {
 
     std::vector<VirtualRowsColumnMove> moves;
     SubscriptionToken move_token = (*view).column_moved().subscribe(RecordColumnMove{&moves});
-    (*view).set_sort(2U, VirtualRowsSort::ascending);
+    (*view).set_sort(stxlib::Optional<std::size_t>::of(2U), VirtualRowsSort::ascending);
     (*view).move_column(2U, 0U);
     require(column_ids(*view) == std::vector<std::string_view>({"c", "a", "b"}) && moves.size() == 1U &&
                 moves[0].from == 2U && moves[0].to == 0U,
             "move_column reorders and raises column_moved");
-    require((*view).sort_column() == std::optional<std::size_t>(0U) &&
+    require((*view).sort_column() == stxlib::Optional<std::size_t>::of(0U) &&
                 (*view).sort_direction() == VirtualRowsSort::ascending,
             "the sort column follows its column");
     (*view).move_column(0U, 2U);
-    require((*view).sort_column() == std::optional<std::size_t>(2U), "and follows it back");
+    require((*view).sort_column() == stxlib::Optional<std::size_t>::of(2U), "and follows it back");
     (*view).move_column(0U, 1U);
     require(column_ids(*view) == std::vector<std::string_view>({"b", "a", "c"}) &&
-                (*view).sort_column() == std::optional<std::size_t>(2U),
+                (*view).sort_column() == stxlib::Optional<std::size_t>::of(2U),
             "a move that does not cross the sort column leaves it in place");
 
     window.perform_layout();
@@ -1126,11 +1155,11 @@ void column_model() {
     require((*view).realized_item_anatomy_states(rows_only + 2U).contains(AnatomyState::selected) &&
                 !(*view).realized_item_anatomy_states(rows_only).contains(AnatomyState::selected),
             "the sort column's header is selected, so its sort indicator shows");
-    (*view).set_sort(2U, VirtualRowsSort::none);
-    require(!(*view).sort_column().has_value(), "a sort with no direction clears the sort");
-    (*view).set_sort(1U, VirtualRowsSort::descending);
+    (*view).set_sort(stxlib::Optional<std::size_t>::of(2U), VirtualRowsSort::none);
+    require((*view).sort_column().absent(), "a sort with no direction clears the sort");
+    (*view).set_sort(stxlib::Optional<std::size_t>::of(1U), VirtualRowsSort::descending);
     (*view).set_columns(three_columns());
-    require(!(*view).sort_column().has_value() && column_ids(*view) == std::vector<std::string_view>({"a", "b", "c"}),
+    require((*view).sort_column().absent() && column_ids(*view) == std::vector<std::string_view>({"a", "b", "c"}),
             "new columns clear the sort");
     RecordingPainter painter;
     static_cast<void>(window.paint(painter, {0.0, 0.0, 400.0, 300.0}));
@@ -1158,7 +1187,7 @@ void column_pointer() {
 
     press_at(window, {140.0, 12.0}, Modifier::none);
     release_at(window, {141.0, 12.0});
-    require(clicks == std::vector<std::size_t>({1U}) && !(*view).selected_row().has_value(),
+    require(clicks == std::vector<std::size_t>({1U}) && (*view).selected_row().absent(),
             "a click on a sortable header raises header_clicked and selects no row");
     press_at(window, {210.0, 12.0}, Modifier::none);
     release_at(window, {210.0, 12.0});
@@ -1214,7 +1243,7 @@ void column_right_to_left() {
     require((*view).column_header_bounds().x == 17.0 && (*view).column_cell(0U, row).x == 300.0 &&
                 (*view).column_cell(1U, row).x == 220.0,
             "right to left the columns run from the right edge");
-    require((*view).column_at({350.0, 10.0}) == std::optional<std::size_t>(0U), "column_at is mirrored too");
+    require((*view).column_at({350.0, 10.0}) == stxlib::Optional<std::size_t>::of(0U), "column_at is mirrored too");
     // The first column's divider is at its left edge: dragging it left
     // widens the column.
     press_at(window, {300.0, 12.0}, Modifier::none);
@@ -1275,7 +1304,7 @@ void column_semantics() {
     std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
     Window window(view, {400.0, 300.0});
     (*view).set_columns(three_columns());
-    (*view).set_sort(1U, VirtualRowsSort::descending);
+    (*view).set_sort(stxlib::Optional<std::size_t>::of(1U), VirtualRowsSort::descending);
     window.perform_layout();
     const std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     std::vector<const SemanticNode*> headers{};
@@ -1288,7 +1317,7 @@ void column_semantics() {
     const SemanticNode& self = *headers[1];
     const SemanticNode& total = *headers[2];
     require(name.stable_id == "rows.column-a" && name.name == "Name" &&
-                name.column_index == std::optional<std::size_t>(1U) && name.value.empty() &&
+                name.column_index == stxlib::Optional<std::size_t>::of(1U) && name.value.empty() &&
                 name.bounds.x == 0.0 && name.bounds.width == 100.0 && name.bounds.height == 24.0,
             "a header is named by its column, placed by its index and bounds");
     require(self.value == "descending" && total.actions.empty() && self.actions.size() == 1U &&
@@ -1338,7 +1367,7 @@ void focus_handler_resets_the_rows() {
         const SemanticAction action = round == 0U ? SemanticAction::select : SemanticAction::press;
         const bool handled = (*view).on_semantic_child_action("rows.row-10", action, {});
         require(reset && (*view).row_count() == 3U && !handled, "the focus handler cut the rows; row 10 is gone");
-        require(!(*view).selected_row().has_value() && (*view).selected_row_count() == 0U && activations.empty(),
+        require((*view).selected_row().absent() && (*view).selected_row_count() == 0U && activations.empty(),
                 "nothing past the rows is selected or activated");
         static_cast<void>(activated);
         static_cast<void>(token);

@@ -68,7 +68,7 @@ FlagsValueEditor::FlagsValueEditor(StableId stable_id) : Panel(std::move(stable_
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 FlagsValueEditor::FlagsValueEditor(
@@ -488,8 +488,8 @@ void FlagsValueEditor::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
     const Rect bounds = local_bounds();
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ink{};
-    if (has_style_override()) ink = style().text;
+    stxlib::Optional<Color> ink{};
+    if (has_style_override()) ink.set(style().text);
     const double button_width = std::min(24.0, bounds.width);
     const double divider_x = std::max(0.0, bounds.width - button_width);
     PartPaint drop_down;

@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <unordered_map>
 #include <unordered_set>
@@ -133,21 +134,21 @@ struct GUI_FORMS_API ResponsiveLayoutSnapshot final {
 
 // The track a track panel provides to its children (a child property,
 // study sections 10 and 15.4): the authored track index, or none for the
-// next track no child names. `(*tracks).child_track[*child] = 2U;`
+// next track no child names. `(*tracks).child_track[*child] = stxlib::Optional<std::uint32_t>::of(2U);`
 template <typename Declaring>
 struct ChildTrackCapability {
-    ChildPropertyView<std::optional<std::uint32_t>, ChildTrackCapability<Declaring>> child_track;
+    ChildPropertyView<stxlib::Optional<std::uint32_t>, ChildTrackCapability<Declaring>> child_track;
 
-    static void assign(ChildTrackCapability& capability, const Control& child, std::optional<std::uint32_t> value) {
+    static void assign(ChildTrackCapability& capability, const Control& child, stxlib::Optional<std::uint32_t> value) {
         Declaring& container = static_cast<Declaring&>(capability);
         container.prepare_write(child, value);
         if (!container.replace_child_track(child, value)) return;
         container.written(child);
     }
 
-    static std::optional<std::uint32_t> read(const ChildTrackCapability& capability, const Control& child) {
+    static stxlib::Optional<std::uint32_t> read(const ChildTrackCapability& capability, const Control& child) {
         const Declaring& container = static_cast<const Declaring&>(capability);
-        const std::optional<std::uint32_t> value = container.stored_child_track(child);
+        const stxlib::Optional<std::uint32_t> value = container.stored_child_track(child);
         return value;
     }
 };
@@ -207,12 +208,12 @@ private:
 
     // The child track's hooks: the container's thread, a live direct child
     // and a track inside the specs before the compare; relayout after.
-    void prepare_write(const Control& child, const std::optional<std::uint32_t>& incoming) const;
+    void prepare_write(const Control& child, const stxlib::Optional<std::uint32_t>& incoming) const;
     void written(const Control& child);
     // Stores `child`'s track (none erases it); false when it was already `value`.
-    bool replace_child_track(const Control& child, std::optional<std::uint32_t> value);
+    bool replace_child_track(const Control& child, stxlib::Optional<std::uint32_t> value);
     // `child`'s authored track; refuses a child that is not a live direct child.
-    [[nodiscard]] std::optional<std::uint32_t> stored_child_track(const Control& child) const;
+    [[nodiscard]] stxlib::Optional<std::uint32_t> stored_child_track(const Control& child) const;
 
     using ChildTrackMap = std::unordered_map<std::uint64_t, std::size_t>;
     using FocusFallbackMap =

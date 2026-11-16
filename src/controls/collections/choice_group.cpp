@@ -380,7 +380,7 @@ void ChoiceGroup::on_paint(Painter& painter, Rect local_damage) {
     selection.states.insert(AnatomyState::selected);
     // A keyed part, so that the engine may move the indicator between
     // segments (and does not when motion is reduced).
-    selection.key = PartKey{"selection", {}, {}};
+    selection.key.set(PartKey{"selection", {}, {}});
     paint_part(painter, *this, selection);
 }
 void ChoiceGroup::on_key_bubble(KeyEvent& event) { handle_key(event); }

@@ -133,11 +133,11 @@ void NodeCanvas::press_primary(MouseEventArgs& arguments) {
     if (hit.kind == NodeCanvasHitKind::port) {
         const PortRef port{hit.node, hit.port};
         const PortRecord* record = graph.port(port);
-        const std::optional<Point> anchor = port_view_anchor(port);
-        if (record == nullptr || !anchor.has_value()) return;
-        focused_node_ = hit.node;
-        focused_port_ = hit.port;
-        const Point anchor_window = point_to_window(*anchor);
+        const stxlib::Optional<Point> anchor = port_view_anchor(port);
+        if (record == nullptr || anchor.absent()) return;
+        focused_node_.set(hit.node);
+        focused_port_.set(hit.port);
+        const Point anchor_window = point_to_window(*anchor.value());
         const Rect source{anchor_window.x - 1.0, anchor_window.y - 1.0, 2.0, 2.0};
         if ((*record).direction == PortDirection::output) {
             link_from_ = port;
@@ -169,8 +169,8 @@ void NodeCanvas::press_primary(MouseEventArgs& arguments) {
         } else {
             // A press on a selected node keeps the selection for a drag; the
             // click after a release without a drag narrows it.
-            pending_click_select_ = hit.node;
-            focused_node_ = hit.node;
+            pending_click_select_.set(hit.node);
+            focused_node_.set(hit.node);
             focused_port_.reset();
         }
         if (!selected(hit.node)) return;
@@ -226,10 +226,10 @@ void NodeCanvas::on_mouse_move(MouseEventArgs& arguments) {
     } else if (graph_ != nullptr) {
         // Hover: the node under the pointer is hot.
         const NodeCanvasHit hit = hit_test(arguments.location);
-        std::optional<std::uint32_t> hot{};
+        stxlib::Optional<std::uint32_t> hot{};
         if (hit.kind == NodeCanvasHitKind::node_body || hit.kind == NodeCanvasHitKind::node_caption ||
             hit.kind == NodeCanvasHitKind::port) {
-            hot = hit.node.index;
+            hot.set(hit.node.index);
         }
         if (hot != hot_node_) {
             hot_node_ = hot;
@@ -240,7 +240,7 @@ void NodeCanvas::on_mouse_move(MouseEventArgs& arguments) {
 }
 
 void NodeCanvas::on_mouse_leave() {
-    if (hot_node_.has_value()) {
+    if (hot_node_.present()) {
         hot_node_.reset();
         invalidate(Dirty::paint);
     }
@@ -268,8 +268,8 @@ void NodeCanvas::on_mouse_up(MouseEventArgs& arguments) {
 }
 
 void NodeCanvas::on_mouse_click(MouseEventArgs& arguments) {
-    if (arguments.button == PointerButton::primary && pending_click_select_.has_value()) {
-        const NodeId node = *pending_click_select_;
+    if (arguments.button == PointerButton::primary && pending_click_select_.present()) {
+        const NodeId node = *pending_click_select_.value();
         pending_click_select_.reset();
         select_only(node);
     }
@@ -285,7 +285,7 @@ void NodeCanvas::on_mouse_double_click(MouseEventArgs& arguments) {
                 hit.kind == NodeCanvasHitKind::node_caption ? NodeEditPart::caption : NodeEditPart::body;
             static_cast<void>(begin_edit(hit.node, part));
         } else if (hit.kind == NodeCanvasHitKind::none) {
-            request_palette(arguments.location, std::nullopt);
+            request_palette(arguments.location, stxlib::Optional<PortRef>::none());
         }
         arguments.handled = true;
     }
@@ -312,14 +312,14 @@ void NodeCanvas::on_context_menu_requested(ContextMenuRequest& request) {
         // at the middle of the view.
         const Rect client = client_rectangle();
         Point at{client.x + client.width / 2.0, client.y + client.height / 2.0};
-        if (focused_node_.has_value()) {
-            const NodeRecord* node = (*graph_).node(*focused_node_);
+        if (focused_node_.present()) {
+            const NodeRecord* node = (*graph_).node(*focused_node_.value());
             if (node != nullptr) {
                 const Rect shown = view_.rect_to_view((*node).bounds);
                 at = Point{shown.x + shown.width + reveal_margin, shown.y};
             }
         }
-        request_palette(at, std::nullopt);
+        request_palette(at, stxlib::Optional<PortRef>::none());
         request.handled = true;
     }
     Control::on_context_menu_requested(request);
@@ -345,7 +345,7 @@ void NodeCanvas::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     Control::on_detaching_from_window(former_window);
 }
 
-void NodeCanvas::request_palette(Point local, std::optional<PortRef> from) {
+void NodeCanvas::request_palette(Point local, stxlib::Optional<PortRef> from) {
     NodePaletteRequest request{};
     request.world = view_.to_world(local);
     request.local = local;
@@ -458,17 +458,17 @@ void NodeCanvas::preview_drag(const DragTrackerFrame& frame) {
         return;
     }
     case NodeCanvasGesture::link: {
-        const bool had_target = link_hit_.has_value();
+        const bool had_target = link_hit_.present();
         link_hit_.reset();
-        if (frame.hit == DragHit::target && frame.target < candidates_.size()) link_hit_ = frame.target;
-        if (link_hit_.has_value() && !had_target) ++statistics_.magnet_captures;
+        if (frame.hit == DragHit::target && frame.target < candidates_.size()) link_hit_.set(static_cast<std::uint32_t>(frame.target));
+        if (link_hit_.present() && !had_target) ++statistics_.magnet_captures;
         // The subject is the 2 x 2 square about the press: its centre is the
         // dangling end.
         current_view_ = Point{top_left.x + 1.0, top_left.y + 1.0};
         // Uncaptured over a port other than its own: that port refuses it
         // (the magnet captures every port that accepts).
         link_refused_ = false;
-        if (!link_hit_.has_value()) {
+        if (!link_hit_.present()) {
             const NodeCanvasHit under = hit_test(current_view_);
             const bool own = under.node == link_from_.node && under.port == link_from_.port;
             link_refused_ = under.kind == NodeCanvasHitKind::port && !own;
@@ -535,7 +535,7 @@ void NodeCanvas::finish_link(const DragTrackerFrame& frame) {
     }
     after_edit(connected.has_value() ? NodeGraphEditKind::connected : NodeGraphEditKind::disconnected);
     if (connected.has_value()) on_link_connected(*connected);
-    if (palette_at.has_value() && is_alive()) request_palette(*palette_at, link_from_);
+    if (palette_at.has_value() && is_alive()) request_palette(*palette_at, stxlib::Optional<PortRef>::of(link_from_));
 }
 
 void NodeCanvas::finish_drag(const DragTrackerFrame& frame) {
@@ -596,8 +596,8 @@ void NodeCanvas::announce_drag(DragAnnouncementRequest& request) {
         text.append(selection_.size() == 1U ? " node" : " nodes");
         break;
     case NodeCanvasGesture::link:
-        if (link_hit_.has_value() && *link_hit_ < candidates_.size() && graph_ != nullptr) {
-            const PortRecord* port = (*graph_).port(candidates_[*link_hit_].port);
+        if (link_hit_.present() && *link_hit_.value() < candidates_.size() && graph_ != nullptr) {
+            const PortRecord* port = (*graph_).port(candidates_[*link_hit_.value()].port);
             text.assign("Over input ");
             if (port != nullptr) text.append((*port).name);
         } else {
@@ -641,25 +641,25 @@ void NodeCanvas::announce_keyboard_target() {
 }
 
 bool NodeCanvas::start_keyboard_link() {
-    if (!can_mutate() || !focused_node_.has_value()) return false;
-    const NodeRecord* node = (*graph_).node(*focused_node_);
+    if (!can_mutate() || !focused_node_.present()) return false;
+    const NodeRecord* node = (*graph_).node(*focused_node_.value());
     if (node == nullptr) return false;
-    std::optional<PortIndex> from{};
-    if (focused_port_.has_value() && (*focused_port_).value < (*node).ports.size() &&
-        (*node).ports[(*focused_port_).value].direction == PortDirection::output) {
-        from = *focused_port_;
+    stxlib::Optional<PortIndex> from{};
+    if (focused_port_.present() && (*focused_port_.value()).value < (*node).ports.size() &&
+        (*node).ports[(*focused_port_.value()).value].direction == PortDirection::output) {
+        from = focused_port_;
     }
-    for (std::size_t port = 0U; port < (*node).ports.size() && !from.has_value(); ++port) {
-        if ((*node).ports[port].direction == PortDirection::output) from = PortIndex{static_cast<std::uint16_t>(port)};
+    for (std::size_t port = 0U; port < (*node).ports.size() && from.absent(); ++port) {
+        if ((*node).ports[port].direction == PortDirection::output) from.set(PortIndex{static_cast<std::uint16_t>(port)});
     }
-    if (!from.has_value()) {
+    if (from.absent()) {
         set_announcement("No output to link");
         return false;
     }
-    link_from_ = PortRef{*focused_node_, *from};
-    const std::optional<Point> anchor = port_view_anchor(link_from_);
-    if (!anchor.has_value()) return false;
-    collect_link_candidates(*anchor, false);
+    link_from_ = PortRef{*focused_node_.value(), *from.value()};
+    const stxlib::Optional<Point> anchor = port_view_anchor(link_from_);
+    if (anchor.absent()) return false;
+    collect_link_candidates(*anchor.value(), false);
     if (candidates_.empty()) {
         set_announcement("No compatible input");
         return false;
@@ -724,8 +724,8 @@ bool NodeCanvas::handle_navigation_key(std::uint32_t key, Modifier modifiers) {
     const bool shift = includes(modifiers, Modifier::shift);
     if (key == PhysicalKey::delete_forward || key == PhysicalKey::backspace) {
         // A focused input port: its link goes; otherwise the selection.
-        if (focused_node_.has_value() && focused_port_.has_value() && can_mutate()) {
-            const PortRef port{*focused_node_, *focused_port_};
+        if (focused_node_.present() && focused_port_.present() && can_mutate()) {
+            const PortRef port{*focused_node_.value(), *focused_port_.value()};
             const LinkId into = (*graph_).link_into(port);
             if ((*graph_).link(into) != nullptr) {
                 const GraphResult result = (*graph_).disconnect(into);
@@ -779,15 +779,15 @@ bool NodeCanvas::handle_navigation_key(std::uint32_t key, Modifier modifiers) {
             static_cast<void>(move_selection(delta));
             return true;
         }
-        if (focused_node_.has_value() && focused_port_.has_value() && graph_ != nullptr) {
+        if (focused_node_.present() && focused_port_.present() && graph_ != nullptr) {
             // Inside the ports: the arrows walk them.
-            const NodeRecord* node = (*graph_).node(*focused_node_);
+            const NodeRecord* node = (*graph_).node(*focused_node_.value());
             if (node != nullptr && !(*node).ports.empty()) {
                 const std::size_t count = (*node).ports.size();
-                std::size_t at = (*focused_port_).value;
+                std::size_t at = (*focused_port_.value()).value;
                 const bool back = key == PhysicalKey::up || key == PhysicalKey::left;
                 at = back ? (at == 0U ? count - 1U : at - 1U) : (at + 1U >= count ? 0U : at + 1U);
-                focused_port_ = PortIndex{static_cast<std::uint16_t>(at)};
+                focused_port_.set(PortIndex{static_cast<std::uint16_t>(at)});
                 const PortRecord& port = (*node).ports[at];
                 std::string text = port.direction == PortDirection::input ? "input " : "output ";
                 text.append(port.name);
@@ -796,9 +796,9 @@ bool NodeCanvas::handle_navigation_key(std::uint32_t key, Modifier modifiers) {
             }
             return true;
         }
-        const std::optional<std::uint32_t> next = nearest_node_in_direction(direction.x, direction.y);
-        if (next.has_value()) {
-            const NodeId node = id_of_slot(*next);
+        const stxlib::Optional<std::uint32_t> next = nearest_node_in_direction(direction.x, direction.y);
+        if (next.present()) {
+            const NodeId node = id_of_slot(*next.value());
             select_only(node);
             reveal_node(node);
             const NodeRecord* record = graph_ != nullptr ? (*graph_).node(node) : nullptr;
@@ -814,16 +814,16 @@ bool NodeCanvas::handle_navigation_key(std::uint32_t key, Modifier modifiers) {
         return true;
     }
     if (key == PhysicalKey::enter) {
-        if (!focused_node_.has_value() || graph_ == nullptr) return false;
-        const NodeRecord* node = (*graph_).node(*focused_node_);
+        if (!focused_node_.present() || graph_ == nullptr) return false;
+        const NodeRecord* node = (*graph_).node(*focused_node_.value());
         if (node == nullptr) return false;
-        if (focused_port_.has_value()) {
+        if (focused_port_.present()) {
             // Enter on an output starts the keyboard link from it.
             static_cast<void>(start_keyboard_link());
             return true;
         }
         if ((*node).ports.empty()) return false;
-        focused_port_ = PortIndex{0U};
+        focused_port_.set(PortIndex{0U});
         const PortRecord& port = (*node).ports.front();
         std::string text = port.direction == PortDirection::input ? "input " : "output ";
         text.append(port.name);
@@ -832,10 +832,10 @@ bool NodeCanvas::handle_navigation_key(std::uint32_t key, Modifier modifiers) {
         return true;
     }
     if (key == PhysicalKey::f2) {
-        std::optional<NodeId> node = focused_node_;
-        if (!node.has_value() && !selection_.empty()) node = selection_.front();
-        if (!node.has_value()) return false;
-        static_cast<void>(begin_edit(*node, shift ? NodeEditPart::caption : NodeEditPart::body));
+        stxlib::Optional<NodeId> node = focused_node_;
+        if (node.absent() && !selection_.empty()) node.set(selection_.front());
+        if (node.absent()) return false;
+        static_cast<void>(begin_edit(*node.value(), shift ? NodeEditPart::caption : NodeEditPart::body));
         return true;
     }
     if (key == PhysicalKey::l && !command) {
@@ -847,12 +847,12 @@ bool NodeCanvas::handle_navigation_key(std::uint32_t key, Modifier modifiers) {
         return true;
     }
     if (key == PhysicalKey::escape) {
-        if (focused_port_.has_value()) {
+        if (focused_port_.present()) {
             focused_port_.reset();
             invalidate(Dirty::paint | Dirty::semantics);
             return true;
         }
-        if (selection_.empty() && !selected_link_.has_value()) return false;
+        if (selection_.empty() && !selected_link_.present()) return false;
         clear_selection();
         return true;
     }

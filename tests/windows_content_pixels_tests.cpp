@@ -98,7 +98,7 @@ Scene paint_control(const std::shared_ptr<gui_forms::detail::BundledFontSet>& fo
     PartPaint swatch{};
     swatch.role = PartRole::fill;
     swatch.bounds = {4.0, 0.0, 2.0, 2.0};
-    swatch.content_color = Color::rgba(200, 40, 90, 255);
+    swatch.content_color.set(Color::rgba(200, 40, 90, 255));
     swatch.states = states;
     paint_part(painter, *control, swatch);
 

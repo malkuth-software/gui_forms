@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <unordered_map>
@@ -73,25 +74,26 @@ struct GUI_FORMS_API CommandOverflowSnapshot final {
 // The group spec an overflow panel provides to its children (a child
 // property, study sections 10 and 15.4): a direct child's sizing and
 // collapse priority, or none for a non-collapsible child at its desired
-// width. `(*shelf).group_spec[*group] = CommandOverflowGroupSpec{176.0,
-// 176.0, 176.0, 2U};` In a `.form` it is text: the three extents, then
+// width. `(*shelf).group_spec[*group] =
+// stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0,
+// 176.0, 176.0, 2U});` In a `.form` it is text: the three extents, then
 // optionally `priority` and the priority, as in "176 176 176 priority 2".
 template <typename Declaring>
 struct GroupSpecCapability {
-    ChildPropertyView<std::optional<CommandOverflowGroupSpec>, GroupSpecCapability<Declaring>> group_spec;
+    ChildPropertyView<stxlib::Optional<CommandOverflowGroupSpec>, GroupSpecCapability<Declaring>> group_spec;
 
     static void assign(GroupSpecCapability& capability, const Control& child,
-                       std::optional<CommandOverflowGroupSpec> value) {
+                       stxlib::Optional<CommandOverflowGroupSpec> value) {
         Declaring& container = static_cast<Declaring&>(capability);
         container.prepare_write(child, value);
         if (!container.replace_group_spec(child, std::move(value))) return;
         container.written(child);
     }
 
-    static std::optional<CommandOverflowGroupSpec> read(const GroupSpecCapability& capability,
+    static stxlib::Optional<CommandOverflowGroupSpec> read(const GroupSpecCapability& capability,
                                                         const Control& child) {
         const Declaring& container = static_cast<const Declaring&>(capability);
-        std::optional<CommandOverflowGroupSpec> value = container.stored_group_spec(child);
+        stxlib::Optional<CommandOverflowGroupSpec> value = container.stored_group_spec(child);
         return value;
     }
 };
@@ -133,12 +135,12 @@ private:
     // The group spec's hooks: the container's thread, a live direct child
     // that is not the actuator, valid extents, a unique priority and the
     // group limit before the compare; relayout after a change.
-    void prepare_write(const Control& child, const std::optional<CommandOverflowGroupSpec>& incoming) const;
+    void prepare_write(const Control& child, const stxlib::Optional<CommandOverflowGroupSpec>& incoming) const;
     void written(const Control& child);
     // Stores `child`'s spec (none erases it); false when it was already `value`.
-    bool replace_group_spec(const Control& child, std::optional<CommandOverflowGroupSpec> value);
+    bool replace_group_spec(const Control& child, stxlib::Optional<CommandOverflowGroupSpec> value);
     // `child`'s spec; refuses a child that is not a live direct child.
-    [[nodiscard]] std::optional<CommandOverflowGroupSpec> stored_group_spec(const Control& child) const;
+    [[nodiscard]] stxlib::Optional<CommandOverflowGroupSpec> stored_group_spec(const Control& child) const;
 
     struct LayoutResult;
     [[nodiscard]] LayoutResult layout_groups(Size available, bool assign);

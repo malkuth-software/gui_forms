@@ -214,21 +214,21 @@ void RadioButton::on_paint(Painter& painter, Rect) {
     const Rect laid_box{1.0, top, indicator_width, 15.0};
     const Rect box = mirrored ? horizontally_mirrored(laid_box, bounds) : laid_box;
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ground{};
-    std::optional<Color> ink{};
+    stxlib::Optional<Color> ground{};
+    stxlib::Optional<Color> ink{};
     if (has_style_override()) {
         const BasicControlStyle& colors = style();
-        ground = colors.paper;
-        ink = colors.text;
+        ground.set(colors.paper);
+        ink.set(colors.text);
     }
     PartPaint well;
     well.family = ControlVisualRole::choice;
     well.role = PartRole::well;
     well.bounds = box;
     well.states = states;
-    well.corner_radius = 7.5;
+    well.corner_radius.set(7.5);
     well.authored_background = ground;
-    well.key = PartKey{"well", {}, {}};
+    well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
     if (toggle || checked_) {
         PartPaint indicator;
@@ -236,7 +236,7 @@ void RadioButton::on_paint(Painter& painter, Rect) {
         indicator.role = PartRole::indicator;
         indicator.states = states;
         indicator.authored_foreground = ink;
-        indicator.key = PartKey{"indicator", {}, {}};
+        indicator.key.set(PartKey{"indicator", {}, {}});
         Rect laid_mark{};
         if (toggle) {
             const double knob_x = checked_ ? laid_box.x + laid_box.width - 13.0 : laid_box.x + 2.0;
@@ -262,7 +262,7 @@ void RadioButton::on_paint(Painter& painter, Rect) {
     focus.role = PartRole::focus;
     focus.bounds = bounds;
     focus.states = states;
-    focus.key = PartKey{"focus", {}, {}};
+    focus.key.set(PartKey{"focus", {}, {}});
     paint_part(painter, *this, focus);
 }
 

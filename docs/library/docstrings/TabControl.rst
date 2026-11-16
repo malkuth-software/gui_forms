@@ -223,8 +223,8 @@ Follow the selection with an owned handler, and change it from the keyboard:
            gf::on((*tabs).selected_index_changed(), *this, &Settings::on_page);
        }
        void on_page(const gf::TabSelectionChange& change) {
-           if (change.new_index) {
-               shown = *change.new_index;
+           if (change.new_index.present()) {
+               shown = *change.new_index.value();
            }
        }
    };

@@ -10,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <stdexcept>
@@ -487,7 +488,7 @@ void test_table_mixed_tracks_spans_and_lookup() {
                 (*spanning).arranged_bounds() == Rect{45.0, 35.0, 200.0, 30.0},
             "table cells and a three-column span must place preferred child sizes at cell origins");
     require((*table).cell_position(*automatic) ==
-                std::optional(TableLayoutCellPosition{2U, 0U}) &&
+                stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{2U, 0U}) &&
                 (*table).control_from_position(3U, 1U) == spanning &&
                 (*table).column_span[*spanning].read() == 3U &&
                 (*spanning).requested_bounds() == spanning_preferred,
@@ -521,21 +522,21 @@ void test_table_growth_hidden_children_and_fixed_overflow() {
     window.perform_layout();
     require((*table).row_heights().size() == 2U &&
                 (*table).cell_position(*third) ==
-                    std::optional(TableLayoutCellPosition{0U, 1U}),
+                    stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{0U, 1U}),
             "AddRows must create the minimum runtime track for automatic overflow");
 
     (*second).visible = false;
     window.perform_layout();
     require((*table).row_heights().size() == 1U &&
                 (*table).cell_position(*third) ==
-                    std::optional(TableLayoutCellPosition{1U, 0U}),
+                    stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{1U, 0U}),
             "hidden table children must release occupancy and collapse runtime tracks");
 
     (*second).visible = true;
     (*table).grow_style = TableLayoutGrowStyle::fixed_size;
     window.perform_layout();
     require((*table).layout_overflowed() && (*third).arranged_bounds().empty() &&
-                !(*table).cell_position(*third),
+                (*table).cell_position(*third).absent(),
             "fixed tables must report overflow and assign no overlapping slot");
 
     bool invalid_style_rejected = false;
@@ -802,7 +803,7 @@ void test_insert_child_is_one_mutation() {
                 (*root).children()[1] == middle &&
                 (*root).children()[2] == top,
             "insert_child must place a new child at its top-counted index");
-    require((*root).child_index_from_top((*middle).runtime_id()) == std::optional<std::size_t>(1U),
+    require((*root).child_index_from_top((*middle).runtime_id()) == stxlib::Optional<std::size_t>::of(1U),
             "insert_child index must read back through child_index");
     (*root).insert_child(middle, 0U);
     require((*root).children()[2] == middle && (*root).children().size() == 3U,

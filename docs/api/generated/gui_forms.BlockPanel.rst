@@ -51,7 +51,7 @@ gui_forms::BlockPanel
          ``right`` or ``center``. A line wider than the panel starts at its start
          edge whatever the alignment.
 
-      **line_strut** : ``std::optional<LineStrut>``, default none
+      **line_strut** : ``stxlib::Optional<LineStrut>``, default none
          The :cpp:class:`LineStrut <gui_forms::LineStrut>` every line box starts with: the ascent and descent the
          panel's font and line height give a line above and below its
          baseline, and the x-height ``middle`` aligns to. When none is set the
@@ -60,7 +60,7 @@ gui_forms::BlockPanel
          line is as tall as its items. Its values must be finite and
          nonnegative; assigning ``std::nullopt`` returns to the font's.
 
-      **font** : ``std::optional<FontSpec>``, default none
+      **font** : ``stxlib::Optional<FontSpec>``, default none
          The panel's own font for its strut. An invalid specification throws
          ``std::invalid_argument``; assigning ``std::nullopt`` returns to the
          theme's font.
@@ -196,7 +196,7 @@ gui_forms::BlockPanel
       std::shared_ptr<gf::BlockPanel> row =
           gf::make_control<gf::BlockPanel>(gf::StableId("row"));
       (*row).text_align = gf::TextAlignment::center;
-      (*row).line_strut = gf::LineStrut{};   // lines as tall as their items
+      (*row).line_strut = stxlib::Optional<gf::LineStrut>::of(gf::LineStrut{});   // lines as tall as their items
       gf::BlockFlowItemLayout atomic{};
       atomic.level = gf::BlockFlowLevel::inline_level;
       atomic.width = gf::SizeValue{gf::SizeKind::length_percentage,
@@ -232,7 +232,7 @@ gui_forms::BlockPanel
       ``right`` or ``center``. A line wider than the panel starts at its start
       edge whatever the alignment.
 
-   .. cpp:member:: std::optional<LineStrut> line_strut
+   .. cpp:member:: stxlib::Optional<LineStrut> line_strut
 
       The :cpp:class:`LineStrut <gui_forms::LineStrut>` every line box starts with: the ascent and descent the
       panel's font and line height give a line above and below its
@@ -242,7 +242,7 @@ gui_forms::BlockPanel
       line is as tall as its items. Its values must be finite and
       nonnegative; assigning ``std::nullopt`` returns to the font's.
 
-   .. cpp:member:: std::optional<FontSpec> font
+   .. cpp:member:: stxlib::Optional<FontSpec> font
 
       The panel's own font for its strut. An invalid specification throws
       ``std::invalid_argument``; assigning ``std::nullopt`` returns to the

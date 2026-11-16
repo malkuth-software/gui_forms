@@ -22,6 +22,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // Which set a theme's rules are compiled as: a program's theme
@@ -144,7 +146,7 @@ struct GUI_FORMS_API RuleSelector final {
     std::string stable_id{};
     std::vector<std::string> classes{};
     std::string part{};
-    std::optional<PartRole> role{};
+    stxlib::Optional<PartRole> role{};
     std::vector<AnatomyState> states{};
     std::vector<CustomStateIndex> custom_states{};
     SurfaceKind surface{SurfaceKind::none};
@@ -201,14 +203,14 @@ struct GUI_FORMS_API RuleSpecificity final {
 // query of a comma list).
 struct GUI_FORMS_API MediaCondition final {
     // `prefers-color-scheme`: dark (true) or light (false).
-    std::optional<bool> dark_scheme{};
+    stxlib::Optional<bool> dark_scheme{};
     // `forced-colors`: active (true) or none (false).
-    std::optional<bool> forced_colours{};
+    stxlib::Optional<bool> forced_colours{};
     // `prefers-reduced-motion`: reduce (true) or no-preference (false).
-    std::optional<bool> reduced_motion{};
+    stxlib::Optional<bool> reduced_motion{};
     // `min-resolution` and `max-resolution`.
-    std::optional<double> minimum_resolution{};
-    std::optional<double> maximum_resolution{};
+    stxlib::Optional<double> minimum_resolution{};
+    stxlib::Optional<double> maximum_resolution{};
 
     friend bool operator==(const MediaCondition& left, const MediaCondition& right) noexcept {
         return left.dark_scheme == right.dark_scheme && left.forced_colours == right.forced_colours &&
@@ -281,7 +283,7 @@ inline constexpr std::size_t colour_role_count = static_cast<std::size_t>(Colour
 // The role's name in kebab case, such as `ink-on-paper`; empty for count.
 [[nodiscard]] GUI_FORMS_API std::string_view colour_role_name(ColourRole role) noexcept;
 // The role `name` (kebab case, exact) names, or none.
-[[nodiscard]] GUI_FORMS_API std::optional<ColourRole> colour_role_from_name(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<ColourRole> colour_role_from_name(std::string_view name) noexcept;
 // Whether the role is a pair (a foreground on a background) rather than a
 // single colour.
 [[nodiscard]] GUI_FORMS_API bool colour_role_paired(ColourRole role) noexcept;
@@ -421,13 +423,13 @@ enum class BandEffect : std::uint8_t { none, flash };
 // field is set only by its own declaration; the cascade takes each field
 // from the last matching rule that sets it.
 struct GUI_FORMS_API BandDeclaration final {
-    std::optional<double> width{};
-    std::optional<Color> rest_colour{};
-    std::optional<Color> lit_colour{};
-    std::optional<BandEffect> effect{};
+    stxlib::Optional<double> width{};
+    stxlib::Optional<Color> rest_colour{};
+    stxlib::Optional<Color> lit_colour{};
+    stxlib::Optional<BandEffect> effect{};
 
     [[nodiscard]] bool empty() const noexcept {
-        const bool none = !width && !rest_colour && !lit_colour && !effect;
+        const bool none = width.absent() && rest_colour.absent() && lit_colour.absent() && effect.absent();
         return none;
     }
 
@@ -620,7 +622,7 @@ inline constexpr std::size_t text_role_count = static_cast<std::size_t>(TextRole
 // `title`, `monospace`.
 [[nodiscard]] GUI_FORMS_API std::string_view text_role_name(TextRole role) noexcept;
 // The role `name` names exactly, if any.
-[[nodiscard]] GUI_FORMS_API std::optional<TextRole> text_role_from_name(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<TextRole> text_role_from_name(std::string_view name) noexcept;
 
 // The engine's font property (T3 P8c, D6): a declaration of this name,
 // whose value is a name (a text role's, or font_inherit_name), sets the
@@ -694,7 +696,7 @@ inline constexpr std::size_t maximum_part_transitions = 6;
 struct GUI_FORMS_API PresentationState final {
     std::vector<AnatomyState> when{};
     double target{};
-    std::optional<double> enter_from{};
+    stxlib::Optional<double> enter_from{};
     std::vector<MotionStop> stops{};
     double target_em{};
     double enter_from_em{};
@@ -931,7 +933,7 @@ struct GUI_FORMS_API MaterialDeclaration final {
     std::vector<MaterialShadow> shadows{};
     std::vector<MaterialGlow> glows{};
     std::vector<MaterialGlowPlacement> glow_placements{};
-    std::optional<MaterialBorderStyle> border_style{};
+    stxlib::Optional<MaterialBorderStyle> border_style{};
     MaterialEdgeLines edge_lines{MaterialEdgeLines::single};
     std::optional<MaterialFillLayer> border_image{};
     Color colour{};
@@ -939,11 +941,11 @@ struct GUI_FORMS_API MaterialDeclaration final {
     double number{};
     bool relative{};
     MaterialColourFilter colour_filter{};
-    std::optional<MaterialDropShadow> drop_shadow{};
+    stxlib::Optional<MaterialDropShadow> drop_shadow{};
     std::vector<MaterialFillLayer> masks{};
     std::vector<MaterialMaskMode> mask_modes{};
     std::vector<MaterialMaskComposite> mask_composites{};
-    std::optional<MaterialReflection> reflection{};
+    stxlib::Optional<MaterialReflection> reflection{};
     MaterialDither dither{MaterialDither::none};
     MaterialTransform transform{};
     std::optional<MaterialClipPath> clip_path{};
@@ -1601,11 +1603,11 @@ struct GUI_FORMS_API ThemeRule final {
     std::string label{};
     CascadeLevel level{CascadeLevel::theme_sheet};
     RuleSelector selector{};
-    std::optional<RuleSpecificity> specificity{};
+    stxlib::Optional<RuleSpecificity> specificity{};
     std::vector<RuleDeclaration> declarations{};
-    std::optional<EngineVersion> requires_engine{};
+    stxlib::Optional<EngineVersion> requires_engine{};
     std::vector<PropertyTransition> transitions{};
-    std::optional<AmbientEffect> ambient{};
+    stxlib::Optional<AmbientEffect> ambient{};
     std::vector<MaterialDeclaration> materials{};
     std::vector<RecipeDeclaration> recipe_fields{};
     // The windows the rule holds in (EC3); by default, all.
@@ -1624,9 +1626,9 @@ struct GUI_FORMS_API ThemeRule final {
     std::vector<std::string> reads{};
     std::uint32_t source_position{};
     // A surface rule's backdrop (`backdrop:`), or none.
-    std::optional<BackdropDeclaration> backdrop{};
+    stxlib::Optional<BackdropDeclaration> backdrop{};
     // A window rule's band (`band-*`), or none.
-    std::optional<BandDeclaration> band{};
+    stxlib::Optional<BandDeclaration> band{};
     // A control rule's content effect (owner 2026-11-16): what a rule with
     // no part, role or surface writes as `filter` and `mask-*`, a filter
     // and mask on the control and its descendants together
@@ -1907,7 +1909,7 @@ public:
     const std::vector<std::string>& published_values() const&& = delete;
     // The position of the published value `name`, or none when the sheet
     // does not read it.
-    [[nodiscard]] std::optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept;
+    [[nodiscard]] stxlib::Optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept;
     // How many inputs the sheet's expressions are evaluated with: the
     // engine inputs and the sheet's published values.
     [[nodiscard]] std::size_t input_count() const noexcept {
@@ -1981,7 +1983,7 @@ public:
     struct GUI_FORMS_API CompiledPresentationState final {
         AnatomyStateSet when{};
         double target{};
-        std::optional<double> enter_from{};
+        stxlib::Optional<double> enter_from{};
         std::vector<MotionStop> stops{};
         double target_em{};
         double enter_from_em{};
@@ -2044,8 +2046,8 @@ public:
         // The part's effect colours (effect_primary_property,
         // effect_secondary_property): the last matching rule's of each, or
         // none.
-        std::optional<EffectColourDeclaration> effect_primary{};
-        std::optional<EffectColourDeclaration> effect_secondary{};
+        stxlib::Optional<EffectColourDeclaration> effect_primary{};
+        stxlib::Optional<EffectColourDeclaration> effect_secondary{};
         // The winning declaration of each material field (EC1), by the
         // field's position, or null where no matching rule sets it; they
         // belong to the compiled rules. `materials_authored` is whether any
@@ -2218,23 +2220,23 @@ private:
         const EnginePrimitive* primitive{};
         std::vector<CompiledDeclaration> parameters{};
         std::vector<CompiledTransition> transitions{};
-        std::optional<AmbientEffect> ambient{};
-        std::optional<PartBlend> blend{};
-        std::optional<FontDeclaration> font{};
+        stxlib::Optional<AmbientEffect> ambient{};
+        stxlib::Optional<PartBlend> blend{};
+        stxlib::Optional<FontDeclaration> font{};
         // The rule's effect name (effect_property); empty for `none`.
         std::optional<std::string> effect{};
         // The rule's effect colours.
-        std::optional<EffectColourDeclaration> effect_primary{};
-        std::optional<EffectColourDeclaration> effect_secondary{};
+        stxlib::Optional<EffectColourDeclaration> effect_primary{};
+        stxlib::Optional<EffectColourDeclaration> effect_secondary{};
         MediaCondition media{};
         // Checked material fields, at most one per field.
         std::vector<MaterialDeclaration> materials{};
         // Checked recipe fields, at most one per field.
         std::vector<RecipeDeclaration> recipe_fields{};
         // A surface rule's checked backdrop.
-        std::optional<BackdropDeclaration> backdrop{};
+        stxlib::Optional<BackdropDeclaration> backdrop{};
         // A window rule's checked band.
-        std::optional<BandDeclaration> band{};
+        stxlib::Optional<BandDeclaration> band{};
         // A control rule's checked content effect.
         std::vector<MaterialDeclaration> content_effect{};
         // Scoped custom properties (P12), by position in scoped_names_.

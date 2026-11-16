@@ -755,7 +755,7 @@ void test_public_easing_preview_owns_scheduler_policy_and_semantics() {
             "reduced EasingPreview motion must retain phase and remain scheduled");
     (*preview).advance_animation(FrameClock::now() + 300ms);
     require((*preview).phase() > before &&
-                (*preview).semantic_descriptor().numeric_value.has_value(),
+                (*preview).semantic_descriptor().numeric_value.present(),
             "public EasingPreview frames must advance reusable timeline state");
 
     (*preview).motion_policy = {true, true, true};

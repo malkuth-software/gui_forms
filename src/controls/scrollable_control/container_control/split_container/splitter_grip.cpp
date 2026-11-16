@@ -40,9 +40,8 @@ SplitterGrip::SplitterGrip(StableId stable_id)
 void SplitterGrip::set_orientation(Orientation orientation) {
     if (orientation_ == orientation) return;
     orientation_ = orientation;
-    cursor = orientation == Orientation::vertical
-                   ? CursorKind::resize_horizontal
-                   : CursorKind::resize_vertical;
+    cursor = stxlib::Optional<CursorKind>::of(orientation == Orientation::vertical ? CursorKind::resize_horizontal
+                                                                   : CursorKind::resize_vertical);
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
 }
 
@@ -372,7 +371,7 @@ void SplitterGrip::on_paint(Painter& painter, Rect) {
     band.family = ControlVisualRole::panel;
     band.role = PartRole::face;
     band.states = states;
-    band.corner_radius = 0.0;
+    band.corner_radius.set(0.0);
     if (orientation_ == Orientation::vertical) {
         const double width = std::min(visible_width_, bounds.width);
         const double x = std::clamp(visible_origin_, 0.0,

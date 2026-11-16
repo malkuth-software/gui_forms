@@ -150,8 +150,8 @@ void require_invariants(const PageSet& set) {
         for (std::size_t other = index + 1U; other < set.count(); ++other) {
             require(set.record_at(PagePosition{other}).id != record.id, "ids are unique");
         }
-        const std::optional<PagePosition> found = set.find(record.id);
-        require(found.has_value() && (*found).value == index, "find returns the position");
+        const stxlib::Optional<PagePosition> found = set.find(record.id);
+        require(found.present() && (*found.value()).value == index, "find returns the position");
         if (record.pinned) {
             require(!ordinary_seen, "pinned pages come before ordinary pages");
             require(set.options().pinning_enabled, "only a pinning set holds pinned pages");
@@ -167,13 +167,13 @@ void require_invariants(const PageSet& set) {
         return;
     }
     require(set.selected_page().has_value(), "a non-empty set has a selected page");
-    require(set.find(*set.selected_page()).has_value(), "the selected page is in the set");
+    require(set.find(*set.selected_page()).present(), "the selected page is in the set");
     const std::span<const PageId> history = set.activation_history();
     require(!history.empty() && history.front() == *set.selected_page(),
             "the selected page leads the history");
     require(history.size() <= set.count(), "the history holds each page at most once");
     for (std::size_t index = 0U; index < history.size(); ++index) {
-        require(set.find(history[index]).has_value(), "the history holds only pages in the set");
+        require(set.find(history[index]).present(), "the history holds only pages in the set");
         for (std::size_t other = index + 1U; other < history.size(); ++other) {
             require(history[other] != history[index], "the history has no duplicates");
         }
@@ -730,7 +730,7 @@ void take_and_put_round_trip() {
     require(taken.page.record.id == page_id("doc") && taken.page.record.title == "Title doc" &&
                 taken.page.record.image_key == "text" && taken.page.record.closable,
             "take returns the whole record");
-    require(!source.find(page_id("doc")).has_value() && source.count() == 1U,
+    require(source.find(page_id("doc")).absent() && source.count() == 1U,
             "the page left the source");
     require(target.put(taken.page, PagePlacement::end_of_group()) == PageEditStatus::applied,
             "the page is put into another set");

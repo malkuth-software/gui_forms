@@ -13,7 +13,7 @@
 //     OffscreenAttachment attached(*raster, window);                 // after both
 //     OffscreenCaptureOptions options{};
 //     options.scale = 2.0;
-//     options.colour_scheme = ColourScheme::dark;
+//     options.colour_scheme.set(ColourScheme::dark);
 //     std::optional<WindowCapture> picture = attached.capture_control(button, options);
 //
 // The renderer is private to the GUI.Forms library: no renderer type
@@ -31,6 +31,8 @@
 #include <optional>
 #include <string>
 #include <variant>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -138,9 +140,9 @@ struct GUI_FORMS_API OffscreenCaptureOptions final {
     // this scale for the capture, as a host lays it out on such a display.
     double scale{1.0};
     // The colour scheme drawn; none keeps the window's.
-    std::optional<ColourScheme> colour_scheme{};
+    stxlib::Optional<ColourScheme> colour_scheme{};
     // Forced high contrast; none keeps the window's.
-    std::optional<bool> high_contrast{};
+    stxlib::Optional<bool> high_contrast{};
     // capture_window: the window's in-surface overlays; capture_control:
     // those the control or a descendant owns (ControlCaptureOptions).
     bool include_overlays{true};

@@ -153,14 +153,14 @@ void RadialGauge::on_paint(Painter& painter, Rect) {
 
     PartPaint plot{.role = PartRole::plot, .bounds = placed.plot, .states = states,
                    .family = ControlVisualRole::progress};
-    plot.corner_radius = placed.plot.width * 0.5;
-    plot.key = PartKey{"plot", {}, {}};
+    plot.corner_radius.set(placed.plot.width * 0.5);
+    plot.key.set(PartKey{"plot", {}, {}});
     paint_part(painter, *this, plot);
 
     PartPaint track{.role = PartRole::arc, .bounds = placed.arc, .states = states,
                     .family = ControlVisualRole::progress};
-    track.arc = arc_between(0.0, 1.0);
-    track.key = PartKey{"track", {}, {}};
+    track.arc.set(arc_between(0.0, 1.0));
+    track.key.set(PartKey{"track", {}, {}});
     paint_part(painter, *this, track);
 
     // The alarm ranges lie on the track, under the reading.
@@ -168,29 +168,29 @@ void RadialGauge::on_paint(Painter& painter, Rect) {
     alarm_states.insert(AnatomyState::invalid);
     PartPaint alarm{.role = PartRole::arc, .bounds = placed.arc, .states = alarm_states,
                     .family = ControlVisualRole::progress};
-    alarm.key = PartKey{"alarm_arc", {}, {}};
-    const std::optional<double> low = low_alarm.read();
-    const std::optional<double> high = high_alarm.read();
-    if (low && ratio_of(*low) > 0.0) {
-        alarm.arc = arc_between(0.0, ratio_of(*low));
+    alarm.key.set(PartKey{"alarm_arc", {}, {}});
+    const double* low = low_alarm.read().value();
+    const double* high = high_alarm.read().value();
+    if (low != nullptr && ratio_of(*low) > 0.0) {
+        alarm.arc.set(arc_between(0.0, ratio_of(*low)));
         paint_part(painter, *this, alarm);
     }
-    if (high && ratio_of(*high) < 1.0) {
-        alarm.arc = arc_between(ratio_of(*high), 1.0);
+    if (high != nullptr && ratio_of(*high) < 1.0) {
+        alarm.arc.set(arc_between(ratio_of(*high), 1.0));
         paint_part(painter, *this, alarm);
     }
 
     if (reading > 0.0) {
         PartPaint lit{.role = PartRole::arc, .bounds = placed.arc, .states = lit_states,
                       .family = ControlVisualRole::progress};
-        lit.arc = arc_between(0.0, reading);
-        lit.key = PartKey{"value_arc", {}, {}};
+        lit.arc.set(arc_between(0.0, reading));
+        lit.key.set(PartKey{"value_arc", {}, {}});
         paint_part(painter, *this, lit);
     }
 
     PartPaint mark{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
-    mark.corner_radius = placed.mark * 0.5;
-    mark.key = PartKey{"graticule", {}, {}};
+    mark.corner_radius.set(placed.mark * 0.5);
+    mark.key.set(PartKey{"graticule", {}, {}});
     const std::vector<double> ratios = tick_ratios();
     for (const double ratio : ratios) {
         mark.bounds = mark_at(placed.centre, placed.mark_radius, ratio, placed.mark);
@@ -211,8 +211,8 @@ void RadialGauge::on_paint(Painter& painter, Rect) {
     // The needle last, over the caption where they meet.
     PartPaint needle{.role = PartRole::needle, .bounds = placed.needle, .states = lit_states,
                      .family = ControlVisualRole::progress};
-    needle.arc = PartArc{.start = sweep_start + sweep * reading, .sweep = 0.0};
-    needle.key = PartKey{"needle", {}, {}};
+    needle.arc.set(PartArc{.start = sweep_start + sweep * reading, .sweep = 0.0});
+    needle.key.set(PartKey{"needle", {}, {}});
     paint_part(painter, *this, needle);
 }
 
@@ -228,10 +228,10 @@ void RadialGauge::publish_part_geometry(std::span<PartGeometry> geometry) const 
     record.plot = PartGeometry::from_bounds(placed.plot);
     if (!placed.arc.empty()) {
         record.track = PartGeometry::from_bounds(placed.arc);
-        const std::optional<double> low = low_alarm.read();
-        const std::optional<double> high = high_alarm.read();
-        const bool low_shown = low && ratio_of(*low) > 0.0;
-        const bool high_shown = high && ratio_of(*high) < 1.0;
+        const double* low = low_alarm.read().value();
+        const double* high = high_alarm.read().value();
+        const bool low_shown = low != nullptr && ratio_of(*low) > 0.0;
+        const bool high_shown = high != nullptr && ratio_of(*high) < 1.0;
         if (low_shown || high_shown) record.alarm_arc = PartGeometry::from_bounds(placed.arc);
         if (ratio_of(value.read()) > 0.0) record.value_arc = PartGeometry::from_bounds(placed.arc);
         Rect marks{};

@@ -55,33 +55,33 @@ bool same_rect(const Rect a, const Rect b) {
 void test_edit_remap() {
     const CollectionEdit assigned = CollectionEdit::assigned(3U);
     require(assigned.kind() == CollectionEditKind::assign && assigned.structural() &&
-                assigned.remap(2U) == std::optional<std::size_t>{2U} && !assigned.remap(3U),
+                assigned.remap(2U) == stxlib::Optional<std::size_t>::of(2U) && assigned.remap(3U).absent(),
             "an assignment keeps the positions below its length");
     const CollectionEdit inserted = CollectionEdit::inserted(2U, 2U);
-    require(inserted.remap(1U) == std::optional<std::size_t>{1U} &&
-                inserted.remap(2U) == std::optional<std::size_t>{4U},
+    require(inserted.remap(1U) == stxlib::Optional<std::size_t>::of(1U) &&
+                inserted.remap(2U) == stxlib::Optional<std::size_t>::of(4U),
             "an insertion moves the positions from its index");
     const CollectionEdit erased = CollectionEdit::erased(2U, 2U);
-    require(erased.remap(1U) == std::optional<std::size_t>{1U} && !erased.remap(2U) && !erased.remap(3U) &&
-                erased.remap(4U) == std::optional<std::size_t>{2U},
+    require(erased.remap(1U) == stxlib::Optional<std::size_t>::of(1U) && erased.remap(2U).absent() && erased.remap(3U).absent() &&
+                erased.remap(4U) == stxlib::Optional<std::size_t>::of(2U),
             "an erasure removes its positions and moves the later ones");
     const CollectionEdit replaced = CollectionEdit::replaced(5U);
     require(!replaced.structural() && replaced.count() == 1U &&
-                replaced.remap(5U) == std::optional<std::size_t>{5U},
+                replaced.remap(5U) == stxlib::Optional<std::size_t>::of(5U),
             "a replacement keeps every position");
 }
 
 void test_dirty_coalescing() {
     CollectionDirty dirty;
     std::vector<std::uint32_t> rows;
-    require(!dirty.any() && !dirty.take(rows) && rows.empty(), "a new record is clean");
+    require(!dirty.any() && dirty.take(rows).absent() && rows.empty(), "a new record is clean");
     dirty.reserve(100U);
     dirty.record(CollectionEdit::replaced(70U));
     dirty.record(CollectionEdit::replaced(3U));
     dirty.record(CollectionEdit::replaced(40U));
     require(dirty.any(), "a replacement makes the record dirty");
-    std::optional<std::size_t> watermark = dirty.take(rows);
-    require(!watermark && rows == std::vector<std::uint32_t>{3U, 40U, 70U} && !dirty.any(),
+    stxlib::Optional<std::size_t> watermark = dirty.take(rows);
+    require(watermark.absent() && rows == std::vector<std::uint32_t>{3U, 40U, 70U} && !dirty.any(),
             "replacements are taken in increasing order and cleared");
 
     rows.clear();
@@ -91,14 +91,14 @@ void test_dirty_coalescing() {
     dirty.record(CollectionEdit::inserted(30U, 4U));
     dirty.record(CollectionEdit::replaced(60U));
     watermark = dirty.take(rows);
-    require(watermark == std::optional<std::size_t>{20U} && rows == std::vector<std::uint32_t>{3U},
+    require(watermark == stxlib::Optional<std::size_t>::of(20U) && rows == std::vector<std::uint32_t>{3U},
             "the lowest structural index wins and covers the later replacements");
 
     rows.assign(1U, 99U);
     dirty.record(CollectionEdit::replaced(3U));
     dirty.record(CollectionEdit::assigned(5U));
     watermark = dirty.take(rows);
-    require(watermark == std::optional<std::size_t>{0U} && rows == std::vector<std::uint32_t>{99U},
+    require(watermark == stxlib::Optional<std::size_t>::of(0U) && rows == std::vector<std::uint32_t>{99U},
             "an assignment makes everything dirty and keeps the caller's storage");
 }
 
@@ -217,22 +217,22 @@ void test_selection_and_identities_follow_edits() {
         test_support::IncrementCounter<std::size_t, const ListSelectionChange&>(changes));
 
     (*list).items.erase(1U, 1U);
-    require((*list).selected_index() == std::optional<std::size_t>{4U} && changes == 1U,
+    require((*list).selected_index() == stxlib::Optional<std::size_t>::of(4U) && changes == 1U,
             "an erasure above the selection moves it");
     require((*list).item_stable_id(4U) == "f" && (*list).item_stable_id(0U) == "a",
             "an erasure keeps the remaining identities aligned");
     (*list).items.replace(4U, "Renamed");
-    require((*list).selected_index() == std::optional<std::size_t>{4U} && changes == 1U &&
+    require((*list).selected_index() == stxlib::Optional<std::size_t>::of(4U) && changes == 1U &&
                 (*list).item_stable_id(4U) == "f",
             "a replacement keeps the selection and the identity");
     (*list).items.insert(0U, "First");
-    require((*list).selected_index() == std::optional<std::size_t>{5U} && changes == 2U,
+    require((*list).selected_index() == stxlib::Optional<std::size_t>::of(5U) && changes == 2U,
             "an insertion above the selection moves it");
     (*list).items.append("Last");
-    require((*list).selected_index() == std::optional<std::size_t>{5U} && changes == 2U,
+    require((*list).selected_index() == stxlib::Optional<std::size_t>::of(5U) && changes == 2U,
             "an append keeps the selection");
     (*list).items.erase(5U, 1U);
-    require(!(*list).selected_index() && changes == 3U, "erasing the selected item clears the selection");
+    require((*list).selected_index().absent() && changes == 3U, "erasing the selected item clears the selection");
     (*list).items.clear();
     require((*list).items.read().empty() && (*list).top_index.read() == 0U, "clear empties the list");
     require(changed.connected(), "the subscription stays connected");
@@ -373,7 +373,7 @@ struct ChangingRowPaint final {
     void operator()(DataGridViewRowPrePaintEvent& event) const {
         ++*frame;
         const std::uint8_t shade = static_cast<std::uint8_t>((*frame * 37) % 256);
-        event.background = Color{shade, 200, 120, 255};
+        event.background.set(Color{shade, 200, 120, 255});
     }
 };
 
@@ -449,7 +449,7 @@ void test_grid_rows_refuse_and_keep_identity() {
     require(refused && (*grid).rows.read().size() == 2U, "a duplicate ID is refused before the edit");
     (*grid).rows.append(std::vector<DataGridViewRow>{{}, {.stable_id = {"charlie"}}, {}});
     require((*grid).rows.read().size() == 5U && (*grid).row_position(DataGridViewRowId{"charlie"}) ==
-                std::optional<DataGridViewRowPosition>{DataGridViewRowPosition{3U}},
+                stxlib::Optional<DataGridViewRowPosition>::of(DataGridViewRowPosition{3U}),
             "an appended range is indexed at its positions");
     require(!(*grid).rows[2U].stable_id.value.empty() && (*grid).rows[2U].stable_id != (*grid).rows[4U].stable_id,
             "rows appended without IDs get distinct generated ones");
@@ -457,7 +457,7 @@ void test_grid_rows_refuse_and_keep_identity() {
     require((*grid).rows.read().size() == 7U && (*grid).rows[1U].stable_id.value == "delta" &&
                 (*grid).rows[2U].stable_id.value == "echo" &&
                 (*grid).row_position(DataGridViewRowId{"charlie"}) ==
-                    std::optional<DataGridViewRowPosition>{DataGridViewRowPosition{5U}},
+                    stxlib::Optional<DataGridViewRowPosition>::of(DataGridViewRowPosition{5U}),
             "an inserted range takes its positions and moves the later rows");
     bool range_refused = false;
     try {
@@ -465,17 +465,17 @@ void test_grid_rows_refuse_and_keep_identity() {
     } catch (const std::invalid_argument&) {
         range_refused = true;
     }
-    require(range_refused && (*grid).rows.read().size() == 7U && !(*grid).row_position(DataGridViewRowId{"foxtrot"}),
+    require(range_refused && (*grid).rows.read().size() == 7U && (*grid).row_position(DataGridViewRowId{"foxtrot"}).absent(),
             "a range with a present ID is refused whole");
     (*grid).rows.erase(1U, 2U);
     (*grid).rows.replace(0U, {.stable_id = {"zulu"}});
-    require(!(*grid).row_position(DataGridViewRowId{"alpha"}) &&
+    require((*grid).row_position(DataGridViewRowId{"alpha"}).absent() &&
                 (*grid).row_position(DataGridViewRowId{"zulu"}) ==
-                    std::optional<DataGridViewRowPosition>{DataGridViewRowPosition{0U}},
+                    stxlib::Optional<DataGridViewRowPosition>::of(DataGridViewRowPosition{0U}),
             "a replacement naming another ID rekeys the row");
     (*grid).rows.erase(0U, 2U);
     require((*grid).row_position(DataGridViewRowId{"charlie"}) ==
-                std::optional<DataGridViewRowPosition>{DataGridViewRowPosition{1U}},
+                stxlib::Optional<DataGridViewRowPosition>::of(DataGridViewRowPosition{1U}),
             "an erasure moves the later rows' positions");
 }
 
@@ -487,10 +487,10 @@ void test_grid_rows_refuse_and_keep_identity() {
 void test_choice_items_follow_edits() {
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("collection.combo"));
     (*combo).items = {"Alpha", "Bravo", "Charlie"};
-    (*combo).selected_index = 1U;
+    (*combo).selected_index = stxlib::Optional<std::size_t>::of(1U);
     std::vector<std::string_view> raised;
     SubscriptionToken index_changed = (*combo).selected_index_changed().subscribe(
-        test_support::PushConstant<std::vector<std::string_view>, std::string_view, std::optional<std::size_t>>(
+        test_support::PushConstant<std::vector<std::string_view>, std::string_view, stxlib::Optional<std::size_t>>(
             raised, "index"));
     SubscriptionToken text_changed = (*combo).text_changed().subscribe(
         test_support::PushConstant<std::vector<std::string_view>, std::string_view, const std::string&>(raised,
@@ -498,17 +498,17 @@ void test_choice_items_follow_edits() {
     SubscriptionToken items_changed = (*combo).items_changed().subscribe(
         test_support::PushConstant<std::vector<std::string_view>, std::string_view>(raised, "items"));
     (*combo).items.insert(0U, "Zero");
-    require((*combo).selected_index.read() == std::optional<std::size_t>{2U} && (*combo).selected_text() == "Bravo" &&
+    require((*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && (*combo).selected_text() == "Bravo" &&
                 raised == std::vector<std::string_view>{"index", "items"},
             "an insertion before the selection moves it to its item");
     raised.clear();
     (*combo).items.replace(2U, "Beta");
-    require((*combo).selected_index.read() == std::optional<std::size_t>{2U} &&
+    require((*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) &&
                 raised == std::vector<std::string_view>{"text", "items"},
             "replacing the selected item keeps the index and changes the text");
     raised.clear();
     (*combo).items.erase(2U, 1U);
-    require(!(*combo).selected_index.read() && raised == std::vector<std::string_view>{"index", "text", "items"},
+    require((*combo).selected_index.read().absent() && raised == std::vector<std::string_view>{"index", "text", "items"},
             "erasing the selected item clears the selection");
     raised.clear();
     bool refused = false;
@@ -524,13 +524,13 @@ void test_choice_items_follow_edits() {
     (*domain).sorted = true;
     (*domain).items = {"lsb", "USB", "AM"};
     (*domain).text = "usb";
-    require((*domain).selected_index.read() == std::optional<std::size_t>{2U}, "the text selects its item");
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(2U), "the text selects its item");
     (*domain).items.insert(0U, "cw");
     require((*domain).items[1U] == "cw" && (*domain).items[3U] == "USB" &&
-                (*domain).selected_index.read() == std::optional<std::size_t>{3U},
+                (*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(3U),
             "a sorted domain sorts an insertion and re-matches the selection");
     (*domain).items.erase(3U, 1U);
-    require(!(*domain).selected_index.read() && (*domain).text.read() == "usb",
+    require((*domain).selected_index.read().absent() && (*domain).text.read() == "usb",
             "erasing the selected item keeps the text and clears the selection");
 }
 

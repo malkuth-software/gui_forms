@@ -35,6 +35,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 struct FocusedControlChange;
@@ -308,8 +310,8 @@ enum class DataGridViewHitTestType : std::uint8_t {
 // and neither elsewhere.
 struct GUI_FORMS_API DataGridViewHitTestInfo final {
     DataGridViewHitTestType type{DataGridViewHitTestType::none};
-    std::optional<DataGridViewRowPosition> row{};
-    std::optional<std::size_t> column{};
+    stxlib::Optional<DataGridViewRowPosition> row{};
+    stxlib::Optional<std::size_t> column{};
 };
 
 // Which parts of a row the grid paints (Windows Forms' DataGridViewPaintParts,
@@ -340,7 +342,7 @@ struct GUI_FORMS_API DataGridViewRowPrePaintEvent final {
     bool selected{};
     bool current{};
     DataGridViewRowPaintParts parts{};
-    std::optional<Color> background{};
+    stxlib::Optional<Color> background{};
     bool handled{};
 };
 
@@ -413,8 +415,8 @@ struct GUI_FORMS_API DataGridViewEditingControlShowingEvent final {
 struct GUI_FORMS_API DataGridViewCellMouseEvent final {
     DataGridViewHitTestType area{DataGridViewHitTestType::none};
     DataGridViewRowId row_id{};
-    std::optional<DataGridViewRowPosition> row{};
-    std::optional<std::size_t> column{};
+    stxlib::Optional<DataGridViewRowPosition> row{};
+    stxlib::Optional<std::size_t> column{};
     Point location{};
     PointerButton button{PointerButton::none};
     std::uint32_t click_count{};
@@ -539,7 +541,7 @@ public:
     // std::out_of_range for an unknown column and std::invalid_argument for
     // invalid UTF-8.
     void set_column_header_text(std::size_t column, std::string text);
-    [[nodiscard]] std::optional<std::size_t> column_index(std::string_view name) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> column_index(std::string_view name) const noexcept;
     // Throws std::out_of_range for an unknown column and std::invalid_argument
     // for a width that is not finite or below the column's minimum. An
     // auto-sized column takes its automatic width again at the next layout.
@@ -612,7 +614,7 @@ public:
     // Throws std::out_of_range past the end.
     [[nodiscard]] DataGridViewRow shared_row(DataGridViewRowPosition position) const;
     // The position of the row with an ID, or none.
-    [[nodiscard]] std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const;
+    [[nodiscard]] stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const;
     // Throws std::out_of_range for a cell past the rows or columns.
     [[nodiscard]] BindingValue cell_value(DataGridViewRowPosition row, std::size_t column) const;
     // The text a cell shows (Windows Forms' FormattedValue): its value
@@ -648,7 +650,7 @@ public:
     // DataGridViewSortDirection::none) when the rows are not sorted by a
     // column: before any sort, after sort(comparer), and once the rows or
     // columns are replaced or the sorted column removed.
-    [[nodiscard]] std::optional<std::size_t> sorted_column() const noexcept { return sorted_column_; }
+    [[nodiscard]] stxlib::Optional<std::size_t> sorted_column() const noexcept { return sorted_column_; }
     [[nodiscard]] DataGridViewSortDirection sort_order() const noexcept { return sort_order_; }
     // A column's sort mode, its kind's default when its sort_mode is empty.
     // Throws std::out_of_range for an unknown column.
@@ -763,7 +765,7 @@ public:
     // current cell leaves it, the added row can be discarded with
     // cancel_row_edit (Escape when no cell is in edit).
     // The new row's position, while it is shown.
-    [[nodiscard]] std::optional<DataGridViewRowPosition> new_row_index() const noexcept;
+    [[nodiscard]] stxlib::Optional<DataGridViewRowPosition> new_row_index() const noexcept;
     // Discards the row the user added, while it is the current row and the
     // current cell has not left it since; any edit is discarded first.
     // Raises row_edit_cancelled. Returns false when there is no such row.
@@ -893,7 +895,7 @@ public:
     // columns (Windows Forms' FirstDisplayedScrollingColumnIndex), or none;
     // and how much of it is scrolled out of view, in logical units at text
     // scale 1 (FirstDisplayedScrollingColumnHiddenWidth).
-    [[nodiscard]] std::optional<std::size_t> first_displayed_scrolling_column() const;
+    [[nodiscard]] stxlib::Optional<std::size_t> first_displayed_scrolling_column() const;
     [[nodiscard]] double first_displayed_scrolling_column_hidden_width() const;
     // Scrolls so that a shown, unfrozen column starts beside the frozen
     // columns (the layout then keeps the offset within the scroll range).
@@ -908,14 +910,25 @@ public:
 
     // The current cell at its row's present position, or none. The grid keeps
     // it by row ID, so it stays on its row when rows move.
-    [[nodiscard]] std::optional<DataGridViewCellAddress> current_cell() const;
+    [[nodiscard]] stxlib::Optional<DataGridViewCellAddress> current_cell() const;
     // The current cell's row ID, or none.
     [[nodiscard]] std::optional<DataGridViewRowId> current_row_id() const;
     // Moves the current cell, committing any edit first, and selects it alone.
     // Returns false, changing nothing, when the edit does not commit. Throws
     // std::out_of_range for a cell past the rows or columns and
     // std::logic_error for a cell in a hidden column.
-    bool set_current_cell(std::optional<DataGridViewCellAddress> cell);
+    bool set_current_cell(stxlib::Optional<DataGridViewCellAddress> cell);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<DataGridViewCellAddress>")]]
+    bool set_current_cell(std::optional<DataGridViewCellAddress> cell) {
+        stxlib::Optional<DataGridViewCellAddress> owned{};
+        if (cell.has_value()) owned.set(*cell);
+        const bool moved = set_current_cell(owned);
+        return moved;
+    }
+    // A plain address is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<DataGridViewCellAddress>::of(cell).
+    bool set_current_cell(DataGridViewCellAddress cell) = delete;
     [[nodiscard]] bool is_cell_selected(DataGridViewRowPosition row, std::size_t column) const;
     [[nodiscard]] bool is_row_selected(DataGridViewRowPosition row) const;
     // In full-row mode a cell's selection is its row's, in full-column mode
@@ -986,7 +999,7 @@ public:
     [[nodiscard]] Event<>& selection_changed() noexcept { return selection_changed_; }
     // Raised after the current cell moves to another cell, with the new cell
     // or none; not when only its row's position changes.
-    [[nodiscard]] Event<std::optional<DataGridViewCellAddress>>& current_cell_changed() noexcept {
+    [[nodiscard]] Event<stxlib::Optional<DataGridViewCellAddress>>& current_cell_changed() noexcept {
         return current_cell_changed_;
     }
     [[nodiscard]] Event<DataGridViewCellCancelEvent&>& cell_begin_edit() noexcept { return cell_begin_edit_; }
@@ -1432,14 +1445,14 @@ private:
     // column, fill columns last. values_changed is the invalidation of a
     // value change, which lays the grid out again when a column sizes by
     // its cells.
-    [[nodiscard]] std::optional<double> automatic_width(std::size_t column, DataGridViewAutoSizeColumnMode mode,
+    [[nodiscard]] stxlib::Optional<double> automatic_width(std::size_t column, DataGridViewAutoSizeColumnMode mode,
                                                         const GridLayout& layout) const;
     void apply_auto_sizes();
     void distribute_fill_width();
     // A row's preferred height under a mode, from 4 to 4096; none when a
     // formatting handler changed the grid while it was measured. Applied by
     // arrange after the columns' widths (apply_row_auto_sizes).
-    [[nodiscard]] std::optional<double> automatic_height(std::size_t position, DataGridViewAutoSizeRowMode mode) const;
+    [[nodiscard]] stxlib::Optional<double> automatic_height(std::size_t position, DataGridViewAutoSizeRowMode mode) const;
     void apply_row_auto_sizes();
     // column_headers_height_size_mode auto_size: the band takes the
     // preferred height at each layout, first in arrange (the height is one
@@ -1482,7 +1495,7 @@ private:
     void rebuild_row_index();
     // Writes the positions of the rows from `first` to the end (unbound).
     void index_rows_from(std::size_t first);
-    [[nodiscard]] std::optional<std::size_t> find_row(std::string_view row_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> find_row(std::string_view row_id) const;
     // The position an event reports for a row: its indexed position, which
     // for a row being removed is the position it had.
     [[nodiscard]] DataGridViewRowPosition event_position(std::string_view row_id) const;
@@ -1509,22 +1522,22 @@ private:
     [[nodiscard]] Rect row_paint_bounds(DataGridViewRowPosition row, const GridLayout& layout) const;
     // A check box cell's state: checked or not, or none (indeterminate) for
     // an empty value in a three-state column.
-    [[nodiscard]] std::optional<bool> check_state(DataGridViewRowPosition row, std::size_t column) const;
+    [[nodiscard]] stxlib::Optional<bool> check_state(DataGridViewRowPosition row, std::size_t column) const;
     // Whether a combo box cell shows its drop-down button.
     [[nodiscard]] bool shows_drop_down(DataGridViewRowPosition row, std::size_t column) const;
     // The cell's tooltip: empty unless show_cell_tool_tips holds and a
     // cell_tool_tip_text_needed handler set valid UTF-8.
     [[nodiscard]] std::string cell_tool_tip_text(DataGridViewRowPosition row, std::size_t column) const;
     [[nodiscard]] CellKey key_of(DataGridViewCellAddress cell) const;
-    [[nodiscard]] std::optional<DataGridViewCellAddress> address_of(const CellKey& cell) const;
-    [[nodiscard]] std::optional<std::size_t> current_position() const;
+    [[nodiscard]] stxlib::Optional<DataGridViewCellAddress> address_of(const CellKey& cell) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> current_position() const;
     [[nodiscard]] bool is_current_row(DataGridViewRowPosition row) const;
     [[nodiscard]] bool is_current_cell(DataGridViewRowPosition row, std::size_t column) const;
     // After rows left the index: drops the selections, anchor and pressed
     // button of rows that are gone, and moves a current cell whose row is
     // gone to the row now at `former_current` (its row's old position), the
     // new last row, or none.
-    void drop_missing_rows(std::optional<std::size_t> former_current);
+    void drop_missing_rows(stxlib::Optional<std::size_t> former_current);
 
     // Layout and geometry: one function per part, used by paint and by the
     // published anatomy.
@@ -1678,8 +1691,8 @@ private:
     // A style's colours for a part, selected or not; none where the theme's
     // stand.
     struct AuthoredColours final {
-        std::optional<Color> background{};
-        std::optional<Color> foreground{};
+        stxlib::Optional<Color> background{};
+        stxlib::Optional<Color> foreground{};
     };
     [[nodiscard]] static AuthoredColours authored_colours(const DataGridViewCellStyle& style, bool selected);
     [[nodiscard]] CellLayout cell_layout(DataGridViewRowPosition row, std::size_t column,
@@ -1891,7 +1904,7 @@ private:
     [[nodiscard]] std::string row_error_prefix() const;
     [[nodiscard]] SemanticNode error_glyph_node(std::string stable_id, const std::string& text,
                                                 const PartGeometry& glyph, const Rect& absolute) const;
-    [[nodiscard]] std::optional<DataGridViewCellAddress> cell_from_stable_id(std::string_view id) const;
+    [[nodiscard]] stxlib::Optional<DataGridViewCellAddress> cell_from_stable_id(std::string_view id) const;
 
     std::vector<DataGridViewColumn> columns_{};
     DataGridViewRowSource row_source_{DataGridViewRowSource::unbound};
@@ -1900,7 +1913,7 @@ private:
     // index, the current row's position before an erasure or replacement,
     // and whether an insertion took the new row's ID.
     RowPositions edit_index_{};
-    std::optional<std::size_t> edit_former_current_{};
+    stxlib::Optional<std::size_t> edit_former_current_{};
     bool edit_takes_new_row_id_{};
     // The unbound rows before the edit, for an assignment's rows_removed;
     // and set while the grid edits `rows` as part of a larger change that
@@ -1937,7 +1950,7 @@ private:
     // part way through one notification's changes, for drop_missing_rows
     // once the index holds every row again.
     std::unique_ptr<detail::DataGridViewBoundIndex> bound_index_{};
-    std::optional<std::size_t> bound_removed_current_{};
+    stxlib::Optional<std::size_t> bound_removed_current_{};
 
     std::shared_ptr<TextBox> editor_{};
     std::shared_ptr<VScrollBar> vertical_bar_{};
@@ -2056,7 +2069,7 @@ private:
     bool header_auto_size_writing_{false};
     // The last sort by a column, if the rows are still in its order, and
     // whether sort_compare's handlers are deciding comparisons now.
-    std::optional<std::size_t> sorted_column_{};
+    stxlib::Optional<std::size_t> sorted_column_{};
     DataGridViewSortDirection sort_order_{DataGridViewSortDirection::none};
     bool sorting_{};
     // Whether the cell modes' widths need measuring again: set by every
@@ -2098,9 +2111,9 @@ private:
     bool ending_edit_{};
     bool edit_invalid_{};
     bool focused_{};
-    std::optional<std::size_t> hot_column_{};
-    std::optional<std::size_t> pressed_column_{};
-    std::optional<std::size_t> resizing_column_{};
+    stxlib::Optional<std::size_t> hot_column_{};
+    stxlib::Optional<std::size_t> pressed_column_{};
+    stxlib::Optional<std::size_t> resizing_column_{};
     // Display order: display_order_[display index] is a column index and
     // display_indices_[column index] its display index; both have one entry
     // per column.
@@ -2118,12 +2131,12 @@ private:
     // enough to be a drag, and the display index the column would take.
     double order_start_x_{};
     bool ordering_{};
-    std::optional<DataGridViewDisplayIndex> order_target_{};
+    stxlib::Optional<DataGridViewDisplayIndex> order_target_{};
     double resize_start_x_{};
     double resize_start_width_{};
     // A row header edge drag: the row, by position (rows do not move while
     // the pointer is captured), where the press was and the height then.
-    std::optional<std::size_t> resizing_row_{};
+    stxlib::Optional<std::size_t> resizing_row_{};
     double resize_start_y_{};
     double resize_start_height_{};
     // A drag of the column header band's bottom edge; it shares the start
@@ -2131,7 +2144,7 @@ private:
     bool resizing_headers_{};
 
     Event<> selection_changed_{};
-    Event<std::optional<DataGridViewCellAddress>> current_cell_changed_{};
+    Event<stxlib::Optional<DataGridViewCellAddress>> current_cell_changed_{};
     Event<DataGridViewCellCancelEvent&> cell_begin_edit_{};
     Event<const DataGridViewCellEvent&> cell_end_edit_{};
     Event<DataGridViewCellValidatingEvent&> cell_validating_{};
@@ -2329,9 +2342,9 @@ private:
     void written(const decltype(row_headers_default_cell_style)& cell);
     void prepare_write(const decltype(enable_headers_visual_styles)& cell, bool& incoming);
     void written(const decltype(enable_headers_visual_styles)& cell);
-    void prepare_write(const decltype(grid_color)& cell, std::optional<Color>& incoming);
+    void prepare_write(const decltype(grid_color)& cell, stxlib::Optional<Color>& incoming);
     void written(const decltype(grid_color)& cell);
-    void prepare_write(const decltype(background_color)& cell, std::optional<Color>& incoming);
+    void prepare_write(const decltype(background_color)& cell, stxlib::Optional<Color>& incoming);
     void written(const decltype(background_color)& cell);
     void prepare_write(const decltype(border_style)& cell, BorderStyle& incoming);
     void written(const decltype(border_style)& cell);

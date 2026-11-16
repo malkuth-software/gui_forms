@@ -153,8 +153,8 @@ bool IndicatorLamp::light_planes_shown() const {
 
 engine_light::LampColour IndicatorLamp::lit_colour() const noexcept {
     if (lit_state_ == IndicatorLampState::error) return engine_light::lamp_red;
-    const std::optional<Color> chosen = lamp_color.read();
-    if (chosen) return engine_light::lamp_colour_from_srgb(*chosen);
+    const Color* chosen = lamp_color.read().value();
+    if (chosen != nullptr) return engine_light::lamp_colour_from_srgb(*chosen);
     return engine_light::lamp_amber;
 }
 
@@ -237,27 +237,27 @@ void IndicatorLamp::on_paint(Painter& painter, Rect) {
 void IndicatorLamp::paint_theme_lens(Painter& painter, const Placement& placed, AnatomyStateSet states) {
     PartPaint bezel{.role = PartRole::well, .bounds = placed.bezel, .states = with_lit_state(states, state.read()),
                     .family = ControlVisualRole::panel};
-    bezel.corner_radius = placed.bezel.width * 0.5;
-    bezel.key = PartKey{"bezel", {}, {}};
+    bezel.corner_radius.set(placed.bezel.width * 0.5);
+    bezel.key.set(PartKey{"bezel", {}, {}});
     paint_part(painter, *this, bezel);
     // The dark lens, then the lit lens over it at the current power, clipped
     // to the lens so that its light reaches nothing else.
     const double radius = placed.lens.width * 0.5;
     PartPaint lens{.role = PartRole::indicator, .bounds = placed.lens, .states = states,
                    .family = ControlVisualRole::choice};
-    lens.corner_radius = radius;
-    lens.key = PartKey{"lens", {}, {}};
+    lens.corner_radius.set(radius);
+    lens.key.set(PartKey{"lens", {}, {}});
     paint_part(painter, *this, lens);
     if (power_ > 0.0 && lit(lit_state_)) {
         PartPaint lit_lens = lens;
         lit_lens.states = with_lit_state(states, lit_state_);
         lit_lens.family = lit_family(lit_state_);
         // The lit lens keeps its own record, so the dark lens's stays.
-        lit_lens.key = PartKey{"lens", "lit", {}};
+        lit_lens.key.set(PartKey{"lens", "lit", {}});
         // The application's lamp colour fills the lit lens (on only: an
         // error keeps the theme's error colour).
-        const std::optional<Color> chosen = lamp_color.read();
-        if (chosen && lit_state_ == IndicatorLampState::on) lit_lens.authored_background = *chosen;
+        const Color* chosen = lamp_color.read().value();
+        if (chosen != nullptr && lit_state_ == IndicatorLampState::on) lit_lens.authored_background.set(*chosen);
         painter.begin_group(PaintGroup{.bounds = placed.lens, .opacity = std::min(1.0, power_)});
         painter.save();
         painter.clip_rounded_rect(placed.lens, radius);
@@ -277,7 +277,7 @@ void IndicatorLamp::paint_baked_lens(Painter& painter, const Placement& placed, 
     PartPaint lens{.role = PartRole::indicator, .bounds = placed.lens,
                    .states = lit_now ? with_lit_state(states, lit_state_) : states,
                    .family = lit_now ? lit_family(lit_state_) : ControlVisualRole::choice};
-    lens.key = PartKey{"lens", {}, {}};
+    lens.key.set(PartKey{"lens", {}, {}});
     const double power = lit_now ? std::min(1.0, power_) : 0.0;
     lens.light_planes = PartLightPlanes{.planes = std::move(bake),
                                         .drive = engine_light::LampDrive{lit_colour(), power},
@@ -542,7 +542,7 @@ void IndicatorLamp::written(const decltype(light_planes)&) {
     invalidate(Dirty::measure | Dirty::paint);
 }
 
-void IndicatorLamp::prepare_write(const decltype(lamp_color)&, std::optional<Color>&) {
+void IndicatorLamp::prepare_write(const decltype(lamp_color)&, stxlib::Optional<Color>&) {
     require_mutable();
 }
 

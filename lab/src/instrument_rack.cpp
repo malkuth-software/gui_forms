@@ -13,6 +13,7 @@
 #include <limits>
 #include <numeric>
 #include <stdexcept>
+#include <stxlib/optional.hpp>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -136,7 +137,7 @@ struct InstrumentRack::Impl final {
         std::string module_id;
         std::string field_id;
         std::weak_ptr<ComboBox> control;
-        void operator()(std::optional<std::size_t>) const {
+        void operator()(stxlib::Optional<std::size_t>) const {
             (*implementation).choice_field_changed(
                 module_id, field_id, control);
         }
@@ -395,8 +396,8 @@ struct InstrumentRack::Impl final {
                 std::find(field.choices.begin(),
                                             field.choices.end(), field.value);
             if (selected != field.choices.end()) {
-                (*choice).selected_index = static_cast<std::size_t>(
-                    std::distance(field.choices.begin(), selected));
+                (*choice).selected_index = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(
+                    std::distance(field.choices.begin(), selected)));
             }
             (*choice).font = field_font;
             editor = choice;
@@ -463,7 +464,7 @@ struct InstrumentRack::Impl final {
         module.status = make_control<Label>(
             StableId(module.spec.stable_id + ".state"),
             module.spec.status_text);
-        (*module.status).font = FontSpec{FontRole::control, 9.5, 600, false, 0.30};
+        (*module.status).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 9.5, 600, false, 0.30});
         (*module.status).margin = Insets{};
         (*module.status).accessible_name = "Application state";
         (*module.panel).add_child(module.status);
@@ -555,9 +556,9 @@ struct InstrumentRack::Impl final {
                     std::find(field.choices.begin(),
                                                 field.choices.end(), field.value);
                 (*choice).selected_index = selected == field.choices.end()
-                    ? std::optional<std::size_t>{}
-                    : std::optional<std::size_t>{static_cast<std::size_t>(
-                        std::distance(field.choices.begin(), selected))};
+                    ? stxlib::Optional<std::size_t>::none()
+                    : stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(
+                        std::distance(field.choices.begin(), selected)));
             } else if (const std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>(
                            field_state.editor)) {
                 (*text).text = field.value;
@@ -878,9 +879,9 @@ bool InstrumentRack::set_field_value(std::string_view module_id,
             std::find((*field).choices.begin(),
                                         (*field).choices.end(), (*field).value);
         (*choice).selected_index = selected == (*field).choices.end()
-            ? std::optional<std::size_t>{}
-            : std::optional<std::size_t>{static_cast<std::size_t>(
-                std::distance((*field).choices.begin(), selected))};
+            ? stxlib::Optional<std::size_t>::none()
+            : stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(
+                std::distance((*field).choices.begin(), selected)));
     }
     (*impl_).synchronizing = false;
     for (InstrumentModuleSpec& public_module : (*impl_).public_modules) {

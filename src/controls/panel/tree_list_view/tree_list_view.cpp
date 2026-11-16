@@ -95,13 +95,13 @@ std::string_view column_text(const TreeListNode& node, std::size_t column) noexc
 // order before the sort.
 struct SiblingOrder final {
     const std::vector<TreeListNode>* nodes{};
-    std::optional<std::size_t> column{};
+    stxlib::Optional<std::size_t> column{};
     bool descending{};
 
     bool operator()(std::size_t left, std::size_t right) const noexcept {
-        if (column) {
-            const std::string_view a = column_text((*nodes)[left], *column);
-            const std::string_view b = column_text((*nodes)[right], *column);
+        if (column.present()) {
+            const std::string_view a = column_text((*nodes)[left], *column.value());
+            const std::string_view b = column_text((*nodes)[right], *column.value());
             const bool before = descending ? details_detail::folded_text_less(b, a)
                                            : details_detail::folded_text_less(a, b);
             if (before) return true;
@@ -136,12 +136,12 @@ std::string cell_identity(std::string_view node_id, std::string_view column_id) 
 
 // Where a splice moves a row: before `first` it stays, inside the removed
 // rows it is gone, after them it shifts by inserted - removed.
-std::optional<std::size_t> spliced_row(std::optional<std::size_t> row, const TreeListRowSplice& splice) noexcept {
-    if (!row || *row < splice.first) return row;
+stxlib::Optional<std::size_t> spliced_row(stxlib::Optional<std::size_t> row, const TreeListRowSplice& splice) noexcept {
+    if (row.absent() || *row.value() < splice.first) return row;
     const std::size_t removed_end = splice.first + splice.removed;
-    if (*row < removed_end) return std::nullopt;
-    const std::size_t moved = *row - splice.removed + splice.inserted;
-    return moved;
+    if (*row.value() < removed_end) return stxlib::Optional<std::size_t>::none();
+    const std::size_t moved = *row.value() - splice.removed + splice.inserted;
+    return stxlib::Optional<std::size_t>::of(moved);
 }
 
 } // namespace
@@ -182,36 +182,36 @@ bool TreeListView::row_can_expand(std::size_t row, const TreeListNode& node) con
     return can_expand(visible_[row]);
 }
 
-std::optional<std::size_t> TreeListView::selected_row() const noexcept {
+stxlib::Optional<std::size_t> TreeListView::selected_row() const noexcept {
     if (row_source_) return selected_row_;
-    if (!selected_node_ || row_of_node_[*selected_node_] == no_index) return std::nullopt;
-    return row_of_node_[*selected_node_];
+    if (selected_node_.absent() || row_of_node_[*selected_node_.value()] == no_index) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(row_of_node_[*selected_node_.value()]);
 }
 
-std::optional<std::size_t> TreeListView::current_row() const noexcept {
+stxlib::Optional<std::size_t> TreeListView::current_row() const noexcept {
     if (row_source_) return current_row_;
-    if (!current_node_ || row_of_node_[*current_node_] == no_index) return std::nullopt;
-    return row_of_node_[*current_node_];
+    if (current_node_.absent() || row_of_node_[*current_node_.value()] == no_index) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(row_of_node_[*current_node_.value()]);
 }
 
 // Moves the selection and the current position to a row.
 void TreeListView::place_selection(std::size_t row) {
     place_current(row);
     if (row_source_) {
-        selected_row_ = row;
+        selected_row_.set(row);
     } else {
-        selected_node_ = visible_[row];
+        selected_node_.set(visible_[row]);
     }
 }
 
 void TreeListView::place_current(std::size_t row) {
     if (!row_source_) {
-        current_node_ = visible_[row];
+        current_node_.set(visible_[row]);
         return;
     }
     TreeListNode scratch;
     current_row_id_ = row_node(row, scratch).stable_id;
-    current_row_ = row;
+    current_row_.set(row);
 }
 
 void TreeListView::toggle_row(std::size_t row, bool expanded) {
@@ -224,19 +224,19 @@ void TreeListView::toggle_row(std::size_t row, bool expanded) {
 
 // The row of a row's parent. In virtual mode the rows above are read until
 // one is shallower: the distance to the parent, not the row count.
-std::optional<std::size_t> TreeListView::parent_row(std::size_t row) const {
+stxlib::Optional<std::size_t> TreeListView::parent_row(std::size_t row) const {
     if (!row_source_) {
         const std::size_t parent = parent_[visible_[row]];
-        if (parent == no_index) return std::nullopt;
-        return row_of_node_[parent];
+        if (parent == no_index) return stxlib::Optional<std::size_t>::none();
+        return stxlib::Optional<std::size_t>::of(row_of_node_[parent]);
     }
     TreeListNode scratch;
     const std::size_t depth = row_node(row, scratch).depth;
-    if (depth == 0U) return std::nullopt;
+    if (depth == 0U) return stxlib::Optional<std::size_t>::none();
     for (std::size_t above = row; above > 0U; --above) {
-        if (row_node(above - 1U, scratch).depth < depth) return above - 1U;
+        if (row_node(above - 1U, scratch).depth < depth) return stxlib::Optional<std::size_t>::of(above - 1U);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 // -- virtual rows ------------------------------------------------------------------
@@ -290,17 +290,17 @@ void TreeListView::validate_splice(const TreeListRowSplice& splice) const {
 // selection, current row and top row follow their rows. `lift_to` receives a
 // selection or current row the splice removed (a collapse moves them to the
 // collapsed row, as TreeView does); without it they are dropped.
-void TreeListView::apply_splice(const TreeListRowSplice& splice, std::optional<std::size_t> lift_to) {
+void TreeListView::apply_splice(const TreeListRowSplice& splice, stxlib::Optional<std::size_t> lift_to) {
     RowHeightIndex& heights = *row_heights_;
     heights.erase(splice.first, splice.removed);
     heights.insert(splice.first, splice.inserted);
-    const std::optional<std::size_t> selected = spliced_row(selected_row_, splice);
-    const std::optional<std::size_t> current = spliced_row(current_row_, splice);
-    selected_row_ = selected_row_ && !selected ? lift_to : selected;
-    const bool current_lost = current_row_ && !current;
+    const stxlib::Optional<std::size_t> selected = spliced_row(selected_row_, splice);
+    const stxlib::Optional<std::size_t> current = spliced_row(current_row_, splice);
+    selected_row_ = selected_row_.present() && selected.absent() ? lift_to : selected;
+    const bool current_lost = current_row_.present() && current.absent();
     current_row_ = current_lost ? lift_to : current;
-    if (current_lost && current_row_) place_current(*current_row_);
-    if (!current_row_) current_row_id_.clear();
+    if (current_lost && current_row_.present()) place_current(*current_row_.value());
+    if (current_row_.absent()) current_row_id_.clear();
     const std::size_t removed_end = splice.first + splice.removed;
     if (top_row_ >= removed_end) {
         top_row_ = top_row_ - splice.removed + splice.inserted;
@@ -317,7 +317,7 @@ void TreeListView::splice_rows(std::size_t first, std::size_t removed, std::size
     const TreeListRowSplice splice{first, removed, inserted};
     validate_splice(splice);
     const std::optional<std::string> previous = selected_copy();
-    apply_splice(splice, std::nullopt);
+    apply_splice(splice, stxlib::Optional<std::size_t>::none());
     if (previous != selected_copy()) publish_selection(previous);
 }
 
@@ -329,10 +329,10 @@ void TreeListView::refresh_rows() {
     const std::optional<std::string> previous = selected_copy();
     RowHeightIndex& heights = *row_heights_;
     heights.assign(count, heights.estimated_height());
-    if (selected_row_ && *selected_row_ >= count) selected_row_.reset();
-    if (current_row_ && *current_row_ >= count) current_row_.reset();
+    if (selected_row_.present() && *selected_row_.value() >= count) selected_row_.reset();
+    if (current_row_.present() && *current_row_.value() >= count) current_row_.reset();
     current_row_id_.clear();
-    if (current_row_) place_current(*current_row_);
+    if (current_row_.present()) place_current(*current_row_.value());
     top_row_ = count == 0U ? 0U : std::min(top_row_, count - 1U);
     hot_row_.reset();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -353,7 +353,7 @@ void TreeListView::set_virtual_row_expanded(std::size_t row, bool expanded) {
     if (splice.first <= row && splice.removed + splice.inserted > 0U) {
         throw std::logic_error("TreeListView expansion splice must lie after the expanded row");
     }
-    apply_splice(splice, expanded ? std::nullopt : std::optional<std::size_t>(row));
+    apply_splice(splice, expanded ? stxlib::Optional<std::size_t>::none() : stxlib::Optional<std::size_t>::of(row));
     const TreeListExpansionChange change{node_id, expanded};
     publish_change(expansion_changed_, change);
     if (is_alive() && previous != selected_copy()) publish_selection(previous);
@@ -473,8 +473,8 @@ void TreeListView::rebuild_structure() {
 // subtree contiguous after its node.
 void TreeListView::rebuild_order() {
     const std::size_t count = nodes_.size();
-    const bool sorted = sort_column_.has_value() && sort_order_ != TreeListSortOrder::none;
-    const SiblingOrder by_order{&nodes_, sorted ? sort_column_ : std::nullopt,
+    const bool sorted = sort_column_.present() && sort_order_ != TreeListSortOrder::none;
+    const SiblingOrder by_order{&nodes_, sorted ? sort_column_ : stxlib::Optional<std::size_t>::none(),
                                 sort_order_ == TreeListSortOrder::descending};
     sibling_position_.assign(count, 0U);
     for (std::size_t slot = 0; slot + 1U < child_begin_.size(); ++slot) {
@@ -510,14 +510,14 @@ void TreeListView::rebuild_rows() {
     visible_.clear();
     advance_layout_revision();
     row_of_node_.assign(nodes_.size(), no_index);
-    std::optional<std::size_t> hidden_below{};
+    stxlib::Optional<std::size_t> hidden_below{};
     for (const std::size_t index : order_) {
         const std::size_t depth = nodes_[index].depth;
-        if (hidden_below && depth > *hidden_below) continue;
+        if (hidden_below.present() && depth > *hidden_below.value()) continue;
         hidden_below.reset();
         row_of_node_[index] = visible_.size();
         visible_.push_back(index);
-        if (has_children(index) && !nodes_[index].expanded) hidden_below = depth;
+        if (has_children(index) && !nodes_[index].expanded) hidden_below.set(depth);
     }
     top_row_ = visible_.empty() ? 0U : std::min(top_row_, visible_.size() - 1U);
     advance_layout_revision();
@@ -547,23 +547,23 @@ std::size_t TreeListView::visible_ancestor(std::size_t index) const noexcept {
 }
 
 bool TreeListView::lift_hidden_selection() {
-    if (current_node_ && row_of_node_[*current_node_] == no_index) {
-        current_node_ = visible_ancestor(*current_node_);
+    if (current_node_.present() && row_of_node_[*current_node_.value()] == no_index) {
+        current_node_.set(visible_ancestor(*current_node_.value()));
     }
-    if (!selected_node_ || row_of_node_[*selected_node_] != no_index) return false;
-    selected_node_ = visible_ancestor(*selected_node_);
+    if (selected_node_.absent() || row_of_node_[*selected_node_.value()] != no_index) return false;
+    selected_node_.set(visible_ancestor(*selected_node_.value()));
     return true;
 }
 
 std::optional<std::string> TreeListView::selected_copy() const {
     if (row_source_) {
-        if (!selected_row_) return std::nullopt;
+        if (selected_row_.absent()) return std::nullopt;
         TreeListNode scratch;
-        std::string identity = row_node(*selected_row_, scratch).stable_id;
+        std::string identity = row_node(*selected_row_.value(), scratch).stable_id;
         return identity;
     }
-    if (!selected_node_) return std::nullopt;
-    return nodes_[*selected_node_].stable_id;
+    if (selected_node_.absent()) return std::nullopt;
+    return nodes_[*selected_node_.value()].stable_id;
 }
 
 void TreeListView::publish_selection(std::optional<std::string> previous) {
@@ -616,7 +616,7 @@ void TreeListView::set_columns(std::vector<TreeListColumn> columns) {
         }
         identities.push_back(column.stable_id);
     }
-    if ((resizing_column_ || pressed_column_) && has_pointer_capture()) set_pointer_capture(false);
+    if ((resizing_column_.present() || pressed_column_.present()) && has_pointer_capture()) set_pointer_capture(false);
     resizing_column_.reset();
     pressed_column_.reset();
     dragging_column_ = false;
@@ -626,14 +626,14 @@ void TreeListView::set_columns(std::vector<TreeListColumn> columns) {
     column_order_.resize(columns_.size());
     std::iota(column_order_.begin(), column_order_.end(), std::size_t{0U});
     column_position_ = column_order_;
-    const bool sort_lost = sort_column_ && *sort_column_ >= columns_.size();
+    const bool sort_lost = sort_column_.present() && *sort_column_.value() >= columns_.size();
     if (sort_lost) {
         sort_column_.reset();
         sort_order_ = TreeListSortOrder::none;
     }
     // A kept sort column may now name different text; a lost one returns
     // to the model order.
-    if (!row_source_ && (sort_lost || sort_column_)) rebuild_order();
+    if (!row_source_ && (sort_lost || sort_column_.present())) rebuild_order();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -701,15 +701,15 @@ void TreeListView::set_nodes(std::vector<TreeListNode> nodes) {
     }
     // Carry the selection and the current node over by stable ID.
     const std::optional<std::string> previous = selected_copy();
-    std::optional<std::size_t> next_selected{};
-    std::optional<std::size_t> next_current{};
-    if (selected_node_) {
-        const NodeIndices::const_iterator found = next_indices.find(nodes_[*selected_node_].stable_id);
-        if (found != next_indices.end()) next_selected = (*found).second;
+    stxlib::Optional<std::size_t> next_selected{};
+    stxlib::Optional<std::size_t> next_current{};
+    if (selected_node_.present()) {
+        const NodeIndices::const_iterator found = next_indices.find(nodes_[*selected_node_.value()].stable_id);
+        if (found != next_indices.end()) next_selected.set((*found).second);
     }
-    if (current_node_) {
-        const NodeIndices::const_iterator found = next_indices.find(nodes_[*current_node_].stable_id);
-        if (found != next_indices.end()) next_current = (*found).second;
+    if (current_node_.present()) {
+        const NodeIndices::const_iterator found = next_indices.find(nodes_[*current_node_.value()].stable_id);
+        if (found != next_indices.end()) next_current.set((*found).second);
     }
     nodes_.swap(nodes);
     node_indices_.swap(next_indices);
@@ -722,10 +722,10 @@ void TreeListView::set_nodes(std::vector<TreeListNode> nodes) {
     if (previous != after) publish_selection(previous);
 }
 
-std::optional<std::size_t> TreeListView::index_of(std::string_view node_id) const {
+stxlib::Optional<std::size_t> TreeListView::index_of(std::string_view node_id) const {
     const NodeIndices::const_iterator found = node_indices_.find(std::string(node_id));
-    if (found == node_indices_.end()) return std::nullopt;
-    return (*found).second;
+    if (found == node_indices_.end()) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of((*found).second);
 }
 
 void TreeListView::set_cell_text(std::string_view node_id, std::size_t column, std::string text) {
@@ -741,7 +741,7 @@ void TreeListView::set_cell_text(std::string_view node_id, std::size_t column, s
         if (node.cells.size() < column) node.cells.resize(column);
         node.cells[column - 1U] = std::move(text);
     }
-    const bool resort = sort_column_ == column && sort_order_ != TreeListSortOrder::none;
+    const bool resort = sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ != TreeListSortOrder::none;
     if (resort) rebuild_order();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -750,10 +750,10 @@ void TreeListView::set_cell_text(std::string_view node_id, std::size_t column, s
 
 bool TreeListView::is_expanded(std::string_view node_id) const {
     if (row_source_) {
-        const std::optional<std::size_t> row = row_of(node_id);
-        if (!row) throw std::out_of_range("TreeListView expansion names an unknown node");
+        const stxlib::Optional<std::size_t> row = row_of(node_id);
+        if (row.absent()) throw std::out_of_range("TreeListView expansion names an unknown node");
         TreeListNode scratch;
-        const TreeListNode& node = row_node(*row, scratch);
+        const TreeListNode& node = row_node(*row.value(), scratch);
         const bool shown_expanded = node.expandable && node.expanded;
         return shown_expanded;
     }
@@ -765,9 +765,9 @@ bool TreeListView::is_expanded(std::string_view node_id) const {
 void TreeListView::set_expanded(std::string_view node_id, bool expanded) {
     require_mutable();
     if (row_source_) {
-        const std::optional<std::size_t> row = row_of(node_id);
-        if (!row) throw std::out_of_range("TreeListView expansion names an unknown node");
-        set_virtual_row_expanded(*row, expanded);
+        const stxlib::Optional<std::size_t> row = row_of(node_id);
+        if (row.absent()) throw std::out_of_range("TreeListView expansion names an unknown node");
+        set_virtual_row_expanded(*row.value(), expanded);
         return;
     }
     const std::size_t index = require_index(node_id, "TreeListView expansion names an unknown node");
@@ -809,7 +809,7 @@ void TreeListView::expand_subtree(std::string_view node_id) {
 
 // -- rows, scrolling and selection ---------------------------------------------
 
-std::optional<std::size_t> TreeListView::row_of(std::string_view node_id) const {
+stxlib::Optional<std::size_t> TreeListView::row_of(std::string_view node_id) const {
     if (row_source_) {
         // The rows in view first (no source lookup for what is shown), then
         // the source's own lookup.
@@ -817,16 +817,16 @@ std::optional<std::size_t> TreeListView::row_of(std::string_view node_id) const 
         const std::size_t end = end_realized(placed);
         TreeListNode scratch;
         for (std::size_t row = placed.top_row; row < end; ++row) {
-            if (row_node(row, scratch).stable_id == node_id) return row;
+            if (row_node(row, scratch).stable_id == node_id) return stxlib::Optional<std::size_t>::of(row);
         }
-        const std::optional<std::size_t> found = (*row_source_).find_row(node_id);
-        if (!found || *found >= shown_count()) return std::nullopt;
-        if (row_node(*found, scratch).stable_id != node_id) return std::nullopt;
+        const stxlib::Optional<std::size_t> found = (*row_source_).find_row(node_id);
+        if (found.absent() || *found.value() >= shown_count()) return stxlib::Optional<std::size_t>::none();
+        if (row_node(*found.value(), scratch).stable_id != node_id) return stxlib::Optional<std::size_t>::none();
         return found;
     }
-    const std::optional<std::size_t> index = index_of(node_id);
-    if (!index || row_of_node_[*index] == no_index) return std::nullopt;
-    return row_of_node_[*index];
+    const stxlib::Optional<std::size_t> index = index_of(node_id);
+    if (index.absent() || row_of_node_[*index.value()] == no_index) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(row_of_node_[*index.value()]);
 }
 
 std::string_view TreeListView::row_node_id(std::size_t row) const {
@@ -891,9 +891,9 @@ void TreeListView::ensure_row_visible(std::size_t row) {
 void TreeListView::ensure_visible(std::string_view node_id) {
     require_mutable();
     if (row_source_) {
-        const std::optional<std::size_t> row = row_of(node_id);
-        if (!row) throw std::out_of_range("TreeListView ensure_visible names an unknown node");
-        ensure_row_visible(*row);
+        const stxlib::Optional<std::size_t> row = row_of(node_id);
+        if (row.absent()) throw std::out_of_range("TreeListView ensure_visible names an unknown node");
+        ensure_row_visible(*row.value());
         return;
     }
     const std::size_t index = require_index(node_id, "TreeListView ensure_visible names an unknown node");
@@ -915,13 +915,13 @@ void TreeListView::set_horizontal_offset(double offset) {
     sync_scroll_bars(placed);
 }
 
-std::optional<std::string_view> TreeListView::current_id() const noexcept {
+stxlib::Optional<std::string_view> TreeListView::current_id() const noexcept {
     if (row_source_) {
-        if (!current_row_) return std::nullopt;
-        return std::string_view(current_row_id_);
+        if (current_row_.absent()) return stxlib::Optional<std::string_view>::none();
+        return stxlib::Optional<std::string_view>::of(std::string_view(current_row_id_));
     }
-    if (!current_node_) return std::nullopt;
-    return std::string_view(nodes_[*current_node_].stable_id);
+    if (current_node_.absent()) return stxlib::Optional<std::string_view>::none();
+    return stxlib::Optional<std::string_view>::of(std::string_view(nodes_[*current_node_.value()].stable_id));
 }
 
 void TreeListView::choose_row(std::size_t row) {
@@ -929,7 +929,7 @@ void TreeListView::choose_row(std::size_t row) {
     TreeListNode scratch;
     if (!row_node(row, scratch).enabled) return;
     const std::optional<std::string> previous = selected_copy();
-    const bool changed = selected_row() != row;
+    const bool changed = selected_row() != stxlib::Optional<std::size_t>::of(row);
     place_selection(row);
     ensure_row_visible(row);
     invalidate(Dirty::paint | Dirty::semantics);
@@ -947,14 +947,14 @@ void TreeListView::activate_row(std::size_t row) {
 
 // -- sorting -----------------------------------------------------------------------
 
-void TreeListView::set_sort(std::optional<std::size_t> column, TreeListSortOrder order) {
+void TreeListView::set_sort(stxlib::Optional<std::size_t> column, TreeListSortOrder order) {
     require_mutable();
-    if (column && *column >= columns_.size()) throw std::out_of_range("TreeListView sort column is past the end");
+    if (column.present() && *column.value() >= columns_.size()) throw std::out_of_range("TreeListView sort column is past the end");
     if (order != TreeListSortOrder::none && order != TreeListSortOrder::ascending &&
         order != TreeListSortOrder::descending) {
         throw std::invalid_argument("TreeListView sort order is invalid");
     }
-    if (!column || order == TreeListSortOrder::none) {
+    if (column.absent() || order == TreeListSortOrder::none) {
         column.reset();
         order = TreeListSortOrder::none;
     }
@@ -977,8 +977,8 @@ void TreeListView::set_sort(std::optional<std::size_t> column, TreeListSortOrder
 
 // A header click: ascending first, then the other way on the same column.
 void TreeListView::toggle_sort(std::size_t column) {
-    const bool ascending = sort_column_ == column && sort_order_ == TreeListSortOrder::ascending;
-    set_sort(column, ascending ? TreeListSortOrder::descending : TreeListSortOrder::ascending);
+    const bool ascending = sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == TreeListSortOrder::ascending;
+    set_sort(stxlib::Optional<std::size_t>::of(column), ascending ? TreeListSortOrder::descending : TreeListSortOrder::ascending);
 }
 
 // -- appearance --------------------------------------------------------------------
@@ -1244,7 +1244,7 @@ TreeListView::CellParts TreeListView::cell_parts(const Layout& placed, std::size
 // share. `clip` is the header band when publishing, the column's own cell
 // when painting.
 TreeListView::ColumnParts TreeListView::column_parts(const Layout& placed, std::size_t column, Rect clip) const {
-    const bool sorted = sort_column_ == column && sort_order_ != TreeListSortOrder::none;
+    const bool sorted = sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ != TreeListSortOrder::none;
     const details_detail::ColumnHeaderGeometry header =
         details_detail::column_header_geometry(column_cell(placed, column), clip, sorted, placed.scale);
     ColumnParts parts;
@@ -1267,10 +1267,10 @@ constexpr CustomStateIndex sorted_descending_state{1U};
 AnatomyStateSet TreeListView::row_states(std::size_t row) const {
     TreeListNode scratch;
     const TreeListNode& node = row_node(row, scratch);
-    const bool current = current_row() == row;
+    const bool current = current_row() == stxlib::Optional<std::size_t>::of(row);
     AnatomyStateSet states;
-    if (selected_row() == row) states.insert(AnatomyState::selected);
-    if (hot_row_ == row) states.insert(AnatomyState::hot);
+    if (selected_row() == stxlib::Optional<std::size_t>::of(row)) states.insert(AnatomyState::selected);
+    if (hot_row_ == stxlib::Optional<std::size_t>::of(row)) states.insert(AnatomyState::hot);
     if (current) states.insert(AnatomyState::current);
     if (row_can_expand(row, node)) states.insert(node.expanded ? AnatomyState::open : AnatomyState::closed);
     if (!node.enabled || !effectively_enabled()) states.insert(AnatomyState::disabled);
@@ -1285,23 +1285,23 @@ AnatomyStateSet TreeListView::cell_states(std::size_t row) const {
     TreeListNode scratch;
     const TreeListNode& node = row_node(row, scratch);
     AnatomyStateSet states;
-    if (selected_row() == row) states.insert(AnatomyState::selected);
+    if (selected_row() == stxlib::Optional<std::size_t>::of(row)) states.insert(AnatomyState::selected);
     if (!node.enabled || !effectively_enabled()) states.insert(AnatomyState::disabled);
     return states;
 }
 
 AnatomyStateSet TreeListView::column_states(std::size_t column) const {
     AnatomyStateSet states;
-    if (hot_column_ == column) states.insert(AnatomyState::hot);
-    if (pressed_column_ == column) states.insert(AnatomyState::pressed);
+    if (hot_column_ == stxlib::Optional<std::size_t>::of(column)) states.insert(AnatomyState::hot);
+    if (pressed_column_ == stxlib::Optional<std::size_t>::of(column)) states.insert(AnatomyState::pressed);
     // A column being resized or dragged to a new position holds the pointer.
-    if (resizing_column_ == column || (dragging_column_ && pressed_column_ == column)) {
+    if (resizing_column_ == stxlib::Optional<std::size_t>::of(column) || (dragging_column_ && pressed_column_ == stxlib::Optional<std::size_t>::of(column))) {
         states.insert(AnatomyState::captured);
     }
-    if (sort_column_ == column && sort_order_ == TreeListSortOrder::ascending) {
+    if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == TreeListSortOrder::ascending) {
         states.insert(sorted_ascending_state);
     }
-    if (sort_column_ == column && sort_order_ == TreeListSortOrder::descending) {
+    if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == TreeListSortOrder::descending) {
         states.insert(sorted_descending_state);
     }
     return states;
@@ -1584,8 +1584,8 @@ std::optional<std::string> TreeListView::node_id_at(Point window_point) const {
 }
 
 void TreeListView::finish_column_resize() {
-    if (!resizing_column_) return;
-    const std::size_t column = *resizing_column_;
+    if (resizing_column_.absent()) return;
+    const std::size_t column = *resizing_column_.value();
     resizing_column_.reset();
     if (has_pointer_capture()) set_pointer_capture(false);
     invalidate(Dirty::paint | Dirty::semantics);
@@ -1622,7 +1622,7 @@ void TreeListView::handle_pointer(PointerEvent& event) {
     const bool mirrored = layout().mirrored;
     const Point local = details_detail::reading_point(drawn, frame, mirrored);
     const Control::Ptr lifetime = shared_from_this();
-    if (resizing_column_) {
+    if (resizing_column_.present()) {
         // The window may end capture before it delivers the release, and a
         // host or another control may take it away: either ends the drag.
         if (event.action == PointerAction::up || !has_pointer_capture()) {
@@ -1630,12 +1630,12 @@ void TreeListView::handle_pointer(PointerEvent& event) {
             event.handled = event.action == PointerAction::up;
             if (event.handled) return;
         } else {
-            if (event.action == PointerAction::move && *resizing_column_ < columns_.size()) {
+            if (event.action == PointerAction::move && *resizing_column_.value() < columns_.size()) {
                 const double delta = (local.x - resize_start_x_) / effective_text_scale();
                 const double width =
                     std::clamp(resize_start_width_ + delta, minimum_column_width, maximum_column_width);
-                if (columns_[*resizing_column_].width != width) {
-                    columns_[*resizing_column_].width = width;
+                if (columns_[*resizing_column_.value()].width != width) {
+                    columns_[*resizing_column_.value()].width = width;
                     advance_layout_revision();
                     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
                 }
@@ -1645,13 +1645,13 @@ void TreeListView::handle_pointer(PointerEvent& event) {
         }
     }
     const Layout placed = layout();
-    if (pressed_column_) {
+    if (pressed_column_.present()) {
         if (!has_pointer_capture() && event.action != PointerAction::up) {
             end_header_press();
         } else if (event.action == PointerAction::move) {
             // A press on any header but the tree column's becomes a move
             // once the pointer travels the drag threshold.
-            const bool movable = *pressed_column_ != 0U;
+            const bool movable = *pressed_column_.value() != 0U;
             const bool far = std::abs(local.x - press_x_) >= drag_threshold * placed.scale;
             if (movable && far && !dragging_column_) {
                 dragging_column_ = true;
@@ -1660,7 +1660,7 @@ void TreeListView::handle_pointer(PointerEvent& event) {
             event.handled = true;
             return;
         } else if (event.action == PointerAction::up && event.button == PointerButton::primary) {
-            const std::size_t column = *pressed_column_;
+            const std::size_t column = *pressed_column_.value();
             const bool dragged = dragging_column_;
             end_header_press();
             event.handled = true;
@@ -1678,7 +1678,7 @@ void TreeListView::handle_pointer(PointerEvent& event) {
         }
     }
     if (event.action == PointerAction::leave) {
-        if (hot_row_ || hot_column_) {
+        if (hot_row_.present() || hot_column_.present()) {
             hot_row_.reset();
             hot_column_.reset();
             invalidate(Dirty::paint);
@@ -1688,10 +1688,10 @@ void TreeListView::handle_pointer(PointerEvent& event) {
     const Hit hit = hit_test(placed, local);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
         const bool on_row = hit.zone == HitZone::row || hit.zone == HitZone::expander;
-        const std::optional<std::size_t> next_row = on_row ? std::optional<std::size_t>(hit.index) : std::nullopt;
-        const std::optional<std::size_t> next_column =
-            hit.zone == HitZone::header ? std::optional<std::size_t>(hit.index) : std::nullopt;
-        cursor = hit.zone == HitZone::divider ? CursorKind::resize_horizontal : CursorKind::arrow;
+        const stxlib::Optional<std::size_t> next_row = on_row ? stxlib::Optional<std::size_t>::of(hit.index) : stxlib::Optional<std::size_t>::none();
+        const stxlib::Optional<std::size_t> next_column =
+            hit.zone == HitZone::header ? stxlib::Optional<std::size_t>::of(hit.index) : stxlib::Optional<std::size_t>::none();
+        cursor = stxlib::Optional<CursorKind>::of(hit.zone == HitZone::divider ? CursorKind::resize_horizontal : CursorKind::arrow);
         if (next_row != hot_row_ || next_column != hot_column_) {
             hot_row_ = next_row;
             hot_column_ = next_column;
@@ -1729,13 +1729,13 @@ void TreeListView::handle_pointer(PointerEvent& event) {
     }
     // A press on no zone only takes focus.
     if (target.zone == HitZone::divider) {
-        resizing_column_ = target.index;
+        resizing_column_.set(target.index);
         resize_start_x_ = local.x;
         resize_start_width_ = columns_[target.index].width;
         if (window() != nullptr) (*window()).capture_pointer(lifetime, event.pointer_id);
         invalidate(Dirty::paint | Dirty::semantics);
     } else if (target.zone == HitZone::header) {
-        pressed_column_ = target.index;
+        pressed_column_.set(target.index);
         dragging_column_ = false;
         press_x_ = local.x;
         if (window() != nullptr) (*window()).capture_pointer(lifetime, event.pointer_id);
@@ -1797,46 +1797,46 @@ void TreeListView::on_mouse_leave() {
     Control::on_mouse_leave();
 }
 
-std::optional<std::size_t> TreeListView::enabled_row_from(std::size_t row, std::ptrdiff_t step) const {
+stxlib::Optional<std::size_t> TreeListView::enabled_row_from(std::size_t row, std::ptrdiff_t step) const {
     std::ptrdiff_t position = static_cast<std::ptrdiff_t>(row);
     const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(shown_count());
     TreeListNode scratch;
     while (position >= 0 && position < count) {
         if (row_node(static_cast<std::size_t>(position), scratch).enabled) {
-            return static_cast<std::size_t>(position);
+            return stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(position));
         }
         position += step;
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
-std::optional<std::size_t> TreeListView::navigation_target(std::uint32_t key, std::size_t from,
+stxlib::Optional<std::size_t> TreeListView::navigation_target(std::uint32_t key, std::size_t from,
                                                            const Layout& placed) const {
     const std::size_t last = placed.shown_rows - 1U;
     const std::size_t page = placed.page_rows;
     if (key == PhysicalKey::home) return enabled_row_from(0U, 1);
     if (key == PhysicalKey::end) return enabled_row_from(last, -1);
     if (key == PhysicalKey::up) {
-        if (from == 0U) return std::nullopt;
+        if (from == 0U) return stxlib::Optional<std::size_t>::none();
         return enabled_row_from(from - 1U, -1);
     }
     if (key == PhysicalKey::down) {
-        if (from >= last) return std::nullopt;
+        if (from >= last) return stxlib::Optional<std::size_t>::none();
         return enabled_row_from(from + 1U, 1);
     }
     if (key == PhysicalKey::page_up) {
         const std::size_t target = from >= page ? from - page : 0U;
-        const std::optional<std::size_t> found = enabled_row_from(target, -1);
-        if (found) return found;
+        const stxlib::Optional<std::size_t> found = enabled_row_from(target, -1);
+        if (found.present()) return found;
         return enabled_row_from(target, 1);
     }
     if (key == PhysicalKey::page_down) {
         const std::size_t target = std::min(from + page, last);
-        const std::optional<std::size_t> found = enabled_row_from(target, 1);
-        if (found) return found;
+        const stxlib::Optional<std::size_t> found = enabled_row_from(target, 1);
+        if (found.present()) return found;
         return enabled_row_from(target, -1);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 // Right: expand a collapsed node, or move to the first child of an
@@ -1862,22 +1862,22 @@ void TreeListView::step_out(std::size_t row) {
         toggle_row(row, false);
         return;
     }
-    const std::optional<std::size_t> parent = parent_row(row);
-    if (parent) choose_row(*parent);
+    const stxlib::Optional<std::size_t> parent = parent_row(row);
+    if (parent.present()) choose_row(*parent.value());
 }
 
 void TreeListView::handle_key(KeyEvent& event) {
     if (!focused_ || !effectively_enabled() || event.action != KeyAction::down) return;
     const Control::Ptr lifetime = shared_from_this();
-    if (event.physical_key == PhysicalKey::escape && resizing_column_) {
-        columns_[*resizing_column_].width = resize_start_width_;
+    if (event.physical_key == PhysicalKey::escape && resizing_column_.present()) {
+        columns_[*resizing_column_.value()].width = resize_start_width_;
         advance_layout_revision();
         finish_column_resize();
         invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
         event.handled = true;
         return;
     }
-    if (event.physical_key == PhysicalKey::escape && pressed_column_) {
+    if (event.physical_key == PhysicalKey::escape && pressed_column_.present()) {
         end_header_press();
         event.handled = true;
         return;
@@ -1886,9 +1886,9 @@ void TreeListView::handle_key(KeyEvent& event) {
     if (placed.shown_rows == 0U) return;
     const bool control = has_modifier(event.modifiers, Modifier::control) ||
                          has_modifier(event.modifiers, Modifier::meta);
-    const std::optional<std::size_t> current = current_row();
-    const bool has_current = current.has_value();
-    const std::size_t from = has_current ? *current : placed.top_row;
+    const stxlib::Optional<std::size_t> current = current_row();
+    const bool has_current = current.present();
+    const std::size_t from = has_current ? *current.value() : placed.top_row;
     // Right to left the view reads from the right: Left and Right exchange,
     // so Left steps into a node and Right out of it.
     std::uint32_t key = event.physical_key;
@@ -1931,8 +1931,8 @@ void TreeListView::handle_key(KeyEvent& event) {
                             key == PhysicalKey::end || key == PhysicalKey::page_up ||
                             key == PhysicalKey::page_down;
     if (!navigation) return;
-    const std::optional<std::size_t> target = navigation_target(key, from, placed);
-    if (target) choose_row(*target);
+    const stxlib::Optional<std::size_t> target = navigation_target(key, from, placed);
+    if (target.present()) choose_row(*target.value());
     event.handled = true;
 }
 
@@ -1957,13 +1957,13 @@ void TreeListView::type_select(std::string_view text) {
     const std::size_t count = shown_count();
     if (count == 0U || columns_.empty()) return;
     const bool single = type_prefix_.size() == 1U;
-    const std::optional<std::size_t> current = current_row();
-    const std::size_t focus = current ? *current : count - 1U;
+    const stxlib::Optional<std::size_t> current = current_row();
+    const std::size_t focus = current.present() ? *current.value() : count - 1U;
     const std::size_t start = single ? (focus + 1U) % count : focus % count;
     if (row_source_) {
         // Reading every row to search would defeat the source; it searches.
-        const std::optional<std::size_t> found = (*row_source_).find_prefix(type_prefix_, start);
-        if (found && *found < count) choose_row(*found);
+        const stxlib::Optional<std::size_t> found = (*row_source_).find_prefix(type_prefix_, start);
+        if (found.present() && *found.value() < count) choose_row(*found.value());
         return;
     }
     for (std::size_t offset = 0; offset < count; ++offset) {
@@ -1987,11 +1987,11 @@ void TreeListView::on_text_input(TextInputEvent& event) {
     // Forms' TreeView (the platform reports it as text: there is no keypad
     // asterisk in PhysicalKey).
     if (event.text_utf8 == "*" && type_prefix_.empty()) {
-        const std::optional<std::size_t> current = current_row();
-        if (current && row_source_) {
-            toggle_row(*current, true);
-        } else if (current_node_) {
-            expand_subtree(nodes_[*current_node_].stable_id);
+        const stxlib::Optional<std::size_t> current = current_row();
+        if (current.present() && row_source_) {
+            toggle_row(*current.value(), true);
+        } else if (current_node_.present()) {
+            expand_subtree(nodes_[*current_node_.value()].stable_id);
         }
         event.handled = true;
         return;
@@ -2003,12 +2003,12 @@ void TreeListView::on_text_input(TextInputEvent& event) {
 void TreeListView::on_focus_changed(bool focused) {
     focused_ = focused;
     if (!focused) {
-        if (resizing_column_) finish_column_resize();
-        if (pressed_column_) end_header_press();
+        if (resizing_column_.present()) finish_column_resize();
+        if (pressed_column_.present()) end_header_press();
     }
-    if (focused_ && !current_row() && shown_count() > 0U) {
-        const std::optional<std::size_t> selected = selected_row();
-        place_current(selected ? *selected : top_row());
+    if (focused_ && current_row().absent() && shown_count() > 0U) {
+        const stxlib::Optional<std::size_t> selected = selected_row();
+        place_current(selected.present() ? *selected.value() : top_row());
     }
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -2024,12 +2024,12 @@ SemanticDescriptor TreeListView::semantic_descriptor() const {
     descriptor.role = SemanticRole::tree_grid;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    descriptor.row_count = placed.shown_rows;
-    descriptor.column_count = column_order_.size();
-    const std::optional<std::size_t> selected = selected_row();
-    if (selected) {
+    descriptor.row_count.set(placed.shown_rows);
+    descriptor.column_count.set(column_order_.size());
+    const stxlib::Optional<std::size_t> selected = selected_row();
+    if (selected.present()) {
         TreeListNode scratch;
-        descriptor.value = row_node(*selected, scratch).text;
+        descriptor.value = row_node(*selected.value(), scratch).text;
     }
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
@@ -2052,18 +2052,18 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
         node.stable_id = column_identity(view_id, columns_[column].stable_id);
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::column_header;
-        node.column_index = column_position_[column] + 1U;
+        node.column_index.set(column_position_[column] + 1U);
         node.name = columns_[column].text;
-        if (sort_column_ == column && sort_order_ == TreeListSortOrder::ascending) node.value = "ascending";
-        if (sort_column_ == column && sort_order_ == TreeListSortOrder::descending) node.value = "descending";
+        if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == TreeListSortOrder::ascending) node.value = "ascending";
+        if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == TreeListSortOrder::descending) node.value = "descending";
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | enabled_state;
         node.actions = {SemanticAction::press};
         children.push_back(std::move(node));
     }
     const std::size_t end = end_realized(placed);
-    const std::optional<std::size_t> selected = selected_row();
-    const std::optional<std::size_t> current = current_row();
+    const stxlib::Optional<std::size_t> selected = selected_row();
+    const stxlib::Optional<std::size_t> current = current_row();
     TreeListNode scratch;
     for (std::size_t row = placed.top_row; row < end; ++row) {
         const TreeListNode& item = row_node(row, scratch);
@@ -2075,22 +2075,22 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::tree_item;
         node.name = item.text;
-        node.level = item.depth + 1U;
-        node.row_index = row + 1U;
+        node.level.set(item.depth + 1U);
+        node.row_index.set(row + 1U);
         append_row_cells(placed, row, node);
         // A virtual view does not know a node's siblings: its position in
         // the set is left unknown (0).
         if (!row_source_) {
             const std::size_t index = visible_[row];
             const std::size_t slot = parent_[index] == no_index ? 0U : parent_[index] + 1U;
-            node.position_in_set = sibling_position_[index] + 1U;
-            node.set_size = child_begin_[slot + 1U] - child_begin_[slot];
+            node.position_in_set.set(sibling_position_[index] + 1U);
+            node.set_size.set(child_begin_[slot + 1U] - child_begin_[slot]);
         }
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | SemanticState::focusable;
         if (enabled && item.enabled) node.states |= SemanticState::enabled;
-        if (selected == row) node.states |= SemanticState::selected;
-        if (focused_ && current == row) node.states |= SemanticState::focused;
+        if (selected == stxlib::Optional<std::size_t>::of(row)) node.states |= SemanticState::selected;
+        if (focused_ && current == stxlib::Optional<std::size_t>::of(row)) node.states |= SemanticState::focused;
         if (expandable && item.expanded) node.states |= SemanticState::expanded;
         node.actions = {SemanticAction::focus, SemanticAction::select, SemanticAction::press};
         if (expandable) {
@@ -2123,8 +2123,8 @@ void TreeListView::append_row_cells(const Layout& placed, std::size_t row, Seman
         cell.role = SemanticRole::cell;
         cell.name = columns_[column].text;
         cell.value = std::string(column_text(item, column));
-        cell.row_index = row + 1U;
-        cell.column_index = column_position_[column] + 1U;
+        cell.row_index.set(row + 1U);
+        cell.column_index.set(column_position_[column] + 1U);
         cell.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         cell.states = SemanticState::visible | enabled_state;
         row_semantics.children.push_back(std::move(cell));
@@ -2140,13 +2140,13 @@ bool TreeListView::on_semantic_child_action(std::string_view id, SemanticAction 
         toggle_sort(column);
         return true;
     }
-    const std::optional<std::size_t> row = row_of(id);
-    if (!row) return false;
+    const stxlib::Optional<std::size_t> row = row_of(id);
+    if (row.absent()) return false;
     const Control::Ptr lifetime = shared_from_this();
     if (action == SemanticAction::expand || action == SemanticAction::collapse) {
         TreeListNode scratch;
-        if (!row_can_expand(*row, row_node(*row, scratch))) return false;
-        toggle_row(*row, action == SemanticAction::expand);
+        if (!row_can_expand(*row.value(), row_node(*row.value(), scratch))) return false;
+        toggle_row(*row.value(), action == SemanticAction::expand);
         return true;
     }
     if (action != SemanticAction::focus && action != SemanticAction::select && action != SemanticAction::press) {
@@ -2156,16 +2156,16 @@ bool TreeListView::on_semantic_child_action(std::string_view id, SemanticAction 
     if (!is_alive()) return true;
     // The focus handlers may have changed the rows: the row is looked up
     // again by its identity (A-gf-controls-10-F1).
-    const std::optional<std::size_t> current = row_of(id);
-    if (!current) return true;
+    const stxlib::Optional<std::size_t> current = row_of(id);
+    if (current.absent()) return true;
     if (action == SemanticAction::focus) {
-        place_current(*current);
-        ensure_row_visible(*current);
+        place_current(*current.value());
+        ensure_row_visible(*current.value());
         invalidate(Dirty::paint | Dirty::semantics);
     } else if (action == SemanticAction::select) {
-        choose_row(*current);
+        choose_row(*current.value());
     } else {
-        activate_row(*current);
+        activate_row(*current.value());
     }
     return true;
 }
@@ -2530,18 +2530,18 @@ void TreeListView::write_view(const decltype(selected_id)&, std::optional<std::s
     require_mutable();
     const std::optional<std::string> previous = selected_copy();
     if (!incoming) {
-        if (!selected_node_ && !selected_row_) return;
+        if (selected_node_.absent() && selected_row_.absent()) return;
         selected_node_.reset();
         selected_row_.reset();
         publish_selection(previous);
         return;
     }
     if (row_source_) {
-        const std::optional<std::size_t> row = row_of(*incoming);
-        if (!row) throw std::out_of_range("TreeListView selection names an unknown node");
+        const stxlib::Optional<std::size_t> row = row_of(*incoming);
+        if (row.absent()) throw std::out_of_range("TreeListView selection names an unknown node");
         const bool changed = selected_row_ != row;
-        place_selection(*row);
-        ensure_row_visible(*row);
+        place_selection(*row.value());
+        ensure_row_visible(*row.value());
         invalidate(Dirty::paint | Dirty::semantics);
         if (changed) publish_selection(previous);
         return;
@@ -2549,9 +2549,9 @@ void TreeListView::write_view(const decltype(selected_id)&, std::optional<std::s
     const std::size_t index = require_index(*incoming, "TreeListView selection names an unknown node");
     std::vector<TreeListExpansionChange> changes;
     expand_ancestors(index, changes);
-    const bool changed = selected_node_ != index;
-    selected_node_ = index;
-    current_node_ = index;
+    const bool changed = selected_node_ != stxlib::Optional<std::size_t>::of(index);
+    selected_node_.set(index);
+    current_node_.set(index);
     ensure_row_visible(row_of_node_[index]);
     invalidate(Dirty::paint | Dirty::semantics);
     publish_expansions(changes);

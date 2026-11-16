@@ -44,8 +44,10 @@ layout_snapshot
 
 child_track : child property, default none
     The track a child occupies, a property the panel provides to its direct
-    children and stores for each: `(*tracks).child_track[*child] = 1U;` puts
-    the child in track 1, `= std::nullopt` returns it to automatic placement,
+    children and stores for each:
+    `(*tracks).child_track[*child] = stxlib::Optional<std::uint32_t>::of(1U);`
+    puts the child in track 1, `= stxlib::Optional<std::uint32_t>::none()`
+    returns it to automatic placement,
     and `(*tracks).child_track[*child].read()` reads it (none when placed
     automatically). Several children may share a track; they are laid over
     one another in the same cell. A `.form` child writes `child-track: 1;`.
@@ -162,8 +164,8 @@ narrow:
    (*inspector).dock = gf::DockStyle::fill;
    (*shell).add_child(content);
    (*shell).add_child(inspector);
-   (*shell).child_track[*content] = 0U;
-   (*shell).child_track[*inspector] = 1U;
+   (*shell).child_track[*content] = stxlib::Optional<std::uint32_t>::of(0U);
+   (*shell).child_track[*inspector] = stxlib::Optional<std::uint32_t>::of(1U);
 
    gf::Window window(shell, {240.0, 100.0});
    window.perform_layout();      // both tracks fit side by side

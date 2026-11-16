@@ -427,13 +427,15 @@ void validate_presentation_settings(const PresentationSettings& settings) {
 
 PresentationSettings overridden_presentation(PresentationSettings settings,
                                              const PresentationOverrides& overrides) noexcept {
-    if (overrides.text_scale) settings.text_scale = *overrides.text_scale;
-    if (overrides.high_contrast) settings.high_contrast = *overrides.high_contrast;
-    if (overrides.reduced_motion) settings.reduced_motion = *overrides.reduced_motion;
-    if (overrides.sound_enabled) settings.sound_enabled = *overrides.sound_enabled;
-    if (overrides.ambient_motion) settings.ambient_motion = *overrides.ambient_motion;
-    if (overrides.reduced_transparency) settings.reduced_transparency = *overrides.reduced_transparency;
-    if (overrides.colour_scheme) settings.colour_scheme = *overrides.colour_scheme;
+    if (overrides.text_scale.present()) settings.text_scale = *overrides.text_scale.value();
+    if (overrides.high_contrast.present()) settings.high_contrast = *overrides.high_contrast.value();
+    if (overrides.reduced_motion.present()) settings.reduced_motion = *overrides.reduced_motion.value();
+    if (overrides.sound_enabled.present()) settings.sound_enabled = *overrides.sound_enabled.value();
+    if (overrides.ambient_motion.present()) settings.ambient_motion = *overrides.ambient_motion.value();
+    if (overrides.reduced_transparency.present()) {
+        settings.reduced_transparency = *overrides.reduced_transparency.value();
+    }
+    if (overrides.colour_scheme.present()) settings.colour_scheme = *overrides.colour_scheme.value();
     return settings;
 }
 

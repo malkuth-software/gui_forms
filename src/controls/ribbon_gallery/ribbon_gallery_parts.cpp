@@ -422,7 +422,7 @@ void RibbonGallery::on_paint(Painter& painter, Rect) {
         part.family = ControlVisualRole::menu_item;
         part.role = PartRole::face;
         part.bounds = item.item_face.bounds;
-        part.key = PartKey{"item_face", record.stable_id, {}};
+        part.key.set(PartKey{"item_face", record.stable_id, {}});
         paint_part(painter, *this, part);
         part.key.reset();
         part.family = ControlVisualRole::selection;

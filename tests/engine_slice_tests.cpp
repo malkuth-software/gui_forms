@@ -145,11 +145,11 @@ SurfaceMaterial layered_material(bool single_edges) {
     if (single_edges) {
         // Single edges are square-cornered.
         material.corner_radius = 0.0;
-        material.border_edges.top = MaterialBorder{Color{255, 255, 255, 160}, 1.0};
-        material.border_edges.bottom = MaterialBorder{Color{0, 0, 0, 120}, 2.0};
-        material.border_edges.left = MaterialBorder{Color{0, 0, 0, 120}, 1.5};
+        material.border_edges.top.set(MaterialBorder{Color{255, 255, 255, 160}, 1.0});
+        material.border_edges.bottom.set(MaterialBorder{Color{0, 0, 0, 120}, 2.0});
+        material.border_edges.left.set(MaterialBorder{Color{0, 0, 0, 120}, 1.5});
     } else {
-        material.border = MaterialBorder{Color{40, 60, 90, 255}, 1.0};
+        material.border.set(MaterialBorder{Color{40, 60, 90, 255}, 1.0});
     }
     const MaterialEdge edges[] = {MaterialEdge::top, MaterialEdge::right, MaterialEdge::bottom, MaterialEdge::left};
     for (const MaterialEdge edge : edges) {
@@ -235,7 +235,7 @@ void assembly_equals_whole_bake() {
     // largest; so does a pill, along its long axis.
     SliceCount cornered{};
     SurfaceMaterial corners = layered_material(false);
-    corners.corner_radii = MaterialCornerRadii{6.0, 0.0, 3.0, 1.5};
+    corners.corner_radii.set(MaterialCornerRadii{6.0, 0.0, 3.0, 1.5});
     SliceCount pill{};
     // The layered material less its over glow (its last glow), so that a
     // pill 40 high stays within the bake budget at every scale.
@@ -297,7 +297,7 @@ void assembly_equals_whole_bake() {
     SliceCount filtered{};
     SurfaceMaterial filters = layered_material(false);
     filters.colour_filter = MaterialColourMatrix::sepia(0.6);
-    filters.drop_shadow = MaterialDropShadow{Point{1.0, 2.0}, 2.0, Color{0, 0, 0, 90}};
+    filters.drop_shadow.set(MaterialDropShadow{Point{1.0, 2.0}, 2.0, Color{0, 0, 0, 90}});
     filters.filter_blur = 1.0;
     for (const double scale : scales) {
         for (const double width : widths) {
@@ -381,7 +381,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{0.0, 0.0, width_, 24.0};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         paint_part(painter, *this, part);
     }
 

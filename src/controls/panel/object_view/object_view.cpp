@@ -911,9 +911,9 @@ void ObjectView::paint_text_shown(Painter& painter, const PartPaint& part, Point
         return;
     }
     PartPaint measured_part = part;
-    const Size measured = part.measured_text ? *part.measured_text
+    const Size measured = part.measured_text.present() ? *part.measured_text.value()
                                              : painter.measure_text_utf8(part.text, part.font);
-    measured_part.measured_text = measured;
+    measured_part.measured_text.set(measured);
     const Rect frame = local_bounds();
     const double run = std::min(std::max(0.0, width), measured.width);
     const Point drawn{frame.x + frame.x + frame.width - origin.x - run, origin.y};
@@ -935,40 +935,40 @@ void ObjectView::paint_glyph(Painter& painter, Rect b, ObjectGlyph glyph,
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.states = states;
-    well.corner_radius = 0.0;
+    well.corner_radius.set(0.0);
     PartPaint fill;
     fill.family = ControlVisualRole::editor;
     fill.role = PartRole::fill;
     fill.states = states;
     if (glyph == ObjectGlyph::folder) {
         well.bounds = {b.x + 3.0, b.y + 9.0, b.width - 6.0, b.height - 12.0};
-        well.authored_background = base;
+        well.authored_background.set(base);
         paint_shown(painter, well);
         fill.bounds = {b.x + 7.0, b.y + 4.0, b.width * .42, 5.0};
-        fill.content_color = with_alpha(style().highlight, 180);
+        fill.content_color.set(with_alpha(style().highlight, 180));
         paint_shown(painter, fill);
         fill.bounds = {b.x + 5.0, b.y + 12.0, b.width - 10.0, 3.0};
-        fill.content_color = with_alpha(style().highlight, 130);
+        fill.content_color.set(with_alpha(style().highlight, 130));
         paint_shown(painter, fill);
         return;
     }
     well.bounds = {b.x + 7.0, b.y + 2.0, b.width - 14.0, b.height - 4.0};
-    well.authored_background = style().paper;
+    well.authored_background.set(style().paper);
     paint_shown(painter, well);
     fill.bounds = {b.x + 8.0, b.y + 3.0, b.width - 16.0, 6.0};
-    fill.content_color = base;
+    fill.content_color.set(base);
     paint_shown(painter, fill);
     if (glyph == ObjectGlyph::image) {
         fill.bounds = {b.x + 12.0, b.y + 14.0, b.width - 24.0, b.height - 22.0};
-        fill.content_color = with_alpha(base, 120);
+        fill.content_color.set(with_alpha(base, 120));
         paint_shown(painter, fill);
     } else if (glyph == ObjectGlyph::audio) {
         // A sound bar across the page where the stroke rose.
         fill.bounds = {b.x + 15.0, b.y + b.height * .5 - 1.5, b.width - 29.0, 3.0};
-        fill.content_color = base;
+        fill.content_color.set(base);
         paint_shown(painter, fill);
     } else {
-        fill.content_color = style().border;
+        fill.content_color.set(style().border);
         fill.bounds = {b.x + 12.0, b.y + 16.0, b.width - 24.0, 2.0};
         paint_shown(painter, fill);
         fill.bounds = {b.x + 12.0, b.y + 22.0, b.width - 29.0, 2.0};
@@ -1024,7 +1024,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
             plate.bounds = {cell.x + 1.0, cell.y + 1.0, std::max(0.0, cell.width - 2.0),
                             std::max(0.0, cell.height - 2.0)};
             plate.states = item_states;
-            if (overridden) plate.authored_background = selected ? selected_fill : style().face_light;
+            if (overridden) plate.authored_background.set(selected ? selected_fill : style().face_light);
             paint_shown(painter, plate);
         }
         PartPaint text;
@@ -1405,8 +1405,8 @@ SemanticDescriptor ObjectView::semantic_descriptor() const {
     // and every column, realized or not; the other views are lists.
     if (has_details_columns()) {
         descriptor.role = SemanticRole::table;
-        descriptor.row_count = items_.size();
-        descriptor.column_count = details_columns_.size();
+        descriptor.row_count.set(items_.size());
+        descriptor.column_count.set(details_columns_.size());
     } else {
         descriptor.role = SemanticRole::list;
     }
@@ -1439,12 +1439,12 @@ std::vector<SemanticNode> ObjectView::semantic_virtual_children() const {
         // the whole collection.
         if (table) {
             node.role = SemanticRole::row;
-            node.row_index = index + 1U;
+            node.row_index.set(index + 1U);
             append_row_cells(index, node);
         } else {
             node.role = SemanticRole::list_item;
-            node.position_in_set = index + 1U;
-            node.set_size = items_.size();
+            node.position_in_set.set(index + 1U);
+            node.set_size.set(items_.size());
         }
         node.name = item.name;
         node.value = item.secondary_text;
@@ -1478,7 +1478,7 @@ void ObjectView::append_column_headers(std::vector<SemanticNode>& nodes) const {
         node.stable_id = view_id + ".column." + definition.id.value;
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::column_header;
-        node.column_index = column + 1U;
+        node.column_index.set(column + 1U);
         node.name = definition.label;
         if (!details_sort_.column.value.empty() && definition.id == details_sort_.column) {
             node.value = details_sort_.direction == ObjectSortDirection::ascending ? "ascending" : "descending";
@@ -1513,8 +1513,8 @@ void ObjectView::append_row_cells(std::size_t index, SemanticNode& row_node) con
         cell.role = SemanticRole::cell;
         cell.name = details_columns_[column].label;
         cell.value = value.text;
-        cell.row_index = index + 1U;
-        cell.column_index = column + 1U;
+        cell.row_index.set(index + 1U);
+        cell.column_index.set(column + 1U);
         cell.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         cell.states = SemanticState::visible;
         if (enabled && value.availability == ObjectCellAvailability::available) cell.states |= SemanticState::enabled;
@@ -1968,7 +1968,7 @@ void ObjectView::paint_details(Painter& painter) {
         caption.states = states;
         caption.text = lend_paint_text(label);
         caption.font = body_font;
-        caption.measured_text = label_measured;
+        caption.measured_text.set(label_measured);
         paint_text_shown(painter, caption,
                          {cell.x + 6.0, cell.y + cell.height * .5 + body_font.size * .35},
                          std::max(0.0, cell.width - reserved));
@@ -2020,7 +2020,7 @@ void ObjectView::paint_details(Painter& painter) {
             plate.role = PartRole::selection;
             plate.bounds = row;
             plate.states = row_states;
-            if (overridden) plate.authored_background = selected ? selected_row_fill : style().face_light;
+            if (overridden) plate.authored_background.set(selected ? selected_row_fill : style().face_light);
             paint_shown(painter, plate);
         }
         for (std::size_t visible = 0U; visible < visible_count; ++visible) {
@@ -2053,7 +2053,7 @@ void ObjectView::paint_details(Painter& painter) {
             }
             content.text = lend_paint_text(text);
             content.font = body_font;
-            content.measured_text = details_cache_[text_slot].measured;
+            content.measured_text.set(details_cache_[text_slot].measured);
             paint_text_shown(painter, content,
                              {origin, cell.y + cell.height * .5 + body_font.size * .35},
                              std::max(0.0, cell.x + cell.width - 6.0 - origin));

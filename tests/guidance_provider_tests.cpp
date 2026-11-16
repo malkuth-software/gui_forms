@@ -164,8 +164,8 @@ void test_error_semantics_geometry_rtl_and_lifetime() {
     const ImageLoadResult image = fixture.window.load_bgra32_premultiplied(
         1U, 1U, 4U, pixel);
     require(static_cast<bool>(image), "fixture must register a provider icon image");
-    errors.icon = image.image;
-    require(errors.icon.read() == image.image,
+    errors.icon = stxlib::Optional<ImageId>::of(image.image);
+    require(errors.icon.read() == stxlib::Optional<ImageId>::of(image.image),
             "ErrorProvider must retain a validated portable ImageId override");
     errors.blink_style = ErrorBlinkStyle::never_blink;
     errors.set_error(fixture.target, "Server address is not reachable");

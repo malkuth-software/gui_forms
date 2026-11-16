@@ -53,6 +53,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -447,7 +448,7 @@ void test_fallback() {
     SubscriptionToken subscription = window.theme_changed().subscribe(RecordThemeChange{&changes});
     require(!window.theme_fallback() && window.theme().id() == "windows-professional",
             "a light window shows its light theme");
-    (*pad).back_color = Color::rgba(200, 30, 30);
+    (*pad).back_color = stxlib::Optional<Color>::of(Color::rgba(200, 30, 30));
     require((*pad).back_color_warned() && !(*pad).fore_color_warned(), "a colour set on a control is warned");
     require(!(*pad).application_colours_suspended(), "and applies under the application's theme");
 
@@ -521,7 +522,7 @@ void test_system_colour_hints() {
     }
     require(plain.outcome == CompileOutcome::compiled && only_unremappable, "env() compiles, warning as a literal");
     SystemColourHints hints{};
-    hints.accent = Color::rgba(1, 2, 3);
+    hints.accent.set(Color::rgba(1, 2, 3));
     const Compilation hinted = compile(sheet, hints);
     require(hinted.outcome == CompileOutcome::compiled && !(hinted.sheet == plain.sheet),
             "a hint changes what env() reads");

@@ -84,7 +84,7 @@ private:
             if (index == 2U) (*tab_page).image_index = 0;
             primary.add_page(tab_page);
         }
-        primary.selected_index = 1U;
+        primary.selected_index = stxlib::Optional<std::size_t>::of(1U);
     }
 
     // One ordinary control per retained page, proving hidden pages keep
@@ -155,7 +155,7 @@ private:
                 (*tab_page).add_child(content);
                 tabs.add_page(tab_page);
             }
-            tabs.selected_index = index % 3U;
+            tabs.selected_index = stxlib::Optional<std::size_t>::of(index % 3U);
         }
     }
 
@@ -242,9 +242,9 @@ private:
     }
 
     [[nodiscard]] std::string document_title(const PageId& page) const {
-        const std::optional<PagePosition> found = (*documents_).pages().find(page);
-        if (!found) return page.value;
-        const std::string title = (*documents_).pages().record_at(*found).title;
+        const stxlib::Optional<PagePosition> found = (*documents_).pages().find(page);
+        if (found.absent()) return page.value;
+        const std::string title = (*documents_).pages().record_at(*found.value()).title;
         return title;
     }
 
@@ -275,9 +275,9 @@ private:
     // The view removes the page after this handler, which leaves the
     // request unhandled.
     void on_document_close_requested(PageCloseRequest& request) {
-        const std::optional<PagePosition> found = (*documents_).pages().find(request.page);
-        if (!found) return;
-        const std::string title = (*documents_).pages().record_at(*found).title;
+        const stxlib::Optional<PagePosition> found = (*documents_).pages().find(request.page);
+        if (found.absent()) return;
+        const std::string title = (*documents_).pages().record_at(*found.value()).title;
         std::string_view cause = "close button";
         if (request.cause == PageCloseCause::middle_button) cause = "middle click";
         if (request.cause == PageCloseCause::keyboard) cause = "Ctrl+F4";
@@ -338,9 +338,9 @@ private:
     }
 
     void on_strip_invoked(const PageInvocation& invocation) {
-        const std::optional<PagePosition> found = strip_pages_.find(invocation.page);
-        if (!found) return;
-        (*document_.gallery_tabs_strip_status).text = "Strip · " + strip_pages_.record_at(*found).title + " selected";
+        const stxlib::Optional<PagePosition> found = strip_pages_.find(invocation.page);
+        if (found.absent()) return;
+        (*document_.gallery_tabs_strip_status).text = "Strip · " + strip_pages_.record_at(*found.value()).title + " selected";
     }
 
     // State event: fires for pointer, keyboard, semantic and programmatic

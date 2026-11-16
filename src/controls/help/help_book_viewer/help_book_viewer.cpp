@@ -13,6 +13,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <utility>
 
 namespace gui_forms {
@@ -56,7 +57,7 @@ public:
         : Control(std::move(stable_id)), owner_(&owner) {
         focusable = false;
         tab_stop = false;
-        cursor = CursorKind::resize_horizontal;
+        cursor = stxlib::Optional<CursorKind>::of(CursorKind::resize_horizontal);
     }
 
 protected:
@@ -415,15 +416,15 @@ bool HelpBookViewer::home() {
 void HelpBookViewer::select_tab(HelpNavigationTab tab) {
     require_mutable();
     if (!navigation_visible_) set_navigation_visible(true);
-    (*tabs_).selected_index = std::optional<std::size_t>(static_cast<std::size_t>(tab));
+    (*tabs_).selected_index = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(tab));
 }
 
 HelpNavigationTab HelpBookViewer::selected_tab() const noexcept {
-    const std::optional<std::size_t> selected = (*tabs_).selected_index.read();
-    if (!selected.has_value() || *selected > static_cast<std::size_t>(HelpNavigationTab::bookmarks)) {
+    const stxlib::Optional<std::size_t> selected = (*tabs_).selected_index.read();
+    if (selected.absent() || *selected.value() > static_cast<std::size_t>(HelpNavigationTab::bookmarks)) {
         return HelpNavigationTab::contents;
     }
-    return static_cast<HelpNavigationTab>(*selected);
+    return static_cast<HelpNavigationTab>(*selected.value());
 }
 
 void HelpBookViewer::show_contents() {
@@ -673,9 +674,9 @@ bool HelpBookViewer::add_bookmark() {
 
 bool HelpBookViewer::remove_selected_bookmark() {
     require_mutable();
-    const std::optional<std::size_t> selected = (*bookmarks_list_).selected_index();
-    if (!selected.has_value() || *selected >= bookmarks_.size()) return false;
-    bookmarks_.erase(bookmarks_.begin() + static_cast<std::ptrdiff_t>(*selected));
+    const stxlib::Optional<std::size_t> selected = (*bookmarks_list_).selected_index();
+    if (selected.absent() || *selected.value() >= bookmarks_.size()) return false;
+    bookmarks_.erase(bookmarks_.begin() + static_cast<std::ptrdiff_t>(*selected.value()));
     refresh_bookmark_list();
     refresh_buttons();
     publish_bookmarks();

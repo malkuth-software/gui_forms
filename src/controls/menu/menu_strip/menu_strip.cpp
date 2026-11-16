@@ -38,7 +38,7 @@ MenuStrip::MenuStrip(StableId stable_id)
       overlay_(std::make_unique<ContextMenu>(
           std::string((*this).stable_id().value()) + ".menu")) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     // This owner retains the overlay and subscriptions. Bound handlers borrow
     // this MenuStrip; disposal closes the overlay before owner teardown.
@@ -324,7 +324,7 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
     face.family = ControlVisualRole::panel;
     face.role = PartRole::face;
     face.bounds = surface;
-    face.key = PartKey{"face", {}, {}};
+    face.key.set(PartKey{"face", {}, {}});
     paint_part(painter, *this, face);
     PartPaint rule;
     rule.family = ControlVisualRole::panel;
@@ -354,7 +354,7 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
         plate.bounds = {item.x + 1.0, 1.0, item.width - 2.0,
                         std::max(0.0, item.height - 2.0)};
         plate.states = plate_states;
-        plate.key = PartKey{"menu_item", items_[index].stable_id, index};
+        plate.key.set(PartKey{"menu_item", items_[index].stable_id, stxlib::Optional<std::size_t>::of(index)});
         paint_part(painter, *this, plate);
         FontSpec item_font = text_font(font.read());
         if (active || selected) {

@@ -58,7 +58,7 @@ gui_forms::TokenBox
       **tokens** : ``std::span<const Token>``, read-only
          The tokens, first to last, each a :cpp:class:`Token <gui_forms::Token>` with its :cpp:class:`TokenId <gui_forms::TokenId>` and text.
 
-      **selected_token** : ``std::optional<TokenId>``, default none, read-only
+      **selected_token** : ``stxlib::Optional<TokenId>``, default none, read-only
          The token the keyboard or the pointer selected, or none. :cpp:func:`select_token <gui_forms::TokenBox::select_token>`
          selects one, or clears the selection; an identity not in the box throws
          ``std::invalid_argument``.
@@ -86,7 +86,7 @@ gui_forms::TokenBox
          Raised after a token is removed, with the token as it was. Removing the
          selected token first raises :cpp:func:`selected_token_changed <gui_forms::TokenBox::selected_token_changed>`.
 
-      **selected_token_changed** : ``Event<std::optional<TokenId>>``
+      **selected_token_changed** : ``Event<stxlib::Optional<TokenId>>``
          Raised after :cpp:func:`selected_token <gui_forms::TokenBox::selected_token>` changes, with the new selection.
 
    :Inherited:
@@ -207,7 +207,7 @@ gui_forms::TokenBox
 
       The tokens, first to last, each a :cpp:class:`Token <gui_forms::Token>` with its :cpp:class:`TokenId <gui_forms::TokenId>` and text.
 
-   .. cpp:function:: std::optional<TokenId> selected_token() const noexcept
+   .. cpp:function:: stxlib::Optional<TokenId> selected_token() const noexcept
 
       The token the keyboard or the pointer selected, or none. :cpp:func:`select_token <gui_forms::TokenBox::select_token>`
       selects one, or clears the selection; an identity not in the box throws
@@ -243,7 +243,7 @@ gui_forms::TokenBox
       Raised after a token is removed, with the token as it was. Removing the
       selected token first raises :cpp:func:`selected_token_changed <gui_forms::TokenBox::selected_token_changed>`.
 
-   .. cpp:function:: Event<std::optional<TokenId>>& selected_token_changed() noexcept
+   .. cpp:function:: Event<stxlib::Optional<TokenId>>& selected_token_changed() noexcept
 
       Raised after :cpp:func:`selected_token <gui_forms::TokenBox::selected_token>` changes, with the new selection.
 
@@ -269,13 +269,17 @@ gui_forms::TokenBox
 
       Removes every token, last first.
 
-   .. cpp:function:: std::optional<std::size_t> token_index(TokenId id) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> token_index(TokenId id) const noexcept
 
       The position of the token with an identity, or none.
 
-   .. cpp:function:: void select_token(std::optional<TokenId> id)
+   .. cpp:function:: void select_token(stxlib::Optional<TokenId> id)
 
       Throws std::invalid_argument for an identity not in the box.
+
+   .. cpp:function:: void select_token(std::optional<TokenId> id)
+
+      The standard form, kept for one stage (D15 Q3).
 
 
    .. rubric:: Extension points

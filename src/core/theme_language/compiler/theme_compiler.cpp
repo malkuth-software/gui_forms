@@ -9,12 +9,14 @@
 #include "theme_compiler.hpp"
 
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "../../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <utility>
 
@@ -311,10 +313,10 @@ struct EmittedRule final {
 
 // The join of one optional flag of two media conditions into `joined`:
 // false where they name opposite values.
-[[nodiscard]] bool join_flag(std::optional<bool> left, std::optional<bool> right,
-                             std::optional<bool>& joined) noexcept {
-    if (left && right && *left != *right) return false;
-    joined = left ? left : right;
+[[nodiscard]] bool join_flag(const stxlib::Optional<bool>& left, const stxlib::Optional<bool>& right,
+                             stxlib::Optional<bool>& joined) noexcept {
+    if (left.present() && right.present() && left != right) return false;
+    joined = left.present() ? left : right;
     return true;
 }
 
@@ -326,17 +328,17 @@ struct EmittedRule final {
     if (!join_flag(left.dark_scheme, right.dark_scheme, both.dark_scheme)) return false;
     if (!join_flag(left.forced_colours, right.forced_colours, both.forced_colours)) return false;
     if (!join_flag(left.reduced_motion, right.reduced_motion, both.reduced_motion)) return false;
-    both.minimum_resolution = left.minimum_resolution ? left.minimum_resolution : right.minimum_resolution;
-    if (left.minimum_resolution && right.minimum_resolution) {
-        both.minimum_resolution = std::max(*left.minimum_resolution, *right.minimum_resolution);
+    both.minimum_resolution = left.minimum_resolution.present() ? left.minimum_resolution : right.minimum_resolution;
+    if (left.minimum_resolution.present() && right.minimum_resolution.present()) {
+        both.minimum_resolution.set(std::max(*left.minimum_resolution.value(), *right.minimum_resolution.value()));
     }
-    both.maximum_resolution = left.maximum_resolution ? left.maximum_resolution : right.maximum_resolution;
-    if (left.maximum_resolution && right.maximum_resolution) {
-        both.maximum_resolution = std::min(*left.maximum_resolution, *right.maximum_resolution);
+    both.maximum_resolution = left.maximum_resolution.present() ? left.maximum_resolution : right.maximum_resolution;
+    if (left.maximum_resolution.present() && right.maximum_resolution.present()) {
+        both.maximum_resolution.set(std::min(*left.maximum_resolution.value(), *right.maximum_resolution.value()));
     }
-    if (both.minimum_resolution && both.maximum_resolution && *both.minimum_resolution > *both.maximum_resolution) {
-        return false;
-    }
+    const double* const minimum = both.minimum_resolution.value();
+    const double* const maximum = both.maximum_resolution.value();
+    if (minimum != nullptr && maximum != nullptr && *minimum > *maximum) return false;
     joined = both;
     return true;
 }
@@ -670,7 +672,7 @@ private:
     // lowered sets it.
     std::optional<ColourRoleSide> bare_side_{};
     // The backdrop the rule being lowered declares, or none.
-    std::optional<BackdropDeclaration> backdrop_{};
+    stxlib::Optional<BackdropDeclaration> backdrop_{};
     // The content effect the rule being lowered declares (ThemeRule::
     // content_effect), at most one declaration per field; cleared with
     // materials_ for each level of the rule.
@@ -679,7 +681,7 @@ private:
     // rules so that a filter may be named before it is declared.
     std::vector<NamedThemeFilter> filters_{};
     // The band the rule being lowered declares, or none.
-    std::optional<BandDeclaration> band_{};
+    stxlib::Optional<BandDeclaration> band_{};
     // The palette slots the rule being lowered read, one bit a slot.
     std::uint64_t rule_roles_read_{};
     // Whether a declaration whose var() reads a name no definition of which
@@ -1261,7 +1263,7 @@ bool CompilePass::emit_definitions(std::span<const LoweredSelector> selectors, b
         if (in_base_origin(source_position_)) {
             rule.level = important ? CascadeLevel::important_base_sheet : CascadeLevel::base_sheet;
         }
-        if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
+        if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity.set(selector.specificity);
         rule.scoped_definitions = definitions;
         rule.source_position = positions_ ? source_position_ : 0U;
         rule.provenance = rule_provenance(at);
@@ -1404,7 +1406,7 @@ void CompilePass::rule_scopes(std::size_t rule_index, std::vector<SelectorScope>
         const RuleSelector& named = selector.selector;
         scopes.push_back(SelectorScope{.control_type = named.control_type, .stable_id = named.stable_id});
         const bool whole = !named.control_type.empty() && named.stable_id.empty() && named.classes.empty() &&
-                           named.part.empty() && !named.role.has_value() && named.states.empty();
+                           named.part.empty() && named.role.absent() && named.states.empty();
         if (whole && covers != nullptr) (*covers).push_back(named.control_type);
     }
 }
@@ -1962,8 +1964,8 @@ bool CompilePass::read_application_roles(const SyntaxNode& node) {
             return false;
         }
         fold_ascii(fallback_name, folded_);
-        const std::optional<ColourRole> fallback = colour_role_from_name(folded_);
-        if (!fallback) {
+        const stxlib::Optional<ColourRole> fallback = colour_role_from_name(folded_);
+        if (fallback.absent()) {
             report(DiagnosticCode::keyword_unknown, words[2], clipped_theme_detail(fallback_name));
             return false;
         }
@@ -1978,7 +1980,7 @@ bool CompilePass::read_application_roles(const SyntaxNode& node) {
             return false;
         }
         palette_.application_roles.push_back(
-            ApplicationRoleName{.name = name, .fallback = *fallback, .paired = colour_role_paired(*fallback)});
+            ApplicationRoleName{.name = name, .fallback = *fallback.value(), .paired = colour_role_paired(*fallback.value())});
         any = true;
         count = 0U;
     }
@@ -1990,10 +1992,10 @@ bool CompilePass::read_application_roles(const SyntaxNode& node) {
 }
 
 std::optional<std::size_t> CompilePass::palette_slot(std::string_view name, bool& paired) const noexcept {
-    const std::optional<ColourRole> role = colour_role_from_name(name);
-    if (role) {
-        paired = colour_role_paired(*role);
-        return static_cast<std::size_t>(*role);
+    const stxlib::Optional<ColourRole> role = colour_role_from_name(name);
+    if (role.present()) {
+        paired = colour_role_paired(*role.value());
+        return static_cast<std::size_t>(*role.value());
     }
     for (std::size_t index = 0U; index < palette_.application_roles.size(); ++index) {
         if (palette_.application_roles[index].name != name) continue;
@@ -2318,8 +2320,8 @@ bool CompilePass::select_primitive(const SyntaxNode& node, PrimitiveSelection& s
         return true;
     }
     for (const LoweredSelector& lowered : lowered_selectors_) {
-        const std::optional<PartRole> role = lowered.selector.role;
-        if (role && !paints_role(descriptor, *role)) {
+        const PartRole* const role = lowered.selector.role.value();
+        if (role != nullptr && !paints_role(descriptor, *role)) {
             // R2-08: a primitive that cannot paint the selected role.
             report(DiagnosticCode::value_wrong_kind, first.token,
                    "the primitive does not paint the role " + std::string(part_role_name(*role)));
@@ -2671,14 +2673,14 @@ bool CompilePass::lower_font(const SyntaxNode& node) {
         }
         if (!keyword_of(first, "a text role")) return false;
         fold_ascii(first.text, folded_);
-        const std::optional<TextRole> role = text_role_from_name(folded_);
-        if (!role) {
+        const stxlib::Optional<TextRole> role = text_role_from_name(folded_);
+        if (role.absent()) {
             const DiagnosticCode code =
                 newer_engine_ ? DiagnosticCode::keyword_from_newer_engine : DiagnosticCode::keyword_unknown;
             report(code, first.token, clipped_theme_detail(first.text));
             return newer_engine_;
         }
-        name = text_role_name(*role);
+        name = text_role_name(*role.value());
     }
     LoweredDeclaration lowered{};
     lowered.kind = LoweredKind::font;
@@ -2838,7 +2840,7 @@ bool CompilePass::lower_backdrop(const SyntaxNode& node) {
         if (!read_backdrop_step(index, *kind, chain.steps[chain.length])) return false;
         chain.length = chain.length + 1U;
     }
-    backdrop_ = chain;
+    backdrop_.set(chain);
     return true;
 }
 
@@ -2886,13 +2888,13 @@ bool CompilePass::lower_band(const SyntaxNode& node) {
                    "a band-width from 0 to " + std::to_string(static_cast<int>(maximum_theme_band_width)) + "px");
             return false;
         }
-        band.width = width;
+        band.width.set(width);
     } else if (name == "band-effect") {
         const bool keyword = first.kind == ValueComponentKind::keyword;
-        std::optional<BandEffect> effect{};
-        if (keyword && equals_ascii_folded(first.text, "none")) effect = BandEffect::none;
-        if (keyword && equals_ascii_folded(first.text, "flash")) effect = BandEffect::flash;
-        if (!effect) {
+        stxlib::Optional<BandEffect> effect{};
+        if (keyword && equals_ascii_folded(first.text, "none")) effect.set(BandEffect::none);
+        if (keyword && equals_ascii_folded(first.text, "flash")) effect.set(BandEffect::flash);
+        if (effect.absent()) {
             report(DiagnosticCode::value_wrong_kind, first.token, "none or flash");
             return false;
         }
@@ -2903,12 +2905,12 @@ bool CompilePass::lower_band(const SyntaxNode& node) {
             return false;
         }
         if (name == "band-color") {
-            band.rest_colour = first.colour;
+            band.rest_colour.set(first.colour);
         } else {
-            band.lit_colour = first.colour;
+            band.lit_colour.set(first.colour);
         }
     }
-    band_ = band;
+    band_.set(band);
     return true;
 }
 
@@ -3487,7 +3489,7 @@ bool CompilePass::apply_animations(const PrimitiveSelection& selection, ThemeRul
             return false;
         }
         PresentationState state{};
-        state.enter_from = move.from;
+        state.enter_from = platform::stxlib_optional(move.from);
         state.stops = move.stops;
         if (move.to) {
             state.target = *move.to;
@@ -3561,7 +3563,7 @@ bool CompilePass::apply_loop(const DeclaredLoop& loop, ThemeRule& lowered) {
         edge.offset = 1.0;
         if (!ends) frames.push_back(edge);
     }
-    const AmbientEffect& ambient = *motion_.animations.ambient;
+    const AmbientEffect& ambient = *motion_.animations.ambient.value();
     const MotionLoweringOutcome built =
         loop_program(frames, loop.timing, ambient.period, loop.token, motion_.program, motion_.problem);
     if (built != MotionLoweringOutcome::lowered) {
@@ -3846,7 +3848,7 @@ bool CompilePass::rule_selects_only_windows() const noexcept {
 
 bool CompilePass::rule_selects_part() const noexcept {
     for (const LoweredSelector& lowered : lowered_selectors_) {
-        if (!lowered.selector.part.empty() || lowered.selector.role.has_value()) return true;
+        if (!lowered.selector.part.empty() || lowered.selector.role.present()) return true;
     }
     return false;
 }
@@ -3963,8 +3965,8 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     // A borrowed selection alone declares nothing of the rule's own.
     const std::size_t owned = emitted.borrowed ? selections : 0U;
     if (lowered.declarations.size() == owned && lowered.transitions.empty() && lowered.materials.empty() &&
-        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop && !lowered.band &&
-        lowered.content_effect.empty()) {
+        lowered.recipe_fields.empty() && lowered.ambient.absent() && lowered.backdrop.absent() &&
+        lowered.band.absent() && lowered.content_effect.empty()) {
         return true;
     }
     std::size_t bytes = lowered_record_bytes + lowered.label.size();
@@ -3973,8 +3975,8 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     for (const MaterialDeclaration& declaration : lowered.content_effect) bytes += material_bytes(declaration);
     for (const PropertyTransition& transition : lowered.transitions) bytes += transition_bytes(transition);
     bytes += lowered.recipe_fields.size() * lowered_record_bytes;
-    if (lowered.backdrop) bytes += lowered_record_bytes;
-    if (lowered.band) bytes += lowered_record_bytes;
+    if (lowered.backdrop.present()) bytes += lowered_record_bytes;
+    if (lowered.band.present()) bytes += lowered_record_bytes;
     for (const ScopedCondition& condition : lowered.scoped_conditions) {
         bytes += lowered_record_bytes + condition.name.size();
     }
@@ -4001,7 +4003,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
         }
         // A given specificity only where CSS's differs from the engine's
         // own count of the selector (EC2: an `:is()` argument's).
-        if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
+        if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity.set(selector.specificity);
         for (const MachineOrigin& machine : motion_.rule_machines) {
             MachineOrigin origin = machine;
             origin.rule = sheet_.rules.size() - 1U;

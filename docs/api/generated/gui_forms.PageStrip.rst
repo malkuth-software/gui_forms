@@ -133,7 +133,7 @@ gui_forms::PageStrip
       **dragged_page** : ``std::optional<PageId>``, read-only
          The page whose tab is being slid in a live reorder, or none.
 
-      **insertion_mark** : ``std::optional<PagePosition>``, read-only
+      **insertion_mark** : ``stxlib::Optional<PagePosition>``, read-only
          The gap the insertion mark shows, or none.
 
       **parts** : ``Parts``, read-only
@@ -470,7 +470,7 @@ gui_forms::PageStrip
 
       The page whose tab is being slid in a live reorder, or none.
 
-   .. cpp:function:: std::optional<PagePosition> insertion_mark() const noexcept
+   .. cpp:function:: stxlib::Optional<PagePosition> insertion_mark() const noexcept
 
       The gap the insertion mark shows, or none.
 
@@ -597,7 +597,7 @@ gui_forms::PageStrip
       Ends a live reorder with nothing moved, as Escape does; false when none
       is under way.
 
-   .. cpp:function:: std::optional<PagePosition> insertion_position_at(Point window_point) const
+   .. cpp:function:: stxlib::Optional<PagePosition> insertion_position_at(Point window_point) const
 
       The gap an ordinary page dropped at a point would take, as a position in
       the current order: before the first laid-out tab whose middle lies after

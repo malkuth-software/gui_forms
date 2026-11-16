@@ -33,6 +33,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -131,7 +132,8 @@ std::optional<std::string> font_of(const ThemeRule& rule) {
 void test_font_lowering() {
     require(text_role_count == 6U && text_role_name(TextRole::ui) == "ui" &&
                 text_role_name(TextRole::monospace) == "monospace" &&
-                text_role_from_name("heading") == TextRole::heading && !text_role_from_name("Heading"),
+                text_role_from_name("heading") == stxlib::Optional<TextRole>::of(TextRole::heading) &&
+                text_role_from_name("Heading").absent(),
             "the six text roles are named");
     require(font_of(only_rule("#a { font: heading }")) == "heading", "font names a text role");
     require(font_of(only_rule("#a { font: TITLE }")) == "title", "in any case");
@@ -218,7 +220,7 @@ void test_em_assembly() {
     width.em_lengths = {0.5};
     MaterialDeclaration style{};
     style.field = MaterialField::border_top_style;
-    style.border_style = MaterialBorderStyle::solid;
+    style.border_style.set(MaterialBorderStyle::solid);
     std::array<const MaterialDeclaration*, material_field_count> fields{};
     fields[static_cast<std::size_t>(MaterialField::border_top_width)] = &width;
     fields[static_cast<std::size_t>(MaterialField::border_top_style)] = &style;
@@ -228,8 +230,9 @@ void test_em_assembly() {
     assemble_material(floor, fields, Size{40.0, 20.0}, MaterialAssemblyContext{12.0, Color{}}, at_twelve);
     SurfaceMaterial at_twenty_four{};
     assemble_material(floor, fields, Size{40.0, 20.0}, MaterialAssemblyContext{24.0, Color{}}, at_twenty_four);
-    const bool sized = at_twelve.border_edges.top.has_value() && at_twenty_four.border_edges.top.has_value() &&
-                       (*at_twelve.border_edges.top).width == 7.0 && (*at_twenty_four.border_edges.top).width == 13.0;
+    const bool sized = at_twelve.border_edges.top.present() && at_twenty_four.border_edges.top.present() &&
+                       (*at_twelve.border_edges.top.value()).width == 7.0 &&
+                           (*at_twenty_four.border_edges.top.value()).width == 13.0;
     require(sized, "1px + 0.5em at 12 and 24");
     require(width.number == 1.0, "the rules' declaration is not changed");
 
@@ -321,7 +324,8 @@ void test_current_colour_records() {
     const MaterialDeclaration* drop = material_of(glow, MaterialField::drop_shadow);
     require(glows != nullptr && (*glows).current_colours == std::vector<std::uint16_t>{1U},
             "a glow without a colour");
-    require(drop != nullptr && (*drop).drop_shadow && (*drop).current_colours == std::vector<std::uint16_t>{1U},
+    require(drop != nullptr && (*drop).drop_shadow.present() &&
+            (*drop).current_colours == std::vector<std::uint16_t>{1U},
             "a drop shadow without a colour");
     const ThemeRule background = only_rule("#a { background-color: currentcolor }");
     bool current_fill = false;

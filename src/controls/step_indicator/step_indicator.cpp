@@ -76,7 +76,7 @@ std::string decimal(std::size_t number) {
 
 StepIndicator::StepIndicator(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = false;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
 }
 
 void StepIndicator::set_steps(std::vector<std::string> steps) {
@@ -173,7 +173,7 @@ void StepIndicator::on_paint(Painter& painter, Rect) {
         }
         PartPaint chip{.role = PartRole::chip, .bounds = step.chip, .states = chip_states,
                        .family = ControlVisualRole::selection};
-        chip.corner_radius = chip_side * 0.5;
+        chip.corner_radius.set(chip_side * 0.5);
         paint_part(painter, *this, chip);
         if (complete) {
             const Rect check{step.chip.x + (chip_side - check_side) * 0.5, step.chip.y + (chip_side - check_side) * 0.5,

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -39,16 +40,16 @@ struct BackstageViewColumnWidthCapability {
 // The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.
 template <typename Declaring>
 struct BackstageViewSelectedTopicCapability {
-    PropertyView<std::optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic;
+    PropertyView<stxlib::Optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic;
 
-    static void assign(BackstageViewSelectedTopicCapability& capability, std::optional<std::size_t> incoming) {
+    static void assign(BackstageViewSelectedTopicCapability& capability, stxlib::Optional<std::size_t> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.write_view(std::as_const(capability.selected_topic), std::move(incoming));
     }
 
-    static std::optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability) {
+    static stxlib::Optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability) {
         const Declaring& control = static_cast<const Declaring&>(capability);
-        std::optional<std::size_t> current = control.read_view(capability.selected_topic);
+        stxlib::Optional<std::size_t> current = control.read_view(capability.selected_topic);
         return current;
     }
 };

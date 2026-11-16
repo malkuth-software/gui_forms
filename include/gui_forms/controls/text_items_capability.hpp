@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -43,9 +42,9 @@ protected:
     // The replaced positions below the watermark, appended to `replaced`,
     // and the watermark (CollectionDirty::take). For the declaring class's
     // flush.
-    [[nodiscard]] static std::optional<std::size_t> take_dirty(TextItemsCapability& capability,
+    [[nodiscard]] static stxlib::Optional<std::size_t> take_dirty(TextItemsCapability& capability,
                                                                std::vector<std::uint32_t>& replaced) {
-        const std::optional<std::size_t> structural_from = capability.items.take_dirty(replaced);
+        const stxlib::Optional<std::size_t> structural_from = capability.items.take_dirty(replaced);
         return structural_from;
     }
 

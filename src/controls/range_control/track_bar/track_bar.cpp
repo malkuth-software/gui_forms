@@ -32,7 +32,7 @@ std::shared_ptr<const PropertyEnumDescriptor> track_bar_visual_style_enum() {
 TrackBar::TrackBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 Size TrackBar::measure(Size available) {
@@ -237,7 +237,7 @@ void TrackBar::on_paint(Painter& painter, Rect) {
     track.role = PartRole::track;
     track.bounds = classic ? span : track_bounds();
     track.states = states;
-    track.key = PartKey{"track", {}, {}};
+    track.key.set(PartKey{"track", {}, {}});
     paint_part(painter, *this, track);
     if (!classic) {
         PartPaint fill;
@@ -246,7 +246,7 @@ void TrackBar::on_paint(Painter& painter, Rect) {
         fill.bounds = fill_bounds();
         fill.states = states;
         fill.states.insert(AnatomyState::selected);
-        fill.key = PartKey{"fill", {}, {}};
+        fill.key.set(PartKey{"fill", {}, {}});
         paint_part(painter, *this, fill);
     }
 
@@ -279,13 +279,13 @@ void TrackBar::on_paint(Painter& painter, Rect) {
     thumb.role = PartRole::thumb;
     thumb.bounds = thumb_bounds();
     thumb.states = states;
-    thumb.key = PartKey{"thumb", {}, {}};
+    thumb.key.set(PartKey{"thumb", {}, {}});
     paint_part(painter, *this, thumb);
     if (focused_) {
         PartPaint focus = thumb;
         focus.role = PartRole::focus;
         focus.states.insert(AnatomyState::focus_visible);
-        focus.key = PartKey{"focus", {}, {}};
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }
@@ -412,12 +412,12 @@ SemanticDescriptor TrackBar::semantic_descriptor() const {
     std::string value_text;
     number_text::append_number_text(value_text, value.read(), std::chars_format::general, 6);
     descriptor.value = value_text;
-    descriptor.numeric_value = value.read();
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
+    descriptor.numeric_value.set(value.read());
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
     // The arrow keys move by the small change, the page keys by the large.
-    descriptor.small_step = small_change.read();
-    descriptor.large_step = large_change.read();
+    descriptor.small_step.set(small_change.read());
+    descriptor.large_step.set(large_change.read());
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement, SemanticAction::set_value};
     descriptor.exposed = true;

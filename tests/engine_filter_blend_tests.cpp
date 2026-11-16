@@ -306,7 +306,7 @@ void drop_shadows() {
     const Size logical{24.0, 16.0};
     SurfaceMaterial lifted = filled_with(brick);
     lifted.corner_radius = 3.0;
-    lifted.drop_shadow = MaterialDropShadow{Point{3.0, 3.0}, 2.0, Color{0, 0, 0, 128}};
+    lifted.drop_shadow.set(MaterialDropShadow{Point{3.0, 3.0}, 2.0, Color{0, 0, 0, 128}});
     const TestRaster drawn = draw(lifted, logical, 1.0);
     // The part's box is (8, 8) to (32, 24); its shadow lies 3 right and 3
     // down, under it.
@@ -318,7 +318,7 @@ void drop_shadows() {
     // A negative offset moves the shadow above and left of the part, and none
     // of it is left below and right.
     SurfaceMaterial raised = lifted;
-    raised.drop_shadow = MaterialDropShadow{Point{-3.0, -3.0}, 2.0, Color{0, 0, 0, 128}};
+    raised.drop_shadow.set(MaterialDropShadow{Point{-3.0, -3.0}, 2.0, Color{0, 0, 0, 128}});
     const TestRaster up = draw(raised, logical, 1.0);
     require(up.pixel(6U, 6U)[3] > 0U && up.pixel(6U, 6U)[0] == 0U,
             "a negative offset shows the shadow above and left of the part");
@@ -534,7 +534,7 @@ void rule_blend() {
 void validation() {
     SurfaceMaterial material = filled_with(red);
     material.colour_filter = MaterialColourMatrix::sepia(1.0);
-    material.drop_shadow = MaterialDropShadow{Point{2.0, -2.0}, 2.0, Color{0, 0, 0, 96}};
+    material.drop_shadow.set(MaterialDropShadow{Point{2.0, -2.0}, 2.0, Color{0, 0, 0, 96}});
     material.filter_blur = 2.0;
     require(valid_surface_material(material), "filters within the reach are valid");
     MaterialColourMatrix wild{};
@@ -547,7 +547,7 @@ void validation() {
     material.filter_blur = -1.0;
     require(!valid_surface_material(material), "a negative blur is refused");
     material.filter_blur = 0.0;
-    material.drop_shadow = MaterialDropShadow{Point{0.0, 0.0}, std::numeric_limits<double>::infinity(), red};
+    material.drop_shadow.set(MaterialDropShadow{Point{0.0, 0.0}, std::numeric_limits<double>::infinity(), red});
     require(!valid_surface_material(material), "a non-finite shadow is refused");
     material.drop_shadow.reset();
     material.fills[0].blend = static_cast<MaterialBlendMode>(9U);

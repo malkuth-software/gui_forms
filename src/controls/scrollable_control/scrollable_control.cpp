@@ -1217,7 +1217,7 @@ void ScrollableControl::on_paint_overlay(Painter& painter, Rect) {
         corner.role = PartRole::face;
         corner.bounds = {viewport_rectangle_.width, viewport_rectangle_.height,
                          scrollbar_thickness_, scrollbar_thickness_};
-        corner.corner_radius = 0.0;
+        corner.corner_radius.set(0.0);
         paint_part(painter, *this, corner);
     }
 }
@@ -1245,9 +1245,9 @@ void ScrollableControl::append_semantic_axis(
     node.role = SemanticRole::scroll_bar;
     node.name = orientation == ScrollOrientation::horizontal
         ? "Horizontal scroll bar" : "Vertical scroll bar";
-    node.numeric_value = axis.value_;
-    node.minimum_value = axis.minimum_;
-    node.maximum_value = axis.maximum_position();
+    node.numeric_value.set(axis.value_);
+    node.minimum_value.set(axis.minimum_);
+    node.maximum_value.set(axis.maximum_position());
     const Rect local = axis_geometry(orientation).bar;
     node.bounds = {absolute.x + local.x, absolute.y + local.y,
                    local.width, local.height};
@@ -1418,7 +1418,7 @@ void ScrollableControl::on_paint(Painter& painter, Rect) {
     ground.role = PartRole::face;
     ground.bounds = Rect{0.0, 0.0, arranged.width, arranged.height};
     ground.states = anatomy_states();
-    ground.key = PartKey{"face", {}, {}};
+    ground.key.set(PartKey{"face", {}, {}});
     if (!ground_named_by_rule(*this, ground)) return;
     paint_part(painter, *this, ground);
 }

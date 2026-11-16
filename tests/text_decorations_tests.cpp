@@ -37,13 +37,13 @@ TextDecoration decoration(std::size_t start, std::size_t end, TextDecorationStyl
 
 TextDecorationStyle coloured(Color colour) {
     TextDecorationStyle style{};
-    style.foreground = colour;
+    style.foreground.set(colour);
     return style;
 }
 
 TextDecorationStyle bold() {
     TextDecorationStyle style{};
-    style.weight = static_cast<std::uint16_t>(700U);
+    style.weight.set(static_cast<std::uint16_t>(700U));
     return style;
 }
 
@@ -158,7 +158,7 @@ void collection_replace_and_validation() {
     }
     require(refused && decorations.items(syntax).size() == 2U, "a backwards range is refused before any change");
     TextDecorationStyle weightless{};
-    weightless.weight = static_cast<std::uint16_t>(0U);
+    weightless.weight.set(static_cast<std::uint16_t>(0U));
     const std::array<TextDecoration, 1> bad_weight{decoration(0, 1, weightless)};
     refused = false;
     try {
@@ -257,8 +257,8 @@ void collection_shift_for_edit() {
 void collection_compose() {
     TextDecorations decorations{};
     TextDecorationStyle under{};
-    under.underline = TextUnderline::squiggle;
-    under.underline_color = blue;
+    under.underline.set(TextUnderline::squiggle);
+    under.underline_color.set(blue);
     const std::array<TextDecoration, 2> syntax{decoration(0, 6, coloured(red)), decoration(8, 10, coloured(blue))};
     const std::array<TextDecoration, 1> diagnostics{decoration(4, 9, under)};
     static_cast<void>(decorations.replace(TextDecorationLayer{0U}, syntax));
@@ -268,13 +268,13 @@ void collection_compose() {
     require(runs.size() == 6U, "runs cover the window at every change of style");
     require(runs[0].range == bytes(2, 4) && runs[0].style == coloured(red), "the first run keeps the syntax colour");
     TextDecorationStyle both = coloured(red);
-    both.underline = TextUnderline::squiggle;
-    both.underline_color = blue;
+    both.underline.set(TextUnderline::squiggle);
+    both.underline_color.set(blue);
     require(runs[1].range == bytes(4, 6) && runs[1].style == both, "a later layer's fields join an earlier one's");
     require(runs[2].range == bytes(6, 8) && runs[2].style == under, "a gap in one layer shows the other alone");
     TextDecorationStyle blue_under = coloured(blue);
-    blue_under.underline = TextUnderline::squiggle;
-    blue_under.underline_color = blue;
+    blue_under.underline.set(TextUnderline::squiggle);
+    blue_under.underline_color.set(blue);
     require(runs[3].range == bytes(8, 9) && runs[3].style == blue_under, "the overlap composes");
     require(runs[4].range == bytes(9, 10) && runs[4].style == coloured(blue), "the syntax run continues");
     require(runs[5].range == bytes(10, 12) && runs[5].style.empty(), "undecorated text has an empty style");
@@ -304,10 +304,10 @@ void box_paints_styled_runs() {
     Fixture f{};
     f.editor.text = "let x = 1;";
     TextDecorationStyle ground{};
-    ground.background = yellow;
+    ground.background.set(yellow);
     TextDecorationStyle squiggle{};
-    squiggle.underline = TextUnderline::squiggle;
-    squiggle.underline_color = blue;
+    squiggle.underline.set(TextUnderline::squiggle);
+    squiggle.underline_color.set(blue);
     const std::array<TextDecoration, 2> syntax{decoration(0, 3, coloured(red)), decoration(8, 9, ground)};
     const std::array<TextDecoration, 1> errors{decoration(4, 5, squiggle)};
     f.editor.set_decorations(TextDecorationLayer{0U}, syntax);
@@ -334,7 +334,7 @@ void box_paints_styled_runs() {
     }
 
     TextDecorationStyle themed{};
-    themed.ink = TextInkRole::link;
+    themed.ink.set(TextInkRole::link);
     const std::array<TextDecoration, 1> link{decoration(0, 3, themed)};
     f.editor.set_decorations(TextDecorationLayer{0U}, link);
     RecordingPainter themed_painter{};

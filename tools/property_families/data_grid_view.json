@@ -352,7 +352,7 @@
     {
       "name": "grid_color",
       "capability": "DataGridViewGridColor",
-      "value": "std::optional<Color>",
+      "value": "stxlib::Optional<Color>",
       "initial": null,
       "comment": "The authored colour of the grid lines; empty takes the theme's (GridColor).",
       "getter": "grid_color",
@@ -365,12 +365,12 @@
       "table": null,
       "hooks": "generated",
       "effects": "Dirty::paint",
-      "sample": "std::optional<Color>{Color::rgba(10U, 20U, 30U)}"
+      "sample": "stxlib::Optional<Color>::of(Color::rgba(10U, 20U, 30U))"
     },
     {
       "name": "background_color",
       "capability": "DataGridViewBackgroundColor",
-      "value": "std::optional<Color>",
+      "value": "stxlib::Optional<Color>",
       "initial": null,
       "comment": "The authored colour behind the cells; empty takes the theme's (BackgroundColor).",
       "getter": "background_color",
@@ -383,7 +383,7 @@
       "table": null,
       "hooks": "generated",
       "effects": "Dirty::paint",
-      "sample": "std::optional<Color>{Color::rgba(10U, 20U, 30U)}"
+      "sample": "stxlib::Optional<Color>::of(Color::rgba(10U, 20U, 30U))"
     },
     {
       "name": "border_style",

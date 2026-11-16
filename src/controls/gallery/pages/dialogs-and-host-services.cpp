@@ -21,6 +21,7 @@
 #include <exception>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -261,11 +262,11 @@ void HostServicesPage::on_choose_font() {
 }
 
 void HostServicesPage::on_font_closed(const FontDialogResult& result) {
-    if (result.result == DialogResult::ok) (*font_sample_).font = result.font;
+    if (result.result == DialogResult::ok) (*font_sample_).font = stxlib::Optional<FontSpec>::of(result.font);
 }
 
 void HostServicesPage::on_font_applied(const FontSpec& font) {
-    (*font_sample_).font = font;
+    (*font_sample_).font = stxlib::Optional<FontSpec>::of(font);
 }
 
 namespace {

@@ -33,6 +33,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -170,7 +171,7 @@ void test_child_index_from_top() {
     std::shared_ptr<Panel> front = make_panel("order.front", {0.0, 0.0, 10.0, 10.0});
     (*root).add_child(back);
     (*root).add_child(front);
-    require((*root).child_index_from_top((*front).runtime_id()) == std::optional<std::size_t>{0U} &&
+    require((*root).child_index_from_top((*front).runtime_id()) == stxlib::Optional<std::size_t>::of(0U) &&
                 (*root).children().back() == front,
             "the last added child is index 0 from the top and last in painter order");
     Window window(root, Size{100.0, 100.0});
@@ -229,10 +230,10 @@ void test_strict_mnemonics() {
     const Utf8ScalarDecode truncated = decode_utf8_scalar("\xE2\x82", Utf8Offset(0U));
     require(!truncated.valid && truncated.length == 1U, "a truncated sequence is refused");
     const MnemonicText parsed = parse_mnemonic_text("&\xC3\xA9t\xC3\xA9");
-    require(parsed.mnemonic == std::optional<char32_t>{U'é'} && parsed.display_text == "\xC3\xA9t\xC3\xA9",
+    require(parsed.mnemonic == stxlib::Optional<char32_t>::of(U'é') && parsed.display_text == "\xC3\xA9t\xC3\xA9",
             "a multi-byte mnemonic is its scalar");
     const MnemonicText malformed = parse_mnemonic_text("&\xC0\xAF");
-    require(malformed.mnemonic == std::optional<char32_t>{U'�'} && malformed.display_text == "\xC0\xAF",
+    require(malformed.mnemonic == stxlib::Optional<char32_t>::of(U'�') && malformed.display_text == "\xC0\xAF",
             "a malformed mnemonic is U+FFFD and its bytes are kept");
 }
 

@@ -57,7 +57,7 @@ gui_forms::IndicatorLamp
          without a legend, else in the bezel's square) and its whole look, its
          body included, and the bezel gives way.
 
-      **lamp_color** : ``std::optional<Color>``, default empty
+      **lamp_color** : ``stxlib::Optional<Color>``, default empty
          The colour the lens lights in while on, as sRGB. With a bake it is the
          bake's lamp light at unit power (``engine_light::lamp_colour_from_srgb``),
          lamp amber when empty; without one it fills the lit lens over the
@@ -151,7 +151,7 @@ gui_forms::IndicatorLamp
       without a legend, else in the bezel's square) and its whole look, its
       body included, and the bezel gives way.
 
-   .. cpp:member:: std::optional<Color> lamp_color
+   .. cpp:member:: stxlib::Optional<Color> lamp_color
 
       The colour the lens lights in while on, as sRGB. With a bake it is the
       bake's lamp light at unit power (``engine_light::lamp_colour_from_srgb``),

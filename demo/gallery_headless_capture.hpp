@@ -122,8 +122,8 @@ inline bool write_file(const std::string& path, const std::vector<std::byte>& by
     PresentationOverrides still{};
     const PresentationOverrides* const staged = window.presentation_overrides();
     if (staged != nullptr) still = *staged;
-    still.reduced_motion = true;
-    still.ambient_motion = false;
+    still.reduced_motion.set(true);
+    still.ambient_motion.set(false);
     window.set_presentation_overrides(still);
 
     OffscreenRasterOptions raster_options{};

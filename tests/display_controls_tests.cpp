@@ -143,11 +143,11 @@ void test_badge_semantics_parts_and_threads() {
     const Badge::Parts counted = (*badge).parts();
     require(counted.chip.present && counted.label.present, "a count badge publishes its chip and label");
 
-    const std::optional<CustomStateIndex> dot = find_custom_state((*badge).anatomy(), "dot");
-    require(dot && !(*badge).anatomy_states().contains(*dot), "count mode is not the dot state");
+    const stxlib::Optional<CustomStateIndex> dot = find_custom_state((*badge).anatomy(), "dot");
+    require(dot.present() && !(*badge).anatomy_states().contains(*dot.value()), "count mode is not the dot state");
     (*badge).mode = BadgeMode::dot;
     window.perform_layout();
-    require((*badge).anatomy_states().contains(*dot), "dot mode publishes the dot state");
+    require((*badge).anatomy_states().contains(*dot.value()), "dot mode publishes the dot state");
     const Badge::Parts dotted = (*badge).parts();
     require(dotted.chip.present && !dotted.label.present, "a dot publishes a chip without a label");
     require(!(*badge).hit_test_local(Point{4.0, 4.0}), "a badge takes no pointer input");
@@ -185,18 +185,18 @@ void test_info_banner_properties_and_states() {
             "a banner starts as closable information");
     require((*banner).focusable.read(), "a closable banner takes focus");
     const ControlAnatomy& anatomy = (*banner).anatomy();
-    const std::optional<CustomStateIndex> information = find_custom_state(anatomy, "information");
-    const std::optional<CustomStateIndex> warning = find_custom_state(anatomy, "warning");
-    const std::optional<CustomStateIndex> success = find_custom_state(anatomy, "success");
-    const std::optional<CustomStateIndex> error = find_custom_state(anatomy, "error");
-    require(information && warning && success && error, "the banner declares a custom state per severity");
+    const stxlib::Optional<CustomStateIndex> information = find_custom_state(anatomy, "information");
+    const stxlib::Optional<CustomStateIndex> warning = find_custom_state(anatomy, "warning");
+    const stxlib::Optional<CustomStateIndex> success = find_custom_state(anatomy, "success");
+    const stxlib::Optional<CustomStateIndex> error = find_custom_state(anatomy, "error");
+    require(information.present() && warning.present() && success.present() && error.present(), "the banner declares a custom state per severity");
     AnatomyStateSet states = (*banner).anatomy_states();
-    require(states.contains(*information) && !states.contains(*warning) && !states.contains(*success) &&
-                !states.contains(*error),
+    require(states.contains(*information.value()) && !states.contains(*warning.value()) && !states.contains(*success.value()) &&
+                !states.contains(*error.value()),
             "information is the one severity state at first");
     (*banner).severity = NoticeSeverity::error;
     states = (*banner).anatomy_states();
-    require(states.contains(*error) && !states.contains(*information), "a new severity replaces the old state");
+    require(states.contains(*error.value()) && !states.contains(*information.value()), "a new severity replaces the old state");
 
     bool refused = false;
     const std::string broken{"\xff\xfe"};
@@ -430,15 +430,15 @@ void test_segmented_choice_group() {
     Window window(root, Size{400.0, 100.0});
     window.perform_layout();
 
-    const std::optional<CustomStateIndex> segmented = find_custom_state((*group).anatomy(), "segmented");
-    require(segmented && !(*group).anatomy_states().contains(*segmented), "buttons are not the segmented state");
+    const stxlib::Optional<CustomStateIndex> segmented = find_custom_state((*group).anatomy(), "segmented");
+    require(segmented.present() && !(*group).anatomy_states().contains(*segmented.value()), "buttons are not the segmented state");
     require((*group).item(0).committed_arranged_bounds().x == 0.0, "buttons start at the group's edge");
     require(!(*group).parts().track.present && !(*group).parts().selection.present,
             "the buttons presentation publishes no track or selection");
 
     (*group).presentation = ChoiceGroupPresentation::segmented;
     window.perform_layout();
-    require((*group).anatomy_states().contains(*segmented), "the segmented presentation publishes its state");
+    require((*group).anatomy_states().contains(*segmented.value()), "the segmented presentation publishes its state");
     const Rect first = (*group).item(0).committed_arranged_bounds();
     const Rect second = (*group).item(1).committed_arranged_bounds();
     require(first.x == 2.0 && first.y == 2.0 && first.width == 99.0 && first.height == 28.0 && second.x == 101.0,
@@ -1138,7 +1138,7 @@ void test_spinner() {
             "a spinner is active and measures 24 units square");
     const SemanticDescriptor busy = (*loose).semantic_descriptor();
     require(busy.role == SemanticRole::progress_bar && busy.exposed && has_semantic_state(busy.states, SemanticState::busy) &&
-                !busy.numeric_value,
+                busy.numeric_value.absent(),
             "an active spinner is a busy progress bar without a value");
     require(!(*loose).hit_test_local(Point{4.0, 4.0}), "a spinner takes no pointer input");
 
@@ -1227,8 +1227,10 @@ void test_progress_ring() {
     (*loose).maximum = 50.0;
     (*loose).value = 20.0;
     const SemanticDescriptor amount = (*loose).semantic_descriptor();
-    require(amount.role == SemanticRole::progress_bar && amount.exposed && amount.numeric_value == 20.0 &&
-                amount.minimum_value == 0.0 && amount.maximum_value == 50.0 && amount.value == "20" &&
+    require(amount.role == SemanticRole::progress_bar && amount.exposed &&
+                amount.numeric_value == stxlib::Optional<double>::of(20.0) &&
+                amount.minimum_value == stxlib::Optional<double>::of(0.0) &&
+                amount.maximum_value == stxlib::Optional<double>::of(50.0) && amount.value == "20" &&
                 !has_semantic_state(amount.states, SemanticState::busy),
             "a determinate ring publishes its value and range");
     // A-gf-controls-10-F10: the published value does not follow the program's global locale.
@@ -1269,7 +1271,7 @@ void test_progress_ring() {
     const ProgressRing::Parts spinning = (*ring).parts();
     require(spinning.activity.present && !spinning.fill.present, "an indeterminate ring publishes its activity part");
     const SemanticDescriptor busy = (*ring).semantic_descriptor();
-    require(has_semantic_state(busy.states, SemanticState::busy) && !busy.numeric_value,
+    require(has_semantic_state(busy.states, SemanticState::busy) && busy.numeric_value.absent(),
             "an indeterminate ring is busy without a value");
     NullPainter first;
     (*ring).on_paint(first, bounds);

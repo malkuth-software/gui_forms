@@ -230,7 +230,7 @@ private:
 
 NavigationPane::NavigationPane(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     // The pane sizes itself: its width follows collapsing (measure).
     auto_size = true;
@@ -389,7 +389,7 @@ bool NavigationPane::hidden_at(std::size_t position) const {
 
 bool NavigationPane::set_page_hidden(const PageId& page, bool hidden) {
     require_mutable();
-    if (!pages_.find(page) || page_hidden(page) == hidden) return false;
+    if (pages_.find(page).absent() || page_hidden(page) == hidden) return false;
     if (hidden) {
         hidden_.push_back(page);
         advance_layout_revision();
@@ -475,10 +475,10 @@ NavigationPaneRestore NavigationPane::apply_state(const NavigationPaneState& sav
     NavigationPaneRestore restore{};
     std::unordered_set<std::string> unknown{};
     for (const PageId& id : saved.page_order) {
-        if (!pages_.find(id)) unknown.insert(id.value);
+        if (pages_.find(id).absent()) unknown.insert(id.value);
     }
     for (const PageId& id : saved.hidden_pages) {
-        if (!pages_.find(id)) unknown.insert(id.value);
+        if (pages_.find(id).absent()) unknown.insert(id.value);
     }
     restore.unknown_pages = unknown.size();
     applying_state_ = true;
@@ -489,7 +489,7 @@ NavigationPaneRestore NavigationPane::apply_state(const NavigationPaneState& sav
         PageSetBatch batch(pages_);
         std::size_t next = 0U;
         for (const PageId& id : saved.page_order) {
-            if (!pages_.find(id)) continue;
+            if (pages_.find(id).absent()) continue;
             static_cast<void>(pages_.move(id, PagePosition{next}));
             ++next;
         }
@@ -498,7 +498,7 @@ NavigationPaneRestore NavigationPane::apply_state(const NavigationPaneState& sav
     hidden_.clear();
     advance_layout_revision();
     for (const PageId& id : saved.hidden_pages) {
-        if (pages_.find(id)) hidden_.push_back(id);
+        if (pages_.find(id).present()) hidden_.push_back(id);
         advance_layout_revision();
     }
     if (saved.collapsed) {
@@ -537,7 +537,7 @@ void NavigationPane::on_pages_changed(const PageSetChange& change) {
         std::vector<PageId> kept{};
         kept.reserve(hidden_.size());
         for (const PageId& id : hidden_) {
-            if (pages_.find(id)) kept.push_back(id);
+            if (pages_.find(id).present()) kept.push_back(id);
         }
         hidden_ = std::move(kept);
         advance_layout_revision();
@@ -578,9 +578,9 @@ void NavigationPane::refresh_content() {
 std::optional<std::size_t> NavigationPane::selected_position() const {
     const std::optional<PageId>& selected = pages_.selected_page();
     if (!selected) return std::nullopt;
-    const std::optional<PagePosition> position = pages_.find(*selected);
-    if (!position) return std::nullopt;
-    return (*position).value;
+    const stxlib::Optional<PagePosition> position = pages_.find(*selected);
+    if (position.absent()) return std::nullopt;
+    return (*position.value()).value;
 }
 
 std::string NavigationPane::page_text(std::size_t position) const {
@@ -1084,7 +1084,7 @@ void NavigationPane::paint_flyout(Painter& painter, const Control& surface) cons
     part.family = ControlVisualRole::panel;
     part.role = PartRole::shadow;
     part.bounds = placed.face;
-    part.corner_radius = 0.0;
+    part.corner_radius.set(0.0);
     paint_part(painter, surface, part);
     part.corner_radius.reset();
     part.role = PartRole::face;
@@ -1191,8 +1191,8 @@ void NavigationPane::release(MouseEventArgs& arguments) {
     const Target released = target_at(layout(), arguments.location);
     if (pressed.kind != TargetKind::none && pressed == released) {
         if (pressed.kind == TargetKind::tab) {
-            const std::optional<PagePosition> position = pages_.find(pressed.page);
-            if (position) select_page((*position).value, PageSelectionCause::pointer);
+            const stxlib::Optional<PagePosition> position = pages_.find(pressed.page);
+            if (position.present()) select_page((*position.value()).value, PageSelectionCause::pointer);
         } else {
             activate(pressed);
         }
@@ -1231,8 +1231,8 @@ void NavigationPane::activate(const Target& target) {
         static_cast<void>(show_configure_menu(MenuOpenMode::keyboard));
         return;
     case TargetKind::tab: {
-        const std::optional<PagePosition> position = pages_.find(target.page);
-        if (position) select_page((*position).value, PageSelectionCause::keyboard);
+        const stxlib::Optional<PagePosition> position = pages_.find(target.page);
+        if (position.present()) select_page((*position.value()).value, PageSelectionCause::keyboard);
         return;
     }
     case TargetKind::none:
@@ -1528,10 +1528,10 @@ bool NavigationPane::show_configure_menu(MenuOpenMode mode) {
                            std::string(hidden_heading_text));
     }
     for (const PageId& page : hidden) {
-        const std::optional<PagePosition> position = pages_.find(page);
-        if (!position) continue;
+        const stxlib::Optional<PagePosition> position = pages_.find(page);
+        if (position.absent()) continue;
         const std::string id = prefix + ".page." + page.value;
-        const std::string text = page_text((*position).value);
+        const std::string text = page_text((*position.value()).value);
         page_commands_.push_back(std::make_shared<Command>(id, text));
         items.emplace_back(id, MenuItemKind::command, page_commands_.back(), text);
     }
@@ -1569,10 +1569,10 @@ void NavigationPane::on_menu_item_invoked(const MenuItemInvocation& invocation) 
     const std::string page_prefix = prefix + ".page.";
     if (item.size() <= page_prefix.size() || item.compare(0U, page_prefix.size(), page_prefix) != 0) return;
     const PageId page{item.substr(page_prefix.size())};
-    const std::optional<PagePosition> position = pages_.find(page);
-    if (!position) return;
+    const stxlib::Optional<PagePosition> position = pages_.find(page);
+    if (position.absent()) return;
     if (page_hidden(page)) static_cast<void>(set_page_hidden(page, false));
-    select_page((*position).value, PageSelectionCause::programmatic);
+    select_page((*position.value()).value, PageSelectionCause::programmatic);
 }
 
 // -- semantics ----------------------------------------------------------------------
@@ -1635,9 +1635,9 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
         node.role = SemanticRole::split_pane;
         node.name = "Large buttons";
         node.value = std::to_string(placed.large_count);
-        node.numeric_value = static_cast<double>(placed.large_count);
-        node.minimum_value = 0.0;
-        node.maximum_value = static_cast<double>(std::min(placed.shown_count, placed.button_capacity));
+        node.numeric_value.set(static_cast<double>(placed.large_count));
+        node.minimum_value.set(0.0);
+        node.maximum_value.set(static_cast<double>(std::min(placed.shown_count, placed.button_capacity)));
         node.bounds = window_rect(absolute, placed.grip_bar);
         node.states = base | SemanticState::focusable;
         if (focused_ && stop_ == target) node.states |= SemanticState::focused;
@@ -1651,7 +1651,7 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
         list.runtime_id = virtual_semantic_runtime_id(list.stable_id);
         list.role = SemanticRole::tab_group;
         list.name = "Pages";
-        list.orientation = SemanticOrientation::vertical;
+        list.orientation.set(SemanticOrientation::vertical);
         Rect area = placed.tabs.front().bounds;
         for (const TabSlot& slot : placed.tabs) area = Rect::united(area, slot.bounds);
         list.bounds = window_rect(absolute, area);
@@ -1669,8 +1669,8 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
             tab.role = SemanticRole::tab;
             tab.name = page_text(slot.position);
             tab.bounds = window_rect(absolute, slot.bounds);
-            tab.position_in_set = index + 1U;
-            tab.set_size = placed.tabs.size();
+            tab.position_in_set.set(index + 1U);
+            tab.set_size.set(placed.tabs.size());
             tab.states = base | SemanticState::focusable;
             if (selected == slot.position) {
                 tab.states |= SemanticState::selected;
@@ -1769,9 +1769,9 @@ bool NavigationPane::on_semantic_child_action(std::string_view id, SemanticActio
         target.page = PageId{std::string(id.substr(tab_prefix.size()))};
         if (target_bounds(placed, target).empty()) return false;
         if (action == SemanticAction::select) {
-            const std::optional<PagePosition> position = pages_.find(target.page);
-            if (!position) return false;
-            select_page((*position).value, PageSelectionCause::semantic);
+            const stxlib::Optional<PagePosition> position = pages_.find(target.page);
+            if (position.absent()) return false;
+            select_page((*position.value()).value, PageSelectionCause::semantic);
             return true;
         }
     }

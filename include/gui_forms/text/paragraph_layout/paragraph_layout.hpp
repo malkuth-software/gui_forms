@@ -10,6 +10,8 @@
 #include "gui_forms/typography/shaping_workspace/shaping_workspace.hpp"
 #include "gui_forms/typography/types/typography_types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -296,7 +298,7 @@ public:
     // What a call whose storage was too small needs; null otherwise.
     [[nodiscard]] const ParagraphStorageRequirement* required_storage() const noexcept;
     // The error of a refused request; none otherwise.
-    [[nodiscard]] std::optional<ParagraphRequestError> error() const noexcept;
+    [[nodiscard]] stxlib::Optional<ParagraphRequestError> error() const noexcept;
 
 private:
     explicit ParagraphLayoutResult(
@@ -312,7 +314,16 @@ private:
 // uses estimate_text_layout_utf8. Resolving may allocate in the provider;
 // call it once per font and keep the answer in ParagraphStyle.
 [[nodiscard]] GUI_FORMS_API LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font,
-                                                              std::optional<double> line_height);
+                                                              stxlib::Optional<double> line_height);
+// Deprecated for one stage (D15 V1, Q3): the std::optional form, for
+// GUI.Forms' own tests, examples and tools while they move; V2 removes it.
+[[deprecated("D15 V1: pass stxlib::Optional<double>")]] [[nodiscard]] inline LineBoxMetrics paragraph_line_box(
+    TextMetricsProvider* provider, FontSpec font, const std::optional<double> line_height) {
+    stxlib::Optional<double> owned{};
+    if (line_height.has_value()) owned.set(*line_height);
+    const LineBoxMetrics metrics = paragraph_line_box(provider, font, owned);
+    return metrics;
+}
 
 // The storage lay_out_paragraph needs for `text` before the line count is
 // known: per_byte and collapsed_bytes exact, lines the bound per_byte, and

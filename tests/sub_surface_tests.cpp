@@ -58,6 +58,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -679,7 +680,9 @@ public:
         focusable = true;
     }
 
-    [[nodiscard]] std::optional<Rect> text_input_caret() const override { return Rect{5.0, 3.0, 1.0, 12.0}; }
+    [[nodiscard]] stxlib::Optional<Rect> text_input_caret() const override {
+        return stxlib::Optional<Rect>::of(Rect{5.0, 3.0, 1.0, 12.0});
+    }
 
 protected:
     void on_focus_changed(bool focused) override {
@@ -787,8 +790,8 @@ public:
 [[nodiscard]] bool wait_for_caret(Window& window, Rect expected) {
     const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
     while (std::chrono::steady_clock::now() < limit) {
-        const std::optional<Rect> caret = window.text_input_caret();
-        if (caret && *caret == expected) return true;
+        const stxlib::Optional<Rect> caret = window.text_input_caret();
+        if (caret.present() && *caret.value() == expected) return true;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     return false;
@@ -817,10 +820,10 @@ void caret_falls_back_to_left_edge() {
     (*root).add_child(stop);
     Window window(root, Size{100.0, 100.0});
     window.flush();
-    require(!window.text_input_caret(), "no caret without focus");
+    require(window.text_input_caret().absent(), "no caret without focus");
     require(window.request_focus(stop), "focus the stop");
-    const std::optional<Rect> caret = window.text_input_caret();
-    require(caret && *caret == Rect{10.0, 12.0, 1.0, 20.0}, "the left edge, one unit wide");
+    const stxlib::Optional<Rect> caret = window.text_input_caret();
+    require(caret.present() && *caret.value() == Rect{10.0, 12.0, 1.0, 20.0}, "the left edge, one unit wide");
 }
 
 void input_reaches_sub_surface_in_order() {
@@ -1664,7 +1667,7 @@ void tool_tips_are_asked_of_the_parent() {
     require(!window.tool_tip_visible(), "withdrawing closes it");
 
     // The window's switch: the hover request is declined, nothing shows.
-    window.set_tool_tips_shown(false);
+    window.set_tool_tips_shown(stxlib::Optional<bool>::of(false));
     const std::uint64_t before_declined = (*host).request_statistics().received;
     static_cast<void>(window.dispatch_pointer(pointer_move(Point{20.0 + 16.0, 40.0 + 11.0})));
     require(drain_until_requests(window, *host, ReceivedAtLeast{before_declined + 1U}), "asked again");

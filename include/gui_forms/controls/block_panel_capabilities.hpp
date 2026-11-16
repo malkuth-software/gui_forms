@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -42,9 +43,9 @@ struct BlockPanelTextAlignCapability {
 // The strut every line box starts with (CSS 2.1 section 10.8.1), used as given; empty takes the font's line-height: normal line box at the effective text scale (used_line_strut). Its values must be finite and nonnegative (std::invalid_argument).
 template <typename Declaring>
 struct BlockPanelLineStrutCapability {
-    PropertyCell<std::optional<LineStrut>, BlockPanelLineStrutCapability<Declaring>> line_strut{};
+    PropertyCell<stxlib::Optional<LineStrut>, BlockPanelLineStrutCapability<Declaring>> line_strut{};
 
-    static void assign(BlockPanelLineStrutCapability& capability, std::optional<LineStrut> incoming) {
+    static void assign(BlockPanelLineStrutCapability& capability, stxlib::Optional<LineStrut> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.line_strut), incoming);
         if (!capability.line_strut.replace(std::move(incoming))) return;
@@ -55,9 +56,9 @@ struct BlockPanelLineStrutCapability {
 // The panel's own font for the strut; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
 template <typename Declaring>
 struct BlockPanelFontCapability {
-    PropertyCell<std::optional<FontSpec>, BlockPanelFontCapability<Declaring>> font{};
+    PropertyCell<stxlib::Optional<FontSpec>, BlockPanelFontCapability<Declaring>> font{};
 
-    static void assign(BlockPanelFontCapability& capability, std::optional<FontSpec> incoming) {
+    static void assign(BlockPanelFontCapability& capability, stxlib::Optional<FontSpec> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.font), incoming);
         if (!capability.font.replace(std::move(incoming))) return;

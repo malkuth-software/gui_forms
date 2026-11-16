@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -177,8 +178,8 @@ struct FocusFixture final {
         (*selection).add_child(selection_action);
         (*root).add_child(content);
         (*root).add_child(selection);
-        (*root).child_track[*content] = 0U;
-        (*root).child_track[*selection] = 1U;
+        (*root).child_track[*content] = stxlib::Optional<std::uint32_t>::of(0U);
+        (*root).child_track[*selection] = stxlib::Optional<std::uint32_t>::of(1U);
         (*root).set_track_focus_fallback(1U, *fallback);
         window.perform_layout();
     }
@@ -238,21 +239,21 @@ void test_text_scale_reflow_transactions_and_resize_stability() {
     });
     std::shared_ptr<Label> title = make_control<Label>(
         StableId("responsive.scale.title"), "Current location");
-    (*title).font = FontSpec{FontRole::control, 15.0, 700, false};
+    (*title).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 15.0, 700, false});
     (*title).dock = DockStyle::fill;
     std::shared_ptr<Panel> content =
         make_control<Panel>(StableId("responsive.scale.content"));
     (*content).dock = DockStyle::fill;
     std::shared_ptr<Label> status = make_control<Label>(
         StableId("responsive.scale.status"), "Local authority remains available");
-    (*status).font = FontSpec{FontRole::content, 10.0, 400, false};
+    (*status).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 10.0, 400, false});
     (*status).dock = DockStyle::fill;
     (*root).add_child(title);
     (*root).add_child(content);
     (*root).add_child(status);
-    (*root).child_track[*title] = 0U;
-    (*root).child_track[*content] = 1U;
-    (*root).child_track[*status] = 2U;
+    (*root).child_track[*title] = stxlib::Optional<std::uint32_t>::of(0U);
+    (*root).child_track[*content] = stxlib::Optional<std::uint32_t>::of(1U);
+    (*root).child_track[*status] = stxlib::Optional<std::uint32_t>::of(2U);
     Window window(root, {480.0, 300.0});
 
     double previous_title = 0.0;
@@ -353,12 +354,12 @@ void test_child_track_child_property() {
     require(provided.size() == 1U && provided[0].name == "child_track" &&
                 provided[0].kind == BindingValueKind::unsigned_integer,
             "track child table: one unsigned child_track");
-    require(!(*panel).child_track[*first].read(), "child track: none before any write");
+    require((*panel).child_track[*first].read().absent(), "child track: none before any write");
     (*panel).set_child_property_value(*first, "child-track", BindingValue{std::uint64_t{1U}});
-    require((*panel).child_track[*first].read() == std::optional<std::uint32_t>(1U) &&
+    require((*panel).child_track[*first].read() == stxlib::Optional<std::uint32_t>::of(1U) &&
                 (*panel).should_serialize_child_property(*first, "child_track"),
             "child track: a name-keyed write reaches the typed read and is serialized");
-    (*panel).child_track[*first] = std::nullopt;
+    (*panel).child_track[*first] = stxlib::Optional<std::uint32_t>::none();
     const std::optional<BindingValue> named = (*panel).child_property_value(*first, "child_track");
     require(named && std::holds_alternative<std::monostate>(*named) &&
                 !(*panel).should_serialize_child_property(*first, "child_track"),
@@ -366,23 +367,23 @@ void test_child_track_child_property() {
 
     bool range_refused = false;
     try {
-        (*panel).child_track[*first] = 2U;
+        (*panel).child_track[*first] = stxlib::Optional<std::uint32_t>::of(2U);
     } catch (const std::out_of_range&) {
         range_refused = true;
     }
     bool stranger_refused = false;
     try {
-        (*panel).child_track[*stranger] = 0U;
+        (*panel).child_track[*stranger] = stxlib::Optional<std::uint32_t>::of(0U);
     } catch (const std::invalid_argument&) {
         stranger_refused = true;
     }
-    require(range_refused && stranger_refused && !(*panel).child_track[*first].read(),
+    require(range_refused && stranger_refused && (*panel).child_track[*first].read().absent(),
             "child track: a track past the specs and a stranger are refused before mutation");
 
-    (*panel).child_track[*first] = 1U;
+    (*panel).child_track[*first] = stxlib::Optional<std::uint32_t>::of(1U);
     static_cast<void>((*panel).remove_child((*first).runtime_id()));
     (*panel).add_child(first);
-    require(!(*panel).child_track[*first].read(), "child track: the value is dropped when the child leaves");
+    require((*panel).child_track[*first].read().absent(), "child track: the value is dropped when the child leaves");
 }
 
 void test_track_settings_as_properties() {

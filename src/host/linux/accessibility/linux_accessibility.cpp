@@ -355,8 +355,8 @@ StateBits state_bits(const SemanticNode& node) {
     if (has_action(node.actions, SemanticAction::select)) bits |= state_bit(ATK_STATE_SELECTABLE);
     if (node.has_popup) bits |= state_bit(ATK_STATE_HAS_POPUP);
     if (node.modal) bits |= state_bit(ATK_STATE_MODAL);
-    if (node.orientation) {
-        const bool row = *node.orientation == SemanticOrientation::horizontal;
+    if (node.orientation.present()) {
+        const bool row = *node.orientation.value() == SemanticOrientation::horizontal;
         bits |= state_bit(row ? ATK_STATE_HORIZONTAL : ATK_STATE_VERTICAL);
     }
     return bits;
@@ -408,7 +408,7 @@ unsigned interface_flags(const SemanticNode& node) {
     unsigned flags = 0U;
     if (!node.actions.empty()) flags |= action_interface;
     const bool text = semantic_role_fallback(node.role) == SemanticRole::text_box;
-    if (node.numeric_value || (!node.value.empty() && !text)) flags |= value_interface;
+    if (node.numeric_value.present() || (!node.value.empty() && !text)) flags |= value_interface;
     if (text) flags |= text_interface;
     return flags;
 }
@@ -531,9 +531,10 @@ AtkAttributeSet* add_attribute(AtkAttributeSet* set, const char* name, const cha
     AtkAttributeSet* const result = g_slist_prepend(set, attribute);
     return result;
 }
-AtkAttributeSet* add_count(AtkAttributeSet* set, const char* name, const std::optional<std::size_t>& number) {
-    if (!number) return set;
-    const std::string text = std::to_string(*number);
+AtkAttributeSet* add_count(AtkAttributeSet* set, const char* name, const stxlib::Optional<std::size_t>& number) {
+    const std::size_t* const count = number.value();
+    if (count == nullptr) return set;
+    const std::string text = std::to_string(*count);
     AtkAttributeSet* result = add_attribute(set, name, text.c_str());
     return result;
 }
@@ -542,7 +543,7 @@ AtkAttributeSet* answer_attributes(AtkObject* object) {
     AtkAttributeSet* set = nullptr;
     if (!value.live) return set;
     const SemanticNode& node = value.node;
-    if (node.position_in_set && node.set_size) {
+    if (node.position_in_set.present() && node.set_size.present()) {
         set = add_count(set, "setsize", node.set_size);
         set = add_count(set, "posinset", node.position_in_set);
     }
@@ -701,8 +702,8 @@ void value_and_text(AtkValue* object, gdouble* value, gchar** text) {
 }
 AtkRange* answer_range(AtkValue* object) {
     const SemanticNode& node = data(object).node;
-    if (!node.minimum_value || !node.maximum_value) return nullptr;
-    AtkRange* const result = atk_range_new(*node.minimum_value, *node.maximum_value, nullptr);
+    if (node.minimum_value.absent() || node.maximum_value.absent()) return nullptr;
+    AtkRange* const result = atk_range_new(*node.minimum_value.value(), *node.maximum_value.value(), nullptr);
     return result;
 }
 AtkRange* range(AtkValue* object) {
@@ -711,7 +712,7 @@ AtkRange* range(AtkValue* object) {
 // Sends `value` as the node's new value in the classic locale, with every
 // significant digit of a double.
 void answer_set_value(AtkValue* object, gdouble value) {
-    if (!std::isfinite(value) || !data(object).node.numeric_value) return;
+    if (!std::isfinite(value) || data(object).node.numeric_value.absent()) return;
     std::ostringstream text;
     text.imbue(std::locale::classic());
     text.precision(17);
@@ -835,8 +836,8 @@ gunichar character(AtkText* object, gint offset) {
 // The published caret, or 0 without a published selection.
 gint answer_caret_offset(AtkText* object) {
     const NodeData& node = data(object);
-    if (!node.live || !node.node.text_selection) return 0;
-    const std::size_t caret = (*node.node.text_selection).caret.value();
+    if (!node.live || node.node.text_selection.absent()) return 0;
+    const std::size_t caret = (*node.node.text_selection.value()).caret.value();
     const gint result = character_offset(node, caret);
     return result;
 }
@@ -846,8 +847,8 @@ gint caret_offset(AtkText* object) {
 // One selection while the anchor and the caret differ, else none.
 gint answer_selection_count(AtkText* object) {
     const NodeData& node = data(object);
-    if (!node.live || !node.node.text_selection) return 0;
-    const SemanticTextSelection selection = *node.node.text_selection;
+    if (!node.live || node.node.text_selection.absent()) return 0;
+    const SemanticTextSelection selection = *node.node.text_selection.value();
     const gint count = selection.anchor == selection.caret ? 0 : 1;
     return count;
 }
@@ -859,7 +860,7 @@ gchar* answer_selection_text(AtkText* object, gint number, gint* start, gint* en
     if (end) *end = 0;
     if (number != 0 || selection_count(object) == 0) return nullptr;
     const NodeData& node = data(object);
-    const SemanticTextSelection selection = *node.node.text_selection;
+    const SemanticTextSelection selection = *node.node.text_selection.value();
     const std::size_t low = std::min(selection.anchor.value(), selection.caret.value());
     const std::size_t high = std::max(selection.anchor.value(), selection.caret.value());
     const gint first = character_offset(node, low);
@@ -915,8 +916,8 @@ gint utf8_character_count(const std::string& bytes) {
 // replaced span as text-remove then text-insert (the common prefix and
 // suffix, cut at character boundaries, are kept), then text-caret-moved when
 // the caret moved and text-selection-changed when the selected span changed.
-void announce_text(AtkObject* object, const std::string& before, const std::optional<SemanticTextSelection>& was,
-                   const std::string& after, const std::optional<SemanticTextSelection>& now) {
+void announce_text(AtkObject* object, const std::string& before, const stxlib::Optional<SemanticTextSelection>& was,
+                   const std::string& after, const stxlib::Optional<SemanticTextSelection>& now) {
     if (before != after) {
         const std::size_t shorter = std::min(before.size(), after.size());
         std::size_t prefix = 0U;
@@ -946,13 +947,15 @@ void announce_text(AtkObject* object, const std::string& before, const std::opti
             g_signal_emit_by_name(object, "text-insert", position, length, inserted.c_str());
         }
     }
-    if (now) {
-        const gint caret = character_offset(after, (*now).caret.value());
-        const gint previous = was ? character_offset(before, (*was).caret.value()) : -1;
+    const SemanticTextSelection* const was_selection = was.value();
+    const SemanticTextSelection* const now_selection = now.value();
+    if (now_selection != nullptr) {
+        const gint caret = character_offset(after, (*now_selection).caret.value());
+        const gint previous = was_selection != nullptr ? character_offset(before, (*was_selection).caret.value()) : -1;
         if (caret != previous) g_signal_emit_by_name(object, "text-caret-moved", caret);
     }
-    const bool selected_before = was && (*was).anchor != (*was).caret;
-    const bool selected_now = now && (*now).anchor != (*now).caret;
+    const bool selected_before = was_selection != nullptr && (*was_selection).anchor != (*was_selection).caret;
+    const bool selected_now = now_selection != nullptr && (*now_selection).anchor != (*now_selection).caret;
     if ((selected_before || selected_now) && was != now) g_signal_emit_by_name(object, "text-selection-changed");
 }
 void answer_set_contents(AtkEditableText* object, const gchar* value) {
@@ -1096,7 +1099,7 @@ struct LinuxAccessibility::Impl {
         const std::string old_name = value.node.name;
         const SemanticNode* const published = created ? nullptr : &value.node;
         const bool announce = semantic_announcement_due(published, node);
-        const std::optional<SemanticTextSelection> old_selection = value.node.text_selection;
+        const stxlib::Optional<SemanticTextSelection> old_selection = value.node.text_selection;
         std::vector<AtkObject*> previous = std::move(value.children);
         value.children.clear();
         value.flags = flags;

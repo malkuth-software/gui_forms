@@ -96,7 +96,7 @@ void test_text_and_input(gui_forms::Window& window,
                 (*(*band).editor()).auto_complete_suggestions().size() == 2U &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::down}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
-                (*band).text.read() == "Medium wave" && (*band).selected_index.read() == 1U,
+                (*band).text.read() == "Medium wave" && (*band).selected_index.read() == stxlib::Optional<std::size_t>::of(1U),
             "the band field suggests from its items and the accepted item is selected");
 
     const std::shared_ptr<gui_forms::TokenBox> recipients = std::dynamic_pointer_cast<TokenBox>(
@@ -155,7 +155,7 @@ void test_text_and_input(gui_forms::Window& window,
                 (*content_status).text.read().find("frame published") != std::string::npos,
             "the content editor specimen shows the page's accepted layout and frame");
     require(window.request_focus(content) && window.dispatch_text({"!"}) && (*content).text().ends_with("!") &&
-                (*content).layout_current() && (*content).caret_rectangle().has_value(),
+                (*content).layout_current() && (*content).caret_rectangle().present(),
             "typing in the content editor asks the page for a layout, which is accepted at once");
     require((*content_status).text.read().find("for revision " + std::to_string((*content).text_revision())) !=
                 std::string::npos,

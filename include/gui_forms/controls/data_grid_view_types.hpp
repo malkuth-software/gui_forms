@@ -8,6 +8,8 @@
 #include <optional>
 #include <string>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // DataGridView's value types (its kinds, modes, styles and cell style),
@@ -120,10 +122,10 @@ struct GUI_FORMS_API DataGridViewCellStyle final {
     std::optional<std::string> format{};
     std::optional<BindingValue> null_value{};
     std::optional<BindingValue> data_source_null_value{};
-    std::optional<Color> back_color{};
-    std::optional<Color> fore_color{};
-    std::optional<Color> selection_back_color{};
-    std::optional<Color> selection_fore_color{};
+    stxlib::Optional<Color> back_color{};
+    stxlib::Optional<Color> fore_color{};
+    stxlib::Optional<Color> selection_back_color{};
+    stxlib::Optional<Color> selection_fore_color{};
 
     friend bool operator==(const DataGridViewCellStyle& left, const DataGridViewCellStyle& right) noexcept {
         return left.font == right.font && left.alignment == right.alignment && left.padding == right.padding &&

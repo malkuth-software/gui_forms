@@ -390,7 +390,7 @@ void EnginePartTable::write_lookup_text(std::string& text, std::string_view cont
     // keeps its record wherever it moves.
     if (key.index_fallback()) {
         text += '#';
-        text += std::to_string(*key.item_index);
+        text += std::to_string(*key.item_index.value());
     }
 }
 
@@ -448,7 +448,7 @@ PartRecordAcquisition EnginePartTable::acquire(std::string_view control_id, cons
     target.lookup = std::move(owned_lookup);
     link_control(slot, control_id);
     live_ = live_ + 1U;
-    const bool item = !key.item.empty() || key.item_index.has_value();
+    const bool item = !key.item.empty() || key.item_index.present();
     std::size_t evicted = 0U;
     if (item) {
         target.item = true;

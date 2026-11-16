@@ -9,7 +9,7 @@
 #include "gui_forms/control/control/control.hpp"
 
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -18,7 +18,7 @@ struct Control::ActiveBorderState final {
     ActiveBorder border{};
     // The pose the last paint resolved; empty until the first paint after
     // a change.
-    std::optional<ActiveBorderPose> pose{};
+    stxlib::Optional<ActiveBorderPose> pose{};
     // Started while the pose moves, stopped when it rests.
     AnimationTimer timer{};
     // When the motion started (lit), and the time the last tick reached:

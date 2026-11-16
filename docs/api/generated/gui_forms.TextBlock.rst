@@ -42,7 +42,7 @@ gui_forms::TextBlock
       **text** : ``std::string``, default ``""``
          The text. Setting a different value raises :cpp:func:`text_changed <gui_forms::TextBlock::text_changed>`.
 
-      **font** : ``std::optional<FontSpec>``, default empty
+      **font** : ``stxlib::Optional<FontSpec>``, default empty
          The block's own font. While empty, the block uses the theme's field
          typography; :cpp:func:`resolved_font <gui_forms::TextBlock::resolved_font>` reports the font in use. It is scaled by the
          window's text scale. An invalid specification throws
@@ -55,7 +55,7 @@ gui_forms::TextBlock
          layout direction, so ``start`` is right in a right-to-left window. A value
          outside the enumeration throws ``std::invalid_argument``.
 
-      **line_height** : ``std::optional<double>``, default none
+      **line_height** : ``stxlib::Optional<double>``, default none
          Each line's height in logical pixels at a text scale of 1, as CSS's
          ``line-height: <length>``; it scales with the text. None is
          ``line-height: normal``: the font's ascent, descent and line gap, each
@@ -131,7 +131,7 @@ gui_forms::TextBlock
       (*column).flex_direction = gf::FlexDirection::column;
       std::shared_ptr<gf::TextBlock> heading = gf::make_control<gf::TextBlock>(
           gf::StableId("article.heading"), "Export settings");
-      (*heading).font = gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0};
+      (*heading).font = stxlib::Optional<gf::FontSpec>::of(gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0});
       std::shared_ptr<gf::TextBlock> body = gf::make_control<gf::TextBlock>(
           gf::StableId("article.body"),
           "Exported files keep their names; existing files are never overwritten.");
@@ -153,7 +153,7 @@ gui_forms::TextBlock
           gf::make_control<gf::TextBlock>(gf::StableId("rate.caption"), "Rate");
       std::shared_ptr<gf::TextBlock> value =
           gf::make_control<gf::TextBlock>(gf::StableId("rate.value"), "42 MB/s");
-      (*value).font = gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0};
+      (*value).font = stxlib::Optional<gf::FontSpec>::of(gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0});
       (*row).add_child(caption);
       (*row).add_child(value);
 
@@ -173,7 +173,7 @@ gui_forms::TextBlock
 
       The text. Setting a different value raises :cpp:func:`text_changed <gui_forms::TextBlock::text_changed>`.
 
-   .. cpp:member:: std::optional<FontSpec> font
+   .. cpp:member:: stxlib::Optional<FontSpec> font
 
       The block's own font. While empty, the block uses the theme's field
       typography; :cpp:func:`resolved_font <gui_forms::TextBlock::resolved_font>` reports the font in use. It is scaled by the
@@ -188,7 +188,7 @@ gui_forms::TextBlock
       layout direction, so ``start`` is right in a right-to-left window. A value
       outside the enumeration throws ``std::invalid_argument``.
 
-   .. cpp:member:: std::optional<double> line_height
+   .. cpp:member:: stxlib::Optional<double> line_height
 
       Each line's height in logical pixels at a text scale of 1, as CSS's
       ``line-height: <length>``; it scales with the text. None is
@@ -228,12 +228,12 @@ gui_forms::TextBlock
 
    .. cpp:function:: Size measure(Size available) override
 
-   .. cpp:function:: std::optional<double> first_baseline(double width) override
+   .. cpp:function:: stxlib::Optional<double> first_baseline(double width) override
 
       The baseline of the first line, from the top of the block, or none when
       the block has no text.
 
-   .. cpp:function:: std::optional<double> last_baseline(double width) override
+   .. cpp:function:: stxlib::Optional<double> last_baseline(double width) override
 
       The baseline of the last line when the block is laid out at the given
       width, or none when the block has no text.

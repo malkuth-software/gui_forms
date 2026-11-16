@@ -41,6 +41,7 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -268,7 +269,7 @@ struct GUI_FORMS_API LayoutTransactionState final {
 // locale-dependent platform text API into the core.
 struct GUI_FORMS_API MnemonicText final {
     std::string display_text;
-    std::optional<char32_t> mnemonic;
+    stxlib::Optional<char32_t> mnemonic;
 };
 
 [[nodiscard]] GUI_FORMS_API MnemonicText parse_mnemonic_text(std::string_view text);
@@ -473,7 +474,7 @@ public:
     // last puts the child at the bottom. Moving a child to where it is
     // changes nothing; returns false for a child this control does not hold.
     bool set_child_index_from_top(RuntimeId child, std::size_t index);
-    [[nodiscard]] std::optional<std::size_t> child_index_from_top(
+    [[nodiscard]] stxlib::Optional<std::size_t> child_index_from_top(
         RuntimeId child) const noexcept;
     void clear_children();
 
@@ -498,7 +499,7 @@ public:
     // offsets this, never the committed bounds, which already carry its
     // previous offset.
     [[nodiscard]] Rect pending_layout_bounds() const noexcept {
-        return layout_slot_ ? *layout_slot_ : arranged_bounds_;
+        return layout_slot_.value_or(arranged_bounds_);
     }
     [[nodiscard]] Rect client_rectangle() const noexcept {
         return {0.0, 0.0, arranged_bounds_.width, arranged_bounds_.height};
@@ -584,10 +585,10 @@ public:
     // package declares with `color-roles`, such as `syntax-keyword`) for
     // this control's window (window_media_facts; light, unforced while
     // detached): from effective_theme, else, where that is GUI.Forms' own
-    // in place of the chosen theme, from the chosen theme. Nullopt where
+    // in place of the chosen theme, from the chosen theme. None where
     // neither declares the role. Code draws program-meant colours through
     // this rather than hard-coding them (T4 theme variants).
-    [[nodiscard]] std::optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept;
+    [[nodiscard]] stxlib::Optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept;
     // Whether back_color or fore_color has been set on this control, which
     // writes the warning W404 `inline_colour` once for each (T4 theme
     // variants, stage A: colour belongs in the theme).
@@ -648,8 +649,8 @@ public:
     // where WinForms' box stays white. Writing one (std::nullopt clears it)
     // repaints the control and its descendants.
     // This control's own colour, else its nearest ancestor's, else none.
-    [[nodiscard]] std::optional<Color> ambient_back_color() const noexcept;
-    [[nodiscard]] std::optional<Color> ambient_fore_color() const noexcept;
+    [[nodiscard]] stxlib::Optional<Color> ambient_back_color() const noexcept;
+    [[nodiscard]] stxlib::Optional<Color> ambient_fore_color() const noexcept;
     [[nodiscard]] std::span<const OwnerDecorationRecipe>
     owned_decorations() const& noexcept {
         return std::span<const OwnerDecorationRecipe>(owned_decorations_.data(), owned_decorations_.size());
@@ -661,16 +662,26 @@ public:
     // The control border (active_border.hpp; the active border study's
     // phase 2): set, validated first (an invalid border throws
     // std::invalid_argument and changes nothing), or cleared with
-    // std::nullopt. It paints after the control's content and its owned
+    // none. It paints after the control's content and its owned
     // decorations, and its reach (active_border_reach) widens the visual
     // outsets. A change repaints the control; a moving border repaints on
     // a paint-gated timer (ADR-016) only while its pose moves, and its
     // motion restarts lit whenever the timer starts. UI thread.
-    void set_active_border(std::optional<ActiveBorder> border);
-    [[nodiscard]] std::optional<ActiveBorder> active_border() const;
+    void set_active_border(stxlib::Optional<ActiveBorder> border);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<ActiveBorder>")]]
+    void set_active_border(std::optional<ActiveBorder> border) {
+        stxlib::Optional<ActiveBorder> owned{};
+        if (border.has_value()) owned.set(*border);
+        set_active_border(owned);
+    }
+    // A plain border is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<ActiveBorder>::of(border).
+    void set_active_border(ActiveBorder border) = delete;
+    [[nodiscard]] stxlib::Optional<ActiveBorder> active_border() const;
     // The pose the border last painted with (resolve_active_border), empty
     // before its first paint or with no border; and whether its timer runs.
-    [[nodiscard]] std::optional<ActiveBorderPose> active_border_pose() const noexcept;
+    [[nodiscard]] stxlib::Optional<ActiveBorderPose> active_border_pose() const noexcept;
     [[nodiscard]] bool active_border_animating() const noexcept;
     [[nodiscard]] ControlVisualStatus visual_status() const noexcept {
         return visual_status_;
@@ -912,7 +923,7 @@ public:
     [[nodiscard]] detail::ControlSlot surface_slot() const noexcept { return surface_slot_; }
     [[nodiscard]] PaintPlane paint_plane() const noexcept { return paint_plane_; }
     void set_paint_plane(PaintPlane plane);
-    [[nodiscard]] std::optional<DisplayChunkInfo> display_chunk_info() const noexcept;
+    [[nodiscard]] stxlib::Optional<DisplayChunkInfo> display_chunk_info() const noexcept;
     // The control's content effect (capability review decision 1, owner
     // 2026-11-16): PaintGroupEffect's colour stages, blur and masks applied
     // to what this control and its descendants paint, as one image. The
@@ -1140,8 +1151,8 @@ public:
     // in lines (TextBlock) and the CSS containers override them. Flex and
     // grid alignment use the first baseline; an inline item in BlockPanel
     // uses the last, as an inline-block does.
-    [[nodiscard]] virtual std::optional<double> first_baseline(double width);
-    [[nodiscard]] virtual std::optional<double> last_baseline(double width);
+    [[nodiscard]] virtual stxlib::Optional<double> first_baseline(double width);
+    [[nodiscard]] virtual stxlib::Optional<double> last_baseline(double width);
     // Advances whenever this control becomes measure-dirty; a cache entry
     // stored under an earlier generation is never answered. Settles first
     // (see dirty()): a descendant's touch advances it at the settle.
@@ -1341,7 +1352,7 @@ public:
     // while this control has focus: the caret's box, in local coordinates.
     // The base returns none, and SurfaceRoot::text_input_caret then uses a
     // one-unit-wide box at the control's left edge.
-    [[nodiscard]] virtual std::optional<Rect> text_input_caret() const;
+    [[nodiscard]] virtual stxlib::Optional<Rect> text_input_caret() const;
     // Window focus visibility is input-modality state, distinct from actual
     // focus. Controls with bounded focus-cue presentation may retarget here.
     virtual void on_focus_cue_changed(bool visible);
@@ -1859,11 +1870,11 @@ private:
     void written(const decltype(causes_validation)& cell);
     void prepare_write(const decltype(tool_tip_text)& cell, std::string& value);
     void written(const decltype(tool_tip_text)& cell);
-    void prepare_write(const decltype(cursor)& cell, std::optional<CursorKind>& value);
+    void prepare_write(const decltype(cursor)& cell, stxlib::Optional<CursorKind>& value);
     void written(const decltype(cursor)& cell);
-    void prepare_write(const decltype(back_color)& cell, std::optional<Color>& value);
+    void prepare_write(const decltype(back_color)& cell, stxlib::Optional<Color>& value);
     void written(const decltype(back_color)& cell);
-    void prepare_write(const decltype(fore_color)& cell, std::optional<Color>& value);
+    void prepare_write(const decltype(fore_color)& cell, stxlib::Optional<Color>& value);
     void written(const decltype(fore_color)& cell);
     void prepare_write(const decltype(minimum_size)& cell, Size& value);
     void written(const decltype(minimum_size)& cell);
@@ -1987,7 +1998,7 @@ private:
     }
     void disconnect_control_events() noexcept;
     static void restore_to_previous_parent(const Ptr& child, const Ptr& previous_parent,
-                                           std::optional<std::size_t> previous_index) noexcept;
+                                           stxlib::Optional<std::size_t> previous_index) noexcept;
     // attach_child's depth check, after its cycle check and before any
     // change: throws ControlTreeDepthError when `child`'s subtree, put
     // under this control at `depth` levels (this control's own level, the
@@ -2110,8 +2121,8 @@ private:
     struct InheritedValues final {
         std::uint64_t generation{};
         const Theme* theme_override{};
-        std::optional<Color> back_color{};
-        std::optional<Color> fore_color{};
+        stxlib::Optional<Color> back_color{};
+        stxlib::Optional<Color> fore_color{};
         CursorKind cursor{CursorKind::arrow};
         bool visible{};
         bool enabled{};
@@ -2164,12 +2175,12 @@ private:
     Rect arranged_bounds_{};
     // A layout container assigns this slot without destroying the child's
     // authored/preferred requested bounds. Unmanaged children leave it empty.
-    std::optional<Rect> layout_slot_;
+    stxlib::Optional<Rect> layout_slot_;
     struct AnchorReference final {
         Rect bounds;
         Rect client;
     };
-    std::optional<AnchorReference> anchor_reference_;
+    stxlib::Optional<AnchorReference> anchor_reference_;
     // Drops the anchor reference and, when the control is undocked and it
     // and its attached parent are arranged, captures the current one.
     void recapture_anchor_reference();

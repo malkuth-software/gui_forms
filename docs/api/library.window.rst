@@ -1355,11 +1355,11 @@ Related types
 
       Device pixels per logical unit, in (0, 8]. The window is laid out at this scale for the capture, as a host lays it out on such a display. Default: ``{1.0}``.
 
-   .. cpp:member:: std::optional<ColourScheme> colour_scheme
+   .. cpp:member:: stxlib::Optional<ColourScheme> colour_scheme
 
       The colour scheme drawn; none keeps the window's.
 
-   .. cpp:member:: std::optional<bool> high_contrast
+   .. cpp:member:: stxlib::Optional<bool> high_contrast
 
       Forced high contrast; none keeps the window's.
 
@@ -1712,19 +1712,19 @@ Related types
 
       Whether no field is set.
 
-   .. cpp:member:: std::optional<double> text_scale
+   .. cpp:member:: stxlib::Optional<double> text_scale
 
-   .. cpp:member:: std::optional<bool> high_contrast
+   .. cpp:member:: stxlib::Optional<bool> high_contrast
 
-   .. cpp:member:: std::optional<bool> reduced_motion
+   .. cpp:member:: stxlib::Optional<bool> reduced_motion
 
-   .. cpp:member:: std::optional<bool> sound_enabled
+   .. cpp:member:: stxlib::Optional<bool> sound_enabled
 
-   .. cpp:member:: std::optional<bool> ambient_motion
+   .. cpp:member:: stxlib::Optional<bool> ambient_motion
 
-   .. cpp:member:: std::optional<bool> reduced_transparency
+   .. cpp:member:: stxlib::Optional<bool> reduced_transparency
 
-   .. cpp:member:: std::optional<ColourScheme> colour_scheme
+   .. cpp:member:: stxlib::Optional<ColourScheme> colour_scheme
 
 .. cpp:namespace:: gui_forms
 
@@ -1982,9 +1982,9 @@ Related types
 
    The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour. Each is empty where the host reports none, and a theme then reads its fallback. They are hints: a theme may use, override or ignore them, and GUI.Forms' own theme reads neither.
 
-   .. cpp:member:: std::optional<Color> accent
+   .. cpp:member:: stxlib::Optional<Color> accent
 
-   .. cpp:member:: std::optional<Color> highlight
+   .. cpp:member:: stxlib::Optional<Color> highlight
 
 .. cpp:namespace:: gui_forms
 
@@ -2126,11 +2126,11 @@ Related types
 
       Default: ``{WindowBandState::rest}``.
 
-   .. cpp:member:: std::optional<Color> rest_colour
+   .. cpp:member:: stxlib::Optional<Color> rest_colour
 
       The application's colours, each replacing the theme's while set. Ignored under high contrast, where the band takes the high-contrast palette.
 
-   .. cpp:member:: std::optional<Color> lit_colour
+   .. cpp:member:: stxlib::Optional<Color> lit_colour
 
    .. cpp:member:: WindowBandColourRole lit_role
 

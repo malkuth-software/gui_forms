@@ -419,7 +419,7 @@ gui_forms::ListBox
 
       *Protected.*
 
-   .. cpp:function:: std::optional<std::size_t> active_index_for_extension() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> active_index_for_extension() const noexcept
 
       *Protected.*
 
@@ -427,7 +427,7 @@ gui_forms::ListBox
 
       *Protected.*
 
-   .. cpp:function:: std::optional<std::size_t> index_at(Point absolute) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> index_at(Point absolute) const noexcept
 
       *Protected.*
 

@@ -4,6 +4,7 @@
 #include "gui_forms/binding/type_tag/type_tag.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/types.hpp"
+#include <stxlib/optional.hpp>
 
 #include <chrono>
 #include <cstdint>
@@ -208,6 +209,30 @@ struct PropertyValueTraits<std::optional<Value>> {
     }
 };
 
+// STXlib's owned optional (D15), the same: its value's type, nullable;
+// absent is null. The standard form above stays for values whose copy can
+// throw (std::string), which cannot be held in stxlib::Optional yet.
+template <typename Value>
+struct PropertyValueTraits<stxlib::Optional<Value>> {
+    static PropertyType type() {
+        PropertyType described = PropertyValueTraits<Value>::type();
+        described.nullable = true;
+        return described;
+    }
+    static BindingValue to_binding(const stxlib::Optional<Value>& value) {
+        const Value* present = value.value();
+        if (present == nullptr) return BindingValue{};
+        const BindingValue converted = PropertyValueTraits<Value>::to_binding(*present);
+        return converted;
+    }
+    static stxlib::Optional<Value> from_binding(const BindingValue& value) {
+        if (std::holds_alternative<std::monostate>(value)) return stxlib::Optional<Value>::none();
+        Value converted = PropertyValueTraits<Value>::from_binding(value);
+        stxlib::Optional<Value> present = stxlib::Optional<Value>::of(static_cast<Value&&>(converted));
+        return present;
+    }
+};
+
 namespace types {
 
 inline constexpr TypeTag<bool> boolean{};
@@ -227,7 +252,7 @@ inline constexpr TypeTag<FontSpec> font_spec{};
 inline constexpr TypeTag<ImageId> image_id{};
 inline constexpr TypeTag<std::chrono::milliseconds> milliseconds{};
 inline constexpr TypeTag<BindingValue> binding_value{};
-inline constexpr TypeTag<std::optional<Color>> optional_color{};
+inline constexpr TypeTag<stxlib::Optional<Color>> optional_color{};
 
 } // namespace types
 

@@ -270,7 +270,7 @@ void machines_are_rule_data() {
     ThemeRuleSheet faulty{};
     ThemeRule faults{};
     faults.label = "faults";
-    faults.selector.role = PartRole::face;
+    faults.selector.role.set(PartRole::face);
     faults.declarations.push_back(RuleDeclaration::primitive("bulge"));
     faults.transitions.push_back(transition_on("sparkle", 1.0));
     faults.transitions.push_back(transition_on("exponent", 2.0));
@@ -283,25 +283,25 @@ void machines_are_rule_data() {
     AmbientEffect fast{};
     fast.period = milliseconds(1000);
     fast.frames_per_second = 31.0;
-    faults.ambient = fast;
+    faults.ambient.set(fast);
     faulty.rules.push_back(faults);
     ThemeRule loose{};
     loose.label = "loose";
-    loose.selector.role = PartRole::glyph;
+    loose.selector.role.set(PartRole::glyph);
     loose.transitions.push_back(transition_on("amplitude", 1.0));
     PresentationState entering{};
     entering.target = 1.0;
-    entering.enter_from = -0.5;
+    entering.enter_from.set(-0.5);
     PropertyTransition fade = transition_on("opacity", 1.0);
     fade.states.push_back(entering);
     loose.transitions.push_back(fade);
     AmbientEffect timeless{};
     timeless.frames_per_second = 30.0;
-    loose.ambient = timeless;
+    loose.ambient.set(timeless);
     faulty.rules.push_back(loose);
     ThemeRule fading{};
     fading.label = "fading";
-    fading.selector.role = PartRole::label;
+    fading.selector.role.set(PartRole::label);
     fading.transitions.push_back(transition_on("opacity", 0.5));
     faulty.rules.push_back(fading);
     const CompiledThemeRules checked_rules = CompiledThemeRules::compile(faulty, builtin_primitive_registry());
@@ -818,7 +818,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = face;
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         paint_part(painter, *this, part);
     }
 
@@ -842,7 +842,7 @@ ThemeRule ambient_rule(std::string stable_id, double frames_per_second) {
     effect.period = milliseconds(1000);
     effect.frames_per_second = frames_per_second;
     effect.pose = milliseconds(250);
-    rule.ambient = effect;
+    rule.ambient.set(effect);
     return rule;
 }
 

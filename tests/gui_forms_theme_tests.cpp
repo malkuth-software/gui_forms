@@ -154,7 +154,7 @@ SurfaceMaterial plate(PlateColours colours, double radius) {
     } else {
         result.fills = {MaterialFillLayer::linear({0.0, 0.0}, {0.0, 1.0}, {{0.0, colours.top}, {1.0, colours.bottom}})};
     }
-    result.border = MaterialBorder{colours.border, 1.0};
+    result.border.set(MaterialBorder{colours.border, 1.0});
     result.corner_radius = radius;
     return result;
 }
@@ -826,7 +826,7 @@ void sheet_darkened() {
             part.family = static_cast<ControlVisualRole>(family);
             part.role = static_cast<PartRole>(role);
             part.bounds = Rect{0.0, 0.0, 80.0, 24.0};
-            part.key = PartKey{part_role_name(part.role), {}, {}};
+            part.key.set(PartKey{part_role_name(part.role), {}, {}});
             set_scheme(window, ColourScheme::light);
             const ThemeEngine::PartPlan light = engine.plan(*probe, part);
             if (light.drawing != ThemeEngine::PartDrawing::primitive || light.resolution.primitive == nullptr) {

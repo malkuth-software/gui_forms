@@ -85,7 +85,7 @@ struct PartInputSources final {
     // reads only the two scales: it is drawn statically.
     const EnginePartRecord* record{};
     // The pointer in window coordinates, or none outside the window.
-    std::optional<Point> pointer{};
+    stxlib::Optional<Point> pointer{};
     // The part's top-left corner in window coordinates.
     Point part_origin{};
     AnatomyStateSet states{};
@@ -115,8 +115,8 @@ void gather_inputs(const CompiledThemeRules& rules, std::uint64_t read, const Pa
     inputs[input_slot(EngineInput::time_in_state)] = sources.time_in_state.value_or(in_state);
     // The pointer only while the part is hot (GIVEN B1-1), in part-local
     // logical units (B2-1).
-    if (sources.states.contains(AnatomyState::hot) && sources.pointer) {
-        const Point pointer = *sources.pointer;
+    if (sources.states.contains(AnatomyState::hot) && sources.pointer.present()) {
+        const Point pointer = *sources.pointer.value();
         inputs[input_slot(EngineInput::pointer_x)] = pointer.x - sources.part_origin.x;
         inputs[input_slot(EngineInput::pointer_y)] = pointer.y - sources.part_origin.y;
     }
@@ -124,8 +124,8 @@ void gather_inputs(const CompiledThemeRules& rules, std::uint64_t read, const Pa
     for (std::size_t value = 0; value < names.size(); ++value) {
         const ExpressionInputIndex position = published_value_position(value);
         if ((read & expression_input_bit(position)) == 0U) continue;
-        const std::optional<double> published = window.published_value(names[value]);
-        if (published) inputs[position.value] = *published;
+        const stxlib::Optional<double> published = window.published_value(names[value]);
+        if (published.present()) inputs[position.value] = *published.value();
     }
 }
 
@@ -373,7 +373,7 @@ PresentedProperties run_transitions(const CompiledThemeRules::Resolution& resolu
         std::span<const MotionStop> stops{};
         if (state) {
             const CompiledThemeRules::CompiledPresentationState& held = transition.states[*state];
-            if (held.enter_from) entry = *held.enter_from + sources.em * held.enter_from_em;
+            if (held.enter_from.present()) entry = *held.enter_from.value() + sources.em * held.enter_from_em;
             const std::size_t count = std::min(held.stops.size(), maximum_motion_stops);
             for (std::size_t stop = 0; stop < count; ++stop) {
                 taken[stop] = held.stops[stop];
@@ -673,7 +673,7 @@ void paint_pointer_overlay(Painter& painter, const Control& control, const PartP
     const ControlVisualContext context = part_visual_context(control, part.states);
     const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
     double radius = recipe.material.corner_radius;
-    if (part.corner_radius) radius = std::max(0.0, *part.corner_radius);
+    if (part.corner_radius.present()) radius = std::max(0.0, *part.corner_radius.value());
     if (placement.stretched) radius = radius * placement.granted;
     painter.save();
     painter.clip_rounded_rect(face, radius);
@@ -892,7 +892,7 @@ namespace {
 bool show_content_in_high_contrast(const Control& control, const PartPaint& part,
                                    const ThemeEngine::PartPlan& plan, std::uint64_t rules_serial,
                                    UnkeptAssemblies& unkept, SurfaceMaterial& framed) {
-    if (!part.content_color || !plan.content_materials_authored) return false;
+    if (!part.content_color.present() || !plan.content_materials_authored) return false;
     const bool fills = plan.content_materials[static_cast<std::size_t>(MaterialField::fills)] != nullptr ||
                        plan.content_materials[static_cast<std::size_t>(MaterialField::background_colour)] != nullptr;
     if (!fills) return false;
@@ -905,26 +905,26 @@ bool show_content_in_high_contrast(const Control& control, const PartPaint& part
     ControlVisualContext ordinary = context;
     ordinary.high_contrast = false;
     const Theme& theme = control.effective_theme();
-    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
     const ResolvedControlRecipe recipe =
         theme.resolve(control, part.family, ordinary, part.states, part_name, part.control_type);
     MaterialAssemblyContext relative{};
     if (material_fields_read_em(resolution.materials)) {
         relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
     }
-    relative.current_colour = *part.content_color;
+    relative.current_colour = *part.content_color.value();
     const SurfaceMaterial& content = unkept_assembly(unkept, rules_serial, recipe.recipe().material, part.bounds,
                                                      relative, resolution, std::nullopt);
     framed.fills = content.fills;
     framed.shadows.clear();
     framed.glows.clear();
-    if (!framed.border) {
+    if (framed.border.absent()) {
         const ResolvedControlRecipe contrast =
             theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
         MaterialBorder frame{};
         frame.color = contrast.recipe().text;
         frame.width = 1.0;
-        framed.border = frame;
+        framed.border.set(frame);
     }
     return true;
 }
@@ -961,7 +961,7 @@ ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint&
         detail::KeptResolutions& kept = detail::kept_resolutions_of(control);
         const detail::KeptPlacement placement = detail::kept_placement_of(control);
         const std::string_view control_type = part.control_type;
-        const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+        const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
         const ControlVisualContext context = part_visual_context(control, part.states);
         for (const detail::KeptPlan& entry : kept.plans) {
             const bool same = entry.resolver == this && entry.placement == placement && entry.role == part.role &&
@@ -1015,7 +1015,7 @@ ThemeEngine::PartPlan ThemeEngine::plan_from_rules(const Control& control, const
     facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
     facts.look_rules = control.look_rules();
-    if (part.key) facts.part = (*part.key).part;
+    if (part.key.present()) facts.part = (*part.key.value()).part;
     facts.role = part.role;
     facts.states = part.states;
     facts.family = control_visual_role_name(part.family);
@@ -1401,8 +1401,8 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
     if (window != nullptr && themed && control.inline_style_rules() != nullptr) {
         detail::SurfaceEngineAccess::note_inline_with_theme(*window, control);
     }
-    if (part.key && part_bounds_paintable(part.bounds) && window != nullptr) {
-        run.record = detail::SurfaceEngineAccess::note_part(*window, control, *part.key, part.states);
+    if (part.key.present() && part_bounds_paintable(part.bounds) && window != nullptr) {
+        run.record = detail::SurfaceEngineAccess::note_part(*window, control, *part.key.value(), part.states);
     }
     const CompiledThemeRules::Resolution& resolution = run.decided.resolution;
     // A frameless part (PartPaint::frame) is its material's ground; a
@@ -1494,9 +1494,9 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
     if (context.high_contrast) {
         // High contrast keeps the built-in recipe's own records, except
         // that a content part shows its colours (W-7, ruling 9).
-        if (!part.content_color) return nullptr;
+        if (!part.content_color.present()) return nullptr;
         const Theme& contrast_theme = control.effective_theme();
-        const std::string_view contrast_part = part.key ? (*part.key).part : std::string_view{};
+        const std::string_view contrast_part = part.key.present() ? (*part.key.value()).part : std::string_view{};
         const ResolvedControlRecipe contrast =
             contrast_theme.resolve(control, part.family, context, part.states, contrast_part, part.control_type);
         SurfaceMaterial& framed = detail::SurfaceEngineAccess::paint_material(*window);
@@ -1512,10 +1512,10 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
     const Theme& theme = control.effective_theme();
     // A part showing a content colour (W-7) draws its gradients as written:
     // the dark variant's rule does not darken data.
-    const bool darkened = context.dark && derives_dark(theme) && !part.content_color;
+    const bool darkened = context.dark && derives_dark(theme) && !part.content_color.present();
     ControlVisualContext floor_context = context;
     if (darkened) floor_context.dark = false;
-    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
     const ResolvedControlRecipe floor =
         theme.resolve(control, part.family, floor_context, part.states, part_name, part.control_type);
     MaterialAssemblyContext relative{};
@@ -1523,7 +1523,7 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
         relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
     }
     if (material_fields_read_current_colour(resolution.materials)) {
-        relative.current_colour = part.content_color ? *part.content_color : floor.recipe().text;
+        relative.current_colour = part.content_color.present() ? *part.content_color.value() : floor.recipe().text;
     }
     UnkeptAssemblies unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window), detail::SurfaceEngineAccess::unkept_next(*window),
                             (*window).metrics()};
@@ -1663,7 +1663,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         const ControlVisualRecipe& recipe = control.effective_theme().resolve(*material_role, context);
         request.target.material = &recipe.material;
         bool content_shown = false;
-        if ((resolution.materials_authored || part.content_color) && context.high_contrast) {
+        if ((resolution.materials_authored || part.content_color.present()) && context.high_contrast) {
             // Forced high contrast's material fields, for this paint only.
             detail::ForcedMaterialFields forced{};
             detail::forced_material_fields(resolution.materials, context.surface, context.selected, forced);
@@ -1683,7 +1683,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
                                                           contrast_unkept, *run.unkept_material);
             request.target.material = run.unkept_material;
         } else if (resolution.materials_authored && context.dark && derives_dark(control.effective_theme()) &&
-                   !part.content_color) {
+                   !part.content_color.present()) {
             // The dark variant (T4 phase 5): the rules' fields in place on
             // the light recipe's material, then the whole darkened by rule,
             // for this paint only.
@@ -1710,8 +1710,8 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
                 relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
             }
             // A content colour (W-7) is what currentcolor names in its part.
-            if (material_fields_read_current_colour(resolution.materials) && part.content_color) {
-                relative.current_colour = *part.content_color;
+            if (material_fields_read_current_colour(resolution.materials) && part.content_color.present()) {
+                relative.current_colour = *part.content_color.value();
             } else if (material_fields_read_current_colour(resolution.materials)) {
                 const Theme& theme = control.effective_theme();
                 const ResolvedControlRecipe text = theme.resolve(control, part.family, context, part.states);
@@ -1728,14 +1728,14 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         const bool important = resolution.level >= CascadeLevel::important_user_theme;
         if (authored_background_applies(part) && !important && !context.high_contrast) {
             run.authored_ground.emplace(*request.target.material);
-            (*run.authored_ground).fills.assign(1U, MaterialFillLayer::solid(*part.authored_background));
+            (*run.authored_ground).fills.assign(1U, MaterialFillLayer::solid(*part.authored_background.value()));
             request.target.material = &*run.authored_ground;
         }
         // A reflection is omitted under high contrast and under reduced
         // transparency (stage T5, PLAN.md §4.5, T5-Q16), for this paint only.
         const bool reflections_omitted =
             context.high_contrast || (*window).presentation_settings().reduced_transparency;
-        if (reflections_omitted && (*request.target.material).reflection) {
+        if (reflections_omitted && (*request.target.material).reflection.present()) {
             run.unreflected.emplace(*request.target.material);
             (*run.unreflected).reflection.reset();
             request.target.material = &*run.unreflected;
@@ -1787,7 +1787,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         (*run.overlay).fills.assign(1U, MaterialFillLayer::solid(Color::rgba(0, 0, 0, 0)));
         (*run.overlay).shadows = layers;
         (*run.overlay).corner_radius = recipe.material.corner_radius;
-        if (part.corner_radius) (*run.overlay).corner_radius = std::max(0.0, *part.corner_radius);
+        if (part.corner_radius.present()) (*run.overlay).corner_radius = std::max(0.0, *part.corner_radius.value());
         request.target.material = &*run.overlay;
         request.target.images = &(*window).image_resources();
     }
@@ -1806,8 +1806,8 @@ void ThemeEngine::borrow_part_backplane(const PartPaint& part, PartPaintRun& run
     // part in the backplane plane would read itself, so it reads nothing.
     const SurfaceMaterial* const lent = request.target.material;
     const bool reflects_backplane =
-        run.primitive_draws && !run.samples_backplane && lent != nullptr && (*lent).reflection &&
-        (*(*lent).reflection).source == MaterialReflectionSource::backplane &&
+        run.primitive_draws && !run.samples_backplane && lent != nullptr && (*lent).reflection.present() &&
+        (*(*lent).reflection.value()).source == MaterialReflectionSource::backplane &&
         (*run.place.painted_by).paint_plane() != PaintPlane::backplane;
     if (run.record && reflects_backplane) detail::SurfaceEngineAccess::note_backplane_reader(*window, *run.record, true);
     if (run.samples_backplane) {

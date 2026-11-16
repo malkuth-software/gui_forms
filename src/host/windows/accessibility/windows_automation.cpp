@@ -96,12 +96,12 @@ bool selection_pattern(const SemanticNode& node) noexcept {
 }
 
 bool range_value_pattern(const SemanticNode& node) noexcept {
-    const bool range = node.numeric_value.has_value();
+    const bool range = node.numeric_value.present();
     return range;
 }
 
 bool value_pattern(const SemanticNode& node) noexcept {
-    if (node.numeric_value.has_value()) return false;
+    if (node.numeric_value.present()) return false;
     const bool value = semantic_has_action(node, SemanticAction::set_value) ||
                        semantic_role_fallback(node.role) == SemanticRole::text_box;
     return value;
@@ -111,12 +111,12 @@ bool value_pattern(const SemanticNode& node) noexcept {
 // and its column. A row or a header publishes one index only and is not a
 // grid item.
 bool grid_pattern(const SemanticNode& node) noexcept {
-    const bool grid = node.row_count.has_value() && node.column_count.has_value();
+    const bool grid = node.row_count.present() && node.column_count.present();
     return grid;
 }
 
 bool grid_item_pattern(const SemanticNode& node) noexcept {
-    const bool item = node.row_index.has_value() && node.column_index.has_value();
+    const bool item = node.row_index.present() && node.column_index.present();
     return item;
 }
 
@@ -712,16 +712,16 @@ HRESULT UiaElement::property_value(const SemanticNode& client, const SemanticLoc
         return S_OK;
     case UIA_PositionInSetPropertyId:
         // A position is published with its set size or not at all.
-        if (!node.position_in_set || !node.set_size) return S_OK;
-        set_int(out, static_cast<int>(*node.position_in_set));
+        if (node.position_in_set.absent() || node.set_size.absent()) return S_OK;
+        set_int(out, static_cast<int>(*node.position_in_set.value()));
         return S_OK;
     case UIA_SizeOfSetPropertyId:
-        if (!node.position_in_set || !node.set_size) return S_OK;
-        set_int(out, static_cast<int>(*node.set_size));
+        if (node.position_in_set.absent() || node.set_size.absent()) return S_OK;
+        set_int(out, static_cast<int>(*node.set_size.value()));
         return S_OK;
     case UIA_OrientationPropertyId:
-        if (!node.orientation) return S_OK;
-        if (*node.orientation == SemanticOrientation::vertical) {
+        if (node.orientation.absent()) return S_OK;
+        if (*node.orientation.value() == SemanticOrientation::vertical) {
             set_int(out, OrientationType_Vertical);
         } else {
             set_int(out, OrientationType_Horizontal);
@@ -737,8 +737,8 @@ HRESULT UiaElement::property_value(const SemanticNode& client, const SemanticLoc
         return set_text(out, key);
     }
     case UIA_LevelPropertyId:
-        if (!node.level) return S_OK;
-        set_int(out, static_cast<int>(*node.level));
+        if (node.level.absent()) return S_OK;
+        set_int(out, static_cast<int>(*node.level.value()));
         return S_OK;
     case UIA_IsDialogPropertyId:
         set_bool(out, node.role == SemanticRole::dialog);
@@ -1054,8 +1054,8 @@ HRESULT UiaElement::answer_SetRangeValue(double value) {
     const SemanticNode& node = *self.node;
     if (read_only_value(node)) return invalid_operation;
     if (!std::isfinite(value)) return E_INVALIDARG;
-    if (node.minimum_value && value < *node.minimum_value) return E_INVALIDARG;
-    if (node.maximum_value && value > *node.maximum_value) return E_INVALIDARG;
+    if (node.minimum_value.present() && value < *node.minimum_value.value()) return E_INVALIDARG;
+    if (node.maximum_value.present() && value > *node.maximum_value.value()) return E_INVALIDARG;
     // The shortest decimal text that reads back as `value`.
     char text[64]{};
     const std::to_chars_result written = std::to_chars(text, text + sizeof(text), value);
@@ -1074,7 +1074,7 @@ HRESULT UiaElement::answer_get_RangeValue(double* out) {
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
-    *out = *(*self.node).numeric_value;
+    *out = *(*self.node).numeric_value.value();
     return S_OK;
 }
 HRESULT STDMETHODCALLTYPE UiaElement::get_Value(double* out) {
@@ -1089,7 +1089,7 @@ HRESULT UiaElement::answer_get_Maximum(double* out) {
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
     const SemanticNode& node = *self.node;
-    *out = node.maximum_value ? *node.maximum_value : *node.numeric_value;
+    *out = node.maximum_value.present() ? *node.maximum_value.value() : *node.numeric_value.value();
     return S_OK;
 }
 HRESULT STDMETHODCALLTYPE UiaElement::get_Maximum(double* out) {
@@ -1104,7 +1104,7 @@ HRESULT UiaElement::answer_get_Minimum(double* out) {
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
     const SemanticNode& node = *self.node;
-    *out = node.minimum_value ? *node.minimum_value : *node.numeric_value;
+    *out = node.minimum_value.present() ? *node.minimum_value.value() : *node.numeric_value.value();
     return S_OK;
 }
 HRESULT STDMETHODCALLTYPE UiaElement::get_Minimum(double* out) {
@@ -1120,7 +1120,7 @@ HRESULT UiaElement::answer_get_LargeChange(double* out) {
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
-    if ((*self.node).large_step) *out = *(*self.node).large_step;
+    if ((*self.node).large_step.present()) *out = *(*self.node).large_step.value();
     return S_OK;
 }
 HRESULT STDMETHODCALLTYPE UiaElement::get_LargeChange(double* out) {
@@ -1134,7 +1134,7 @@ HRESULT UiaElement::answer_get_SmallChange(double* out) {
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
-    if ((*self.node).small_step) *out = *(*self.node).small_step;
+    if ((*self.node).small_step.present()) *out = *(*self.node).small_step.value();
     return S_OK;
 }
 HRESULT STDMETHODCALLTYPE UiaElement::get_SmallChange(double* out) {
@@ -1400,11 +1400,11 @@ bool find_grid_item(const SemanticLocation& at, std::size_t row_index, std::size
                     SemanticLocation& found) noexcept {
     const SemanticNode& node = *at.node;
     if (grid_item_pattern(node)) {
-        if (*node.row_index != row_index || *node.column_index != column_index) return false;
+        if (*node.row_index.value() != row_index || *node.column_index.value() != column_index) return false;
         found = at;
         return true;
     }
-    if (node.row_index.has_value() && *node.row_index != row_index) return false;
+    if (node.row_index.present() && *node.row_index.value() != row_index) return false;
     const std::size_t count = node.children.size();
     for (std::size_t index = 0; index < count; ++index) {
         if (find_grid_item(child_location(at, index), row_index, column_index, found)) return true;
@@ -1422,7 +1422,9 @@ HRESULT UiaElement::answer_GetItem(int row, int column, IRawElementProviderSimpl
     if (row < 0 || column < 0) return E_INVALIDARG;
     const std::size_t row_index = static_cast<std::size_t>(row) + 1U;
     const std::size_t column_index = static_cast<std::size_t>(column) + 1U;
-    if (row_index > *(*self.node).row_count || column_index > *(*self.node).column_count) return E_INVALIDARG;
+    if (row_index > *(*self.node).row_count.value() || column_index > *(*self.node).column_count.value()) {
+        return E_INVALIDARG;
+    }
     SemanticLocation item;
     // A cell in range that is not realized has no element: none is returned.
     if (!find_grid_item(self, row_index, column_index, item)) return S_OK;
@@ -1441,7 +1443,7 @@ HRESULT UiaElement::answer_get_RowCount(int* out) {
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_GridPatternId, client, self);
     if (FAILED(status)) return status;
-    const std::size_t count = std::min<std::size_t>(*(*self.node).row_count, INT_MAX);
+    const std::size_t count = std::min<std::size_t>(*(*self.node).row_count.value(), INT_MAX);
     *out = static_cast<int>(count);
     return S_OK;
 }
@@ -1456,7 +1458,7 @@ HRESULT UiaElement::answer_get_ColumnCount(int* out) {
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_GridPatternId, client, self);
     if (FAILED(status)) return status;
-    const std::size_t count = std::min<std::size_t>(*(*self.node).column_count, INT_MAX);
+    const std::size_t count = std::min<std::size_t>(*(*self.node).column_count.value(), INT_MAX);
     *out = static_cast<int>(count);
     return S_OK;
 }
@@ -1471,7 +1473,7 @@ HRESULT UiaElement::answer_get_Row(int* out) {
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_GridItemPatternId, client, self);
     if (FAILED(status)) return status;
-    const std::size_t row = std::min<std::size_t>(*(*self.node).row_index - 1U, INT_MAX);
+    const std::size_t row = std::min<std::size_t>(*(*self.node).row_index.value() - 1U, INT_MAX);
     *out = static_cast<int>(row);
     return S_OK;
 }
@@ -1486,7 +1488,7 @@ HRESULT UiaElement::answer_get_Column(int* out) {
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_GridItemPatternId, client, self);
     if (FAILED(status)) return status;
-    const std::size_t column = std::min<std::size_t>(*(*self.node).column_index - 1U, INT_MAX);
+    const std::size_t column = std::min<std::size_t>(*(*self.node).column_index.value() - 1U, INT_MAX);
     *out = static_cast<int>(column);
     return S_OK;
 }
@@ -1715,11 +1717,11 @@ void raise_node_changes(const std::shared_ptr<SemanticSource>& source, SemanticE
             VariantClear(&new_value);
         }
     }
-    if (range_value_pattern(after) && before.numeric_value && before.numeric_value != after.numeric_value) {
+    if (range_value_pattern(after) && before.numeric_value.present() && before.numeric_value != after.numeric_value) {
         old_value.vt = VT_R8;
-        old_value.dblVal = *before.numeric_value;
+        old_value.dblVal = *before.numeric_value.value();
         new_value.vt = VT_R8;
-        new_value.dblVal = *after.numeric_value;
+        new_value.dblVal = *after.numeric_value.value();
         raise_property_change(source, id, UIA_RangeValueValuePropertyId, old_value, new_value);
     }
     if (before.name != after.name) {

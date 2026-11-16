@@ -13,6 +13,8 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/theme/theme_overrides/theme_overrides.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <memory>
 #include <iostream>
@@ -30,6 +32,23 @@ void require(bool condition, std::string_view message) {
     ++failures;
     std::cerr << "FAILED: " << message << '\n';
 }
+
+// set_role_colour's background is stxlib::Optional<Color>: a plain colour
+// and a bare {} are refused at compile time instead of reaching the
+// deprecated std::optional form (D15 Q3); two arguments still pick none.
+template <typename Overrides>
+concept takes_plain_background = requires(Overrides& overrides) {
+    overrides.set_role_colour(ColourRole::ink_on_paper, Color{}, Color{});
+};
+template <typename Overrides>
+concept takes_empty_background = requires(Overrides& overrides) {
+    overrides.set_role_colour(ColourRole::ink_on_paper, Color{}, {});
+};
+template <typename Overrides>
+concept takes_no_background = requires(Overrides& overrides) { overrides.set_role_colour(ColourRole::focus, Color{}); };
+static_assert(!takes_plain_background<ThemeOverrides> && !takes_empty_background<ThemeOverrides> &&
+                  takes_no_background<ThemeOverrides>,
+              "set_role_colour refuses a plain background and a bare {}");
 
 ThemeCompileResult compile_sheet(std::string_view sheet, std::string_view name) {
     ImageRegistry images{};
@@ -154,6 +173,15 @@ void test_typed_overrides_check_names_and_write_a_sheet() {
                     ThemeOverrideCheck::wrong_value_kind,
             "out-of-range lengths, wrong kinds and a pair given one colour are refused");
     require(overrides.size() == 4U, "refusals add nothing");
+    ThemeOverrides paired{};
+    require(paired.set_role_colour(ColourRole::ink_on_paper, Color::rgba(0, 0, 0),
+                                   stxlib::Optional<Color>::of(Color::rgba(255, 255, 255))) ==
+                    ThemeOverrideCheck::accepted &&
+                paired.set_role_colour(ColourRole::focus, Color::rgba(200, 0, 0),
+                                       stxlib::Optional<Color>::of(Color::rgba(255, 255, 255))) ==
+                    ThemeOverrideCheck::wrong_value_kind &&
+                paired.size() == 1U,
+            "a pair takes a present background, and a single role refuses one");
     const std::string sheet = overrides.sheet_text();
     require(sheet.find(":root {\n  focus: #c80000;\n}") != std::string::npos, "the role is written in :root");
     require(sheet.find("button::part(face) {\n  background-color: #3366cc;\n}") != std::string::npos,

@@ -17,6 +17,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 #if defined(GUI_FORMS_PREPARED_TEXT)
@@ -355,8 +356,8 @@ FrameChrome::FrameChrome(Runtime& runtime, std::string_view title, double width,
     root_ = make_control<Panel>(StableId("host.frame.root"));
     (*root_).set_background(theme_color(theme.title_inactive));
     title_ = make_control<Label>(StableId("host.frame.title"), std::string(title));
-    (*title_).font = FontSpec{FontRole::control, 13, 400, false};
-    (*title_).fore_color = text;
+    (*title_).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 13, 400, false});
+    (*title_).fore_color = stxlib::Optional<Color>::of(text);
     (*title_).vertical_alignment = VerticalAlignment::center;
     (*root_).add_child(title_);
     // U+2013, U+25A1 and U+00D7: minimise, maximise and close.
@@ -366,8 +367,8 @@ FrameChrome::FrameChrome(Runtime& runtime, std::string_view title, double width,
     const std::array<Label*, 3> boxes{minimize_.get(), maximize_.get(), close_.get()};
     for (std::size_t index = 0U; index < boxes.size(); ++index) {
         Label& box = *boxes[index];
-        box.font = FontSpec{FontRole::control, 15, 400, false};
-        box.fore_color = text;
+        box.font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 15, 400, false});
+        box.fore_color = stxlib::Optional<Color>::of(text);
         box.alignment = HorizontalAlignment::center;
         box.vertical_alignment = VerticalAlignment::center;
     }
@@ -1621,10 +1622,11 @@ void Runtime::place_input() {
     NativeWindow* target = keyboard_window();
     std::optional<Rect> caret{};
     if (target != nullptr && !(*target).closed) {
-        const std::optional<Rect> local = (*(*target).entry.model).text_input_caret();
-        if (local.has_value())
-            caret = Rect{(*local).x + (*target).content.x, (*local).y + (*target).content.y, (*local).width,
-                         (*local).height};
+        const stxlib::Optional<Rect> local = (*(*target).entry.model).text_input_caret();
+        if (local.present()) {
+            const Rect& own = *local.value();
+            caret = Rect{own.x + (*target).content.x, own.y + (*target).content.y, own.width, own.height};
+        }
     }
     const bool editing = caret.has_value();
     if (caret == placed_caret_ && editing == placed_editing_) return;

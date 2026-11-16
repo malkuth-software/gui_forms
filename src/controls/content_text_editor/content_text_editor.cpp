@@ -231,7 +231,7 @@ ContentTextEditor::ContentTextEditor(StableId stable_id, std::string initial_tex
       editing_(std::make_unique<detail::TextEditingEngine>(*editing_host_, initial_text)),
       notices_(std::make_shared<FrameNotices>(*this)) {
     focusable = true;
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
 }
 
 ContentTextEditor::~ContentTextEditor() {
@@ -317,12 +317,12 @@ ContentFrameSink ContentTextEditor::open_frames(bool opaque) {
     return sink;
 }
 
-std::optional<Rect> ContentTextEditor::caret_rectangle() const {
-    if (!layout_current()) return std::nullopt;
+stxlib::Optional<Rect> ContentTextEditor::caret_rectangle() const {
+    if (!layout_current()) return stxlib::Optional<Rect>::none();
     const std::optional<Rect> caret = caret_at((*editing_).selection().caret);
-    if (!caret) return std::nullopt;
+    if (!caret) return stxlib::Optional<Rect>::none();
     const Rect local = local_bounds(*caret);
-    return local;
+    return stxlib::Optional<Rect>::of(local);
 }
 
 std::optional<ContentQuad> ContentTextEditor::caret_quad() const {
@@ -352,23 +352,24 @@ std::vector<Rect> ContentTextEditor::range_boxes(Utf8Offset start, Utf8Offset en
 }
 
 ContentQuad ContentTextEditor::local_quad(Rect box) const {
-    const ContentLayoutTransform transform = layout_.transform ? *layout_.transform : ContentLayoutTransform{};
+    const ContentLayoutTransform transform = layout_.transform.value_or(ContentLayoutTransform{});
     const ContentQuad quad = map_content_box(transform, box);
     return quad;
 }
 
 Rect ContentTextEditor::local_bounds(Rect box) const {
     // Without a transform the box is local already, exactly as given.
-    if (!layout_.transform) return box;
+    if (layout_.transform.absent()) return box;
     const Rect bounds = local_quad(box).bounds();
     return bounds;
 }
 
 Point ContentTextEditor::layout_point(Point local) const {
-    if (!layout_.transform) return local;
+    const ContentLayoutTransform* const mapping = layout_.transform.value();
+    if (mapping == nullptr) return local;
     // The inverse of a validated transform: its determinant is finite and
     // not zero (validate_content_text_layout).
-    const ContentLayoutTransform& transform = *layout_.transform;
+    const ContentLayoutTransform& transform = *mapping;
     const double determinant = transform.determinant();
     const double x = local.x - transform.dx;
     const double y = local.y - transform.dy;
@@ -379,7 +380,8 @@ Point ContentTextEditor::layout_point(Point local) const {
 }
 
 bool ContentTextEditor::paints_selection() const noexcept {
-    const bool turned = layout_.transform && !(*layout_.transform).axis_aligned();
+    const ContentLayoutTransform* const mapping = layout_.transform.value();
+    const bool turned = mapping != nullptr && !(*mapping).axis_aligned();
     const bool result = draws_selection_ && !turned;
     return result;
 }
@@ -820,16 +822,16 @@ void ContentTextEditor::reset_caret_blink() {
 void ContentTextEditor::toggle_caret() {
     if (!focused_) return;
     caret_visible_ = !caret_visible_;
-    const std::optional<Rect> caret = caret_rectangle();
-    if (caret) {
-        invalidate(*caret);
+    const stxlib::Optional<Rect> caret = caret_rectangle();
+    if (caret.present()) {
+        invalidate(*caret.value());
     } else {
         invalidate(Dirty::paint);
     }
 }
 
-std::optional<Rect> ContentTextEditor::text_input_caret() const {
-    const std::optional<Rect> caret = caret_rectangle();
+stxlib::Optional<Rect> ContentTextEditor::text_input_caret() const {
+    const stxlib::Optional<Rect> caret = caret_rectangle();
     return caret;
 }
 
@@ -890,7 +892,7 @@ void ContentTextEditor::on_paint(Painter& painter, Rect local_damage) {
         // given in every presentation (PartPaint::live_surface).
         PartPaint frame{};
         frame.role = PartRole::image;
-        frame.key = PartKey{"content", {}, {}};
+        frame.key.set(PartKey{"content", {}, {}});
         frame.family = ControlVisualRole::editor;
         frame.bounds = bounds;
         frame.states = states;
@@ -910,12 +912,12 @@ void ContentTextEditor::on_paint(Painter& painter, Rect local_damage) {
         paint_part(painter, *this, plate);
     }
     if (!focused_ || !caret_visible_ || !(*editing_).selection().empty()) return;
-    const std::optional<Rect> caret = caret_rectangle();
-    if (!caret) return;
+    const stxlib::Optional<Rect> caret = caret_rectangle();
+    if (caret.absent()) return;
     PartPaint bar;
     bar.family = ControlVisualRole::editor;
     bar.role = PartRole::caret;
-    bar.bounds = *caret;
+    bar.bounds = *caret.value();
     bar.states = states;
     paint_part(painter, *this, bar);
 }
@@ -932,7 +934,7 @@ SemanticDescriptor ContentTextEditor::semantic_descriptor() const {
     descriptor.description = accessible_description.read();
     if ((*editing_).read_only()) descriptor.states |= SemanticState::read_only;
     const TextSelection selection = (*editing_).selection();
-    descriptor.text_selection = SemanticTextSelection{.anchor = selection.anchor, .caret = selection.caret};
+    descriptor.text_selection.set(SemanticTextSelection{.anchor = selection.anchor, .caret = selection.caret});
     descriptor.multiline = multiline_;
     descriptor.actions = {SemanticAction::focus};
     if (!(*editing_).read_only()) descriptor.actions.push_back(SemanticAction::set_value);
@@ -1008,8 +1010,8 @@ void ContentTextEditor::publish_part_geometry(std::span<PartGeometry> geometry) 
     record.scrollable = panel.scrollable;
     if (surface_) record.content = PartGeometry::from_bounds(bounds);
     if (focused_ && caret_visible_ && (*editing_).selection().empty()) {
-        const std::optional<Rect> caret = caret_rectangle();
-        if (caret) record.caret = PartGeometry::from_bounds(*caret);
+        const stxlib::Optional<Rect> caret = caret_rectangle();
+        if (caret.present()) record.caret = PartGeometry::from_bounds(*caret.value());
     }
     const std::vector<Rect> highlight = selection_rectangles();
     if (!highlight.empty()) {

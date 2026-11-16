@@ -898,8 +898,8 @@ HRESULT selection_ranges(const std::shared_ptr<SemanticSource>& source, Semantic
     const HRESULT status = locate_text(*source, id, text);
     if (FAILED(status)) return status;
     std::vector<ITextRangeProvider*> ranges;
-    const std::optional<SemanticTextSelection>& selection = (*text.self.node).text_selection;
-    if (selection) {
+    const SemanticTextSelection* const selection = (*text.self.node).text_selection.value();
+    if (selection != nullptr) {
         const std::size_t anchor = clamp_offset(text.value(), (*selection).anchor.value());
         const std::size_t caret = clamp_offset(text.value(), (*selection).caret.value());
         ITextRangeProvider* range = nullptr;
@@ -961,8 +961,8 @@ HRESULT caret_range(const std::shared_ptr<SemanticSource>& source, SemanticEleme
     const HRESULT status = locate_text(*source, id, text);
     if (FAILED(status)) return status;
     const SemanticNode& node = *text.self.node;
-    const std::size_t caret = node.text_selection
-        ? clamp_offset(text.value(), (*node.text_selection).caret.value()) : 0U;
+    const std::size_t caret = node.text_selection.present()
+        ? clamp_offset(text.value(), (*node.text_selection.value()).caret.value()) : 0U;
     *active = has_semantic_state(node.states, SemanticState::focused) ? TRUE : FALSE;
     return make_range(source, id, caret, caret, out);
 }
@@ -979,7 +979,7 @@ void raise_text_event(const std::shared_ptr<SemanticSource>& source, SemanticEle
 
 bool text_pattern(const SemanticNode& node) noexcept {
     const bool text = semantic_role_fallback(node.role) == SemanticRole::text_box &&
-                      node.text_selection.has_value() &&
+                      node.text_selection.present() &&
                       control_backed(node) &&
                       !has_semantic_state(node.states, SemanticState::protected_content);
     return text;

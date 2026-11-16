@@ -217,7 +217,7 @@ private:
     [[nodiscard]] double scrub_rate_in_force() const noexcept;
     // The label and value text; `over_fill` is the colour of the half drawn
     // over the fill, none for the half over the track.
-    void paint_texts(Painter& painter, AnatomyStateSet states, std::optional<Color> over_fill) const;
+    void paint_texts(Painter& painter, AnatomyStateSet states, stxlib::Optional<Color> over_fill) const;
     // The text colour over the fill: the label part's fill-text-color, else
     // the fill's selected text colour.
     [[nodiscard]] Color over_fill_text_colour(AnatomyStateSet states) const;
@@ -256,11 +256,11 @@ private:
     friend struct ValueBarLabelCapability<ValueBar>;
     friend struct ValueBarScrubRateCapability<ValueBar>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
-    void prepare_write(const decltype(soft_minimum)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(soft_minimum)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(soft_minimum)& cell);
-    void prepare_write(const decltype(soft_maximum)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(soft_maximum)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(soft_maximum)& cell);
-    void prepare_write(const decltype(snap_step)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(snap_step)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(snap_step)& cell);
     void prepare_write(const decltype(precision)& cell, std::int32_t& incoming);
     void written(const decltype(precision)& cell);
@@ -272,7 +272,7 @@ private:
     void written(const decltype(presentation)& cell);
     void prepare_write(const decltype(label)& cell, std::string& incoming);
     void written(const decltype(label)& cell);
-    void prepare_write(const decltype(scrub_rate)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(scrub_rate)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(scrub_rate)& cell);
     // property_codemod end ValueBar
 };

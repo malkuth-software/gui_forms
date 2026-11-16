@@ -422,7 +422,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
             plate.states = row_states;
             if (overridden) {
                 const Color selected_fill = focused_ ? style().accent : style().accent_light;
-                plate.authored_background = selected ? selected_fill : style().face_light;
+                plate.authored_background.set(selected ? selected_fill : style().face_light);
             }
             paint_part(painter, *this, plate);
         }
@@ -478,7 +478,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
         label.states = row_states;
         label.text = lend_paint_text(item.text);
         label.font = row_font;
-        if (overridden) label.authored_foreground = selected && focused_ ? style().highlight : style().text;
+        if (overridden) label.authored_foreground.set(selected && focused_ ? style().highlight : style().text);
         const double label_baseline = y + std::max(row_font.size, row_height * 0.5 + 4.0);
         const double label_room = std::max(0.0, plate_bounds.x + plate_bounds.width - content_x);
         if (mirrored) {
@@ -723,7 +723,7 @@ std::vector<SemanticNode> TreeView::semantic_virtual_children() const {
         node.name = item.text;
         // The items are published flat, in display order; the level says
         // how deep each one is (counting from one at the top level).
-        node.level = item.depth + 1U;
+        node.level.set(item.depth + 1U);
         node.bounds = {tree_bounds.x + 2.0,
                        tree_bounds.y + 2.0 +
                            static_cast<double>(row - top_row_) * row_height,

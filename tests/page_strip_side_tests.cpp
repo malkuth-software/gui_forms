@@ -273,8 +273,8 @@ void turned_labels_and_semantics() {
         }
         const SemanticSnapshot list_snapshot = window.semantic_snapshot();
         const SemanticNode* const list = find_node(list_snapshot.roots, "strip");
-        require(list != nullptr && (*list).orientation &&
-                    *(*list).orientation == (side ? SemanticOrientation::vertical : SemanticOrientation::horizontal),
+        require(list != nullptr && (*list).orientation.present() &&
+                    *(*list).orientation.value() == (side ? SemanticOrientation::vertical : SemanticOrientation::horizontal),
                 "the tab list's orientation follows the edge");
         require(window.request_focus(strip), "the strip takes focus");
         const std::uint32_t next = side ? PhysicalKey::down : PhysicalKey::right;

@@ -67,15 +67,15 @@ PageSet::~PageSet() {
     *alive_ = false;
 }
 
-std::optional<PagePosition> PageSet::find(const PageId& id) const {
+stxlib::Optional<PagePosition> PageSet::find(const PageId& id) const {
     const std::size_t count = entries_.size();
     for (std::size_t index = 0U; index < count; ++index) {
         if (entries_[index].record.id == id) {
-            const std::optional<PagePosition> found = PagePosition{index};
+            const stxlib::Optional<PagePosition> found = stxlib::Optional<PagePosition>::of(PagePosition{index});
             return found;
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<PagePosition>::none();
 }
 
 const PageRecord& PageSet::record_at(PagePosition position) const {
@@ -87,11 +87,11 @@ const PageRecord& PageSet::record_at(PagePosition position) const {
 }
 
 PageContent* PageSet::content(const PageId& id) const {
-    const std::optional<PagePosition> position = find(id);
-    if (!position.has_value()) {
+    const stxlib::Optional<PagePosition> position = find(id);
+    if (position.absent()) {
         return nullptr;
     }
-    PageContent* const borrowed = entries_[(*position).value].content.get();
+    PageContent* const borrowed = entries_[(*position.value()).value].content.get();
     return borrowed;
 }
 
@@ -105,7 +105,7 @@ PageEditStatus PageSet::validate_entry(const PageRecord& record,
     if (!valid_stable_id(record.id.value)) {
         return PageEditStatus::invalid_id;
     }
-    if (find(record.id).has_value()) {
+    if (find(record.id).present()) {
         return PageEditStatus::duplicate_page;
     }
     if (entries_.size() >= options_.capacity) {
@@ -283,11 +283,11 @@ PageEditStatus PageSet::extract_page(const PageId& id, StoredPage& out) {
     if (selecting_active_) {
         return PageEditStatus::selecting_in_progress;
     }
-    const std::optional<PagePosition> found = find(id);
-    if (!found.has_value()) {
+    const stxlib::Optional<PagePosition> found = find(id);
+    if (found.absent()) {
         return PageEditStatus::unknown_page;
     }
-    const std::size_t position = (*found).value;
+    const std::size_t position = (*found.value()).value;
     const bool was_selected = selected_ == id;
     out = extract_entry(position);
     if (was_selected) {
@@ -329,14 +329,14 @@ PageEditStatus PageSet::move(const PageId& id, PagePosition destination) {
     if (selecting_active_) {
         return PageEditStatus::selecting_in_progress;
     }
-    const std::optional<PagePosition> found = find(id);
-    if (!found.has_value()) {
+    const stxlib::Optional<PagePosition> found = find(id);
+    if (found.absent()) {
         return PageEditStatus::unknown_page;
     }
     if (destination.value >= entries_.size()) {
         return PageEditStatus::position_out_of_range;
     }
-    const std::size_t position = (*found).value;
+    const std::size_t position = (*found.value()).value;
     const bool pinned = entries_[position].record.pinned;
     if (pinned && destination.value >= pinned_count_) {
         return PageEditStatus::crosses_pinned_boundary;
@@ -361,11 +361,11 @@ PageEditStatus PageSet::set_pinned(const PageId& id, bool pinned) {
     if (!options_.pinning_enabled) {
         return PageEditStatus::pinning_disabled;
     }
-    const std::optional<PagePosition> found = find(id);
-    if (!found.has_value()) {
+    const stxlib::Optional<PagePosition> found = find(id);
+    if (found.absent()) {
         return PageEditStatus::unknown_page;
     }
-    const std::size_t position = (*found).value;
+    const std::size_t position = (*found.value()).value;
     if (entries_[position].record.pinned == pinned) {
         return PageEditStatus::unchanged;
     }
@@ -391,11 +391,11 @@ PageEditStatus PageSet::set_title(const PageId& id, std::string title) {
     if (selecting_active_) {
         return PageEditStatus::selecting_in_progress;
     }
-    const std::optional<PagePosition> found = find(id);
-    if (!found.has_value()) {
+    const stxlib::Optional<PagePosition> found = find(id);
+    if (found.absent()) {
         return PageEditStatus::unknown_page;
     }
-    PageRecord& record = entries_[(*found).value].record;
+    PageRecord& record = entries_[(*found.value()).value].record;
     if (record.title == title) {
         return PageEditStatus::unchanged;
     }
@@ -410,11 +410,11 @@ PageEditStatus PageSet::set_image_key(const PageId& id, std::string image_key) {
     if (selecting_active_) {
         return PageEditStatus::selecting_in_progress;
     }
-    const std::optional<PagePosition> found = find(id);
-    if (!found.has_value()) {
+    const stxlib::Optional<PagePosition> found = find(id);
+    if (found.absent()) {
         return PageEditStatus::unknown_page;
     }
-    PageRecord& record = entries_[(*found).value].record;
+    PageRecord& record = entries_[(*found.value()).value].record;
     if (record.image_key == image_key) {
         return PageEditStatus::unchanged;
     }
@@ -429,11 +429,11 @@ PageEditStatus PageSet::set_closable(const PageId& id, bool closable) {
     if (selecting_active_) {
         return PageEditStatus::selecting_in_progress;
     }
-    const std::optional<PagePosition> found = find(id);
-    if (!found.has_value()) {
+    const stxlib::Optional<PagePosition> found = find(id);
+    if (found.absent()) {
         return PageEditStatus::unknown_page;
     }
-    PageRecord& record = entries_[(*found).value].record;
+    PageRecord& record = entries_[(*found.value()).value].record;
     if (record.closable == closable) {
         return PageEditStatus::unchanged;
     }
@@ -448,11 +448,11 @@ PageEditStatus PageSet::set_modified(const PageId& id, bool modified) {
     if (selecting_active_) {
         return PageEditStatus::selecting_in_progress;
     }
-    const std::optional<PagePosition> found = find(id);
-    if (!found.has_value()) {
+    const stxlib::Optional<PagePosition> found = find(id);
+    if (found.absent()) {
         return PageEditStatus::unknown_page;
     }
-    PageRecord& record = entries_[(*found).value].record;
+    PageRecord& record = entries_[(*found.value()).value].record;
     if (record.modified == modified) {
         return PageEditStatus::unchanged;
     }
@@ -468,11 +468,11 @@ PageEditStatus PageSet::set_content(const PageId& id,
     if (selecting_active_) {
         return PageEditStatus::selecting_in_progress;
     }
-    const std::optional<PagePosition> found = find(id);
-    if (!found.has_value()) {
+    const stxlib::Optional<PagePosition> found = find(id);
+    if (found.absent()) {
         return PageEditStatus::unknown_page;
     }
-    StoredPage& entry = entries_[(*found).value];
+    StoredPage& entry = entries_[(*found.value()).value];
     if (entry.content != nullptr) {
         return PageEditStatus::content_present;
     }
@@ -490,8 +490,8 @@ PageEditStatus PageSet::select(const PageId& id, PageSelectionCause cause) {
     if (selecting_active_) {
         return PageEditStatus::selecting_in_progress;
     }
-    const std::optional<PagePosition> found = find(id);
-    if (!found.has_value()) {
+    const stxlib::Optional<PagePosition> found = find(id);
+    if (found.absent()) {
         return PageEditStatus::unknown_page;
     }
     if (selected_ == id) {

@@ -390,11 +390,12 @@ bool CompositeEvaluator::subject_state(const std::string_view subject, const std
     }
     std::string_view standard = state;
     if (state == "hovering") standard = "hot";
-    const std::optional<AnatomyState> known =
+    const stxlib::Optional<AnatomyState> known =
         anatomy_state_from_name(control_language::composite_registered_name(standard));
-    if (!known) return false;
+    if (known.absent()) return false;
     const AnatomyStateSet states = target.anatomy_states();
-    return states.contains(*known);
+    const bool contained = states.contains(*known.value());
+    return contained;
 }
 
 void CompositeEvaluator::evaluate_geometry(const Rect client, CompositeControl::Geometry& geometry) const {

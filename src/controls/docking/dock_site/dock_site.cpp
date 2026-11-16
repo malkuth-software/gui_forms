@@ -103,7 +103,7 @@ DockSite::DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floa
       stamp_motion_(*this, drag_gesture::stamp_curve(), 1.0),
       tile_fade_(*this, MotionCurve::timed(tile_fade_duration, MotionEasing::linear), 1.0),
       flyout_slide_(*this, MotionCurve::timed(flyout_slide_duration, MotionEasing::linear), 1.0) {
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     stamp_motion_.set_listener(MotionListener::bind<DockSite, &DockSite::on_drag_motion>(*this));
     tile_fade_.set_listener(MotionListener::bind<DockSite, &DockSite::on_drag_motion>(*this));
@@ -403,8 +403,8 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
             ++shown;
             const PageId page{panel.value};
             const std::string title = (*workspace_).panel_title(panel);
-            const std::optional<PagePosition> found = pages.find(page);
-            if (!found) {
+            const stxlib::Optional<PagePosition> found = pages.find(page);
+            if (found.absent()) {
                 PageRecord record{};
                 record.id = page;
                 record.title = title;
@@ -413,7 +413,7 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
                                                 PagePlacement::at(PagePosition{place_index})));
                 continue;
             }
-            if ((*found).value != place_index) static_cast<void>(pages.move(page, PagePosition{place_index}));
+            if ((*found.value()).value != place_index) static_cast<void>(pages.move(page, PagePosition{place_index}));
             if (pages.record_at(PagePosition{place_index}).title != title) {
                 static_cast<void>(pages.set_title(page, title));
             }
@@ -1306,7 +1306,7 @@ bool DockSite::stack_current(const StackSlot& slot) const {
     if (workspace_ == nullptr) return false;
     const std::optional<DockPanelId>& active = (*workspace_).active_panel();
     if (!active || !slot.view) return false;
-    const bool current = (*slot.view).pages().find(PageId{(*active).value}).has_value();
+    const bool current = (*slot.view).pages().find(PageId{(*active).value}).present();
     return current;
 }
 
@@ -1314,8 +1314,8 @@ bool DockSite::pin_shown(const StackSlot& slot) const {
     if (workspace_ == nullptr || slot.kind != DockNodeKind::tool_stack) return false;
     const std::optional<DockPanelId> panel = selected_panel(slot);
     if (!panel) return false;
-    const std::optional<DockNodeId> owner = (*workspace_).layout().pin_owner(*panel);
-    const bool shown = owner.has_value() && *owner == slot.stack;
+    const stxlib::Optional<DockNodeId> owner = (*workspace_).layout().pin_owner(*panel);
+    const bool shown = owner.present() && *owner.value() == slot.stack;
     return shown;
 }
 
@@ -1398,7 +1398,7 @@ void DockSite::on_paint(Painter& painter, Rect) {
     // Every part carries its anatomy name (PartKey), so that a theme's
     // `dock-site::part(...)` rules reach it; a seam item is known by its
     // split's node.
-    part.key = PartKey{"document_area", {}, {}};
+    part.key.set(PartKey{"document_area", {}, {}});
     paint_part(painter, *this, part);
     for (std::size_t seam = 0; seam < seams_.size(); ++seam) {
         const SeamParts parts = seam_parts(seam);
@@ -1407,12 +1407,12 @@ void DockSite::on_paint(Painter& painter, Rect) {
         part.states = seam_states(seam);
         part.role = PartRole::seam;
         part.bounds = parts.seam_bar.bounds;
-        part.key = PartKey{"seam_bar", item, {}};
+        part.key.set(PartKey{"seam_bar", item, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::grip;
         part.mark = PartMark::grip_dots;
         part.bounds = parts.seam_grip.bounds;
-        part.key = PartKey{"seam_grip", item, {}};
+        part.key.set(PartKey{"seam_grip", item, {}});
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
     }
@@ -1442,23 +1442,23 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     part.states = states;
     part.role = PartRole::face;
     part.bounds = moved(placed.caption, offset);
-    part.key = PartKey{"caption", item, {}};
+    part.key.set(PartKey{"caption", item, {}});
     paint_part(painter, surface, part);
     if (states.contains(AnatomyState::current)) {
         part.role = PartRole::keyline;
         part.bounds = moved(placed.accent, offset);
-        part.key = PartKey{"caption_accent", item, {}};
-        part.accent = AccentIndex{0U};
+        part.key.set(PartKey{"caption_accent", item, {}});
+        part.accent.set(AccentIndex{0U});
         paint_part(painter, surface, part);
         part.accent.reset();
     }
     part.role = PartRole::chip;
     part.bounds = moved(placed.key, offset);
-    part.key = PartKey{"caption_key", item, {}};
+    part.key.set(PartKey{"caption_key", item, {}});
     paint_part(painter, surface, part);
     part.role = PartRole::caption;
     part.bounds = moved(placed.label, offset);
-    part.key = PartKey{"caption_label", item, {}};
+    part.key.set(PartKey{"caption_label", item, {}});
     part.text = lend_paint_text(slot.title);
     paint_part(painter, surface, part);
     part.text = {};
@@ -1470,7 +1470,7 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     if (!grip.empty()) {
         part.role = PartRole::grip;
         part.bounds = moved(grip, offset);
-        part.key = PartKey{"caption_grip", item, {}};
+        part.key.set(PartKey{"caption_grip", item, {}});
         paint_part(painter, surface, part);
     }
     // The buttons: flat at rest with a plate when hot (the menu-item family,
@@ -1487,12 +1487,12 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
         part.states = button_states(index, zones[button]);
         part.role = PartRole::actuator;
         part.bounds = moved(buttons[button], offset);
-        part.key = PartKey{button_names[button], item, {}};
+        part.key.set(PartKey{button_names[button], item, {}});
         paint_part(painter, surface, part);
         part.role = PartRole::glyph;
         part.bounds = moved(glyphs[button], offset);
         part.mark = marks[button];
-        part.key = PartKey{glyph_names[button], item, {}};
+        part.key.set(PartKey{glyph_names[button], item, {}});
         paint_part(painter, surface, part);
         part.mark = PartMark::none;
     }
@@ -1530,7 +1530,7 @@ void DockSite::set_hot(Hit hit) {
         shape = seams_[hit.index].axis == DockAxis::horizontal ? CursorKind::resize_horizontal
                                                                : CursorKind::resize_vertical;
     }
-    cursor = shape;
+    cursor = stxlib::Optional<CursorKind>::of(shape);
     invalidate(Dirty::paint);
 }
 
@@ -2061,8 +2061,8 @@ bool DockSite::position_command_enabled(const DockPanelId& panel, DockPositionCo
     case DockPositionCommand::auto_hide: {
         // A root-level tool stack (DK decision 28) that the layout lets go to
         // auto-hide.
-        const std::optional<DockNodeId> owner = layout.pin_owner(panel);
-        if (auto_hidden || !tool || !owner || !(*owner == location.stack)) return false;
+        const stxlib::Optional<DockNodeId> owner = layout.pin_owner(panel);
+        if (auto_hidden || !tool || owner.absent() || !(*owner.value() == location.stack)) return false;
         DockTransaction transaction{};
         transaction.origin = DockEditOrigin::user;
         transaction.edits.push_back(DockEdit::auto_hide(DockSubject::of_stack(location.stack), DockSide::left));
@@ -2490,9 +2490,9 @@ std::vector<SemanticNode> DockSite::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::split_pane;
         node.name = slot.axis == DockAxis::horizontal ? "Vertical seam" : "Horizontal seam";
-        node.numeric_value = slot.first;
-        node.minimum_value = slot.first_minimum;
-        node.maximum_value = std::max(slot.first_minimum, slot.span - slot.second_minimum);
+        node.numeric_value.set(slot.first);
+        node.minimum_value.set(slot.first_minimum);
+        node.maximum_value.set(std::max(slot.first_minimum, slot.span - slot.second_minimum));
         node.value = std::to_string(static_cast<long long>(std::lround(slot.first)));
         node.bounds = to_window(absolute, slot.bar);
         node.states = SemanticState::visible | SemanticState::focusable | enabled_state;

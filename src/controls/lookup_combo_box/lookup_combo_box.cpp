@@ -102,7 +102,7 @@ public:
     List(StableId stable_id, LookupComboBox& owner) : Control(std::move(stable_id)), owner_(owner) {
         set_paint_plane(PaintPlane::overlay);
         focusable = false;
-        cursor = CursorKind::arrow;
+        cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     }
 
     [[nodiscard]] Event<std::size_t>& row_activated() noexcept { return row_activated_; }
@@ -218,7 +218,7 @@ private:
 
 LookupComboBox::LookupComboBox(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
 }
 
 LookupComboBox::~LookupComboBox() {
@@ -337,11 +337,11 @@ void LookupComboBox::on_paint(Painter& painter, Rect) {
     const AnatomyStateSet states = anatomy_states();
     PartPaint well{.role = PartRole::well, .bounds = placed.well, .states = states,
                    .family = ControlVisualRole::editor};
-    well.key = PartKey{"well", {}, {}};
+    well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
     PartPaint drop_down{.role = PartRole::actuator, .bounds = placed.actuator, .states = states,
                         .family = ControlVisualRole::choice};
-    drop_down.key = PartKey{"actuator", {}, {}};
+    drop_down.key.set(PartKey{"actuator", {}, {}});
     paint_part(painter, *this, drop_down);
     PartPaint disclosure{.role = PartRole::disclosure, .bounds = placed.glyph, .states = states,
                          .family = ControlVisualRole::choice};

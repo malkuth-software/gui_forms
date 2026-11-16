@@ -44,8 +44,8 @@ constexpr std::size_t legend_capacity = 32U;
 // The colour of the plot's rules (grid and axes): the panel's border, or its
 // top edge, else its text, for a theme that draws the panel unbordered.
 [[nodiscard]] Color rule_colour(const ControlVisualRecipe& recipe) noexcept {
-    if (recipe.material.border) return (*recipe.material.border).color;
-    if (recipe.material.border_edges.top) return (*recipe.material.border_edges.top).color;
+    if (recipe.material.border.present()) return (*recipe.material.border.value()).color;
+    if (recipe.material.border_edges.top.present()) return (*recipe.material.border_edges.top.value()).color;
     return recipe.text;
 }
 

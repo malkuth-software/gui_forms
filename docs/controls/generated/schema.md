@@ -88,7 +88,7 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 
@@ -109,7 +109,7 @@ Properties beyond every control's: `content_padding` (insets), `danger` (boolean
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 | `dialog_result_changed` | `DialogResult` |
@@ -134,7 +134,7 @@ Properties beyond every control's: `content_padding` (insets), `danger` (boolean
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 | `dialog_result_changed` | `DialogResult` |
@@ -157,7 +157,7 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 
@@ -275,7 +275,7 @@ Properties beyond every control's: none.
 |---|---|
 | `token_added` | `Token` |
 | `token_removed` | `Token` |
-| `selected_token_changed` | `std::optional<TokenId>` |
+| `selected_token_changed` | `stxlib::Optional<TokenId>` |
 
 ## `search_field` (SearchField, control)
 
@@ -731,7 +731,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `selected_index_changed` | `std::optional<std::size_t>` |
+| `selected_index_changed` | `stxlib::Optional<std::size_t>` |
 | `selection_changed` | `ListSelectionChange` |
 | `item_activated` | `std::size_t` |
 
@@ -775,7 +775,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `selected_index_changed` | `std::optional<std::size_t>` |
+| `selected_index_changed` | `stxlib::Optional<std::size_t>` |
 | `selection_changed` | `ListSelectionChange` |
 | `item_activated` | `std::size_t` |
 | `item_checking` | `ItemCheckEvent`, by reference |
@@ -812,7 +812,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `selected_index_changed` | `std::optional<std::size_t>` |
+| `selected_index_changed` | `stxlib::Optional<std::size_t>` |
 | `drop_down_changed` | `bool` |
 | `items_changed` | none |
 | `text_changed` | `std::string` |
@@ -1169,7 +1169,7 @@ Properties beyond every control's: `allow_user_to_add_rows` (boolean), `multi_se
 |---|---|
 | `draw_item_content` | `ItemContentPaint`, by reference |
 | `selection_changed` | none |
-| `current_cell_changed` | `std::optional<DataGridViewCellAddress>` |
+| `current_cell_changed` | `stxlib::Optional<DataGridViewCellAddress>` |
 | `cell_begin_edit` | `DataGridViewCellCancelEvent`, by reference |
 | `cell_end_edit` | `DataGridViewCellEvent` |
 | `cell_validating` | `DataGridViewCellValidatingEvent`, by reference |
@@ -1314,7 +1314,7 @@ Properties beyond every control's: `check_state` (enumeration), `checked` (boole
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 | `check_state_changed` | `CheckState` |
@@ -1337,7 +1337,7 @@ Properties beyond every control's: `checked` (boolean), `content_padding` (inset
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 | `checked_changed` | `bool` |
@@ -1359,7 +1359,7 @@ Properties beyond every control's: `checked` (boolean), `content_padding` (inset
 
 | Interaction | Payload |
 |---|---|
-| `expanded_changed` | `std::optional<bool>` |
+| `expanded_changed` | `stxlib::Optional<bool>` |
 | `clicked` | `ButtonBase`, by reference |
 | `text_changed` | `std::string` |
 | `checked_changed` | `bool` |
@@ -1494,7 +1494,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `selected_index_changed` | `std::optional<std::size_t>` |
+| `selected_index_changed` | `stxlib::Optional<std::size_t>` |
 
 ## `color_picker` (ColorPicker, control)
 
@@ -2833,7 +2833,7 @@ Properties beyond every control's: none.
 
 | Interaction | Payload |
 |---|---|
-| `value_changed` | `std::optional<Color>` |
+| `value_changed` | `stxlib::Optional<Color>` |
 | `palette_open_changed` | `bool` |
 
 ## `backstage_view` (BackstageView, control)
@@ -3176,7 +3176,7 @@ Properties beyond every control's: none.
 
 | Interaction | Payload |
 |---|---|
-| `value_changed` | `std::optional<Color>` |
+| `value_changed` | `stxlib::Optional<Color>` |
 
 ## `gallery_command` (GalleryCommand, component)
 
@@ -3913,7 +3913,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `selected_index_changed` | `std::optional<std::size_t>` |
+| `selected_index_changed` | `stxlib::Optional<std::size_t>` |
 
 ## `up_down_base` (UpDownBase, control)
 

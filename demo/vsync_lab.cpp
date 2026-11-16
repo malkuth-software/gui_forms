@@ -20,6 +20,7 @@
 #include <span>
 #include <stop_token>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -886,12 +887,12 @@ std::unique_ptr<Window> make_vsync_lab() {
     (*header).set_background(Color::rgba(29, 47, 65));
     std::shared_ptr<Label> title = label("vsync.title", "GUI.Forms · live surface / input contention lab",
                        {22.0, 8.0, 760.0, 34.0}, TextStyleRole::title);
-    (*title).fore_color = Color::rgba(244, 249, 252);
+    (*title).fore_color = stxlib::Optional<Color>::of(Color::rgba(244, 249, 252));
     std::shared_ptr<Label> subtitle = label(
         "vsync.subtitle",
         "display-paced producer · newest coherent frame · one outstanding UI paint · compositor-paced presentation",
         {24.0, 42.0, 920.0, 22.0}, TextStyleRole::caption);
-    (*subtitle).fore_color = Color::rgba(169, 205, 228);
+    (*subtitle).fore_color = stxlib::Optional<Color>::of(Color::rgba(169, 205, 228));
     (*header).add_child(title);
     (*header).add_child(subtitle);
 

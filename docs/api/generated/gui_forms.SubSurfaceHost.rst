@@ -240,7 +240,7 @@ gui_forms::SubSurfaceHost
 
       *Protected.*
 
-   .. cpp:function:: std::optional<Rect> text_input_caret() const override
+   .. cpp:function:: stxlib::Optional<Rect> text_input_caret() const override
 
       *Protected.*
 

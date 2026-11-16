@@ -640,15 +640,18 @@ std::uint32_t TableLayoutPanelCompat::stored_span(const Control& child, TableSpa
     return extent;
 }
 
-std::optional<TableLayoutCellPosition> TableLayoutPanelCompat::cell_position(const Control& child) const {
-    if (child.parent().get() != this || !child.is_alive()) return std::nullopt;
+stxlib::Optional<TableLayoutCellPosition> TableLayoutPanelCompat::cell_position(const Control& child) const {
+    if (child.parent().get() != this || !child.is_alive()) return stxlib::Optional<TableLayoutCellPosition>::none();
     if (attached_window() != nullptr) static_cast<void>(arranged_bounds());
     const ResolvedCellMap::const_iterator resolved = resolved_cells_.find(child.runtime_id().value);
-    if (resolved != resolved_cells_.end()) return (*resolved).second.position;
+    if (resolved != resolved_cells_.end()) {
+        return stxlib::Optional<TableLayoutCellPosition>::of((*resolved).second.position);
+    }
     const CellMap::const_iterator found = cells_.find(child.runtime_id().value);
-    if (found == cells_.end()) return std::nullopt;
+    if (found == cells_.end()) return stxlib::Optional<TableLayoutCellPosition>::none();
     const TableLayoutCellPosition position{(*found).second.column, (*found).second.row};
-    return position;
+    const stxlib::Optional<TableLayoutCellPosition> result = stxlib::Optional<TableLayoutCellPosition>::of(position);
+    return result;
 }
 
 void TableLayoutPanelCompat::child_leaving(const Control& child) noexcept {

@@ -63,14 +63,14 @@ gui_forms::Control
          ``std::invalid_argument`` is thrown. It is bindable and published as the
          semantic field ``tool_tip``. Data items such as list rows have none.
 
-      **cursor** : ``std::optional<CursorKind>``
+      **cursor** : ``stxlib::Optional<CursorKind>``
          The pointer shape over the control, or none to use the parent's.
          :cpp:func:`effective_cursor <gui_forms::Control::effective_cursor>` resolves it; the default at the root is the arrow.
 
-      **back_color** : ``std::optional<Color>``
+      **back_color** : ``stxlib::Optional<Color>``
          The own background colour; empty takes the parent's.
 
-      **fore_color** : ``std::optional<Color>``
+      **fore_color** : ``stxlib::Optional<Color>``
          The own text colour; empty takes the parent's.
 
       **minimum_size** : ``Size``, default ``{0, 0}``
@@ -296,16 +296,16 @@ gui_forms::Control
 
       **authored_surface_material** : ``std::optional<SurfaceMaterial>``
 
-      **ambient_back_color** : ``std::optional<Color>``, read-only
+      **ambient_back_color** : ``stxlib::Optional<Color>``, read-only
          The background and foreground colours the application authored for this control (WinForms' BackColor and ForeColor), or none: the theme's colours stand. They are the T4-1 authored colours of the control's parts (PartPaint::authored_background and authored_foreground), with the same rules: a part's own authored colour, the most specific, stands over them; the theme's important declarations stand over them; forced high contrast drops them; and a disabled part keeps the theme's disabled colours, so disabled text stays greyed. - The background paints the control's bounds before its content, as WinForms' OnPaintBackground does, and fills the control's grounds (faces, wells, plates) flat, keeping their borders. - The foreground draws the control's text, marks and rules. They reach what a control paints through paint_part; a control that draws its own text or surfaces directly reads ambient_back_color and ambient_fore_color. Ambient inheritance, as WinForms: a control without its own colour takes its nearest ancestor's (ambient_back_color, ambient_fore_color), so a colour set on a container flows to every descendant that sets none. An inherited background is not painted again over the bounds (the ancestor already painted it) and does not fill a well: an editor's or a list's well keeps the theme's window colour, as WinForms' text and list boxes keep SystemColors.Window under a coloured form. A check box's box is a well too: it keeps the theme's colour under an inherited background, but the check box's own background fills it, where WinForms' box stays white. Writing one (std::nullopt clears it) repaints the control and its descendants. This control's own colour, else its nearest ancestor's, else none.
 
-      **ambient_fore_color** : ``std::optional<Color>``, read-only
+      **ambient_fore_color** : ``stxlib::Optional<Color>``, read-only
 
       **owned_decorations** : ``std::span<const OwnerDecorationRecipe>``
 
-      **active_border** : ``std::optional<ActiveBorder>``
+      **active_border** : ``stxlib::Optional<ActiveBorder>``
 
-      **active_border_pose** : ``std::optional<ActiveBorderPose>``, read-only
+      **active_border_pose** : ``stxlib::Optional<ActiveBorderPose>``, read-only
          The pose the border last painted with (resolve_active_border), empty before its first paint or with no border; and whether its timer runs.
 
       **active_border_animating** : ``bool``, read-only
@@ -405,7 +405,7 @@ gui_forms::Control
          The compositing plane the control paints into. Panels use
          :cpp:enumerator:`PaintPlane::backplane <gui_forms::PaintPlane::backplane>`.
 
-      **display_chunk_info** : ``std::optional<DisplayChunkInfo>``, read-only
+      **display_chunk_info** : ``stxlib::Optional<DisplayChunkInfo>``, read-only
 
       **content_effect** : ``std::shared_ptr<const PaintGroupEffect>``
 
@@ -858,16 +858,16 @@ gui_forms::Control
       ``std::invalid_argument`` is thrown. It is bindable and published as the
       semantic field ``tool_tip``. Data items such as list rows have none.
 
-   .. cpp:member:: std::optional<CursorKind> cursor
+   .. cpp:member:: stxlib::Optional<CursorKind> cursor
 
       The pointer shape over the control, or none to use the parent's.
       :cpp:func:`effective_cursor <gui_forms::Control::effective_cursor>` resolves it; the default at the root is the arrow.
 
-   .. cpp:member:: std::optional<Color> back_color
+   .. cpp:member:: stxlib::Optional<Color> back_color
 
       The own background colour; empty takes the parent's.
 
-   .. cpp:member:: std::optional<Color> fore_color
+   .. cpp:member:: stxlib::Optional<Color> fore_color
 
       The own text colour; empty takes the parent's.
 
@@ -1152,23 +1152,27 @@ gui_forms::Control
 
    .. cpp:function:: void set_authored_surface_material(SurfaceMaterial material)
 
-   .. cpp:function:: std::optional<Color> ambient_back_color() const noexcept
+   .. cpp:function:: stxlib::Optional<Color> ambient_back_color() const noexcept
 
       The background and foreground colours the application authored for this control (WinForms' BackColor and ForeColor), or none: the theme's colours stand. They are the T4-1 authored colours of the control's parts (PartPaint::authored_background and authored_foreground), with the same rules: a part's own authored colour, the most specific, stands over them; the theme's important declarations stand over them; forced high contrast drops them; and a disabled part keeps the theme's disabled colours, so disabled text stays greyed. - The background paints the control's bounds before its content, as WinForms' OnPaintBackground does, and fills the control's grounds (faces, wells, plates) flat, keeping their borders. - The foreground draws the control's text, marks and rules. They reach what a control paints through paint_part; a control that draws its own text or surfaces directly reads ambient_back_color and ambient_fore_color. Ambient inheritance, as WinForms: a control without its own colour takes its nearest ancestor's (ambient_back_color, ambient_fore_color), so a colour set on a container flows to every descendant that sets none. An inherited background is not painted again over the bounds (the ancestor already painted it) and does not fill a well: an editor's or a list's well keeps the theme's window colour, as WinForms' text and list boxes keep SystemColors.Window under a coloured form. A check box's box is a well too: it keeps the theme's colour under an inherited background, but the check box's own background fills it, where WinForms' box stays white. Writing one (std::nullopt clears it) repaints the control and its descendants. This control's own colour, else its nearest ancestor's, else none.
 
-   .. cpp:function:: std::optional<Color> ambient_fore_color() const noexcept
+   .. cpp:function:: stxlib::Optional<Color> ambient_fore_color() const noexcept
 
    .. cpp:function:: std::span<const OwnerDecorationRecipe> owned_decorations() const& noexcept
 
    .. cpp:function:: void set_owned_decorations(const OwnerDecorationRecipe* decorations, std::size_t decoration_count)
 
-   .. cpp:function:: std::optional<ActiveBorder> active_border() const
+   .. cpp:function:: stxlib::Optional<ActiveBorder> active_border() const
+
+   .. cpp:function:: void set_active_border(stxlib::Optional<ActiveBorder> border)
+
+      The control border (active_border.hpp; the active border study's phase 2): set, validated first (an invalid border throws std::invalid_argument and changes nothing), or cleared with none. It paints after the control's content and its owned decorations, and its reach (active_border_reach) widens the visual outsets. A change repaints the control; a moving border repaints on a paint-gated timer (ADR-016) only while its pose moves, and its motion restarts lit whenever the timer starts. UI thread.
 
    .. cpp:function:: void set_active_border(std::optional<ActiveBorder> border)
 
-      The control border (active_border.hpp; the active border study's phase 2): set, validated first (an invalid border throws std::invalid_argument and changes nothing), or cleared with std::nullopt. It paints after the control's content and its owned decorations, and its reach (active_border_reach) widens the visual outsets. A change repaints the control; a moving border repaints on a paint-gated timer (ADR-016) only while its pose moves, and its motion restarts lit whenever the timer starts. UI thread.
+      The standard form, kept for one stage (D15 Q3).
 
-   .. cpp:function:: std::optional<ActiveBorderPose> active_border_pose() const noexcept
+   .. cpp:function:: stxlib::Optional<ActiveBorderPose> active_border_pose() const noexcept
 
       The pose the border last painted with (resolve_active_border), empty before its first paint or with no border; and whether its timer runs.
 
@@ -1318,7 +1322,7 @@ gui_forms::Control
 
       Sets :cpp:func:`paint_plane <gui_forms::Control::paint_plane>`; see the property's description above.
 
-   .. cpp:function:: std::optional<DisplayChunkInfo> display_chunk_info() const noexcept
+   .. cpp:function:: stxlib::Optional<DisplayChunkInfo> display_chunk_info() const noexcept
 
    .. cpp:function:: const std::shared_ptr<const PaintGroupEffect>& content_effect() const& noexcept
 
@@ -1515,7 +1519,7 @@ gui_forms::Control
       null if there is no such child. The child is not disposed: it lives on
       as long as someone holds it.
 
-   .. cpp:function:: std::optional<std::size_t> child_index_from_top(RuntimeId child) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> child_index_from_top(RuntimeId child) const noexcept
 
       The child's z-order index counted from the top, where 0 is the
       frontmost child (the Windows Forms index), or none. children() runs
@@ -1591,9 +1595,9 @@ gui_forms::Control
 
    .. cpp:function:: double snap_text_baseline(double logical_baseline) const noexcept
 
-   .. cpp:function:: std::optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept
+   .. cpp:function:: stxlib::Optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept
 
-      The colours of the application colour role :cpp:member:`name <gui_forms::Control::name>` (a role the theme package declares with ``color-roles``, such as ``syntax-keyword``) for this control's window (window_media_facts; light, unforced while detached): from effective_theme, else, where that is GUI.Forms' own in place of the chosen theme, from the chosen theme. Nullopt where neither declares the role. Code draws program-meant colours through this rather than hard-coding them (T4 theme variants).
+      The colours of the application colour role :cpp:member:`name <gui_forms::Control::name>` (a role the theme package declares with ``color-roles``, such as ``syntax-keyword``) for this control's window (window_media_facts; light, unforced while detached): from effective_theme, else, where that is GUI.Forms' own in place of the chosen theme, from the chosen theme. None where neither declares the role. Code draws program-meant colours through this rather than hard-coding them (T4 theme variants).
 
    .. cpp:function:: void clear_theme_override()
 
@@ -1841,11 +1845,11 @@ gui_forms::Control
       container that places its own children calls ``arrange_self`` and
       ``set_child_layout`` instead.
 
-   .. cpp:function:: virtual std::optional<double> first_baseline(double width)
+   .. cpp:function:: virtual stxlib::Optional<double> first_baseline(double width)
 
       The baselines a layout container aligns this control by (stage L, PLAN.md section 12.3): its first and last line boxes' baselines, as offsets from the top of its border box when laid out at :cpp:func:`width <gui_forms::Control::width>`. None means it has no line box; the container then synthesizes one from the border box, as CSS does. The defaults answer none. Text that lays out in lines (TextBlock) and the CSS containers override them. Flex and grid alignment use the first baseline; an inline item in BlockPanel uses the last, as an inline-block does.
 
-   .. cpp:function:: virtual std::optional<double> last_baseline(double width)
+   .. cpp:function:: virtual stxlib::Optional<double> last_baseline(double width)
 
    .. cpp:function:: virtual bool size_depends_on_content() const noexcept
 
@@ -1973,7 +1977,7 @@ gui_forms::Control
 
       The inner control that takes keyboard focus for this one: a composite field (ComboBox with an edit field, NumericUpDown, MaskedTextBox, SearchField and the like) returns its edit part, which must be a descendant. SurfaceRoot::request_focus gives focus to the target instead (Windows Forms' Focus on a ComboBox puts the caret in its edit), and SurfaceRoot::active_control reports the composite while its target has focus. A composite with a target keeps focusable false itself, so keyboard traversal reaches only the target. The default is null: the control takes focus itself.
 
-   .. cpp:function:: virtual std::optional<Rect> text_input_caret() const
+   .. cpp:function:: virtual stxlib::Optional<Rect> text_input_caret() const
 
       Where an input method places its composition and candidate windows while this control has focus: the caret's box, in local coordinates. The base returns none, and SurfaceRoot::text_input_caret then uses a one-unit-wide box at the control's left edge.
 

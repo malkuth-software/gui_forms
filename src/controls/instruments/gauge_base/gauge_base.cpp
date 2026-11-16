@@ -25,10 +25,10 @@ GaugeBase::GaugeBase(StableId stable_id) : RangeControl(std::move(stable_id)) {}
 
 bool GaugeBase::in_alarm() const noexcept {
     const double current = value.read();
-    const std::optional<double> low = low_alarm.read();
-    const std::optional<double> high = high_alarm.read();
-    const bool below = low.has_value() && current < *low;
-    const bool above = high.has_value() && current > *high;
+    const double* low = low_alarm.read().value();
+    const double* high = high_alarm.read().value();
+    const bool below = low != nullptr && current < *low;
+    const bool above = high != nullptr && current > *high;
     return below || above;
 }
 
@@ -100,13 +100,13 @@ SemanticDescriptor GaugeBase::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     const double current = std::clamp(value.read(), minimum.read(), maximum.read());
-    descriptor.numeric_value = current;
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
+    descriptor.numeric_value.set(current);
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
     std::string shown = value_text();
     if (in_alarm()) {
-        const std::optional<double> low = low_alarm.read();
-        const bool below = low.has_value() && value.read() < *low;
+        const double* low = low_alarm.read().value();
+        const bool below = low != nullptr && value.read() < *low;
         shown += below ? " (low alarm)" : " (high alarm)";
         descriptor.states |= SemanticState::invalid;
     }
@@ -266,18 +266,20 @@ void GaugeBase::written(const decltype(show_value)&) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint);
 }
 
-void GaugeBase::prepare_write(const decltype(low_alarm)&, std::optional<double>& incoming) {
+void GaugeBase::prepare_write(const decltype(low_alarm)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming && !std::isfinite(*incoming)) throw std::invalid_argument("gauge alarm must be finite");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr && !std::isfinite(*incoming_value)) throw std::invalid_argument("gauge alarm must be finite");
 }
 
 void GaugeBase::written(const decltype(low_alarm)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void GaugeBase::prepare_write(const decltype(high_alarm)&, std::optional<double>& incoming) {
+void GaugeBase::prepare_write(const decltype(high_alarm)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming && !std::isfinite(*incoming)) throw std::invalid_argument("gauge alarm must be finite");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr && !std::isfinite(*incoming_value)) throw std::invalid_argument("gauge alarm must be finite");
 }
 
 void GaugeBase::written(const decltype(high_alarm)&) {

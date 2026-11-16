@@ -23,7 +23,7 @@ gui_forms::ListControl
 
    :Properties:
 
-      **selected_index** : ``std::optional<std::size_t>``, read-only
+      **selected_index** : ``stxlib::Optional<std::size_t>``, read-only
          The selected item's index, or no value when nothing is selected. For a
          :cpp:class:`ListBox <gui_forms::ListBox>` it is the lowest selected index, which in ``one`` mode is the
          selected row. A :cpp:class:`ComboBox <gui_forms::ComboBox>` also declares it as a settable cell of the
@@ -31,7 +31,7 @@ gui_forms::ListControl
 
    :Events:
 
-      **selected_index_changed** : ``Event<std::optional<std::size_t>>``
+      **selected_index_changed** : ``Event<stxlib::Optional<std::size_t>>``
          Raised with the new index, or no value, after the selected index
          changes. A :cpp:class:`ListBox <gui_forms::ListBox>` raises it after ``selection_changed``, only when its
          lowest selected index moved. A :cpp:class:`ComboBox <gui_forms::ComboBox>` raises it after a change by
@@ -60,7 +60,7 @@ gui_forms::ListControl
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::optional<std::size_t> selected_index() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> selected_index() const noexcept
 
       The selected item's index, or no value when nothing is selected. For a
       :cpp:class:`ListBox <gui_forms::ListBox>` it is the lowest selected index, which in ``one`` mode is the
@@ -70,7 +70,7 @@ gui_forms::ListControl
 
    .. rubric:: Events
 
-   .. cpp:function:: Event<std::optional<std::size_t>>& selected_index_changed() noexcept
+   .. cpp:function:: Event<stxlib::Optional<std::size_t>>& selected_index_changed() noexcept
 
       Raised with the new index, or no value, after the selected index
       changes. A :cpp:class:`ListBox <gui_forms::ListBox>` raises it after ``selection_changed``, only when its
@@ -87,7 +87,7 @@ gui_forms::ListControl
 
       Panel's interactions, then selected_index_changed; ListBox and ComboBox append their own after these.
 
-   .. cpp:function:: bool record_selected_index(std::optional<std::size_t> index) noexcept
+   .. cpp:function:: bool record_selected_index(stxlib::Optional<std::size_t> index) noexcept
 
       *Protected.*
 

@@ -18,6 +18,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class RowHeightIndex;
@@ -179,8 +181,8 @@ struct GUI_FORMS_API VirtualRowsColumnMove final {
 // the current row or the set of selected rows changes. A current row
 // erased reports `current` none.
 struct GUI_FORMS_API VirtualRowSelection final {
-    std::optional<VirtualRowIndex> previous{};
-    std::optional<VirtualRowIndex> current{};
+    stxlib::Optional<VirtualRowIndex> previous{};
+    stxlib::Optional<VirtualRowIndex> current{};
     std::size_t selected_count{};
 };
 
@@ -403,8 +405,18 @@ public:
     // The most rows kept measured (see the class comment); none, the
     // default, keeps every measured row. Takes effect at the next settle,
     // which a call starts.
-    void set_measured_row_budget(std::optional<std::size_t> rows);
-    [[nodiscard]] std::optional<std::size_t> measured_row_budget() const noexcept { return measured_budget_; }
+    void set_measured_row_budget(stxlib::Optional<std::size_t> rows);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<std::size_t>")]]
+    void set_measured_row_budget(std::optional<std::size_t> rows) {
+        stxlib::Optional<std::size_t> owned{};
+        if (rows.has_value()) owned.set(*rows);
+        set_measured_row_budget(owned);
+    }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::size_t>::of(value).
+    void set_measured_row_budget(std::size_t rows) = delete;
+    [[nodiscard]] stxlib::Optional<std::size_t> measured_row_budget() const noexcept { return measured_budget_; }
 
     // The height unmeasured rows take. Changing it forgets every measured
     // height. Throws std::invalid_argument outside [minimum_row_height,
@@ -438,7 +450,7 @@ public:
     // viewport). Throws std::out_of_range for a row past the end.
     [[nodiscard]] Rect row_bounds(VirtualRowIndex row) const;
     // The row under a local point inside the viewport, or none.
-    [[nodiscard]] std::optional<VirtualRowIndex> row_at(Point local_point) const noexcept;
+    [[nodiscard]] stxlib::Optional<VirtualRowIndex> row_at(Point local_point) const noexcept;
 
     // Whether a view at the end of its content stays there as rows are
     // appended (see the class comment). Turning it on while at the end
@@ -467,12 +479,22 @@ public:
     // The current row: in the single mode the selected row; in the extended
     // mode the row the keyboard and the last press are at, which Ctrl may
     // have unselected.
-    [[nodiscard]] std::optional<VirtualRowIndex> selected_row() const noexcept;
+    [[nodiscard]] stxlib::Optional<VirtualRowIndex> selected_row() const noexcept;
     // Makes a row current and selects it alone (none: clears the
     // selection), setting the anchor, and raises selection_changed when
     // that changes anything; does not scroll. Throws std::out_of_range for
     // a row past the end.
-    void set_selected_row(std::optional<VirtualRowIndex> row);
+    void set_selected_row(stxlib::Optional<VirtualRowIndex> row);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<VirtualRowIndex>")]]
+    void set_selected_row(std::optional<VirtualRowIndex> row) {
+        stxlib::Optional<VirtualRowIndex> owned{};
+        if (row.has_value()) owned.set(*row);
+        set_selected_row(owned);
+    }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<VirtualRowIndex>::of(value).
+    void set_selected_row(VirtualRowIndex row) = delete;
     // The selected rows, sorted, disjoint and non-adjacent; valid until the
     // next change of the rows or the selection.
     [[nodiscard]] std::span<const VirtualRowRange> selected_ranges() const& noexcept { return ranges_; }
@@ -519,8 +541,18 @@ public:
     void move_column(std::size_t from, std::size_t to);
     // The sort indicator: `column` sorted in `direction` (none, or column
     // none, clears it). Throws std::out_of_range for a column past the end.
-    void set_sort(std::optional<std::size_t> column, VirtualRowsSort direction);
-    [[nodiscard]] std::optional<std::size_t> sort_column() const noexcept { return sort_column_; }
+    void set_sort(stxlib::Optional<std::size_t> column, VirtualRowsSort direction);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<std::size_t>")]]
+    void set_sort(std::optional<std::size_t> column, VirtualRowsSort direction) {
+        stxlib::Optional<std::size_t> owned{};
+        if (column.has_value()) owned.set(*column);
+        set_sort(owned, direction);
+    }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::size_t>::of(value).
+    void set_sort(std::size_t column, VirtualRowsSort direction) = delete;
+    [[nodiscard]] stxlib::Optional<std::size_t> sort_column() const noexcept { return sort_column_; }
     [[nodiscard]] VirtualRowsSort sort_direction() const noexcept { return sort_direction_; }
     // The header strip in local coordinates; empty without columns or
     // before the first layout.
@@ -531,7 +563,7 @@ public:
     // std::out_of_range for a column past the end.
     [[nodiscard]] Rect column_cell(std::size_t column, Rect row) const;
     // The column whose extent holds the local x of `local_point`, or none.
-    [[nodiscard]] std::optional<std::size_t> column_at(Point local_point) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> column_at(Point local_point) const noexcept;
     [[nodiscard]] Event<const VirtualRowsHeaderClick&>& header_clicked() noexcept { return header_clicked_; }
     [[nodiscard]] Event<std::size_t>& column_resized() noexcept { return column_resized_; }
     [[nodiscard]] Event<const VirtualRowsColumnMove&>& column_moved() noexcept { return column_moved_; }
@@ -649,7 +681,7 @@ private:
     // as the starting value) and counts the request; the height clamped to
     // [minimum_row_height, maximum_row_height], or none for one that is not
     // finite.
-    std::optional<double> request_row_height(std::size_t row, double current);
+    stxlib::Optional<double> request_row_height(std::size_t row, double current);
     // Asks the measure target for one row's height and records it; returns
     // whether a height was stored (false for a height that is not finite).
     bool measure_row(std::size_t row);
@@ -683,7 +715,7 @@ private:
     void shift_selection_for_insert(std::size_t at, std::size_t count);
     bool shift_selection_for_erase(std::size_t at, std::size_t count);
     [[nodiscard]] bool selected_at(std::size_t row) const noexcept;
-    void raise_selection(std::optional<std::size_t> previous);
+    void raise_selection(stxlib::Optional<std::size_t> previous);
     // Coarsens the rows outside the keep window when more than the budget
     // are measured (see the class comment); [band_first, band_end)
     // is the settle's band.
@@ -698,7 +730,7 @@ private:
     // the viewport after the last settle.
     void update_realized() noexcept;
     // The row a virtual child's stable ID names, or none.
-    [[nodiscard]] std::optional<std::size_t> row_of_child_id(std::string_view stable_id) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> row_of_child_id(std::string_view stable_id) const noexcept;
     // Writes "<view id>.row-<row>" into `identity`, reusing its storage.
     void row_identity(std::size_t row, std::string& identity) const;
     void compose_announcement();
@@ -730,11 +762,11 @@ private:
     bool header_move(Point local);
     bool header_release(Point local);
     // The resizable column whose divider is within the grip of `local`.
-    [[nodiscard]] std::optional<std::size_t> divider_at(Point local) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> divider_at(Point local) const noexcept;
     // The position a reorder drag released at `local` moves its column to.
     [[nodiscard]] std::size_t reorder_target(Point local) const noexcept;
     void column_identity(std::size_t column, std::string& identity) const;
-    [[nodiscard]] std::optional<std::size_t> column_of_child_id(std::string_view stable_id) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> column_of_child_id(std::string_view stable_id) const noexcept;
     void append_column_semantics(std::vector<SemanticNode>& children) const;
 
     std::unique_ptr<RowHeightIndex> heights_;
@@ -769,13 +801,13 @@ private:
 
     // The current row (selected_row()), the extended selection's ranges
     // and anchor, and whether a press is dragging a range.
-    std::optional<std::size_t> selected_{};
+    stxlib::Optional<std::size_t> selected_{};
     ListSelectionMode selection_mode_{ListSelectionMode::one};
     std::vector<VirtualRowRange> ranges_{};
-    std::optional<std::size_t> selection_anchor_{};
+    stxlib::Optional<std::size_t> selection_anchor_{};
     bool dragging_{};
-    std::optional<std::size_t> hot_{};
-    std::optional<std::size_t> measured_budget_{};
+    stxlib::Optional<std::size_t> hot_{};
+    stxlib::Optional<std::size_t> measured_budget_{};
     // The last scrolled report: the offset and the first visible row.
     double reported_offset_{};
     std::size_t reported_first_{};
@@ -806,9 +838,9 @@ private:
     std::vector<double> column_widths_{};
     ColumnStrip column_strip_{};
     Rect header_{};
-    std::optional<std::size_t> sort_column_{};
+    stxlib::Optional<std::size_t> sort_column_{};
     VirtualRowsSort sort_direction_{VirtualRowsSort::none};
-    std::optional<std::size_t> hot_column_{};
+    stxlib::Optional<std::size_t> hot_column_{};
     HeaderGesture header_gesture_{HeaderGesture::none};
     std::size_t gesture_column_{};
     Point gesture_start_{};

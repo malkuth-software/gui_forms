@@ -230,7 +230,7 @@ void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
         const std::string_view row_id = entry.recent ? std::string_view((*ribbon_).recent_items_[entry.index].stable_id)
                                                      : std::string_view((*ribbon_).application_menu_[entry.index].stable_id);
         part.control_type = "menu_strip";
-        part.key = PartKey{"menu_item", row_id, {}};
+        part.key.set(PartKey{"menu_item", row_id, {}});
         paint_part(painter, *this, part);
         part.control_type = {};
         part.key.reset();
@@ -482,12 +482,12 @@ std::vector<SemanticNode> RibbonApplicationMenu::semantic_virtual_children() con
             const RibbonRecentItem& item = ribbon.recent_items_[row.index];
             node.stable_id = menu_id + ".recent." + item.stable_id;
             node.description = item.description.empty() ? ribbon.recent_caption.read() : item.description;
-            node.position_in_set = ++recent_position;
-            node.set_size = recent;
+            node.position_in_set.set(++recent_position);
+            node.set_size.set(recent);
         } else {
             node.stable_id = menu_id + ".item." + ribbon.application_menu_[row.index].stable_id;
-            node.position_in_set = ++command_position;
-            node.set_size = commands;
+            node.position_in_set.set(++command_position);
+            node.set_size.set(commands);
         }
         node.bounds = row.bounds;
         node.states = SemanticState::visible | SemanticState::focusable;

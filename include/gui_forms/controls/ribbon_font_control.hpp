@@ -7,6 +7,8 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/controls/ribbon_font_control_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -91,7 +93,7 @@ private:
     struct FieldChanged final {
         std::weak_ptr<RibbonFontControl> target;
         Field field{Field::family};
-        void operator()(std::optional<std::size_t> index) const;
+        void operator()(stxlib::Optional<std::size_t> index) const;
     };
     struct CommandValueChanged final {
         std::weak_ptr<RibbonFontControl> target;
@@ -107,7 +109,7 @@ private:
     };
 
     [[nodiscard]] Fields fields(Rect client) const;
-    void field_changed(Field field, std::optional<std::size_t> index);
+    void field_changed(Field field, stxlib::Optional<std::size_t> index);
     void show(const FontChoice& value);
     void sync_enabled();
 

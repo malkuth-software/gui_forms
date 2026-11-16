@@ -711,7 +711,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
         // A fallback page's title is drawn in the secondary tone: the page
         // came, at least in part, from the program's built-in language.
         title.tone = page_.fallback ? PartTextTone::secondary : PartTextTone::ordinary;
-        title.key = PartKey{"title", {}, {}};
+        title.key.set(PartKey{"title", {}, {}});
         paint_text_part_at(painter, *this, title, Point{laid.title.x + offset.x, laid.title_baseline + offset.y},
                            laid.title.width);
     }
@@ -719,7 +719,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
     rule.family = ControlVisualRole::tool_tip;
     rule.role = PartRole::divider;
     rule.bounds = Rect{laid.rule.x + offset.x, laid.rule.y + offset.y, laid.rule.width, laid.rule.height};
-    rule.key = PartKey{"rule", {}, {}};
+    rule.key.set(PartKey{"rule", {}, {}});
     paint_part(painter, *this, rule);
     if (!mode.print && close_visible_) {
         PartPaint close{};
@@ -728,7 +728,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
         close.mark = PartMark::close;
         close.bounds = Rect{laid.close.x + offset.x, laid.close.y + offset.y, laid.close.width, laid.close.height};
         if (close_hovered_) close.states.insert(AnatomyState::hot);
-        close.key = PartKey{"close", {}, {}};
+        close.key.set(PartKey{"close", {}, {}});
         paint_part(painter, *this, close);
     }
     for (const LaidBlock& laid_block : laid.blocks) {
@@ -745,8 +745,8 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
             bar.bounds = Rect{laid_block.bar.x + offset.x, laid_block.bar.y + offset.y, laid_block.bar.width,
                               laid_block.bar.height};
             bar.states = states;
-            bar.corner_radius = 0.0;
-            bar.key = PartKey{"topic_bar", "topic", section};
+            bar.corner_radius.set(0.0);
+            bar.key.set(PartKey{"topic_bar", "topic", stxlib::Optional<std::size_t>::of(section)});
             paint_part(painter, *this, bar);
             PartPaint expander{};
             expander.family = ControlVisualRole::menu_item;
@@ -755,7 +755,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
             expander.bounds = Rect{laid_block.expander.x + offset.x, laid_block.expander.y + offset.y,
                                    laid_block.expander.width, laid_block.expander.height};
             expander.states = states;
-            expander.key = PartKey{"expander", "topic", section};
+            expander.key.set(PartKey{"expander", "topic", stxlib::Optional<std::size_t>::of(section)});
             paint_part(painter, *this, expander);
             if (focused_section == section && focused_) {
                 PartPaint ring{};
@@ -789,7 +789,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
                 callout.family = ControlVisualRole::card;
                 callout.role = PartRole::face;
                 callout.bounds = face;
-                callout.corner_radius = 0.0;
+                callout.corner_radius.set(0.0);
                 paint_part(painter, *this, callout);
             }
         }
@@ -838,7 +838,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
                 part.family = was_visited ? ControlVisualRole::visited_link : ControlVisualRole::link;
                 if (hovered_link_ == link) part.states.insert(AnatomyState::hot);
                 if (pressed_link_ == link) part.states.insert(AnatomyState::pressed);
-                part.key = PartKey{"link_text", "link", link};
+                part.key.set(PartKey{"link_text", "link", stxlib::Optional<std::size_t>::of(link)});
             }
             paint_text_part_at(painter, *this, part, Point{bounds.x, piece.baseline + offset.y}, bounds.width);
             if (piece.kind == PieceKind::link) {
@@ -881,8 +881,8 @@ void HelpBook::on_paint(Painter& painter, Rect) {
     paper.family = ControlVisualRole::tool_tip;
     paper.role = PartRole::face;
     paper.bounds = bounds;
-    paper.corner_radius = 0.0;
-    paper.key = PartKey{"paper", {}, {}};
+    paper.corner_radius.set(0.0);
+    paper.key.set(PartKey{"paper", {}, {}});
     paint_part(painter, *this, paper);
     const Rect viewport = viewport_rectangle();
     painter.save();
@@ -1033,7 +1033,7 @@ void HelpBook::on_mouse_leave() {
         hovered_link_.reset();
         hovered_section_.reset();
         close_hovered_ = false;
-        cursor = std::optional<CursorKind>();
+        cursor = stxlib::Optional<CursorKind>::none();
         invalidate(Dirty::paint);
     }
     Control::on_mouse_leave();
@@ -1054,8 +1054,8 @@ void HelpBook::handle_mouse(MouseEventArgs& arguments) {
             hovered_link_ = link;
             hovered_section_ = section;
             close_hovered_ = over_close;
-            cursor = (link.has_value() || section.has_value() || over_close) ? std::optional<CursorKind>(CursorKind::hand)
-                                                                             : std::optional<CursorKind>();
+            cursor = (link.has_value() || section.has_value() || over_close) ? stxlib::Optional<CursorKind>::of(CursorKind::hand)
+                                                                             : stxlib::Optional<CursorKind>::none();
             invalidate(Dirty::paint);
         }
         return;
@@ -1160,7 +1160,7 @@ std::vector<SemanticNode> HelpBook::semantic_virtual_children() const {
             // expand or collapse and reports expanded while open.
             heading.role = SemanticRole::heading;
             for (std::size_t run = 0U; run < block.run_count; ++run) heading.name.append(page_.runs[block.first_run + run].text);
-            heading.level = block.level;
+            heading.level.set(block.level);
             heading.bounds = Rect{laid_block.bounds.x + offset.x, laid_block.bounds.y + offset.y,
                                   laid_block.bounds.width, laid_block.bounds.height};
             heading.states = SemanticState::enabled | SemanticState::visible;

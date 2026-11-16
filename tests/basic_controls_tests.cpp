@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <span>
@@ -643,7 +644,7 @@ void test_control_back_color_paints_background_once() {
     std::shared_ptr<Control> child = make_control<Control>(StableId("back-color.child"));
     (*child).set_requested_bounds({10.0, 10.0, 60.0, 24.0});
     (*root).add_child(child);
-    (*root).back_color = root_color;
+    (*root).back_color = stxlib::Optional<Color>::of(root_color);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{100.0, 60.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -651,10 +652,10 @@ void test_control_back_color_paints_background_once() {
     RecordingPainter inherited_painter{};
     window.paint(inherited_painter, {0.0, 0.0, 100.0, 60.0});
     require(std::count(inherited_painter.fill_colors.begin(), inherited_painter.fill_colors.end(), root_color) == 1 &&
-                (*child).ambient_back_color() == root_color,
+                (*child).ambient_back_color() == stxlib::Optional<Color>::of(root_color),
             "an inherited background must paint once, on the control that sets it");
 
-    (*child).back_color = child_color;
+    (*child).back_color = stxlib::Optional<Color>::of(child_color);
     RecordingPainter own_painter{};
     window.paint(own_painter, {0.0, 0.0, 100.0, 60.0});
     require(std::count(own_painter.fill_colors.begin(), own_painter.fill_colors.end(), root_color) == 1 &&
@@ -674,7 +675,7 @@ void test_control_back_color_paints_background_once() {
 void test_mnemonics_and_dialog_buttons_are_retained_commands() {
     const MnemonicText escaped = parse_mnemonic_text("Save && E&xit");
     require(escaped.display_text == "Save & Exit" &&
-                escaped.mnemonic == U'x' && is_mnemonic(U'X', "E&xit") &&
+                escaped.mnemonic == stxlib::Optional<char32_t>::of(U'x') && is_mnemonic(U'X', "E&xit") &&
                 is_mnemonic(U'a', "&Save &As") &&
                 !is_mnemonic(U'&', "&&&") &&
                 !is_mnemonic(U'e', "Save && Exit"),
@@ -1353,7 +1354,7 @@ void test_label_line_limit_bounds_hidden_wrapping_work() {
     for (std::size_t index = 0U; index < 4096U; ++index) source.append("one two three x ");
     const std::shared_ptr<Label> label = make_control<Label>(StableId("label.preview-cost"), source);
     (*label).set_requested_bounds({0.0, 0.0, 190.0, 108.0});
-    (*label).font = FontSpec{FontRole::content, 13.0, 400, false};
+    (*label).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 13.0, 400, false});
     (*label).text_wrapping = TextWrapping::word;
     (*label).maximum_lines = 7U;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{190.0, 108.0});
@@ -1536,29 +1537,29 @@ void test_label_inherits_theme_typography_until_explicitly_overridden() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.theme"), "Heading");
     (*label).set_theme_override(Theme::create(definition));
     (*label).text_style_role = TextStyleRole::heading;
-    require(!(*label).font.read().has_value() &&
+    require((*label).font.read().absent() &&
                 (*label).resolved_font() == FontSpec{FontRole::control, 17.0, 650, false,
                                           0.31} &&
-                !(*label).fore_color.read().has_value() &&
+                (*label).fore_color.read().absent() &&
                 (*label).foreground() == themed_text,
             "Label must resolve typography and text color from inherited theme roles");
 
     const FontSpec explicit_font{FontRole::content, 11.0, 500, true};
-    (*label).font = explicit_font;
+    (*label).font = stxlib::Optional<FontSpec>::of(explicit_font);
     (*label).text_style_role = TextStyleRole::title;
-    require((*label).font.read().has_value() && (*label).resolved_font() == explicit_font,
+    require((*label).font.read().present() && (*label).resolved_font() == explicit_font,
             "explicit Label font must remain authoritative across role changes");
-    (*label).font = std::nullopt;
-    require(!(*label).font.read().has_value() &&
+    (*label).font = stxlib::Optional<FontSpec>::none();
+    require((*label).font.read().absent() &&
                 (*label).resolved_font() == FontSpec{FontRole::control, 23.0, 700, false,
                                           0.19},
             "clearing Label font must restore inherited role typography");
 
     constexpr Color explicit_text = Color::rgba(91, 37, 19);
-    (*label).fore_color = explicit_text;
+    (*label).fore_color = stxlib::Optional<Color>::of(explicit_text);
     require((*label).foreground() == explicit_text,
             "explicit Label foreground must override theme text");
-    (*label).fore_color = std::nullopt;
+    (*label).fore_color = stxlib::Optional<Color>::none();
     require((*label).foreground() == themed_text,
             "clearing Label foreground must restore inherited theme text");
 }
@@ -1732,7 +1733,7 @@ void test_public_drawing_metrics_and_control_tag() {
 
 void test_button_disclosure_semantics() {
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.disclosure"), "Options");
-    (*button).expanded_state = false;
+    (*button).expanded_state = stxlib::Optional<bool>::of(false);
     SemanticDescriptor collapsed = (*button).semantic_descriptor();
     require(!has_semantic_state(collapsed.states, SemanticState::expanded) &&
                 std::find(collapsed.actions.begin(), collapsed.actions.end(),
@@ -1745,7 +1746,7 @@ void test_button_disclosure_semantics() {
     require(operation_check_46, "semantic expand must route through the button's shared activation");
     const bool operation_check_47 = activations == 1U;
     require(operation_check_47, "semantic expand must route through the button's shared activation");
-    (*button).expanded_state = true;
+    (*button).expanded_state = stxlib::Optional<bool>::of(true);
     const SemanticDescriptor expanded = (*button).semantic_descriptor();
     require(has_semantic_state(expanded.states, SemanticState::expanded) &&
                 std::find(expanded.actions.begin(), expanded.actions.end(),

@@ -1443,41 +1443,41 @@ Types
 
    .. cpp:member:: std::string description
 
-   .. cpp:member:: std::optional<double> numeric_value
+   .. cpp:member:: stxlib::Optional<double> numeric_value
 
-   .. cpp:member:: std::optional<double> minimum_value
+   .. cpp:member:: stxlib::Optional<double> minimum_value
 
-   .. cpp:member:: std::optional<double> maximum_value
+   .. cpp:member:: stxlib::Optional<double> maximum_value
 
-   .. cpp:member:: std::optional<std::size_t> position_in_set
+   .. cpp:member:: stxlib::Optional<std::size_t> position_in_set
 
-   .. cpp:member:: std::optional<std::size_t> set_size
+   .. cpp:member:: stxlib::Optional<std::size_t> set_size
 
    .. cpp:member:: bool has_popup
 
    .. cpp:member:: std::string controlled_panel
 
-   .. cpp:member:: std::optional<SemanticOrientation> orientation
+   .. cpp:member:: stxlib::Optional<SemanticOrientation> orientation
 
-   .. cpp:member:: std::optional<std::size_t> level
+   .. cpp:member:: stxlib::Optional<std::size_t> level
 
    .. cpp:member:: bool modal
 
-   .. cpp:member:: std::optional<std::size_t> row_index
+   .. cpp:member:: stxlib::Optional<std::size_t> row_index
 
-   .. cpp:member:: std::optional<std::size_t> column_index
+   .. cpp:member:: stxlib::Optional<std::size_t> column_index
 
-   .. cpp:member:: std::optional<std::size_t> row_count
+   .. cpp:member:: stxlib::Optional<std::size_t> row_count
 
-   .. cpp:member:: std::optional<std::size_t> column_count
+   .. cpp:member:: stxlib::Optional<std::size_t> column_count
 
    .. cpp:member:: std::string access_key
 
-   .. cpp:member:: std::optional<double> small_step
+   .. cpp:member:: stxlib::Optional<double> small_step
 
-   .. cpp:member:: std::optional<double> large_step
+   .. cpp:member:: stxlib::Optional<double> large_step
 
-   .. cpp:member:: std::optional<SemanticTextSelection> text_selection
+   .. cpp:member:: stxlib::Optional<SemanticTextSelection> text_selection
 
    .. cpp:member:: bool multiline
 
@@ -1517,41 +1517,41 @@ Types
 
    .. cpp:member:: std::string description
 
-   .. cpp:member:: std::optional<double> numeric_value
+   .. cpp:member:: stxlib::Optional<double> numeric_value
 
-   .. cpp:member:: std::optional<double> minimum_value
+   .. cpp:member:: stxlib::Optional<double> minimum_value
 
-   .. cpp:member:: std::optional<double> maximum_value
+   .. cpp:member:: stxlib::Optional<double> maximum_value
 
-   .. cpp:member:: std::optional<std::size_t> position_in_set
+   .. cpp:member:: stxlib::Optional<std::size_t> position_in_set
 
-   .. cpp:member:: std::optional<std::size_t> set_size
+   .. cpp:member:: stxlib::Optional<std::size_t> set_size
 
    .. cpp:member:: bool has_popup
 
    .. cpp:member:: std::string controlled_panel
 
-   .. cpp:member:: std::optional<SemanticOrientation> orientation
+   .. cpp:member:: stxlib::Optional<SemanticOrientation> orientation
 
-   .. cpp:member:: std::optional<std::size_t> level
+   .. cpp:member:: stxlib::Optional<std::size_t> level
 
    .. cpp:member:: bool modal
 
-   .. cpp:member:: std::optional<std::size_t> row_index
+   .. cpp:member:: stxlib::Optional<std::size_t> row_index
 
-   .. cpp:member:: std::optional<std::size_t> column_index
+   .. cpp:member:: stxlib::Optional<std::size_t> column_index
 
-   .. cpp:member:: std::optional<std::size_t> row_count
+   .. cpp:member:: stxlib::Optional<std::size_t> row_count
 
-   .. cpp:member:: std::optional<std::size_t> column_count
+   .. cpp:member:: stxlib::Optional<std::size_t> column_count
 
    .. cpp:member:: std::string access_key
 
-   .. cpp:member:: std::optional<double> small_step
+   .. cpp:member:: stxlib::Optional<double> small_step
 
-   .. cpp:member:: std::optional<double> large_step
+   .. cpp:member:: stxlib::Optional<double> large_step
 
-   .. cpp:member:: std::optional<SemanticTextSelection> text_selection
+   .. cpp:member:: stxlib::Optional<SemanticTextSelection> text_selection
 
    .. cpp:member:: bool multiline
 

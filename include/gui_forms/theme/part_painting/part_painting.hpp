@@ -7,6 +7,8 @@
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -144,7 +146,7 @@ enum class DockShapeRegion : std::uint8_t { top, bottom, left, right, tab_into }
 // width, the flare by its height, all by maximum_part_shape.
 struct GUI_FORMS_API PartProfile final {
     double taper{};
-    std::optional<Color> taper_colour{};
+    stxlib::Optional<Color> taper_colour{};
     double flare{};
     Color flare_colour{};
     double edge_shadow{};
@@ -241,20 +243,20 @@ struct GUI_FORMS_API PartPaint final {
     ImageId image{};
     // A focus or preselect ring follows the same shape: a connected
     // segment's square corners, for one.
-    std::optional<double> corner_radius{};
+    stxlib::Optional<double> corner_radius{};
     // A pointed face (design language §8.5; owner decision 2026-11-02): the
     // surface's trailing end is a nose this many units long, its tip at the
     // middle of the right edge, as a raised breadcrumb segment's. Only
     // surface roles read it; none is a rectangle. Hit testing uses the same
     // shape (pointed_face_contains).
-    std::optional<double> point{};
+    stxlib::Optional<double> point{};
     // The nose is at the left edge instead, its tip at the middle of the
     // left edge: a right-to-left breadcrumb segment's (Control::
     // right_to_left). Read only with `point`.
     bool point_leading{};
     // The part's profile beside its rectangle (PartProfile), or none. Only
     // surface roles read it; a pointed face ignores it.
-    std::optional<PartProfile> profile{};
+    stxlib::Optional<PartProfile> profile{};
     // Whether the part draws its frame. A surface part with frame none is
     // its material's ground: the material's border and per-edge borders are
     // left out, and its fills, keylines, shadows and shape are kept. It is
@@ -268,7 +270,7 @@ struct GUI_FORMS_API PartPaint final {
     // The part's position in the theme's accent ramp (§8.5), or none. A
     // surface part with an accent is tinted from the ramp over its
     // material; text and mark roles ignore it.
-    std::optional<AccentIndex> accent{};
+    stxlib::Optional<AccentIndex> accent{};
     // The colour the part shows as its content (design language 8.5; owner
     // decision W-7), such as a colour picker's sample, or none. Only the
     // fill role honours it: a fill with a content colour is painted that
@@ -294,7 +296,7 @@ struct GUI_FORMS_API PartPaint final {
     // are dropped. Without the theme engine (no window, or a theme whose
     // rules write no fills for the part), the part draws its recipe and the
     // colour is not shown.
-    std::optional<Color> content_color{};
+    stxlib::Optional<Color> content_color{};
     // The colours an application authored for this part (design language
     // 8.5; owner decision T4-1), or none, such as a DataGridView cell
     // style's BackColor and ForeColor. They stand where an inline style's
@@ -316,14 +318,14 @@ struct GUI_FORMS_API PartPaint final {
     // stands over both; a primitive that draws a theme material takes the
     // background in its material's fills, and a primitive's own colour
     // parameters do not read them.
-    std::optional<Color> authored_background{};
-    std::optional<Color> authored_foreground{};
+    stxlib::Optional<Color> authored_background{};
+    stxlib::Optional<Color> authored_foreground{};
     // The part's identity across frames (T2 GIVEN H3-1), or none. A part
     // with a key has a record in its window's engine part table; one without
     // is drawn statically, with no transitions and no cached raster. It is
     // identity, not vocabulary: it changes nothing a part looks like today.
     // Its views are borrowed for the call.
-    std::optional<PartKey> key{};
+    stxlib::Optional<PartKey> key{};
     // The control type whose theme rules style the part (an anatomy control
     // id, such as "v_scroll_bar"), when a control draws a part on behalf of
     // a stock control it embeds (a scrollable control's built-in scroll
@@ -342,10 +344,10 @@ struct GUI_FORMS_API PartPaint final {
     // (paint_text_part_at does), so the text is not measured again; none
     // otherwise. A cache, not vocabulary: it changes nothing drawn, and a
     // caller that sets it must have measured exactly `text` in `font`.
-    std::optional<Size> measured_text{};
+    stxlib::Optional<Size> measured_text{};
     // The arc and needle roles' angles (PartArc), or none, when neither
     // draws. Every other role ignores them.
-    std::optional<PartArc> arc{};
+    stxlib::Optional<PartArc> arc{};
     // The baked light planes the part is composited from (PartLightPlanes),
     // or none. Such a part is drawn as the bake's light, room · R +
     // Σ colour · power · L_i toned (engine_light::composite_light_planes),

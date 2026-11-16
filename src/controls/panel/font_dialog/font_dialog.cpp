@@ -205,8 +205,8 @@ void FontDialog::show_selection() {
 }
 
 void FontDialog::on_face_selected(const ListSelectionChange& change) {
-    if (synchronizing_ || !change.active_index) return;
-    const std::size_t index = *change.active_index;
+    if (synchronizing_ || change.active_index.absent()) return;
+    const std::size_t index = *change.active_index.value();
     if (index >= bundled_faces.size()) return;
     FontSpec next = selection_;
     next.role = bundled_faces[index].role;
@@ -215,8 +215,8 @@ void FontDialog::on_face_selected(const ListSelectionChange& change) {
 }
 
 void FontDialog::on_style_selected(const ListSelectionChange& change) {
-    if (synchronizing_ || !change.active_index || *change.active_index >= styles_.size()) return;
-    const FontStyle style = styles_[*change.active_index];
+    if (synchronizing_ || change.active_index.absent() || *change.active_index.value() >= styles_.size()) return;
+    const FontStyle style = styles_[*change.active_index.value()];
     const bool bold = style == FontStyle::bold || style == FontStyle::bold_italic;
     selection_.weight = static_cast<std::uint16_t>(bold ? 700U : 400U);
     selection_.italic = style == FontStyle::italic || style == FontStyle::bold_italic;

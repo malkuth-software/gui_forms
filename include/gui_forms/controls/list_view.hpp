@@ -24,6 +24,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class HScrollBar;
@@ -100,7 +102,7 @@ public:
 struct GUI_FORMS_API ListViewSelectionChange final {
     std::string list_id{};
     std::size_t selected_count{};
-    std::optional<std::size_t> focused_index{};
+    stxlib::Optional<std::size_t> focused_index{};
 };
 
 // An item activated by a double click, Enter, or the semantic press action
@@ -189,7 +191,7 @@ struct GUI_FORMS_API ListViewSpliceRemap final {
     std::size_t first{};
     std::size_t removed_end{};
     std::size_t inserted{};
-    [[nodiscard]] std::optional<std::size_t> apply(std::optional<std::size_t> index) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> apply(stxlib::Optional<std::size_t> index) const noexcept;
 };
 
 class GUI_FORMS_API ListView final : public Control, public ListViewCapabilities<ListView> {
@@ -229,7 +231,7 @@ public:
     [[nodiscard]] std::size_t item_count() const noexcept;
     // The index of the item with this ID in an ordinary view; none in
     // virtual mode or when no item has it.
-    [[nodiscard]] std::optional<std::size_t> index_of(std::string_view item_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> index_of(std::string_view item_id) const;
 
     // Groups (Windows Forms' Groups, ShowGroups and DefaultGroup). While
     // show_groups is on, the view has groups, it is not virtual and not the
@@ -288,9 +290,19 @@ public:
     void select_all();
     void clear_selection();
     // The item with the focus cue and the keyboard's position, if any.
-    [[nodiscard]] std::optional<std::size_t> focused_index() const noexcept { return focused_index_; }
+    [[nodiscard]] stxlib::Optional<std::size_t> focused_index() const noexcept { return focused_index_; }
     // Throws std::out_of_range for an index past the end.
-    void set_focused_index(std::optional<std::size_t> index);
+    void set_focused_index(stxlib::Optional<std::size_t> index);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<std::size_t>")]]
+    void set_focused_index(std::optional<std::size_t> index) {
+        stxlib::Optional<std::size_t> owned{};
+        if (index.has_value()) owned.set(*index);
+        set_focused_index(owned);
+    }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::size_t>::of(value).
+    void set_focused_index(std::size_t index) = delete;
 
     // The first item laid out in the visible area.
     [[nodiscard]] std::size_t top_index() const;
@@ -302,9 +314,19 @@ public:
 
     // The sort glyph shown on one column header. The view never reorders
     // items for it. Throws std::out_of_range for a column past the end.
-    [[nodiscard]] std::optional<std::size_t> sort_column() const noexcept { return sort_column_; }
+    [[nodiscard]] stxlib::Optional<std::size_t> sort_column() const noexcept { return sort_column_; }
     [[nodiscard]] ListViewSortOrder sort_order() const noexcept { return sort_order_; }
-    void set_sort_indicator(std::optional<std::size_t> column, ListViewSortOrder order);
+    void set_sort_indicator(stxlib::Optional<std::size_t> column, ListViewSortOrder order);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<std::size_t>")]]
+    void set_sort_indicator(std::optional<std::size_t> column, ListViewSortOrder order) {
+        stxlib::Optional<std::size_t> owned{};
+        if (column.has_value()) owned.set(*column);
+        set_sort_indicator(owned, order);
+    }
+    // A plain value is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<std::size_t>::of(value).
+    void set_sort_indicator(std::size_t column, ListViewSortOrder order) = delete;
     // A helper the application may call from column_click: stable-sorts an
     // ordinary view's items by one column's text (ASCII case folded, then
     // byte order) and shows the sort glyph. The selection and focus follow
@@ -322,7 +344,7 @@ public:
     [[nodiscard]] Event<ItemContentPaint&>& draw_item_content() noexcept { return draw_item_content_; }
 
     // The item under a point in window coordinates, if any.
-    [[nodiscard]] std::optional<std::size_t> item_index_at(Point window_point) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> item_index_at(Point window_point) const;
 
     // The insertion mark (Windows Forms' InsertionMark), for an application
     // that reorders items by dragging: a bar in the gap beside an item, the
@@ -336,13 +358,13 @@ public:
     // not admitted.
     bool show_insertion_mark(ListViewInsertionMark mark);
     void clear_insertion_mark() noexcept;
-    [[nodiscard]] std::optional<ListViewInsertionMark> insertion_mark() const noexcept { return insertion_mark_; }
+    [[nodiscard]] stxlib::Optional<ListViewInsertionMark> insertion_mark() const noexcept { return insertion_mark_; }
     // The mark nearest a point in window coordinates (Windows Forms'
     // InsertionMark.NearestIndex): beside the shown item under the point,
     // or nearest it once the point is clamped into the viewport, after the
     // item when the point is past the item's middle across the gap. None
     // when the view shows no items.
-    [[nodiscard]] std::optional<ListViewInsertionMark> insertion_mark_at(Point window_point) const;
+    [[nodiscard]] stxlib::Optional<ListViewInsertionMark> insertion_mark_at(Point window_point) const;
 
     // Begins editing the label of the item at `index`, after committing any
     // other edit in progress: raises before_label_edit, scrolls the item into
@@ -357,7 +379,7 @@ public:
     // Cancels the edit in progress, if any.
     void cancel_label_edit();
     // The item in edit, if any.
-    [[nodiscard]] std::optional<std::size_t> label_edit_index() const noexcept { return label_edit_index_; }
+    [[nodiscard]] stxlib::Optional<std::size_t> label_edit_index() const noexcept { return label_edit_index_; }
     // The editor; null until the view's first edit.
     [[nodiscard]] std::shared_ptr<TextBox> label_editor() const noexcept { return label_editor_; }
 
@@ -600,7 +622,7 @@ private:
     [[nodiscard]] std::size_t next_item_line(const Layout& placed, std::size_t line, bool forward) const noexcept;
     // Scrolls so `line` is the top line.
     void store_top_line(const Layout& placed, std::size_t line);
-    [[nodiscard]] std::optional<std::size_t> grouped_navigation_target(std::uint32_t key, std::size_t from,
+    [[nodiscard]] stxlib::Optional<std::size_t> grouped_navigation_target(std::uint32_t key, std::size_t from,
                                                                        const Layout& placed) const;
     [[nodiscard]] std::size_t realized_group_count(const Layout& placed) const noexcept;
     // The band of the realized group at `position` among the shown headers.
@@ -716,10 +738,10 @@ private:
     void schedule_label_click(std::size_t index);
     void cancel_label_click() noexcept;
     void label_click_elapsed();
-    [[nodiscard]] std::optional<std::size_t> navigation_target(std::uint32_t key, std::size_t from,
+    [[nodiscard]] stxlib::Optional<std::size_t> navigation_target(std::uint32_t key, std::size_t from,
                                                                const Layout& placed) const;
     void type_select(std::string_view text);
-    [[nodiscard]] std::optional<std::size_t> realized_index_of(std::string_view item_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> realized_index_of(std::string_view item_id) const;
     void reset_after_model_change(std::size_t count);
 
     std::vector<ListViewColumn> columns_{};
@@ -730,29 +752,29 @@ private:
     // One flag per item: nonzero when selected.
     std::vector<std::uint8_t> selected_{};
     std::size_t selected_count_{};
-    std::optional<std::size_t> focused_index_{};
-    std::optional<std::size_t> anchor_index_{};
-    std::optional<std::size_t> hot_index_{};
-    std::optional<std::size_t> hot_column_{};
+    stxlib::Optional<std::size_t> focused_index_{};
+    stxlib::Optional<std::size_t> anchor_index_{};
+    stxlib::Optional<std::size_t> hot_index_{};
+    stxlib::Optional<std::size_t> hot_column_{};
     // The in-place reveal of the hot item's cut-off text; owned, created
     // with the view.
     std::unique_ptr<detail::CutOffTextRevealer> reveal_;
-    std::optional<ListViewInsertionMark> insertion_mark_{};
+    stxlib::Optional<ListViewInsertionMark> insertion_mark_{};
     // Set while close_label_editor moves focus, so that the editor's focus
     // loss does not end the edit a second time.
     bool closing_label_editor_{};
-    std::optional<std::size_t> label_edit_index_{};
+    stxlib::Optional<std::size_t> label_edit_index_{};
     std::string label_edit_item_id_{};
     std::shared_ptr<TextBox> label_editor_{};
     SubscriptionToken label_editor_focus_{};
-    std::optional<PendingLabelClick> label_click_{};
+    stxlib::Optional<PendingLabelClick> label_click_{};
     FrameRequestToken label_click_timer_{};
-    std::optional<std::size_t> pressed_column_{};
+    stxlib::Optional<std::size_t> pressed_column_{};
     // A primary press this view took (an item, a check box or the empty
     // viewport): its release is this view's too, so the window sees the
     // click handled whole.
     bool primary_press_taken_{};
-    std::optional<std::size_t> resizing_column_{};
+    stxlib::Optional<std::size_t> resizing_column_{};
     double resize_start_x_{};
     double resize_start_width_{};
     // The first visible item's display position; the layout shows the line
@@ -770,7 +792,7 @@ private:
     mutable std::uint64_t display_revision_{};
     mutable bool display_valid_{};
     double horizontal_offset_{};
-    std::optional<std::size_t> sort_column_{};
+    stxlib::Optional<std::size_t> sort_column_{};
     ListViewSortOrder sort_order_{ListViewSortOrder::none};
     // Moves with every change to the items, their order, the columns or the
     // view, so that a paint can tell an owner-draw handler changed them.

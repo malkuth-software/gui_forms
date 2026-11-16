@@ -4,6 +4,8 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/pages/types/page_set_types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -83,7 +85,7 @@ public:
 
     // The position of `id`, or none when it is not in the set. Linear in the
     // count.
-    [[nodiscard]] std::optional<PagePosition> find(const PageId& id) const;
+    [[nodiscard]] stxlib::Optional<PagePosition> find(const PageId& id) const;
     // Throws std::out_of_range when `position` is not below `count()`. The
     // reference is valid until the next edit.
     [[nodiscard]] const PageRecord& record_at(PagePosition position) const;

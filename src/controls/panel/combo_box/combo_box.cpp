@@ -46,7 +46,7 @@ ComboBox::ComboBox(StableId stable_id) : ListControl(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 BindingValue ComboBox::items_property_value() const {
@@ -84,8 +84,8 @@ bool ComboBox::should_serialize_items_property() const noexcept {
 }
 
 BindingValue ComboBox::selected_index_property_value() const {
-    return BindingValue{selected_index_
-        ? static_cast<std::int64_t>(*selected_index_)
+    return BindingValue{selected_index_.present()
+        ? static_cast<std::int64_t>(*selected_index_.value())
         : std::int64_t{-1}};
 }
 
@@ -98,14 +98,14 @@ void ComboBox::set_selected_index_property(const BindingValue& value) {
     }
     const std::int64_t index = std::get<std::int64_t>(*converted);
     if (index == -1) {
-        selected_index = std::nullopt;
+        selected_index = stxlib::Optional<std::size_t>::none();
         return;
     }
     if (index < 0) {
         throw std::out_of_range(
             "ComboBox.SelectedIndex binding must be -1 or non-negative");
     }
-    selected_index = static_cast<std::size_t>(index);
+    selected_index = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(index));
 }
 
 void ComboBox::reset_text_property() {
@@ -113,12 +113,12 @@ void ComboBox::reset_text_property() {
         text = std::string{};
         return;
     }
-    selected_index = std::nullopt;
+    selected_index = stxlib::Optional<std::size_t>::none();
 }
 
 bool ComboBox::should_serialize_text_property() const noexcept {
     if (editor_) return !(*editor_).text.read().empty();
-    return selected_index_.has_value();
+    return selected_index_.present();
 }
 
 ComboBox::~ComboBox() {
@@ -152,9 +152,9 @@ void ComboBox::write_view(const decltype(text)&, std::string incoming) {
     const std::span<const std::string> listed = items.read();
     const std::span<const std::string>::iterator found = std::find(listed.begin(), listed.end(), incoming);
     selected_index = found == listed.end()
-        ? std::optional<std::size_t>{}
-        : std::optional<std::size_t>{static_cast<std::size_t>(
-              std::distance(listed.begin(), found))};
+        ? stxlib::Optional<std::size_t>::none()
+        : stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(
+              std::distance(listed.begin(), found)));
 }
 
 void ComboBox::prepare_write(const decltype(drop_down_style)&, ComboBoxStyle&) {
@@ -257,12 +257,12 @@ void ComboBox::compute_rows(std::string_view pattern) {
     }
 }
 
-std::optional<std::size_t> ComboBox::row_of_item(std::optional<std::size_t> item) const noexcept {
-    if (!item) return std::nullopt;
+stxlib::Optional<std::size_t> ComboBox::row_of_item(stxlib::Optional<std::size_t> item) const noexcept {
+    if (item.absent()) return stxlib::Optional<std::size_t>::none();
     for (std::size_t row = 0U; row < rows_.size(); ++row) {
-        if (rows_[row] == *item) return row;
+        if (rows_[row] == *item.value()) return stxlib::Optional<std::size_t>::of(row);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 double ComboBox::drop_down_height(std::size_t rows) const {
@@ -290,9 +290,9 @@ void ComboBox::show_rows() {
         list.set_item_stable_ids(std::move(identities));
     }
     list.set_matches(row_matches_);
-    const std::optional<std::size_t> row = row_of_item(selected_index_);
-    if (row) {
-        list.select_index(*row);
+    const stxlib::Optional<std::size_t> row = row_of_item(selected_index_);
+    if (row.present()) {
+        list.select_index(*row.value());
     } else {
         list.clear_selection();
     }
@@ -324,14 +324,14 @@ void ComboBox::refresh_open_rows(std::string_view pattern) {
 
 bool ComboBox::step_row(std::uint32_t key) {
     if (rows_.empty()) return false;
-    const std::optional<std::size_t> row = row_of_item(selected_index_);
+    const stxlib::Optional<std::size_t> row = row_of_item(selected_index_);
     if (key != PhysicalKey::down && key != PhysicalKey::up) return false;
     // From no selected row either key goes to the first row; otherwise one
     // row on, stopping at the ends.
     std::size_t next = 0U;
-    if (row && key == PhysicalKey::down) next = std::min(*row + 1U, rows_.size() - 1U);
-    if (row && key == PhysicalKey::up && *row > 0U) next = *row - 1U;
-    selected_index = rows_[next];
+    if (row.present() && key == PhysicalKey::down) next = std::min(*row.value() + 1U, rows_.size() - 1U);
+    if (row.present() && key == PhysicalKey::up && *row.value() > 0U) next = *row.value() - 1U;
+    selected_index = stxlib::Optional<std::size_t>::of(rows_[next]);
     return true;
 }
 
@@ -394,12 +394,12 @@ void ComboBox::editor_focus_changed(bool focused) {
 void ComboBox::match_editor_text() {
     if (!editor_) return;
     const std::string typed = (*editor_).text.read();
-    std::optional<std::size_t> found{};
+    stxlib::Optional<std::size_t> found{};
     for (std::size_t index = 0U; index < items.read().size(); ++index) {
         // Equal ignoring ASCII case: as long as the text, and a prefix match.
         const bool same_length = items[index].size() == typed.size();
         if (same_length && find_text_match(items[index], typed, TextMatchMode::prefix, false)) {
-            found = index;
+            found.set(index);
             break;
         }
     }
@@ -410,9 +410,9 @@ void ComboBox::match_editor_text() {
         // Moving the list's row must not show the item's text over the
         // text the user is typing.
         synchronizing_list_ = true;
-        const std::optional<std::size_t> row = row_of_item(found);
-        if (row) {
-            (*overlay_list_).select_index(*row);
+        const stxlib::Optional<std::size_t> row = row_of_item(found);
+        if (row.present()) {
+            (*overlay_list_).select_index(*row.value());
         } else {
             (*overlay_list_).clear_selection();
         }
@@ -423,8 +423,8 @@ void ComboBox::match_editor_text() {
 }
 
 void ComboBox::overlay_selection_changed(const ListSelectionChange& change) {
-    if (synchronizing_list_ || !change.active_index || *change.active_index >= rows_.size()) return;
-    selected_index = rows_[*change.active_index];
+    if (synchronizing_list_ || change.active_index.absent() || *change.active_index.value() >= rows_.size()) return;
+    selected_index = stxlib::Optional<std::size_t>::of(rows_[*change.active_index.value()]);
 }
 
 void ComboBox::on_anchored_dismissal(OverlayDismissReason) {
@@ -445,7 +445,7 @@ bool ComboBox::step_selection(std::uint32_t key) {
     } else {
         return false;
     }
-    selected_index = next;
+    selected_index = stxlib::Optional<std::size_t>::of(next);
     return true;
 }
 
@@ -457,7 +457,7 @@ void ComboBox::prepare_edit(const decltype(items)&, const CollectionEdit& edit, 
         }
     }
     edit_selection_.reset();
-    if (selected_index_) edit_selection_ = edit.remap(*selected_index_);
+    if (selected_index_.present()) edit_selection_ = edit.remap(*selected_index_.value());
     edit_former_text_.assign(selected_text());
 }
 
@@ -497,21 +497,21 @@ void ComboBox::written(const decltype(items)&, const CollectionEdit&) {
     publish_change(items_changed_);
 }
 
-std::optional<std::size_t> ComboBox::read_view(const decltype(selected_index)&) const {
+stxlib::Optional<std::size_t> ComboBox::read_view(const decltype(selected_index)&) const {
     return selected_index_;
 }
 
 // The editor shows a chosen item even when it is already selected (the
 // text may have been edited since); the selection is set here rather than
 // matched from the text.
-void ComboBox::write_view(const decltype(selected_index)&, std::optional<std::size_t> incoming) {
+void ComboBox::write_view(const decltype(selected_index)&, stxlib::Optional<std::size_t> incoming) {
     require_mutable();
-    if (incoming && *incoming >= items.read().size()) {
+    if (incoming.present() && *incoming.value() >= items.read().size()) {
         throw std::out_of_range("ComboBox selection index is outside the collection");
     }
-    if (editor_ && incoming) {
+    if (editor_ && incoming.present()) {
         synchronizing_text_ = true;
-        (*editor_).text = items[*incoming];
+        (*editor_).text = items[*incoming.value()];
         synchronizing_text_ = false;
         if (!is_alive()) return;
     }
@@ -520,8 +520,8 @@ void ComboBox::write_view(const decltype(selected_index)&, std::optional<std::si
     static_cast<void>(record_selected_index(selected_index_));
     if (overlay_list_) {
         synchronizing_list_ = true;
-        const std::optional<std::size_t> row = row_of_item(incoming);
-        if (row) (*overlay_list_).select_index(*row);
+        const stxlib::Optional<std::size_t> row = row_of_item(incoming);
+        if (row.present()) (*overlay_list_).select_index(*row.value());
         else (*overlay_list_).clear_selection();
         synchronizing_list_ = false;
     }
@@ -532,7 +532,7 @@ void ComboBox::write_view(const decltype(selected_index)&, std::optional<std::si
 }
 
 std::string_view ComboBox::selected_text() const noexcept {
-    return selected_index_ ? std::string_view(items[*selected_index_])
+    return selected_index_.present() ? std::string_view(items[*selected_index_.value()])
                            : std::string_view{};
 }
 
@@ -626,8 +626,8 @@ void ComboBox::open_drop_down(std::string_view pattern) {
     (*list).font = font.read();
     (*list).set_requested_bounds(
         {overlay_x, overlay_y, overlay_width, overlay_height});
-    if (selected_index_) {
-        (*list).select_index(*selected_index_);
+    if (selected_index_.present()) {
+        (*list).select_index(*selected_index_.value());
     }
     OverlayToken overlay_token = (*window()).open_overlay(shared_from_this(), layer);
     // In a Popup the list may reach past the owner onto the desktop; the
@@ -785,7 +785,7 @@ void ComboBox::on_overlay_revoked() {
 
 void ComboBox::commit_overlay_selection(std::size_t row) {
     if (row >= rows_.size()) return;
-    selected_index = rows_[row];
+    selected_index = stxlib::Optional<std::size_t>::of(rows_[row]);
     close_drop_down();
 }
 
@@ -802,17 +802,17 @@ void ComboBox::commit_overlay_selection(std::size_t row) {
 void ComboBox::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ground{};
-    std::optional<Color> ink{};
-    if (has_background_override() || has_style_override()) ground = background();
-    if (has_style_override()) ink = style().text;
+    stxlib::Optional<Color> ground{};
+    stxlib::Optional<Color> ink{};
+    if (has_background_override() || has_style_override()) ground.set(background());
+    if (has_style_override()) ink.set(style().text);
     PartPaint well;
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.bounds = bounds;
     well.states = states;
     well.authored_background = ground;
-    well.key = PartKey{"well", {}, {}};
+    well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
     const double button_width = std::min(24.0, bounds.width);
     // Laid out left to right; a combo box that resolves right to left
@@ -825,7 +825,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
                         std::max(0.0, button_width - 1.0), std::max(0.0, bounds.height - 2.0)};
     if (mirrored) drop_down.bounds = horizontally_mirrored(drop_down.bounds, bounds);
     drop_down.states = states;
-    drop_down.key = PartKey{"drop_down", {}, {}};
+    drop_down.key.set(PartKey{"drop_down", {}, {}});
     paint_part(painter, *this, drop_down);
     PartPaint divider;
     divider.family = ControlVisualRole::choice;
@@ -833,7 +833,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     divider.bounds = {bounds.width - button_width - 0.5, 1.0, 1.0, std::max(0.0, bounds.height - 2.0)};
     if (mirrored) divider.bounds = horizontally_mirrored(divider.bounds, bounds);
     divider.states = states;
-    divider.key = PartKey{"divider", {}, {}};
+    divider.key.set(PartKey{"divider", {}, {}});
     paint_part(painter, *this, divider);
     // The 7 x 4 arrow, which flips and moves when the list is open. The
     // arrow mark draws half its square's side in rows, so the square is 8
@@ -849,17 +849,17 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     if (mirrored) disclosure.bounds = horizontally_mirrored(disclosure.bounds, bounds);
     disclosure.states = states;
     disclosure.authored_foreground = ink;
-    disclosure.key = PartKey{"disclosure", {}, {}};
+    disclosure.key.set(PartKey{"disclosure", {}, {}});
     paint_part(painter, *this, disclosure);
     // The drop_down style's editor shows its own text; otherwise the field
     // shows the selected item, or the placeholder without one.
     std::string_view field_text{};
-    if (!editor_) field_text = selected_index_ ? selected_text() : std::string_view(placeholder_text.read());
+    if (!editor_) field_text = selected_index_.present() ? selected_text() : std::string_view(placeholder_text.read());
     const ControlVisualContext context = part_visual_context(*this, states);
     const ControlVisualRecipe& editor_recipe = effective_theme().resolve(ControlVisualRole::editor, context);
-    std::optional<Color> text_ink{};
-    if (!selected_index_) text_ink = editor_recipe.muted_text;
-    else if (ink && effectively_enabled()) text_ink = *ink;
+    stxlib::Optional<Color> text_ink{};
+    if (selected_index_.absent()) text_ink.set(editor_recipe.muted_text);
+    else if (ink.present() && effectively_enabled()) text_ink = ink;
     // The content part centres its line box on its bounds, so the bounds are
     // that box on the field's baseline, ending left of the button.
     const FontSpec field_font = text_font(font.read());
@@ -876,7 +876,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     content.bounds = {7.0, baseline - box_ascent, std::max(0.0, bounds.width - button_width - 10.0), box_height};
     if (mirrored) content.bounds = horizontally_mirrored(content.bounds, bounds);
     content.authored_foreground = text_ink;
-    content.key = PartKey{"content", {}, {}};
+    content.key.set(PartKey{"content", {}, {}});
     paint_part(painter, *this, content);
     if (focused_ || dropped_down_) {
         PartPaint ring;

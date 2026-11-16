@@ -167,7 +167,7 @@ void RibbonFontControl::write_view(const decltype(value)&, FontChoice incoming) 
 
 // -- synchronization ---------------------------------------------------------------
 
-void RibbonFontControl::FieldChanged::operator()(std::optional<std::size_t> index) const {
+void RibbonFontControl::FieldChanged::operator()(stxlib::Optional<std::size_t> index) const {
     const std::shared_ptr<RibbonFontControl> control = target.lock();
     if (control && (*control).is_alive()) (*control).field_changed(field, index);
 }
@@ -186,15 +186,16 @@ void RibbonFontControl::CommandStateChanged::operator()(const CommandState&) con
 
 // The user chose in a field: the other half of the value is kept, and the
 // choice commits to the command (or becomes the control's own value).
-void RibbonFontControl::field_changed(Field field, std::optional<std::size_t> index) {
-    if (synchronizing_ || !index) return;
+void RibbonFontControl::field_changed(Field field, stxlib::Optional<std::size_t> index) {
+    if (synchronizing_ || index.absent()) return;
+    const std::size_t picked = *index.value();
     FontChoice chosen = value.read();
     if (field == Field::family) {
-        if (*index >= families_.size()) return;
-        chosen.family = families_[*index];
+        if (picked >= families_.size()) return;
+        chosen.family = families_[picked];
     } else {
-        if (*index >= sizes_.size()) return;
-        chosen.size = sizes_[*index];
+        if (picked >= sizes_.size()) return;
+        chosen.size = sizes_[picked];
     }
     if (command.read()) {
         const Control::Ptr lifetime = shared_from_this();
@@ -211,13 +212,13 @@ void RibbonFontControl::field_changed(Field field, std::optional<std::size_t> in
 // Shows `value` in the fields; a half that is unknown or not listed shows
 // empty.
 void RibbonFontControl::show(const FontChoice& value) {
-    std::optional<std::size_t> family{};
+    stxlib::Optional<std::size_t> family{};
     for (std::size_t index = 0; index < families_.size(); ++index) {
-        if (families_[index] == value.family) family = index;
+        if (families_[index] == value.family) family.set(index);
     }
-    std::optional<std::size_t> size{};
+    stxlib::Optional<std::size_t> size{};
     for (std::size_t index = 0; index < sizes_.size(); ++index) {
-        if (sizes_[index] == value.size) size = index;
+        if (sizes_[index] == value.size) size.set(index);
     }
     synchronizing_ = true;
     if ((*family_).selected_index.read() != family) (*family_).selected_index = family;

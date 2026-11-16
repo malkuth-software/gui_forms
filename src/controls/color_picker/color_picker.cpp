@@ -111,7 +111,7 @@ constexpr std::array<InteractionDeclaration, 2> color_picker_interactions{{
 
 ColorPicker::ColorPicker(StableId stable_id, Color initial_value) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
     value = initial_value;
     // The write above runs written only when the colour differs from the
     // cell's initial white; place the thumbs either way.
@@ -390,31 +390,31 @@ void ColorPicker::on_paint(Painter& painter, Rect) {
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.states = states;
-    well.corner_radius = 0.0;
+    well.corner_radius.set(0.0);
     well.bounds = layout.field;
-    well.key = PartKey{"field", {}, {}};
+    well.key.set(PartKey{"field", {}, {}});
     const Color pure_hue = color_of(ColorPickerHsv{hsv_.hue, 1.0, 1.0}, 255U);
-    well.content_color = pure_hue;
+    well.content_color.set(pure_hue);
     paint_part(painter, *this, well);
     // The spectrum is content as well (its rule names its colours and reads
     // no currentcolor): marked so, forced high contrast frames it rather
     // than replacing it, and a derived dark variant does not darken it.
     well.bounds = layout.hue_track;
-    well.key = PartKey{"hue_track", {}, {}};
-    well.content_color = pure_hue;
+    well.key.set(PartKey{"hue_track", {}, {}});
+    well.content_color.set(pure_hue);
     paint_part(painter, *this, well);
     const Color shown = value.read();
     if (alpha_enabled.read()) {
         well.bounds = layout.alpha_track;
-        well.key = PartKey{"alpha_track", {}, {}};
+        well.key.set(PartKey{"alpha_track", {}, {}});
         Color opaque = shown;
         opaque.alpha = 255U;
-        well.content_color = opaque;
+        well.content_color.set(opaque);
         paint_part(painter, *this, well);
     }
     well.bounds = layout.swatch;
-    well.key = PartKey{"swatch", {}, {}};
-    well.content_color = shown;
+    well.key.set(PartKey{"swatch", {}, {}});
+    well.content_color.set(shown);
     paint_part(painter, *this, well);
 
     PartPaint thumb;
@@ -422,14 +422,14 @@ void ColorPicker::on_paint(Painter& painter, Rect) {
     thumb.role = PartRole::thumb;
     thumb.states = states;
     thumb.bounds = field_thumb_bounds(layout);
-    thumb.key = PartKey{"field_thumb", {}, {}};
+    thumb.key.set(PartKey{"field_thumb", {}, {}});
     paint_part(painter, *this, thumb);
     thumb.bounds = hue_thumb_bounds(layout);
-    thumb.key = PartKey{"hue_thumb", {}, {}};
+    thumb.key.set(PartKey{"hue_thumb", {}, {}});
     paint_part(painter, *this, thumb);
     if (alpha_enabled.read()) {
         thumb.bounds = alpha_thumb_bounds(layout);
-        thumb.key = PartKey{"alpha_thumb", {}, {}};
+        thumb.key.set(PartKey{"alpha_thumb", {}, {}});
         paint_part(painter, *this, thumb);
     }
     if (focused_) {
@@ -439,8 +439,8 @@ void ColorPicker::on_paint(Painter& painter, Rect) {
         focus.states = states;
         focus.states.insert(AnatomyState::focus_visible);
         focus.bounds = layout.field;
-        focus.corner_radius = 0.0;
-        focus.key = PartKey{"focus", {}, {}};
+        focus.corner_radius.set(0.0);
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }

@@ -109,7 +109,7 @@ TextBox::TextBox(StableId stable_id, std::string initial_text)
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
 }
 
@@ -695,7 +695,7 @@ PartPaint TextBox::text_part_template(FontSpec part_font, bool selected) const {
     part.states = text_states();
     if (selected) part.states.insert(AnatomyState::selected);
     part.font = part_font;
-    if (!themed) part.authored_foreground = selected ? style().highlight : style().text;
+    if (!themed) part.authored_foreground.set(selected ? style().highlight : style().text);
     return part;
 }
 
@@ -710,7 +710,7 @@ void TextBox::paint_selection_band(Painter& painter, Rect band) const {
     plate.states = text_states();
     plate.states.insert(AnatomyState::selected);
     plate.states.insert(AnatomyState::focused);
-    if (!themed) plate.authored_background = style().accent;
+    if (!themed) plate.authored_background.set(style().accent);
     paint_part(painter, *this, plate);
 }
 
@@ -720,7 +720,7 @@ void TextBox::paint_caret(Painter& painter, Rect caret) const {
     part.role = PartRole::caret;
     part.bounds = caret;
     part.states = text_states();
-    if (has_background_override() || has_style_override()) part.authored_foreground = style().text;
+    if (has_background_override() || has_style_override()) part.authored_foreground.set(style().text);
     paint_part(painter, *this, part);
 }
 
@@ -877,7 +877,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         // Keyed by its part's name, so that `text-box::part(well)` styles
         // the field as `:family(editor)` does (a rule naming a part matches
         // only a keyed part).
-        well.key = PartKey{"well", {}, {}};
+        well.key.set(PartKey{"well", {}, {}});
         well.frame = border_style.read() == BorderStyle::none ? PartFrame::none : PartFrame::drawn;
         paint_part(painter, *this, well);
     } else {
@@ -980,7 +980,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
     }
     PartPaint text_part = text_part_template(content_font, false);
     text_part.text = lend_paint_text(presented);
-    text_part.measured_text = presented_size;
+    text_part.measured_text.set(presented_size);
     if (!(*editing_).store().utf8().empty() && (!focused_ || (*editing_).selection().empty())) {
         paint_text_part_at(painter, *this, text_part, {origin_x, baseline}, 0.0);
     } else if (!(*editing_).store().utf8().empty()) {
@@ -988,7 +988,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         // in the text's ink to either side.
         PartPaint selected_part = text_part_template(content_font, true);
         selected_part.text = lend_paint_text(presented);
-        selected_part.measured_text = presented_size;
+        selected_part.measured_text.set(presented_size);
         const double band_width = std::max(0.0, selection_end_x - selection_x);
         const double band_right = selection_x + band_width;
         const double height = std::max(0.0, bounds.height - 4.0);
@@ -1385,7 +1385,8 @@ SemanticDescriptor TextBox::semantic_descriptor() const {
     // The selection and caret index the value (A-T1, 12.13); a password box
     // publishes neither its text nor where in it the caret is.
     if (!password_protected()) {
-        descriptor.text_selection = SemanticTextSelection{.anchor = (*editing_).selection().anchor, .caret = (*editing_).selection().caret};
+        descriptor.text_selection.set(
+            SemanticTextSelection{.anchor = (*editing_).selection().anchor, .caret = (*editing_).selection().caret});
     }
     descriptor.multiline = multiline.read();
     descriptor.actions = {SemanticAction::focus};

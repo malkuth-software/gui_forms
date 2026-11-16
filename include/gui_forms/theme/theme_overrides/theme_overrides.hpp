@@ -24,6 +24,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -86,7 +87,18 @@ public:
     // Redefines a colour role: `foreground` alone for a single role,
     // `foreground` on `background` for a paired one (colour_role_paired).
     // Setting a role again replaces its colours in place.
-    ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, std::optional<Color> background = {});
+    ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, stxlib::Optional<Color> background = {});
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<Color>")]]
+    ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, std::optional<Color> background) {
+        stxlib::Optional<Color> owned{};
+        if (background.has_value()) owned.set(*background);
+        const ThemeOverrideCheck check = set_role_colour(role, foreground, owned);
+        return check;
+    }
+    // A plain background is refused rather than routed to the deprecated
+    // form: pass stxlib::Optional<Color>::of(background).
+    ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, Color background) = delete;
     // Sets a colour property (background_colour, border_colour or
     // text_colour) for `target`. Setting the same target and property
     // again replaces the value in place.
@@ -111,7 +123,7 @@ private:
     struct RoleEntry final {
         ColourRole role{};
         Color foreground{};
-        std::optional<Color> background{};
+        stxlib::Optional<Color> background{};
     };
     struct PropertyEntry final {
         ThemeOverrideTarget target{};

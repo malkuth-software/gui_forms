@@ -142,7 +142,7 @@
     {
       "name": "low_alarm",
       "capability": "GaugeBaseLowAlarm",
-      "value": "std::optional<double>",
+      "value": "stxlib::Optional<double>",
       "initial": null,
       "comment": "The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.",
       "getter": "low_alarm",
@@ -156,14 +156,15 @@
       "table": null,
       "effects": "Dirty::paint | Dirty::semantics",
       "prepare": [
-        "if (incoming && !std::isfinite(*incoming)) throw std::invalid_argument(\"gauge alarm must be finite\");"
+        "const double* incoming_value = incoming.value();",
+        "if (incoming_value != nullptr && !std::isfinite(*incoming_value)) throw std::invalid_argument(\"gauge alarm must be finite\");"
       ],
-      "sample": "std::optional<double>{10.0}"
+      "sample": "stxlib::Optional<double>::of(10.0)"
     },
     {
       "name": "high_alarm",
       "capability": "GaugeBaseHighAlarm",
-      "value": "std::optional<double>",
+      "value": "stxlib::Optional<double>",
       "initial": null,
       "comment": "The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.",
       "getter": "high_alarm",
@@ -177,9 +178,10 @@
       "table": null,
       "effects": "Dirty::paint | Dirty::semantics",
       "prepare": [
-        "if (incoming && !std::isfinite(*incoming)) throw std::invalid_argument(\"gauge alarm must be finite\");"
+        "const double* incoming_value = incoming.value();",
+        "if (incoming_value != nullptr && !std::isfinite(*incoming_value)) throw std::invalid_argument(\"gauge alarm must be finite\");"
       ],
-      "sample": "std::optional<double>{90.0}"
+      "sample": "stxlib::Optional<double>::of(90.0)"
     }
   ]
 }
