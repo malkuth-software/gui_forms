@@ -13,10 +13,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -314,7 +315,7 @@ private:
     [[nodiscard]] ImageId page_image(std::size_t position) const;
     [[nodiscard]] std::string page_text(std::size_t position) const;
     [[nodiscard]] std::string selected_text() const;
-    [[nodiscard]] std::optional<std::size_t> selected_position() const;
+    [[nodiscard]] stxlib::Optional<std::size_t> selected_position() const;
     [[nodiscard]] bool hidden_at(std::size_t position) const;
     [[nodiscard]] std::vector<Target> stops(const Layout& placed) const;
     [[nodiscard]] Target default_stop(const Layout& placed) const;
