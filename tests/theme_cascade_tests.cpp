@@ -188,7 +188,7 @@ void specificity_and_ties() {
     RuleSpecificity of_class{};
     of_class.classes = 2U;
     of_class.types = 1U;
-    lifted.specificity = of_class;
+    lifted.specificity.set(of_class);
     given.rules.push_back(lifted);
     RuleSelector loud_hot = by_class("loud");
     loud_hot.states.push_back(AnatomyState::hot);
@@ -199,7 +199,7 @@ void specificity_and_ties() {
     require(amplitude_of(given_rules.resolve(face_of("x", loud, hot_states))) == 0.3,
             "the given specificity orders the rule within its level");
     ThemeRule unlifted = rule("unlifted", CascadeLevel::stable_id_rule, by_type(), bulge(0.3));
-    unlifted.specificity = of_class;
+    unlifted.specificity.set(of_class);
     ThemeRuleSheet missing{};
     missing.rules.push_back(unlifted);
     const CompiledThemeRules missing_rules = CompiledThemeRules::compile(missing, builtin_primitive_registry());

@@ -1204,7 +1204,7 @@ bool CompilePass::emit_definitions(std::span<const LoweredSelector> selectors, b
         if (in_base_origin(source_position_)) {
             rule.level = important ? CascadeLevel::important_base_sheet : CascadeLevel::base_sheet;
         }
-        if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
+        if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity.set(selector.specificity);
         rule.scoped_definitions = definitions;
         rule.source_position = positions_ ? source_position_ : 0U;
         rule.provenance = rule_provenance(at);
@@ -3821,7 +3821,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
         }
         // A given specificity only where CSS's differs from the engine's
         // own count of the selector (EC2: an `:is()` argument's).
-        if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
+        if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity.set(selector.specificity);
         for (const MachineOrigin& machine : motion_.rule_machines) {
             MachineOrigin origin = machine;
             origin.rule = sheet_.rules.size() - 1U;

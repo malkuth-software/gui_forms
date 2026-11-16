@@ -427,8 +427,8 @@ std::string rule_text(std::size_t index, const ThemeRule& rule) {
     std::string text = "rule " + std::to_string(index) + " " + std::string(cascade_level_name(rule.level)) + " " +
                        selector_text(rule.selector) + "\n";
     text += "  label " + rule.label + "\n";
-    if (rule.specificity) {
-        const RuleSpecificity& given = *rule.specificity;
+    if (rule.specificity.present()) {
+        const RuleSpecificity& given = *rule.specificity.value();
         text += "  specificity " + std::to_string(given.ids) + "," + std::to_string(given.classes) + "," +
                 std::to_string(given.types) + "\n";
     }

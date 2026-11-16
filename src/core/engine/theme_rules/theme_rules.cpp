@@ -139,7 +139,7 @@ std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool ow
         return RuleDiagnosticKind::selector_invalid;
     }
     // A given specificity (EC2) stands in for the selector's class and ID.
-    const RuleSpecificity specificity = rule.specificity ? *rule.specificity : rule_specificity(selector);
+    const RuleSpecificity specificity = rule.specificity.value_or(rule_specificity(selector));
     if (rule.level == CascadeLevel::class_rule && specificity.classes == 0U) {
         return RuleDiagnosticKind::selector_missing_level_field;
     }
@@ -1581,7 +1581,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         CompiledRule compiled{};
         compiled.level = rule.level;
         compiled.media = rule.media;
-        compiled.specificity = rule.specificity ? *rule.specificity : rule_specificity(rule.selector);
+        compiled.specificity = rule.specificity.value_or(rule_specificity(rule.selector));
         compiled.order = index;
         compiled.source_position = rule.source_position;
         compiled.provenance = rule.provenance;

@@ -487,9 +487,9 @@ void test_properties() {
         const ThemeRule& first = listed.sheet.rules[0];
         const ThemeRule& third = listed.sheet.rules[2];
         require(first.selector.classes == std::vector<std::string>{"a"} && first.level == CascadeLevel::theme_sheet &&
-                    !first.specificity && first.label == ".a, .b:is(.c, .d)",
+                    first.specificity.absent() && first.label == ".a, .b:is(.c, .d)",
                 "each expanded selector is one rule with the rule's label");
-        require(third.selector.classes == (std::vector<std::string>{"b", "d"}) && !third.specificity &&
+        require(third.selector.classes == (std::vector<std::string>{"b", "d"}) && third.specificity.absent() &&
                     holds_still(third, 0U, opacity_property, 0.5),
                 "each copy holds the rule's declarations");
     }
@@ -499,7 +499,7 @@ void test_properties() {
     if (given.sheet.rules.size() == 2U) {
         const ThemeRule& own = given.sheet.rules[0];
         const ThemeRule& lifted = given.sheet.rules[1];
-        require(!own.specificity && lifted.specificity && (*lifted.specificity).ids == 1U &&
+        require(own.specificity.absent() && lifted.specificity.present() && (*lifted.specificity.value()).ids == 1U &&
                     lifted.level == CascadeLevel::theme_sheet,
                 "an :is() gives its most specific argument's, given only where the selector's own differs");
     }

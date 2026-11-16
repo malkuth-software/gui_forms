@@ -1527,7 +1527,7 @@ struct GUI_FORMS_API ThemeRule final {
     std::string label{};
     CascadeLevel level{CascadeLevel::theme_sheet};
     RuleSelector selector{};
-    std::optional<RuleSpecificity> specificity{};
+    stxlib::Optional<RuleSpecificity> specificity{};
     std::vector<RuleDeclaration> declarations{};
     std::optional<EngineVersion> requires_engine{};
     std::vector<PropertyTransition> transitions{};
