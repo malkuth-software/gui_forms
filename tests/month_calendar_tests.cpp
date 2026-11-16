@@ -336,6 +336,10 @@ void semantics() {
             "set_value takes an ISO date and shows it");
     require(!(*calendar).on_semantic_action(SemanticAction::set_value, "2026-13-01"),
             "an invalid ISO date is refused");
+    require(!(*calendar).on_semantic_action(SemanticAction::set_value, "20a6-0b-2c") &&
+                !(*calendar).on_semantic_action(SemanticAction::set_value, "2026-8 -2 ") &&
+                (*calendar).selection_start() == august(20U),
+            "an ISO date with a partly numeric field is refused (A-gf-controls-08-F6)");
 }
 
 } // namespace

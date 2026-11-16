@@ -199,9 +199,11 @@ bool parse_iso_date(std::string_view text, DateTimeValue& value) {
         std::from_chars(text.data() + 5U, text.data() + 7U, month);
     const std::from_chars_result day_result =
         std::from_chars(text.data() + 8U, text.data() + 10U, day);
-    if (year_result.ec != std::errc{} ||
-        month_result.ec != std::errc{} ||
-        day_result.ec != std::errc{}) return false;
+    // Each field is read whole: "20a4" is refused, not read as 20
+    // (A-gf-controls-08-F6).
+    if (year_result.ec != std::errc{} || year_result.ptr != text.data() + 4U ||
+        month_result.ec != std::errc{} || month_result.ptr != text.data() + 7U ||
+        day_result.ec != std::errc{} || day_result.ptr != text.data() + 10U) return false;
     value.year = year;
     value.month = static_cast<std::uint8_t>(month);
     value.day = static_cast<std::uint8_t>(day);
