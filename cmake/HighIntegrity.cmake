@@ -28,10 +28,13 @@
 # owner's open question, so this file neither forces nor refuses it; a
 # high-integrity C ABI has null slots where the entries are compiled out.
 #
-# The test suite, the Gallery, the demonstrations and the form compiler call
-# entries this configuration removes, so they are off here; the high-
-# integrity tests (GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS) build instead
-# (tools/ci_build.py --high-integrity).
+# The test suite, the Gallery and the demonstrations call entries this
+# configuration removes, so they are off here; the high-integrity tests
+# (GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS) build instead (tools/ci_build.py
+# --high-integrity). The form compiler and the theme check stay: they are
+# build-time programs that build steps run (gui_forms_add_form,
+# gui_forms_add_theme_check), executables of their own that no program links.
+# The Gallery's lab form compiler is not built.
 
 option(GUI_FORMS_HIGH_INTEGRITY
        "Leave out of the build everything that takes outside bytes or reaches outside the program (cmake/HighIntegrity.cmake)"
@@ -75,7 +78,6 @@ set(_gf_high_integrity_settings
     "GUI_FORMS_BUILD_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
     "GUI_FORMS_INSTALL_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
     "GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD|OFF|BOOL|the demoboard calls entries this configuration removes"
-    "GUI_FORMS_BUILD_FORM_COMPILER|OFF|BOOL|the form compiler is a build tool; use an ordinary build's"
     "GUI_FORMS_BUILD_FUZZERS|OFF|BOOL|the fuzzers feed outside bytes to the parsers"
     "GUI_FORMS_BUILD_BENCHMARKS|OFF|BOOL|the measurement harnesses are development programs"
     "STXLIB_MATH_DISPATCH|OFF|BOOL|STXlib's math takes one code path, chosen at build time")

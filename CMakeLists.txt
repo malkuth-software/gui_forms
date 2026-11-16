@@ -1511,13 +1511,16 @@ if(GUI_FORMS_BUILD_FORM_COMPILER)
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
     # The Gallery's form compiler (audit F9): the installed compiler's
     # program with the lab and demonstration controls as extension types
-    # (form_lab_catalog.cpp), for the pages that name them. Never installed.
+    # (form_lab_catalog.cpp), for the pages that name them. Never installed,
+    # and not built in a high-integrity build, which has no Gallery.
+    if(NOT GUI_FORMS_HIGH_INTEGRITY)
     add_executable(gui_forms_form_compiler_lab
         tools/form_compiler/form_compiler.cpp
         tools/form_compiler/form_catalog.cpp
         tools/form_compiler/form_lab_catalog.cpp
     )
     target_link_libraries(gui_forms_form_compiler_lab PRIVATE gui_forms_lab gui_forms_demo_controls)
+    endif()
     # The theme check (owner request 2026-11-09): a program's theme packages
     # compiled at build time (gui_forms_add_theme_check), so a bad sheet
     # fails the build, not Application::create. Built and installed with
