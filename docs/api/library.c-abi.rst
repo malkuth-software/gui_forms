@@ -128,6 +128,8 @@ Types
      -  
    * - :cpp:class:`gf_content_caret_stop <gf_content_caret_stop>`
      -  
+   * - :cpp:class:`gf_content_effect <gf_content_effect>`
+     -  
    * - :cpp:class:`gf_content_frame <gf_content_frame>`
      -  
    * - :cpp:class:`gf_content_layout_transform <gf_content_layout_transform>`
@@ -207,6 +209,8 @@ Types
    * - :cpp:class:`gf_dock_site_class <gf_dock_site_class>`
      -  
    * - :cpp:class:`gf_docking_table <gf_docking_table>`
+     -  
+   * - :cpp:class:`gf_effect_mask_layer <gf_effect_mask_layer>`
      -  
    * - :cpp:class:`gf_error_detail <gf_error_detail>`
      - gf_error_detail is the size-prefixed copy of the calling thread's last failure: status, table, slot and message size.
@@ -2177,6 +2181,28 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_content_effect
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t has_colour_matrix
+
+   .. cpp:member:: uint32_t has_colour_table
+
+   .. cpp:member:: uint32_t mask_count
+
+   .. cpp:member:: double colour_matrix[20]
+
+   .. cpp:member:: uint8_t colour_table[1024]
+
+   .. cpp:member:: double blur
+
+   .. cpp:member:: const gf_effect_mask_layer* masks
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_content_frame
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2620,6 +2646,8 @@ Types
    .. cpp:member:: gf_status (*warp_pointer)(gf_object object, gf_logical_point position, uint32_t* warped)
 
    .. cpp:member:: gf_status (*set_pointer_release_regions)(gf_object object, const gf_logical_rect* regions, uint32_t count)
+
+   .. cpp:member:: gf_status (*set_content_effect)(gf_object object, const gf_content_effect* effect)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3283,6 +3311,28 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_effect_mask_layer
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_effect_mask_mode mode
+
+   .. cpp:member:: gf_effect_mask_composite composite
+
+   .. cpp:member:: uint32_t start_rgba
+
+   .. cpp:member:: uint32_t end_rgba
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_logical_point start
+
+   .. cpp:member:: gf_logical_point end
 
 .. cpp:namespace:: 0
 

@@ -10282,7 +10282,7 @@ Functions, constants and aliases
 
 .. cpp:function:: PaintGroupComposite part_blend_composite(PartBlend blend) noexcept
 
-   The paint group composite that draws a part of ``blend``; source-over for normal.
+   The paint group composite that draws a part of ``blend``; source-over for normal. PaintGroupComposite is declared opaquely here (painter.hpp defines it), so that this header does not include the painter's, which reaches back through gui_forms/types.hpp; a caller that reads the result includes painter.hpp.
 
 .. cpp:function:: std::string_view text_role_name(TextRole role) noexcept
 
