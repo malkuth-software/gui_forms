@@ -671,7 +671,7 @@ void test_unkeyed_part() {
     theme.keyed = false;
     for (ThemeRule& rule : theme.rules) {
         rule.selector.part.clear();
-        rule.selector.role = PartRole::face;
+        rule.selector.role.set(PartRole::face);
     }
     std::unique_ptr<Fixture> fixture = make_fixture(theme);
     Window& window = *(*fixture).window;

@@ -409,7 +409,7 @@ std::unique_ptr<ThemeDefinition> face_theme(bool reflecting) {
     definition.id = reflecting ? "engine-reflection" : "engine-reflection-plain";
     ThemeRule face{};
     face.label = "face";
-    face.selector.role = PartRole::face;
+    face.selector.role.set(PartRole::face);
     face.declarations.push_back(RuleDeclaration::primitive("material"));
     definition.rules.rules.push_back(face);
     if (reflecting) {

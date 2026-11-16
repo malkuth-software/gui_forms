@@ -337,7 +337,7 @@ std::unique_ptr<ThemeDefinition> glass_theme() {
     definition.id = "engine-backplane-replay";
     ThemeRule rule{};
     rule.label = "glass";
-    rule.selector.role = PartRole::region;
+    rule.selector.role.set(PartRole::region);
     rule.declarations.push_back(RuleDeclaration::primitive("glass"));
     // A light blur, so that a column of the glass still shows what lies
     // under it.

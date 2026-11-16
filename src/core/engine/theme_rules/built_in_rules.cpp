@@ -140,7 +140,7 @@ ThemeRuleSheet make_built_in_rules() {
     ThemeRule shadow{};
     shadow.label = "overlay_shadow";
     shadow.level = CascadeLevel::built_in;
-    shadow.selector.role = PartRole::shadow;
+    shadow.selector.role.set(PartRole::shadow);
     shadow.declarations.push_back(RuleDeclaration::primitive("overlay_shadow"));
     sheet.rules.push_back(std::move(shadow));
     return sheet;

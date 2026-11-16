@@ -997,11 +997,11 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
             }
             selector.stable_id = std::string(simple.name);
         } else if (simple.kind == SimpleKind::role) {
-            if (selector.role && *selector.role != simple.role) {
+            if (selector.role.present() && *selector.role.value() != simple.role) {
                 report(DiagnosticCode::selector_syntax, simple.token, "two part roles");
                 return false;
             }
-            selector.role = simple.role;
+            selector.role.set(simple.role);
         } else if (simple.kind == SimpleKind::style_class) {
             bool present = false;
             for (const std::string& name : selector.classes) {
@@ -1043,7 +1043,7 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
     // A surface selector names the surface and its root's classes and ID
     // only: its rules style no part of a control.
     const bool surface_with_more = selector.surface != SurfaceKind::none &&
-                                   (!selector.control_type.empty() || !selector.part.empty() || selector.role ||
+                                   (!selector.control_type.empty() || !selector.part.empty() || selector.role.present() ||
                                     !selector.states.empty() || names_custom_state ||
                                     !selector.item_id.empty() || !selector.item_classes.empty());
     if (surface_with_more) {

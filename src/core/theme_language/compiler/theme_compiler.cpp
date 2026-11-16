@@ -2260,8 +2260,8 @@ bool CompilePass::select_primitive(const SyntaxNode& node, PrimitiveSelection& s
         return true;
     }
     for (const LoweredSelector& lowered : lowered_selectors_) {
-        const std::optional<PartRole> role = lowered.selector.role;
-        if (role && !paints_role(descriptor, *role)) {
+        const PartRole* const role = lowered.selector.role.value();
+        if (role != nullptr && !paints_role(descriptor, *role)) {
             // R2-08: a primitive that cannot paint the selected role.
             report(DiagnosticCode::value_wrong_kind, first.token,
                    "the primitive does not paint the role " + std::string(part_role_name(*role)));
@@ -3679,7 +3679,7 @@ bool CompilePass::rule_selects_only_windows() const noexcept {
 
 bool CompilePass::rule_selects_part() const noexcept {
     for (const LoweredSelector& lowered : lowered_selectors_) {
-        if (!lowered.selector.part.empty() || lowered.selector.role.has_value()) return true;
+        if (!lowered.selector.part.empty() || lowered.selector.role.present()) return true;
     }
     return false;
 }

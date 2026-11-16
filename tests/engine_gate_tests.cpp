@@ -335,7 +335,7 @@ std::unique_ptr<SubjectFixture> make_subject(const EnginePrimitive& primitive, d
     rule.label = "gate";
     rule.level = CascadeLevel::theme_sheet;
     rule.selector.stable_id = "subject";
-    rule.selector.role = role;
+    rule.selector.role.set(role);
     rule.declarations.push_back(RuleDeclaration::primitive(std::string(descriptor.name)));
     definition.rules.rules.push_back(rule);
     std::unique_ptr<SubjectFixture> fixture = std::make_unique<SubjectFixture>();
@@ -1562,7 +1562,7 @@ std::unique_ptr<SampleFixture> material_window(const SurfaceMaterial& material, 
     rule.label = "specimen";
     rule.level = CascadeLevel::theme_sheet;
     rule.selector.stable_id = std::string(engine_samples::feature_sample_subject);
-    rule.selector.role = PartRole::face;
+    rule.selector.role.set(PartRole::face);
     rule.declarations.push_back(RuleDeclaration::primitive("material"));
     rule.declarations.push_back(RuleDeclaration::choice_value("recipe", "button"));
     rule.declarations.push_back(RuleDeclaration::choice_value("shape", "rounded_rectangle"));

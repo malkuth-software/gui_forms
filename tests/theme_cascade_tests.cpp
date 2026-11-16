@@ -155,7 +155,7 @@ void specificity_and_ties() {
             "the ID and the classes count");
     RuleSelector many = by_class("a");
     many.classes.push_back("b");
-    many.role = PartRole::face;
+    many.role.set(PartRole::face);
     many.part = "face";
     many.states.push_back(AnatomyState::hot);
     const RuleSpecificity counted = rule_specificity(many);
@@ -263,7 +263,7 @@ void invalid_rules_are_dropped() {
     sheet.rules.push_back(rule("built in level", CascadeLevel::built_in, by_type(), bulge(0.5)));
     sheet.rules.push_back(rule("forced", CascadeLevel::forced_high_contrast, by_type(), bulge(0.5)));
     RuleSelector label = by_type();
-    label.role = PartRole::label;
+    label.role.set(PartRole::label);
     sheet.rules.push_back(rule("label bulge", CascadeLevel::theme_sheet, label, bulge(0.5)));
     const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
 
@@ -411,7 +411,7 @@ std::unique_ptr<ThemeDefinition> bulge_theme() {
     ThemeDefinition& definition = *held;
     definition.id = "cascade-test";
     RuleSelector faces{};
-    faces.role = PartRole::face;
+    faces.role.set(PartRole::face);
     definition.rules.rules.push_back(rule("faces", CascadeLevel::theme_sheet, faces, bulge(0.5)));
     return held;
 }

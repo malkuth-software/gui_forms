@@ -124,7 +124,7 @@ void test_compile() {
     on_part_outline.recipe_fields.push_back(number_field(RecipeField::outline_width, 2.0));
     sheet.rules.push_back(on_part_outline);
     ThemeRule on_role = control_rule("on-role", "pad");
-    on_role.selector.role = PartRole::label;
+    on_role.selector.role.set(PartRole::label);
     on_role.recipe_fields.push_back(colour_field(RecipeField::text, green));
     sheet.rules.push_back(on_role);
     ThemeRule wide = control_rule("wide", "pad");

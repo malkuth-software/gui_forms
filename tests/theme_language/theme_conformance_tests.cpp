@@ -194,7 +194,7 @@ std::string selector_text(const RuleSelector& selector) {
     if (!selector.stable_id.empty()) text += "id=" + selector.stable_id + " ";
     for (const std::string& name : selector.classes) text += "class=" + name + " ";
     if (!selector.part.empty()) text += "part=" + selector.part + " ";
-    if (selector.role) text += "role=" + std::string(part_role_name(*selector.role)) + " ";
+    if (selector.role.present()) text += "role=" + std::string(part_role_name(*selector.role.value())) + " ";
     if (!selector.states.empty()) text += "states=" + states_text(selector.states) + " ";
     if (!selector.custom_states.empty()) text += "custom=" + custom_states_text(selector.custom_states) + " ";
     if (!selector.family.empty()) text += "family=" + selector.family + " ";

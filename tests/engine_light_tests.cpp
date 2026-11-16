@@ -328,7 +328,7 @@ std::unique_ptr<SheenFixture> make_sheen(double scale, bool reduced_motion, doub
     definition.id = "engine-light-sheen";
     ThemeRule rule{};
     rule.label = "sheen";
-    rule.selector.role = PartRole::sheen;
+    rule.selector.role.set(PartRole::sheen);
     rule.declarations.push_back(RuleDeclaration::primitive("sheen"));
     if (hot_scale != 1.0) rule.transitions.push_back(grow(hot_scale));
     definition.rules.rules.push_back(rule);

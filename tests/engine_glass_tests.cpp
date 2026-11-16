@@ -363,7 +363,7 @@ std::unique_ptr<ThemeDefinition> glass_theme(double blur) {
     definition.id = "engine-glass";
     ThemeRule rule{};
     rule.label = "glass";
-    rule.selector.role = PartRole::region;
+    rule.selector.role.set(PartRole::region);
     rule.declarations.push_back(RuleDeclaration::primitive("glass"));
     rule.declarations.push_back(RuleDeclaration::number_value("blur", blur));
     definition.rules.rules.push_back(rule);

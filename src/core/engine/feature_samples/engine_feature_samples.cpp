@@ -69,7 +69,7 @@ ThemeRule subject_rule(std::string_view label, PartRole role) {
     rule.label = std::string(label);
     rule.level = CascadeLevel::theme_sheet;
     rule.selector.stable_id = std::string(feature_sample_subject);
-    rule.selector.role = role;
+    rule.selector.role.set(role);
     return rule;
 }
 

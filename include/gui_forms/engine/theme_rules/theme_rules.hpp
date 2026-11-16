@@ -146,7 +146,7 @@ struct GUI_FORMS_API RuleSelector final {
     std::string stable_id{};
     std::vector<std::string> classes{};
     std::string part{};
-    std::optional<PartRole> role{};
+    stxlib::Optional<PartRole> role{};
     std::vector<AnatomyState> states{};
     std::vector<CustomStateIndex> custom_states{};
     SurfaceKind surface{SurfaceKind::none};

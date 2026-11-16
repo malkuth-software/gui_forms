@@ -135,7 +135,7 @@ std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool ow
         const bool typed = !exclusion.control_type.empty() || !selector.control_type.empty();
         if (!exclusion.custom_states.empty() && !typed && !owned) return RuleDiagnosticKind::selector_invalid;
     }
-    if (selector.role && static_cast<std::size_t>(*selector.role) >= part_role_count) {
+    if (selector.role.present() && static_cast<std::size_t>(*selector.role.value()) >= part_role_count) {
         return RuleDiagnosticKind::selector_invalid;
     }
     // A given specificity (EC2) stands in for the selector's class and ID.
@@ -162,7 +162,7 @@ std::optional<RuleDiagnosticKind> primitive_defect(const EnginePrimitive& primit
     if (descriptor.cost.per_device_pixel > maximum_operations_per_device_pixel) {
         return RuleDiagnosticKind::primitive_over_budget;
     }
-    if (selector.role && !paints_role(descriptor, *selector.role)) return RuleDiagnosticKind::primitive_role_mismatch;
+    if (selector.role.present() && !paints_role(descriptor, *selector.role.value())) return RuleDiagnosticKind::primitive_role_mismatch;
     return std::nullopt;
 }
 
@@ -296,7 +296,7 @@ RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept {
     const bool typed = !selector.control_type.empty() || selector.surface != SurfaceKind::none;
     const std::uint32_t type = typed ? 1U : 0U;
     const std::uint32_t named = selector.part.empty() ? 0U : 1U;
-    const std::uint32_t role = selector.role ? 1U : 0U;
+    const std::uint32_t role = selector.role.present() ? 1U : 0U;
     result.types = type + named + role;
     // CSS: a `:not()` counts as its most specific argument. The selector's
     // exclusions are one `:not()`'s arguments (the lowering merges them).
@@ -2208,7 +2208,7 @@ void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnost
     // (Theme::resolve_font with the part's name), the dial and scrim fields
     // and its metrics and shape (RecipeField::block_size on), which are a
     // named part's own geometry.
-    const bool on_role = rule.selector.role.has_value();
+    const bool on_role = rule.selector.role.present();
     const bool on_named_part = !rule.selector.part.empty() && !on_role;
     std::array<bool, recipe_field_count> declared{};
     for (const RecipeDeclaration& declaration : rule.recipe_fields) {
@@ -2611,7 +2611,7 @@ bool CompiledThemeRules::matches(const CompiledRule& rule, const PartFacts& fact
     if (!selector.control_type.empty() && selector.control_type != facts.control_type) return false;
     if (!selector.stable_id.empty() && selector.stable_id != facts.stable_id) return false;
     if (!selector.part.empty() && selector.part != facts.part) return false;
-    if (selector.role && *selector.role != facts.role) return false;
+    if (selector.role.present() && *selector.role.value() != facts.role) return false;
     // The control type was compared above, so a custom bit means the
     // same state in the rule and the facts (R2-13).
     const std::uint64_t needed = rule.states.standard_bits();
@@ -2993,7 +2993,7 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         if (rule.recipe_fields.empty() || !matches(rule, facts)) continue;
-        const bool on_named_part = !rule.selector.part.empty() && !rule.selector.role.has_value();
+        const bool on_named_part = !rule.selector.part.empty() && rule.selector.role.absent();
         for (const RecipeDeclaration& declaration : rule.recipe_fields) {
             const std::size_t position = static_cast<std::size_t>(declaration.field);
             result.fields[position] = &declaration;

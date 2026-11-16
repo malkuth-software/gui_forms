@@ -191,12 +191,12 @@ std::unique_ptr<ThemeDefinition> backdrop_theme() {
     for (ControlVisualRecipe& recipe : window.ordinary) recipe.material = solid_material(recipe_colour);
     ThemeRule glass{};
     glass.label = "glass";
-    glass.selector.role = PartRole::region;
+    glass.selector.role.set(PartRole::region);
     glass.declarations.push_back(RuleDeclaration::primitive("glass"));
     definition.rules.rules.push_back(glass);
     ThemeRule face{};
     face.label = "face";
-    face.selector.role = PartRole::face;
+    face.selector.role.set(PartRole::face);
     face.declarations.push_back(RuleDeclaration::primitive("material"));
     definition.rules.rules.push_back(face);
     definition.window_backdrop.request =

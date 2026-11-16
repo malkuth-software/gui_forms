@@ -437,7 +437,7 @@ void vocabulary_and_rules() {
     ThemeRuleSheet sheet{};
     ThemeRule rule{};
     rule.label = "sheen";
-    rule.selector.role = PartRole::sheen;
+    rule.selector.role.set(PartRole::sheen);
     rule.declarations.push_back(RuleDeclaration::primitive("pointer_sheen"));
     sheet.rules.push_back(rule);
     const CompiledThemeRules compiled = CompiledThemeRules::compile(sheet, registry);
@@ -455,7 +455,7 @@ void vocabulary_and_rules() {
     const std::array<Instruction, 1> half{Instruction::number(0.5)};
     ThemeRule faults{};
     faults.label = "faults";
-    faults.selector.role = PartRole::face;
+    faults.selector.role.set(PartRole::face);
     faults.declarations.push_back(RuleDeclaration::primitive("bulge"));
     faults.declarations.push_back(RuleDeclaration::expression_value("amplitude", unbalanced, 0.0));
     faults.declarations.push_back(RuleDeclaration::expression_value("light_peak", colour, 0.0));
