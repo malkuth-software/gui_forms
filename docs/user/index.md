@@ -57,6 +57,7 @@ threading
 lifecycle
 hosts-and-capabilities
 content-surfaces
+factory-bundle
 app-fonts
 window-band
 transparency

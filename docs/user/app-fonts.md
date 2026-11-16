@@ -1,6 +1,7 @@
 # Application font families
 
-GUI.Forms draws its own interface with the fonts it bundles. A program may
+GUI.Forms draws its own interface with the fonts it bundles, the
+[factory bundle](factory-bundle). A program may
 also load its own font bytes as a family of its own, for the text it draws
 inside its composite controls and its sub-surfaces
 (`gui_forms/typography/app_fonts/app_fonts.hpp`; owner decision of

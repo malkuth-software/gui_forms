@@ -61,6 +61,10 @@ pixel on one platform fails that test.
 
 ## Bundled fonts
 
+The bundled fonts are the factory bundle: what it covers, what it
+guarantees, its size and its measured unpacking times are on
+[The factory bundle](factory-bundle).
+
 | Face | Role | Licence |
 |---|---|---|
 | Portsmouth Rapids (regular, bold) | `FontRole::control`: titles, buttons, labels, menus | Owner's MIT grant (`assets/fonts/LICENSE-PortsmouthRapids.txt`) |
