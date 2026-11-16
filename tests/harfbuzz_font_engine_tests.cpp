@@ -79,7 +79,12 @@ void test_shared_font_lifetime() {
         weak = bytes;
         require(engine.register_shared_typeface(FontRole::content, 400, false, bytes).has_value(),
                 "shared immutable font registers");
-        require(bytes.use_count() == 2, "font engine shares caller bytes without a copy");
+        // The engine keeps the caller's vector, never a copy of it: the face
+        // holds one reference, and the program's typeface of those bytes
+        // (program_typeface, shared by every executor that draws them, so it
+        // keeps its bytes alive itself) holds another. A copy would leave the
+        // caller's reference the only one.
+        require(bytes.use_count() > 1, "font engine shares caller bytes without a copy");
         bytes.reset();
         require(!weak.expired() && engine.shape("office", {FontRole::content, 16, 400, false}).width > 0,
                 "shared font remains valid after caller releases ownership");
@@ -99,7 +104,9 @@ void test_owned_font_view_lifetime() {
                     (*owner).bytes, {}).has_value(), "borrowed bytes require a lifetime owner");
         require(engine.register_owned_typeface(FontRole::content, 400, false,
                     (*owner).bytes, owner).has_value(), "owned immutable view registers");
-        require(owner.use_count() == 2, "engine retains owner without copying the font");
+        // The face and the program's typeface of the bytes each hold the
+        // owner, as in test_shared_font_lifetime.
+        require(owner.use_count() > 1, "engine retains owner without copying the font");
         owner.reset();
         require(!weak.expired() && engine.shape("office", {FontRole::content, 16, 400, false}).width > 0,
                 "owned view stays valid after the caller drops it");
