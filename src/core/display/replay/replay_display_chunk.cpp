@@ -213,6 +213,7 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
         group.composite = known ? static_cast<PaintGroupComposite>(static_cast<std::uint8_t>(composite))
                                 : PaintGroupComposite::source_over;
         group.isolated = command.tertiary_scalar != 0.0;
+        group.effect = command.group_effect;
         painter.begin_group(group);
         return;
     }

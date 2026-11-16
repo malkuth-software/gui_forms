@@ -8,6 +8,7 @@
 // part_composite_identity_tests.
 
 #include "gui_forms/control.hpp"
+#include "gui_forms/surface_material.hpp"
 #include "gui_forms/visual_inspection.hpp"
 #include "gui_forms/window.hpp"
 
@@ -54,12 +55,14 @@ public:
     void begin_group(const PaintGroup& group) override {
         calls.emplace_back("begin");
         opacities.push_back(group.opacity);
+        effects.push_back(group.effect);
     }
     void end_group() override { calls.emplace_back("end"); }
 
     std::vector<std::string> calls{};
     std::vector<Rect> clips{};
     std::vector<double> opacities{};
+    std::vector<std::shared_ptr<const PaintGroupEffect>> effects{};
 };
 
 // A painter keeping the base fallback for groups.
@@ -79,7 +82,18 @@ public:
     std::vector<Rect> clips{};
 };
 
-enum class Script : std::uint8_t { nested, too_deep, left_open, ended_twice, saves_cross };
+enum class Script : std::uint8_t { nested, too_deep, left_open, ended_twice, saves_cross, effect };
+
+// The effect the `effect` script's group carries: grey fill, a blur and a
+// half-alpha mask.
+std::shared_ptr<const PaintGroupEffect> script_effect() {
+    PaintGroupEffect effect{};
+    effect.colour_filter = MaterialColourMatrix::fill(Color::rgba(128, 128, 128));
+    effect.blur = 2.0;
+    effect.masks.push_back(MaterialMaskLayer{.source = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 128))});
+    const std::shared_ptr<const PaintGroupEffect> shared = std::make_shared<const PaintGroupEffect>(effect);
+    return shared;
+}
 
 // A control drawing one of the scripts.
 class Grouper final : public Control {
@@ -111,6 +125,14 @@ public:
             painter.end_group();
             painter.end_group();
             return;
+        case Script::effect: {
+            PaintGroup group = group_of({10.0, 10.0, 30.0, 20.0}, 1.0);
+            group.effect = effect;
+            painter.begin_group(group);
+            painter.fill_rect({12.0, 12.0, 10.0, 10.0}, Color::rgba(200, 30, 30, 255));
+            painter.end_group();
+            return;
+        }
         case Script::saves_cross:
             painter.begin_group(group_of({0.0, 0.0, 50.0, 40.0}, 0.5));
             painter.save();
@@ -123,6 +145,7 @@ public:
     }
 
     Script script{Script::nested};
+    std::shared_ptr<const PaintGroupEffect> effect{};
 };
 
 struct Fixture final {
@@ -185,6 +208,37 @@ void recorded_and_replayed() {
             "and names them");
 }
 
+// A group's effect (capability review decision 1) is recorded with the
+// group, replayed as the same shared effect, and inspected.
+void effect_recorded_and_replayed() {
+    Fixture fixture = make_fixture(Script::effect);
+    const std::shared_ptr<const PaintGroupEffect> effect = script_effect();
+    (*fixture.root).effect = effect;
+    ListingPainter painter{};
+    static_cast<void>((*fixture.window).paint(painter));
+    require(painter.effects.size() == 1U && painter.effects[0] == effect,
+            "the replayed group carries the recorded effect, shared");
+    require(painter.opacities == std::vector<double>({1.0}), "an effect group keeps its opacity");
+
+    VisualInspectionOptions options{};
+    const VisualInspectionSnapshot snapshot = (*fixture.window).visual_inspection_snapshot(options);
+    const VisualControlInspection* const control = snapshot.find("grouper");
+    require(control != nullptr, "the effect's control is inspected");
+    bool inspected = false;
+    for (const VisualPaintOperationSnapshot& operation : (*control).display_operations) {
+        if (operation.operation != VisualPaintOperation::begin_group) continue;
+        inspected = operation.group_effect == effect;
+    }
+    require(inspected, "inspection shows the group's effect");
+    const std::string json = snapshot.to_json();
+    require(json.find("\"group_effect\":{\"colour_filter\":true,\"colour_table\":false,\"blur\":") !=
+                    std::string::npos &&
+                json.find(",\"masks\":1}") != std::string::npos,
+            "the snapshot's JSON names the effect's stages");
+    require(valid_paint_group_effect(*effect) && paint_group_effect_reach(*effect) == 6.0,
+            "the script's effect is valid and reaches 1.5 × 2 + 3");
+}
+
 void refused_past_the_depth() {
     Fixture fixture = make_fixture(Script::too_deep);
     ListingPainter painter{};
@@ -221,9 +275,10 @@ void minimal_painter_fallback() {
 
 int main() {
     recorded_and_replayed();
+    effect_recorded_and_replayed();
     refused_past_the_depth();
     unbalanced_chunks_are_refused();
     minimal_painter_fallback();
-    std::cout << "paint groups: recording, nesting, refusals, balance, inspection and the fallback passed\n";
+    std::cout << "paint groups: recording, effects, nesting, refusals, balance, inspection and the fallback passed\n";
     return EXIT_SUCCESS;
 }

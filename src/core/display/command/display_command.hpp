@@ -41,7 +41,8 @@ enum class DisplayOperation : std::uint8_t {
     draw_part_raster = 22,
     // A paint group (Painter::begin_group): `rect` its bounds, `scalar` its
     // opacity, `secondary_scalar` its composite mode's value,
-    // `tertiary_scalar` 1 when it is isolated at any opacity.
+    // `tertiary_scalar` 1 when it is isolated at any opacity, and
+    // `group_effect` its effect, or null.
     begin_group = 23,
     end_group = 24,
     // A part raster shown scaled (Painter::draw_part_raster_scaled): `rect`
@@ -172,6 +173,8 @@ struct DisplayCommand final {
     // otherwise.
     std::shared_ptr<const SurfaceMaterial> surface_material{};
     std::shared_ptr<const PreparedTextStorage> prepared_text{};
+    // A begin_group's effect (PaintGroup::effect), else null.
+    std::shared_ptr<const PaintGroupEffect> group_effect{};
     // The spans and styles of a batched mark or pattern, else null.
     std::shared_ptr<const DisplayMarks> marks{};
     LayoutAuthority prepared_authority{};

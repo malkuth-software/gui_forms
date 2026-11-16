@@ -326,6 +326,8 @@ Types
      - Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
    * - :cpp:class:`PaintGroup <gui_forms::PaintGroup>`
      - A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once.
+   * - :cpp:class:`PaintGroupEffect <gui_forms::PaintGroupEffect>`
+     - A paint group's effect stage (capability review decision 1, owner 2026-11-16): the filter and mask of a part surface's material, applied to a paint group's image (PaintGroup::effect), so that content drawn by many commands (a control's face and what it paints inside it) is filtered and masked as one, through the same kernels a material uses.
    * - :cpp:class:`PaintPath <gui_forms::PaintPath>`
      - An owned path built verb by verb, for callers that do not keep their own arrays.
    * - :cpp:class:`PaintPathView <gui_forms::PaintPathView>`
@@ -4973,7 +4975,7 @@ Types
 
    ``#include <gui_forms/types/painter/painter.hpp>``
 
-   A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once. - ``bounds``, in the current coordinates when the group begins, limits the group. It is given up front so that a painter sizes its storage once: nothing the group draws outside ``bounds`` (or outside the clip in force at its beginning) is shown. - ``opacity`` in [0, 1] multiplies the group's whole image. Below 1 the group is isolated: its commands draw into a transparent premultiplied image the size of its clipped bounds, which is composited once at ``opacity`` by ``composite``, so overlapping commands never show through one another. At 1 (or above) the commands draw directly under clip_rect(bounds), which is exactly what isolation would give for source-over. At 0 (or NaN) nothing is drawn. - A group whose ``composite`` is not source-over, or that sets ``isolated``, is isolated at any opacity: a group holding a plus group must be, so that the sum is formed before it meets what lies beneath. A painter that cannot isolate (no storage) draws the group directly.
+   A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once. - ``bounds``, in the current coordinates when the group begins, limits the group. It is given up front so that a painter sizes its storage once: nothing the group draws outside ``bounds`` (or outside the clip in force at its beginning) is shown. - ``opacity`` in [0, 1] multiplies the group's whole image. Below 1 the group is isolated: its commands draw into a transparent premultiplied image the size of its clipped bounds, which is composited once at ``opacity`` by ``composite``, so overlapping commands never show through one another. At 1 (or above) the commands draw directly under clip_rect(bounds), which is exactly what isolation would give for source-over. At 0 (or NaN) nothing is drawn. - A group whose ``composite`` is not source-over, or that sets ``isolated``, is isolated at any opacity: a group holding a plus group must be, so that the sum is formed before it meets what lies beneath. A painter that cannot isolate (no storage) draws the group directly. - ``effect`` (capability review decision 1, owner 2026-11-16), when set, filters and masks the group's image before it is composited (PaintGroupEffect, declared in surface_material/paint_group_effect, which this header does not include). A group with an effect is isolated at any opacity, and its image reaches past ``bounds`` by the effect's reach (paint_group_effect_reach): its commands are still limited to ``bounds``, and the blur spreads into the margin. An invalid effect (valid_paint_group_effect) is ignored and counted as a group refusal. Shared read-only: a recording keeps it alive.
 
    .. cpp:member:: Rect bounds
 
@@ -4988,6 +4990,24 @@ Types
    .. cpp:member:: bool isolated
 
       Default: ``{false}``.
+
+   .. cpp:member:: std::shared_ptr<const PaintGroupEffect> effect
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintGroupEffect final
+
+   ``#include <gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>``
+
+   A paint group's effect stage (capability review decision 1, owner 2026-11-16): the filter and mask of a part surface's material, applied to a paint group's image (PaintGroup::effect), so that content drawn by many commands (a control's face and what it paints inside it) is filtered and masked as one, through the same kernels a material uses. In order, over the group's premultiplied image: 1. ``colour_filter``: each pixel through the colour stages (matrix, then table), as a material's colour filter is (pixel_kernel's colour_staged), rounded once to bytes. 2. ``blur``: the engine's integer three-box blur (box_blur), radius in logical units as a material's filter_blur (2σ), 0 to maximum_paint_group_effect_blur. The image spreads past the group's bounds by up to paint_group_effect_reach logical units: the group draws there too, beneath its content's own limit. 3. ``masks``: the mask layers of a material (SurfaceMaterial::masks), laid over the group's bounds as a material's masks are over its box (mask positions and sizes are relative to the bounds), each pixel's alpha weighted by the joined mask. Image masks are refused: a painter holds no window resources. Beyond the bounds the mask is 0. Then the image is composited by the group's opacity and composite. A painter that cannot isolate the group, or whose mask bake exceeds the material bake budget, draws the group without its effect and counts a group refusal (Painter::begin_group).
+
+   .. cpp:member:: MaterialColourFilter colour_filter
+
+   .. cpp:member:: double blur
+
+   .. cpp:member:: std::vector<MaterialMaskLayer> masks
+
+      Up to SurfaceMaterial::maximum_mask_layers layers, bottom first.
 
 .. cpp:namespace:: gui_forms
 
@@ -10739,6 +10759,26 @@ Functions, constants and aliases
 .. cpp:var:: constexpr MaterialBlendMode material_blend_mode_last
 
    The last enumerator of MaterialBlendMode, for range checks. Value: ``MaterialBlendMode::exclusion``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>``
+
+.. cpp:function:: bool valid_paint_group_effect(const PaintGroupEffect& effect) noexcept
+
+   Whether ``effect`` is valid: a finite blur from 0 to the cap, and colour stages and masks a material could hold (valid_surface_material), with no image mask layer.
+
+.. cpp:function:: double paint_group_effect_reach(const PaintGroupEffect& effect) noexcept
+
+   How far, in logical units on every side, a valid effect's image reaches past the group's bounds: 1.5 × blur rounded up, plus 3, or 0 without a blur. Three boxes of half width h reach 3h device pixels, and h, rounded from √(blur² × scale² + 1) / 2 − 1/2, is at most blur × scale / 2 + 1/2; the 3 covers that half pixel's 1.5 device pixels at any scale from minimum_device_scale (1/2). A control that paints an effect group grants that overflow and invalidates its changed content grown by it, so that damage covers the blur's spread.
+
+.. cpp:function:: SurfaceMaterial paint_group_effect_mask_material(const PaintGroupEffect& effect)
+
+   The material whose baked alpha is ``effect``'s joined mask over a box: one opaque white fill under ``effect.masks``. Throws std::bad_alloc when it cannot be held.
+
+.. cpp:var:: constexpr double maximum_paint_group_effect_blur
+
+   The largest effect blur, in logical units (glass's cap of 8 doubled for a group's larger content). Value: ``16.0``.
 
 .. cpp:namespace:: gui_forms
 

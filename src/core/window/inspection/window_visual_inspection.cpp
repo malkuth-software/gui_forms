@@ -97,6 +97,7 @@ VisualPaintOperationSnapshot inspect_operation(
     result.scalar = command.scalar;
     result.secondary_scalar = command.secondary_scalar;
     result.tertiary_scalar = command.tertiary_scalar;
+    result.group_effect = command.group_effect;
     result.gradient_stops = command.gradient_stops;
     result.gradient_spread = command.gradient_spread;
     result.image_pattern_wrap = command.image_pattern_wrap;

@@ -1091,6 +1091,10 @@ Related types
 
       A batched mark's length: its points, rectangles, segments or markers (a band counts its upper points); 0 for every other operation, whose JSON leaves the field out.
 
+   .. cpp:member:: std::shared_ptr<const PaintGroupEffect> group_effect
+
+      A begin_group's effect (PaintGroup::effect), shared with the recording; null otherwise, and the JSON leaves the field out.
+
 Enumerations
 ------------
 

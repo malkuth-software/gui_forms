@@ -16,6 +16,8 @@
 
 namespace gui_forms {
 
+struct PaintGroupEffect;
+
 class LiveSurface;
 class PaintFramebuffer;
 class PartRaster;
@@ -103,11 +105,21 @@ inline constexpr PaintGroupComposite paint_group_composite_last = PaintGroupComp
 //   is isolated at any opacity: a group holding a plus group must be, so
 //   that the sum is formed before it meets what lies beneath. A painter
 //   that cannot isolate (no storage) draws the group directly.
+// - `effect` (capability review decision 1, owner 2026-11-16), when set,
+//   filters and masks the group's image before it is composited
+//   (PaintGroupEffect, declared in surface_material/paint_group_effect,
+//   which this header does not include). A group with an effect is
+//   isolated at any opacity, and its image reaches past `bounds` by the
+//   effect's reach (paint_group_effect_reach): its commands are still
+//   limited to `bounds`, and the blur spreads into the margin. An invalid
+//   effect (valid_paint_group_effect) is ignored and counted as a group
+//   refusal. Shared read-only: a recording keeps it alive.
 struct GUI_FORMS_API PaintGroup final {
     Rect bounds{};
     double opacity{1.0};
     PaintGroupComposite composite{PaintGroupComposite::source_over};
     bool isolated{false};
+    std::shared_ptr<const PaintGroupEffect> effect{};
 };
 
 // The deepest groups nest (T2, coordinator decision Q2/Q3). A group begun

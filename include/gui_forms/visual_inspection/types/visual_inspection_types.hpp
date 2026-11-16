@@ -7,6 +7,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -115,6 +116,9 @@ struct GUI_FORMS_API VisualPaintOperationSnapshot final {
     // (a band counts its upper points); 0 for every other operation, whose
     // JSON leaves the field out.
     std::size_t element_count{};
+    // A begin_group's effect (PaintGroup::effect), shared with the
+    // recording; null otherwise, and the JSON leaves the field out.
+    std::shared_ptr<const PaintGroupEffect> group_effect{};
 };
 
 struct GUI_FORMS_API VisualControlStateSnapshot final {

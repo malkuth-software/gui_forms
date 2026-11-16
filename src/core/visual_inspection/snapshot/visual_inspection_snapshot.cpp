@@ -1,4 +1,5 @@
 #include "gui_forms/visual_inspection.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -546,6 +547,14 @@ void append_operation(std::ostringstream& output,
     // Written only for a rotated run, so other snapshots keep their bytes.
     if (operation.text_degrees != 0.0) output << ",\"text_degrees\":" << operation.text_degrees;
     if (operation.element_count != 0U) output << ",\"element_count\":" << operation.element_count;
+    // Written only for a group with an effect, so other snapshots keep
+    // their bytes.
+    if (operation.group_effect) {
+        const PaintGroupEffect& effect = *operation.group_effect;
+        output << ",\"group_effect\":{\"colour_filter\":" << (effect.colour_filter ? "true" : "false")
+               << ",\"colour_table\":" << (effect.colour_filter.table() != nullptr ? "true" : "false")
+               << ",\"blur\":" << effect.blur << ",\"masks\":" << effect.masks.size() << '}';
+    }
     output << '}';
 }
 
