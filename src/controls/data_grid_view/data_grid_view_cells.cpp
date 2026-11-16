@@ -1,5 +1,4 @@
 #include "data_grid_view_cells_control.hpp"
-#include "../../platform/stxlib_bridge.hpp"
 
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
@@ -75,7 +74,7 @@ void paint_data_grid_view_row_overlay(Painter& painter, const Control& owner, co
     part.role = overlay.role;
     part.mark = overlay.mark;
     part.bounds = overlay.bounds;
-    part.authored_background = platform::stxlib_optional(overlay.background);
+    part.authored_background = overlay.background;
     paint_part(painter, owner, part);
 }
 

@@ -1952,15 +1952,15 @@ void cell_styles() {
     (*grid).default_cell_style = {.font = big, .alignment = DataGridViewContentAlignment::middle_start};
     (*grid).set_column_default_cell_style(0U, {.alignment = DataGridViewContentAlignment::middle_end});
     (*grid).rows_default_cell_style = {.wrap_mode = true};
-    (*grid).alternating_rows_default_cell_style = {.fore_color = Color{1, 2, 3, 255}};
+    (*grid).alternating_rows_default_cell_style = {.fore_color = stxlib::Optional<Color>::of(Color{1, 2, 3, 255})};
     (*grid).set_row_default_cell_style(row_at(2U), {.alignment = DataGridViewContentAlignment::bottom_center});
     (*grid).set_cell_style(row_at(2U), 0U, {.padding = Insets{10.0, 2.0, 10.0, 2.0}});
     const DataGridViewCellStyle first = (*grid).inherited_cell_style(row_at(0U), 0U);
     require(first.font == big && first.alignment == DataGridViewContentAlignment::middle_end &&
-                first.wrap_mode == true && !first.fore_color,
+                first.wrap_mode == true && first.fore_color.absent(),
             "a cell inherits the column's alignment over the grid's, the rows' wrap mode and the grid's font");
     const DataGridViewCellStyle second = (*grid).inherited_cell_style(row_at(1U), 1U);
-    require(second.fore_color == Color{1, 2, 3, 255} && second.alignment == DataGridViewContentAlignment::middle_start,
+    require(second.fore_color == stxlib::Optional<Color>::of(Color{1, 2, 3, 255}) && second.alignment == DataGridViewContentAlignment::middle_start,
             "odd positions take the alternating rows' style; another column the grid's alignment");
     const DataGridViewCellStyle third = (*grid).inherited_cell_style(row_at(2U), 0U);
     require(third.alignment == DataGridViewContentAlignment::bottom_center && third.padding &&
@@ -2292,7 +2292,7 @@ void authored_colours() {
                 !(*grid).parts().well.authored_background.present(),
             "an unstyled grid authors no colours");
 
-    (*grid).default_cell_style = {.back_color = back, .fore_color = fore};
+    (*grid).default_cell_style = {.back_color = stxlib::Optional<Color>::of(back), .fore_color = stxlib::Optional<Color>::of(fore)};
     (*grid).grid_color = stxlib::Optional<Color>::of(line);
     window.perform_layout();
     cells = (*grid).realized_cells();
@@ -2315,14 +2315,16 @@ void authored_colours() {
     cells = (*grid).realized_cells();
     require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background.present(),
             "a selected cell with no selection colour keeps the theme's selection look");
-    (*grid).default_cell_style = {.back_color = back, .fore_color = fore, .selection_back_color = highlight};
+    (*grid).default_cell_style = {.back_color = stxlib::Optional<Color>::of(back),
+                                  .fore_color = stxlib::Optional<Color>::of(fore),
+                                  .selection_back_color = stxlib::Optional<Color>::of(highlight)};
     window.perform_layout();
     cells = (*grid).realized_cells();
     require((*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background == stxlib::Optional<Color>::of(highlight),
             "a selected cell shows the selection back colour");
 
-    (*grid).column_headers_default_cell_style = {.back_color = header_back, .fore_color = header_fore};
-    (*grid).row_headers_default_cell_style = {.back_color = header_back, .fore_color = header_fore};
+    (*grid).column_headers_default_cell_style = {.back_color = stxlib::Optional<Color>::of(header_back), .fore_color = stxlib::Optional<Color>::of(header_fore)};
+    (*grid).row_headers_default_cell_style = {.back_color = stxlib::Optional<Color>::of(header_back), .fore_color = stxlib::Optional<Color>::of(header_fore)};
     window.perform_layout();
     require(!(*grid).realized_columns()[0].parts.column_header.authored_background.present() &&
                 !(*grid).realized_rows()[0].parts.row_header.authored_background.present(),
@@ -4038,7 +4040,7 @@ struct AnswerRowPrePaint final {
         (*seen).push_back(event);
         if (event.row == row_at(0U)) event.handled = true;
         if (event.row == row_at(1U)) event.parts.content = false;
-        if (event.row == row_at(2U)) event.background = background;
+        if (event.row == row_at(2U)) event.background.set(background);
     }
 };
 
@@ -4049,7 +4051,7 @@ struct AnswerRowPostPaint final {
         (*seen).push_back(event);
         if (event.row != row_at(0U)) return;
         const Rect glyph{event.bounds.x + 2.0, event.bounds.y + 2.0, 10.0, 10.0};
-        event.overlays.push_back(DataGridViewRowOverlayPart{glyph, PartRole::glyph, PartMark::check, std::nullopt});
+        event.overlays.push_back(DataGridViewRowOverlayPart{glyph, PartRole::glyph, PartMark::check, stxlib::Optional<Color>::none()});
     }
 };
 

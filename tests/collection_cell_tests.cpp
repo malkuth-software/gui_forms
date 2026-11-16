@@ -373,7 +373,7 @@ struct ChangingRowPaint final {
     void operator()(DataGridViewRowPrePaintEvent& event) const {
         ++*frame;
         const std::uint8_t shade = static_cast<std::uint8_t>((*frame * 37) % 256);
-        event.background = Color{shade, 200, 120, 255};
+        event.background.set(Color{shade, 200, 120, 255});
     }
 };
 

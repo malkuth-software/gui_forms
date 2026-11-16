@@ -27,6 +27,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <vector>
 
@@ -93,7 +94,7 @@ constexpr std::size_t overlay_row = 1U;
 struct AnswerBackground final {
     Color background{};
     void operator()(DataGridViewRowPrePaintEvent& event) const {
-        if (event.row.value == background_row) event.background = background;
+        if (event.row.value == background_row) event.background.set(background);
     }
 };
 
@@ -104,7 +105,7 @@ struct AnswerOverlay final {
     Color background{};
     void operator()(DataGridViewRowPostPaintEvent& event) const {
         if (event.row.value != overlay_row) return;
-        event.overlays.push_back(DataGridViewRowOverlayPart{bounds, PartRole::glyph, PartMark::none, background});
+        event.overlays.push_back(DataGridViewRowOverlayPart{bounds, PartRole::glyph, PartMark::none, stxlib::Optional<Color>::of(background)});
     }
 };
 

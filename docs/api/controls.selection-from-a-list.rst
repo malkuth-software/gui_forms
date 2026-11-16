@@ -2372,13 +2372,13 @@ Related types
 
    .. cpp:member:: std::optional<BindingValue> data_source_null_value
 
-   .. cpp:member:: std::optional<Color> back_color
+   .. cpp:member:: stxlib::Optional<Color> back_color
 
-   .. cpp:member:: std::optional<Color> fore_color
+   .. cpp:member:: stxlib::Optional<Color> fore_color
 
-   .. cpp:member:: std::optional<Color> selection_back_color
+   .. cpp:member:: stxlib::Optional<Color> selection_back_color
 
-   .. cpp:member:: std::optional<Color> selection_fore_color
+   .. cpp:member:: stxlib::Optional<Color> selection_fore_color
 
 .. cpp:namespace:: gui_forms
 
@@ -3360,7 +3360,7 @@ Related types
 
       Default: ``{PartMark::none}``.
 
-   .. cpp:member:: std::optional<Color> background
+   .. cpp:member:: stxlib::Optional<Color> background
 
 .. cpp:namespace:: gui_forms
 
@@ -3444,7 +3444,7 @@ Related types
 
    .. cpp:member:: DataGridViewRowPaintParts parts
 
-   .. cpp:member:: std::optional<Color> background
+   .. cpp:member:: stxlib::Optional<Color> background
 
    .. cpp:member:: bool handled
 

@@ -499,10 +499,10 @@ void inherit_unset(DataGridViewCellStyle& style, const DataGridViewCellStyle& fr
     if (!style.format) style.format = from.format;
     if (!style.null_value) style.null_value = from.null_value;
     if (!style.data_source_null_value) style.data_source_null_value = from.data_source_null_value;
-    if (!style.back_color) style.back_color = from.back_color;
-    if (!style.fore_color) style.fore_color = from.fore_color;
-    if (!style.selection_back_color) style.selection_back_color = from.selection_back_color;
-    if (!style.selection_fore_color) style.selection_fore_color = from.selection_fore_color;
+    if (style.back_color.absent()) style.back_color = from.back_color;
+    if (style.fore_color.absent()) style.fore_color = from.fore_color;
+    if (style.selection_back_color.absent()) style.selection_back_color = from.selection_back_color;
+    if (style.selection_fore_color.absent()) style.selection_fore_color = from.selection_fore_color;
 }
 
 } // namespace

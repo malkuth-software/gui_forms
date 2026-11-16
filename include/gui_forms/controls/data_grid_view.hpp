@@ -342,7 +342,7 @@ struct GUI_FORMS_API DataGridViewRowPrePaintEvent final {
     bool selected{};
     bool current{};
     DataGridViewRowPaintParts parts{};
-    std::optional<Color> background{};
+    stxlib::Optional<Color> background{};
     bool handled{};
 };
 

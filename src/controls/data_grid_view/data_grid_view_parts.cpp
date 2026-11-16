@@ -7,7 +7,6 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window.hpp"
-#include "../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1490,11 +1489,11 @@ DataGridView::AuthoredColours DataGridView::authored_colours(const DataGridViewC
     // leaves the theme's selection look, not the unselected colour.
     AuthoredColours result;
     if (selected) {
-        result.background = platform::stxlib_optional(style.selection_back_color);
-        result.foreground = platform::stxlib_optional(style.selection_fore_color);
+        result.background = style.selection_back_color;
+        result.foreground = style.selection_fore_color;
     } else {
-        result.background = platform::stxlib_optional(style.back_color);
-        result.foreground = platform::stxlib_optional(style.fore_color);
+        result.background = style.back_color;
+        result.foreground = style.fore_color;
     }
     return result;
 }
@@ -1876,8 +1875,8 @@ void DataGridView::apply_row_paint(const DataGridViewRowPrePaintEvent& answer, D
     if (!answer.parts.selection) cell.states.erase(AnatomyState::selected);
     if (!answer.parts.background) {
         parts.selection.authored_background.reset();
-    } else if (answer.background) {
-        parts.selection.authored_background.set(*answer.background);
+    } else if (answer.background.present()) {
+        parts.selection.authored_background = answer.background;
     }
     if (!answer.parts.focus) {
         parts.focus = PartGeometry{};

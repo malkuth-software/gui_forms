@@ -20,7 +20,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <stxlib/optional.hpp>
 #include <span>
 #include <string>
@@ -156,7 +155,7 @@ struct GUI_FORMS_API DataGridViewRowOverlayPart final {
     Rect bounds{};
     PartRole role{PartRole::glyph};
     PartMark mark{PartMark::none};
-    std::optional<Color> background{};
+    stxlib::Optional<Color> background{};
 };
 
 struct GUI_FORMS_API DataGridViewCellsSnapshot final {
