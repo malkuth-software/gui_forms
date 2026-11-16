@@ -116,12 +116,54 @@ void test_sine_cosine() {
         require(std::fabs(observed.sine - std::sin(x)) <= 1e-14 && std::fabs(observed.cosine - std::cos(x)) <= 1e-14,
                 "sine and cosine within their bound up to 2^20");
     }
-    const EngineSineCosine beyond = engine_sine_cosine(2.0e6);
+    // Above 2^20 the table reduction: against the exact values (computed
+    // with 1600-bit integer arithmetic), to the whole finite range.
+    struct LargeAngle final {
+        double x{};
+        double sine{};
+        double cosine{};
+    };
+    const LargeAngle large[] = {
+        {1048576.0, 0.33049314002173469, 0.94380839390131199},
+        {1073741824.0, -0.61732641504604213, 0.78670712294118816},
+        {1e300, -0.81788191211590855, -0.57538611195754907},
+        {-1e300, 0.81788191211590855, -0.57538611195754907},
+        {std::numeric_limits<double>::max(), 0.004961954789184062, -0.99998768942655991},
+    };
+    for (const LargeAngle& angle : large) {
+        const EngineSineCosine observed = engine_sine_cosine(angle.x);
+        require(std::fabs(observed.sine - angle.sine) <= 1e-15 && std::fabs(observed.cosine - angle.cosine) <= 1e-15,
+                "2^20, 2^30, 1e300 and the largest double reduce exactly");
+    }
+    // The double nearest a multiple of π/2 (Kahan and McDonald): its cosine,
+    // −4.687e-19, needs the reduction's full precision.
+    const EngineSineCosine nearest = engine_sine_cosine(6381956970095103.0 * std::ldexp(1.0, 797));
+    require(relative_error(nearest.cosine, -4.6871659242546277e-19) <= 1e-14 && nearest.sine == 1.0,
+            "the worst case for reduction keeps its relative precision");
+    for (int step = 1; step <= 2000; ++step) {
+        const double x = std::ldexp(1.0 + static_cast<double>(step) / 2048.0, 21 + step % 1000);
+        // 2x is exact, so the double-angle identities test the reduction at
+        // two exponents without the host library.
+        const EngineSineCosine single = engine_sine_cosine(x);
+        const EngineSineCosine twice = engine_sine_cosine(2.0 * x);
+        const double double_sine = 2.0 * single.sine * single.cosine;
+        const double double_cosine = single.cosine * single.cosine - single.sine * single.sine;
+        require(std::fabs(twice.sine - double_sine) <= 8e-15 && std::fabs(twice.cosine - double_cosine) <= 8e-15,
+                "the table reduction keeps the double-angle identities up to 2^1021");
+    }
     const EngineSineCosine infinite = engine_sine_cosine(std::numeric_limits<double>::infinity());
+    const EngineSineCosine negative = engine_sine_cosine(-std::numeric_limits<double>::infinity());
     const EngineSineCosine missing = engine_sine_cosine(std::numeric_limits<double>::quiet_NaN());
-    require(std::isnan(beyond.sine) && std::isnan(beyond.cosine) && std::isnan(infinite.sine) &&
-                std::isnan(missing.cosine),
-            "beyond 2^20, infinities and NaN give NaN");
+    require(infinite.sine == 0.0 && infinite.cosine == 1.0 && negative.sine == 0.0 && negative.cosine == 1.0 &&
+                missing.sine == 0.0 && missing.cosine == 1.0,
+            "infinities and NaN give the stated sine 0 and cosine 1");
+    require(engine_tangent(std::numeric_limits<double>::infinity()) == 0.0 &&
+                engine_tangent(-std::numeric_limits<double>::infinity()) == 0.0 &&
+                engine_tangent(std::numeric_limits<double>::quiet_NaN()) == 0.0,
+            "the tangent of infinities and NaN is the stated 0");
+    const double largest_tangent = engine_tangent(std::numeric_limits<double>::max());
+    require(std::fabs(largest_tangent - 0.004961954789184062 / -0.99998768942655991) <= 4e-15,
+            "the tangent of the largest double is finite and reduced exactly");
 }
 
 void test_arctangent() {
@@ -185,8 +227,8 @@ void test_degrees_and_tangent() {
             "45 degrees is sqrt(1/2) within the bound");
     const EngineSineCosine infinite = engine_sine_cosine_degrees(std::numeric_limits<double>::infinity());
     const EngineSineCosine missing = engine_sine_cosine_degrees(std::numeric_limits<double>::quiet_NaN());
-    require(std::isnan(infinite.sine) && std::isnan(infinite.cosine) && std::isnan(missing.sine),
-            "infinities and NaN give NaN in degrees");
+    require(infinite.sine == 0.0 && infinite.cosine == 1.0 && missing.sine == 0.0 && missing.cosine == 1.0,
+            "infinities and NaN give the stated sine 0 and cosine 1 in degrees");
 
     require(engine_tangent(0.0) == 0.0, "the tangent of 0 is exact");
     // tan(π/8) = sqrt(2) − 1, and a quarter-turn arc piece's handle is

@@ -171,7 +171,7 @@ Types
    * - :cpp:class:`EnginePrimitive <gui_forms::EnginePrimitive>`
      - One kind of effect.
    * - :cpp:class:`EngineSineCosine <gui_forms::EngineSineCosine>`
-     - The sine and cosine of ``x`` radians, computed together (E3's springs).
+     - The sine and cosine of ``x`` radians, computed together (E3's springs), for every finite x with absolute error at most 2^-50.
    * - :cpp:class:`EngineVersion <gui_forms::EngineVersion>`
      - The engine version a primitive was introduced in, and the version a theme declares it needs.
    * - :cpp:class:`ExpressionCompilation <gui_forms::ExpressionCompilation>`
@@ -2852,7 +2852,7 @@ Types
 
    ``#include <gui_forms/engine/engine_math/engine_math.hpp>``
 
-   The sine and cosine of ``x`` radians, computed together (E3's springs). For x of magnitude at most 2^20 the absolute error of each is at most 2^-50; beyond that, and for infinities and NaN, both are NaN. Exact case: x = 0 gives sine 0 and cosine 1. The argument is reduced by the nearest multiple of π/2, with π/2 split in three parts (Cody and Waite) so that the reduction is exact to about 2^-100 relative.
+   The sine and cosine of ``x`` radians, computed together (E3's springs), for every finite x with absolute error at most 2^-50. The argument is reduced by the nearest multiple of π/2: up to 2^20 with π/2 split in three parts (Cody and Waite), exact to about 2^-100 relative; above that by Payne and Hanek's method, in integers against a fixed 1280-bit table of 2/π, which is exact for every finite double up to the largest. Exact case: x = 0 gives sine 0 and cosine 1. Infinities and NaN have no angle and give the stated value sine 0 and cosine 1, the turn of angle 0, so no NaN reaches geometry from here.
 
    .. cpp:member:: double sine
 
@@ -9628,11 +9628,11 @@ Functions, constants and aliases
 
 .. cpp:function:: EngineSineCosine engine_sine_cosine_degrees(double degrees) noexcept
 
-   The sine and cosine of ``degrees``, for every finite angle (the theme language's rotate() and arc rotations, drawing replay's gradient directions). Exact at every multiple of 90 degrees: 0, 90, 180 and 270 give (0, 1), (1, 0), (0, −1) and (−1, 0) with no rounding. The angle is reduced exactly (fmod by 360, then the nearest multiple of 90, both without rounding), the remainder of at most 45 degrees is turned into radians (one rounding) and passed to engine_sine_cosine, and the quarter turns are applied by swapping and negating. Absolute error at most 2^-49. Infinities and NaN give NaN in both. This and the radian functions above are the only trigonometry the raster and theme paths call, so a later move to STXlib's certified kernels (stxlib/math.hpp's sincos and atan2, once gui_forms_core links stxlib::algorithms at a pin that carries them) changes their bodies only; STXlib's glyph seat needs the same exact quarter turns for rotated text.
+   The sine and cosine of ``degrees``, for every finite angle (the theme language's rotate() and arc rotations, drawing replay's gradient directions). Exact at every multiple of 90 degrees: 0, 90, 180 and 270 give (0, 1), (1, 0), (0, −1) and (−1, 0) with no rounding. The angle is reduced exactly (fmod by 360, then the nearest multiple of 90, both without rounding), the remainder of at most 45 degrees is turned into radians (one rounding) and passed to engine_sine_cosine, and the quarter turns are applied by swapping and negating. Absolute error at most 2^-49. Infinities and NaN give the stated value sine 0 and cosine 1, as engine_sine_cosine does. This and the radian functions above are the only trigonometry the raster and theme paths call, so a later move to STXlib's certified kernels (stxlib/math.hpp's sincos and atan2, once gui_forms_core links stxlib::algorithms at a pin that carries them) changes their bodies only; STXlib's glyph seat needs the same exact quarter turns for rotated text.
 
 .. cpp:function:: double engine_tangent(double x) noexcept
 
-   The tangent of ``x`` radians, as engine_sine_cosine's sine over its cosine (the theme language's arc handles, 4/3 tan(piece/4) with |piece/4| at most π/8). For |x| ≤ π/4 the cosine is at least 0.7071, so the absolute error is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives 0. Outside engine_sine_cosine's range, infinities and NaN give NaN.
+   The tangent of ``x`` radians, as engine_sine_cosine's sine over its cosine (the theme language's arc handles, 4/3 tan(piece/4) with |piece/4| at most π/8). For |x| ≤ π/4 the cosine is at least 0.7071, so the absolute error is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives 0. Every finite x has a finite result (no double but 0 is a multiple of π/2); infinities and NaN give the stated value 0.
 
 .. cpp:function:: double engine_hypotenuse(double x, double y) noexcept
 
