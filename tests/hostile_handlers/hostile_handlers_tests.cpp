@@ -860,11 +860,14 @@ const HostileEvent split_container_events[] = {
 };
 
 // --- Range controls: TrackBar, HScrollBar (A-gf-controls-11-F8) -------------
-// clear narrows the range to one point; replace moves it past the value.
+// clear narrows the range to its narrowest legal span below the value (a
+// RangeControl refuses minimum == maximum, unlike NumericUpDown, so a
+// one-point range would be the handler's own throw, not the control's);
+// replace moves it past the value.
 
 void range_clear(Stage& stage) {
     const std::shared_ptr<RangeControl> range = subject_as<RangeControl>(stage);
-    if (range != nullptr) (*range).set_range(0.0, 0.0);
+    if (range != nullptr) (*range).set_range(0.0, 1.0);
 }
 
 void range_replace(Stage& stage) {
