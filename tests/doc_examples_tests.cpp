@@ -1324,7 +1324,7 @@ void example() {
         gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
     (*mode).items = {"AM", "FM", "USB", "LSB"};
     (*mode).wrap = true;
-    (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
+    (*mode).selected_index = stxlib::Optional<std::size_t>::of(3U);   // the field shows "LSB"
     (*mode).down_button();            // wraps: the field shows "AM"
 }
 }  // namespace doc_example_DomainUpDown_1

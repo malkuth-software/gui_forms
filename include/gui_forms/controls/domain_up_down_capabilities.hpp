@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -26,16 +27,16 @@ namespace gui_forms {
 // The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows. A write selects an item and shows its text, or clears the selection and keeps the text, and raises selected_index_changed. An index past the end throws std::out_of_range.
 template <typename Declaring>
 struct DomainUpDownSelectedIndexCapability {
-    PropertyView<std::optional<std::size_t>, DomainUpDownSelectedIndexCapability<Declaring>> selected_index;
+    PropertyView<stxlib::Optional<std::size_t>, DomainUpDownSelectedIndexCapability<Declaring>> selected_index;
 
-    static void assign(DomainUpDownSelectedIndexCapability& capability, std::optional<std::size_t> incoming) {
+    static void assign(DomainUpDownSelectedIndexCapability& capability, stxlib::Optional<std::size_t> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.write_view(std::as_const(capability.selected_index), std::move(incoming));
     }
 
-    static std::optional<std::size_t> read(const DomainUpDownSelectedIndexCapability& capability) {
+    static stxlib::Optional<std::size_t> read(const DomainUpDownSelectedIndexCapability& capability) {
         const Declaring& control = static_cast<const Declaring&>(capability);
-        std::optional<std::size_t> current = control.read_view(capability.selected_index);
+        stxlib::Optional<std::size_t> current = control.read_view(capability.selected_index);
         return current;
     }
 };

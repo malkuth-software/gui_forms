@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 198> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -213,6 +213,7 @@ inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
     {"stxlib::Optional<Color>", "value: color optional"},
     {"stxlib::Optional<TokenId>", "value: unsigned_integer optional"},
     {"stxlib::Optional<bool>", "value: boolean optional"},
+    {"stxlib::Optional<std::size_t>", "value: unsigned_integer optional"},
 }};
 
 } // namespace gui_forms::abi1

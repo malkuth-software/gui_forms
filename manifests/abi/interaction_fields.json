@@ -197,6 +197,7 @@
     "std::vector<std::string>": "value: collection",
     "stxlib::Optional<Color>": "value: color optional",
     "stxlib::Optional<TokenId>": "value: unsigned_integer optional",
-    "stxlib::Optional<bool>": "value: boolean optional"
+    "stxlib::Optional<bool>": "value: boolean optional",
+    "stxlib::Optional<std::size_t>": "value: unsigned_integer optional"
   }
 }

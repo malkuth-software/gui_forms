@@ -5716,7 +5716,7 @@
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
-        {"name": "selected_index_changed", "payload": "std::optional<std::size_t>", "mutable_payload": false}
+        {"name": "selected_index_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false}
       ]
     },
     {

@@ -524,13 +524,13 @@ void test_choice_items_follow_edits() {
     (*domain).sorted = true;
     (*domain).items = {"lsb", "USB", "AM"};
     (*domain).text = "usb";
-    require((*domain).selected_index.read() == std::optional<std::size_t>{2U}, "the text selects its item");
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(2U), "the text selects its item");
     (*domain).items.insert(0U, "cw");
     require((*domain).items[1U] == "cw" && (*domain).items[3U] == "USB" &&
-                (*domain).selected_index.read() == std::optional<std::size_t>{3U},
+                (*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(3U),
             "a sorted domain sorts an insertion and re-matches the selection");
     (*domain).items.erase(3U, 1U);
-    require(!(*domain).selected_index.read() && (*domain).text.read() == "usb",
+    require((*domain).selected_index.read().absent() && (*domain).text.read() == "usb",
             "erasing the selected item keeps the text and clears the selection");
 }
 

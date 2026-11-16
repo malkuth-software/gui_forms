@@ -12,7 +12,7 @@
     {
       "name": "selected_index",
       "capability": "DomainUpDownSelectedIndex",
-      "value": "std::optional<std::size_t>",
+      "value": "stxlib::Optional<std::size_t>",
       "initial": null,
       "comment": "The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows. A write selects an item and shows its text, or clears the selection and keeps the text, and raises selected_index_changed. An index past the end throws std::out_of_range.",
       "getter": "selected_index",

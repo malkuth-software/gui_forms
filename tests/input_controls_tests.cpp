@@ -1162,13 +1162,13 @@ void test_control_bases_share_behaviour() {
     (*domain).items = {"one", "two", "three"};
     UpDownBase& domain_base = *domain;
     domain_base.up_button();
-    require((*domain).selected_index.read() == std::optional<std::size_t>{2U},
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(2U),
             "UpDownBase::up_button with no selection must select DomainUpDown's last item");
     // With wrap on, the step down from the last item goes to the first; a
     // down_button that did nothing would leave the last.
     (*domain).wrap = true;
     domain_base.down_button();
-    require((*domain).selected_index.read() == std::optional<std::size_t>{0U},
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(0U),
             "UpDownBase::down_button must step DomainUpDown's selection");
 
     const std::shared_ptr<ListBox> list = make_control<ListBox>(StableId("input.shared.list"));

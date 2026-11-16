@@ -187,7 +187,7 @@ std::shared_ptr<NumericUpDown> spinner(const InspectionRow& row, std::string_vie
 std::shared_ptr<DomainUpDown> domain(const InspectionRow& row, std::string_view state) {
     const std::shared_ptr<DomainUpDown> value = make_control<DomainUpDown>(StableId(inspection_id(row, state, "")));
     (*value).items = {"First", "Second", "Third"};
-    (*value).selected_index = std::optional<std::size_t>{0U};
+    (*value).selected_index = stxlib::Optional<std::size_t>::of(0U);
     (*value).accessible_name = std::string(state);
     return value;
 }
