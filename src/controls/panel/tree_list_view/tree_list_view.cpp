@@ -2367,8 +2367,14 @@ TreeListView::RealizedSlot TreeListView::realized_slot(const Layout& placed, std
         slot.column = realized_cell_column(placed, position % per_row);
         return slot;
     }
+    // visible_column answers columns_.size() for a position past the
+    // visible columns; that item is refused before it indexes the columns
+    // (A-gf-controls-10-F11).
     slot.system = column_system;
     slot.column = visible_column(placed, item - rows - cells);
+    if (slot.column >= columns_.size()) {
+        throw std::out_of_range("TreeListView realized item is past the realized items");
+    }
     return slot;
 }
 

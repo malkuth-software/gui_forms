@@ -150,6 +150,8 @@ protected:
                                         std::span<PartGeometry> geometry) const override;
 
 private:
+    // Throws std::out_of_range for an item past realized_item_count().
+    void require_realized_item(std::size_t item) const;
     void on_image_list_changed(const ImageListChange& change);
     void rebuild_visible();
     // Sets `expanded` on the items at `indices` (ascending, each expandable

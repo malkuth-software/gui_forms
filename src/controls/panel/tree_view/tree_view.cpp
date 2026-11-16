@@ -878,12 +878,22 @@ std::size_t TreeView::realized_item_count() const {
     return end - top_row_;
 }
 
+// The realized-item accessors refuse an item past the realized rows before
+// it indexes the visible list (A-gf-controls-10-F11).
+void TreeView::require_realized_item(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("TreeView realized item is past the realized rows");
+    }
+}
+
 std::string TreeView::realized_item_stable_id(std::size_t item) const {
+    require_realized_item(item);
     return items_[visible_[top_row_ + item]].stable_id;
 }
 
 void TreeView::publish_realized_item_geometry(std::size_t item,
                                           std::span<PartGeometry> geometry) const {
+    require_realized_item(item);
     ItemParts record;
 
     const Rect bounds = local_bounds();
@@ -929,6 +939,7 @@ void TreeView::publish_realized_item_geometry(std::size_t item,
 }
 
 AnatomyStateSet TreeView::realized_item_anatomy_states(std::size_t item) const {
+    require_realized_item(item);
     AnatomyStateSet states;
     const std::size_t row = top_row_ + item;
     const TreeViewItem& node = items_[visible_[row]];
