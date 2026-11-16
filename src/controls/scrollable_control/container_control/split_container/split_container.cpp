@@ -312,11 +312,18 @@ void SplitContainer::set_first_collapsed(bool collapsed,
     if (collapsed && second_collapsed_) {
         throw std::logic_error("both split panels may not be collapsed");
     }
+    if (collapsed) {
+        // The focus move runs focus handlers, which may collapse the other
+        // panel or drop the container: the refusal is checked again after
+        // it, before anything changes (A-gf-controls-12-F8).
+        const Control::Ptr lifetime = shared_from_this();
+        transfer_focus_from(first_panel_);
+        if (!is_alive() || first_collapsed_ || second_collapsed_) return;
+    }
     const double old = effective_distance_;
     const SplitCollapseOrigin previous_origin = first_collapse_origin_;
     if (collapsed) {
         if (effective_distance_ > 0.0) remembered_distance_ = effective_distance_;
-        transfer_focus_from(first_panel_);
     } else if (remembered_distance_ >= 0.0) {
         requested_distance_ = remembered_distance_;
     }
@@ -347,11 +354,18 @@ void SplitContainer::set_second_collapsed(bool collapsed,
     if (collapsed && first_collapsed_) {
         throw std::logic_error("both split panels may not be collapsed");
     }
+    if (collapsed) {
+        // The focus move runs focus handlers, which may collapse the other
+        // panel or drop the container: the refusal is checked again after
+        // it, before anything changes (A-gf-controls-12-F8).
+        const Control::Ptr lifetime = shared_from_this();
+        transfer_focus_from(second_panel_);
+        if (!is_alive() || second_collapsed_ || first_collapsed_) return;
+    }
     const double old = effective_distance_;
     const SplitCollapseOrigin previous_origin = second_collapse_origin_;
     if (collapsed) {
         if (effective_distance_ > 0.0) remembered_distance_ = effective_distance_;
-        transfer_focus_from(second_panel_);
     } else if (remembered_distance_ >= 0.0) {
         requested_distance_ = remembered_distance_;
     }
