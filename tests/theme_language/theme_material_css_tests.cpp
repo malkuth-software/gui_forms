@@ -846,6 +846,63 @@ void test_shape_lowering() {
     const MaterialDeclaration* const cleared = field_of(only_rule(none, none_sheet), MaterialField::clip_path);
     require(cleared != nullptr && !(*cleared).clip_path, "clip-path: none clears it");
 
+    // S and T reflect the previous curve's last control point about the
+    // current point.
+    const std::string_view smooth_sheet =
+        "#pad::part(face) { clip-path: path(\"M0 0 C 0 10 10 10 10 0 S 20 -10 20 0 Q 25 10 30 0 T 40 0 Z\") }";
+    const Compilation smooth = compile(smooth_sheet);
+    const MaterialDeclaration* const smoothed = field_of(only_rule(smooth, smooth_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> smooth_verbs{MaterialClipVerb::move,      MaterialClipVerb::cubic,
+                                                     MaterialClipVerb::cubic,     MaterialClipVerb::quadratic,
+                                                     MaterialClipVerb::quadratic, MaterialClipVerb::close};
+    const std::vector<MaterialClipPoint> smooth_points{
+        MaterialClipPoint{0.0, 0.0, 0.0, 0.0},   MaterialClipPoint{0.0, 0.0, 10.0, 0.0},
+        MaterialClipPoint{10.0, 0.0, 10.0, 0.0}, MaterialClipPoint{10.0, 0.0, 0.0, 0.0},
+        MaterialClipPoint{10.0, 0.0, -10.0, 0.0}, MaterialClipPoint{20.0, 0.0, -10.0, 0.0},
+        MaterialClipPoint{20.0, 0.0, 0.0, 0.0},  MaterialClipPoint{25.0, 0.0, 10.0, 0.0},
+        MaterialClipPoint{30.0, 0.0, 0.0, 0.0},  MaterialClipPoint{35.0, 0.0, -10.0, 0.0},
+        MaterialClipPoint{40.0, 0.0, 0.0, 0.0}};
+    require(smoothed != nullptr && (*smoothed).clip_path && (*(*smoothed).clip_path).verbs == smooth_verbs &&
+                (*(*smoothed).clip_path).points == smooth_points,
+            "S and T lower to a cubic and a quadratic with the reflected control point");
+
+    // An arc lowers to cubics by its fixed subdivision: a half turn of
+    // radius 10 from (0, 0) to (20, 0), sweeping clockwise on screen, is two
+    // quarter pieces through (10, -10), ending exactly at (20, 0). The flags
+    // may be written without separators.
+    const std::array<std::string_view, 2> arc_sheets{
+        "#pad::part(face) { clip-path: path(\"M 0 0 A 10 10 0 0 1 20 0 Z\") }",
+        "#pad::part(face) { clip-path: path(\"M0 0a10 10 0 0120 0z\") }"};
+    for (const std::string_view arc_sheet : arc_sheets) {
+        const Compilation arced = compile(arc_sheet);
+        const MaterialDeclaration* const arc = field_of(only_rule(arced, arc_sheet), MaterialField::clip_path);
+        const bool lowered = arc != nullptr && (*arc).clip_path;
+        require(lowered, std::string("the arc lowers: ") + std::string(arc_sheet));
+        if (!lowered) continue;
+        const MaterialClipPath& clip = *(*arc).clip_path;
+        const std::vector<MaterialClipVerb> arc_verbs{MaterialClipVerb::move, MaterialClipVerb::cubic,
+                                                      MaterialClipVerb::cubic, MaterialClipVerb::close};
+        require(clip.verbs == arc_verbs && clip.points.size() == 7U, "a half turn is two cubic pieces");
+        if (clip.points.size() != 7U) continue;
+        const MaterialClipPoint middle = clip.points[3];
+        const MaterialClipPoint last = clip.points[6];
+        require(std::abs(middle.x_units - 10.0) < 1e-9 && std::abs(middle.y_units + 10.0) < 1e-9,
+                "the pieces meet at the top of the half turn");
+        require(last.x_units == 20.0 && last.y_units == 0.0, "the last piece ends exactly at the arc's end");
+        // The quarter piece's handle: 4/3 tan(22.5 degrees) of the radius.
+        const double handle = 4.0 / 3.0 * std::tan(0.39269908169872415481) * 10.0;
+        require(std::abs(clip.points[1].y_units + handle) < 1e-9 && std::abs(clip.points[1].x_units) < 1e-9,
+                "the first handle leaves the start upward by the stated length");
+    }
+    // A zero radius draws a line; equal endpoints draw nothing.
+    const std::string_view flat_sheet = "#pad::part(face) { clip-path: path(\"M 0 0 A 0 5 0 0 1 10 0 A 5 5 0 0 1 10 0 L 0 10 Z\") }";
+    const Compilation flat = compile(flat_sheet);
+    const MaterialDeclaration* const flattened = field_of(only_rule(flat, flat_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> flat_verbs{MaterialClipVerb::move, MaterialClipVerb::line,
+                                                   MaterialClipVerb::line, MaterialClipVerb::close};
+    require(flattened != nullptr && (*flattened).clip_path && (*(*flattened).clip_path).verbs == flat_verbs,
+            "an arc of zero radius is a line, and one to its own start is nothing");
+
     const std::array<Refusal, 14> refusals{{
         {"#a { transform: rotate(1px) }", DiagnosticCode::value_wrong_kind},
         {"#a { transform: rotate(10deg, 20deg) }", DiagnosticCode::value_syntax},
@@ -857,7 +914,7 @@ void test_shape_lowering() {
         {"#a { clip-path: polygon(0 0, 1px 1px) }", DiagnosticCode::value_syntax},
         {"#a { clip-path: polygon(0 0, 1em 0, 0 1px) }", DiagnosticCode::value_form_not_admitted},
         {"#a { clip-path: polygon(sideways, 0 0, 1px 0, 0 1px) }", DiagnosticCode::keyword_unknown},
-        {"#a { clip-path: path(\"M 0 0 A 1 1 0 0 1 2 2\") }", DiagnosticCode::value_form_not_admitted},
+        {"#a { clip-path: path(\"M 0 0 A 1 1 0 2 1 2 2\") }", DiagnosticCode::value_syntax},
         {"#a { clip-path: path(\"L 0 0\") }", DiagnosticCode::value_syntax},
         {"#a { clip-path: path(\"M 0 0 L\") }", DiagnosticCode::value_syntax},
         {"#a { clip-path: path(10px) }", DiagnosticCode::value_wrong_kind},

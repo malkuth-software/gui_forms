@@ -328,22 +328,32 @@ constexpr std::string_view path_function_name = "path";
 // Why a path() string did not read.
 enum class SvgPathProblem : std::uint8_t {
     none,
-    // Not SVG path data: a missing number, a stray character, or a path
-    // that does not start with a move.
+    // Not SVG path data: a missing number or flag, a stray character, or a
+    // path that does not start with a move.
     syntax,
-    // S, T or A (a smooth curve or an arc), which the clip path leaves out.
-    command_not_admitted,
     // More than MaterialClipPath::maximum_points points, or a coordinate
     // beyond MaterialClipPath::maximum_units.
     too_large
 };
 
-// Reads SVG path data (M, L, H, V, C, Q, Z, each absolute or relative, a
-// command repeating over further coordinates, a move's further pairs as
-// lines) into a clip path's verbs and points, in px from the box's
+// Reads SVG path data (M, L, H, V, C, S, Q, T, A, Z, each absolute or
+// relative, a command repeating over further coordinates, a move's further
+// pairs as lines) into a clip path's verbs and points, in px from the box's
 // top-left. Numbers are read exactly as decimals: at most 15 significant
 // digits and an exponent of at most 20 in size, so each is one correctly
 // rounded division or multiplication by an exact power of ten.
+//
+// S and T become a cubic and a quadratic whose first control point is the
+// previous curve's last control point reflected about the current point
+// (the current point itself after any other command), as SVG defines them.
+// An arc becomes cubic Béziers by the SVG endpoint-to-centre conversion
+// (radii scaled up when too small, a zero radius a line, equal endpoints
+// nothing) and a fixed subdivision: n = ceil(|sweep| / 90 degrees) equal
+// pieces (1 to 4; a sweep within 1e-9 radians above a multiple of 90
+// degrees takes the lower count), each the cubic with handles
+// 4/3 tan(piece / 4) of the radius, its last end the arc's exact end. The
+// count and the formulas are fixed; the points use the host's sin, cos,
+// tan, atan2 and sqrt, so they can differ in the last bits between hosts.
 class SvgPathReader final {
 public:
     explicit SvgPathReader(std::string_view text) noexcept : text_(text) {}
@@ -355,12 +365,21 @@ private:
     [[nodiscard]] bool at_number() const noexcept;
     [[nodiscard]] bool read_number(double& value) noexcept;
     [[nodiscard]] bool read_pair(Point& point) noexcept;
+    [[nodiscard]] bool read_flag(bool& flag) noexcept;
+    [[nodiscard]] SvgPathProblem push_arc(Point radii, double rotation_degrees, bool large_arc, bool sweep, Point end,
+                                          MaterialClipPath& clip);
     [[nodiscard]] SvgPathProblem push(MaterialClipVerb verb, std::span<const Point> points, MaterialClipPath& clip);
 
     std::string_view text_;
     std::size_t at_{};
     Point current_{};
     Point start_{};
+    // The last control point of the previous command when it was a cubic
+    // (C or S) or a quadratic (Q or T), for S and T to reflect.
+    Point last_cubic_control_{};
+    Point last_quadratic_control_{};
+    bool after_cubic_{};
+    bool after_quadratic_{};
 };
 
 void SvgPathReader::skip_separators() noexcept {
@@ -447,6 +466,93 @@ bool SvgPathReader::read_pair(Point& point) noexcept {
     return true;
 }
 
+bool SvgPathReader::read_flag(bool& flag) noexcept {
+    skip_separators();
+    if (at_ >= text_.size()) return false;
+    const char character = text_[at_];
+    if (character != '0' && character != '1') return false;
+    flag = character == '1';
+    at_ = at_ + 1U;
+    return true;
+}
+
+// The arc pieces' handle factor and count (SvgPathReader).
+constexpr double arc_piece_limit = 1.5707963267948966192; // 90 degrees
+constexpr double arc_piece_slack = 1.0e-9;
+
+SvgPathProblem SvgPathReader::push_arc(Point radii, double rotation_degrees, bool large_arc, bool sweep, Point end,
+                                       MaterialClipPath& clip) {
+    const Point begin = current_;
+    if (begin == end) return SvgPathProblem::none;
+    double radius_x = std::abs(radii.x);
+    double radius_y = std::abs(radii.y);
+    if (radius_x == 0.0 || radius_y == 0.0) {
+        const std::array<Point, 1> line{end};
+        return push(MaterialClipVerb::line, line, clip);
+    }
+    const double rotation = rotation_degrees * 0.017453292519943295769;
+    const double cosine = std::cos(rotation);
+    const double sine = std::sin(rotation);
+    // The endpoints' half difference in the ellipse's own axes (SVG F.6.5).
+    const double half_x = (begin.x - end.x) * 0.5;
+    const double half_y = (begin.y - end.y) * 0.5;
+    const double turned_x = cosine * half_x + sine * half_y;
+    const double turned_y = -sine * half_x + cosine * half_y;
+    const double reach = (turned_x * turned_x) / (radius_x * radius_x) + (turned_y * turned_y) / (radius_y * radius_y);
+    if (reach > 1.0) {
+        const double grow = std::sqrt(reach);
+        radius_x = radius_x * grow;
+        radius_y = radius_y * grow;
+    }
+    const double rx2 = radius_x * radius_x;
+    const double ry2 = radius_y * radius_y;
+    const double tx2 = turned_x * turned_x;
+    const double ty2 = turned_y * turned_y;
+    const double numerator = rx2 * ry2 - rx2 * ty2 - ry2 * tx2;
+    const double denominator = rx2 * ty2 + ry2 * tx2;
+    const double ratio = denominator > 0.0 ? std::max(0.0, numerator / denominator) : 0.0;
+    const double side = large_arc == sweep ? -1.0 : 1.0;
+    const double factor = side * std::sqrt(ratio);
+    const double centre_turned_x = factor * radius_x * turned_y / radius_y;
+    const double centre_turned_y = -factor * radius_y * turned_x / radius_x;
+    const Point centre{cosine * centre_turned_x - sine * centre_turned_y + (begin.x + end.x) * 0.5,
+                       sine * centre_turned_x + cosine * centre_turned_y + (begin.y + end.y) * 0.5};
+    const double start_x = (turned_x - centre_turned_x) / radius_x;
+    const double start_y = (turned_y - centre_turned_y) / radius_y;
+    const double end_x = (-turned_x - centre_turned_x) / radius_x;
+    const double end_y = (-turned_y - centre_turned_y) / radius_y;
+    const double start_angle = std::atan2(start_y, start_x);
+    double sweep_angle = std::atan2(start_x * end_y - start_y * end_x, start_x * end_x + start_y * end_y);
+    if (!sweep && sweep_angle > 0.0) sweep_angle = sweep_angle - 2.0 * 3.14159265358979323846;
+    if (sweep && sweep_angle < 0.0) sweep_angle = sweep_angle + 2.0 * 3.14159265358979323846;
+    const double pieces_wanted = std::ceil(std::abs(sweep_angle) / arc_piece_limit - arc_piece_slack);
+    const std::size_t pieces = static_cast<std::size_t>(std::clamp(pieces_wanted, 1.0, 4.0));
+    const double piece = sweep_angle / static_cast<double>(pieces);
+    const double handle = 4.0 / 3.0 * std::tan(piece * 0.25);
+    for (std::size_t index = 0U; index < pieces; ++index) {
+        const double from = start_angle + piece * static_cast<double>(index);
+        const double to = from + piece;
+        const double from_cos = std::cos(from);
+        const double from_sin = std::sin(from);
+        const double to_cos = std::cos(to);
+        const double to_sin = std::sin(to);
+        // On the unit circle, then onto the ellipse: scaled, turned, moved.
+        const std::array<Point, 3> unit{Point{from_cos - handle * from_sin, from_sin + handle * from_cos},
+                                        Point{to_cos + handle * to_sin, to_sin - handle * to_cos},
+                                        Point{to_cos, to_sin}};
+        std::array<Point, 3> placed{};
+        for (std::size_t point = 0U; point < unit.size(); ++point) {
+            const double across = radius_x * unit[point].x;
+            const double down = radius_y * unit[point].y;
+            placed[point] = Point{centre.x + cosine * across - sine * down, centre.y + sine * across + cosine * down};
+        }
+        if (index + 1U == pieces) placed[2] = end;
+        const SvgPathProblem problem = push(MaterialClipVerb::cubic, placed, clip);
+        if (problem != SvgPathProblem::none) return problem;
+    }
+    return SvgPathProblem::none;
+}
+
 SvgPathProblem SvgPathReader::push(MaterialClipVerb verb, std::span<const Point> points, MaterialClipPath& clip) {
     if (clip.points.size() + points.size() > MaterialClipPath::maximum_points) return SvgPathProblem::too_large;
     for (const Point point : points) {
@@ -485,6 +591,8 @@ SvgPathProblem SvgPathReader::read(MaterialClipPath& clip) {
         if (clip.verbs.empty() && upper != 'M') return SvgPathProblem::syntax;
         std::array<Point, 3> points{};
         SvgPathProblem problem = SvgPathProblem::none;
+        bool cubic = false;
+        bool quadratic = false;
         switch (upper) {
         case 'M': {
             if (!read_pair(points[0])) return SvgPathProblem::syntax;
@@ -519,34 +627,70 @@ SvgPathProblem SvgPathReader::read(MaterialClipPath& clip) {
             current_ = points[0];
             break;
         }
-        case 'Q': {
-            for (std::size_t index = 0U; index < 2U; ++index) {
+        case 'Q':
+        case 'T': {
+            const bool smooth = upper == 'T';
+            std::size_t first = 0U;
+            if (smooth) {
+                // The previous quadratic's control reflected about the
+                // current point, or the current point.
+                points[0] = after_quadratic_ ? Point{2.0 * current_.x - last_quadratic_control_.x,
+                                                     2.0 * current_.y - last_quadratic_control_.y}
+                                             : current_;
+                first = 1U;
+            }
+            for (std::size_t index = first; index < 2U; ++index) {
                 if (!read_pair(points[index])) return SvgPathProblem::syntax;
                 points[index] = Point{origin.x + points[index].x, origin.y + points[index].y};
             }
             problem = push(MaterialClipVerb::quadratic, std::span<const Point>(points.data(), 2U), clip);
+            last_quadratic_control_ = points[0];
             current_ = points[1];
+            quadratic = true;
             break;
         }
-        case 'C': {
-            for (std::size_t index = 0U; index < 3U; ++index) {
+        case 'C':
+        case 'S': {
+            const bool smooth = upper == 'S';
+            std::size_t first = 0U;
+            if (smooth) {
+                points[0] = after_cubic_ ? Point{2.0 * current_.x - last_cubic_control_.x,
+                                                 2.0 * current_.y - last_cubic_control_.y}
+                                         : current_;
+                first = 1U;
+            }
+            for (std::size_t index = first; index < 3U; ++index) {
                 if (!read_pair(points[index])) return SvgPathProblem::syntax;
                 points[index] = Point{origin.x + points[index].x, origin.y + points[index].y};
             }
             problem = push(MaterialClipVerb::cubic, std::span<const Point>(points.data(), 3U), clip);
+            last_cubic_control_ = points[1];
             current_ = points[2];
+            cubic = true;
+            break;
+        }
+        case 'A': {
+            Point radii{};
+            double rotation = 0.0;
+            bool large_arc = false;
+            bool sweep = false;
+            Point end{};
+            if (!read_pair(radii) || !read_number(rotation)) return SvgPathProblem::syntax;
+            if (!read_flag(large_arc) || !read_flag(sweep) || !read_pair(end)) return SvgPathProblem::syntax;
+            end = Point{origin.x + end.x, origin.y + end.y};
+            problem = push_arc(radii, rotation, large_arc, sweep, end, clip);
+            current_ = end;
             break;
         }
         case 'Z':
             problem = push(MaterialClipVerb::close, std::span<const Point>(), clip);
             current_ = start_;
             break;
-        case 'S':
-        case 'T':
-        case 'A': return SvgPathProblem::command_not_admitted;
         default: return SvgPathProblem::syntax;
         }
         if (problem != SvgPathProblem::none) return problem;
+        after_cubic_ = cubic;
+        after_quadratic_ = quadratic;
         skip_separators();
     }
     if (clip.verbs.empty()) return SvgPathProblem::syntax;
@@ -2498,7 +2642,7 @@ bool MaterialReader::read_polygon(std::size_t function, MaterialClipPath& clip) 
 }
 
 // path([<fill-rule>,] "<SVG path data>"): coordinates in px from the box's
-// top-left (SvgPathReader).
+// top-left; S, T and A lowered to cubics and quadratics (SvgPathReader).
 bool MaterialReader::read_svg_path(std::size_t function, MaterialClipPath& clip) {
     const ValueComponent& written = value_.components[function];
     std::vector<ComponentRange> parts;
@@ -2517,8 +2661,6 @@ bool MaterialReader::read_svg_path(std::size_t function, MaterialClipPath& clip)
     const SvgPathProblem problem = reader.read(clip);
     switch (problem) {
     case SvgPathProblem::none: return true;
-    case SvgPathProblem::command_not_admitted:
-        return fail(DiagnosticCode::value_form_not_admitted, data.token, "S, T and A path commands");
     case SvgPathProblem::too_large:
         return fail(DiagnosticCode::value_out_of_range, data.token, "at most 256 points within 100000px");
     case SvgPathProblem::syntax:
