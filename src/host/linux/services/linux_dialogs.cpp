@@ -363,7 +363,7 @@ std::shared_ptr<Label> label(DialogState &state, const char *id,
                              std::string text, Rect bounds) {
   const std::shared_ptr<Label> control =
       make_control<Label>(StableId(std::string(id)), std::move(text));
-  (*control).font = FontSpec{FontRole::content, 15, 400, false};
+  (*control).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 15, 400, false});
   (*control).text_wrapping = TextWrapping::word;
   (*control).set_bounds(bounds);
   (*state.root).add_child(control);

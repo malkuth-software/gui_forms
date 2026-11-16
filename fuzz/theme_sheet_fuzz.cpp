@@ -222,8 +222,10 @@ void read_media(const theme_language::ThemeSource& source, const theme_language:
                 query.unknown_token >= node.content.first.value && query.unknown_token < node.content.end.value;
             if (query.unknown_feature && !inside) fail("an unknown feature names a token of the prelude");
             const gui_forms::MediaCondition& condition = query.condition;
-            const bool low_valid = !condition.minimum_resolution || *condition.minimum_resolution > 0.0;
-            const bool high_valid = !condition.maximum_resolution || *condition.maximum_resolution > 0.0;
+            const bool low_valid =
+                condition.minimum_resolution.absent() || *condition.minimum_resolution.value() > 0.0;
+            const bool high_valid =
+                condition.maximum_resolution.absent() || *condition.maximum_resolution.value() > 0.0;
             if (!low_valid || !high_valid) fail("a read resolution bound is above zero");
         }
         theme_language::MediaQueryProblem second{};
