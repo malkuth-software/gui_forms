@@ -585,15 +585,16 @@ void PageStrip::place_visible(double start) const {
 // wider than an equal share of what is left keep their width and leave the
 // share). The largest double when they fit without cutting.
 double PageStrip::shrink_cap(std::size_t begin, std::size_t end, double area,
-                             std::optional<std::size_t> extra) const {
+                             const stxlib::Optional<std::size_t>& held_extra) const {
+    const std::size_t* const extra = held_extra.value();
     std::size_t remaining = end - begin;
-    if (extra) ++remaining;
+    if (extra != nullptr) ++remaining;
     double natural = 0.0;
     for (std::size_t position = begin; position < end; ++position) {
         layout_.tabs[position].settled = false;
         natural += layout_.tabs[position].width;
     }
-    if (extra) {
+    if (extra != nullptr) {
         layout_.tabs[*extra].settled = false;
         natural += layout_.tabs[*extra].width;
     }
@@ -612,7 +613,7 @@ double PageStrip::shrink_cap(std::size_t begin, std::size_t end, double area,
             --remaining;
             changed = true;
         }
-        if (extra && !layout_.tabs[*extra].settled && layout_.tabs[*extra].width <= cap) {
+        if (extra != nullptr && !layout_.tabs[*extra].settled && layout_.tabs[*extra].width <= cap) {
             layout_.tabs[*extra].settled = true;
             left -= layout_.tabs[*extra].width;
             --remaining;
@@ -648,9 +649,10 @@ void PageStrip::layout_scroll(bool scroll_only) const {
     layout_.list_glyph = glyph_bounds(layout_.list_button);
     layout_.last_first = first_showing(count - 1U, area);
     std::size_t first = std::min(first_visible_, layout_.last_first);
-    std::optional<std::size_t> target = layout_.selected;
-    if (focused_ && activation.read() == PageStripActivation::manual) target = keyboard_position();
-    if (!scroll_only && target) {
+    stxlib::Optional<std::size_t> shown = layout_.selected;
+    if (focused_ && activation.read() == PageStripActivation::manual) shown = keyboard_position();
+    const std::size_t* const target = shown.value();
+    if (!scroll_only && target != nullptr) {
         if (*target < first) {
             first = *target;
         } else {
@@ -688,7 +690,7 @@ void PageStrip::layout_shrink() const {
     layout_.front_end = count;
     bool fits = natural_total <= ordinary_area;
     if (!fits && !widths_frozen_) {
-        const double cap = shrink_cap(pinned, count, ordinary_area, std::nullopt);
+        const double cap = shrink_cap(pinned, count, ordinary_area, stxlib::Optional<std::size_t>::none());
         fits = cap >= minimum - width_tolerance;
         if (fits) {
             for (std::size_t position = pinned; position < count; ++position) {
@@ -725,10 +727,12 @@ void PageStrip::layout_shrink() const {
         used += least;
         ++front;
     }
-    std::optional<std::size_t> target = layout_.selected;
-    if (focused_ && activation.read() == PageStripActivation::manual) target = keyboard_position();
-    std::optional<std::size_t> extra{};
-    if (target && *target >= front) {
+    stxlib::Optional<std::size_t> shown = layout_.selected;
+    if (focused_ && activation.read() == PageStripActivation::manual) shown = keyboard_position();
+    const std::size_t* const target = shown.value();
+    // The selected (or keyboard) tab placed after the front run, if any.
+    stxlib::Optional<std::size_t> held_extra{};
+    if (target != nullptr && *target >= front) {
         const double least = widths_frozen_ ? layout_.tabs[*target].width
                                             : std::min(layout_.tabs[*target].width, minimum);
         used += least;
@@ -738,18 +742,19 @@ void PageStrip::layout_shrink() const {
                                                   : std::min(layout_.tabs[front].width, minimum);
             used -= dropped;
         }
-        extra = *target;
+        held_extra.set(*target);
     }
+    const std::size_t* const extra = held_extra.value();
     layout_.front_end = front;
     if (!widths_frozen_) {
-        const double cap = shrink_cap(pinned, front, area, extra);
+        const double cap = shrink_cap(pinned, front, area, held_extra);
         for (std::size_t position = pinned; position < front; ++position) {
             layout_.tabs[position].width = std::min(layout_.tabs[position].width, cap);
         }
-        if (extra) layout_.tabs[*extra].width = std::min(layout_.tabs[*extra].width, cap);
+        if (extra != nullptr) layout_.tabs[*extra].width = std::min(layout_.tabs[*extra].width, cap);
     }
     for (std::size_t position = 0; position < front; ++position) layout_.visible.push_back(position);
-    if (extra) layout_.visible.push_back(*extra);
+    if (extra != nullptr) layout_.visible.push_back(*extra);
     place_visible(inset);
     layout_.list_count_text = std::to_string(count - layout_.visible.size());
 }
@@ -854,7 +859,8 @@ PageStrip::SlotContent PageStrip::slot_content(std::size_t position, bool hot) c
         if (record.modified && !hot) return SlotContent::modified;
         return SlotContent::pin;
     }
-    const bool selected = placed.selected && *placed.selected == position;
+    const std::size_t* const selected_tab = placed.selected.value();
+    const bool selected = selected_tab != nullptr && *selected_tab == position;
     bool close_shown = false;
     if (record.closable && close_buttons.read() == PageCloseButtons::all) close_shown = true;
     if (record.closable && close_buttons.read() == PageCloseButtons::selected_and_hot) close_shown = hot || selected;
@@ -928,7 +934,8 @@ PageStrip::ItemParts PageStrip::tab_parts_as(std::size_t position, bool hot) con
         const Rect label = along_tab(bounds, start, interior_end - start, 0.0, across);
         parts.tab_label = PartGeometry::from_bounds(label);
     }
-    if (placed.selected && *placed.selected == position) {
+    const std::size_t* const selected_tab = placed.selected.value();
+    if (selected_tab != nullptr && *selected_tab == position) {
         const double thickness = seam_thickness * scale;
         Rect seam{bounds.x, bounds.y + bounds.height - thickness, bounds.width, thickness};
         if (placement.read() == PageStripPlacement::bottom) seam = {bounds.x, bounds.y, bounds.width, thickness};
@@ -1010,21 +1017,21 @@ bool PageStrip::focus_cue() const noexcept {
     return result;
 }
 
-std::optional<std::size_t> PageStrip::selected_position() const {
-    if (pages_ == nullptr || !(*pages_).selected_page()) return std::nullopt;
+stxlib::Optional<std::size_t> PageStrip::selected_position() const {
+    if (pages_ == nullptr || !(*pages_).selected_page()) return stxlib::Optional<std::size_t>::none();
     const stxlib::Optional<PagePosition> found = (*pages_).find(*(*pages_).selected_page());
-    if (found.absent()) return std::nullopt;
-    const std::size_t position = (*found.value()).value;
-    return position;
+    if (found.absent()) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> result = stxlib::Optional<std::size_t>::of((*found.value()).value);
+    return result;
 }
 
-std::optional<std::size_t> PageStrip::keyboard_position() const {
-    if (pages_ == nullptr || !focused_) return std::nullopt;
+stxlib::Optional<std::size_t> PageStrip::keyboard_position() const {
+    if (pages_ == nullptr || !focused_) return stxlib::Optional<std::size_t>::none();
     if (!keyboard_page_) return selected_position();
     const stxlib::Optional<PagePosition> found = (*pages_).find(*keyboard_page_);
     if (found.absent()) return selected_position();
-    const std::size_t position = (*found.value()).value;
-    return position;
+    const stxlib::Optional<std::size_t> result = stxlib::Optional<std::size_t>::of((*found.value()).value);
+    return result;
 }
 
 // A tab's own zones: its body, its close button and its pin.
@@ -1045,12 +1052,13 @@ AnatomyStateSet PageStrip::tab_states(std::size_t position) const {
     if (tab_hot(position)) states.insert(AnatomyState::hot);
     if (pressed_.zone == Zone::tab && pressed_.position == position) states.insert(AnatomyState::pressed);
     if (drag_.phase == DragState::Phase::sliding && drag_.origin == position) states.insert(AnatomyState::captured);
-    const std::optional<std::size_t> selected = layout().selected;
-    if (selected && *selected == position) states.insert(AnatomyState::selected);
+    const std::size_t* const selected = layout().selected.value();
+    if (selected != nullptr && *selected == position) states.insert(AnatomyState::selected);
     if (!effectively_enabled()) states.insert(AnatomyState::disabled);
     if (focus_cue()) {
-        const std::optional<std::size_t> keyboard = keyboard_position();
-        if (keyboard && *keyboard == position) states.insert(AnatomyState::focus_visible);
+        const stxlib::Optional<std::size_t> held_keyboard = keyboard_position();
+        const std::size_t* const keyboard = held_keyboard.value();
+        if (keyboard != nullptr && *keyboard == position) states.insert(AnatomyState::focus_visible);
     }
     if (pages_ != nullptr && position < (*pages_).count()) {
         const PageRecord& record = (*pages_).record_at(PagePosition{position});
@@ -1340,8 +1348,9 @@ std::optional<PageId> PageStrip::page_at(Point window_point) const {
 }
 
 std::optional<PageId> PageStrip::focused_page() const {
-    const std::optional<std::size_t> position = keyboard_position();
-    if (!position) return std::nullopt;
+    const stxlib::Optional<std::size_t> held = keyboard_position();
+    const std::size_t* const position = held.value();
+    if (position == nullptr) return std::nullopt;
     const PageId page = (*pages_).record_at(PagePosition{*position}).id;
     return page;
 }
@@ -1489,8 +1498,9 @@ bool PageStrip::select_relative(int direction, PageSelectionCause cause) {
 bool PageStrip::move_selected(int direction) {
     require_mutable();
     if (pages_ == nullptr || (direction != 1 && direction != -1)) return false;
-    const std::optional<std::size_t> selected = selected_position();
-    if (!selected) return false;
+    const stxlib::Optional<std::size_t> held = selected_position();
+    const std::size_t* const selected = held.value();
+    if (selected == nullptr) return false;
     const std::size_t pinned = (*pages_).pinned_count();
     const bool in_pinned = *selected < pinned;
     const std::size_t group_begin = in_pinned ? 0U : pinned;
@@ -2107,12 +2117,13 @@ void PageStrip::prepare_list_commands() {
         const std::string identity = prefix + std::to_string(list_commands_.size());
         list_commands_.push_back(std::make_shared<Command>(identity, std::string{}));
     }
-    const std::optional<std::size_t> selected = selected_position();
+    const stxlib::Optional<std::size_t> held = selected_position();
+    const std::size_t* const selected = held.value();
     for (std::size_t position = 0; position < count; ++position) {
         const PageRecord& record = (*pages_).record_at(PagePosition{position});
         Command& command = *list_commands_[position];
         command.set_text(mnemonics_enabled.read() ? record.title : literal_menu_text(record.title));
-        command.set_checked(selected && *selected == position);
+        command.set_checked(selected != nullptr && *selected == position);
         command.set_enabled(true);
     }
 }
@@ -2200,15 +2211,17 @@ std::string PageStrip::page_panel_identity(const PageId&) const {
     return {};
 }
 
-std::optional<std::size_t> PageStrip::position_of_tab_identity(std::string_view identity) const {
-    if (pages_ == nullptr) return std::nullopt;
+stxlib::Optional<std::size_t> PageStrip::position_of_tab_identity(std::string_view identity) const {
+    if (pages_ == nullptr) return stxlib::Optional<std::size_t>::none();
     const std::string prefix = std::string(stable_id().value()) + ".tab.";
-    if (identity.size() <= prefix.size() || identity.substr(0U, prefix.size()) != prefix) return std::nullopt;
+    if (identity.size() <= prefix.size() || identity.substr(0U, prefix.size()) != prefix) {
+        return stxlib::Optional<std::size_t>::none();
+    }
     const PageId page{std::string(identity.substr(prefix.size()))};
     const stxlib::Optional<PagePosition> found = (*pages_).find(page);
-    if (found.absent()) return std::nullopt;
-    const std::size_t position = (*found.value()).value;
-    return position;
+    if (found.absent()) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> result = stxlib::Optional<std::size_t>::of((*found.value()).value);
+    return result;
 }
 
 SemanticDescriptor PageStrip::semantic_descriptor() const {
@@ -2216,8 +2229,9 @@ SemanticDescriptor PageStrip::semantic_descriptor() const {
     descriptor.role = SemanticRole::tab_group;
     descriptor.name = accessible_name.read().empty() ? "Pages" : accessible_name.read();
     descriptor.description = accessible_description.read();
-    const std::optional<std::size_t> selected = selected_position();
-    if (selected) descriptor.value = layout().tabs[*selected].label;
+    const stxlib::Optional<std::size_t> held = selected_position();
+    const std::size_t* const selected = held.value();
+    if (selected != nullptr) descriptor.value = layout().tabs[*selected].label;
     descriptor.orientation.set(horizontal() ? SemanticOrientation::horizontal : SemanticOrientation::vertical);
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
@@ -2237,8 +2251,10 @@ std::vector<SemanticNode> PageStrip::semantic_virtual_children() const {
     const std::size_t count = placed.tabs.size();
     const bool enabled = effectively_enabled();
     const SemanticState enabled_state = enabled ? SemanticState::enabled : SemanticState::none;
-    const std::optional<std::size_t> selected = selected_position();
-    const std::optional<std::size_t> keyboard = keyboard_position();
+    const stxlib::Optional<std::size_t> held_selected = selected_position();
+    const std::size_t* const selected = held_selected.value();
+    const stxlib::Optional<std::size_t> held_keyboard = keyboard_position();
+    const std::size_t* const keyboard = held_keyboard.value();
     nodes.reserve(count + 3U);
     for (std::size_t position = 0; position < count; ++position) {
         const PageRecord& record = (*pages_).record_at(PagePosition{position});
@@ -2260,8 +2276,8 @@ std::vector<SemanticNode> PageStrip::semantic_virtual_children() const {
             node.bounds = to_window(absolute, bounds);
             node.states |= SemanticState::visible;
         }
-        if (selected && *selected == position) node.states |= SemanticState::selected;
-        if (keyboard && *keyboard == position) node.states |= SemanticState::focused;
+        if (selected != nullptr && *selected == position) node.states |= SemanticState::selected;
+        if (keyboard != nullptr && *keyboard == position) node.states |= SemanticState::focused;
         // Tabs publish select and, where closable, close; never press
         // (owner decision DK-35).
         node.actions = {SemanticAction::focus, SemanticAction::select};
@@ -2322,8 +2338,9 @@ bool PageStrip::on_semantic_child_action(std::string_view id, SemanticAction act
         const bool opened = show_page_list(MenuOpenMode::keyboard);
         return opened;
     }
-    const std::optional<std::size_t> position = position_of_tab_identity(id);
-    if (!position) return false;
+    const stxlib::Optional<std::size_t> found = position_of_tab_identity(id);
+    const std::size_t* const position = found.value();
+    if (position == nullptr) return false;
     const Control::Ptr keep = shared_from_this();
     if (action == SemanticAction::focus) {
         if (window() != nullptr) static_cast<void>((*window()).request_focus(keep));
