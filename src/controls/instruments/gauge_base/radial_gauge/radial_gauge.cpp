@@ -1,4 +1,5 @@
 #include "gui_forms/controls/radial_gauge.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -115,8 +116,9 @@ RadialGauge::Face RadialGauge::face(Size size) const noexcept {
 Rect RadialGauge::mark_at(Point centre, double radius, double ratio, double side) noexcept {
     // Clockwise from twelve o'clock, in y-down coordinates.
     const double angle = sweep_start + sweep * ratio;
-    const double x = centre.x + radius * std::sin(angle);
-    const double y = centre.y - radius * std::cos(angle);
+    const EngineSineCosine turn = engine_sine_cosine(angle);
+    const double x = centre.x + radius * turn.sine;
+    const double y = centre.y - radius * turn.cosine;
     const Rect square{x - side * 0.5, y - side * 0.5, side, side};
     return square;
 }

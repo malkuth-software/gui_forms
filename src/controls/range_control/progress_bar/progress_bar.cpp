@@ -1,4 +1,5 @@
 #include "gui_forms/controls/progress_bar.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "../range_control_rendering.hpp"
 #include "gui_forms/controls/progress_bar_effects.hpp"
@@ -41,7 +42,6 @@ std::shared_ptr<const PropertyEnumDescriptor> progress_bar_visual_style_enum() {
 constexpr double default_stripe_ratio = 0.4;
 constexpr double default_stripe_angle = 45.0;
 constexpr double default_stripe_speed = 0.8;
-constexpr double stripe_degrees_to_radians = 3.14159265358979323846 / 180.0;
 // The smallest automatic pitch, so a thin bar's bands stay visible.
 constexpr double minimum_automatic_stripe_pitch = 8.0;
 // Bands drawn beyond the fill's length at most: the two ends' partial bands
@@ -65,7 +65,10 @@ StripeSpan stripe_span(const Rect& interior, bool vertical) noexcept {
 // the thickness, positive when it leans back (the default).
 double stripe_slant(const ControlStripePattern& pattern, double thickness) noexcept {
     const double angle = pattern.angle_degrees.value_or(default_stripe_angle);
-    const double reach = std::tan(angle * stripe_degrees_to_radians) * thickness;
+    // tan(angle) as the engine's deterministic sine over cosine; an angle
+    // on a quarter turn has no finite tangent and gives no slant.
+    const EngineSineCosine turn = engine_sine_cosine_degrees(angle);
+    const double reach = turn.cosine == 0.0 ? 0.0 : turn.sine / turn.cosine * thickness;
     const bool backward = pattern.lean.value_or(StripeSense::backward) == StripeSense::backward;
     const double slant = backward ? reach : -reach;
     return slant;

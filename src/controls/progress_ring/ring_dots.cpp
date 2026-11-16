@@ -1,4 +1,5 @@
 #include "ring_dots.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "gui_forms/control.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -34,9 +35,11 @@ RingPlacement place_ring(Rect bounds, std::size_t count) noexcept {
 Rect ring_dot_bounds(const RingPlacement& ring, std::size_t index, std::size_t count) noexcept {
     const std::size_t slot = index % count;
     // Clockwise from twelve o'clock, in y-down coordinates.
-    const double angle = 2.0 * std::numbers::pi * static_cast<double>(slot) / static_cast<double>(count);
-    const double x = ring.centre.x + ring.radius * std::sin(angle);
-    const double y = ring.centre.y - ring.radius * std::cos(angle);
+    // In degrees, so the dots at the quarter turns sit exactly on the axes.
+    const double degrees = 360.0 * static_cast<double>(slot) / static_cast<double>(count);
+    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    const double x = ring.centre.x + ring.radius * turn.sine;
+    const double y = ring.centre.y - ring.radius * turn.cosine;
     const Rect square{x - ring.dot * 0.5, y - ring.dot * 0.5, ring.dot, ring.dot};
     return square;
 }
