@@ -368,11 +368,18 @@ bool CompositeControl::command_enabled(const std::string_view name) const {
     return false;
 }
 
+// A command run by a rule or by another command's run(...) counts in the rule
+// depth, so a command that runs itself ends (A-gf-controls-02-F2).
 bool CompositeControl::run_command(const std::size_t command) {
+    if (firing_depth_ >= maximum_composite_rule_depth) {
+        ++statistics_.refused_firings;
+        return false;
+    }
     if (!command_enabled_at(command)) {
         ++statistics_.commands_refused;
         return false;
     }
+    const DepthScope depth(firing_depth_);
     ++statistics_.commands_run;
     CompositeInstanceAccess::run_calls(*this, (*definition_).commands[command].run, CompositeFiring{});
     return true;

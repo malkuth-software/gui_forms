@@ -2502,7 +2502,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::size_t maximum_composite_rule_depth
 
-   The deepest nesting of rule firings (Q12). Value: ``8U``.
+   The deepest nesting of rule firings (Q12), counting a command a rule or another command runs (A-gf-controls-02-F2). Value: ``8U``.
 
 .. cpp:var:: constexpr std::size_t maximum_composite_condition_depth
 

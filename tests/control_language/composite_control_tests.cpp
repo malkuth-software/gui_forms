@@ -361,16 +361,18 @@ void two_way_child_updates_the_others() {
             "a write from the composite still reaches both children");
 }
 
-// Conditions that read themselves (A-gf-controls-02-F1): each ends instead
-// of recursing without bound. `lit` reads the composite's own hot state, so
-// its evaluation reads anatomy_states again; `armed` and `go` read each
-// other.
+// Conditions that read themselves (A-gf-controls-02-F1) and a command that
+// runs itself (A-gf-controls-02-F2): each ends instead of recursing without
+// bound. `lit` reads the composite's own hot state, so its evaluation reads
+// anatomy_states again; `armed` and `go` read each other; `again` runs
+// itself.
 constexpr std::string_view self_reading = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <control xmlns="urn:gui-forms:control:1" name="self-reading" version="1.0" base="user-control" family="card">
   <property name="level" kind="number" default="0"/>
   <state name="lit" when="state(hot) or pressed()"/>
   <state name="armed" when="command-enabled(go)"/>
   <command name="go" enabled="state(armed)" run="step(level, 1)"/>
+  <command name="again" enabled="enabled(self)" run="run(again)"/>
   <part name="face" role="face" box="inset(region, 0)"/>
   <focus target="none"/>
   <semantics role="group" name="property(accessible-name)"/>
@@ -390,6 +392,10 @@ void self_reading_conditions_end() {
     const AnatomyStateSet states = (*control).anatomy_states();
     require(states.contains(AnatomyState::normal), "a state reading the composite's own states is decided");
     static_cast<void>((*control).command_enabled("go"));
+    const std::uint64_t refused_before = (*control).statistics().refused_firings;
+    static_cast<void>((*control).perform("again"));
+    require((*control).statistics().refused_firings > refused_before,
+            "a command that runs itself stops at the rule depth");
 }
 
 // A live drag: `level` follows every frame; Escape writes back the value

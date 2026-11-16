@@ -181,7 +181,8 @@ struct GUI_FORMS_API CompositeEvent final {
     BindingValue payload{};
 };
 
-// The deepest nesting of rule firings (Q12).
+// The deepest nesting of rule firings (Q12), counting a command a rule or
+// another command runs (A-gf-controls-02-F2).
 inline constexpr std::size_t maximum_composite_rule_depth = 8U;
 // The deepest nesting of custom-state and command-enabled conditions
 // (A-gf-controls-02-F1): a custom state's `when` or a command's `enabled`
