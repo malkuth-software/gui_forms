@@ -326,6 +326,15 @@ the change that needs it.
 
 ## Measurement, data and test machines
 
+`tools/code_statistics.py`
+: Counts the C++ and C at HEAD of this repository and of the checkouts named
+  after it (stx, STXlib): files, lines (blank, comment, code), characters
+  and bytes, by component, language and provenance, and the first-party
+  C++ headline figure, from the git trees with no build. `--markdown` and `--json` write the other forms;
+  `.github/workflows/code-statistics.yml` runs it on `main`
+  ([code statistics](../user/code-statistics.md)).
+  `python3 -B tools/code_statistics.py ../stx ../stxlib`
+
 `tools/png_admission_probe/`
 : A standalone consumer of an installed SDK that times `validate_png` and
   `ImageRegistry::load_png` separately on generated uncompressed PNGs and
