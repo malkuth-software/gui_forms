@@ -434,8 +434,11 @@ sk_sp<SkImage> resample_image_through_conv(const SkImage& source, int width, int
     // stx_skia's peekPixels returns the pixmap, empty when the pixels are
     // not readable in place.
     const std::optional<SkPixmap> peeked = source.peekPixels();
-    if (!peeked || (*peeked).colorType() != kBGRA_8888_SkColorType ||
-        (*peeked).alphaType() != kPremul_SkAlphaType) {
+    // An opaque image (kOpaque, every alpha byte 255) holds the same bytes
+    // as its premultiplied form, so it resamples the same.
+    const bool premultiplied_bytes =
+        peeked && ((*peeked).alphaType() == kPremul_SkAlphaType || (*peeked).alphaType() == kOpaque_SkAlphaType);
+    if (!peeked || (*peeked).colorType() != kBGRA_8888_SkColorType || !premultiplied_bytes) {
         return nullptr;
     }
     const SkPixmap& pixels = *peeked;
@@ -1400,7 +1403,13 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
             }
             pixels_opaque = decoded.every_pixel_opaque;
         }
-        sk_sp<SkImage> image = SkImages::RasterFromData(output_info, pixel_data, row_bytes);
+        // An image whose decoded pixels are all opaque is made an opaque
+        // image (the same bytes), so Skia draws it as an opaque source: a
+        // copy where it covers whole device pixels, rather than a blend
+        // (the blend study's opaque_images_blended).
+        const SkImageInfo image_info =
+            pixels_opaque ? output_info.makeAlphaType(kOpaque_SkAlphaType) : output_info;
+        sk_sp<SkImage> image = SkImages::RasterFromData(image_info, pixel_data, row_bytes);
         if (!image) {
             (*impl_).images.erase(id.value);
             synchronized = false;
@@ -1410,6 +1419,7 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
         record.content_hash = (*resource).content_hash;
         record.image = std::move(image);
         record.pixels_opaque = pixels_opaque;
+        record.drawn_as_copy = pixels_opaque;
         if (patchable) {
             record.pixels = std::move(pixel_data);
             record.row_bytes = row_bytes;

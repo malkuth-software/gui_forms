@@ -18,6 +18,7 @@
 
 #include "gui_forms/window.hpp"
 #include "skia_raster.hpp"
+#include "../src/core/image/png_writer.hpp"
 #include "../src/core/interpolation/interpolation.hpp"
 
 #include <algorithm>
@@ -29,6 +30,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <span>
 #include <stdexcept>
 #include <vector>
 
@@ -227,6 +229,69 @@ void one_and_above_unchanged() {
     }
 }
 
+// The blend study's apply step: an image whose decoded pixels are all opaque
+// is made an opaque image, drawn as an opaque source. Its pixels must be
+// those of the same bytes drawn as a premultiplied image, at fractional
+// positions, below, at and above 1x, at partial opacity and on a
+// translucent ground; and the raster says how it draws each
+// (image_draw_opacity).
+void opaque_image_draws_as_premultiplied() {
+    const int size = 64;
+    std::vector<std::byte> pixels = stripes(size);
+    for (std::size_t index = 0U; index < pixels.size(); index += 4U) {
+        pixels[index + 1U] = std::byte{static_cast<std::uint8_t>((index / 4U) % 251U)};
+    }
+    image::PngEncodeInput input{};
+    input.width = static_cast<std::uint32_t>(size);
+    input.height = static_cast<std::uint32_t>(size);
+    input.row_bytes = static_cast<std::uint64_t>(size) * 4U;
+    input.pixels = std::span<const std::byte>(pixels.data(), pixels.size());
+    input.order = image::PngChannelOrder::bgra;
+    input.alpha = image::PngSourceAlpha::premultiplied;
+    std::vector<std::byte> encoded{};
+    require(image::encode_png(input, encoded), "the opaque image encodes");
+    ImageRegistry registry;
+    const ImageLoadResult opaque = registry.load_png(encoded);
+    const ImageLoadResult premultiplied = registry.load_bgra32_premultiplied(
+        static_cast<std::uint32_t>(size), static_cast<std::uint32_t>(size), static_cast<std::uint64_t>(size) * 4U,
+        pixels);
+    require(bool(opaque) && bool(premultiplied), "both forms load");
+    render::SkiaRaster first;
+    render::SkiaRaster second;
+    require(first.resize({160.0, 160.0}, 1.0) && second.resize({160.0, 160.0}, 1.0), "rasters size");
+    require(first.synchronize_images(registry) && second.synchronize_images(registry), "images synchronize");
+    const ImageDrawOpacity known = first.image_draw_opacity(opaque.image);
+    require(known.pixels_opaque && known.drawn_as_copy, "an all-opaque PNG is drawn as a copy");
+    const ImageDrawOpacity given = first.image_draw_opacity(premultiplied.image);
+    require(!given.pixels_opaque && !given.drawn_as_copy, "pixels given premultiplied are not scanned");
+    const Rect destinations[] = {
+        {4.0, 4.0, 64.0, 64.0}, {3.25, 5.5, 64.0, 64.0}, {10.5, 7.75, 41.3, 37.9}, {2.0, 2.0, 150.0, 120.5},
+    };
+    const double opacities[] = {1.0, 0.6};
+    const Color grounds[] = {Color::rgba(30, 60, 90), Color::rgba(30, 60, 90, 128)};
+    DamageRegion damage;
+    damage.add({0.0, 0.0, 160.0, 160.0});
+    for (const Rect destination : destinations) {
+        for (const double opacity : opacities) {
+            for (const Color ground : grounds) {
+                first.begin_frame(damage);
+                first.clear_transparent();
+                first.fill_rect({0.0, 0.0, 160.0, 160.0}, ground);
+                first.draw_image(opaque.image, destination, opacity);
+                first.end_frame();
+                second.begin_frame(damage);
+                second.clear_transparent();
+                second.fill_rect({0.0, 0.0, 160.0, 160.0}, ground);
+                second.draw_image(premultiplied.image, destination, opacity);
+                second.end_frame();
+                const std::size_t bytes = first.row_bytes() * 160U;
+                require(std::memcmp(first.pixels(), second.pixels(), bytes) == 0,
+                        "an opaque image draws the pixels of its premultiplied form");
+            }
+        }
+    }
+}
+
 // The workload: 48 thumbnails of four 256-pixel images drawn at 48 pixels,
 // 20 frames. The first frame of the new path makes the copies; the others
 // draw them from the cache.
@@ -280,6 +345,7 @@ int main() {
     try {
         downscale_matches_conv();
         one_and_above_unchanged();
+        opaque_image_draws_as_premultiplied();
         thumbnail_workload();
     } catch (const std::exception& error) {
         std::cerr << "skia image downscale test failed: " << error.what() << '\n';
