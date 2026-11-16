@@ -177,6 +177,10 @@ protected:
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_wheel(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
+    // A press whose capture is taken away (the sequence broken, the
+    // calendar or an ancestor made unavailable) ends the drag without
+    // date_selected.
+    void on_mouse_capture_changed() override;
     void on_key_down(KeyEventArgs& arguments) override;
 
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
@@ -272,6 +276,8 @@ private:
     void handle_key(KeyEvent& event);
     // The target phase in the routed form, from the mouse raisers.
     void handle_pointer(PointerEvent& event);
+    // Ends a drag or arrow press the window broke without a release.
+    void end_broken_press();
     friend struct ShowTodayCapability<MonthCalendar>;
     friend struct ShowTodayCircleCapability<MonthCalendar>;
     friend struct ShowWeekNumbersCapability<MonthCalendar>;

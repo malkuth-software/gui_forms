@@ -441,6 +441,12 @@ gui_forms::MonthCalendar
 
       *Protected.*
 
+   .. cpp:function:: void on_mouse_capture_changed() override
+
+      *Protected.*
+
+      A press whose capture is taken away (the sequence broken, the calendar or an ancestor made unavailable) ends the drag without date_selected.
+
    .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
 
       *Protected.*
