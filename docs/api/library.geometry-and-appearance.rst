@@ -27,7 +27,7 @@ Types
    * - :cpp:class:`AssembledPartMaterial <gui_forms::AssembledPartMaterial>`
      - A part's assembled material (T3 EC1): its recipe's material, the floor, with the winning material fields of the theme's rules in place, and what it was assembled from.
    * - :cpp:class:`AuthoredGradient <gui_forms::AuthoredGradient>`
-     - A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``stops``: at least one, at most maximum_authored_gradient_stops.
+     - A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``focused``, ``focus_x``, ``focus_y``: a radial gradient's focus (theme language ``focus <position>`` after its centre), where position 0 lies; only a radial gradient that does not repeat has one; - ``stops``: at least one, at most maximum_authored_gradient_stops.
    * - :cpp:class:`AuthoredGradientStop <gui_forms::AuthoredGradientStop>`
      - One colour stop.
    * - :cpp:class:`BackdropDeclaration <gui_forms::BackdropDeclaration>`
@@ -608,7 +608,7 @@ Types
 
    ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>``
 
-   A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``stops``: at least one, at most maximum_authored_gradient_stops.
+   A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``focused``, ``focus_x``, ``focus_y``: a radial gradient's focus (theme language ``focus <position>`` after its centre), where position 0 lies; only a radial gradient that does not repeat has one; - ``stops``: at least one, at most maximum_authored_gradient_stops.
 
    .. cpp:member:: MaterialFillKind kind
 
@@ -641,6 +641,16 @@ Types
    .. cpp:member:: BoxLength radius_x
 
    .. cpp:member:: BoxLength radius_y
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: BoxLength focus_x
+
+      Default: ``{0.5, 0.0}``.
+
+   .. cpp:member:: BoxLength focus_y
+
+      Default: ``{0.5, 0.0}``.
 
    .. cpp:member:: std::vector<AuthoredGradientStop> stops
 
@@ -4030,6 +4040,14 @@ Types
 
       Default: ``{360.0}``.
 
+   .. cpp:member:: bool focused
+
+      A radial gradient's focus (owner, 2026-11-16: the focal radial gradient reaches the theme language), read when ``focused``: position 0 lies at ``focus``, in the layer's coordinate space, and offset t is the ellipse of radii t × radii centred at focus + t × (center − focus), as Painter::fill_focal_radial_gradient draws. The focus lies strictly inside the ellipse (focus_inside_ellipse).
+
+   .. cpp:member:: Point focus
+
+      Default: ``{0.5, 0.5}``.
+
    .. cpp:member:: MaterialBlendMode blend
 
       Default: ``{MaterialBlendMode::normal}``.
@@ -5553,6 +5571,10 @@ Types
    .. cpp:member:: Color bloom
 
       Default: ``{Color::rgba(255, 255, 255, 0)}``.
+
+   .. cpp:member:: HatchStyle hatch_style
+
+      Read only by the hatch. Default: ``{HatchStyle::horizontal}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -8632,6 +8654,8 @@ Enumerations
 
    .. cpp:enumerator:: checker
 
+   .. cpp:enumerator:: hatch
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: RadialExtent
@@ -9227,7 +9251,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void resolve_authored_gradient(const AuthoredGradient& gradient, Size box, MaterialFillLayer& layer)
 
-   Writes a valid ``gradient``, for a part's box ``box`` in logical units, into ``layer``, which is reset first: its kind, geometry, spread and stops, the other fields at MaterialFillLayer's defaults. A fixed gradient (authored_gradient_fixed) ignores ``box``. The layer: - places the stops as CSS does: a first stop without a position at 0, a last one at 1, a stop before an earlier one at the earlier one, the others evenly between their neighbours; - for a gradient that does not repeat, keeps the stops within the drawn range and adds the colours at its ends, interpolated as the engine interpolates (straight colour, rounded to 8 bits: at most half a step from the exact colour); - for a repeating one, scales its geometry to the span from the first stop to the last; a radial one's stops are rotated to begin at its centre. A span of 0 draws CSS's average colour, a solid; - separates coincident stops (CSS's hard stops) by 2^-20 of the gradient, which the layer's validity requires: under a tenth of a device pixel on a gradient shorter than 100,000 device pixels; - is a solid for a single stop.
+   Writes a valid ``gradient``, for a part's box ``box`` in logical units, into ``layer``, which is reset first: its kind, geometry, spread and stops, the other fields at MaterialFillLayer's defaults. A fixed gradient (authored_gradient_fixed) ignores ``box``. The layer: - places the stops as CSS does: a first stop without a position at 0, a last one at 1, a stop before an earlier one at the earlier one, the others evenly between their neighbours; - for a gradient that does not repeat, keeps the stops within the drawn range and adds the colours at its ends, interpolated as the engine interpolates (straight colour, rounded to 8 bits: at most half a step from the exact colour); - for a repeating one, scales its geometry to the span from the first stop to the last; a radial one's stops are rotated to begin at its centre. A span of 0 draws CSS's average colour, a solid; - separates coincident stops (CSS's hard stops) by 2^-20 of the gradient, which the layer's validity requires: under a tenth of a device pixel on a gradient shorter than 100,000 device pixels; - is a solid for a single stop; - keeps a focus (resolved as the centre is) only where it lies strictly inside the resolved ellipse for this box; elsewhere the gradient is drawn about its centre.
 
 .. cpp:var:: constexpr std::size_t maximum_authored_gradient_stops
 

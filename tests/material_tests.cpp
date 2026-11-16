@@ -87,6 +87,20 @@ public:
         last_stop_count = stops.size();
         last_spread = spread;
     }
+    void fill_focal_radial_gradient(Rect, Point center, Size radii, Point focus, std::span<const GradientStop> stops,
+                                    GradientSpreadMode spread) override {
+        ++focal_fills;
+        last_center = center;
+        last_radii = radii;
+        last_focus = focus;
+        last_stop_count = stops.size();
+        last_spread = spread;
+    }
+    void fill_hatch(Rect rect, const HatchPattern& pattern) override {
+        ++hatch_fills;
+        last_clip = rect;
+        last_hatch = pattern;
+    }
     void fill_conic_gradient(Rect, Point center, double start_degrees,
                              std::span<const GradientStop> stops) override {
         ++conic_fills;
@@ -150,6 +164,10 @@ public:
     unsigned radial_fills{};
     unsigned spread_radial_fills{};
     unsigned conic_fills{};
+    unsigned focal_fills{};
+    unsigned hatch_fills{};
+    Point last_focus{};
+    HatchPattern last_hatch{};
     double last_start_degrees{};
     std::vector<GradientStop> conic_stops;
     unsigned shadows{};
@@ -456,6 +474,43 @@ void test_repeating_material_survives_record_and_replay() {
 // The painter path draws a repeating radial layer with its spread and a
 // conic layer as a conic gradient (it drew them padded and as one colour
 // before the Painter had the calls).
+// A focused radial layer reaches the painter as a focal gradient and a
+// hatch pattern as fill_hatch anchored at the box; a focus outside the
+// ellipse is refused by validation.
+void test_focal_radial_and_hatch_layers_reach_the_painter() {
+    const std::vector<GradientStop> two{{0.0, Color::rgba(200, 30, 40)}, {1.0, Color::rgba(20, 40, 210)}};
+    MaterialFillLayer focal = MaterialFillLayer::radial({0.5, 0.5}, {0.5, 0.5}, two);
+    focal.focused = true;
+    focal.focus = Point{0.25, 0.5};
+    SurfaceMaterial lens;
+    lens.fills = {focal};
+    require(valid_surface_material(lens), "a focus inside the ellipse is valid");
+    RichPainter painter;
+    paint_surface_material(painter, Rect{0.0, 0.0, 80.0, 40.0}, lens);
+    require(painter.focal_fills == 1U && painter.radial_fills == 0U && painter.last_center == Point{40.0, 20.0} &&
+                painter.last_radii == Size{40.0, 20.0} && painter.last_focus == Point{20.0, 20.0},
+            "a focused radial layer must reach the painter as a focal gradient");
+    SurfaceMaterial outside = lens;
+    outside.fills.front().focus = Point{1.0, 0.5};
+    require(!valid_surface_material(outside), "a focus on the ellipse is refused");
+
+    ProceduralFill hatch{};
+    hatch.pattern = ProceduralPattern::hatch;
+    hatch.hatch_style = HatchStyle::diagonal_cross;
+    hatch.tile = 8.0;
+    hatch.ground = Color::rgba(255, 255, 255);
+    hatch.figure = Color::rgba(0, 0, 0);
+    SurfaceMaterial hatched;
+    hatched.fills = {MaterialFillLayer::procedural_pattern(hatch)};
+    require(valid_surface_material(hatched), "a hatch pattern is valid");
+    RichPainter lines;
+    paint_surface_material(lines, Rect{4.0, 6.0, 80.0, 40.0}, hatched);
+    require(lines.hatch_fills == 1U && lines.last_hatch.style == HatchStyle::diagonal_cross &&
+                lines.last_hatch.cell == 8.0 && lines.last_hatch.anchor == Point{4.0, 6.0} &&
+                lines.last_hatch.fore == Color::rgba(0, 0, 0) && lines.last_hatch.back == Color::rgba(255, 255, 255),
+            "a hatch pattern must reach the painter as fill_hatch anchored at the box");
+}
+
 void test_conic_and_repeating_radial_layers_reach_the_painter() {
     const std::vector<GradientStop> two{{0.0, Color::rgba(200, 30, 40)}, {1.0, Color::rgba(20, 40, 210)}};
     SurfaceMaterial rings;
@@ -718,6 +773,7 @@ int main() {
         test_retained_replay_preserves_material_operations();
         test_repeating_material_survives_record_and_replay();
         test_conic_and_repeating_radial_layers_reach_the_painter();
+        test_focal_radial_and_hatch_layers_reach_the_painter();
         test_image_materials_retain_crop_tile_and_nine_patch();
         test_minimal_painter_fallbacks_are_bounded();
         test_shadow_outsets_participate_in_damage();

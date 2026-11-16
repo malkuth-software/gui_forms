@@ -210,20 +210,32 @@ constexpr std::array<NamedGradient, 6> gradient_functions{{
 }};
 
 // The built-in procedural patterns `pattern()` names (ProceduralPattern);
-// the fresco, which reads more colours, is not among them.
+// the fresco, which reads more colours, is not among them. Each hatch
+// style is a pattern name of its own, its tile one 8-unit hatch cell.
 struct NamedPattern final {
     std::string_view name{};
     ProceduralPattern pattern{ProceduralPattern::felt};
     double tile{64.0};
+    HatchStyle hatch_style{HatchStyle::horizontal};
 };
 
-constexpr std::array<NamedPattern, 6> pattern_names{{
+constexpr std::array<NamedPattern, 12> pattern_names{{
     {.name = "checker", .pattern = ProceduralPattern::checker, .tile = 2.0},
     {.name = "felt", .pattern = ProceduralPattern::felt, .tile = 64.0},
     {.name = "wood-grain", .pattern = ProceduralPattern::wood_grain, .tile = 64.0},
     {.name = "paper-fibre", .pattern = ProceduralPattern::paper_fibre, .tile = 64.0},
     {.name = "pinstripe", .pattern = ProceduralPattern::pinstripe, .tile = 4.0},
     {.name = "brushed-metal", .pattern = ProceduralPattern::brushed_metal, .tile = 64.0},
+    {.name = "hatch-horizontal", .pattern = ProceduralPattern::hatch, .tile = 8.0,
+     .hatch_style = HatchStyle::horizontal},
+    {.name = "hatch-vertical", .pattern = ProceduralPattern::hatch, .tile = 8.0, .hatch_style = HatchStyle::vertical},
+    {.name = "hatch-forward-diagonal", .pattern = ProceduralPattern::hatch, .tile = 8.0,
+     .hatch_style = HatchStyle::forward_diagonal},
+    {.name = "hatch-backward-diagonal", .pattern = ProceduralPattern::hatch, .tile = 8.0,
+     .hatch_style = HatchStyle::backward_diagonal},
+    {.name = "hatch-cross", .pattern = ProceduralPattern::hatch, .tile = 8.0, .hatch_style = HatchStyle::cross},
+    {.name = "hatch-diagonal-cross", .pattern = ProceduralPattern::hatch, .tile = 8.0,
+     .hatch_style = HatchStyle::diagonal_cross},
 }};
 
 constexpr std::string_view pattern_function_name = "pattern";
@@ -866,8 +878,10 @@ bool MaterialReader::read_linear_configuration(ComponentRange range, AuthoredGra
     return read_angle(range.first, gradient.angle_degrees);
 }
 
-// `[<ending-shape> || <size>]? [at <position>]?`; `configured` is false
-// for a first argument that is a colour stop.
+// `[<ending-shape> || <size>]? [at <position>]? [focus <position>]?`;
+// `configured` is false for a first argument that is a colour stop. The
+// focus (GUI.Forms, not CSS; owner, 2026-11-16) is where position 0 lies,
+// read as the centre is; a repeating gradient refuses it.
 bool MaterialReader::read_radial_configuration(ComponentRange range, AuthoredGradient& gradient, bool& configured) {
     configured = false;
     if (range.first >= range.end) return true;
@@ -875,7 +889,7 @@ bool MaterialReader::read_radial_configuration(ComponentRange range, AuthoredGra
     const bool word = keyword(range.first, "circle") || keyword(range.first, "ellipse") ||
                       keyword(range.first, "closest-side") || keyword(range.first, "farthest-side") ||
                       keyword(range.first, "closest-corner") || keyword(range.first, "farthest-corner") ||
-                      keyword(range.first, "at");
+                      keyword(range.first, "at") || keyword(range.first, "focus");
     if (!word && first.kind != ValueComponentKind::number) return true;
     configured = true;
     bool shape = false;
@@ -883,7 +897,7 @@ bool MaterialReader::read_radial_configuration(ComponentRange range, AuthoredGra
     std::array<std::size_t, 2> lengths{};
     std::size_t length_count = 0U;
     std::size_t index = range.first;
-    for (; index < range.end && !keyword(index, "at"); index = next(index)) {
+    for (; index < range.end && !keyword(index, "at") && !keyword(index, "focus"); index = next(index)) {
         const ValueComponent& component = value_.components[index];
         if (keyword(index, "circle") || keyword(index, "ellipse")) {
             if (shape) return fail(DiagnosticCode::value_syntax, component.token, "one shape");
@@ -922,8 +936,20 @@ bool MaterialReader::read_radial_configuration(ComponentRange range, AuthoredGra
         if (length_count == 2U && !read_length(lengths[1], true, false, gradient.radius_y)) return false;
     }
     if (index >= range.end) return true;
-    const ComponentRange position{next(index), range.end};
-    return read_position(position, gradient.centre_x, gradient.centre_y);
+    std::size_t focus = index;
+    if (keyword(index, "at")) {
+        focus = next(index);
+        while (focus < range.end && !keyword(focus, "focus")) focus = next(focus);
+        const ComponentRange position{next(index), focus};
+        if (!read_position(position, gradient.centre_x, gradient.centre_y)) return false;
+    }
+    if (focus >= range.end) return true;
+    const ComponentRange focus_position{next(focus), range.end};
+    if (focus_position.first >= focus_position.end) {
+        return fail(DiagnosticCode::value_syntax, value_.components[focus].token, "a position");
+    }
+    gradient.focused = true;
+    return read_position(focus_position, gradient.focus_x, gradient.focus_y);
 }
 
 // `[from <angle>]? [at <position>]?`; `configured` is false for a first
@@ -1002,11 +1028,12 @@ bool MaterialReader::read_pattern(std::size_t index, MaterialFillLayer& layer) {
     }
     if (named == nullptr) {
         return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
-                    "checker, felt, wood-grain, paper-fibre, pinstripe or brushed-metal");
+                    "checker, felt, wood-grain, paper-fibre, pinstripe, brushed-metal or a hatch-* style");
     }
     ProceduralFill fill{};
     fill.pattern = (*named).pattern;
     fill.tile = (*named).tile;
+    fill.hatch_style = (*named).hatch_style;
     fill.strength = 1.0;
     if (!read_colour(arguments[1].first, fill.ground)) return false;
     if (!read_colour(arguments[2].first, fill.figure)) return false;

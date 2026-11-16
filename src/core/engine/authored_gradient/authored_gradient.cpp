@@ -1,6 +1,7 @@
 #include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
 
 #include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -347,6 +348,14 @@ void resolve_radial(const AuthoredGradient& gradient, Size box, MaterialCoordina
         clipped_stops(placed, stops);
         separate_stops(stops);
         layer = MaterialFillLayer::radial(centre, radii, std::move(stops), space);
+        if (gradient.focused) {
+            const Point focus{resolved_length(gradient.focus_x, box.width),
+                              resolved_length(gradient.focus_y, box.height)};
+            if (focus_inside_ellipse(centre, radii, focus)) {
+                layer.focused = true;
+                layer.focus = focus;
+            }
+        }
         return;
     }
     const double first = placed.front().offset;
@@ -419,9 +428,11 @@ bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept {
         return false;
     }
     if (!finite_length(gradient.centre_x) || !finite_length(gradient.centre_y) ||
-        !finite_length(gradient.radius_x) || !finite_length(gradient.radius_y)) {
+        !finite_length(gradient.radius_x) || !finite_length(gradient.radius_y) ||
+        !finite_length(gradient.focus_x) || !finite_length(gradient.focus_y)) {
         return false;
     }
+    if (gradient.focused && (gradient.kind != MaterialFillKind::radial_gradient || gradient.repeating)) return false;
     const bool lengths = gradient.extent == RadialExtent::lengths;
     const bool negative = gradient.radius_x.fraction < 0.0 || gradient.radius_x.units < 0.0 ||
                           gradient.radius_y.fraction < 0.0 || gradient.radius_y.units < 0.0;
@@ -437,6 +448,7 @@ bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept {
 bool authored_gradient_fixed(const AuthoredGradient& gradient) noexcept {
     if (gradient.corner != GradientCorner::none || stops_have_units(gradient.stops)) return false;
     if (has_units(gradient.centre_x) || has_units(gradient.centre_y)) return false;
+    if (gradient.focused && (has_units(gradient.focus_x) || has_units(gradient.focus_y))) return false;
     if (gradient.kind == MaterialFillKind::radial_gradient) {
         const bool fixed = !gradient.circle && !has_units(gradient.radius_x) && !has_units(gradient.radius_y);
         return fixed;

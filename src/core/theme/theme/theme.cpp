@@ -148,7 +148,11 @@ bool valid_procedural_fill(const ProceduralFill& fill) noexcept {
     case ProceduralPattern::pinstripe:
     case ProceduralPattern::brushed_metal:
     case ProceduralPattern::fresco:
-    case ProceduralPattern::checker: {
+    case ProceduralPattern::checker:
+    case ProceduralPattern::hatch: {
+        HatchPattern style{};
+        style.style = fill.hatch_style;
+        if (fill.pattern == ProceduralPattern::hatch && !valid_hatch_pattern(style)) return false;
         const bool valid = std::isfinite(fill.tile) && fill.tile >= minimum_procedural_tile &&
                            fill.tile <= maximum_procedural_tile && std::isfinite(fill.strength) &&
                            fill.strength >= 0.0 && fill.strength <= 1.0;
@@ -914,6 +918,22 @@ void paint_conic_layer(Painter& painter, Rect bounds, const MaterialFillLayer& f
                                 std::span<const GradientStop>(expanded.data(), count));
 }
 
+// `ground` moved `weight` (in [0, 1]) of the way to `figure`, each straight
+// channel rounded once: the procedural patterns' figure colour.
+std::uint8_t mixed_channel(std::uint8_t ground, std::uint8_t figure, double weight) noexcept {
+    const double mixed = static_cast<double>(ground) + (static_cast<double>(figure) - static_cast<double>(ground)) * weight;
+    const double rounded = std::floor(std::clamp(mixed, 0.0, 255.0) + 0.5);
+    return static_cast<std::uint8_t>(rounded);
+}
+
+Color mixed_colour(Color ground, Color figure, double weight) noexcept {
+    const Color mixed = Color::rgba(mixed_channel(ground.red, figure.red, weight),
+                                    mixed_channel(ground.green, figure.green, weight),
+                                    mixed_channel(ground.blue, figure.blue, weight),
+                                    mixed_channel(ground.alpha, figure.alpha, weight));
+    return mixed;
+}
+
 // One fill layer of a material over `bounds`; a solid fill follows the
 // material's rounded corners when the layers are `clipped` to them.
 void paint_fill_layer(Painter& painter, Rect bounds, const MaterialFillLayer& fill,
@@ -941,6 +961,13 @@ void paint_fill_layer(Painter& painter, Rect bounds, const MaterialFillLayer& fi
             fill.spread);
         return;
     case MaterialFillKind::radial_gradient:
+        if (fill.focused) {
+            painter.fill_focal_radial_gradient(
+                bounds, resolve_point(fill.center, fill.coordinate_space, bounds),
+                resolve_radii(fill.radii, fill.coordinate_space, bounds),
+                resolve_point(fill.focus, fill.coordinate_space, bounds), fill.stops, fill.spread);
+            return;
+        }
         // A padded radial gradient keeps its own call, so recordings of
         // existing materials are unchanged; a repeating or reflected one
         // draws its spread.
@@ -964,10 +991,32 @@ void paint_fill_layer(Painter& painter, Rect bounds, const MaterialFillLayer& fi
         return;
     case MaterialFillKind::procedural: {
         // The painter path never generates a pattern (E10): it draws the
-        // fill's ground, as the engine does until the pattern is ready.
+        // fill's ground, as the engine does until the pattern is ready. A
+        // hatch, which the painter draws itself, is drawn as fill_hatch
+        // anchored at the box, as the engine tiles it.
         Color ground = fill.procedural.ground;
         const double alpha = static_cast<double>(ground.alpha) * std::clamp(fill.opacity, 0.0, 1.0);
         ground.alpha = static_cast<std::uint8_t>(std::floor(alpha + 0.5));
+        if (fill.procedural.pattern == ProceduralPattern::hatch) {
+            HatchPattern hatch{};
+            hatch.style = fill.procedural.hatch_style;
+            hatch.cell = fill.procedural.tile;
+            hatch.back = ground;
+            hatch.fore = mixed_colour(fill.procedural.ground, fill.procedural.figure,
+                                      std::clamp(fill.procedural.strength, 0.0, 1.0));
+            hatch.fore.alpha = static_cast<std::uint8_t>(
+                std::floor(static_cast<double>(hatch.fore.alpha) * std::clamp(fill.opacity, 0.0, 1.0) + 0.5));
+            hatch.anchor = Point{bounds.x, bounds.y};
+            if (clipped) {
+                painter.save();
+                painter.clip_rounded_rect(bounds, corner_radius);
+                painter.fill_hatch(bounds, hatch);
+                painter.restore();
+            } else {
+                painter.fill_hatch(bounds, hatch);
+            }
+            return;
+        }
         if (clipped) {
             painter.fill_rounded_rect(bounds, corner_radius, ground);
         } else {
@@ -1078,6 +1127,7 @@ bool valid_fill_layer(const MaterialFillLayer& fill) noexcept {
         if (fill.radii.width > bound || fill.radii.height > bound) {
             return false;
         }
+        if (fill.focused && !focus_inside_ellipse(fill.center, fill.radii, fill.focus)) return false;
         break;
     }
     case MaterialFillKind::image:

@@ -58,6 +58,7 @@ struct ProceduralEffortWeights final {
     std::uint32_t brushed_metal{};
     std::uint32_t fresco{};
     std::uint32_t checker{};
+    std::uint32_t hatch{};
 };
 
 inline constexpr ProceduralEffortWeights procedural_effort_weights{
@@ -68,6 +69,7 @@ inline constexpr ProceduralEffortWeights procedural_effort_weights{
     .brushed_metal = 120U,
     .fresco = 45U,
     .checker = 5U,
+    .hatch = 5U,
 };
 
 // The effort of generating `fill`'s pattern at `extent`. A generation is

@@ -296,12 +296,22 @@ colour. Any theme can copy that rule.
 `pattern(<name>, <ground>, <figure> [, <tile>])` is a built-in procedural
 pattern in two colours: `checker` (a checkerboard; its default 2px tile is a
 50% dither of logical pixels, as a Windows scroll track), `felt`,
-`wood-grain`, `paper-fibre`, `pinstripe` and `brushed-metal`. The tile is a
-length from 2px to 256px (by default 2px for the checker, 4px for the
-pinstripe and 64px for the rest). The engine generates the pattern for each
+`wood-grain`, `paper-fibre`, `pinstripe`, `brushed-metal`, and the hatches
+`hatch-horizontal`, `hatch-vertical`, `hatch-forward-diagonal`,
+`hatch-backward-diagonal`, `hatch-cross` and `hatch-diagonal-cross` (one
+cell of 8 by 8 squares per tile, the lines in the figure colour). The tile is
+a length from 2px to 256px (by default 2px for the checker, 4px for the
+pinstripe, 8px for the hatches and 64px for the rest). The engine generates the pattern for each
 display scale in an idle frame and draws the ground until it is ready; a
 pattern layer takes no position, size or repetition. For example,
 `background: pattern(checker, #d4d0c8, #ffffff)`.
+
+A `radial-gradient()` may name a focus after its centre, `focus
+<position>` (a GUI.Forms addition, not CSS): the first stop lies there and
+the rings grow from it to the ending shape, so a lens can be lit off centre,
+as in `radial-gradient(at 50% 50% focus 30% 40%, white, #4060a0)`. The focus
+must lie inside the ending shape (for a box where it does not, the gradient
+is drawn about its centre), and a `repeating-radial-gradient()` takes none.
 
 `finish(<name>, <paint>, <second> [, <seed> [, <grain>]])` is a surface
 finish: paint or metal lit by one light from the upper left, painted for

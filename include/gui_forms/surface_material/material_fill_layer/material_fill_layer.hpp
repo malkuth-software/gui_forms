@@ -89,6 +89,14 @@ struct GUI_FORMS_API MaterialFillLayer final {
     Point image_anchor{};
     Point image_offset{};
     double period_degrees{360.0};
+    // A radial gradient's focus (owner, 2026-11-16: the focal radial
+    // gradient reaches the theme language), read when `focused`: position
+    // 0 lies at `focus`, in the layer's coordinate space, and offset t is
+    // the ellipse of radii t × radii centred at focus + t × (center −
+    // focus), as Painter::fill_focal_radial_gradient draws. The focus lies
+    // strictly inside the ellipse (focus_inside_ellipse).
+    bool focused{};
+    Point focus{0.5, 0.5};
     MaterialBlendMode blend{MaterialBlendMode::normal};
     // Read only by a procedural fill, with `opacity`.
     ProceduralFill procedural{};
@@ -166,6 +174,7 @@ struct GUI_FORMS_API MaterialFillLayer final {
         left.opacity == right.opacity && left.image_mode == right.image_mode &&
         left.image_anchor == right.image_anchor && left.image_offset == right.image_offset &&
         left.period_degrees == right.period_degrees &&
+        left.focused == right.focused && left.focus == right.focus &&
         left.blend == right.blend &&
         left.procedural == right.procedural &&
         left.finish == right.finish)) {
@@ -185,6 +194,7 @@ struct GUI_FORMS_API MaterialFillLayer final {
                left.image_anchor == right.image_anchor &&
                left.image_offset == right.image_offset &&
                left.period_degrees == right.period_degrees &&
+               left.focused == right.focused && left.focus == right.focus &&
                left.blend == right.blend &&
                left.procedural == right.procedural &&
                left.finish == right.finish;

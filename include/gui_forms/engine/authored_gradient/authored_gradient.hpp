@@ -68,6 +68,9 @@ inline constexpr std::size_t maximum_authored_gradient_stops = maximum_gradient_
 // - `circle`, `extent`, `radius_x`, `radius_y`: a radial gradient's shape
 //   and size; with `lengths`, an ellipse's radii, each along its own axis,
 //   or a circle's radius, radius_x's units;
+// - `focused`, `focus_x`, `focus_y`: a radial gradient's focus (theme
+//   language `focus <position>` after its centre), where position 0
+//   lies; only a radial gradient that does not repeat has one;
 // - `stops`: at least one, at most maximum_authored_gradient_stops.
 struct GUI_FORMS_API AuthoredGradient final {
     MaterialFillKind kind{MaterialFillKind::linear_gradient};
@@ -80,6 +83,9 @@ struct GUI_FORMS_API AuthoredGradient final {
     RadialExtent extent{RadialExtent::farthest_corner};
     BoxLength radius_x{};
     BoxLength radius_y{};
+    bool focused{};
+    BoxLength focus_x{0.5, 0.0};
+    BoxLength focus_y{0.5, 0.0};
     std::vector<AuthoredGradientStop> stops{};
 
     friend bool operator==(const AuthoredGradient& left, const AuthoredGradient& right) noexcept {
@@ -87,6 +93,7 @@ struct GUI_FORMS_API AuthoredGradient final {
                left.angle_degrees == right.angle_degrees && left.corner == right.corner &&
                left.centre_x == right.centre_x && left.centre_y == right.centre_y && left.circle == right.circle &&
                left.extent == right.extent && left.radius_x == right.radius_x && left.radius_y == right.radius_y &&
+               left.focused == right.focused && left.focus_x == right.focus_x && left.focus_y == right.focus_y &&
                left.stops == right.stops;
     }
 };
@@ -121,7 +128,10 @@ struct GUI_FORMS_API AuthoredGradient final {
 // - separates coincident stops (CSS's hard stops) by 2^-20 of the
 //   gradient, which the layer's validity requires: under a tenth of a
 //   device pixel on a gradient shorter than 100,000 device pixels;
-// - is a solid for a single stop.
+// - is a solid for a single stop;
+// - keeps a focus (resolved as the centre is) only where it lies strictly
+//   inside the resolved ellipse for this box; elsewhere the gradient is
+//   drawn about its centre.
 GUI_FORMS_API void resolve_authored_gradient(const AuthoredGradient& gradient, Size box, MaterialFillLayer& layer);
 
 } // namespace gui_forms

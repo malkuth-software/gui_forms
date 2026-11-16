@@ -837,6 +837,9 @@ void test_refusals() {
         {"#a { background-color: inherit }", DiagnosticCode::value_wrong_kind},
         {"#a { background-image: radial-gradient(circle 10%, red, blue) }", DiagnosticCode::value_wrong_kind},
         {"#a { background-image: radial-gradient(-4px 4px, red, blue) }", DiagnosticCode::value_out_of_range},
+        {"#a { background-image: repeating-radial-gradient(focus 25% 50%, red, blue) }",
+         DiagnosticCode::value_out_of_range},
+        {"#a { background-image: radial-gradient(at center focus, red, blue) }", DiagnosticCode::value_syntax},
         {"#a { background-image: linear-gradient(to center, red, blue) }", DiagnosticCode::value_syntax},
         {"#a { background-image: radial-gradient(at left 10px top, red, blue) }",
          DiagnosticCode::value_form_not_admitted},
@@ -1085,6 +1088,20 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
                                                      MaterialCoordinateSpace::logical)}));
     rows.push_back(filled("background: repeating-radial-gradient(closest-side, red, blue 50%)",
                           {MaterialFillLayer::repeating_radial(Point{0.5, 0.5}, Size{0.25, 0.25}, red_blue)}));
+    MaterialFillLayer focused = MaterialFillLayer::radial(Point{0.5, 0.5}, Size{corner, corner}, red_blue);
+    focused.focused = true;
+    focused.focus = Point{0.25, 0.5};
+    rows.push_back(filled("background: radial-gradient(at 50% 50% focus 25% 50%, red, blue)", {focused}));
+    ProceduralFill crossed{};
+    crossed.pattern = ProceduralPattern::hatch;
+    crossed.hatch_style = HatchStyle::cross;
+    crossed.tile = 8.0;
+    crossed.strength = 1.0;
+    crossed.ground = red;
+    crossed.figure = blue;
+    crossed.accent = red;
+    rows.push_back(filled("background: pattern(hatch-cross, red, blue)",
+                          {MaterialFillLayer::procedural_pattern(crossed)}));
     rows.push_back(filled("background: conic-gradient(from 90deg, red, blue)",
                           {MaterialFillLayer::conic(Point{0.5, 0.5}, 90.0, red_blue)}));
     rows.push_back(filled("background: repeating-conic-gradient(red 0deg, blue 90deg)",
