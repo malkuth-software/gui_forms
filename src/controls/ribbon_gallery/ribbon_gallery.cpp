@@ -323,6 +323,10 @@ void RibbonGallery::arrange(Rect final_bounds) {
 // -- selection, preview and commit --------------------------------------------------
 
 void RibbonGallery::commit(std::size_t position) {
+    // The command or a selection handler may drop the last other reference;
+    // the gallery stays alive until it has closed its overlay
+    // (A-gf-controls-12-F6).
+    const Control::Ptr lifetime = weak_from_this().lock();
     stop_dwell();
     if (!item_enabled(position)) return;
     const std::string item_id = items_[order_[position]].stable_id;

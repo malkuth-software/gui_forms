@@ -141,6 +141,26 @@ std::shared_ptr<RibbonGallery> in_ribbon_gallery(const char* id, std::size_t cou
     return gallery;
 }
 
+// A selection handler that drops the gallery's last other reference.
+class DropGallery final {
+public:
+    explicit DropGallery(std::shared_ptr<RibbonGallery>& held) noexcept : held_(&held) {}
+    void operator()(const std::optional<std::string>&) const { (*held_).reset(); }
+
+private:
+    std::shared_ptr<RibbonGallery>* held_;
+};
+
+// RibbonGallery::commit holds itself across the selection event
+// (A-gf-controls-12-F6; meaningful under the sanitizer tree).
+void commit_survives_a_handler_dropping_the_gallery() {
+    std::shared_ptr<RibbonGallery> gallery = in_ribbon_gallery("drop.gallery", 3U);
+    RibbonGallery& borrowed = *gallery;
+    SubscriptionToken token = borrowed.selection_changed().subscribe(DropGallery(gallery));
+    const bool pressed = borrowed.on_semantic_child_action("item.1", SemanticAction::press, {});
+    require(pressed && gallery == nullptr, "the handler dropped the gallery and the press completed");
+}
+
 void value_command() {
     Fixture fixture;
     GalleryCommand& command = *fixture.gallery_command;
@@ -470,6 +490,7 @@ void semantics() {
 
 int main() {
     value_command();
+    commit_survives_a_handler_dropping_the_gallery();
     layout_and_columns();
     virtualization();
     hover_preview_order();
