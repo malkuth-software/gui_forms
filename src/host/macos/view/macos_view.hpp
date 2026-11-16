@@ -25,6 +25,7 @@
 #include "../application/macos_host_private.hpp"
 #include "../accessibility/macos_accessibility_element.hpp"
 #include "macos_view_diagnostics.hpp"
+#include "macos_iosurface_present.hpp"
 #include "macos_presentation.hpp"
 
 // Nullability: every object pointer in the declarations below is non-null
@@ -70,6 +71,9 @@ NS_ASSUME_NONNULL_BEGIN
     // reused.
     std::unique_ptr<gui_forms::host::macos::MacViewCopyPath> _copyPath;
     std::unique_ptr<gui_forms::host::presentation::PresentationShim> _presenter;
+    // The shim's IOSurface direct path (observing; owned by _presenter), or
+    // null while the presentation policy leaves it off.
+    gui_forms::host::macos::MacIOSurfacePath* _Nullable _directPath;
     std::vector<gui_forms::host::presentation::PresentRect> _presentRects;
     std::unique_ptr<MacDisplayLinkTrace> _displayTrace;
     // The draw trace (live resize probe); null, recording nothing, unless a
@@ -274,6 +278,8 @@ NS_ASSUME_NONNULL_BEGIN
         copyNanoseconds:(std::uint64_t&)copyNanoseconds;
 // The view's presentation shim, made on first use (macos_presentation.hpp).
 - (gui_forms::host::presentation::PresentationShim&)presenter;
+- (void)appendDrawnDeviceRects:(gui_forms::host::presentation::PresentExtent)extent scale:(double)scale;
+- (void)markPresentationDirty;
 - (void)armInvalidationOverlayTimer;
 - (void)stopInvalidationOverlayTimer;
 - (void)answerInvalidationOverlayTick;

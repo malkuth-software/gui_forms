@@ -599,11 +599,18 @@ using gui_forms::host::macos::MacPresentedFrame;
             static_cast<std::int32_t>(std::ceil((dirtyRect.origin.y + dirtyRect.size.height) * frameScale)),
             box.top, frameHeight);
         const std::byte* const source = static_cast<const std::byte*>(pixels);
-        const std::size_t rowOffset = static_cast<std::size_t>(box.left) * 4U;
-        const std::size_t rowLength = static_cast<std::size_t>(box.right - box.left) * 4U;
-        for (std::int32_t y = box.top; y < box.bottom; ++y) {
-            const std::size_t offset = static_cast<std::size_t>(y) * rowBytes + rowOffset;
-            std::memcpy(_overlayScratch.data() + offset, source + offset, rowLength);
+        if (_presenter && (*_presenter).direct_available()) {
+            // The direct path writes from the frame outside the dirty
+            // rectangle too (an older buffer's missing damage): the scratch
+            // frame is the whole raster while the overlay is on.
+            std::memcpy(_overlayScratch.data(), source, frameBytes);
+        } else {
+            const std::size_t rowOffset = static_cast<std::size_t>(box.left) * 4U;
+            const std::size_t rowLength = static_cast<std::size_t>(box.right - box.left) * 4U;
+            for (std::int32_t y = box.top; y < box.bottom; ++y) {
+                const std::size_t offset = static_cast<std::size_t>(y) * rowBytes + rowOffset;
+                std::memcpy(_overlayScratch.data() + offset, source + offset, rowLength);
+            }
         }
         const gui_forms::InvalidationClock::time_point now = gui_forms::InvalidationClock::now();
         (*overlay).expire(now);
@@ -621,6 +628,9 @@ using gui_forms::host::macos::MacPresentedFrame;
     // The copy goes through the presentation shim; its copy path is the
     // CoreGraphics draw below (copyFramePixels:), which AppKit clips to the
     // rectangles being drawn, so the whole raster is named as the damage.
+    // The direct path (macos_iosurface_present.hpp) writes only the damage
+    // into its surface, so while it is usable the damage is the rectangles
+    // AppKit is drawing, in device pixels, outward.
     if (_rasterHasContent == YES && pixels != nullptr && liveDrawsSucceeded) {
         gui_forms::host::presentation::PresentationShim& presenter = [self presenter];
         gui_forms::host::presentation::PresentFrame frame{};
@@ -629,7 +639,16 @@ using gui_forms::host::macos::MacPresentedFrame;
         frame.source.extent = gui_forms::host::presentation::PresentExtent{_raster.pixel_width(),
                                                                             _raster.pixel_height()};
         _presentRects.clear();
-        _presentRects.push_back(gui_forms::host::presentation::present_extent_rect(frame.source.extent));
+        if (presenter.direct_available() && presentationSize.width > 0.0) {
+            [self appendDrawnDeviceRects:frame.source.extent
+                                   scale:static_cast<double>(_raster.pixel_width()) / presentationSize.width];
+            if (_directPath != nullptr) {
+                (*_directPath).opaque = self.window == nil || self.window.opaque == YES;
+                (*_directPath).scale = static_cast<double>(_raster.pixel_width()) / presentationSize.width;
+            }
+        } else {
+            _presentRects.push_back(gui_forms::host::presentation::present_extent_rect(frame.source.extent));
+        }
         frame.damage = _presentRects;
         (*_copyPath).presentation_width = presentationSize.width;
         (*_copyPath).presentation_height = presentationSize.height;
@@ -738,15 +757,61 @@ using gui_forms::host::macos::MacPresentedFrame;
     return drawn;
 }
 
-// The shim: the copy path always (the direct path joins it in a later
-// change).
+// The shim: the copy path always, and the IOSurface direct path where the
+// presentation policy turns it on (GUI_FORMS_PRESENT=direct). The shim owns
+// the direct path; _directPath observes it to set its opacity and scale.
 - (gui_forms::host::presentation::PresentationShim&)presenter {
     if (_presenter) return *_presenter;
     _copyPath = std::make_unique<gui_forms::host::macos::MacViewCopyPath>(self);
     std::unique_ptr<gui_forms::host::presentation::PresentationDirectPath> direct{};
+    _directPath = nullptr;
+    const gui_forms::host::presentation::PresentPolicy policy =
+        gui_forms::host::presentation::present_policy_from_environment();
+    if (policy.direct) {
+        std::unique_ptr<gui_forms::host::macos::MacIOSurfacePath> surfaces =
+            std::make_unique<gui_forms::host::macos::MacIOSurfacePath>(self, _presentColorSpace);
+        _directPath = surfaces.get();
+        direct = std::move(surfaces);
+    }
     _presenter = std::make_unique<gui_forms::host::presentation::PresentationShim>(
         _copyPath.get(), std::move(direct), nullptr);
     return *_presenter;
+}
+
+// The rectangles AppKit is drawing (inside drawRect:), in device pixels at
+// `scale` device pixels per point, rounded outward and clipped to `extent`,
+// appended to _presentRects. The view is flipped, so its rows are the
+// raster's. None drawn names the whole extent.
+- (void)appendDrawnDeviceRects:(gui_forms::host::presentation::PresentExtent)extent scale:(double)scale {
+    const NSRect* drawnRects = nullptr;
+    NSInteger drawnCount = 0;
+    [self getRectsBeingDrawn:&drawnRects count:&drawnCount];
+    const gui_forms::host::presentation::PresentRect bounds =
+        gui_forms::host::presentation::present_extent_rect(extent);
+    for (NSInteger index = 0; index < drawnCount; ++index) {
+        const NSRect rect = drawnRects[index];
+        const double left = std::floor(rect.origin.x * scale);
+        const double top = std::floor(rect.origin.y * scale);
+        const double right = std::ceil((rect.origin.x + rect.size.width) * scale);
+        const double bottom = std::ceil((rect.origin.y + rect.size.height) * scale);
+        const double limit = static_cast<double>(gui_forms::host::presentation::maximum_present_side);
+        gui_forms::host::presentation::PresentRect device{};
+        device.left = static_cast<std::int32_t>(std::clamp(left, 0.0, limit));
+        device.top = static_cast<std::int32_t>(std::clamp(top, 0.0, limit));
+        device.right = static_cast<std::int32_t>(std::clamp(right, 0.0, limit));
+        device.bottom = static_cast<std::int32_t>(std::clamp(bottom, 0.0, limit));
+        const gui_forms::host::presentation::PresentRect clipped =
+            gui_forms::host::presentation::present_rect_intersection(device, bounds);
+        if (!clipped.empty()) _presentRects.push_back(clipped);
+    }
+    if (drawnCount == 0) _presentRects.push_back(bounds);
+}
+
+// Asks for the whole view to be drawn again: the direct path gave its
+// surfaces back and the backing store beneath them is stale. Sent by
+// MacIOSurfacePath::release after the current draw.
+- (void)markPresentationDirty {
+    [self setNeedsDisplay:YES];
 }
 
 // What this flush copied to the screen (stage DP). AppKit clips the copy

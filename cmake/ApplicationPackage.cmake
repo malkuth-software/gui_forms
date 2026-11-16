@@ -89,7 +89,7 @@ install(FILES "${_gf_package_engine}" "${_gf_package_dependencies}" DESTINATION 
 set(GUI_FORMS_PACKAGE_FIND_DEPENDENCIES "")
 if(APPLE)
     set(GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES
-        "-framework AppKit;-framework QuartzCore;-framework CoreGraphics;-framework CoreText;-framework UniformTypeIdentifiers;-framework CoreFoundation")
+        "-framework AppKit;-framework QuartzCore;-framework IOSurface;-framework CoreGraphics;-framework CoreText;-framework UniformTypeIdentifiers;-framework CoreFoundation")
     set(GUI_FORMS_PACKAGE_WHOLE_ARCHIVE
         "LINKER:-force_load,\${_gui_forms_application_prefix}/${CMAKE_INSTALL_LIBDIR}/libgui_forms_application.a")
 elseif(WIN32)

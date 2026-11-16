@@ -753,6 +753,12 @@ void link_view_categories() noexcept {
         dispatch_source_cancel(_wakeSource);
         _wakeSource = nil;
     }
+    // The shim goes first: its direct path, giving its surfaces back, must
+    // not message a view being deallocated.
+    if (_directPath != nullptr) (*_directPath).detach_view();
+    _directPath = nullptr;
+    _presenter.reset();
+    _copyPath.reset();
     if (_presentColorSpace != nullptr) {
         CGColorSpaceRelease(_presentColorSpace);
         _presentColorSpace = nullptr;

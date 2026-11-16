@@ -1802,6 +1802,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     enable_language(OBJCXX)
     find_library(GUI_FORMS_APPKIT AppKit REQUIRED)
     find_library(GUI_FORMS_QUARTZCORE QuartzCore REQUIRED)
+    find_library(GUI_FORMS_IOSURFACE IOSurface REQUIRED)
     find_library(GUI_FORMS_COREGRAPHICS CoreGraphics REQUIRED)
     find_library(GUI_FORMS_UNIFORMTYPEIDENTIFIERS UniformTypeIdentifiers REQUIRED)
     find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
@@ -1818,6 +1819,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         src/host/macos/view/macos_view.mm
         src/host/macos/view/macos_view_scheduling.mm
         src/host/macos/view/macos_view_drawing.mm
+        src/host/macos/view/macos_iosurface_present.mm
         src/host/macos/view/macos_view_input.mm
         src/host/macos/view/macos_view_accessibility.mm
         src/host/macos/view/macos_view_diagnostics.mm
@@ -1838,7 +1840,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     target_compile_options(gui_forms_host_macos PRIVATE -fobjc-arc)
     target_link_libraries(gui_forms_host_macos
         PUBLIC gui_forms_core gui_forms_skia
-        PRIVATE ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE}
+        PRIVATE ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE} ${GUI_FORMS_IOSURFACE}
                 ${GUI_FORMS_COREGRAPHICS}
                 ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS}
                 ${GUI_FORMS_COREFOUNDATION}
@@ -1872,7 +1874,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         list(APPEND _gf_application_archives gui_forms_text_engine)
         list(APPEND _gf_application_libraries stx_text::freetype stx_text::harfbuzz)
     endif()
-    set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE}
+    set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE} ${GUI_FORMS_IOSURFACE}
         ${GUI_FORMS_COREGRAPHICS} ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS} ${GUI_FORMS_COREFOUNDATION})
     gui_forms_application_library(gui_forms_application
         ARCHIVES ${_gf_application_archives}
