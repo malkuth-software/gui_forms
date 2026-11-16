@@ -3594,11 +3594,11 @@ void bound_identity_follows_list_changes() {
         }
         require_index_agrees(*grid, *source, step);
         const stxlib::Optional<DataGridViewCellAddress> cell = (*grid).current_cell();
-        const std::optional<std::size_t> current_row = table.find(current);
-        require(cell.present() && current_row && (*cell.value()).row.value == *current_row, "the current cell stays on its row");
-        require((*grid).is_row_selected(row_at(*current_row)) &&
-                    (*grid).is_row_selected(row_at(*table.find(first_selected))) &&
-                    (*grid).is_row_selected(row_at(*table.find(second_selected))) &&
+        const stxlib::Optional<std::size_t> current_row = table.find(current);
+        require(cell.present() && current_row.present() && (*cell.value()).row.value == (*current_row.value()), "the current cell stays on its row");
+        require((*grid).is_row_selected(row_at((*current_row.value()))) &&
+                    (*grid).is_row_selected(row_at(table.find(first_selected).take())) &&
+                    (*grid).is_row_selected(row_at(table.find(second_selected).take())) &&
                     (*grid).selected_rows().size() == 3U,
                 "the selection stays on its rows");
     }
@@ -3614,7 +3614,7 @@ void bound_identity_follows_list_changes() {
     // A removal of the current row moves the current cell to the row now at
     // its position.
     const std::size_t shown = shown_position(*grid, DataGridViewRowId{current}, "the current row is bound").value;
-    static_cast<void>(table.remove(*table.find(current), 1U));
+    static_cast<void>(table.remove(table.find(current).take(), 1U));
     const stxlib::Optional<DataGridViewCellAddress> after = (*grid).current_cell();
     require(after.present() && (*after.value()).row.value == std::min(shown, (*source).count() - 1U),
             "a removed current row leaves the current cell at its position");

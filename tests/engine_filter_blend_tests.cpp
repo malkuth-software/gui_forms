@@ -15,6 +15,7 @@
 #include "gui_forms/theme.hpp"
 #include "support/rgba_order.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -419,19 +420,19 @@ void glass_recipe() {
     const EnginePrimitive& glass = primitive_named("glass");
     const PrimitiveDescriptor& descriptor = glass.descriptor();
     PrimitiveParameterBlock parameters = default_parameters(descriptor);
-    require(!glass.theme_material(parameters, ControlVisualRole::button).has_value(), "by default glass reads no recipe");
+    require(glass.theme_material(parameters, ControlVisualRole::button).absent(), "by default glass reads no recipe");
     require(set_choice_parameter(parameters, descriptor, "recipe", "button") == ParameterAssignment::assigned,
             "a recipe is a choice");
-    const std::optional<ControlVisualRole> role = glass.theme_material(parameters, ControlVisualRole::button);
-    require(role.has_value() && *role == ControlVisualRole::button, "the choice names the recipe's role");
+    const stxlib::Optional<ControlVisualRole> role = glass.theme_material(parameters, ControlVisualRole::button);
+    require(role.present() && (*role.value()) == ControlVisualRole::button, "the choice names the recipe's role");
     parameters.values[1].colour = Color::rgba(0, 0, 0, 0);
 
     // A uniform backplane, inverted: the blur keeps it uniform, the filter
     // inverts it, and with no tint that is the glass.
     const Size logical{20.0, 10.0};
-    const std::optional<std::uint32_t> margin = glass.backplane_margin(parameters, DeviceScale{1.0});
-    require(margin.has_value(), "glass samples the backplane");
-    const DeviceExtent grown{20U + *margin * 2U, 10U + *margin * 2U};
+    const stxlib::Optional<std::uint32_t> margin = glass.backplane_margin(parameters, DeviceScale{1.0});
+    require(margin.present(), "glass samples the backplane");
+    const DeviceExtent grown{20U + (*margin.value()) * 2U, 10U + (*margin.value()) * 2U};
     std::shared_ptr<PartRaster> backplane = PartRaster::create(grown, DeviceScale{1.0});
     require(backplane != nullptr, "the backplane is made");
     const PartRasterView plane = (*backplane).view();
@@ -448,7 +449,7 @@ void glass_recipe() {
     target.logical_size = logical;
     target.scale = DeviceScale{1.0};
     target.backplane = backplane.get();
-    target.backplane_margin = *margin;
+    target.backplane_margin = (*margin.value());
     target.material = &recipe;
     TestRaster drawn{};
     drawn.extent = DeviceExtent{20U, 10U};

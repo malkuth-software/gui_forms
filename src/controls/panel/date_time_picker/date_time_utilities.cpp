@@ -2,6 +2,7 @@
 
 #include "gui_forms/text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -152,12 +153,12 @@ bool civil_in_range(DateTimeValue value, DateTimeValue minimum,
 }
 
 const DateTimeFormatProvider& locale_format_provider(const Control& control,
-                                                     std::optional<std::uint64_t>& generation,
+                                                     stxlib::Optional<std::uint64_t>& generation,
                                                      DateTimeFormatProvider& cache) {
     const std::uint64_t current = control.effective_locale_generation();
-    if (generation.has_value() && *generation == current) return cache;
+    if (generation.present() && (*generation.value()) == current) return cache;
     cache = DateTimeFormatProvider::from_locale(control.effective_locale());
-    generation = current;
+    generation.set(current);
     return cache;
 }
 

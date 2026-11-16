@@ -5,6 +5,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <stdexcept>
 #include <utility>
@@ -215,8 +216,8 @@ void MaskedTextBox::propose(TextEdit& edit, MaskedTextProvider candidate, MaskPo
 
 MaskPosition MaskedTextBox::caret_after(const MaskedTextProvider& candidate, MaskPosition last) const {
     const MaskPosition after(last.value() + 1U);
-    const std::optional<MaskPosition> edit = candidate.find_edit_position(after, true);
-    if (edit) return *edit;
+    const stxlib::Optional<MaskPosition> edit = candidate.find_edit_position(after, true);
+    if (edit.present()) return (*edit.value());
     const MaskPosition end(candidate.length());
     return end;
 }

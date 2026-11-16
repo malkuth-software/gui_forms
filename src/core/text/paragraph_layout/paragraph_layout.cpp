@@ -3,6 +3,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "../../../platform/stxlib_bridge.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <utility>
@@ -667,7 +668,7 @@ LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font,
     } else {
         primary = estimate_text_layout_utf8(" ", font);
     }
-    const std::optional<double> standard_line_height = platform::standard_optional(line_height);
+    const stxlib::Optional<double> standard_line_height = gui_forms::platform::stxlib_optional(platform::standard_optional(line_height));
     const LineBoxMetrics metrics = line_box_metrics(primary, standard_line_height);
     return metrics;
 }

@@ -4,6 +4,7 @@
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -248,7 +249,7 @@ enum class HelpLayer : std::uint8_t {
 // layer, so the page can mark it.
 struct GUI_FORMS_API HelpResolvedField final {
     std::string text{};
-    std::optional<HelpLayer> origin{};
+    stxlib::Optional<HelpLayer> origin{};
     bool fallback{};
 };
 

@@ -1214,8 +1214,8 @@ void Runtime::reclaim() {
 }
 NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
     : runtime(host), entry(std::move(source)),
-      size(entry.options.capture_size.has_value()
-               ? *entry.options.capture_size
+      size(entry.options.capture_size.present()
+               ? (*entry.options.capture_size.value())
                : entry.options.initial_size) {
   const int screen = DefaultScreen(runtime.display);
   // The scale of the monitor the window opens on (it is created at 60, 60
@@ -1242,7 +1242,7 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
   // opaque on the default visual, made override-redirect by mark_transient
   // (owner, 2026-11-08: Q-S2 (b)).
   const bool translucent_transient =
-      !entry.popup.has_value() || (*runtime.compositor).compositor_present();
+      entry.popup.absent() || (*runtime.compositor).compositor_present();
   if ((*entry.model).non_opaque_declared() && argb_visual.found && translucent_transient) {
     colormap = XCreateColormap(runtime.display, RootWindow(runtime.display, screen),
                                argb_visual.visual, AllocNone);
@@ -1252,7 +1252,7 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
     attributes.background_pixel = 0UL;
     // A popup or Splash (SPLASH_STUDY D5 (b)) is placed and stacked by the
     // program, never decorated or moved by a window manager.
-    attributes.override_redirect = entry.popup.has_value() ? True : False;
+    attributes.override_redirect = entry.popup.present() ? True : False;
     xid = XCreateWindow(runtime.display, RootWindow(runtime.display, screen), 60, 60,
                         created_width, created_height, 0,
                         argb_visual.depth, InputOutput, argb_visual.visual,
@@ -1308,8 +1308,8 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
   wm.flags = InputHint;
   wm.input = True;
   XSetWMHints(runtime.display, xid, &wm);
-  if (entry.popup.has_value())
-    mark_transient(*entry.popup);
+  if (entry.popup.present())
+    mark_transient((*entry.popup.value()));
   utility = entry.tool_window || entry.floating != HostWindowFloating::none;
   if (utility) {
     // Set while unmapped, so the window manager reads them when it first

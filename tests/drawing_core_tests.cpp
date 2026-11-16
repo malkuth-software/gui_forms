@@ -315,7 +315,7 @@ void extended_vocabulary_snapshots_resources() {
     attributes.reset_color_matrix();
     CHECK(recorder.commands()[3].path.elements.size() == 6U);
     CHECK(recorder.commands()[5].image.stable_id == 42U);
-    CHECK(recorder.commands()[5].image_attributes.color_matrix.has_value());
+    CHECK(recorder.commands()[5].image_attributes.color_matrix.present());
     CHECK(recorder.commands()[5].image_attributes.remap_table.size() == 1U);
     recorder.close();
     const std::string trace = recorder.deterministic_trace();
@@ -627,20 +627,20 @@ void primitive_brushes_contrast_and_text_over_fill() {
     text.draw_string_over_fill("50%", font, text_brush, on_fill, {0, 0}, format, {10, 0, 20, 10});
     CHECK(text.commands().size() == 5U);
     CHECK(text.commands()[0].kind == CommandKind::draw_string);
-    CHECK(*text.commands()[0].state.clip == (RectF{10, 0, 20, 10}));
+    CHECK((*text.commands()[0].state.clip.value()) == (RectF{10, 0, 20, 10}));
     CHECK(text.commands()[0].color == Color::from_name("white"));
     CHECK(text.commands()[1].color == Color::from_name("black"));
     // The left band ends exactly where the fill starts, the right band
     // starts exactly where it ends.
-    CHECK((*text.commands()[3].state.clip).right() == 10.0);
-    CHECK((*text.commands()[4].state.clip).x == 30.0);
+    CHECK(((*text.commands()[3].state.clip.value())).right() == 10.0);
+    CHECK(((*text.commands()[4].state.clip.value())).x == 30.0);
     // A fill outside the clip leaves one draw in the plain colour.
     GraphicsRecorder clipped;
     clipped.set_clip({0, 0, 5, 5});
     clipped.draw_string_over_fill("50%", font, text_brush, on_fill, {0, 0}, format, {10, 10, 5, 5});
     CHECK(clipped.commands().size() == 2U);
     CHECK(clipped.commands()[1].color == Color::from_name("black"));
-    CHECK(*clipped.commands()[1].state.clip == (RectF{0, 0, 5, 5}));
+    CHECK((*clipped.commands()[1].state.clip.value()) == (RectF{0, 0, 5, 5}));
     // A fill covering the whole clip leaves one draw in the fill colour.
     GraphicsRecorder covered;
     covered.set_clip({0, 0, 5, 5});

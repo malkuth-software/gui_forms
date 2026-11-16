@@ -172,15 +172,15 @@ std::optional<RuleDiagnosticKind> primitive_defect(const EnginePrimitive& primit
 // parameter's position when it can.
 std::optional<RuleDiagnosticKind> parameter_defect(const PrimitiveDescriptor& descriptor,
                                                    const RuleDeclaration& declaration, std::size_t& index) noexcept {
-    const std::optional<std::size_t> found = find_parameter(descriptor, declaration.property);
-    if (!found) return RuleDiagnosticKind::unknown_parameter;
-    const PrimitiveParameterDeclaration& parameter = descriptor.parameters[*found];
+    const stxlib::Optional<std::size_t> found = find_parameter(descriptor, declaration.property);
+    if (found.absent()) return RuleDiagnosticKind::unknown_parameter;
+    const PrimitiveParameterDeclaration& parameter = descriptor.parameters[(*found.value())];
     // A choice is named, and only a choice is.
     const bool choice = parameter.kind == PrimitiveParameterKind::choice;
     if ((declaration.kind == RuleValueKind::name) != choice) return RuleDiagnosticKind::parameter_wrong_kind;
     if (choice) {
-        if (!find_choice(parameter, declaration.name)) return RuleDiagnosticKind::parameter_out_of_range;
-        index = *found;
+        if (find_choice(parameter, declaration.name).absent()) return RuleDiagnosticKind::parameter_out_of_range;
+        index = (*found.value());
         return std::nullopt;
     }
     // An expression gives a number; its fallback, in `number`, is checked
@@ -198,7 +198,7 @@ std::optional<RuleDiagnosticKind> parameter_defect(const PrimitiveDescriptor& de
             return RuleDiagnosticKind::parameter_out_of_range;
         }
     }
-    index = *found;
+    index = (*found.value());
     return std::nullopt;
 }
 
@@ -1576,32 +1576,32 @@ bool CompiledThemeRules::add_scoped(std::vector<RuleDiagnostic>& diagnostics, st
     // unless it was past the limit, and a definition of another name is
     // read by nothing, so it is not kept.
     for (const ScopedCondition& condition : rule.scoped_conditions) {
-        const std::optional<std::size_t> position = result.scoped_name_position(condition.name);
-        if (!position) {
+        const stxlib::Optional<std::size_t> position = result.scoped_name_position(condition.name);
+        if (position.absent()) {
             diagnostics.push_back(diagnostic(RuleDiagnosticKind::scoped_property_invalid, index, rule, condition.name));
             return false;
         }
         compiled.scoped_conditions.push_back(
-            CompiledScoped{.name = static_cast<std::uint32_t>(*position), .definition = condition.definition});
+            CompiledScoped{.name = static_cast<std::uint32_t>((*position.value())), .definition = condition.definition});
     }
     for (const ScopedDefinition& definition : rule.scoped_definitions) {
         if (!scoped_name_valid(definition.name) || definition.definition == custom_property_undefined) {
             diagnostics.push_back(diagnostic(RuleDiagnosticKind::scoped_property_invalid, index, rule, definition.name));
             return false;
         }
-        const std::optional<std::size_t> position = result.scoped_name_position(definition.name);
-        if (!position) continue;
+        const stxlib::Optional<std::size_t> position = result.scoped_name_position(definition.name);
+        if (position.absent()) continue;
         compiled.scoped_definitions.push_back(
-            CompiledScoped{.name = static_cast<std::uint32_t>(*position), .definition = definition.definition});
+            CompiledScoped{.name = static_cast<std::uint32_t>((*position.value())), .definition = definition.definition});
     }
     return true;
 }
 
-std::optional<std::size_t> CompiledThemeRules::scoped_name_position(std::string_view name) const noexcept {
+stxlib::Optional<std::size_t> CompiledThemeRules::scoped_name_position(std::string_view name) const noexcept {
     for (std::size_t position = 0U; position < scoped_names_.size(); ++position) {
-        if (scoped_names_[position] == name) return position;
+        if (scoped_names_[position] == name) return stxlib::Optional<std::size_t>::of(position);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 void CompiledThemeRules::collect_scoped_names(const ThemeRuleSheet& sheet) {
@@ -1610,7 +1610,7 @@ void CompiledThemeRules::collect_scoped_names(const ThemeRuleSheet& sheet) {
     // dropped by add_scoped.
     for (const ThemeRule& rule : sheet.rules) {
         for (const ScopedCondition& condition : rule.scoped_conditions) {
-            if (!scoped_name_valid(condition.name) || scoped_name_position(condition.name)) continue;
+            if (!scoped_name_valid(condition.name) || scoped_name_position(condition.name).present()) continue;
             if (scoped_names_.size() >= maximum_scoped_custom_properties) continue;
             scoped_names_.push_back(condition.name);
         }
@@ -1622,21 +1622,21 @@ bool CompiledThemeRules::add_reads(std::vector<RuleDiagnostic>& diagnostics, std
     // read_names_ holds every name a rule reads unless it was past the
     // limit; a rule reading one past it is dropped.
     for (const std::string& name : rule.reads) {
-        const std::optional<std::size_t> position = result.read_name_position(name);
-        if (!position) {
+        const stxlib::Optional<std::size_t> position = result.read_name_position(name);
+        if (position.absent()) {
             diagnostics.push_back(diagnostic(RuleDiagnosticKind::scoped_property_invalid, index, rule, name));
             return false;
         }
-        compiled.reads.push_back(static_cast<std::uint32_t>(*position));
+        compiled.reads.push_back(static_cast<std::uint32_t>((*position.value())));
     }
     return true;
 }
 
-std::optional<std::size_t> CompiledThemeRules::read_name_position(std::string_view name) const noexcept {
+stxlib::Optional<std::size_t> CompiledThemeRules::read_name_position(std::string_view name) const noexcept {
     for (std::size_t position = 0U; position < read_names_.size(); ++position) {
-        if (read_names_[position] == name) return position;
+        if (read_names_[position] == name) return stxlib::Optional<std::size_t>::of(position);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSheet& sheet,
@@ -1647,7 +1647,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
     // maximum_read_custom_properties.
     for (const ThemeRule& rule : sheet.rules) {
         for (const std::string& name : rule.reads) {
-            if (!scoped_name_valid(name) || result.read_name_position(name)) continue;
+            if (!scoped_name_valid(name) || result.read_name_position(name).present()) continue;
             if (result.read_names_.size() >= maximum_read_custom_properties) continue;
             result.read_names_.push_back(name);
         }
@@ -1808,7 +1808,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
                 const PrimitiveParameterDeclaration& declared =
                     (*compiled.primitive).descriptor().parameters[parameter];
                 value.value.kind = PrimitiveParameterKind::choice;
-                value.value.number = static_cast<double>(*find_choice(declared, declaration.name));
+                value.value.number = static_cast<double>(find_choice(declared, declaration.name).take());
             } else {
                 value.value.kind = PrimitiveParameterKind::colour;
                 value.value.colour = declaration.colour;
@@ -2516,19 +2516,19 @@ void CompiledThemeRules::add_transitions(std::vector<RuleDiagnostic>& diagnostic
                 continue;
             }
             const PrimitiveDescriptor& descriptor = (*compiled.primitive).descriptor();
-            const std::optional<std::size_t> found = find_parameter(descriptor, transition.property);
-            if (!found) {
+            const stxlib::Optional<std::size_t> found = find_parameter(descriptor, transition.property);
+            if (found.absent()) {
                 diagnostics.push_back(
                     diagnostic(RuleDiagnosticKind::transition_property_unknown, index, rule, transition.property));
                 continue;
             }
-            const PrimitiveParameterDeclaration& declared = descriptor.parameters[*found];
+            const PrimitiveParameterDeclaration& declared = descriptor.parameters[(*found.value())];
             if (declared.kind != PrimitiveParameterKind::number || !declared.animated) {
                 diagnostics.push_back(diagnostic(RuleDiagnosticKind::transition_property_not_animated, index, rule,
                                                  transition.property));
                 continue;
             }
-            made.parameter = *found;
+            made.parameter = (*found.value());
             minimum = declared.minimum;
             maximum = declared.maximum;
         }
@@ -2703,8 +2703,8 @@ CompiledThemeRules CompiledThemeRules::compile_inline(const ThemeRuleSheet& shee
         result.theme_scoped_positions_.assign(result.scoped_names_.size(), no_read_name);
         for (std::size_t position = 0U; position < result.scoped_names_.size(); ++position) {
             const std::string& name = result.scoped_names_[position];
-            const std::optional<std::size_t> read = (*theme).read_name_position(name);
-            if (read) result.theme_read_positions_[position] = static_cast<std::uint32_t>(*read);
+            const stxlib::Optional<std::size_t> read = (*theme).read_name_position(name);
+            if (read.present()) result.theme_read_positions_[position] = static_cast<std::uint32_t>((*read.value()));
             const std::vector<std::string>& theme_names = (*theme).scoped_names_;
             for (std::size_t scoped = 0U; scoped < theme_names.size(); ++scoped) {
                 if (theme_names[scoped] == name) result.theme_scoped_positions_[position] = static_cast<std::uint32_t>(scoped);

@@ -3,6 +3,7 @@
 // its logical units, with one monitor at the surface's scale.
 #include "surface_manager_internal.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <memory>
 #include <optional>
@@ -28,14 +29,14 @@ HostWindowAdmission SurfaceWindowing::open(SurfaceApplicationWindow entry, bool 
         }
         owner_id = *found_id;
     }
-    const std::optional<HostPopupPlacement> popup = entry.popup;
-    const HostWindowKind kind = host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.has_value());
+    const stxlib::Optional<HostPopupPlacement> popup = entry.popup;
+    const HostWindowKind kind = host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.present());
     const bool floating = host_window_kind_traits(kind).floating;
     HostWindowDescription description;
     description.stable_id = entry.stable_id;
     description.owner = owner_id;
     description.kind = kind;
-    if (popup.has_value()) description.transient = (*popup).kind;
+    if (popup.present()) description.transient = ((*popup.value())).kind;
     admission = admit(description);
     if (!admission.status.accepted()) return admission;
     const HostWindowId id = admission.window;
@@ -48,8 +49,8 @@ HostWindowAdmission SurfaceWindowing::open(SurfaceApplicationWindow entry, bool 
     Rect content{};
     if (kind == HostWindowKind::primary) {
         content = Rect{0.0, 0.0, extent.width, extent.height};
-    } else if (popup.has_value()) {
-        content = Rect{(*popup).origin.x, (*popup).origin.y, entry.options.initial_size.width,
+    } else if (popup.present()) {
+        content = Rect{((*popup.value())).origin.x, ((*popup.value())).origin.y, entry.options.initial_size.width,
                        entry.options.initial_size.height};
     } else {
         const Size wanted{std::min(entry.options.initial_size.width, std::max(64.0, extent.width - 16.0)),
@@ -61,11 +62,11 @@ HostWindowAdmission SurfaceWindowing::open(SurfaceApplicationWindow entry, bool 
     layer.id = id;
     layer.owner = owner_id;
     layer.kind = kind;
-    layer.transient = popup.has_value() ? (*popup).kind : HostTransientKind::popup;
+    layer.transient = popup.present() ? ((*popup.value())).kind : HostTransientKind::popup;
     layer.content = content;
     layer.minimum = entry.options.minimum_size;
-    layer.resizable = !popup.has_value();
-    layer.minimizable = !popup.has_value() && entry.options.minimizable;
+    layer.resizable = popup.absent();
+    layer.minimizable = popup.absent() && entry.options.minimizable;
     if (!runtime_.desk.add(layer)) {
         retire(id);
         admission.status.error = HostServiceError::too_large;

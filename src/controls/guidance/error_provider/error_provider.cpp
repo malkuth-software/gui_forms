@@ -301,7 +301,7 @@ void ErrorProvider::prepare_write(const decltype(icon)&, stxlib::Optional<ImageI
     // A stock icon (E10) names no registry entry and is valid anywhere.
     const bool stock = image != nullptr && is_stock_icon_image(*image);
     if (image != nullptr && !stock && ((*image).value == 0U || !owner ||
-                                       !(*owner).image_resources().find(*image))) {
+                                       (*owner).image_resources().find(*image).absent())) {
         throw std::invalid_argument(
             "GUI.Forms ErrorProvider icon must identify a live Window image or a stock icon");
     }

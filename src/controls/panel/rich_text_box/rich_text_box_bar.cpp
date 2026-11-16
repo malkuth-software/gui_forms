@@ -6,6 +6,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <optional>
@@ -71,17 +72,17 @@ std::array<Rect, rich_text_bar_button_count> RichTextBox::bar_buttons() const {
     return buttons;
 }
 
-std::optional<std::size_t> RichTextBox::bar_button_at(Point local) const {
+stxlib::Optional<std::size_t> RichTextBox::bar_button_at(Point local) const {
     const std::array<Rect, rich_text_bar_button_count> buttons = bar_buttons();
     const Rect bar{0.0, 0.0, local_bounds().width, bar_height()};
-    if (!bar.contains(local)) return std::nullopt;
+    if (!bar.contains(local)) return stxlib::Optional<std::size_t>::none();
     for (std::size_t index = 0U; index < buttons.size(); ++index) {
         if (buttons[index].contains(local)) {
-            const std::optional<std::size_t> found = index;
+            const stxlib::Optional<std::size_t> found = stxlib::Optional<std::size_t>::of(index);
             return found;
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 RichTextFormatState RichTextBox::bar_button_state(RichTextBarButton button, const RichTextFormat& format) const {
@@ -118,8 +119,8 @@ std::string RichTextBox::realized_item_stable_id(std::size_t item) const {
 AnatomyStateSet RichTextBox::realized_item_anatomy_states(std::size_t item) const {
     AnatomyStateSet states{};
     const RichTextFormat format = selection_format();
-    if (hot_button_ && *hot_button_ == item) states.insert(AnatomyState::hot);
-    if (pressed_button_ && *pressed_button_ == item) states.insert(AnatomyState::pressed);
+    if (hot_button_.present() && (*hot_button_.value()) == item) states.insert(AnatomyState::hot);
+    if (pressed_button_.present() && (*pressed_button_.value()) == item) states.insert(AnatomyState::pressed);
     const RichTextFormatState state = bar_button_state(button_of(item), format);
     if (state == RichTextFormatState::on) states.insert(AnatomyState::checked);
     if (state == RichTextFormatState::mixed) states.insert(AnatomyState::indeterminate);
@@ -202,13 +203,13 @@ RichTextBox::ItemParts RichTextBox::bar_item_parts(std::size_t item) const {
 // -- input ------------------------------------------------------------------------
 
 bool RichTextBox::bar_pointer(PointerEvent& event, Point local) {
-    const std::optional<std::size_t> under = bar_button_at(local);
+    const stxlib::Optional<std::size_t> under = bar_button_at(local);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
         if (hot_button_ != under) {
             hot_button_ = under;
             invalidate(Dirty::paint);
         }
-        if (pressed_button_) {
+        if (pressed_button_.present()) {
             event.handled = true;
             return true;
         }
@@ -217,7 +218,7 @@ bool RichTextBox::bar_pointer(PointerEvent& event, Point local) {
         return over_bar;
     }
     if (event.action == PointerAction::leave) {
-        if (hot_button_) {
+        if (hot_button_.present()) {
             hot_button_.reset();
             invalidate(Dirty::paint);
         }
@@ -227,8 +228,8 @@ bool RichTextBox::bar_pointer(PointerEvent& event, Point local) {
         if (local.y >= bar_height()) return false;
         if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
         event.handled = true;
-        if (!under || read_only.read()) return true;
-        if (button_of(*under) == RichTextBarButton::heading) {
+        if (under.absent() || read_only.read()) return true;
+        if (button_of((*under.value())) == RichTextBarButton::heading) {
             open_heading_menu();
             return true;
         }
@@ -237,13 +238,13 @@ bool RichTextBox::bar_pointer(PointerEvent& event, Point local) {
         invalidate(Dirty::paint);
         return true;
     }
-    if (event.action == PointerAction::up && event.button == PointerButton::primary && pressed_button_) {
-        const std::size_t pressed = *pressed_button_;
+    if (event.action == PointerAction::up && event.button == PointerButton::primary && pressed_button_.present()) {
+        const std::size_t pressed = (*pressed_button_.value());
         pressed_button_.reset();
         set_pointer_capture(false);
         invalidate(Dirty::paint);
         event.handled = true;
-        if (under && *under == pressed) invoke_bar_button(button_of(pressed));
+        if (under.present() && (*under.value()) == pressed) invoke_bar_button(button_of(pressed));
         return true;
     }
     return false;

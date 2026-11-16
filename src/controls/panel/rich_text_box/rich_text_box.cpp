@@ -13,6 +13,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -868,9 +869,9 @@ void RichTextBox::publish_part_geometry(std::span<PartGeometry> geometry) const 
             Rect united{};
             bool any = false;
             for (const Row& row : rows_) {
-                const std::optional<Rect> band = selection_band(row);
-                if (!band) continue;
-                const Rect placed{origin.x + (*band).x, origin.y + (*band).y, (*band).width, (*band).height};
+                const stxlib::Optional<Rect> band = selection_band(row);
+                if (band.absent()) continue;
+                const Rect placed{origin.x + ((*band.value())).x, origin.y + ((*band.value())).y, ((*band.value())).width, ((*band.value())).height};
                 united = any ? Rect::united(united, placed) : placed;
                 any = true;
             }

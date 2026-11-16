@@ -18,6 +18,7 @@
 #include "../dark_variant/dark_variant.hpp"
 #include "../theme_compiler/theme_source_record.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -1689,37 +1690,37 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
     return false;
 }
 
-std::optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept {
-    if (!valid_surface_material(material) || material.finish != 0.0) return std::nullopt;
+stxlib::Optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept {
+    if (!valid_surface_material(material) || material.finish != 0.0) return stxlib::Optional<double>::none();
     // A transform about the centre, or a clip path in fractions of the box,
     // moves with every size change.
-    if (surface_material_shaped(material)) return std::nullopt;
+    if (surface_material_shaped(material)) return stxlib::Optional<double>::none();
     // A dithered material's pixels follow the dither's pattern all along
     // the face, not only near its edges.
-    if (material.dither != MaterialDither::none) return std::nullopt;
-    if (material.corner_radii.present()) return std::nullopt;
-    if (!material.shadows.empty() || !material.glows.empty() || !material.keylines.empty()) return std::nullopt;
-    if (!material.border_edges.empty()) return std::nullopt;
-    if (!(surface_material_visual_outsets(material) == Insets{})) return std::nullopt;
+    if (material.dither != MaterialDither::none) return stxlib::Optional<double>::none();
+    if (material.corner_radii.present()) return stxlib::Optional<double>::none();
+    if (!material.shadows.empty() || !material.glows.empty() || !material.keylines.empty()) return stxlib::Optional<double>::none();
+    if (!material.border_edges.empty()) return stxlib::Optional<double>::none();
+    if (!(surface_material_visual_outsets(material) == Insets{})) return stxlib::Optional<double>::none();
     if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow.present() ||
         !material.masks.empty() || material.reflection.present()) {
-        return std::nullopt;
+        return stxlib::Optional<double>::none();
     }
     for (const MaterialFillLayer& fill : material.fills) {
-        if (fill.kind != MaterialFillKind::solid) return std::nullopt;
+        if (fill.kind != MaterialFillKind::solid) return stxlib::Optional<double>::none();
     }
     double band = std::max(0.0, material.corner_radius);
     if (material.border.present()) {
         // A dashed or dotted border's pattern runs along each edge's length.
-        if ((*material.border.value()).style != MaterialBorderStyle::solid) return std::nullopt;
+        if ((*material.border.value()).style != MaterialBorderStyle::solid) return stxlib::Optional<double>::none();
         band = std::max(band, (*material.border.value()).width);
     }
-    return band;
+    return stxlib::Optional<double>::of(band);
 }
 
 bool surface_material_size_invariant(const SurfaceMaterial& material) noexcept {
-    const std::optional<double> band = surface_material_resize_band(material);
-    const bool invariant = band && *band == 0.0;
+    const stxlib::Optional<double> band = surface_material_resize_band(material);
+    const bool invariant = band.present() && (*band.value()) == 0.0;
     return invariant;
 }
 
@@ -1966,11 +1967,11 @@ std::shared_ptr<const Theme> detail::ThemeAccess::create_holding(
     return result;
 }
 
-std::optional<ImageId> Theme::icon_override(std::string_view identifier) const noexcept {
+stxlib::Optional<ImageId> Theme::icon_override(std::string_view identifier) const noexcept {
     for (const detail::ThemeSourceImage& icon : (*source_).icons) {
-        if (icon.resource == identifier) return icon.image;
+        if (icon.resource == identifier) return stxlib::Optional<ImageId>::of(icon.image);
     }
-    return std::nullopt;
+    return stxlib::Optional<ImageId>::none();
 }
 
 std::shared_ptr<const StockIconVectors> Theme::stock_icon_replacement(const StockIcon& icon) const noexcept {
@@ -2045,7 +2046,7 @@ std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {
             "theme window backdrop needs a valid request, no opaque base and valid base materials");
     }
     const ColourSchemeSet schemes =
-        definition.rules.colour_schemes ? *definition.rules.colour_schemes : definition.colour_schemes;
+        definition.rules.colour_schemes.present() ? (*definition.rules.colour_schemes.value()) : definition.colour_schemes;
     if (!schemes.light && !schemes.dark) {
         throw std::invalid_argument("theme must have a light or a dark variant");
     }

@@ -10,6 +10,7 @@
 #include <X11/extensions/Xrandr.h>
 #endif
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -59,23 +60,23 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
     owner_id = *found_id;
     owner_xid = (*owner).xid;
   }
-  const std::optional<HostPopupPlacement> popup = entry.popup;
+  const stxlib::Optional<HostPopupPlacement> popup = entry.popup;
   // An override-redirect window never receives the keyboard focus from a
   // window manager, so a focus-taking popup is not offered: the core shows
   // it as an overlay in its owner instead (NativePopupRefusal::host_refused).
-  if (popup.has_value() && (*popup).focus == HostPopupFocus::takes_focus) {
+  if (popup.present() && ((*popup.value())).focus == HostPopupFocus::takes_focus) {
     admission.status.error = HostServiceError::unsupported;
     return admission;
   }
   const HostWindowKind kind =
-      host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.has_value());
+      host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.present());
   const bool floating = host_window_kind_traits(kind).floating;
   HostWindowDescription description;
   description.stable_id = entry.stable_id;
   description.owner = owner_id;
   description.kind = kind;
-  if (popup.has_value())
-    description.transient = (*popup).kind;
+  if (popup.present())
+    description.transient = ((*popup.value())).kind;
   admission = admit(description);
   if (!admission.status.accepted())
     return admission;
@@ -96,8 +97,8 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
     return admission;
   }
   // A popup is where the program put it, before it is first mapped.
-  if (popup.has_value()) {
-    const Rect content{(*popup).origin.x, (*popup).origin.y, (*window).size.width,
+  if (popup.present()) {
+    const Rect content{((*popup.value())).origin.x, ((*popup.value())).origin.y, (*window).size.width,
                        (*window).size.height};
     static_cast<void>((*window).request_frame(content));
   }

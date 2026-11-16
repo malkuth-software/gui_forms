@@ -7,6 +7,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "../../basic/number_text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -667,15 +668,15 @@ void PlotEngine::paint(Painter& painter, const Control& owner, AnatomyStateSet s
     }
 
     // The box being dragged and the kept selection.
-    const std::optional<Rect> box = model_.drag_box();
-    if (box.has_value()) {
-        painter.fill_rect(*box, with_alpha(recipe.focus_ring, box_fill_alpha));
-        painter.stroke_rect(*box, recipe.focus_ring, 1.0);
+    const stxlib::Optional<Rect> box = model_.drag_box();
+    if (box.present()) {
+        painter.fill_rect((*box.value()), with_alpha(recipe.focus_ring, box_fill_alpha));
+        painter.stroke_rect((*box.value()), recipe.focus_ring, 1.0);
     }
-    const std::optional<plots::PlotSelection>& selection = model_.selection();
-    if (selection.has_value() && primary.check == plots::PlotTransformCheck::valid) {
-        const Point low = primary.transform.to_device((*selection).x.minimum, (*selection).y.maximum);
-        const Point high = primary.transform.to_device((*selection).x.maximum, (*selection).y.minimum);
+    const stxlib::Optional<plots::PlotSelection>& selection = model_.selection();
+    if (selection.present() && primary.check == plots::PlotTransformCheck::valid) {
+        const Point low = primary.transform.to_device(((*selection.value())).x.minimum, ((*selection.value())).y.maximum);
+        const Point high = primary.transform.to_device(((*selection.value())).x.maximum, ((*selection.value())).y.minimum);
         const Rect area{std::min(low.x, high.x), std::min(low.y, high.y), std::fabs(high.x - low.x), std::fabs(high.y - low.y)};
         painter.fill_rect(area, with_alpha(recipe.focus_ring, box_fill_alpha));
         painter.stroke_rect(area, recipe.focus_ring, 1.0);
@@ -994,7 +995,7 @@ PlotEngineOutcome PlotEngine::key(const KeyEvent& event, std::span<const PlotEng
             outcome.release = true;
             return outcome;
         }
-        if (model_.selection().has_value()) {
+        if (model_.selection().present()) {
             model_.clear_selection();
             outcome.handled = true;
             outcome.selection = true;
@@ -1094,13 +1095,13 @@ PlotViewRanges PlotEngine::ranges() const {
 
 PlotQuery PlotEngine::query() const {
     PlotQuery result{};
-    const std::optional<plots::PlotSelection>& selection = model_.selection();
-    if (!selection.has_value()) return result;
+    const stxlib::Optional<plots::PlotSelection>& selection = model_.selection();
+    if (selection.absent()) return result;
     result.present = true;
-    result.x_minimum = (*selection).x.minimum;
-    result.x_maximum = (*selection).x.maximum;
-    result.y_minimum = (*selection).y.minimum;
-    result.y_maximum = (*selection).y.maximum;
+    result.x_minimum = ((*selection.value())).x.minimum;
+    result.x_maximum = ((*selection.value())).x.maximum;
+    result.y_minimum = ((*selection.value())).y.minimum;
+    result.y_maximum = ((*selection.value())).y.maximum;
     return result;
 }
 

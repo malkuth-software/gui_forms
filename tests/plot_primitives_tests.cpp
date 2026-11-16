@@ -815,7 +815,7 @@ void test_view_model_gestures() {
     PlotViewModel boxed = make_view_model();
     static_cast<void>(boxed.pointer_pressed(Point{50.0, 25.0}, PlotPointerButton::secondary, PlotModifiers{}, plot));
     static_cast<void>(boxed.pointer_moved(Point{150.0, 75.0}));
-    require(boxed.drag_box().has_value() && (*boxed.drag_box()).width == 100.0, "a right drag shows a box");
+    require(boxed.drag_box().present() && (boxed.drag_box().take()).width == 100.0, "a right drag shows a box");
     const PlotViewChange box = boxed.pointer_released(Point{150.0, 75.0});
     require(box.view && boxed.x_axes()[0].range == (PlotRange{25.0, 75.0}) && boxed.y_axes()[0].range == (PlotRange{2.5, 7.5}),
             "a right drag zooms to the box");
@@ -825,8 +825,8 @@ void test_view_model_gestures() {
     static_cast<void>(query.pointer_pressed(Point{0.0, 0.0}, PlotPointerButton::secondary, control, plot));
     static_cast<void>(query.pointer_moved(Point{100.0, 50.0}));
     const PlotViewChange selected = query.pointer_released(Point{100.0, 50.0});
-    require(selected.selection && !selected.view && query.selection().has_value() &&
-                (*query.selection()).x == (PlotRange{0.0, 50.0}) && (*query.selection()).y == (PlotRange{5.0, 10.0}),
+    require(selected.selection && !selected.view && query.selection().present() &&
+                ((*query.selection().value())).x == (PlotRange{0.0, 50.0}) && ((*query.selection().value())).y == (PlotRange{5.0, 10.0}),
             "Ctrl and right drag queries without zooming");
     PlotViewModel clicked = make_view_model();
     static_cast<void>(clicked.pointer_pressed(Point{10.0, 10.0}, PlotPointerButton::primary, PlotModifiers{}, plot));

@@ -8,6 +8,7 @@
 #include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/date_time_picker_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -112,7 +113,7 @@ private:
     // Whether the picker shows its locale's provider (follows_host_locale),
     // and that provider with the locale generation it was made for.
     bool follows_host_locale_{true};
-    mutable std::optional<std::uint64_t> locale_provider_generation_{};
+    mutable stxlib::Optional<std::uint64_t> locale_provider_generation_{};
     mutable DateTimeFormatProvider locale_provider_{};
     // Whether set_style supplied style_: its text then inks the field's text
     // and marks as authored colours (T4-1); otherwise the theme's stand.

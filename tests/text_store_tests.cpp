@@ -1,5 +1,6 @@
 #include "gui_forms/text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -239,17 +240,17 @@ void test_style_span_normalization_and_edit_transform() {
       store.style_spans().size() == 2 &&
           store.style_spans()[0] ==
               TextStyleSpan{{Utf8Offset(0), Utf8Offset(4)}, strong} &&
-          store.style_at(Utf8Offset(3)) == strong &&
-          store.style_at(Utf8Offset(5)) == accent,
+          store.style_at(Utf8Offset(3)) == stxlib::Optional<gui_forms::TextStyleId>::of(strong) &&
+          store.style_at(Utf8Offset(5)) == stxlib::Optional<gui_forms::TextStyleId>::of(accent),
       "adjacent equal style spans must normalize after deterministic sorting");
 
   static_cast<void>(
-      store.replace({Utf8Offset(2), Utf8Offset(3)}, "XYZ", TextStyleId{11}));
+      store.replace({Utf8Offset(2), Utf8Offset(3)}, "XYZ", stxlib::Optional<gui_forms::TextStyleId>::of(TextStyleId{11})));
   require(store.utf8() == "abXYZdef" && store.style_spans().size() == 4 &&
-              store.style_at(Utf8Offset(1)) == strong &&
-              store.style_at(Utf8Offset(2)) == TextStyleId{11} &&
-              store.style_at(Utf8Offset(5)) == strong &&
-              store.style_at(Utf8Offset(7)) == accent,
+              store.style_at(Utf8Offset(1)) == stxlib::Optional<gui_forms::TextStyleId>::of(strong) &&
+              store.style_at(Utf8Offset(2)) == stxlib::Optional<gui_forms::TextStyleId>::of(TextStyleId{11}) &&
+              store.style_at(Utf8Offset(5)) == stxlib::Optional<gui_forms::TextStyleId>::of(strong) &&
+              store.style_at(Utf8Offset(7)) == stxlib::Optional<gui_forms::TextStyleId>::of(accent),
           "text replacement must preserve surrounding spans and explicitly "
           "style insertion");
 

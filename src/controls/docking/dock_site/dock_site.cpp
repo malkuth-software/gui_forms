@@ -9,6 +9,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -1592,9 +1593,9 @@ bool DockSite::focus_seam(std::size_t seam) {
     return focused;
 }
 
-std::optional<std::size_t> DockSite::focused_seam() const noexcept {
-    if (!focused_ || seams_.empty()) return std::nullopt;
-    const std::optional<std::size_t> seam = keyboard_seam_;
+stxlib::Optional<std::size_t> DockSite::focused_seam() const noexcept {
+    if (!focused_ || seams_.empty()) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> seam = stxlib::Optional<std::size_t>::of(keyboard_seam_);
     return seam;
 }
 
@@ -2147,8 +2148,8 @@ bool DockSite::run_position_command(const DockPanelId& panel, DockPositionComman
         }
         const StackSlot* const slot = slot_for(location.stack);
         if (!remembered && slot != nullptr && !(*slot).bounds.empty()) {
-            const std::optional<Point> corner = to_desktop(Point{(*slot).bounds.x, (*slot).bounds.y});
-            if (corner) frame = {(*corner).x, (*corner).y, (*slot).bounds.width, (*slot).bounds.height};
+            const stxlib::Optional<Point> corner = to_desktop(Point{(*slot).bounds.x, (*slot).bounds.y});
+            if (corner.present()) frame = {((*corner.value())).x, ((*corner.value())).y, (*slot).bounds.width, (*slot).bounds.height};
         }
         if (flyout_panel_ && flyout_stack_ == location.stack) close_flyout(DockFlyoutCause::pointer);
         result = (*workspace_).float_subject(DockSubject::of_panel(panel), frame);

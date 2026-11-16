@@ -4,6 +4,7 @@
 
 #include "stx_zlib/checksum.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -862,18 +863,18 @@ void ImageRegistry::clear() noexcept {
     ++revision_;
 }
 
-std::optional<ImageResourceView> ImageRegistry::find(ImageId image) const noexcept {
+stxlib::Optional<ImageResourceView> ImageRegistry::find(ImageId image) const noexcept {
     std::size_t slot_index = 0;
     std::uint64_t generation = 0;
     if (!split_image_id(image, slot_index, generation) || slot_index >= slots_.size()) {
-        return std::nullopt;
+        return stxlib::Optional<ImageResourceView>::none();
     }
     const Slot& slot = slots_[slot_index];
     if (!slot.occupied || slot.generation != generation) {
-        return std::nullopt;
+        return stxlib::Optional<ImageResourceView>::none();
     }
-    return ImageResourceView{image, slot.encoding, slot.metadata, slot.encoded,
-                             slot.row_bytes, slot.content_hash, slot.patched};
+    return stxlib::Optional<ImageResourceView>::of(ImageResourceView{image, slot.encoding, slot.metadata, slot.encoded,
+                             slot.row_bytes, slot.content_hash, slot.patched});
 }
 
 std::vector<ImageId> ImageRegistry::image_ids() const {

@@ -60,6 +60,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -280,7 +281,7 @@ public:
     bool draw_unrecorded(Painter& painter, ImageAtlasSlot slot, Rect destination, double opacity = 1.0);
     // The slot's rectangle in the backing image, inside its gutter; none for
     // a stale handle.
-    [[nodiscard]] std::optional<Rect> source_rectangle(ImageAtlasSlot slot) const noexcept;
+    [[nodiscard]] stxlib::Optional<Rect> source_rectangle(ImageAtlasSlot slot) const noexcept;
 
     [[nodiscard]] ImageAtlasStatistics statistics() const noexcept;
 

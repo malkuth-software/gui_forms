@@ -4,6 +4,7 @@
 #include "gui_forms/xml/xml_writer/xml_writer.hpp"
 #include "dock_layout_internal.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -266,8 +267,8 @@ void add_unknown_fields(const DockLayoutState& state, const DockUnknownOwner& ow
     add_attribute(element, "id", record.id.value);
     add_attribute(element, "kind", kind_name(record.kind));
     add_attribute(element, "last", placement_name(record.last_placement));
-    if (record.docked.has_value()) {
-        const DockDockedMemory& memory = *record.docked;
+    if (record.docked.present()) {
+        const DockDockedMemory& memory = (*record.docked.value());
         XmlElement docked = element_named("docked");
         add_number(docked, "stack", memory.stack.value);
         add_number(docked, "index", memory.index);
@@ -286,8 +287,8 @@ void add_unknown_fields(const DockLayoutState& state, const DockUnknownOwner& ow
         add_unknown_fields(state, owner_of(DockUnknownOwnerKind::floating_memory, 0, record.id), floating);
         element.children.push_back(std::move(floating));
     }
-    if (record.auto_hidden.has_value()) {
-        const DockAutoHideMemory& memory = *record.auto_hidden;
+    if (record.auto_hidden.present()) {
+        const DockAutoHideMemory& memory = (*record.auto_hidden.value());
         XmlElement hidden = element_named("auto_hidden");
         add_number(hidden, "stack", memory.stack.value);
         add_attribute(hidden, "edge", side_name(memory.edge));
@@ -902,7 +903,7 @@ private:
                 if (!read_node_reference(child, "neighbour", memory.neighbour)) return false;
                 if (!read_side(child, "side", memory.side)) return false;
                 if (!read_double(child, "ratio", memory.ratio)) return false;
-                record.docked = memory;
+                record.docked.set(memory);
             } else if (child.name == "floating") {
                 check_attributes(child, {"site", "x", "y", "width", "height", "monitor"}, memory_owner);
                 DockFloatingMemory memory{};
@@ -918,7 +919,7 @@ private:
                 if (!read_node_reference(child, "stack", memory.stack)) return false;
                 if (!read_side(child, "edge", memory.edge)) return false;
                 if (!read_double(child, "extent", memory.extent)) return false;
-                record.auto_hidden = memory;
+                record.auto_hidden.set(memory);
             }
         }
         detail::insert_dock_record(state_, std::move(record));

@@ -198,8 +198,8 @@ FontSpec content(double size) {
 void require_line_box(HarfBuzzFontEngine& engine, double size, double height, double baseline,
                       const std::string& face) {
     const ResolvedTextLayout primary = engine.resolve(" ", content(size));
-    require(primary.design_metrics.has_value(), face + " resolves its design metrics");
-    const LineBoxMetrics line = line_box_metrics(primary, std::nullopt);
+    require(primary.design_metrics.present(), face + " resolves its design metrics");
+    const LineBoxMetrics line = line_box_metrics(primary, stxlib::Optional<double>::none());
     require_near(line.height, height, 0.0, face + " " + std::to_string(size) + " px line-height: normal");
     require_near(line.baseline, baseline, 0.0, face + " " + std::to_string(size) + " px baseline");
 }
@@ -210,7 +210,7 @@ void test_design_metrics_and_line_boxes(const std::filesystem::path& fonts) {
     require(carlito.register_typeface(FontRole::content, 400, false, carlito_bytes).has_value(),
             "Carlito registers");
     const ResolvedTextLayout resolved = carlito.resolve("Settings", content(13.0));
-    const FontVerticalMetrics design = resolved.design_metrics.value();
+    const FontVerticalMetrics design = (*resolved.design_metrics.value());
     require_near(design.ascent, 1950.0 * 13.0 / 2048.0, 1.0e-9, "Carlito's hhea ascender at 13 px");
     require_near(design.descent, 550.0 * 13.0 / 2048.0, 1.0e-9, "its descender");
     require_near(design.line_gap, 0.0, 1.0e-9, "and no line gap");

@@ -1,10 +1,12 @@
 #include "gui_forms/text.hpp"
+#include "../src/platform/stxlib_bridge.hpp"
 
 #include <stx_rtf2md/document.hpp>
 #include <stx_rtf2md/limits.hpp>
 #include <stx_rtf2md/markdown.hpp>
 #include <stx_rtf2md/rtf.hpp>
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdlib>
@@ -102,8 +104,8 @@ void check_source_ranges(std::string_view source, const MarkdownDocument& docume
     }
     require(covered == document.spans.size(), name + ": spans outside every block");
     for (const MarkdownSpan& span : document.spans) {
-        if (!span.link.has_value()) continue;
-        require(*span.link < document.links.size(), name + ": link index past the table");
+        if (span.link.absent()) continue;
+        require((*span.link.value()) < document.links.size(), name + ": link index past the table");
     }
 }
 
@@ -173,7 +175,7 @@ void dialect_attributes() {
     require(source_text(source, sub.source) == "2", "the subscript maps to its digit");
     const MarkdownSpan& red = span_of(document, 0U, 3U);
     const MarkdownRgb pure_red{255U, 0U, 0U};
-    require(red.text == "red " && red.style.underline && red.style.colour == pure_red, "outer span");
+    require(red.text == "red " && red.style.underline && red.style.colour == stxlib::Optional<gui_forms::MarkdownRgb>::of(pure_red), "outer span");
     const MarkdownSpan& big = span_of(document, 0U, 4U);
     require(big.text == "big" && big.style.size_step == 2 && big.style.underline, "inner span adds");
     require(document.blocks[1].alignment == MarkdownAlignment::right, "a lone attribute line aligns the next");
@@ -197,7 +199,7 @@ void dialect_attributes() {
     require(deep.blocks.size() == 1U && block_text(deep, 0U) == "x", "nested span markup is removed");
     const MarkdownSpan& inner = span_of(deep, 0U, 0U);
     const MarkdownRgb pure_green{0U, 255U, 0U};
-    require(inner.text == "x" && inner.style.bold && inner.style.italic && inner.style.colour == pure_green,
+    require(inner.text == "x" && inner.style.bold && inner.style.italic && inner.style.colour == stxlib::Optional<gui_forms::MarkdownRgb>::of(pure_green),
             "the innermost text takes every enclosing span, the innermost colour last");
 }
 
@@ -213,8 +215,8 @@ void links_breaks_and_text() {
     require(document.links[0].target == "https://example.com/a&b", "a decoded destination");
     require(document.links[1].target == "mailto:a@b.c", "an autolink");
     const MarkdownSpan& site = span_of(document, 0U, 1U);
-    require(site.text == "the " && site.link == std::optional<std::size_t>(0U), "link text");
-    require(span_of(document, 0U, 2U).style.italic && span_of(document, 0U, 2U).link.has_value(), "styled link");
+    require(site.text == "the " && site.link == gui_forms::platform::stxlib_optional(std::optional<std::size_t>(0U)), "link text");
+    require(span_of(document, 0U, 2U).style.italic && span_of(document, 0U, 2U).link.present(), "styled link");
     const std::string text = block_text(document, 0U);
     require(text.find("Next line\nafter \xC2\xA9 A") != std::string::npos, "a hard break and references");
     bool found_break = false;
@@ -304,24 +306,24 @@ void failures() {
     MarkdownDocument document;
     const std::string invalid = std::string("ok ") + static_cast<char>(0xFF);
     MarkdownParseResult result = parse_markdown(invalid, document);
-    require(!result.succeeded() && result.error() == MarkdownParseError::invalid_utf8, "invalid UTF-8");
+    require(!result.succeeded() && result.error() == stxlib::Optional<gui_forms::MarkdownParseError>::of(MarkdownParseError::invalid_utf8), "invalid UTF-8");
     require(result.offset().value() == 3U, "the invalid byte's offset");
     MarkdownLimits limits;
     limits.blocks = 2U;
     result = parse_markdown("a\n\nb\n\nc\n", document, limits);
-    require(!result.succeeded() && result.error() == MarkdownParseError::limit_exceeded, "the block limit");
+    require(!result.succeeded() && result.error() == stxlib::Optional<gui_forms::MarkdownParseError>::of(MarkdownParseError::limit_exceeded), "the block limit");
     require(document.blocks.empty() && document.spans.empty(), "a failed parse leaves the document empty");
     limits = MarkdownLimits{};
     limits.source_bytes = 3U;
     result = parse_markdown("four", document, limits);
-    require(result.error() == MarkdownParseError::limit_exceeded, "the source limit");
+    require(result.error() == stxlib::Optional<gui_forms::MarkdownParseError>::of(MarkdownParseError::limit_exceeded), "the source limit");
     limits = MarkdownLimits{};
     limits.text_bytes = 4U;
     result = parse_markdown("12345", document, limits);
-    require(result.error() == MarkdownParseError::limit_exceeded, "the text limit");
+    require(result.error() == stxlib::Optional<gui_forms::MarkdownParseError>::of(MarkdownParseError::limit_exceeded), "the text limit");
     const StoppedSource stopped;
     result = parse_markdown("text", document, MarkdownLimits{}, stopped.source.get_token());
-    require(result.error() == MarkdownParseError::cancelled, "cancellation");
+    require(result.error() == stxlib::Optional<gui_forms::MarkdownParseError>::of(MarkdownParseError::cancelled), "cancellation");
     result = parse_markdown("", document);
     require(result.succeeded() && document.blocks.empty(), "an empty source");
 }
@@ -338,8 +340,8 @@ struct ComparableRun final {
     bool code{};
     bool superscript{};
     bool subscript{};
-    std::optional<MarkdownRgb> colour{};
-    std::optional<MarkdownRgb> background{};
+    stxlib::Optional<MarkdownRgb> colour{};
+    stxlib::Optional<MarkdownRgb> background{};
     int size_step{};
     std::optional<std::string> link{};
 };
@@ -378,18 +380,18 @@ std::string describe(const ComparableBlock& block) {
         if (run.code) text += "c";
         if (run.superscript) text += "^";
         if (run.subscript) text += "_";
-        if (run.colour.has_value()) text += "#";
-        if (run.background.has_value()) text += "bg";
+        if (run.colour.present()) text += "#";
+        if (run.background.present()) text += "bg";
         if (run.size_step != 0) text += "z" + std::to_string(run.size_step);
         if (run.link.has_value()) text += "->" + *run.link;
     }
     return text;
 }
 
-std::optional<MarkdownRgb> rgb_of(const std::optional<rtf2md::Rgb>& colour) {
-    if (!colour.has_value()) return std::nullopt;
+stxlib::Optional<MarkdownRgb> rgb_of(const std::optional<rtf2md::Rgb>& colour) {
+    if (!colour.has_value()) return stxlib::Optional<gui_forms::MarkdownRgb>::none();
     const MarkdownRgb rgb{(*colour).red, (*colour).green, (*colour).blue};
-    return rgb;
+    return stxlib::Optional<gui_forms::MarkdownRgb>::of(rgb);
 }
 
 int kind_of(rtf2md::BlockKind kind) {
@@ -460,7 +462,7 @@ void from_parser(const MarkdownDocument& document, std::vector<ComparableBlock>&
         entry.ordered = block.kind == MarkdownBlockKind::list_item && block.marker == MarkdownListMarker::ordered;
         entry.ordinal = entry.ordered ? block.ordinal : 0U;
         entry.alignment = static_cast<int>(block.alignment);
-        std::optional<std::size_t> last_link;
+        stxlib::Optional<std::size_t> last_link;
         for (std::size_t index = 0U; index < block.span_count; ++index) {
             const MarkdownSpan& span = document.spans[block.first_span + index];
             ComparableRun comparable;
@@ -477,7 +479,7 @@ void from_parser(const MarkdownDocument& document, std::vector<ComparableBlock>&
             comparable.colour = span.style.colour;
             comparable.background = span.style.background;
             comparable.size_step = span.style.size_step;
-            if (span.link.has_value()) comparable.link = document.links[*span.link].target;
+            if (span.link.present()) comparable.link = document.links[(*span.link.value())].target;
             const bool merges = !entry.runs.empty() && !comparable.line_break &&
                                 same_style(entry.runs.back(), comparable) && last_link == span.link;
             if (merges) {
@@ -532,13 +534,13 @@ void round_trips(const std::string& directory, const std::string& name) {
     const std::string rtf = read_file(directory + "/" + name + ".rtf");
     std::string markdown;
     RtfConversionResult result = import_rtf(bytes_of(rtf), markdown);
-    require(result.succeeded() && result.body().has_value(), name + ".rtf does not import");
+    require(result.succeeded() && result.body().present(), name + ".rtf does not import");
     const std::string expected = read_file(directory + "/" + name + ".md");
     require(markdown == expected, name + ".rtf does not import as the corpus markdown");
     std::vector<std::byte> written;
     result = export_rtf(markdown, written);
-    require(result.succeeded() && !result.body().has_value(), name + ".md does not export");
-    require(result.losses().has_value() && (*result.losses()).empty(), name + ".md exports with losses");
+    require(result.succeeded() && result.body().absent(), name + ".md does not export");
+    require(result.losses().present() && (result.losses().take()).empty(), name + ".md exports with losses");
     require(looks_like_rtf(written), name + " exports RTF");
     std::string reread;
     result = import_rtf(written, reread);
@@ -565,7 +567,7 @@ void losses_and_failures() {
     std::vector<std::byte> rtf;
     RtfConversionResult result = export_rtf("<b>x</b>\n\n---\n\n| a |\n", rtf);
     require(result.succeeded(), "out-of-dialect markdown still exports");
-    const MarkdownLossReport losses = *result.losses();
+    const MarkdownLossReport losses = result.losses().take();
     require(losses.count(MarkdownLoss::html_kept_as_text) >= 1U, "HTML is kept as text");
     require(losses.count(MarkdownLoss::thematic_break_kept_as_text) == 1U, "the rule is kept as text");
     require(!losses.empty(), "the report says something was lost");
@@ -589,10 +591,10 @@ void losses_and_failures() {
 
     std::string markdown = "stale";
     result = import_rtf(bytes_of("{\\rtf1 {unbalanced"), markdown);
-    require(!result.succeeded() && result.error() == RtfConversionError::malformed, "malformed RTF");
-    require(markdown.empty() && !result.losses().has_value(), "a failed import leaves no markdown");
+    require(!result.succeeded() && result.error() == stxlib::Optional<gui_forms::RtfConversionError>::of(RtfConversionError::malformed), "malformed RTF");
+    require(markdown.empty() && result.losses().absent(), "a failed import leaves no markdown");
     result = import_rtf(bytes_of("plain text"), markdown);
-    require(result.error() == RtfConversionError::malformed, "text that is not RTF");
+    require(result.error() == stxlib::Optional<gui_forms::RtfConversionError>::of(RtfConversionError::malformed), "text that is not RTF");
     require(!looks_like_rtf(bytes_of("{\\rt")) && looks_like_rtf(bytes_of("{\\rtf1}")), "the RTF signature");
     rtf.assign(4U, std::byte{1});
     const std::string invalid = std::string("bad ") + static_cast<char>(0xC0);

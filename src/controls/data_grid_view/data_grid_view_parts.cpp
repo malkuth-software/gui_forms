@@ -8,6 +8,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -395,8 +396,8 @@ double DataGridView::preferred_cell_width(DataGridViewRowPosition row, std::size
         const ImageId* const image = std::get_if<ImageId>(&value);
         const Window* const host = attached_window();
         if (image != nullptr && (*image).value != 0U && host != nullptr) {
-            const std::optional<ImageResourceView> resource = (*host).image_resources().find(*image);
-            if (resource) content = static_cast<double>((*resource).metadata.width);
+            const stxlib::Optional<ImageResourceView> resource = (*host).image_resources().find(*image);
+            if (resource.present()) content = static_cast<double>(((*resource.value())).metadata.width);
         }
     } else {
         // Text and link cells: their text.
@@ -593,8 +594,8 @@ double DataGridView::preferred_cell_height(DataGridViewRowPosition row, std::siz
         const ImageId* const image = std::get_if<ImageId>(&value);
         const Window* const host = attached_window();
         if (image != nullptr && (*image).value != 0U && host != nullptr) {
-            const std::optional<ImageResourceView> resource = (*host).image_resources().find(*image);
-            if (resource) content = static_cast<double>((*resource).metadata.height);
+            const stxlib::Optional<ImageResourceView> resource = (*host).image_resources().find(*image);
+            if (resource.present()) content = static_cast<double>(((*resource.value())).metadata.height);
         }
     } else if (kind == DataGridViewColumnKind::text && style.wrap_mode.value_or(false) && !text.empty()) {
         // The lines at the content's width, as cell_layout wraps them.
@@ -1421,12 +1422,12 @@ stxlib::Optional<DataGridView::CellImage> DataGridView::cell_image(DataGridViewR
     if (image == nullptr || (*image).value == 0U || host == nullptr || inside.empty()) {
         return stxlib::Optional<CellImage>::none();
     }
-    const std::optional<ImageResourceView> resource = (*host).image_resources().find(*image);
-    if (!resource) return stxlib::Optional<CellImage>::none();
+    const stxlib::Optional<ImageResourceView> resource = (*host).image_resources().find(*image);
+    if (resource.absent()) return stxlib::Optional<CellImage>::none();
     // An image's pixels are logical units, as in PictureBox; the grid's text
     // scale does not apply to them.
-    const double width = static_cast<double>((*resource).metadata.width);
-    const double height = static_cast<double>((*resource).metadata.height);
+    const double width = static_cast<double>(((*resource.value())).metadata.width);
+    const double height = static_cast<double>(((*resource.value())).metadata.height);
     if (width <= 0.0 || height <= 0.0) return stxlib::Optional<CellImage>::none();
     CellImage result;
     result.image = *image;

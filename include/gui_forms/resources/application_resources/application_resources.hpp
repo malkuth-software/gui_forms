@@ -6,6 +6,7 @@
 #include "gui_forms/window/presentation/colour_scheme.hpp"
 #include "gui_forms/types/platform_types/platform_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -211,10 +212,10 @@ public:
     // nullopt for an identifier not registered. A user theme is selected
     // before the first window, so a window resolves the same image for its
     // whole life.
-    [[nodiscard]] std::optional<ImageId> icon(std::string_view identifier) const noexcept;
+    [[nodiscard]] stxlib::Optional<ImageId> icon(std::string_view identifier) const noexcept;
     // The program's own image for the icon `identifier`, whatever user
     // theme is selected; nullopt for an identifier not registered.
-    [[nodiscard]] std::optional<ImageId> program_icon(std::string_view identifier) const noexcept;
+    [[nodiscard]] stxlib::Optional<ImageId> program_icon(std::string_view identifier) const noexcept;
 
     // Baked light planes (engine/light_planes) for the parts of these
     // windows that composite them (PartPaint::light_planes, such as an

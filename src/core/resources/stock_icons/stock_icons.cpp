@@ -2,6 +2,7 @@
 
 #include "stock_icon_records.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -253,36 +254,36 @@ ImageId stock_icon_image(const StockIcon& icon) noexcept {
 }
 
 bool is_stock_icon_image(ImageId image) noexcept {
-    return stock_icon_image_parts(image).has_value();
+    return stock_icon_image_parts(image).present();
 }
 
-std::optional<StockIconImage> stock_icon_image_parts(ImageId image) noexcept {
-    if ((image.value & stock_icon_tag) == 0U) return std::nullopt;
-    if ((image.value & ~(stock_icon_tag | stock_icon_payload_mask)) != 0U) return std::nullopt;
+stxlib::Optional<StockIconImage> stock_icon_image_parts(ImageId image) noexcept {
+    if ((image.value & stock_icon_tag) == 0U) return stxlib::Optional<StockIconImage>::none();
+    if ((image.value & ~(stock_icon_tag | stock_icon_payload_mask)) != 0U) return stxlib::Optional<StockIconImage>::none();
     const std::size_t name = static_cast<std::size_t>(image.value & 0xFFFFU);
     const std::uint64_t style = (image.value >> 16U) & 0xFFU;
     const std::uint64_t size = (image.value >> 24U) & 0xFFU;
-    if (name >= data::name_count || style > static_cast<std::uint64_t>(StockIconStyle::solid)) return std::nullopt;
+    if (name >= data::name_count || style > static_cast<std::uint64_t>(StockIconStyle::solid)) return stxlib::Optional<StockIconImage>::none();
     StockIconImage parts{};
     parts.name = data::names[name];
     parts.style = static_cast<StockIconStyle>(style);
     if (size != 0U) {
         const bool authored = size == 16U || size == 20U || size == 24U;
-        if (!authored) return std::nullopt;
-        parts.size = static_cast<StockIconSize>(size);
+        if (!authored) return stxlib::Optional<StockIconImage>::none();
+        parts.size.set(static_cast<StockIconSize>(size));
     }
-    return parts;
+    return stxlib::Optional<StockIconImage>::of(parts);
 }
 
 std::optional<StockIcon> stock_icon_for_image(ImageId image, double logical_side) {
-    const std::optional<StockIconImage> parts = stock_icon_image_parts(image);
-    if (!parts) return std::nullopt;
-    if ((*parts).size) {
-        StockIcon fixed{std::string((*parts).name), (*parts).style, *(*parts).size};
+    const stxlib::Optional<StockIconImage> parts = stock_icon_image_parts(image);
+    if (parts.absent()) return std::nullopt;
+    if (((*parts.value())).size.present()) {
+        StockIcon fixed{std::string(((*parts.value())).name), ((*parts.value())).style, (*((*parts.value())).size.value())};
         if (!has_stock_icon(fixed)) return std::nullopt;
         return fixed;
     }
-    return nearest_stock_icon((*parts).name, (*parts).style, logical_side);
+    return nearest_stock_icon(((*parts.value())).name, ((*parts.value())).style, logical_side);
 }
 
 } // namespace gui_forms

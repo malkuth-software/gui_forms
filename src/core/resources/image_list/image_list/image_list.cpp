@@ -4,6 +4,7 @@
 #include "gui_forms/window.hpp"
 #include "../../../surface_root/access/surface_lifetime_access.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -120,29 +121,29 @@ void ImageList::set_image_size(Size image_size) {
     emit_change(ImageListChangeKind::layout, 0U, {});
 }
 
-std::optional<std::size_t> ImageList::index_of_key(
+stxlib::Optional<std::size_t> ImageList::index_of_key(
     std::string_view key) const noexcept {
     std::vector<Entry>::const_iterator found = entries_.begin();
     while (found != entries_.end() && !same_key((*found).key, key)) {
         ++found;
     }
     if (found == entries_.end()) return {};
-    return static_cast<std::size_t>(std::distance(entries_.begin(), found));
+    return stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(std::distance(entries_.begin(), found)));
 }
 
 std::size_t ImageList::require_index(std::string_view key) const {
-    const std::optional<std::size_t> index = index_of_key(key);
-    if (!index) throw std::out_of_range("ImageList key is not present");
-    return *index;
+    const stxlib::Optional<std::size_t> index = index_of_key(key);
+    if (index.absent()) throw std::out_of_range("ImageList key is not present");
+    return (*index.value());
 }
 
-std::optional<std::size_t> ImageList::variant_index(
+stxlib::Optional<std::size_t> ImageList::variant_index(
     const Entry& entry, ImageVisualState state,
     double density_scale) const noexcept {
     for (std::size_t index = 0; index < entry.variants.size(); ++index) {
         const Variant& variant = entry.variants[index];
         if (variant.state == state && variant.density_scale == density_scale) {
-            return index;
+            return stxlib::Optional<std::size_t>::of(index);
         }
     }
     return {};
@@ -150,11 +151,11 @@ std::optional<std::size_t> ImageList::variant_index(
 
 Size ImageList::source_size(ImageId image) const {
     const std::shared_ptr<ApplicationResources> owner = resources_.lock();
-    const std::optional<ImageResourceView> resource = owner ? (*owner).images().find(image)
-                                : std::optional<ImageResourceView>{};
-    if (!resource) throw std::invalid_argument("ImageList requires a live Window image ID");
-    return {static_cast<double>((*resource).metadata.width),
-            static_cast<double>((*resource).metadata.height)};
+    const stxlib::Optional<ImageResourceView> resource = owner ? (*owner).images().find(image)
+                                : stxlib::Optional<ImageResourceView>::none();
+    if (resource.absent()) throw std::invalid_argument("ImageList requires a live Window image ID");
+    return {static_cast<double>(((*resource.value())).metadata.width),
+            static_cast<double>(((*resource.value())).metadata.height)};
 }
 
 ImageLoadResult ImageList::add_png(std::string key,
@@ -163,12 +164,12 @@ ImageLoadResult ImageList::add_png(std::string key,
     require_access("ImageList PNG add");
     validate_key(key);
     validate_density(density_scale);
-    const std::optional<std::size_t> existing = index_of_key(key);
-    if (!existing && entries_.size() >= maximum_image_list_entries) {
+    const stxlib::Optional<std::size_t> existing = index_of_key(key);
+    if (existing.absent() && entries_.size() >= maximum_image_list_entries) {
         throw std::length_error("ImageList entry limit exceeded");
     }
-    if (existing && variant_index(entries_[*existing], ImageVisualState::normal,
-                                  density_scale)) {
+    if (existing.present() && variant_index(entries_[(*existing.value())], ImageVisualState::normal,
+                                  density_scale).present()) {
         throw std::invalid_argument("ImageList already contains this key/density variant");
     }
     const std::shared_ptr<ApplicationResources> owner = resources_.lock();
@@ -178,20 +179,20 @@ ImageLoadResult ImageList::add_png(std::string key,
     try {
         const Variant variant{ImageVisualState::normal, density_scale,
                               loaded.image, source_size(loaded.image), true};
-        if (existing) {
-            Entry& entry = entries_[*existing];
+        if (existing.present()) {
+            Entry& entry = entries_[(*existing.value())];
             if (entry.variants.size() >= maximum_image_list_variants_per_entry) {
                 static_cast<void>((*owner).remove_image(loaded.image));
                 throw std::length_error("ImageList variant limit exceeded");
             }
             entry.variants.push_back(variant);
-            changed_index = *existing;
+            changed_index = (*existing.value());
         } else {
             entries_.push_back({std::move(key), {variant}});
             changed_index = entries_.size() - 1U;
         }
     } catch (...) {
-        if ((*owner).images().find(loaded.image)) {
+        if ((*owner).images().find(loaded.image).present()) {
             static_cast<void>((*owner).remove_image(loaded.image));
         }
         throw;
@@ -209,10 +210,10 @@ ImageLoadResult ImageList::set_variant_png(
     validate_density(density_scale);
     const std::size_t entry_index = require_index(key);
     Entry& entry = entries_[entry_index];
-    const std::optional<std::size_t> existing = variant_index(entry, state, density_scale);
+    const stxlib::Optional<std::size_t> existing = variant_index(entry, state, density_scale);
     const std::shared_ptr<ApplicationResources> owner = resources_.lock();
-    if (existing && entry.variants[*existing].owned) {
-        Variant& variant = entry.variants[*existing];
+    if (existing.present() && entry.variants[(*existing.value())].owned) {
+        Variant& variant = entry.variants[(*existing.value())];
         ImageLoadResult replaced = (*owner).replace_png(variant.image, encoded);
         if (!replaced) return replaced;
         variant.image = replaced.image;
@@ -227,8 +228,8 @@ ImageLoadResult ImageList::set_variant_png(
     try {
         Variant next{state, density_scale, loaded.image,
                      source_size(loaded.image), true};
-        if (existing) {
-            entry.variants[*existing] = next;
+        if (existing.present()) {
+            entry.variants[(*existing.value())] = next;
             change_kind = ImageListChangeKind::replaced;
         } else {
             if (entry.variants.size() >= maximum_image_list_variants_per_entry) {
@@ -238,7 +239,7 @@ ImageLoadResult ImageList::set_variant_png(
             entry.variants.push_back(next);
         }
     } catch (...) {
-        if ((*owner).images().find(loaded.image)) {
+        if ((*owner).images().find(loaded.image).present()) {
             static_cast<void>((*owner).remove_image(loaded.image));
         }
         throw;
@@ -253,23 +254,23 @@ std::size_t ImageList::add_image(std::string key, ImageId image,
     validate_key(key);
     validate_density(density_scale);
     const Size source = source_size(image);
-    const std::optional<std::size_t> existing = index_of_key(key);
-    if (!existing && entries_.size() >= maximum_image_list_entries) {
+    const stxlib::Optional<std::size_t> existing = index_of_key(key);
+    if (existing.absent() && entries_.size() >= maximum_image_list_entries) {
         throw std::length_error("ImageList entry limit exceeded");
     }
-    if (existing && variant_index(entries_[*existing], ImageVisualState::normal,
-                                  density_scale)) {
+    if (existing.present() && variant_index(entries_[(*existing.value())], ImageVisualState::normal,
+                                  density_scale).present()) {
         throw std::invalid_argument("ImageList already contains this key/density variant");
     }
-    if (existing) {
-        Entry& entry = entries_[*existing];
+    if (existing.present()) {
+        Entry& entry = entries_[(*existing.value())];
         if (entry.variants.size() >= maximum_image_list_variants_per_entry) {
             throw std::length_error("ImageList variant limit exceeded");
         }
         entry.variants.push_back(
             {ImageVisualState::normal, density_scale, image, source, false});
-        emit_change(ImageListChangeKind::added, *existing, entry.key);
-        return *existing;
+        emit_change(ImageListChangeKind::added, (*existing.value()), entry.key);
+        return (*existing.value());
     }
     entries_.push_back({std::move(key),
                         {{ImageVisualState::normal, density_scale, image,
@@ -287,9 +288,9 @@ void ImageList::set_variant_image(std::string_view key, ImageVisualState state,
     const Size source = source_size(image);
     const std::size_t entry_index = require_index(key);
     Entry& entry = entries_[entry_index];
-    const std::optional<std::size_t> existing = variant_index(entry, state, density_scale);
-    if (existing) {
-        Variant& previous = entry.variants[*existing];
+    const stxlib::Optional<std::size_t> existing = variant_index(entry, state, density_scale);
+    if (existing.present()) {
+        Variant& previous = entry.variants[(*existing.value())];
         if (previous.image == image) return;
         if (previous.owned) {
             const std::shared_ptr<ApplicationResources> owner = resources_.lock();
@@ -315,7 +316,7 @@ void ImageList::set_key_name(std::size_t index, std::string key) {
     require_access("ImageList key mutation");
     if (index >= entries_.size()) throw std::out_of_range("ImageList index is outside the collection");
     validate_key(key);
-    if (const std::optional<std::size_t> duplicate = index_of_key(key); duplicate && *duplicate != index) {
+    if (const stxlib::Optional<std::size_t> duplicate = index_of_key(key); duplicate.present() && (*duplicate.value()) != index) {
         throw std::invalid_argument("ImageList keys are unique ignoring ASCII case");
     }
     Entry& entry = entries_[index];
@@ -356,8 +357,8 @@ bool ImageList::remove_at(std::size_t index) {
 
 bool ImageList::remove_by_key(std::string_view key) {
     require_access("ImageList key removal");
-    const std::optional<std::size_t> index = index_of_key(key);
-    return index ? remove_at(*index) : false;
+    const stxlib::Optional<std::size_t> index = index_of_key(key);
+    return index.present() ? remove_at((*index.value())) : false;
 }
 
 void ImageList::clear() {
@@ -370,8 +371,8 @@ void ImageList::clear() {
 ImageListResolution ImageList::resolve(std::string_view key,
                                        ImageVisualState state,
                                        double density_scale) const noexcept {
-    const std::optional<std::size_t> index = index_of_key(key);
-    if (index) return resolve(*index, state, density_scale);
+    const stxlib::Optional<std::size_t> index = index_of_key(key);
+    if (index.present()) return resolve((*index.value()), state, density_scale);
     ImageListResolution result;
     result.requested_state = state;
     result.requested_scale = density_scale;
@@ -415,7 +416,7 @@ ImageListResolution ImageList::resolve(std::size_t index,
         const Variant* smaller{};
         for (const Variant& variant : entry.variants) {
             if (variant.state != candidate_state ||
-                !(*owner).images().find(variant.image)) continue;
+                (*owner).images().find(variant.image).absent()) continue;
             if (variant.density_scale == density_scale) exact = &variant;
             else if (variant.density_scale > density_scale &&
                      (!larger || variant.density_scale < (*larger).density_scale)) {

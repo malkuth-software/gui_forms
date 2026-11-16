@@ -36,6 +36,7 @@
 #include "gui_forms/window/window.hpp"
 #include "support/fake_framebuffer.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -284,13 +285,13 @@ void geometry() {
     const std::array<DockDropPane, 1> panes{DockDropPane{DockNodeId{7U}, pane}};
     const Rect site{0.0, 0.0, 400.0, 300.0};
     const DockDropHit tile_hit = hit_dock_drop(centre(tiles[static_cast<std::size_t>(DockDropZone::top)]), site, panes, 1.0);
-    require(tile_hit.pane == 0U && tile_hit.zone == DockDropZone::top, "a tile wins over the band it lies in");
+    require(tile_hit.pane == stxlib::Optional<std::size_t>::of(0U) && tile_hit.zone == DockDropZone::top, "a tile wins over the band it lies in");
     const DockDropHit edge = hit_dock_drop({3.0, 150.0}, site, panes, 1.0);
     require(edge.edge && edge.zone == DockDropZone::left, "the window's edge band is a global target");
     const DockDropHit tile_edge = hit_dock_drop(centre(dock_edge_tiles(site, 1.0)[0]), site, panes, 1.0);
     require(tile_edge.edge && tile_edge.zone == DockDropZone::top, "an edge's tile is its global target");
     const DockDropHit gap = hit_dock_drop({50.0, 50.0}, site, panes, 1.0);
-    require(gap.over_site && !gap.edge && !gap.pane, "a point between panes is over the site, on no target");
+    require(gap.over_site && !gap.edge && gap.pane.absent(), "a point between panes is over the site, on no target");
     require(!hit_dock_drop({500.0, 50.0}, site, panes, 1.0).over_site, "outside the site there is nothing");
 }
 
@@ -709,8 +710,8 @@ void keyboard_reaches_every_target() {
     for (double y = 0.5; y < 500.0; y += 2.0) {
         for (double x = 0.5; x < 800.0; x += 2.0) {
             const DockDropHit hit = hit_dock_drop({x, y}, surface, pane_copy, 1.0);
-            const std::optional<std::size_t> found = find_dock_drop_target(targets, pane_copy, hit);
-            if (found) pointer.insert(key_of(targets[*found]));
+            const stxlib::Optional<std::size_t> found = find_dock_drop_target(targets, pane_copy, hit);
+            if (found.present()) pointer.insert(key_of(targets[(*found.value())]));
         }
     }
     // The keyboard: from every Tab stop, every arrow.

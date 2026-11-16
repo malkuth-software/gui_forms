@@ -66,7 +66,7 @@ public:
         design.ascent = 1950.0 / 2048.0 * font.size;
         design.descent = 550.0 / 2048.0 * font.size;
         design.x_height = 0.5 * font.size;
-        layout.design_metrics = design;
+        layout.design_metrics.set(design);
         layout.ascent = std::ceil(design.ascent);
         layout.descent = std::ceil(design.descent);
         layout.status = TextResolutionStatus::exact;

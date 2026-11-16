@@ -252,9 +252,9 @@ double drawn_amplitude(const Window& window, std::string_view control) {
     require(record != nullptr && (*record).cached != nullptr && (*(*record).cached).raster != nullptr,
             "the face was drawn by its primitive");
     const PrimitiveDescriptor& descriptor = (*(*(*record).cached).primitive).descriptor();
-    const std::optional<std::size_t> amplitude = find_parameter(descriptor, "amplitude");
-    require(amplitude.has_value(), "the bulge has an amplitude");
-    const double value = (*(*record).cached).parameters.values[*amplitude].number;
+    const stxlib::Optional<std::size_t> amplitude = find_parameter(descriptor, "amplitude");
+    require(amplitude.present(), "the bulge has an amplitude");
+    const double value = (*(*record).cached).parameters.values[(*amplitude.value())].number;
     return value;
 }
 

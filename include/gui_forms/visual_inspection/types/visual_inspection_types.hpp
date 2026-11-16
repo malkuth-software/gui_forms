@@ -4,6 +4,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -165,7 +166,7 @@ struct GUI_FORMS_API VisualControlLayoutSnapshot final {
 struct GUI_FORMS_API VisualControlInspection final {
     RuntimeId runtime_id{};
     std::string stable_id;
-    std::optional<RuntimeId> parent_runtime_id;
+    stxlib::Optional<RuntimeId> parent_runtime_id;
     std::string parent_stable_id;
     std::size_t depth{};
     bool overlay_tree{};
@@ -177,7 +178,7 @@ struct GUI_FORMS_API VisualControlInspection final {
     std::string theme_id;
     bool theme_override{};
     std::optional<SurfaceMaterial> authored_material;
-    std::optional<DisplayChunkInfo> display_chunk;
+    stxlib::Optional<DisplayChunkInfo> display_chunk;
     bool display_chunk_current{};
     std::size_t total_display_operations{};
     bool display_operations_truncated{};

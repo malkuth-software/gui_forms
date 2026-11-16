@@ -4,6 +4,7 @@
 #include "gui_forms/drawing/object/drawing_object.hpp"
 #include "gui_forms/drawing/types/drawing_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <memory>
 #include <optional>
@@ -14,7 +15,7 @@ namespace gui_drawing {
 
 struct GUI_FORMS_API ImageAttributesSnapshot final {
     // The colour matrix as set_color_matrix took it; absent when none is set.
-    std::optional<std::array<double, 25>> color_matrix{};
+    stxlib::Optional<std::array<double, 25>> color_matrix{};
     struct GUI_FORMS_API ColorRemap final {
         Color old_color;
         Color new_color;

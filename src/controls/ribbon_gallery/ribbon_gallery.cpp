@@ -6,6 +6,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -647,9 +648,9 @@ bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
     // content only while open (release_layer_content).
     const Rect anchor_bounds = (*anchor).absolute_bounds();
     const Rect hung{anchor_bounds.x, anchor_bounds.y, anchor_bounds.width, anchor_bounds.height + placement.gap};
-    const std::optional<Rect> face =
+    const stxlib::Optional<Rect> face =
         drop_down_popup_face(window, hung, placement.preferred_size, anchor_bounds.x);
-    const bool lifted = face.has_value() && lift_.lift(window, shared_from_this(), *face);
+    const bool lifted = face.present() && lift_.lift(window, shared_from_this(), (*face.value()));
     if (!lifted) (*layer_).set_content(shared_from_this());
     (*layer_).focusable = lifted;
     const Size client = window.client_size();

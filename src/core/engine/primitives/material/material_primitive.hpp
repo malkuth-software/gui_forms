@@ -4,6 +4,7 @@
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "material_bake_policy.hpp"
 
+#include <stxlib/optional.hpp>
 #include <span>
 
 namespace gui_forms::engine_primitives {
@@ -77,7 +78,7 @@ inline constexpr double material_outset = 8.0;
 class MaterialPrimitive final : public EnginePrimitive {
 public:
     [[nodiscard]] const PrimitiveDescriptor& descriptor() const noexcept override;
-    [[nodiscard]] std::optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters,
+    [[nodiscard]] stxlib::Optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters,
                                                                   ControlVisualRole family) const noexcept override;
     [[nodiscard]] PartShape shape(const PrimitiveParameterBlock& parameters) const noexcept override;
     [[nodiscard]] bool accepts(const PrimitiveParameterBlock& parameters,

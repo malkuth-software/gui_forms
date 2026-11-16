@@ -4,6 +4,7 @@
 #include "gui_forms/controls/flags_value_editor.hpp"
 #include "../property_service_utilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <bit>
 #include <limits>
@@ -22,10 +23,10 @@ struct NumericEditorSynchronizer final {
 
     void operator()(const BindingValue& value) const {
         const std::shared_ptr<NumericUpDown> retained = editor.lock();
-        const std::optional<double> converted = binding_value_to_number(value);
-        if (!retained || !converted) return;
+        const stxlib::Optional<double> converted = binding_value_to_number(value);
+        if (!retained || converted.absent()) return;
         *synchronizing = true;
-        (*retained).value = *converted;
+        (*retained).value = (*converted.value());
         *synchronizing = false;
     }
 };
@@ -148,15 +149,15 @@ struct ColorEditorFailureConnector final {
 
 std::optional<PropertyEditorBinding> create_numeric_editor(
     const PropertyEditorRequest& request) {
-    const std::optional<double> number = binding_value_to_number(request.value);
-    if (!number) return {};
+    const stxlib::Optional<double> number = binding_value_to_number(request.value);
+    if (number.absent()) return {};
     const std::shared_ptr<NumericUpDown> editor = make_control<NumericUpDown>(
         StableId(request.stable_id));
     (*editor).set_range(std::numeric_limits<double>::lowest(),
                         std::numeric_limits<double>::max());
     (*editor).increment = 0.1;
     (*editor).decimal_places = 4U;
-    (*editor).value = *number;
+    (*editor).value = (*number.value());
     (*editor).enabled = request.writable;
     (*editor).accessible_name = request.property_path;
     (*editor).accessible_description = request.descriptor.description;

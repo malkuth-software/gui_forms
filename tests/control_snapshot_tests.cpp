@@ -16,6 +16,7 @@
 #include "gui_forms/window/window.hpp"
 #include "support/fake_framebuffer.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
@@ -72,11 +73,11 @@ void snapshots() {
             "the picture covers the control at the scale asked, rounded up");
     require(raster.replayed.fills > 0U && raster.replayed.texts > 0U,
             "the subtree's painting (the card and its button) is replayed into the framebuffer");
-    const std::optional<ImageResourceView> view = window.image_resources().find((*snapshot.value()).image);
-    require(view.has_value() && (*view).row_bytes == 51U * 4U && (*view).encoded.size() == 51U * 30U * 4U,
+    const stxlib::Optional<ImageResourceView> view = window.image_resources().find((*snapshot.value()).image);
+    require(view.present() && ((*view.value())).row_bytes == 51U * 4U && ((*view.value())).encoded.size() == 51U * 30U * 4U,
             "the pixels are registered as one image of the window");
-    require((*view).encoded[0] == std::byte{1} && (*view).encoded[1] == std::byte{2} &&
-                (*view).encoded[2] == std::byte{3} && (*view).encoded[3] == std::byte{4},
+    require(((*view.value())).encoded[0] == std::byte{1} && ((*view.value())).encoded[1] == std::byte{2} &&
+                ((*view.value())).encoded[2] == std::byte{3} && ((*view.value())).encoded[3] == std::byte{4},
             "the framebuffer's BGRA pixels are stored as they are");
     require(window.image_resources().snapshot().resource_count == images + 1U, "one image was added");
 
@@ -95,10 +96,10 @@ void snapshots() {
     bool refused = false;
     std::thread releaser(OtherThreadRelease{&window, (*snapshot.value()).image, &refused});
     releaser.join();
-    require(refused && window.image_resources().find((*snapshot.value()).image).has_value(),
+    require(refused && window.image_resources().find((*snapshot.value()).image).present(),
             "a release off the UI thread is refused and keeps the image");
     const std::uint64_t marks = window.metrics_snapshot().dirty_marks;
-    require(window.release_control_snapshot((*snapshot.value()).image) && !window.image_resources().find((*snapshot.value()).image) &&
+    require(window.release_control_snapshot((*snapshot.value()).image) && window.image_resources().find((*snapshot.value()).image).absent() &&
                 !window.release_control_snapshot((*snapshot.value()).image),
             "releasing removes the image once");
     require(window.metrics_snapshot().dirty_marks > marks,

@@ -6,6 +6,7 @@
 #include "gui_forms/help/help_page/help_page.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <limits>
@@ -382,9 +383,9 @@ HelpTarget HelpBookSystem::resolve(const Control& control) {
     std::size_t steps = 0U;
     while (current != nullptr && steps < maximum_resolve_depth) {
         const std::string id((*current).stable_id().value());
-        const std::optional<std::size_t> record = book.find(id);
-        if (record.has_value()) {
-            const HelpBookRecord& found = book.records[*record];
+        const stxlib::Optional<std::size_t> record = book.find(id);
+        if (record.present()) {
+            const HelpBookRecord& found = book.records[(*record.value())];
             if (!found.help.empty()) {
                 target.page = id;
                 return target;
@@ -398,12 +399,12 @@ HelpTarget HelpBookSystem::resolve(const Control& control) {
     // Nothing had a page: home.
     target.home = true;
     target.anchor.clear();
-    if (!options_.home.empty() && book.find(options_.home).has_value()) {
+    if (!options_.home.empty() && book.find(options_.home).present()) {
         target.page = options_.home;
         return target;
     }
     for (const HelpContentsNode& node : book.contents.nodes) {
-        if (book.find(node.stable_id).has_value()) {
+        if (book.find(node.stable_id).present()) {
             target.page = node.stable_id;
             return target;
         }
@@ -452,10 +453,10 @@ bool HelpBookSystem::show_search(std::string_view text) {
 bool HelpBookSystem::show_popup(std::string_view stable_id, const Control::Ptr& anchor) {
     const std::shared_ptr<const HelpBookSection> held = section();
     if (!held || !anchor) return false;
-    const std::optional<std::size_t> record = (*held).find(stable_id);
-    if (!record.has_value()) return false;
+    const stxlib::Optional<std::size_t> record = (*held).find(stable_id);
+    if (record.absent()) return false;
     HelpPageModel page{};
-    static_cast<void>(build_help_page(*held, *record, page));
+    static_cast<void>(build_help_page(*held, (*record.value()), page));
     return open_popup(std::move(page), anchor);
 }
 
@@ -470,8 +471,8 @@ bool HelpBookSystem::show_card_for(const Control::Ptr& subject, const Control::P
     Control::Ptr current = subject;
     std::size_t steps = 0U;
     while (current && steps < maximum_resolve_depth && line_record == nullptr) {
-        const std::optional<std::size_t> record = (*held).find((*current).stable_id().value());
-        if (record.has_value() && !(*held).records[*record].help_line.empty()) line_record = &(*held).records[*record];
+        const stxlib::Optional<std::size_t> record = (*held).find((*current).stable_id().value());
+        if (record.present() && !(*held).records[(*record.value())].help_line.empty()) line_record = &(*held).records[(*record.value())];
         current = (*current).parent();
         ++steps;
     }
@@ -500,7 +501,7 @@ bool HelpBookSystem::show_card_for(const Control::Ptr& subject, const Control::P
         page.runs.push_back(std::move(space));
         HelpPageRun link{};
         link.text = options_.more;
-        link.link = 0U;
+        link.link.set(0U);
         page.runs.push_back(std::move(link));
     }
     block.run_count = page.runs.size();

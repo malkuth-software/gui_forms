@@ -14,6 +14,7 @@
 #include "gui_forms/plots/series_ring_channel/series_ring_channel.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
 
+#include <stxlib/optional.hpp>
 #include <memory>
 #include <optional>
 #include <string>
@@ -89,7 +90,7 @@ struct PlotLiveSeries final {
     std::uint32_t y_axis{};
     plots::XOrder order{plots::XOrder::monotone};
     std::shared_ptr<plots::SeriesRingChannel> channel{};
-    std::optional<plots::SignalProgram> signal{};
+    stxlib::Optional<plots::SignalProgram> signal{};
     // The signal's declaration: a series keeps its ring while it is equal.
     std::string signal_source{};
     bool borrowed{};

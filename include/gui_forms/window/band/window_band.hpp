@@ -75,7 +75,7 @@ struct GUI_FORMS_API WindowBandOptions final {
     // from 0 to maximum_band_width, and the theme's `band-width` is not
     // read; under high contrast each edge that has a width is widened to
     // the palette's focus width, and an edge of 0 stays empty.
-    std::optional<WindowBandEdges> edges{};
+    stxlib::Optional<WindowBandEdges> edges{};
 
     friend bool operator==(const WindowBandOptions& left, const WindowBandOptions& right) noexcept {
         return left.width == right.width && left.full_screen == right.full_screen && left.edges == right.edges;
@@ -166,7 +166,7 @@ struct GUI_FORMS_API WindowBandAppearance final {
     // Cycles a second of a flash or a cycle, lowered to
     // maximum_band_frequency; 0 holds the band lit. Finite, not negative.
     double frequency{maximum_band_frequency};
-    std::optional<WindowBandTexture> texture{};
+    stxlib::Optional<WindowBandTexture> texture{};
 
     friend bool operator==(const WindowBandAppearance& left, const WindowBandAppearance& right) noexcept {
         return left.state == right.state && left.rest_colour == right.rest_colour &&

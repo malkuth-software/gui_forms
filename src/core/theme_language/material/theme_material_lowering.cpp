@@ -10,6 +10,7 @@
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -4132,16 +4133,16 @@ bool MaterialReader::lower_font_family() {
     }
     // Null for an application family, which has no role.
     const FontFamilyRecord* const first_family = font_family_record(available[0]);
-    std::optional<FontRole> first_role{};
+    stxlib::Optional<FontRole> first_role{};
     if (first_family != nullptr) first_role = (*first_family).role;
     FontRole role = FontRole::content;
     if (written_role) {
         role = *written_role;
-    } else if (first_role) {
-        role = *first_role;
+    } else if (first_role.present()) {
+        role = (*first_role.value());
     }
     declaration.font_role = role;
-    const bool role_alone = available_count == 1U && first_role && *first_role == role;
+    const bool role_alone = available_count == 1U && first_role.present() && (*first_role.value()) == role;
     if (!role_alone) declaration.font_family = available[0];
     if (available_count > 1U) {
         const std::span<const FontFamilyId> rest(available.data() + 1U, available_count - 1U);

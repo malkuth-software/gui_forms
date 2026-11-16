@@ -994,8 +994,8 @@ int main(int argument_count, char** arguments) {
             options.theme = gui_forms_theme();
             ++index;
         } else if (argument == "--theme" && index + 1 < argument_count &&
-                   familiar_theme_named(std::string_view(arguments[index + 1]))) {
-            options.theme = familiar_theme(*familiar_theme_named(std::string_view(arguments[index + 1])));
+                   familiar_theme_named(std::string_view(arguments[index + 1])).present()) {
+            options.theme = familiar_theme(familiar_theme_named(std::string_view(arguments[index + 1])).take());
             ++index;
         } else if (argument == "--page" && index + 1 < argument_count) {
             options.page = std::string(arguments[index + 1]);

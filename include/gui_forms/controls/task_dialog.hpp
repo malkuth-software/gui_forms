@@ -8,6 +8,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -109,7 +110,7 @@ struct GUI_FORMS_API TaskDialogPage final {
     std::optional<TaskDialogExpander> expander{};
     std::string footnote{};
     TaskDialogIcon footnote_icon{TaskDialogIcon::none};
-    std::optional<TaskDialogProgressBar> progress_bar{};
+    stxlib::Optional<TaskDialogProgressBar> progress_bar{};
     bool allow_cancel{};
 };
 
@@ -260,7 +261,7 @@ private:
     void finish(std::string button_id);
     [[nodiscard]] std::string cancel_button_id() const;
     [[nodiscard]] std::string default_button_id() const;
-    [[nodiscard]] std::optional<std::size_t> button_index(std::string_view button_id) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> button_index(std::string_view button_id) const noexcept;
     void paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& place) const;
 
     TaskDialogPage page_{};

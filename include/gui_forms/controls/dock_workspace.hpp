@@ -230,7 +230,7 @@ public:
     // One floating site's override of the option above (none: the
     // workspace's). Kept for the site while it exists, through a window
     // opened again for it.
-    void set_floating_window_shown_while_inactive(DockSiteId site, std::optional<bool> shown);
+    void set_floating_window_shown_while_inactive(DockSiteId site, stxlib::Optional<bool> shown);
     // Whether document stacks show their tab strip; off is a single
     // document interface (DockPanel Suite's DocumentStyle.DockingSdi).
     void set_document_tabs_shown(bool shown);
@@ -533,7 +533,7 @@ private:
     // window is being moved under the pointer: the next window below it,
     // floating windows before the main one).
     [[nodiscard]] ApplicationWindowHandle window_of(const DockSite& site) const;
-    [[nodiscard]] std::optional<Point> desktop_origin(const DockSite& site) const;
+    [[nodiscard]] stxlib::Optional<Point> desktop_origin(const DockSite& site) const;
     [[nodiscard]] DockSite* site_at(Point desktop, const DockSite* excluded) const;
     [[nodiscard]] bool site_contains(const DockSite& site, Point desktop) const;
     // Records `panel` as active without moving focus (the site calls it when

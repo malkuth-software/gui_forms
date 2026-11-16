@@ -2,6 +2,7 @@
 // Compiles and runs every example in the API reference. Do not edit by hand.
 #include "gui_forms/gui_forms.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdio>
 #include <exception>
 #include <memory>
@@ -811,7 +812,7 @@ void example() {
     gf::Window window(bar, gf::Size{240.0, 32.0});
     (*bar).set_items({{.id = 1,
                        .label = "Save",
-                       .shortcut = gf::KeyGesture{gf::PhysicalKey::s, gf::Modifier::control},
+                       .shortcut = stxlib::Optional<gui_forms::KeyGesture>::of(gf::KeyGesture{gf::PhysicalKey::s, gf::Modifier::control}),
                        .command = &save}});
     window.dispatch_key(gf::KeyEvent{gf::KeyAction::down, gf::PhysicalKey::s,
                                      gf::Modifier::control});   // executes save
@@ -835,8 +836,8 @@ void example() {
     (*shelf).add_child(arrange);
     (*shelf).add_child(more);
     (*shelf).group_gap = 4.0;
-    (*shelf).group_spec[*selection] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U});
-    (*shelf).group_spec[*arrange] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U});
+    (*shelf).group_spec[*selection] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, stxlib::Optional<std::uint16_t>::of(2U)});
+    (*shelf).group_spec[*arrange] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, stxlib::Optional<std::uint16_t>::of(1U)});
     (*shelf).set_overflow_actuator(*more);
 
     gf::Window window(shelf, {600.0, 66.0});
@@ -2865,7 +2866,7 @@ void example() {
     inspector_track.minimum = 120.0;
     inspector_track.preferred = 120.0;
     inspector_track.maximum = 120.0;
-    inspector_track.collapse_priority = std::uint16_t{10};
+    inspector_track.collapse_priority.set(std::uint16_t{10});
     std::vector<gf::ResponsiveTrackSpec> tracks;
     tracks.push_back(content_track);
     tracks.push_back(inspector_track);
@@ -2988,7 +2989,7 @@ void example() {
     const gf::RtfConversionResult imported = gf::import_rtf(rtf, markdown);   // "**Bold** text\n"
     std::string summary;
     if (imported.succeeded()) {
-        const gf::MarkdownLossReport losses = *imported.losses();
+        const gf::MarkdownLossReport losses = imported.losses().take();
         for (std::size_t kind = 0; kind < gf::markdown_loss_kind_count; ++kind) {
             const gf::MarkdownLoss loss = static_cast<gf::MarkdownLoss>(kind);
             summary += gf::describe_loss(loss, losses.count(loss));

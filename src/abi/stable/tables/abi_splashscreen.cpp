@@ -13,6 +13,7 @@
 
 #include "gui_forms/application/splashscreen/splashscreen.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -72,9 +73,9 @@ std::optional<std::string_view> view_text(const gf_utf8_view view) noexcept {
 
 // The progress a call asks for: none without show_progress; a progress out
 // of [0, 1] is passed on for Splashscreen to refuse.
-std::optional<double> requested_progress(const std::uint32_t show_progress, const double progress) noexcept {
-    if (show_progress == 0U) return std::nullopt;
-    return progress;
+stxlib::Optional<double> requested_progress(const std::uint32_t show_progress, const double progress) noexcept {
+    if (show_progress == 0U) return stxlib::Optional<double>::none();
+    return stxlib::Optional<double>::of(progress);
 }
 
 // Checks that `handle` is the open splashscreen's and that this is its

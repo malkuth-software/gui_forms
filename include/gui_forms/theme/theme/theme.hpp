@@ -187,7 +187,7 @@ public:
     // nullopt where it gives none (T3 user themes). Whether the program
     // lets the icon be replaced is the application's (ApplicationResources::
     // icon).
-    [[nodiscard]] std::optional<ImageId> icon_override(std::string_view identifier) const noexcept;
+    [[nodiscard]] stxlib::Optional<ImageId> icon_override(std::string_view identifier) const noexcept;
     // The theme's own drawing of the stock icon variant `icon`
     // (ThemeDefinition::stock_icons), shared with the theme; null where the
     // theme keeps the built-in drawing.

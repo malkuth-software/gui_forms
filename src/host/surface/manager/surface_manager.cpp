@@ -200,7 +200,7 @@ struct WriteText final {
 };
 
 bool is_primary(const SurfaceApplicationWindow& entry) noexcept {
-    const bool primary = entry.owner_id.empty() && !entry.tool_window && !entry.popup.has_value();
+    const bool primary = entry.owner_id.empty() && !entry.tool_window && entry.popup.absent();
     return primary;
 }
 
@@ -680,7 +680,7 @@ void NativeWindow::set_visible(bool shown) {
     runtime.scene_changed();
     if (shown) {
         damage.add({0.0, 0.0, content.width, content.height});
-        const bool takes_focus = !entry.popup.has_value() || (*entry.popup).focus == HostPopupFocus::takes_focus;
+        const bool takes_focus = entry.popup.absent() || ((*entry.popup.value())).focus == HostPopupFocus::takes_focus;
         if (takes_focus) runtime.activate(window_id, true);
     } else if (runtime.desk.active() == window_id || active) {
         runtime.activate_topmost();
@@ -1382,7 +1382,7 @@ void Runtime::build_layers() {
                 layers_.push_back(strip);
             }
         }
-        const bool blended = target.entry.popup.has_value() || target.present_alpha;
+        const bool blended = target.entry.popup.present() || target.present_alpha;
         layers_.push_back(image_layer(target.raster, device_coordinate(quad.content.x, scale),
                                       device_coordinate(quad.content.y, scale), blended));
     }
@@ -1840,8 +1840,8 @@ void Runtime::handle_pointer(const SurfaceInputRecord& record) {
         }
         // A passive popup never takes the keyboard from its owner.
         const NativeWindow* pressed = window(hit.window);
-        const bool passive = pressed != nullptr && (*pressed).entry.popup.has_value() &&
-                             (*(*pressed).entry.popup).focus != HostPopupFocus::takes_focus;
+        const bool passive = pressed != nullptr && (*pressed).entry.popup.present() &&
+                             ((*(*pressed).entry.popup.value())).focus != HostPopupFocus::takes_focus;
         activate(hit.window, !passive);
         if (desk.blocked(hit.window)) return;
         if (hit.part != SurfaceDeskPart::client) {

@@ -18,7 +18,9 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
+#include "../src/platform/stxlib_bridge.hpp"
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -105,7 +107,7 @@ void records_and_layers() {
     require(static_cast<bool>(french), "the translation reads");
     catalog.set_translation(french.records, french.language);
     const HelpResolvedRecord resolved = catalog.resolve("main.copy");
-    require(resolved.found && resolved.title.text == "Copier" && resolved.title.origin == HelpLayer::translation,
+    require(resolved.found && resolved.title.text == "Copier" && resolved.title.origin == stxlib::Optional<gui_forms::HelpLayer>::of(HelpLayer::translation),
             "the translation's title wins");
     require(resolved.help_line.text == "Copies the selection." && resolved.help_line.fallback,
             "an untranslated field falls back to the built-in text, marked");
@@ -266,7 +268,7 @@ void broken_links() {
     }
     require(broken && missing, "a broken topic link and a missing image are reported");
     require(!compiled.succeeded(), "a section with rejections does not succeed");
-    require(compiled.section.find("fine").has_value(), "the good record compiles anyway");
+    require(compiled.section.find("fine").present(), "the good record compiles anyway");
     bool external = false;
     for (const HelpLinkEntry& link : compiled.section.links) {
         if (link.kind == HelpLinkKind::external && link.target == "https://example.org") external = true;
@@ -417,11 +419,11 @@ void page_model() {
     }
     require(caution, "the callout attribute marks the next block");
     require(page.sections.size() == 1U && !page.sections[0].initially_open, "the collapsible section starts closed");
-    const std::optional<std::size_t> details = page.find_anchor("details");
-    require(details.has_value() && page.sections[0].heading == *details, "a heading's anchor is its folded text");
-    require(page.blocks[*details + 1U].section == std::optional<std::size_t>(0U), "the body is in the section");
-    const std::optional<std::size_t> open_part = page.find_anchor("open-part");
-    require(open_part.has_value() && !page.blocks[*open_part].section.has_value(),
+    const stxlib::Optional<std::size_t> details = page.find_anchor("details");
+    require(details.present() && page.sections[0].heading == (*details.value()), "a heading's anchor is its folded text");
+    require(page.blocks[(*details.value()) + 1U].section == gui_forms::platform::stxlib_optional(std::optional<std::size_t>(0U)), "the body is in the section");
+    const stxlib::Optional<std::size_t> open_part = page.find_anchor("open-part");
+    require(open_part.present() && page.blocks[(*open_part.value())].section.absent(),
             "a heading of the same level ends the section");
     require(page.blocks.back().kind == HelpPageBlockKind::image && page.images.size() == 1U &&
                 page.images[0].source == "logo.png" && page.images[0].alternative == "Logo",

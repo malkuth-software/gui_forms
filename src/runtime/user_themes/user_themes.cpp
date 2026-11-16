@@ -6,6 +6,7 @@
 #include "../../core/theme_language/package/theme_manifest.hpp"
 #include "theme_files.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -427,14 +428,14 @@ ThemeExportReport export_user_themes(const ThemeLibrary& program, const Applicat
     for (const IconDeclaration& declaration : resources.icon_declarations()) {
         if (declaration.policy != IconOverride::overridable) continue;
         const std::string path = "icons/" + declaration.identifier + ".png";
-        const std::optional<ImageId> image = resources.program_icon(declaration.identifier);
-        const std::optional<ImageResourceView> view =
-            image ? resources.images().find(*image) : std::optional<ImageResourceView>{};
-        if (!view || (*view).encoding != ImageResourceEncoding::png) {
+        const stxlib::Optional<ImageId> image = resources.program_icon(declaration.identifier);
+        const stxlib::Optional<ImageResourceView> view =
+            image.present() ? resources.images().find((*image.value())) : stxlib::Optional<ImageResourceView>::none();
+        if (view.absent() || ((*view.value())).encoding != ImageResourceEncoding::png) {
             report.omitted.push_back(path);
             continue;
         }
-        const std::span<const std::byte> encoded = (*view).encoded;
+        const std::span<const std::byte> encoded = ((*view.value())).encoded;
         icon_paths.push_back(path);
         icon_bytes.push_back(std::string_view(reinterpret_cast<const char*>(encoded.data()), encoded.size()));
     }

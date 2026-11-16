@@ -927,7 +927,7 @@ DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::Drawing
         // The clip is in recording coordinates (the recorder applied the
         // transform when it was set), so it is made before the translation.
         painter.save();
-        if (state.clip.has_value()) painter.clip_rect(rect_of(*state.clip));
+        if (state.clip.present()) painter.clip_rect(rect_of((*state.clip.value())));
         painter.translate(Point{state.transform.dx(), state.transform.dy()});
         const bool drawn = draw_command(command, painter, scratch, display_scale);
         painter.restore();

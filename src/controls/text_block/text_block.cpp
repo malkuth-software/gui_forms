@@ -8,6 +8,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../../platform/stxlib_bridge.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -225,8 +226,8 @@ LineBoxMetrics TextBlock::line_metrics(FontSpec face) const {
     // does.
     const ResolvedTextLayout primary = resolve_text_layout_utf8(" ", face);
     const double* own_line_height = line_height.read().value();
-    std::optional<double> used_line_height;
-    if (own_line_height != nullptr) used_line_height = *own_line_height * effective_text_scale();
+    stxlib::Optional<double> used_line_height;
+    if (own_line_height != nullptr) used_line_height.set(*own_line_height * effective_text_scale());
     const LineBoxMetrics metrics = line_box_metrics(primary, used_line_height);
     return metrics;
 }

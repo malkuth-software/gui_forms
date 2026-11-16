@@ -177,14 +177,14 @@ ApplicationWindowRefusal window_entry_refusal(const ApplicationWindow& entry) {
     }
     // A popup has an owner, is neither a tool nor a floating window, and
     // its origin is a finite desktop point in range.
-    if (entry.popup.has_value()) {
-        const DesktopLogicalPoint origin = (*entry.popup).origin;
+    if (entry.popup.present()) {
+        const DesktopLogicalPoint origin = ((*entry.popup.value())).origin;
         const double bound = HostWindowing::maximum_desktop_coordinate;
         const bool origin_valid = std::isfinite(origin.x) && std::isfinite(origin.y) &&
                                   std::abs(origin.x) <= bound && std::abs(origin.y) <= bound;
         // A Splash takes no input, so it never takes focus.
-        const bool focus_valid = !host_transient_is_splash((*entry.popup).kind) ||
-                                 (*entry.popup).focus == HostPopupFocus::passive;
+        const bool focus_valid = !host_transient_is_splash(((*entry.popup.value())).kind) ||
+                                 ((*entry.popup.value())).focus == HostPopupFocus::passive;
         const bool popup_valid = !entry.tool_window && entry.floating == HostWindowFloating::none &&
                                  !entry.owner_id.empty() && origin_valid && focus_valid;
         const ApplicationWindowRefusal popup_refusal =
@@ -571,7 +571,7 @@ ApplicationResult Application::validate(const std::vector<ApplicationWindow>& wi
         if (invalid.refusal != ApplicationWindowRefusal::none) return invalid;
         // A popup opens during the run only (Window::open_native_popup).
         invalid.refusal = ApplicationWindowRefusal::invalid_popup;
-        if (entry.popup.has_value()) return invalid;
+        if (entry.popup.present()) return invalid;
         if (!(*entry.model).check_access()) {
             invalid.error = ApplicationError::wrong_thread;
             invalid.refusal = ApplicationWindowRefusal::none;
@@ -813,7 +813,7 @@ ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window
     ApplicationModalResult result;
     const std::shared_ptr<detail::ApplicationRunState> run = live_run(run_, result.status);
     if (!run) return result;
-    if (!window.model || window.owner_id.empty() || window.popup.has_value() ||
+    if (!window.model || window.owner_id.empty() || window.popup.present() ||
         window.floating != HostWindowFloating::none) {
         result.status.error = HostServiceError::invalid_argument;
         return result;

@@ -57,7 +57,7 @@ TextMaskResult TextMaskService::create_font_bank(const std::span<const PreparedF
         if (source.encoded.empty() || source.weight < 1 || source.weight > 1000 || source.face_index > 255) {
             return {TextMaskStatus::invalid_input};
         }
-        if (!valid_font_family(source.family) || (source.family.value != 0U && source.role)) {
+        if (!valid_font_family(source.family) || (source.family.value != 0U && source.role.present())) {
             return {TextMaskStatus::invalid_input};
         }
         if (source.encoded.size() > 4U*1024U*1024U || source.encoded.size() > 8U*1024U*1024U - bytes) {

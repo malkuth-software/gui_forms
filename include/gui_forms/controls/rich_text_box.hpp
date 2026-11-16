@@ -7,6 +7,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/controls/rich_text_box_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -319,7 +320,7 @@ private:
     // What a source line is: its block (none outside every block), the
     // block's font and alignment.
     struct LineBlock final {
-        std::optional<std::size_t> block{};
+        stxlib::Optional<std::size_t> block{};
         FontSpec font{};
         MarkdownAlignment alignment{MarkdownAlignment::left};
         bool code_block{};
@@ -365,7 +366,7 @@ private:
     [[nodiscard]] Utf8Offset position_in_row(std::size_t row, double x) const;
     [[nodiscard]] Utf8Offset position_at(double local_x, double local_y);
     [[nodiscard]] std::optional<std::string> link_at(double local_x, double local_y);
-    [[nodiscard]] std::optional<Rect> selection_band(const Row& row) const;
+    [[nodiscard]] stxlib::Optional<Rect> selection_band(const Row& row) const;
     // Paints the visible rows and returns the caret's box (empty without one).
     [[nodiscard]] Rect paint_rows(Painter& painter);
     void paint_piece(Painter& painter, const Row& row, const Piece& piece, const RowInks& inks,
@@ -373,7 +374,7 @@ private:
 
     // The control bar (rich_text_box_bar.cpp).
     [[nodiscard]] std::array<Rect, rich_text_bar_button_count> bar_buttons() const;
-    [[nodiscard]] std::optional<std::size_t> bar_button_at(Point local) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> bar_button_at(Point local) const;
     [[nodiscard]] ItemParts bar_item_parts(std::size_t item) const;
     [[nodiscard]] RichTextFormatState bar_button_state(RichTextBarButton button, const RichTextFormat& format) const;
     void paint_bar(Painter& painter) const;
@@ -389,7 +390,7 @@ private:
     bool toggle_wrap(std::span<const std::string_view> delimiters);
     // Applies the changes as one history step and selects `selection`, or
     // the old selection carried through the changes.
-    bool apply_changes(const std::vector<SourceChange>& changes, std::optional<TextSelection> selection);
+    bool apply_changes(const std::vector<SourceChange>& changes, stxlib::Optional<TextSelection> selection);
     [[nodiscard]] std::size_t line_of(Utf8Offset offset) const;
     [[nodiscard]] LineSpan touched_lines() const;
     bool toggle_list(bool numbered);
@@ -436,8 +437,8 @@ private:
     double preferred_x_{-1.0};
     double horizontal_offset_{};
     double vertical_offset_{};
-    std::optional<std::size_t> hot_button_{};
-    std::optional<std::size_t> pressed_button_{};
+    stxlib::Optional<std::size_t> hot_button_{};
+    stxlib::Optional<std::size_t> pressed_button_{};
     bool heading_menu_open_{};
 
     std::vector<Row> rows_{};

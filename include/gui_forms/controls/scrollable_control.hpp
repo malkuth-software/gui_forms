@@ -6,6 +6,7 @@
 #include "gui_forms/controls/scroll_bar_metrics.hpp"
 #include "gui_forms/engine/motion_value/motion_value.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -57,7 +58,7 @@ public:
     [[nodiscard]] bool get_scroll_state(std::uint32_t bit) const noexcept;
     void set_scroll_state(std::uint32_t bit, bool value);
     [[nodiscard]] Event<ScrollEvent&>& scroll() noexcept { return scroll_event_; }
-    [[nodiscard]] std::optional<ScrollEvent> last_scroll_event() const noexcept {
+    [[nodiscard]] stxlib::Optional<ScrollEvent> last_scroll_event() const noexcept {
         return last_scroll_event_;
     }
     [[nodiscard]] std::uint64_t scroll_event_revision() const noexcept {
@@ -306,13 +307,13 @@ private:
     ScrollProperties horizontal_scroll_;
     ScrollProperties vertical_scroll_;
     Event<ScrollEvent&> scroll_event_;
-    std::optional<ScrollEvent> last_scroll_event_;
+    stxlib::Optional<ScrollEvent> last_scroll_event_;
     std::uint64_t scroll_event_revision_{};
     Size content_extent_{};
     Point scroll_position_{};
     Rect viewport_rectangle_{};
     std::uint32_t scroll_state_{scroll_state_full_drag};
-    std::optional<ScrollOrientation> dragging_orientation_;
+    stxlib::Optional<ScrollOrientation> dragging_orientation_;
     std::uint64_t dragging_pointer_id_{};
     Point dragging_origin_{};
     double dragging_start_value_{};

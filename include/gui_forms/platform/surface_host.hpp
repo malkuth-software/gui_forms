@@ -4,6 +4,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -67,7 +68,7 @@ struct GUI_FORMS_API SurfaceApplicationWindow final {
   // See ApplicationWindow::floating.
   HostWindowFloating floating{HostWindowFloating::none};
   // A popup layer (ApplicationWindow::popup); none for every other kind.
-  std::optional<HostPopupPlacement> popup{};
+  stxlib::Optional<HostPopupPlacement> popup{};
 };
 
 // Opens one window while the application runs, as LinuxOpenWindow does.

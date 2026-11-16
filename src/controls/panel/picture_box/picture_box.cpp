@@ -9,6 +9,7 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -40,26 +41,27 @@ bool PictureBox::has_valid_image() const noexcept {
     // entry.
     if (is_stock_icon_image(image.read())) return true;
     return window() != nullptr && image.read().value != 0U &&
-           (*window()).image_resources().find(image.read()).has_value();
+           (*window()).image_resources().find(image.read()).present();
 }
 
 Size PictureBox::image_size() const noexcept {
     // A stock icon's natural size is its fixed size, else the largest grid
     // (24 units): the zoom and stretch modes then show the variant nearest
     // the drawn size.
-    if (const std::optional<StockIconImage> icon = stock_icon_image_parts(image.read())) {
-        const double side = (*icon).size ? static_cast<double>(*(*icon).size) : 24.0;
+    const stxlib::Optional<StockIconImage> icon = stock_icon_image_parts(image.read());
+    if (icon.present()) {
+        const double side = ((*icon.value())).size.present() ? static_cast<double>((*((*icon.value())).size.value())) : 24.0;
         return {side, side};
     }
     if (window() == nullptr || image.read().value == 0U) {
         return {};
     }
-    const std::optional<ImageResourceView> resource = (*window()).image_resources().find(image.read());
-    if (!resource) {
+    const stxlib::Optional<ImageResourceView> resource = (*window()).image_resources().find(image.read());
+    if (resource.absent()) {
         return {};
     }
-    return {static_cast<double>((*resource).metadata.width),
-            static_cast<double>((*resource).metadata.height)};
+    return {static_cast<double>(((*resource.value())).metadata.width),
+            static_cast<double>(((*resource.value())).metadata.height)};
 }
 
 Rect PictureBox::content_bounds() const noexcept {

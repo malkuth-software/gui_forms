@@ -469,13 +469,13 @@ bool unknown_owner_exists(const DockLayoutState& state, const DockUnknownOwner& 
         return find_dock_record(state, owner.panel) != nullptr;
     case DockUnknownOwnerKind::docked_memory:
         record = find_dock_record(state, owner.panel);
-        return record != nullptr && (*record).docked.has_value();
+        return record != nullptr && (*record).docked.present();
     case DockUnknownOwnerKind::floating_memory:
         record = find_dock_record(state, owner.panel);
         return record != nullptr && (*record).floating.has_value();
     case DockUnknownOwnerKind::auto_hidden_memory:
         record = find_dock_record(state, owner.panel);
-        return record != nullptr && (*record).auto_hidden.has_value();
+        return record != nullptr && (*record).auto_hidden.present();
     }
     return false;
 }

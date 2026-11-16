@@ -2,6 +2,7 @@
 
 #include "../../../image/resource_pixels.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -22,12 +23,12 @@ namespace gui_forms::engine_primitives {
 namespace {
 
 // The image's view when it is in the registry at `width` × `height` pixels.
-std::optional<ImageResourceView> matching_view(const ImageRegistry& registry, ImageId image, std::uint32_t width,
+stxlib::Optional<ImageResourceView> matching_view(const ImageRegistry& registry, ImageId image, std::uint32_t width,
                                                std::uint32_t height) noexcept {
-    const std::optional<ImageResourceView> view = registry.find(image);
-    if (!view) return std::nullopt;
-    if ((*view).metadata.width != width || (*view).metadata.height != height) return std::nullopt;
-    if (width == 0U || height == 0U) return std::nullopt;
+    const stxlib::Optional<ImageResourceView> view = registry.find(image);
+    if (view.absent()) return stxlib::Optional<ImageResourceView>::none();
+    if (((*view.value())).metadata.width != width || ((*view.value())).metadata.height != height) return stxlib::Optional<ImageResourceView>::none();
+    if (width == 0U || height == 0U) return stxlib::Optional<ImageResourceView>::none();
     return view;
 }
 
@@ -116,7 +117,7 @@ ImageAxisPlacement placement_along(const MaterialFillLayer& fill, double box_sta
 bool material_image_available(const ImageRegistry& registry, const MaterialFillLayer& fill) noexcept {
     const std::uint32_t width = pixel_count(fill.image_pixel_size.width);
     const std::uint32_t height = pixel_count(fill.image_pixel_size.height);
-    const bool available = matching_view(registry, fill.image, width, height).has_value();
+    const bool available = matching_view(registry, fill.image, width, height).present();
     return available;
 }
 
@@ -125,9 +126,9 @@ bool read_material_image(const ImageRegistry& registry, const ImageId image, con
     pixels.bytes.clear();
     pixels.width = 0U;
     pixels.height = 0U;
-    const std::optional<ImageResourceView> found = matching_view(registry, image, width, height);
-    if (!found) return false;
-    const ImageResourceView& view = *found;
+    const stxlib::Optional<ImageResourceView> found = matching_view(registry, image, width, height);
+    if (found.absent()) return false;
+    const ImageResourceView& view = (*found.value());
     const std::size_t row_bytes = static_cast<std::size_t>(width) * 4U;
     // The registry bounds an image's sides (4096 by default) and pixels, so
     // the product fits; checked anyway, as the decoder's storage is sized

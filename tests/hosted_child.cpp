@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -71,9 +72,9 @@ bool publish_frame(HostedClient& client, std::uint32_t slot, std::uint8_t shade)
 }
 
 bool publish_one(HostedClient& client) {
-    const std::optional<std::uint32_t> slot = client.acquire_slot(std::chrono::milliseconds(1000));
-    if (!slot) return false;
-    const bool sent = publish_frame(client, *slot, 200U);
+    const stxlib::Optional<std::uint32_t> slot = client.acquire_slot(std::chrono::milliseconds(1000));
+    if (slot.absent()) return false;
+    const bool sent = publish_frame(client, (*slot.value()), 200U);
     return sent;
 }
 
@@ -121,9 +122,9 @@ int run_frames(HostedClient& client) {
             const ContentSemantics answer{"Hosted child", log, ""};
             static_cast<void>(client.publish_semantics(answer));
         }
-        const std::optional<std::uint32_t> slot = client.acquire_slot(std::chrono::milliseconds(0));
-        if (slot) {
-            static_cast<void>(publish_frame(client, *slot, shade));
+        const stxlib::Optional<std::uint32_t> slot = client.acquire_slot(std::chrono::milliseconds(0));
+        if (slot.present()) {
+            static_cast<void>(publish_frame(client, (*slot.value()), shade));
             shade = static_cast<std::uint8_t>(shade + 8U);
         } else {
             static_cast<void>(client.heartbeat());
@@ -163,10 +164,10 @@ int main(int argc, char** argv) {
         wait_forever();
     }
     if (mode == "oversize") {
-        const std::optional<std::uint32_t> slot = (*client).acquire_slot(std::chrono::milliseconds(1000));
-        if (slot) {
+        const stxlib::Optional<std::uint32_t> slot = (*client).acquire_slot(std::chrono::milliseconds(1000));
+        if (slot.present()) {
             HostedFrameRecord record{};
-            record.slot = *slot;
+            record.slot = (*slot.value());
             record.width = 20000U;
             record.height = 1U;
             record.opaque = true;

@@ -26,6 +26,7 @@
 #include "gui_forms/window/window.hpp"
 
 #include "../src/core/binding/binding_view/binding_order_tree.hpp"
+#include "../src/platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -401,14 +402,14 @@ void test_binding_table_checks_whole_and_keeps_errors_by_id() {
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(host.window);
     BindingTable& table = *(*source).table();
     const std::size_t name = table.add_column(BindingColumn{"Name", BindingValueKind::text});
-    require(table.find_or_add_column(" NAME ") == name && (*source).column_of("name") == std::optional<std::size_t>{name},
+    require(table.find_or_add_column(" NAME ") == name && (*source).column_of("name") == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{name}),
             "column names fold");
     require((*source).schema().column(name).name == "name" && (*source).schema().spelling(name) == "Name" &&
                 table.table_schema().spelling(name) == "Name",
             "the schema keeps the provider's spelling beside the folded name");
     const BindingSchema respelled(std::vector<BindingColumn>{BindingColumn{" City ", BindingValueKind::text}});
     const BindingSchema folded(std::vector<BindingColumn>{BindingColumn{"city", BindingValueKind::text}});
-    require(respelled.spelling(0U) == "City" && respelled.find("CITY") == std::optional<std::size_t>{0U} &&
+    require(respelled.spelling(0U) == "City" && respelled.find("CITY") == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{0U}) &&
                 !(respelled == folded),
             "a spelling is trimmed, found by any folding, and a respelling changes the schema");
     table.assign({BindingRow{"a", {std::string("Alpha")}}, BindingRow{"b", {std::string("Beta")}}});
@@ -432,8 +433,8 @@ void test_binding_table_checks_whole_and_keeps_errors_by_id() {
     require(table.error(2U, name) == "Check the name." && (*source).error(2U, name) == "Check the name." &&
                 (*source).error(2U, binding_whole_row) == "Check the row." && table.error(0U, name).empty(),
             "errors follow their row's stable ID");
-    require((*source).count() == 3U && (*source).find_stable_id("b") == std::optional<std::size_t>{2U} &&
-                (*source).find("name", std::string("Zeta")) == std::optional<std::size_t>{0U},
+    require((*source).count() == 3U && (*source).find_stable_id("b") == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{2U}) &&
+                (*source).find("name", std::string("Zeta")) == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{0U}),
             "the source shows the table's rows in its order");
 }
 

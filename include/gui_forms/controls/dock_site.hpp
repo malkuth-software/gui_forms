@@ -425,7 +425,7 @@ public:
     // such seam or the site cannot take focus.
     bool focus_seam(std::size_t seam);
     // The seam the keyboard is on while the site has focus, or none.
-    [[nodiscard]] std::optional<std::size_t> focused_seam() const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> focused_seam() const noexcept;
     // Moves a seam by `delta` logical units along its split's axis, within
     // both sides' minimums, as a user edit. False when it cannot move.
     bool move_seam(std::size_t seam, double delta);
@@ -980,8 +980,8 @@ private:
         std::uint64_t generation{};
         std::vector<DockDropPane> panes{};
         std::vector<DockDropTarget> targets{};
-        std::optional<std::size_t> target{};
-        std::optional<std::size_t> hovered_pane{};
+        stxlib::Optional<std::size_t> target{};
+        stxlib::Optional<std::size_t> hovered_pane{};
         // A panel_only drag's page has left its view (done at the first
         // layout pass, never inside the strip's own drag event).
         bool page_held_out{};
@@ -1014,7 +1014,7 @@ private:
     void reset_drag() noexcept;
     // -- across windows (phase D4) --
     // The desktop point of a point in this site, or none without frames.
-    [[nodiscard]] std::optional<Point> to_desktop(Point local) const;
+    [[nodiscard]] stxlib::Optional<Point> to_desktop(Point local) const;
     // The site under the desktop pointer for a drag of this site (`excluded`
     // skipped), or null; this site itself when the pointer is over it.
     [[nodiscard]] DockSite* remote_site(Point desktop, const DockSite* excluded) const;
@@ -1030,7 +1030,7 @@ private:
     void route_drag(Point desktop, Modifier modifiers, const DockSite* excluded);
     // The floating frame for a subject released at `local`: the source's
     // size, held where the pointer grabbed it.
-    [[nodiscard]] std::optional<Rect> float_frame_at(Point local) const;
+    [[nodiscard]] stxlib::Optional<Rect> float_frame_at(Point local) const;
     // A floating site's caption drag that moves its window (WindowFrameDrag).
     struct WindowMove final {
         bool active{};
@@ -1068,7 +1068,7 @@ private:
     [[nodiscard]] Rect drag_paint_extent() const;
     void plan_drag_targets();
     void update_drag_pointer(Point local, Modifier modifiers);
-    void select_drag_target(std::optional<std::size_t> target, std::optional<std::size_t> hovered_pane);
+    void select_drag_target(stxlib::Optional<std::size_t> target, stxlib::Optional<std::size_t> hovered_pane);
     void end_drag(DockDragEnd end);
     void finish_settling() noexcept;
     // The stamp's and the tiles' steps on the window's motion clock.

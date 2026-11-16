@@ -359,7 +359,7 @@ struct GUI_FORMS_API PartPaint final {
     // recipe draws the part instead in forced high contrast, where the
     // role's colours stand, and when no raster of the part's size can be
     // made (ornament gives way first).
-    std::optional<PartLightPlanes> light_planes{};
+    stxlib::Optional<PartLightPlanes> light_planes{};
     // A content surface's newest frame (the consumer's picture of a
     // ContentSurface or ContentTextEditor), or none. Only the image role
     // reads it: the frame is composed into `bounds` exactly as given

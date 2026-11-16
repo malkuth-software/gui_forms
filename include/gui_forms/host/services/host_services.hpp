@@ -8,6 +8,7 @@
 #include "gui_forms/window/chrome/window_chrome.hpp"
 #include "gui_forms/types/platform_types/platform_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <optional>
 #include <thread>
@@ -282,7 +283,7 @@ private:
     HostServicesSnapshot snapshot_;
     Event<const HostModalTransition&> modal_changed_;
     std::vector<std::uint64_t> modal_stack_;
-    std::optional<HostSoundCue> last_sound_cue_;
+    stxlib::Optional<HostSoundCue> last_sound_cue_;
     std::uint64_t last_sound_timestamp_{};
     // Live tray icon identities, in creation order; identities are never reused.
     std::vector<HostTrayIconId> tray_icons_;

@@ -4,6 +4,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -39,7 +40,7 @@ struct GUI_FORMS_API MacHostOptions {
 #endif
     // When set, the window is created at this logical size instead of
     // initial_size.
-    std::optional<Size> capture_size{};
+    stxlib::Optional<Size> capture_size{};
     // Full-size content retains the native titled window, traffic-light
     // controls, resize behavior, system title, and accessibility identity. It
     // only makes the title material transparent and lets retained content
@@ -114,7 +115,7 @@ struct GUI_FORMS_API MacApplicationWindow final {
     HostWindowFloating floating{HostWindowFloating::none};
     // A native popup window (ApplicationWindow::popup); none for every
     // other kind.
-    std::optional<HostPopupPlacement> popup{};
+    stxlib::Optional<HostPopupPlacement> popup{};
 };
 
 [[nodiscard]] GUI_FORMS_API HostCapabilities macos_capabilities();

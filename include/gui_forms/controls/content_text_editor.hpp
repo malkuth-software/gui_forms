@@ -165,7 +165,7 @@ public:
     // transform: exact for turned or sheared text, where caret_rectangle and
     // selection_rectangles give each quad's axis-aligned bounds. Without a
     // transform a quad's corners are its rectangle's.
-    [[nodiscard]] std::optional<ContentQuad> caret_quad() const;
+    [[nodiscard]] stxlib::Optional<ContentQuad> caret_quad() const;
     [[nodiscard]] std::vector<ContentQuad> selection_quads() const;
     // The input method's unfinished composition (marked text) as a range of
     // the text, for a consumer that draws the text and underlines it: set
@@ -174,7 +174,7 @@ public:
     // text, so read it after text_changed. composition_rectangles and
     // composition_quads are its boxes by the current layout (empty without
     // one), as the selection's.
-    [[nodiscard]] std::optional<Utf8Range> composition_range() const;
+    [[nodiscard]] stxlib::Optional<Utf8Range> composition_range() const;
     [[nodiscard]] std::vector<Rect> composition_rectangles() const;
     [[nodiscard]] std::vector<ContentQuad> composition_quads() const;
     void set_draws_selection(bool draws);
@@ -276,9 +276,9 @@ private:
     [[nodiscard]] bool move_by_line(KeyEvent& event);
     void handle_pointer(PointerEvent& event);
     // The index of the line holding `offset` in the current layout, or none.
-    [[nodiscard]] std::optional<std::size_t> line_of(Utf8Offset offset) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> line_of(Utf8Offset offset) const;
     // The caret at `offset` from the current layout, or none.
-    [[nodiscard]] std::optional<Rect> caret_at(Utf8Offset offset) const;
+    [[nodiscard]] stxlib::Optional<Rect> caret_at(Utf8Offset offset) const;
     // The caret's x at `offset` on line `line` of the current layout: a
     // caret stop's centre, else the edge of the line's cluster at `offset`
     // (a fraction of the cluster's width inside one), else the line's left.

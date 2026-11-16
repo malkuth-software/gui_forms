@@ -1666,7 +1666,7 @@ struct GUI_FORMS_API ThemeRuleSheet final {
     // The colour schemes the sheet declares (`:root { color-scheme: ... }`,
     // T4 theme variants), or none where it declares none. Theme::create
     // takes a declared set as the theme's (ThemeDefinition::colour_schemes).
-    std::optional<ColourSchemeSet> colour_schemes{};
+    stxlib::Optional<ColourSchemeSet> colour_schemes{};
     // The application colour roles the sheet declares (`color-roles`), in
     // declaration order; at most maximum_application_colour_roles.
     std::vector<ApplicationColourRole> application_roles{};
@@ -2275,13 +2275,13 @@ private:
     static bool add_reads(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                           const CompiledThemeRules& result, CompiledRule& compiled);
     // The position of `name` in read_names_, if it is there.
-    [[nodiscard]] std::optional<std::size_t> read_name_position(std::string_view name) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> read_name_position(std::string_view name) const noexcept;
     // A rule's scoped definitions and conditions, mapped to scoped_names_;
     // false, with a diagnostic, for a rule to drop.
     static bool add_scoped(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                            CompiledThemeRules& result, CompiledRule& compiled);
     // The position of `name` in scoped_names_, if it is there.
-    [[nodiscard]] std::optional<std::size_t> scoped_name_position(std::string_view name) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> scoped_name_position(std::string_view name) const noexcept;
     // Adds the names `sheet`'s conditions read to scoped_names_.
     void collect_scoped_names(const ThemeRuleSheet& sheet);
     // A rule's transitions and ambient effect, checked; a defect drops the

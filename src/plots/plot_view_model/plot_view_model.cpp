@@ -1,5 +1,6 @@
 #include "gui_forms/plots/plot_view_model/plot_view_model.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 
@@ -62,14 +63,14 @@ bool PlotViewModel::x_following(std::size_t index) const noexcept {
     return x_following_[index];
 }
 
-std::optional<Rect> PlotViewModel::drag_box() const noexcept {
-    if (gesture_ != PlotGesture::box_zoom && gesture_ != PlotGesture::query) return std::nullopt;
+stxlib::Optional<Rect> PlotViewModel::drag_box() const noexcept {
+    if (gesture_ != PlotGesture::box_zoom && gesture_ != PlotGesture::query) return stxlib::Optional<Rect>::none();
     const double left = std::min(gesture_start_.x, gesture_last_.x);
     const double top = std::min(gesture_start_.y, gesture_last_.y);
     const Rect box{left, top, std::fabs(gesture_last_.x - gesture_start_.x),
                    std::fabs(gesture_last_.y - gesture_start_.y)};
     const Rect clipped = Rect::intersection(box, plot_);
-    return clipped;
+    return stxlib::Optional<Rect>::of(clipped);
 }
 
 bool PlotViewModel::set_x_range(std::size_t index, PlotRange range) noexcept {
@@ -206,15 +207,15 @@ PlotViewChange PlotViewModel::zoom_all(double factor, Point anchor, PlotZone zon
 
 PlotViewChange PlotViewModel::apply_box() noexcept {
     PlotViewChange change{};
-    const std::optional<Rect> box = drag_box();
-    if (!box || (*box).empty()) return change;
-    const Rect area = *box;
+    const stxlib::Optional<Rect> box = drag_box();
+    if (box.absent() || ((*box.value())).empty()) return change;
+    const Rect area = (*box.value());
     if (gesture_ == PlotGesture::query) {
         if (x_count_ == 0U || y_count_ == 0U) return change;
         PlotSelection selection{};
         selection.x = data_interval(x_axes_[0], area.left(), area.right(), true);
         selection.y = data_interval(y_axes_[0], area.top(), area.bottom(), false);
-        selection_ = selection;
+        selection_.set(selection);
         change.selection = true;
         return change;
     }

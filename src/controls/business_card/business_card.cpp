@@ -13,6 +13,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -511,13 +512,13 @@ bool BusinessCard::faces_ready(double scale) const noexcept {
     return ready;
 }
 
-std::optional<Point> BusinessCard::face_point(Point local_point) const noexcept {
+stxlib::Optional<Point> BusinessCard::face_point(Point local_point) const noexcept {
     const Layout placed = layout();
     const detail::CardTurnPose pose = turn_pose(placed.card, turn_.current(), pitch_.current());
     const detail::CardTurnHit hit = detail::turned_card_hit(pose, local_point);
-    if (!hit.hit || !hit.front) return std::nullopt;
+    if (!hit.hit || !hit.front) return stxlib::Optional<Point>::none();
     const Point on_face{placed.card.x + hit.u * placed.card.width, placed.card.y + hit.v * placed.card.height};
-    return on_face;
+    return stxlib::Optional<Point>::of(on_face);
 }
 
 // One face painted offscreen through the host's renderer, at `scale`, and
@@ -750,14 +751,14 @@ void BusinessCard::on_paint(Painter& painter, Rect) {
     const AnatomyStateSet states = anatomy_states();
     const double height = placed.card.height;
     // The heading band rule: nothing above the band's lower edge.
-    const std::optional<double> band = heading_band_bottom();
+    const stxlib::Optional<double> band = heading_band_bottom();
     const Rect client = client_rectangle();
-    const bool clipped = band.has_value() && *band > client.y - heading_band_slack;
+    const bool clipped = band.present() && (*band.value()) > client.y - heading_band_slack;
     if (clipped) {
         painter.save();
         const double reach = height;
-        painter.clip_rect(Rect{client.x - reach, *band, client.width + reach * 2.0,
-                               std::max(0.0, client.bottom() + reach - *band)});
+        painter.clip_rect(Rect{client.x - reach, (*band.value()), client.width + reach * 2.0,
+                               std::max(0.0, client.bottom() + reach - (*band.value()))});
     }
     if (turning()) {
         paint_turned(painter, placed);
@@ -951,8 +952,8 @@ void BusinessCard::say_remark(FrameTime now) {
 // reaches the layer, which counts it as a press off the card. Above a
 // heading band, nothing does.
 bool BusinessCard::hit_test_local(Point local_point) const {
-    const std::optional<double> band = heading_band_bottom();
-    if (band.has_value() && local_point.y < *band) return false;
+    const stxlib::Optional<double> band = heading_band_bottom();
+    if (band.present() && local_point.y < (*band.value())) return false;
     if (turning()) {
         const detail::CardTurnPose pose = turn_pose(layout().card, turn_.current(), pitch_.current());
         const bool over = detail::turned_card_hit(pose, local_point).hit;
@@ -968,13 +969,13 @@ BusinessCard::PressTarget BusinessCard::target_at(Point local_point) const noexc
     const Layout placed = layout();
     Point point = local_point;
     if (turning()) {
-        const std::optional<Point> on_face = face_point(local_point);
-        if (!on_face.has_value()) {
+        const stxlib::Optional<Point> on_face = face_point(local_point);
+        if (on_face.absent()) {
             const detail::CardTurnPose pose = turn_pose(placed.card, turn_.current(), pitch_.current());
             const bool over = detail::turned_card_hit(pose, local_point).hit;
             return over ? PressTarget::card : PressTarget::none;
         }
-        point = *on_face;
+        point = (*on_face.value());
     } else if (!face_up()) {
         return placed.card.contains(point) ? PressTarget::card : PressTarget::none;
     }
@@ -1235,15 +1236,15 @@ void BusinessCard::set_heading_band(const std::shared_ptr<const Control>& band) 
     invalidate(Dirty::paint);
 }
 
-std::optional<double> BusinessCard::heading_band_bottom() const noexcept {
-    if (presentation_ != BusinessCardPresentation::page) return std::nullopt;
+stxlib::Optional<double> BusinessCard::heading_band_bottom() const noexcept {
+    if (presentation_ != BusinessCardPresentation::page) return stxlib::Optional<double>::none();
     const std::shared_ptr<const Control> band = heading_band_.lock();
-    if (!band) return std::nullopt;
+    if (!band) return stxlib::Optional<double>::none();
     const SurfaceRoot* const mine = attached_surface_root();
     const SurfaceRoot* const theirs = (*band).attached_surface_root();
-    if (mine == nullptr || mine != theirs) return std::nullopt;
+    if (mine == nullptr || mine != theirs) return stxlib::Optional<double>::none();
     const double bottom = (*band).absolute_bounds().bottom() - absolute_bounds().y;
-    return bottom;
+    return stxlib::Optional<double>::of(bottom);
 }
 
 SemanticDescriptor BusinessCard::semantic_descriptor() const {

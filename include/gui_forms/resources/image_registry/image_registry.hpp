@@ -4,6 +4,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/resources/types/image_resource_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <memory>
 #include <optional>
 #include <span>
@@ -76,7 +77,7 @@ public:
     [[nodiscard]] bool remove(ImageId image) noexcept;
     void clear() noexcept;
 
-    [[nodiscard]] std::optional<ImageResourceView> find(
+    [[nodiscard]] stxlib::Optional<ImageResourceView> find(
         ImageId image) const noexcept;
     [[nodiscard]] std::vector<ImageId> image_ids() const;
     [[nodiscard]] ImageRegistrySnapshot snapshot() const noexcept;

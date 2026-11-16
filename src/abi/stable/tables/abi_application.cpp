@@ -22,6 +22,7 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -146,7 +147,7 @@ gf_status create_application(const gf_application_config* config, gf_theme_repor
     }
     ApplicationConfig application_config{};
     if (read.presentation == GF_PRESENTATION_SOURCE_DEFAULTS) {
-        application_config.presentation = PresentationSettings{};
+        application_config.presentation.set(PresentationSettings{});
     }
     ApplicationCreateResult created = Application::create(std::move(application_config));
     if (created.error == ApplicationCreateError::already_exists) {

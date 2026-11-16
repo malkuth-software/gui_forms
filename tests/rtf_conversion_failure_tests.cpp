@@ -5,6 +5,7 @@
 
 #include "gui_forms/text/markdown/rtf_conversion.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -95,10 +96,10 @@ std::size_t import_under_failures() {
             // without) and succeed; otherwise the failure is limit_exceeded.
             if (!result.succeeded()) {
                 const int error = static_cast<int>(result.error().value_or(gui_forms::RtfConversionError::malformed));
-                if (result.error() != gui_forms::RtfConversionError::limit_exceeded) {
+                if (result.error() != stxlib::Optional<gui_forms::RtfConversionError>::of(gui_forms::RtfConversionError::limit_exceeded)) {
                     std::cerr << "import at allocation " << countdown << ": error " << error << '\n';
                 }
-                require(result.error() == gui_forms::RtfConversionError::limit_exceeded,
+                require(result.error() == stxlib::Optional<gui_forms::RtfConversionError>::of(gui_forms::RtfConversionError::limit_exceeded),
                         "an import that met an allocation failure reports limit_exceeded");
                 ++failed_runs;
             }
@@ -127,7 +128,7 @@ std::size_t export_under_failures() {
                 return failed_runs;
             }
             if (!result.succeeded()) {
-                require(result.error() == gui_forms::RtfConversionError::limit_exceeded,
+                require(result.error() == stxlib::Optional<gui_forms::RtfConversionError>::of(gui_forms::RtfConversionError::limit_exceeded),
                         "an export that met an allocation failure reports limit_exceeded");
                 ++failed_runs;
             }

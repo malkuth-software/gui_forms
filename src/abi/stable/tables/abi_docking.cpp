@@ -903,9 +903,9 @@ gf_status docking_set_floating_window_visibility_body(gf_object workspace, std::
     if ((*typed).layout().find_floating_site(DockSiteId{site}) == nullptr) {
         return fail(GF_STATUS_NOT_FOUND, set_floating_window_visibility_slot, "no floating site of that number");
     }
-    std::optional<bool> shown{};
-    if (visibility == GF_DOCK_WINDOW_VISIBILITY_SHOWN) shown = true;
-    if (visibility == GF_DOCK_WINDOW_VISIBILITY_POLICY) shown = false;
+    stxlib::Optional<bool> shown{};
+    if (visibility == GF_DOCK_WINDOW_VISIBILITY_SHOWN) shown.set(true);
+    if (visibility == GF_DOCK_WINDOW_VISIBILITY_POLICY) shown.set(false);
     (*typed).set_floating_window_shown_while_inactive(DockSiteId{site}, shown);
     return GF_STATUS_OK;
 }

@@ -73,6 +73,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -246,10 +247,24 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
 // Copies the portable capture fields into any host option struct that carries
 // them (MacHostOptions, WindowsHostOptions, LinuxHostOptions). Host-specific
 // fields such as automation_enabled are set by the main that owns them.
+// The capture size into a host's options: the macOS and Linux hosts hold an
+// stxlib::Optional (D15), the Windows host a std::optional for now.
+inline void assign_capture_size(stxlib::Optional<Size>& target, const std::optional<Size>& size) {
+    if (size.has_value()) {
+        target.set(*size);
+    } else {
+        target.reset();
+    }
+}
+
+inline void assign_capture_size(std::optional<Size>& target, const std::optional<Size>& size) {
+    target = size;
+}
+
 template <class HostOptions>
 inline void apply_program_options(const ProgramOptions& program, HostOptions& host) {
     host.capture_path = program.capture_path;
-    host.capture_size = program.capture_size;
+    assign_capture_size(host.capture_size, program.capture_size);
 }
 
 // --smoke-test, the way PlaySuite proves its packaged programs: nothing

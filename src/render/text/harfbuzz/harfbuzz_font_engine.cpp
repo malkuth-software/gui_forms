@@ -15,6 +15,7 @@
 #include <stxlib/text.hpp>
 #include <stxlib/textlayout.hpp>
 #include <stxlib/view.hpp>
+#include <stxlib/optional.hpp>
 
 #include <algorithm>
 #include <array>
@@ -455,8 +456,8 @@ public:
         // Fallback faces drawn for the font's language (set_face_language) come before the
         // other fallback faces.
         [[nodiscard]] int tier(const Face& face) const noexcept {
-            const std::optional<std::size_t> position = font_family_position(order, family_of(face));
-            if (position) return static_cast<int>(*position) - static_cast<int>(order.families.size());
+            const stxlib::Optional<std::size_t> position = font_family_position(order, family_of(face));
+            if (position.present()) return static_cast<int>((*position.value())) - static_cast<int>(order.families.size());
             if (face.named_family.value != 0U) return 4;
             if (face.role && *face.role == font.role) return 0;
             if (face.role && *face.role == FontRole::content) return 1;
@@ -500,14 +501,14 @@ public:
     // role's family. Fallback faces (CJK, emoji) always take part, in the last tier.
     [[nodiscard]] bool admits(Face& face, const FontSpec& font, const FontFamilyOrder& order) {
         if (face.named_family.value != 0U) {
-            if (!font_family_position(order, face.named_family)) return false;
+            if (font_family_position(order, face.named_family).absent()) return false;
             if (!face.open() && (!face.loader || !open_lazy(face))) return false;
             return true;
         }
         if (!face.role) return true;
         if (*face.role == font.role) return true;
         if (font.role != FontRole::content && *face.role == FontRole::content) return true;
-        const bool listed = font_family_position(order, role_font_family(*face.role)).has_value();
+        const bool listed = font_family_position(order, role_font_family(*face.role)).present();
         return listed;
     }
 
@@ -1787,7 +1788,7 @@ ResolvedTextLayout HarfBuzzFontEngine::resolve(std::string_view utf8,
     // text uses (sized_line_metrics); the shaped height carries none.
     const Impl::Face& primary = *candidates.front();
     result.line_gap = sized_line_metrics(primary.font(), primary.id, font).line_gap_device;
-    result.design_metrics = design_line_metrics(primary.font(), font);
+    result.design_metrics.set(design_line_metrics(primary.font(), font));
     result.missing_clusters = shaped.missing_clusters;
     result.status = shaped.missing_primary_face
         ? TextResolutionStatus::missing_primary_face
@@ -1804,7 +1805,7 @@ ResolvedTextLayout HarfBuzzFontEngine::resolve(std::string_view utf8,
             }
         }
         if (resolved == nullptr) continue;
-        const bool family_face = font_family_position(order, Impl::family_of(*resolved)).has_value();
+        const bool family_face = font_family_position(order, Impl::family_of(*resolved)).present();
         result.runs.push_back({
             run.source_range.start.value(),
             run.source_range.end.value() - run.source_range.start.value(),

@@ -52,7 +52,7 @@ void check(std::string_view source, const gui_forms::MarkdownDocument& document,
             if (span.source.end.value() > source.size()) fail("a span's source lies in the input");
             if (span.source.start.value() < previous) fail("spans follow the source in order");
             previous = span.source.end.value();
-            if (span.link.has_value() && *span.link >= document.links.size()) fail("a link index is in the table");
+            if (span.link.present() && (*span.link.value()) >= document.links.size()) fail("a link index is in the table");
             if (span.style.size_step < gui_forms::minimum_markdown_size_step ||
                 span.style.size_step > gui_forms::maximum_markdown_size_step) {
                 fail("a size step is in range");
@@ -70,7 +70,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     gui_forms::MarkdownDocument document{};
     const gui_forms::MarkdownParseResult result = gui_forms::parse_markdown(source, document, limits);
     if (!result.succeeded()) {
-        if (!result.error().has_value()) fail("a failure names its error");
+        if (result.error().absent()) fail("a failure names its error");
         if (!document.blocks.empty() || !document.spans.empty() || !document.links.empty()) {
             fail("a failed parse leaves the document empty");
         }

@@ -2,6 +2,7 @@
 
 #include "../kernel/pixel_kernel.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -57,12 +58,12 @@ bool SheenPrimitive::blank(const PrimitiveParameterBlock& parameters) const noex
     return clear;
 }
 
-std::optional<PointerOverlay> SheenPrimitive::pointer_overlay(const PrimitiveParameterBlock& parameters,
+stxlib::Optional<PointerOverlay> SheenPrimitive::pointer_overlay(const PrimitiveParameterBlock& parameters,
                                                               Size part) const noexcept {
     PointerOverlay overlay{};
     overlay.size = Size{parameters.values[sheen_width].number, part.height};
     overlay.rest = parameters.values[sheen_rest].number;
-    return overlay;
+    return stxlib::Optional<PointerOverlay>::of(overlay);
 }
 
 void SheenPrimitive::derive(const PrimitiveParameterBlock&, const PrimitiveTarget&, std::span<double>) const noexcept {}

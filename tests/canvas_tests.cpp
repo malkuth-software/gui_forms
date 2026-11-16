@@ -2,6 +2,7 @@
 #include "gui_forms/window.hpp"
 #include "support/routed_input_probe.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -233,12 +234,12 @@ void canvas_uploads_bgra_storage_without_changing_document_truth() {
 
     const std::vector<ImageId> ids = window.image_resources().image_ids();
     CHECK(ids.size() == 1U);
-    const std::optional<ImageResourceView> resource = window.image_resources().find(ids.front());
-    CHECK(resource && (*resource).encoded.size() == 4U);
-    CHECK((*resource).encoded[0] == std::byte{0});
-    CHECK((*resource).encoded[1] == std::byte{0});
-    CHECK((*resource).encoded[2] == std::byte{255});
-    CHECK((*resource).encoded[3] == std::byte{255});
+    const stxlib::Optional<ImageResourceView> resource = window.image_resources().find(ids.front());
+    CHECK(resource.present() && ((*resource.value())).encoded.size() == 4U);
+    CHECK(((*resource.value())).encoded[0] == std::byte{0});
+    CHECK(((*resource.value())).encoded[1] == std::byte{0});
+    CHECK(((*resource.value())).encoded[2] == std::byte{255});
+    CHECK(((*resource.value())).encoded[3] == std::byte{255});
     CHECK((*bitmap).get_pixel(0, 0).argb() == UINT32_C(0xffff0000));
 
     CHECK(window.remove_image(ids.front()));
@@ -268,12 +269,12 @@ struct TileContent final {
 std::vector<TileContent> tile_contents(Window& window) {
     std::vector<TileContent> contents{};
     for (const ImageId id : window.image_resources().image_ids()) {
-        const std::optional<ImageResourceView> resource = window.image_resources().find(id);
-        CHECK(resource.has_value());
+        const stxlib::Optional<ImageResourceView> resource = window.image_resources().find(id);
+        CHECK(resource.present());
         TileContent content{};
-        content.width = (*resource).metadata.width;
-        content.height = (*resource).metadata.height;
-        content.bytes.assign((*resource).encoded.begin(), (*resource).encoded.end());
+        content.width = ((*resource.value())).metadata.width;
+        content.height = ((*resource.value())).metadata.height;
+        content.bytes.assign(((*resource.value())).encoded.begin(), ((*resource.value())).encoded.end());
         contents.push_back(std::move(content));
     }
     std::sort(contents.begin(), contents.end());
@@ -359,16 +360,16 @@ void tiled_updates_include_sampling_gutters_and_recover_resources() {
     std::vector<std::uint64_t> revisions;
     revisions.reserve(ids.size());
     for (const ImageId id : ids) {
-        const std::optional<ImageResourceView> resource = window.image_resources().find(id);
-        CHECK(resource.has_value());
-        revisions.push_back((*resource).content_hash);
+        const stxlib::Optional<ImageResourceView> resource = window.image_resources().find(id);
+        CHECK(resource.present());
+        revisions.push_back(((*resource.value())).content_hash);
     }
     (*bitmap).set_pixel(511, 511, gui_drawing::Color::from_name("red"));
     CHECK((*canvas).synchronize_bitmap());
     ids = window.image_resources().image_ids();
     unsigned changed{};
     for (std::size_t index = 0; index < ids.size(); ++index) {
-        const ImageResourceView resource = *window.image_resources().find(ids[index]);
+        const ImageResourceView resource = window.image_resources().find(ids[index]).take();
         if (resource.content_hash != revisions[index]) ++changed;
         CHECK(resource.metadata.width <= 514 && resource.metadata.height <= 514);
         revisions[index] = resource.content_hash;
@@ -379,9 +380,9 @@ void tiled_updates_include_sampling_gutters_and_recover_resources() {
     changed = 0;
     ids = window.image_resources().image_ids();
     for (std::size_t index = 0; index < ids.size(); ++index) {
-        const std::optional<ImageResourceView> resource = window.image_resources().find(ids[index]);
-        CHECK(resource.has_value());
-        if ((*resource).content_hash != revisions[index]) ++changed;
+        const stxlib::Optional<ImageResourceView> resource = window.image_resources().find(ids[index]);
+        CHECK(resource.present());
+        if (((*resource.value())).content_hash != revisions[index]) ++changed;
     }
     CHECK(changed == 1);
     CHECK(window.remove_image(ids[3]));
@@ -424,9 +425,9 @@ void hundred_megapixel_publication_probe() {
     std::vector<std::uint64_t> revisions;
     revisions.reserve(ids.size());
     for (const ImageId id : ids) {
-        const std::optional<ImageResourceView> resource = window.image_resources().find(id);
-        CHECK(resource.has_value());
-        revisions.push_back((*resource).content_hash);
+        const stxlib::Optional<ImageResourceView> resource = window.image_resources().find(id);
+        CHECK(resource.present());
+        revisions.push_back(((*resource.value())).content_hash);
     }
     (*bitmap).set_pixel(333, 333, gui_drawing::Color::from_name("red"));
     CHECK((*canvas).synchronize_bitmap());
@@ -435,7 +436,7 @@ void hundred_megapixel_publication_probe() {
     unsigned changed{};
     std::uint64_t revised_bytes{};
     for (std::size_t index = 0; index < ids.size(); ++index) {
-        const ImageResourceView resource = *window.image_resources().find(ids[index]);
+        const ImageResourceView resource = window.image_resources().find(ids[index]).take();
         if (resource.content_hash != revisions[index]) { ++changed; revised_bytes += resource.encoded.size(); }
     }
     CHECK(changed == 1 && revised_bytes <= 514U * 514U * 4U);

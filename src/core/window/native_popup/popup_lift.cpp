@@ -6,6 +6,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <optional>
 #include <utility>
@@ -146,12 +147,12 @@ Window* PopupLift::host() const noexcept {
     return model;
 }
 
-std::optional<Rect> drop_down_popup_face(Window& window, const Rect anchor, const Size size, const double preferred_x) {
-    if (!window.popup_windows_available()) return std::nullopt;
+stxlib::Optional<Rect> drop_down_popup_face(Window& window, const Rect anchor, const Size size, const double preferred_x) {
+    if (!window.popup_windows_available()) return stxlib::Optional<Rect>::none();
     const double below = anchor.y + anchor.height;
     const stxlib::Optional<Rect> found = window.popup_work_area(Point{anchor.x, below});
     const Rect* const area = found.value();
-    if (area == nullptr) return std::nullopt;
+    if (area == nullptr) return stxlib::Optional<Rect>::none();
     const Rect bounds = *area;
     const double face_width = std::min(size.width, bounds.width);
     const double face_height = std::min(size.height, bounds.height);
@@ -160,7 +161,7 @@ std::optional<Rect> drop_down_popup_face(Window& window, const Rect anchor, cons
     const bool fits_below = below + face_height <= bounds.y + bounds.height;
     const double face_y = fits_below ? below : std::max(bounds.y, anchor.y - face_height);
     const Rect face{face_x, face_y, face_width, face_height};
-    return face;
+    return stxlib::Optional<Rect>::of(face);
 }
 
 } // namespace gui_forms

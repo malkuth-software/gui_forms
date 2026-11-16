@@ -7,6 +7,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -151,18 +152,18 @@ void Panel::clear_background() {
 
 void Panel::set_style(BasicControlStyle style) {
     require_mutable();
-    if (style_override_ && *style_override_ == style) return;
-    style_override_ = std::move(style);
+    if (style_override_.present() && (*style_override_.value()) == style) return;
+    style_override_.set(std::move(style));
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
 const BasicControlStyle& Panel::style() const noexcept {
-    return style_override_ ? *style_override_ : effective_theme().basic_style();
+    return style_override_.present() ? (*style_override_.value()) : effective_theme().basic_style();
 }
 
 void Panel::clear_style() {
     require_mutable();
-    if (!style_override_) return;
+    if (style_override_.absent()) return;
     style_override_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -182,7 +183,7 @@ void Panel::paint_panel(Painter& painter, Rect bounds) const {
     // face's ground.
     const stxlib::Optional<Color> face_ground = face_colour();
     if (face_ground.present()) face.authored_background = face_ground;
-    if (face_ground.absent() && style_override_) face.authored_background.set(background());
+    if (face_ground.absent() && style_override_.present()) face.authored_background.set(background());
     paint_part(painter, *this, face);
     if (border_style.read() != BorderStyle::line) return;
     PartPaint rule;
@@ -204,7 +205,7 @@ void Panel::paint_panel(Painter& painter, Rect bounds) const {
 
 bool Panel::paint_depends_on_size() const noexcept {
     if (border_style.read() != BorderStyle::none || hscroll() || vscroll()) return true;
-    if (background_override_.present() || style_override_) return false;
+    if (background_override_.present() || style_override_.present()) return false;
     // A rule's material may read the face's box (relative corners).
     if (face_selected_by_rule()) return true;
     const bool invariant = surface_material_size_invariant(
@@ -232,7 +233,7 @@ void Panel::on_paint(Painter& painter, Rect) {
     // opaque material without outsets. The border draws over it.
     // A face a rule selects is opaque only as the rule's own material is;
     // a rule's other primitive reports nothing (G3).
-    const bool overridden = face_colour().present() || style_override_;
+    const bool overridden = face_colour().present() || style_override_.present();
     bool opaque = false;
     SurfaceMaterial assembled{};
     if (overridden) {

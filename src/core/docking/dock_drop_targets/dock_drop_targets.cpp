@@ -1,5 +1,6 @@
 #include "gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 
@@ -153,7 +154,7 @@ DockDropHit hit_dock_drop(Point point, Rect site, std::span<const DockDropPane> 
     for (std::size_t index = 0; index < panes.size(); ++index) {
         const Rect bounds = panes[index].bounds;
         if (!bounds.contains(point)) continue;
-        hit.pane = index;
+        hit.pane.set(index);
         hit.zone = dock_zone_at(bounds, point);
         const std::array<Rect, dock_drop_zone_count> tiles = dock_cross_tiles(bounds, scale);
         for (const DockDropZone zone : cross_order) {
@@ -219,27 +220,27 @@ void plan_dock_drop_targets(const DockLayout& layout, const DockSubject& subject
     }
 }
 
-std::optional<std::size_t> find_dock_drop_target(std::span<const DockDropTarget> targets,
+stxlib::Optional<std::size_t> find_dock_drop_target(std::span<const DockDropTarget> targets,
                                                  std::span<const DockDropPane> panes,
                                                  const DockDropHit& hit) noexcept {
-    if (!hit.over_site) return std::nullopt;
-    if (!hit.edge && !hit.pane) return std::nullopt;
+    if (!hit.over_site) return stxlib::Optional<std::size_t>::none();
+    if (!hit.edge && hit.pane.absent()) return stxlib::Optional<std::size_t>::none();
     // An edge hit looks only for the zone's edge target; a pane hit only for
     // the zone's target on that pane.
     if (hit.edge) {
         for (std::size_t index = 0; index < targets.size(); ++index) {
             const DockDropTarget& target = targets[index];
-            if (target.zone == hit.zone && target.kind == DockDropTargetKind::edge) return index;
+            if (target.zone == hit.zone && target.kind == DockDropTargetKind::edge) return stxlib::Optional<std::size_t>::of(index);
         }
-        return std::nullopt;
+        return stxlib::Optional<std::size_t>::none();
     }
-    if (*hit.pane >= panes.size()) return std::nullopt;
-    const DockNodeId pane = panes[*hit.pane].node;
+    if ((*hit.pane.value()) >= panes.size()) return stxlib::Optional<std::size_t>::none();
+    const DockNodeId pane = panes[(*hit.pane.value())].node;
     for (std::size_t index = 0; index < targets.size(); ++index) {
         const DockDropTarget& target = targets[index];
-        if (target.zone == hit.zone && target.kind == DockDropTargetKind::pane && target.pane == pane) return index;
+        if (target.zone == hit.zone && target.kind == DockDropTargetKind::pane && target.pane == pane) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 } // namespace gui_forms

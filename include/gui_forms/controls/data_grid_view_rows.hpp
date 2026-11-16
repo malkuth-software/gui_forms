@@ -5,6 +5,7 @@
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/controls/data_grid_view_row_order.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <span>

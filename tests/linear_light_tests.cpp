@@ -8,6 +8,7 @@
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
 #include "gui_forms/types/linear_light/linear_light_stops.hpp"
+#include "../src/platform/stxlib_bridge.hpp"
 
 #include <array>
 #include <cmath>

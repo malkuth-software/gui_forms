@@ -7,6 +7,7 @@
 #include "../../scrollable_anatomy.hpp"
 #include "../../../../core/types/restrict/restrict.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -74,9 +75,9 @@ std::string spec_text(const ResponsiveTrackSpec& spec) {
         append_number(text, spec.remaining_weight);
     }
     if (spec.hidden) text.append(" hidden");
-    if (spec.collapse_priority) {
+    if (spec.collapse_priority.present()) {
         text.append(" priority ");
-        text.append(std::to_string(*spec.collapse_priority));
+        text.append(std::to_string((*spec.collapse_priority.value())));
     }
     return text;
 }
@@ -114,7 +115,7 @@ ResponsiveTrackSpec spec_from_text(std::string_view item) {
             const char* const end = word.data() + word.size();
             const std::from_chars_result parsed = std::from_chars(word.data(), end, priority);
             valid = parsed.ec == std::errc{} && parsed.ptr == end;
-            spec.collapse_priority = priority;
+            spec.collapse_priority.set(priority);
             index += 2U;
         } else {
             valid = false;
@@ -218,8 +219,8 @@ void validate_track_specs(std::span<const ResponsiveTrackSpec> specs) {
                     "ResponsiveTrackPanel remaining weight must be positive and at most 1024");
             }
         }
-        if (spec.collapse_priority &&
-            !priorities.insert(*spec.collapse_priority).second) {
+        if (spec.collapse_priority.present() &&
+            !priorities.insert((*spec.collapse_priority.value())).second) {
             throw std::invalid_argument(
                 "ResponsiveTrackPanel collapse priorities must be unique");
         }
@@ -248,10 +249,10 @@ struct CollapsePriorityOrder final {
 
     [[nodiscard]] bool operator()(std::size_t left,
                                   std::size_t right) const noexcept {
-        if (*specs[left].collapse_priority !=
-            *specs[right].collapse_priority) {
-            return *specs[left].collapse_priority <
-                   *specs[right].collapse_priority;
+        if ((*specs[left].collapse_priority.value()) !=
+            (*specs[right].collapse_priority.value())) {
+            return (*specs[left].collapse_priority.value()) <
+                   (*specs[right].collapse_priority.value());
         }
         return left < right;
     }
@@ -262,7 +263,7 @@ struct CollapsePriorityOrder final {
     std::span<const ResponsiveTrackResult> tracks) {
     std::vector<std::size_t> candidates;
     for (std::size_t index = 0U; index < specs.size(); ++index) {
-        if (specs[index].hidden || !specs[index].collapse_priority ||
+        if (specs[index].hidden || specs[index].collapse_priority.absent() ||
             tracks[index].collapse_protected) {
             continue;
         }

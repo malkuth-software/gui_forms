@@ -226,7 +226,7 @@ bool RasterCanvas::synchronize_bitmap() {
     Window* owner = window();
     if (!owner) return false;
     for (std::size_t index = 0; index < tiles_.size(); ++index) {
-        if (!(*owner).image_resources().find(tiles_[index].image)) {
+        if ((*owner).image_resources().find(tiles_[index].image).absent()) {
             release_tiles(*owner);
             break;
         }

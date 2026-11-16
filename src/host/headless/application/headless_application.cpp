@@ -1,6 +1,7 @@
 #include "headless_application.hpp"
 #include "../../../core/application/application_state.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
@@ -595,9 +596,9 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
         }
         owner = *found_owner;
     }
-    const std::optional<HostPopupPlacement> popup = source.popup;
+    const stxlib::Optional<HostPopupPlacement> popup = source.popup;
     const HostWindowKind kind =
-        host_window_kind(owner.valid(), source.tool_window, source.floating, popup.has_value());
+        host_window_kind(owner.valid(), source.tool_window, source.floating, popup.present());
     const bool floating = host_window_kind_traits(kind).floating;
     if (kind == HostWindowKind::primary &&
         (runtime || !source.options.initially_visible || source.options.hide_on_close)) {
@@ -608,7 +609,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     description.stable_id = source.stable_id;
     description.owner = owner;
     description.kind = kind;
-    if (popup.has_value()) description.transient = (*popup).kind;
+    if (popup.present()) description.transient = ((*popup.value())).kind;
     const HostWindowAdmission admission = windowing_.admit(description);
     if (!admission.status.accepted()) {
         result.status = admission.status;
@@ -634,7 +635,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     // Before the session is bound (stage T5).
     if (window.options.non_opaque) static_cast<void>((*window.model).declare_non_opaque());
     window.host = std::make_unique<HeadlessHost>(*window.model);
-    if (refuse_popup_alpha_ && popup.has_value()) (*window.host).headless_services().refuse_backdrops();
+    if (refuse_popup_alpha_ && popup.present()) (*window.host).headless_services().refuse_backdrops();
     const HostDispatchResult attached = (*window.host).dispatch(
         HostAttachEvent{window.options.initial_size, 1.0}, next_timestamp());
     if (!attached.accepted()) {
@@ -651,21 +652,21 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     static_cast<void>((*window.host).dispatch(input, next_timestamp()));
     Rect content = default_placement(kind, owner, window.options.initial_size);
     // A popup is where the program put it.
-    if (popup.has_value()) {
-        content = Rect{(*popup).origin.x, (*popup).origin.y, window.options.initial_size.width,
+    if (popup.present()) {
+        content = Rect{((*popup.value())).origin.x, ((*popup.value())).origin.y, window.options.initial_size.width,
                        window.options.initial_size.height};
     }
     if (!owner.valid() && kind != HostWindowKind::primary) ++placements_;
     windowing_.create_native(window.id, window.stable_id, content, window.options.minimum_size,
-                             !popup.has_value());
+                             popup.absent());
     {
         std::ostringstream line;
         line << "open id=" << window.id.value << " kind=" << host_window_kind_name(kind)
              << " owner=" << owner.value << " visible=" << (window.options.initially_visible ? 1 : 0)
              << " runtime=" << (runtime ? 1 : 0);
-        if (popup.has_value()) {
-            line << " focus=" << host_popup_focus_name((*popup).focus)
-                 << " transient=" << host_transient_kind_name((*popup).kind);
+        if (popup.present()) {
+            line << " focus=" << host_popup_focus_name(((*popup.value())).focus)
+                 << " transient=" << host_transient_kind_name(((*popup.value())).kind);
         }
         windowing_.note(line.str());
     }

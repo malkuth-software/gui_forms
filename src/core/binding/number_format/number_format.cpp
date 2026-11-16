@@ -1,5 +1,6 @@
 #include "gui_forms/binding/number_format/number_format.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <charconv>
 #include <cmath>
@@ -235,14 +236,14 @@ void append_digits(std::string& output, const DecimalDigits& value, const Number
 }
 
 std::uint32_t fraction_digits(const NumberFormat& format) noexcept {
-    if (format.precision) return *format.precision;
+    if (format.precision.present()) return (*format.precision.value());
     if (format.kind == NumberFormatKind::exponential) return default_exponential_digits;
     return default_fraction_digits;
 }
 
 // G's significant digits; zero for the shortest form (or every digit).
 std::uint32_t general_digits(const NumberFormat& format) noexcept {
-    const std::uint32_t result = format.precision ? *format.precision : 0U;
+    const std::uint32_t result = format.precision.present() ? (*format.precision.value()) : 0U;
     return result;
 }
 
@@ -286,8 +287,8 @@ bool starts_with(std::string_view text, std::string_view prefix) noexcept {
 
 } // namespace
 
-std::optional<NumberFormat> parse_number_format(std::string_view text) noexcept {
-    if (text.empty() || text.size() > 3U) return std::nullopt;
+stxlib::Optional<NumberFormat> parse_number_format(std::string_view text) noexcept {
+    if (text.empty() || text.size() > 3U) return stxlib::Optional<NumberFormat>::none();
     NumberFormat result{};
     const char letter = text.front();
     result.upper_case = letter >= 'A' && letter <= 'Z';
@@ -305,17 +306,17 @@ std::optional<NumberFormat> parse_number_format(std::string_view text) noexcept 
     } else if (upper == 'G') {
         result.kind = NumberFormatKind::general;
     } else {
-        return std::nullopt;
+        return stxlib::Optional<NumberFormat>::none();
     }
-    if (text.size() == 1U) return result;
+    if (text.size() == 1U) return stxlib::Optional<NumberFormat>::of(result);
     std::uint32_t precision = 0U;
     for (std::size_t index = 1U; index < text.size(); ++index) {
-        if (!is_digit(text[index])) return std::nullopt;
+        if (!is_digit(text[index])) return stxlib::Optional<NumberFormat>::none();
         precision = precision * 10U + static_cast<std::uint32_t>(text[index] - '0');
     }
     // Two digits at most, so the precision is at most 99.
-    result.precision = precision;
-    return result;
+    result.precision.set(precision);
+    return stxlib::Optional<NumberFormat>::of(result);
 }
 
 void append_formatted_number(std::string& output, double value, const NumberFormat& format) {

@@ -188,7 +188,7 @@ void entries_are_validated() {
     orphan.model = std::make_unique<Window>(make_content("orphan.root"), Size{100.0, 50.0});
     orphan.options.initial_size = {100.0, 50.0};
     orphan.options.minimum_size = {1.0, 1.0};
-    orphan.popup = HostPopupPlacement{};
+    orphan.popup.set(HostPopupPlacement{});
     std::vector<ApplicationWindow> windows;
     windows.push_back(std::move(orphan));
     require(!Application::validate(windows).accepted(), "a popup needs an owner");

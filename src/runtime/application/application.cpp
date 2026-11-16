@@ -290,8 +290,8 @@ HostServiceError runtime_entry_refusal(const ApplicationWindow& entry, const Hos
     if (detail::primary_window_entry(entry)) return HostServiceError::invalid_argument;
     // A host that opens no popup windows refuses a popup before any native
     // request (HostWindowing::supports_popup_windows).
-    if (entry.popup.has_value() && !windowing.supports_popup_windows()) return HostServiceError::unsupported;
-    if (entry.popup.has_value() && host_transient_is_splash((*entry.popup).kind) &&
+    if (entry.popup.present() && !windowing.supports_popup_windows()) return HostServiceError::unsupported;
+    if (entry.popup.present() && host_transient_is_splash(((*entry.popup.value())).kind) &&
         !windowing.supports_splash_windows()) {
         return HostServiceError::unsupported;
     }

@@ -10,6 +10,7 @@
 #include "../support/binding_support.hpp"
 #include "../../surface_root/access/surface_lifetime_access.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -277,14 +278,14 @@ void BindingSource::set_provider(std::shared_ptr<BindingProvider> provider) {
     // A sort or filter whose columns the new schema lacks is dropped.
     bool columns_present = true;
     for (const BindingSortKey& key : sort_) {
-        columns_present = columns_present && schema_.find(key.column).has_value();
+        columns_present = columns_present && schema_.find(key.column).present();
     }
     if (!columns_present) {
         sort_.clear();
     }
     bool filter_present = true;
     for (const BindingPredicate& predicate : filter_.all_of) {
-        filter_present = filter_present && schema_.find(predicate.column).has_value();
+        filter_present = filter_present && schema_.find(predicate.column).present();
     }
     if (!filter_present) {
         filter_.all_of.clear();
@@ -312,17 +313,17 @@ std::shared_ptr<BindingTable> BindingSource::table() const noexcept {
     return typed;
 }
 
-std::optional<std::size_t> BindingSource::column_of(std::string_view name) const {
+stxlib::Optional<std::size_t> BindingSource::column_of(std::string_view name) const {
     const std::map<std::string, std::size_t, std::less<>>::const_iterator found = column_lookup_.find(name);
     if (found != column_lookup_.end()) {
-        return (*found).second;
+        return stxlib::Optional<std::size_t>::of((*found).second);
     }
-    const std::optional<std::size_t> column = schema_.find(name);
-    if (column) {
+    const stxlib::Optional<std::size_t> column = schema_.find(name);
+    if (column.present()) {
         if (column_lookup_.size() >= maximum_column_lookups) {
             column_lookup_.clear();
         }
-        column_lookup_.emplace(std::string(name), *column);
+        column_lookup_.emplace(std::string(name), (*column.value()));
     }
     return column;
 }
@@ -499,11 +500,11 @@ std::optional<BindingValue> BindingSource::value_at(std::uint64_t generation, st
 }
 
 std::optional<BindingValue> BindingSource::field(std::size_t row, std::string_view name) const {
-    const std::optional<std::size_t> column = column_of(name);
-    if (!column) {
+    const stxlib::Optional<std::size_t> column = column_of(name);
+    if (column.absent()) {
         return std::nullopt;
     }
-    std::optional<BindingValue> read = value(row, *column);
+    std::optional<BindingValue> read = value(row, (*column.value()));
     return read;
 }
 
@@ -598,11 +599,11 @@ std::string BindingSource::current_error(std::string_view field_name) const {
     if (field_name.empty()) {
         return error(row, binding_whole_row);
     }
-    const std::optional<std::size_t> column = column_of(field_name);
-    if (!column) {
+    const stxlib::Optional<std::size_t> column = column_of(field_name);
+    if (column.absent()) {
         return {};
     }
-    return error(row, *column);
+    return error(row, (*column.value()));
 }
 
 std::vector<std::shared_ptr<Binding>> BindingSource::bindings() const {
@@ -623,8 +624,8 @@ bool BindingSource::set_current_field(std::string_view field_name, BindingValue 
     if (position_ < 0 || !allow_edit_) {
         return false;
     }
-    std::optional<std::size_t> column = column_of(field_name);
-    if (!column) {
+    stxlib::Optional<std::size_t> column = column_of(field_name);
+    if (column.absent()) {
         // The built-in table grows a field it has not got, as a record
         // took any field; another provider's schema is fixed.
         const std::shared_ptr<BindingTable> built_in = table();
@@ -633,20 +634,20 @@ bool BindingSource::set_current_field(std::string_view field_name, BindingValue 
         }
         static_cast<void>((*built_in).find_or_add_column(field_name));
         column = column_of(field_name);
-        if (!column || position_ < 0) {
+        if (column.absent() || position_ < 0) {
             return false;
         }
     }
     const std::size_t row = static_cast<std::size_t>(position_);
-    const std::optional<BindingValue> present = value(row, *column);
+    const std::optional<BindingValue> present = value(row, (*column.value()));
     if (present && *present == incoming) {
         return false;
     }
-    if (read_only(row, *column) || !schema_.admits(*column, incoming)) {
+    if (read_only(row, (*column.value())) || !schema_.admits((*column.value()), incoming)) {
         return false;
     }
     static_cast<void>(begin_edit());
-    const BindingWriteResult result = write(row, *column, std::move(incoming));
+    const BindingWriteResult result = write(row, (*column.value()), std::move(incoming));
     return result.accepted();
 }
 
@@ -722,21 +723,21 @@ void BindingSource::cancel_edit() {
     editing_ = false;
     edit_values_.clear();
     edit_stable_id_.clear();
-    std::optional<std::size_t> row;
+    stxlib::Optional<std::size_t> row;
     if (position_ >= 0 && stable_id(static_cast<std::size_t>(position_)) == identity) {
-        row = static_cast<std::size_t>(position_);
+        row.set(static_cast<std::size_t>(position_));
     } else {
         row = find_stable_id(identity);
     }
-    if (!row) {
+    if (row.absent()) {
         return;
     }
     // The saved values go back straight to the provider, then one change
     // for the row.
-    const std::size_t provider = provider_row(*row);
+    const std::size_t provider = provider_row((*row.value()));
     const std::size_t width = std::min(saved.size(), schema_.size());
     for (std::size_t column = 0U; column < width; ++column) {
-        const std::optional<BindingValue> present = value(*row, column);
+        const std::optional<BindingValue> present = value((*row.value()), column);
         if (present && *present == saved[column]) {
             continue;
         }
@@ -761,12 +762,12 @@ void BindingSource::end_edit() {
 // ---------------------------------------------------------------------------
 // Rows through the provider.
 
-std::optional<std::size_t> BindingSource::add(BindingRow row) {
-    std::optional<std::size_t> position = insert(count(), std::move(row));
+stxlib::Optional<std::size_t> BindingSource::add(BindingRow row) {
+    stxlib::Optional<std::size_t> position = insert(count(), std::move(row));
     return position;
 }
 
-std::optional<std::size_t> BindingSource::insert(std::size_t index, BindingRow row) {
+stxlib::Optional<std::size_t> BindingSource::insert(std::size_t index, BindingRow row) {
     require_access("BindingSource insertion");
     if (!allow_new_) throw std::logic_error("GUI.Forms BindingSource additions are disabled");
     if (index > count()) {
@@ -795,12 +796,12 @@ std::optional<std::size_t> BindingSource::insert(std::size_t index, BindingRow r
     }
     apply_notification(BindingNotification{BindingNotificationKind::inserted, provider, 1U, 0U});
     if (!view_) {
-        return provider;
+        return stxlib::Optional<std::size_t>::of(provider);
     }
     if (provider >= (*view_).row_count()) {
-        return std::nullopt;
+        return stxlib::Optional<std::size_t>::none();
     }
-    std::optional<std::size_t> position = (*view_).position_of(provider);
+    stxlib::Optional<std::size_t> position = (*view_).position_of(provider);
     return position;
 }
 
@@ -928,28 +929,28 @@ void BindingSource::clear() {
     apply_notification(BindingNotification{BindingNotificationKind::reset, 0U, 0U, 0U});
 }
 
-std::optional<std::size_t> BindingSource::find(
+stxlib::Optional<std::size_t> BindingSource::find(
     std::string_view field_name, const BindingValue& wanted) const {
     require_access("BindingSource search");
-    const std::optional<std::size_t> column = column_of(field_name);
-    if (!column) {
-        return std::nullopt;
+    const stxlib::Optional<std::size_t> column = column_of(field_name);
+    if (column.absent()) {
+        return stxlib::Optional<std::size_t>::none();
     }
     BindingValue read;
     std::string refusal;
     for (std::size_t row = 0U; row < count(); ++row) {
         const std::size_t provider = view_ ? (*view_).row_of(row) : row;
-        if (read_provider_cell(provider, *column, read, refusal) && read == wanted) {
-            return row;
+        if (read_provider_cell(provider, (*column.value()), read, refusal) && read == wanted) {
+            return stxlib::Optional<std::size_t>::of(row);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
-std::optional<std::size_t> BindingSource::find_stable_id(std::string_view wanted) const {
+stxlib::Optional<std::size_t> BindingSource::find_stable_id(std::string_view wanted) const {
     require_access("BindingSource search");
     if (!provider_) {
-        return std::nullopt;
+        return stxlib::Optional<std::size_t>::none();
     }
     std::string identity;
     for (std::size_t row = 0U; row < count(); ++row) {
@@ -963,10 +964,10 @@ std::optional<std::size_t> BindingSource::find_stable_id(std::string_view wanted
             identified = false;
         }
         if (identified && identity == wanted) {
-            return row;
+            return stxlib::Optional<std::size_t>::of(row);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 // ---------------------------------------------------------------------------
@@ -975,7 +976,7 @@ std::optional<std::size_t> BindingSource::find_stable_id(std::string_view wanted
 void BindingSource::set_sort(std::vector<BindingSortKey> keys) {
     require_access("BindingSource sort");
     for (const BindingSortKey& key : keys) {
-        if (!schema_.find(key.column)) {
+        if (schema_.find(key.column).absent()) {
             throw std::invalid_argument("GUI.Forms BindingSource sort names an unknown column " + key.column);
         }
     }
@@ -998,7 +999,7 @@ void BindingSource::remove_sort() {
 void BindingSource::set_filter(BindingFilter filter_value) {
     require_access("BindingSource filter");
     for (const BindingPredicate& predicate : filter_value.all_of) {
-        if (!schema_.find(predicate.column)) {
+        if (schema_.find(predicate.column).absent()) {
             throw std::invalid_argument("GUI.Forms BindingSource filter names an unknown column " +
                                         predicate.column);
         }
@@ -1057,14 +1058,14 @@ void BindingSource::rebuild_view() {
     std::vector<detail::BindingViewKey> keys;
     if (own_sort) {
         for (const BindingSortKey& key : sort_) {
-            keys.push_back(detail::BindingViewKey{*schema_.find(key.column),
+            keys.push_back(detail::BindingViewKey{schema_.find(key.column).take(),
                                                   key.direction == BindingSortDirection::descending});
         }
     }
     std::vector<detail::BindingViewPredicate> predicates;
     if (own_filter) {
         for (const BindingPredicate& predicate : filter_.all_of) {
-            predicates.push_back(detail::BindingViewPredicate{*schema_.find(predicate.column), predicate});
+            predicates.push_back(detail::BindingViewPredicate{schema_.find(predicate.column).take(), predicate});
         }
     }
     std::unique_ptr<detail::BindingView> built =
@@ -1137,10 +1138,10 @@ void BindingSource::reset_view_state(bool metadata_changed) {
                                      row_cache_rows);
         bool present = true;
         for (const BindingSortKey& key : sort_) {
-            present = present && schema_.find(key.column).has_value();
+            present = present && schema_.find(key.column).present();
         }
         for (const BindingPredicate& predicate : filter_.all_of) {
-            present = present && schema_.find(predicate.column).has_value();
+            present = present && schema_.find(predicate.column).present();
         }
         if (!present) {
             sort_.clear();
@@ -1152,7 +1153,7 @@ void BindingSource::reset_view_state(bool metadata_changed) {
     if (view_mode_ == BindingViewMode::index || schema_changed) {
         rebuild_view();
     }
-    if (editing_ && !find_stable_id(edit_stable_id_)) {
+    if (editing_ && find_stable_id(edit_stable_id_).absent()) {
         editing_ = false;
         edit_values_.clear();
         edit_stable_id_.clear();
@@ -1169,9 +1170,9 @@ void BindingSource::reset_view_state(bool metadata_changed) {
     } else if (!old_current.empty()) {
         const std::shared_ptr<BindingTable> built_in = table();
         if (built_in) {
-            const std::optional<std::size_t> found = (*built_in).find(old_current);
-            if (found) {
-                anchor = *found;
+            const stxlib::Optional<std::size_t> found = (*built_in).find(old_current);
+            if (found.present()) {
+                anchor = (*found.value());
             }
         }
     }
@@ -1386,9 +1387,9 @@ void BindingSource::place_position(std::size_t anchor, std::ptrdiff_t old_positi
     std::ptrdiff_t next = -1;
     if (anchor != binding_whole_row && anchor < provider_count_) {
         if (view_) {
-            const std::optional<std::size_t> shown = (*view_).position_of(anchor);
-            if (shown) {
-                next = static_cast<std::ptrdiff_t>(*shown);
+            const stxlib::Optional<std::size_t> shown = (*view_).position_of(anchor);
+            if (shown.present()) {
+                next = static_cast<std::ptrdiff_t>((*shown.value()));
             }
         } else {
             next = static_cast<std::ptrdiff_t>(anchor);

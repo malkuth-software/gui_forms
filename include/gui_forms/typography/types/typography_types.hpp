@@ -4,6 +4,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -78,7 +79,7 @@ struct GUI_FORMS_API ResolvedTextLayout final {
     double line_gap{};
     // The preferred primary face's design metrics at this size, when the
     // terminal engine reads them; an estimate has none.
-    std::optional<FontVerticalMetrics> design_metrics;
+    stxlib::Optional<FontVerticalMetrics> design_metrics;
     std::string primary_family;
     std::vector<ResolvedFontRun> runs;
     std::size_t missing_clusters{};
@@ -248,7 +249,7 @@ struct GUI_FORMS_API LineBoxMetrics final {
 // Without design metrics (an estimate) it uses the resolution's ascent,
 // descent and line gap.
 [[nodiscard]] GUI_FORMS_API LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary,
-                                              std::optional<double> used_line_height) noexcept;
+                                              stxlib::Optional<double> used_line_height) noexcept;
 
 // Baselines are authored in logical coordinates. This helper rounds only the
 // final placement to a device pixel and therefore does not change line

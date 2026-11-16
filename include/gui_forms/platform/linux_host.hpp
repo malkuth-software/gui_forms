@@ -4,6 +4,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -36,7 +37,7 @@ struct GUI_FORMS_API LinuxHostOptions final {
 #endif
   // When set, the window is created at this logical size instead of
   // initial_size.
-  std::optional<Size> capture_size{};
+  stxlib::Optional<Size> capture_size{};
   bool print_metrics_on_close{true};
   bool initially_visible{true};
   bool hide_on_close{};
@@ -80,7 +81,7 @@ struct GUI_FORMS_API LinuxApplicationWindow final {
   HostWindowFloating floating{HostWindowFloating::none};
   // A native popup window (ApplicationWindow::popup); none for every
   // other kind.
-  std::optional<HostPopupPlacement> popup{};
+  stxlib::Optional<HostPopupPlacement> popup{};
 };
 
 // Opens one window while the application runs: the same entry, ownership

@@ -16,6 +16,7 @@
 #include "gui_forms/binding/property_table/property_table.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -228,7 +229,7 @@ LineStrut BlockPanel::used_line_strut() const {
     if (own != nullptr) return *own;
     const FontSpec used = text_font(resolved_font());
     const ResolvedTextLayout primary = resolve_text_layout_utf8(" ", used);
-    const LineBoxMetrics line = line_box_metrics(primary, std::nullopt);
+    const LineBoxMetrics line = line_box_metrics(primary, stxlib::Optional<double>::none());
     const LineStrut strut{line.baseline, std::max(0.0, line.height - line.baseline), line.x_height};
     return strut;
 }

@@ -7,6 +7,7 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <atomic>
 #include <cstddef>
 #include <exception>
@@ -206,7 +207,7 @@ struct GUI_FORMS_API ApplicationWindow final {
     // A native popup window (HostPopupPlacement): opened only during the
     // run, owned by `owner_id`, never a tool or floating window; none for
     // every other kind.
-    std::optional<HostPopupPlacement> popup{};
+    stxlib::Optional<HostPopupPlacement> popup{};
 };
 
 struct GUI_FORMS_API ApplicationWindowOpenResult final {
@@ -311,7 +312,7 @@ struct GUI_FORMS_API ApplicationConfig final {
     ApplicationThemeConfig theme{};
     // The presentation defaults every window of the application starts
     // with, until the host reports its own; GUI.Forms' defaults when unset.
-    std::optional<PresentationSettings> presentation{};
+    stxlib::Optional<PresentationSettings> presentation{};
     // The quotas of the application's shared image registry.
     ImageRegistryLimits image_limits{};
 };

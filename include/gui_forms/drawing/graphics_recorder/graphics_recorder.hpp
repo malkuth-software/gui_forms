@@ -10,6 +10,7 @@
 #include "gui_forms/drawing/pen/pen.hpp"
 #include "gui_forms/drawing/string_format/string_format.hpp"
 
+#include <stxlib/optional.hpp>
 #include <optional>
 #include <span>
 #include <string>
@@ -20,7 +21,7 @@ namespace gui_drawing {
 
 struct GUI_FORMS_API GraphicsState final {
     Matrix transform;
-    std::optional<RectF> clip;
+    stxlib::Optional<RectF> clip;
     SmoothingMode smoothing{SmoothingMode::default_mode};
     InterpolationMode interpolation{InterpolationMode::default_mode};
     PixelOffsetMode pixel_offset{PixelOffsetMode::default_mode};

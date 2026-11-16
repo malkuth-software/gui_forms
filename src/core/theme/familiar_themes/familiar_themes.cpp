@@ -6,6 +6,7 @@
 #include "windows_professional_floor.hpp"
 #include "windows_professional_sheets.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -2107,11 +2108,11 @@ std::string_view familiar_theme_id(FamiliarTheme theme) noexcept {
     return descriptions[index].id;
 }
 
-std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept {
+stxlib::Optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept {
     for (std::size_t index = 0U; index < familiar_theme_count; ++index) {
-        if (descriptions[index].id == id) return static_cast<FamiliarTheme>(index);
+        if (descriptions[index].id == id) return stxlib::Optional<FamiliarTheme>::of(static_cast<FamiliarTheme>(index));
     }
-    return std::nullopt;
+    return stxlib::Optional<FamiliarTheme>::none();
 }
 
 std::string_view familiar_theme_floor_sheet(FamiliarTheme theme) noexcept {

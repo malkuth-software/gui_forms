@@ -6,6 +6,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -74,9 +75,9 @@ inline constexpr std::string_view stock_icon_success = "check-circle";
 struct GUI_FORMS_API StockIconImage final {
     std::string_view name{};
     StockIconStyle style{StockIconStyle::solid};
-    std::optional<StockIconSize> size{};
+    stxlib::Optional<StockIconSize> size{};
 };
-[[nodiscard]] GUI_FORMS_API std::optional<StockIconImage> stock_icon_image_parts(ImageId image) noexcept;
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<StockIconImage> stock_icon_image_parts(ImageId image) noexcept;
 
 // The icon chosen to draw `image` over a square `logical_side` units wide:
 // its fixed size, else the nearest (nearest_stock_icon). Empty for an id

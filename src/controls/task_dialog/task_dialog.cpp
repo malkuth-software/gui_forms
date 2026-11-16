@@ -251,8 +251,8 @@ void TaskDialog::set_page(TaskDialogPage page) {
             throw std::invalid_argument("TaskDialog expander text must be valid UTF-8");
         }
     }
-    if (page.progress_bar) {
-        const TaskDialogProgressBar& progress = *page.progress_bar;
+    if (page.progress_bar.present()) {
+        const TaskDialogProgressBar& progress = (*page.progress_bar.value());
         if (!std::isfinite(progress.minimum) || !std::isfinite(progress.maximum) ||
             !std::isfinite(progress.value) || progress.minimum >= progress.maximum) {
             throw std::invalid_argument("TaskDialog progress bounds must be finite and ordered");
@@ -305,8 +305,8 @@ void TaskDialog::rebuild_children() {
     footnote_font.size = footnote_size;
     if (!page_.heading.empty()) heading_ = make_paragraph(".heading", page_.heading, heading_font);
     if (!page_.text.empty()) text_ = make_paragraph(".text", page_.text, font_);
-    if (page_.progress_bar) {
-        const TaskDialogProgressBar& settings = *page_.progress_bar;
+    if (page_.progress_bar.present()) {
+        const TaskDialogProgressBar& settings = (*page_.progress_bar.value());
         progress_ = make_control<ProgressBar>(StableId(prefix + ".progress"));
         (*progress_).set_range(settings.minimum, settings.maximum);
         (*progress_).value = std::clamp(settings.value, settings.minimum, settings.maximum);
@@ -357,11 +357,11 @@ void TaskDialog::rebuild_children() {
     if (!page_.footnote.empty()) footnote_ = make_paragraph(".footnote", page_.footnote, footnote_font);
 }
 
-std::optional<std::size_t> TaskDialog::button_index(std::string_view button_id) const noexcept {
+stxlib::Optional<std::size_t> TaskDialog::button_index(std::string_view button_id) const noexcept {
     for (std::size_t index = 0; index < page_.buttons.size(); ++index) {
-        if (page_.buttons[index].stable_id == button_id) return index;
+        if (page_.buttons[index].stable_id == button_id) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 std::string TaskDialog::default_button_id() const {
@@ -378,9 +378,9 @@ std::string TaskDialog::cancel_button_id() const {
 }
 
 std::shared_ptr<Button> TaskDialog::button(std::string_view button_id) const {
-    const std::optional<std::size_t> index = button_index(button_id);
-    if (!index || *index >= buttons_.size()) return nullptr;
-    return buttons_[*index];
+    const stxlib::Optional<std::size_t> index = button_index(button_id);
+    if (index.absent() || (*index.value()) >= buttons_.size()) return nullptr;
+    return buttons_[(*index.value())];
 }
 
 std::shared_ptr<RadioButton> TaskDialog::radio_button(std::string_view radio_id) const {
@@ -437,8 +437,8 @@ void TaskDialog::write_view(const decltype(verification_checked)&, bool incoming
 
 void TaskDialog::set_progress_value(double value) {
     require_mutable();
-    if (!page_.progress_bar || !progress_ || !std::isfinite(value)) return;
-    TaskDialogProgressBar& settings = *page_.progress_bar;
+    if (page_.progress_bar.absent() || !progress_ || !std::isfinite(value)) return;
+    TaskDialogProgressBar& settings = (*page_.progress_bar.value());
     settings.value = std::clamp(value, settings.minimum, settings.maximum);
     (*progress_).value = settings.value;
 }
@@ -457,9 +457,9 @@ void TaskDialog::on_child_button(ButtonBase& sender) {
 
 bool TaskDialog::click(std::string_view button_id) {
     require_mutable();
-    const std::optional<std::size_t> index = button_index(button_id);
-    if (!index || !page_.buttons[*index].enabled) return false;
-    TaskDialogButtonClick request{std::string(button_id), !page_.buttons[*index].allow_close};
+    const stxlib::Optional<std::size_t> index = button_index(button_id);
+    if (index.absent() || !page_.buttons[(*index.value())].enabled) return false;
+    TaskDialogButtonClick request{std::string(button_id), !page_.buttons[(*index.value())].allow_close};
     button_clicked_.emit(request);
     // A handler may have navigated to another page or closed the dialog.
     if (!is_alive() || request.keep_open || !shown_) return true;
@@ -492,7 +492,7 @@ void TaskDialog::on_key_preview(KeyEvent& event) {
     if (!shown_ || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::escape) {
         const std::string cancel = cancel_button_id();
-        if (button_index(cancel)) {
+        if (button_index(cancel).present()) {
             static_cast<void>(click(cancel));
         } else if (page_.allow_cancel) {
             finish(cancel);

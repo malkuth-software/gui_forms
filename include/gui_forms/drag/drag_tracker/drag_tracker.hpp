@@ -89,6 +89,7 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -371,7 +372,7 @@ struct GUI_FORMS_API DragTrackerCallbacks final {
 struct GUI_FORMS_API DragStart final {
     Control* subject{};
     std::uint64_t key{};
-    std::optional<Rect> source{};
+    stxlib::Optional<Rect> source{};
     double threshold{default_drag_threshold};
 };
 

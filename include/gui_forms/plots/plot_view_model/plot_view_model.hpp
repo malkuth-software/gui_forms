@@ -43,6 +43,7 @@
 #include "gui_forms/plots/plot_types/plot_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -135,8 +136,8 @@ public:
     [[nodiscard]] PlotGesture gesture() const noexcept { return gesture_; }
     // The box being dragged in logical units (box zoom or query); none
     // otherwise.
-    [[nodiscard]] std::optional<Rect> drag_box() const noexcept;
-    [[nodiscard]] const std::optional<PlotSelection>& selection() const noexcept { return selection_; }
+    [[nodiscard]] stxlib::Optional<Rect> drag_box() const noexcept;
+    [[nodiscard]] const stxlib::Optional<PlotSelection>& selection() const noexcept { return selection_; }
     // Whether axis `index` of its orientation still follows the tail.
     [[nodiscard]] bool x_following(std::size_t index) const noexcept;
 
@@ -198,7 +199,7 @@ private:
     Point gesture_start_{};
     Point gesture_last_{};
     bool gesture_moved_{};
-    std::optional<PlotSelection> selection_{};
+    stxlib::Optional<PlotSelection> selection_{};
 };
 
 } // namespace gui_forms::plots

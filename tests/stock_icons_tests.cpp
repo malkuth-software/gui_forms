@@ -14,6 +14,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -138,8 +139,8 @@ void nearest_size_is_chosen() {
 void stock_icon_image_ids() {
     const ImageId nearest = stock_icon_image("check-circle", StockIconStyle::solid);
     require(nearest.value != 0U && is_stock_icon_image(nearest), "a stock icon id is made");
-    const std::optional<StockIconImage> parts = stock_icon_image_parts(nearest);
-    require(parts && (*parts).name == "check-circle" && (*parts).style == StockIconStyle::solid && !(*parts).size,
+    const stxlib::Optional<StockIconImage> parts = stock_icon_image_parts(nearest);
+    require(parts.present() && ((*parts.value())).name == "check-circle" && ((*parts.value())).style == StockIconStyle::solid && ((*parts.value())).size.absent(),
             "the id names the icon and leaves the size to the drawn size");
     const std::optional<StockIcon> drawn = stock_icon_for_image(nearest, 20.0);
     require(drawn && (*drawn).size == StockIconSize::grid_20, "the drawn size chooses the variant");

@@ -275,8 +275,8 @@ void mark_hatch_pixel(std::array<SkPMColor, Count>& pixels,
 
 void apply_image_attributes(SkPaint& paint,
                             const ImageAttributesSnapshot& attributes) {
-    if (!attributes.color_matrix.has_value()) return;
-    const std::array<double, 25>& colors = *attributes.color_matrix;
+    if (attributes.color_matrix.absent()) return;
+    const std::array<double, 25>& colors = (*attributes.color_matrix.value());
     float matrix[20]{};
     for (std::size_t output = 0; output < 4U; ++output) {
         for (std::size_t input = 0; input < 4U; ++input) {
@@ -825,7 +825,7 @@ struct ImageRowCopy final {
 // (see ImageRowCopy). Reads the source rectangle's alpha bytes once.
 [[nodiscard]] std::optional<ImageRowCopy> image_row_copy(const DrawingCommand& command) {
     const ImageAttributesSnapshot& attributes = command.image_attributes;
-    if (attributes.color_matrix.has_value() || !attributes.remap_table.empty()) return std::nullopt;
+    if (attributes.color_matrix.present() || !attributes.remap_table.empty()) return std::nullopt;
     const Matrix& transform = command.state.transform;
     if (transform.m11() != 1.0 || transform.m12() != 0.0 || transform.m21() != 0.0 || transform.m22() != 1.0) {
         return std::nullopt;
@@ -856,8 +856,8 @@ struct ImageRowCopy final {
     // * row_bytes and needs row_end bytes (row_bytes >= row_end > 0).
     if (row_bytes < row_end || pixels.size() < row_end) return std::nullopt;
     if (last_row > (pixels.size() - row_end) / row_bytes) return std::nullopt;
-    if (command.state.clip) {
-        const RectF& clip = *command.state.clip;
+    if (command.state.clip.present()) {
+        const RectF& clip = (*command.state.clip.value());
         if (!exact_whole(clip.x) || !exact_whole(clip.y) || !exact_whole(clip.width) || !exact_whole(clip.height) ||
             clip.width < 0.0 || clip.height < 0.0) {
             return std::nullopt;
@@ -1075,8 +1075,8 @@ struct ResolvedFont final {
 [[nodiscard]] gui_forms::Rect text_clip_rect(const GraphicsState& state, const std::uint32_t width,
                                              const std::uint32_t height) noexcept {
     gui_forms::Rect result{0.0, 0.0, static_cast<double>(width), static_cast<double>(height)};
-    if (!state.clip) return result;
-    const RectF clip = *state.clip;
+    if (state.clip.absent()) return result;
+    const RectF clip = (*state.clip.value());
     // Within the target: a clip may reach far beyond it (draw_string_over_fill's
     // bands reach 2^30 units when no clip is in force), past the text
     // compositor's coordinate range, and nothing outside the target is drawn.
@@ -1699,8 +1699,8 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                 (*canvas).restoreAll();
                 (*canvas).save();
                 (*canvas).resetMatrix();
-                if (command.state.clip) {
-                    (*canvas).clipRect(to_sk_rect(*command.state.clip),
+                if (command.state.clip.present()) {
+                    (*canvas).clipRect(to_sk_rect((*command.state.clip.value())),
                                      SkClipOp::kIntersect, false);
                 }
                 (*canvas).setMatrix(to_sk_matrix(command.state.transform));

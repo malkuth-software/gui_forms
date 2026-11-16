@@ -4,6 +4,7 @@
 
 #include "gui_forms/control/stable_id/stable_id.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <iterator>
 #include <stdexcept>
@@ -33,9 +34,9 @@ std::size_t BindingTable::add_column(BindingColumn column) {
 }
 
 std::size_t BindingTable::find_or_add_column(std::string_view name) {
-    const std::optional<std::size_t> found = schema_.find(name);
-    if (found) {
-        return *found;
+    const stxlib::Optional<std::size_t> found = schema_.find(name);
+    if (found.present()) {
+        return (*found.value());
     }
     BindingColumn column;
     column.name = std::string(name);
@@ -210,13 +211,13 @@ void BindingTable::set_editable(std::size_t row, bool editable) {
     link_.changed(row, binding_whole_row);
 }
 
-std::optional<std::size_t> BindingTable::find(std::string_view stable_id) const {
+stxlib::Optional<std::size_t> BindingTable::find(std::string_view stable_id) const {
     for (std::size_t row = 0U; row < count(); ++row) {
         if (stable_ids_[row] == stable_id) {
-            return row;
+            return stxlib::Optional<std::size_t>::of(row);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 void BindingTable::set_error(std::size_t row, std::size_t column, std::string text) {

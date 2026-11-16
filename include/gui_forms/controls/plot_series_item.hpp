@@ -11,6 +11,7 @@
 #include "gui_forms/plots/signal_program/signal_program.hpp"
 #include "gui_forms/controls/plot_series_item_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -90,7 +91,7 @@ public:
     // gap-free series of at least pyramid_threshold points), else null.
     [[nodiscard]] const plots::EnvelopePyramid* pyramid() const noexcept;
     // The parsed `source`, when one is set.
-    [[nodiscard]] const std::optional<plots::SignalProgram>& signal() const noexcept { return signal_; }
+    [[nodiscard]] const stxlib::Optional<plots::SignalProgram>& signal() const noexcept { return signal_; }
     [[nodiscard]] const std::shared_ptr<plots::SeriesRingChannel>& channel() const noexcept { return channel_; }
     // Bumped by every data change and property write.
     [[nodiscard]] std::uint64_t revision() const noexcept { return revision_; }
@@ -135,7 +136,7 @@ private:
     plots::BorrowedSeries<double> borrowed_y_{};
     plots::EnvelopePyramid pyramid_{};
     bool pyramid_valid_{};
-    std::optional<plots::SignalProgram> signal_{};
+    stxlib::Optional<plots::SignalProgram> signal_{};
     std::shared_ptr<plots::SeriesRingChannel> channel_{};
     std::shared_ptr<PlotCustomSeries> custom_{};
     std::uint64_t revision_{};

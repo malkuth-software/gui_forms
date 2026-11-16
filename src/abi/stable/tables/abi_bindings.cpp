@@ -15,6 +15,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -170,23 +171,23 @@ gf_status check_batch(const BindingSource& source, const std::vector<AbiRecord>&
         }
         bool present = false;
         if (table) {
-            present = (*table).find(record.stable_id).has_value();
+            present = (*table).find(record.stable_id).present();
         } else {
-            present = source.find_stable_id(record.stable_id).has_value();
+            present = source.find_stable_id(record.stable_id).present();
         }
         if (present) {
             return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's stable id is repeated or already present");
         }
         for (const std::pair<std::string, BindingValue>& field : record.fields) {
-            const std::optional<std::size_t> column = source.column_of(field.first);
-            if (!column) {
+            const stxlib::Optional<std::size_t> column = source.column_of(field.first);
+            if (column.absent()) {
                 if (!table) {
                     return fail(GF_STATUS_INVALID_ARGUMENT, slot,
                                 "a record names a field the source has no column for");
                 }
                 continue;
             }
-            if (!source.schema().admits(*column, field.second)) {
+            if (!source.schema().admits((*column.value()), field.second)) {
                 return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's value is not of its column's kind");
             }
         }
@@ -214,8 +215,8 @@ std::vector<BindingRow> place_records(BindingSource& source, std::vector<AbiReco
         row.editable = record.editable;
         row.values.resize(source.schema().size());
         for (std::pair<std::string, BindingValue>& field : record.fields) {
-            const std::optional<std::size_t> column = source.column_of(field.first);
-            row.values[*column] = std::move(field.second);
+            const stxlib::Optional<std::size_t> column = source.column_of(field.first);
+            row.values[(*column.value())] = std::move(field.second);
         }
         rows.push_back(std::move(row));
     }
@@ -224,11 +225,11 @@ std::vector<BindingRow> place_records(BindingSource& source, std::vector<AbiReco
 
 // A record's view position, or GF_BINDING_HIDDEN_POSITION when the
 // source's filter hides it.
-std::uint64_t position_or_hidden(const std::optional<std::size_t>& position) noexcept {
-    if (!position) {
+std::uint64_t position_or_hidden(const stxlib::Optional<std::size_t>& position) noexcept {
+    if (position.absent()) {
         return GF_BINDING_HIDDEN_POSITION;
     }
-    return static_cast<std::uint64_t>(*position);
+    return static_cast<std::uint64_t>((*position.value()));
 }
 
 gf_status read_options(const gf_binding_arguments& arguments, BindingOptions& options) {
@@ -705,7 +706,7 @@ gf_status bindings_set_sort_body(gf_object source, const gf_binding_sort_key* ke
         return entered;
     }
     for (const BindingSortKey& key : converted) {
-        if (!(*typed).column_of(key.column)) {
+        if ((*typed).column_of(key.column).absent()) {
             return fail(GF_STATUS_NOT_FOUND, set_sort_slot, "a sort key names a column the source has not got");
         }
     }
@@ -729,7 +730,7 @@ gf_status bindings_set_filter_body(gf_object source, const gf_binding_predicate*
         return entered;
     }
     for (const BindingPredicate& predicate : converted.all_of) {
-        if (!(*typed).column_of(predicate.column)) {
+        if ((*typed).column_of(predicate.column).absent()) {
             return fail(GF_STATUS_NOT_FOUND, set_filter_slot, "a predicate names a column the source has not got");
         }
     }

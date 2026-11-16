@@ -12,6 +12,7 @@
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -230,7 +231,7 @@ gf_status controls_scroll_state_body(gf_object object, gf_scroll_snapshot* state
     }
     settle_layout(*scrollable);
     const ScrollSnapshot snapshot = (*scrollable).scroll_snapshot();
-    const std::optional<ScrollEvent> last = (*scrollable).last_scroll_event();
+    const stxlib::Optional<ScrollEvent> last = (*scrollable).last_scroll_event();
     gf_scroll_snapshot complete{};
     complete.struct_size = scroll_snapshot_size_1_0;
     complete.auto_scroll = snapshot.auto_scroll ? 1U : 0U;
@@ -247,11 +248,11 @@ gf_status controls_scroll_state_body(gf_object object, gf_scroll_snapshot* state
     complete.horizontal = c_axis(snapshot.horizontal);
     complete.vertical = c_axis(snapshot.vertical);
     complete.event_revision = (*scrollable).scroll_event_revision();
-    if (last) {
-        complete.event_type = static_cast<std::uint32_t>((*last).type);
-        complete.event_orientation = static_cast<gf_scroll_orientation>((*last).orientation);
-        complete.event_old_value = (*last).old_value;
-        complete.event_new_value = (*last).new_value;
+    if (last.present()) {
+        complete.event_type = static_cast<std::uint32_t>(((*last.value())).type);
+        complete.event_orientation = static_cast<gf_scroll_orientation>(((*last.value())).orientation);
+        complete.event_old_value = ((*last.value())).old_value;
+        complete.event_new_value = ((*last.value())).new_value;
     }
     write_record(complete, state);
     return GF_STATUS_OK;

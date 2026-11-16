@@ -5,6 +5,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../basic/number_text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -275,7 +276,7 @@ void Splitter::on_mouse_down(MouseEventArgs& arguments) {
     if (arguments.button == PointerButton::primary && enabled.read() && prepare_drag()) {
         // No threshold: the press starts the drag, as before the engine.
         DragStart start{};
-        start.source = absolute_bounds();
+        start.source.set(absolute_bounds());
         start.threshold = 0.0;
         const PointerEvent press = pointer_event_of(arguments);
         const DragStartResult result = drag_.press(press, start);

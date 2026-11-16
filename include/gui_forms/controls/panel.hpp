@@ -28,7 +28,7 @@ public:
     void clear_background();
     [[nodiscard]] const BasicControlStyle& style() const noexcept;
     [[nodiscard]] bool has_style_override() const noexcept {
-        return style_override_.has_value();
+        return style_override_.present();
     }
     void set_style(BasicControlStyle style);
     void clear_style();
@@ -80,7 +80,7 @@ private:
     // fields select the face. Assembling allocates.
     [[nodiscard]] bool rule_face_material(SurfaceMaterial& material) const;
 
-    std::optional<BasicControlStyle> style_override_;
+    stxlib::Optional<BasicControlStyle> style_override_;
     stxlib::Optional<Color> background_override_;
     // Whether the paint plane is the one on_attached_to_window derived (and
     // may derive again at the next attach), not a subclass's own choice.

@@ -4,6 +4,7 @@
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/types/paint_path/paint_path.hpp"
 
+#include <stxlib/optional.hpp>
 #include <optional>
 #include <span>
 
@@ -58,7 +59,7 @@ GUI_FORMS_API void paint_surface_material(Painter& painter, Rect bounds,
 // for any other material (a gradient, an image, shadows, outsets, filters,
 // masks, reflections, per-edge borders), which a size change alters
 // anywhere.
-[[nodiscard]] GUI_FORMS_API std::optional<double> surface_material_resize_band(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<double> surface_material_resize_band(
     const SurfaceMaterial& material) noexcept;
 // How far the outer (not inset) shadows among `shadows` reach outside the
 // rect that casts them: three blur radii plus any positive spread, shifted

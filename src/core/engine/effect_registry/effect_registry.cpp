@@ -12,6 +12,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -525,7 +526,7 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
     key.extent = extent;
     key.scale = scale;
     key.half = half;
-    if (backdrop_ && backdrop_key_ && *backdrop_key_ == key) return backdrop_;
+    if (backdrop_ && backdrop_key_.present() && (*backdrop_key_.value()) == key) return backdrop_;
     const PartRaster& image = *lent.image;
     const DeviceExtent grown{extent.width + margin * 2U, extent.height + margin * 2U};
     if (!(image.extent() == grown)) return {};
@@ -573,7 +574,7 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
             destination.pixels[write + element] = static_cast<std::uint8_t>(work.first[read + element]);
         }
     }
-    backdrop_key_ = key;
+    backdrop_key_.set(key);
     return backdrop_;
 }
 

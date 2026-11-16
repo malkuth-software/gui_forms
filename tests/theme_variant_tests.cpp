@@ -284,13 +284,13 @@ void test_module_and_preview_grounds_follow_scheme() {
 void test_declaring_schemes() {
     const Compilation both = compile(":root { color-scheme: light dark }");
     require(both.outcome == CompileOutcome::compiled && both.diagnostics.empty(), "light dark compiles cleanly");
-    require(both.sheet.colour_schemes && (*both.sheet.colour_schemes).light && (*both.sheet.colour_schemes).dark,
+    require(both.sheet.colour_schemes.present() && ((*both.sheet.colour_schemes.value())).light && ((*both.sheet.colour_schemes.value())).dark,
             "light dark declares both variants");
     const Compilation dark = compile(":root { COLOR-SCHEME: Dark }");
-    require(dark.sheet.colour_schemes && !(*dark.sheet.colour_schemes).light && (*dark.sheet.colour_schemes).dark,
+    require(dark.sheet.colour_schemes.present() && !((*dark.sheet.colour_schemes.value())).light && ((*dark.sheet.colour_schemes.value())).dark,
             "dark alone, in any case");
     const Compilation none = compile("#pad { opacity: 0.5 }");
-    require(!none.sheet.colour_schemes, "a sheet that says nothing declares nothing");
+    require(none.sheet.colour_schemes.absent(), "a sheet that says nothing declares nothing");
 
     const char* const refused[] = {
         ":root { color-scheme: only light }",
@@ -301,7 +301,7 @@ void test_declaring_schemes() {
     };
     for (const char* const text : refused) {
         const Compilation compiled = compile(text);
-        require(compiled.outcome == CompileOutcome::refused && !compiled.sheet.colour_schemes,
+        require(compiled.outcome == CompileOutcome::refused && compiled.sheet.colour_schemes.absent(),
                 std::string("refused: ") + text);
     }
     const Compilation outside = compile("#pad { color-scheme: dark }");

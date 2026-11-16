@@ -9,6 +9,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -423,9 +424,9 @@ void DateTimePicker::open_drop_down() {
         effective_format_provider());
     (*calendar).set_requested_bounds({x, y, width, height});
     OverlayToken token = (*window()).open_overlay(owner, layer);
-    const std::optional<Rect> face =
+    const stxlib::Optional<Rect> face =
         drop_down_popup_face(*window(), picker, Size{width, height}, requested_x);
-    const bool lifted = face.has_value() && lift_.lift(*window(), calendar, *face);
+    const bool lifted = face.present() && lift_.lift(*window(), calendar, (*face.value()));
     if (lifted) (*layer).focusable = true;
     else (*layer).add_child(calendar);
 

@@ -16,6 +16,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -121,10 +122,10 @@ std::span<const DockDropPane> DockSite::drag_panes() const noexcept {
 }
 
 std::optional<DockDropTarget> DockSite::drag_target() const {
-    if (drag_.phase != DockDragPhase::dragging || !drag_.target || *drag_.target >= drag_.targets.size()) {
+    if (drag_.phase != DockDragPhase::dragging || drag_.target.absent() || (*drag_.target.value()) >= drag_.targets.size()) {
         return std::nullopt;
     }
-    const DockDropTarget target = drag_.targets[*drag_.target];
+    const DockDropTarget target = drag_.targets[(*drag_.target.value())];
     return target;
 }
 
@@ -339,18 +340,18 @@ void DockSite::plan_drag_targets() {
     plan_dock_drop_targets((*workspace_).layout(), drag_.subject, own, site_surface(*this), drag_.panes,
                            drag_.targets, edges);
     if (drag_.keyboard) {
-        std::optional<std::size_t> kept{};
+        stxlib::Optional<std::size_t> kept{};
         for (std::size_t index = 0; index < drag_.targets.size() && previous; ++index) {
             const DockDropTarget& target = drag_.targets[index];
             if (target.kind == (*previous).kind && target.pane == (*previous).pane && target.zone == (*previous).zone) {
-                kept = index;
+                kept.set(index);
             }
         }
-        if (!kept && !drag_.targets.empty()) kept = 0U;
-        std::optional<std::size_t> pane{};
-        if (kept && drag_.targets[*kept].kind == DockDropTargetKind::pane) {
+        if (kept.absent() && !drag_.targets.empty()) kept.set(0U);
+        stxlib::Optional<std::size_t> pane{};
+        if (kept.present() && drag_.targets[(*kept.value())].kind == DockDropTargetKind::pane) {
             for (std::size_t index = 0; index < drag_.panes.size(); ++index) {
-                if (drag_.panes[index].node == drag_.targets[*kept].pane) pane = index;
+                if (drag_.panes[index].node == drag_.targets[(*kept.value())].pane) pane.set(index);
             }
         }
         select_drag_target(kept, pane);
@@ -386,32 +387,32 @@ void DockSite::update_drag_pointer(Point local, Modifier modifiers) {
     const DockDropEdges edges = floating() ? DockDropEdges::none : DockDropEdges::global;
     const DockDropHit hit = hit_dock_drop(local, site_surface(*this), drag_.panes, effective_text_scale(), edges);
     drag_.over_site = hit.over_site;
-    std::optional<std::size_t> target{};
-    std::optional<std::size_t> pane{};
+    stxlib::Optional<std::size_t> target{};
+    stxlib::Optional<std::size_t> pane{};
     if (!drag_.suppressed) {
         target = find_dock_drop_target(drag_.targets, drag_.panes, hit);
-        pane = hit.edge ? std::nullopt : hit.pane;
+        pane = hit.edge ? stxlib::Optional<std::size_t>::none() : hit.pane;
     }
     // Across windows the topmost site under the desktop pointer shows the
     // targets; this one shows none while that is another (phase D4).
-    std::optional<Point> desktop{};
+    stxlib::Optional<Point> desktop{};
     if (!drag_.guest && workspace_ != nullptr && (*workspace_).windows_attached()) desktop = to_desktop(local);
     DockSite* under = this;
-    if (desktop) under = remote_site(*desktop, nullptr);
+    if (desktop.present()) under = remote_site((*desktop.value()), nullptr);
     if (under != this) {
         target.reset();
         pane.reset();
         drag_.over_site = false;
     }
     select_drag_target(target, pane);
-    if (desktop) route_drag(*desktop, modifiers, nullptr);
+    if (desktop.present()) route_drag((*desktop.value()), modifiers, nullptr);
     if (drag_layer_) {
         (*drag_layer_).invalidate(before);
         (*drag_layer_).invalidate(drag_paint_extent());
     }
 }
 
-void DockSite::select_drag_target(std::optional<std::size_t> target, std::optional<std::size_t> hovered_pane) {
+void DockSite::select_drag_target(stxlib::Optional<std::size_t> target, stxlib::Optional<std::size_t> hovered_pane) {
     const bool pane_changed = drag_.hovered_pane != hovered_pane;
     const bool target_changed = drag_.target != target;
     drag_.target = target;
@@ -419,7 +420,7 @@ void DockSite::select_drag_target(std::optional<std::size_t> target, std::option
         drag_.hovered_pane = hovered_pane;
         // A newly hovered pane's cross fades in (at once under reduced
         // motion or in an occluded window).
-        if (hovered_pane) {
+        if (hovered_pane.present()) {
             tile_fade_.jump_to(0.0);
             static_cast<void>(tile_fade_.animate_to(1.0));
         } else {
@@ -455,8 +456,8 @@ Rect DockSite::drag_paint_extent() const {
     Rect extent = drag_.stamp;
     const std::optional<DockDropTarget> target = drag_target();
     if (target) extent = Rect::united(extent, (*target).highlight);
-    if (drag_.hovered_pane && *drag_.hovered_pane < drag_.panes.size()) {
-        extent = Rect::united(extent, drag_.panes[*drag_.hovered_pane].bounds);
+    if (drag_.hovered_pane.present() && (*drag_.hovered_pane.value()) < drag_.panes.size()) {
+        extent = Rect::united(extent, drag_.panes[(*drag_.hovered_pane.value())].bounds);
     }
     const Rect cue = drop_cue_bounds();
     if (!cue.empty()) extent = Rect::united(extent, cue);
@@ -503,7 +504,7 @@ void DockSite::end_drag(DockDragEnd end) {
     }
     // Released where nothing accepts: it floats at the pointer when it may
     // (D4-1).
-    std::optional<Rect> float_frame{};
+    stxlib::Optional<Rect> float_frame{};
     if (ending == DockDragEnd::rejected && end == DockDragEnd::dropped && drag_.may_float) {
         float_frame = float_frame_at(drag_.pointer);
     }
@@ -532,8 +533,8 @@ void DockSite::end_drag(DockDragEnd end) {
         transaction.edits.push_back((*target).edit);
         result = (*workspace_).apply(transaction);
         if (!result.applied) ending = DockDragEnd::rejected;
-    } else if (float_frame) {
-        result = (*workspace_).float_subject(subject, *float_frame);
+    } else if (float_frame.present()) {
+        result = (*workspace_).float_subject(subject, (*float_frame.value()));
         if (result.applied) ending = DockDragEnd::floated;
     }
     if (!is_alive()) return;
@@ -567,7 +568,7 @@ void DockSite::end_drag(DockDragEnd end) {
     if (ending == DockDragEnd::dropped) {
         outcome = DockDragOutcome::dropped(subject, *target, result, across_windows);
     } else if (ending == DockDragEnd::floated) {
-        outcome = DockDragOutcome::floated(subject, result, *float_frame);
+        outcome = DockDragOutcome::floated(subject, result, (*float_frame.value()));
     }
     drag_ended_.emit(outcome);
 }
@@ -692,7 +693,7 @@ std::size_t DockSite::tile_count() const noexcept {
     if (drag_.phase != DockDragPhase::dragging) return 0U;
     // A floating site has no window-edge targets.
     std::size_t count = floating() ? 0U : edge_order.size();
-    if (drag_.hovered_pane && *drag_.hovered_pane < drag_.panes.size()) count += dock_drop_zone_count;
+    if (drag_.hovered_pane.present() && (*drag_.hovered_pane.value()) < drag_.panes.size()) count += dock_drop_zone_count;
     return count;
 }
 
@@ -708,10 +709,10 @@ DockSite::TileSlot DockSite::tile_at(std::size_t tile) const {
     TileSlot slot{};
     const double scale = effective_text_scale();
     std::size_t index = tile;
-    const bool cross = drag_.hovered_pane && *drag_.hovered_pane < drag_.panes.size();
+    const bool cross = drag_.hovered_pane.present() && (*drag_.hovered_pane.value()) < drag_.panes.size();
     const std::optional<DockDropTarget> chosen = drag_target();
     if (cross && index < dock_drop_zone_count) {
-        const DockDropPane& pane = drag_.panes[*drag_.hovered_pane];
+        const DockDropPane& pane = drag_.panes[(*drag_.hovered_pane.value())];
         slot.kind = DockDropTargetKind::pane;
         slot.pane = pane.node;
         slot.zone = cross_order[index];
@@ -768,7 +769,7 @@ Rect DockSite::drag_label_bounds() const noexcept {
 Rect DockSite::drop_cue_bounds() const noexcept {
     // Shown only where a release snaps back: a subject that may float floats
     // there instead (D4-1).
-    if (drag_.phase != DockDragPhase::dragging || drag_.keyboard || !drag_.over_site || drag_.target ||
+    if (drag_.phase != DockDragPhase::dragging || drag_.keyboard || !drag_.over_site || drag_.target.present() ||
         drag_.may_float) {
         return {};
     }
@@ -977,24 +978,24 @@ void DockSite::step_keyboard_target(int direction) {
         }
     }
     std::size_t current = 0U;
-    const std::optional<std::size_t> at = drag_.target;
-    for (std::size_t stop = 0; stop < stops.size() && at; ++stop) {
-        const DockDropTarget& held = drag_.targets[*at];
+    const stxlib::Optional<std::size_t> at = drag_.target;
+    for (std::size_t stop = 0; stop < stops.size() && at.present(); ++stop) {
+        const DockDropTarget& held = drag_.targets[(*at.value())];
         const DockDropTarget& candidate = drag_.targets[stops[stop]];
         const bool same_pane = held.kind == DockDropTargetKind::pane && candidate.kind == DockDropTargetKind::pane &&
                                held.pane == candidate.pane;
-        if (same_pane || stops[stop] == *at) current = stop;
+        if (same_pane || stops[stop] == (*at.value())) current = stop;
     }
     const std::size_t count = stops.size();
     const std::size_t next = direction >= 0 ? (current + 1U) % count : (current + count - 1U) % count;
     const std::size_t chosen = stops[next];
-    std::optional<std::size_t> pane{};
+    stxlib::Optional<std::size_t> pane{};
     if (drag_.targets[chosen].kind == DockDropTargetKind::pane) {
         for (std::size_t index = 0; index < drag_.panes.size(); ++index) {
-            if (drag_.panes[index].node == drag_.targets[chosen].pane) pane = index;
+            if (drag_.panes[index].node == drag_.targets[chosen].pane) pane.set(index);
         }
     }
-    select_drag_target(chosen, pane);
+    select_drag_target(stxlib::Optional<std::size_t>::of(chosen), pane);
 }
 
 // Within the current pane: Left and Right along left, centre, right; Up and
@@ -1022,7 +1023,7 @@ void DockSite::step_keyboard_zone(std::uint32_t key) {
             const DockDropTarget& target = drag_.targets[index];
             if (target.kind != DockDropTargetKind::pane || !(target.pane == (*current).pane)) continue;
             if (target.zone != wanted[choice]) continue;
-            select_drag_target(index, drag_.hovered_pane);
+            select_drag_target(stxlib::Optional<std::size_t>::of(index), drag_.hovered_pane);
             return;
         }
     }
@@ -1037,12 +1038,12 @@ std::uint64_t DockSite::now_nanoseconds() noexcept {
     return value;
 }
 
-std::optional<Point> DockSite::to_desktop(Point local) const {
-    if (workspace_ == nullptr) return std::nullopt;
-    const std::optional<Point> origin = (*workspace_).desktop_origin(*this);
-    if (!origin) return std::nullopt;
-    const Point desktop{(*origin).x + local.x, (*origin).y + local.y};
-    return desktop;
+stxlib::Optional<Point> DockSite::to_desktop(Point local) const {
+    if (workspace_ == nullptr) return stxlib::Optional<Point>::none();
+    const stxlib::Optional<Point> origin = (*workspace_).desktop_origin(*this);
+    if (origin.absent()) return stxlib::Optional<Point>::none();
+    const Point desktop{((*origin.value())).x + local.x, ((*origin.value())).y + local.y};
+    return stxlib::Optional<Point>::of(desktop);
 }
 
 DockSite* DockSite::remote_site(Point desktop, const DockSite* excluded) const {
@@ -1123,23 +1124,23 @@ void DockSite::route_drag(Point desktop, Modifier modifiers, const DockSite* exc
         drag_.remote.reset();
         return;
     }
-    const std::optional<Point> origin = (*workspace_).desktop_origin(*under);
-    if (!origin) {
+    const stxlib::Optional<Point> origin = (*workspace_).desktop_origin(*under);
+    if (origin.absent()) {
         drag_.remote.reset();
         return;
     }
     drag_.remote = (*under).weak_from_this();
-    const Point local{desktop.x - (*origin).x, desktop.y - (*origin).y};
+    const Point local{desktop.x - ((*origin.value())).x, desktop.y - ((*origin.value())).y};
     (*under).show_guest_drag(drag_, &stamp_motion_, local, modifiers);
 }
 
-std::optional<Rect> DockSite::float_frame_at(Point local) const {
-    const std::optional<Point> desktop = to_desktop(local);
-    if (!desktop) return std::nullopt;
+stxlib::Optional<Rect> DockSite::float_frame_at(Point local) const {
+    const stxlib::Optional<Point> desktop = to_desktop(local);
+    if (desktop.absent()) return stxlib::Optional<Rect>::none();
     const double width = std::max(1.0, drag_.source.width);
     const double height = std::max(1.0, drag_.source.height);
-    const Rect frame{(*desktop).x - drag_.grab.x * width, (*desktop).y - drag_.grab.y * height, width, height};
-    return frame;
+    const Rect frame{((*desktop.value())).x - drag_.grab.x * width, ((*desktop.value())).y - drag_.grab.y * height, width, height};
+    return stxlib::Optional<Rect>::of(frame);
 }
 
 // -- moving a floating window by its caption (phase D4) ------------------------
@@ -1185,8 +1186,8 @@ void DockSite::continue_window_move(Modifier modifiers) {
         window_move_.remote.reset();
         return;
     }
-    const std::optional<Point> origin = (*workspace_).desktop_origin(*under);
-    if (!origin) return;
+    const stxlib::Optional<Point> origin = (*workspace_).desktop_origin(*under);
+    if (origin.absent()) return;
     DragSession source{};
     source.subject = window_move_.subject;
     source.source_stack = window_move_.subject.stack;
@@ -1195,7 +1196,7 @@ void DockSite::continue_window_move(Modifier modifiers) {
     source.grab = {0.5, 0.0};
     source.stamp_hidden = true;
     window_move_.remote = (*under).weak_from_this();
-    const Point local{pointer.position.x - (*origin).x, pointer.position.y - (*origin).y};
+    const Point local{pointer.position.x - ((*origin.value())).x, pointer.position.y - ((*origin.value())).y};
     (*under).show_guest_drag(source, nullptr, local, modifiers);
 }
 

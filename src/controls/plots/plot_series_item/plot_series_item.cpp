@@ -1,6 +1,7 @@
 #include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -221,10 +222,10 @@ void PlotSeriesItem::update_pyramid(std::size_t previous) {
 }
 
 bool PlotSeriesItem::run_signal_frame(const plots::SignalFrame& frame, plots::SignalSink& sink) {
-    if (!signal_) return false;
+    if (signal_.absent()) return false;
     if (xs_.mode() != plots::SeriesMode::ring) make_ring(signal_ring_capacity);
     sink.clear();
-    plots::run_signal(*signal_, frame, sink);
+    plots::run_signal((*signal_.value()), frame, sink);
     if (sink.count == 0U) return false;
     const std::span<const double> times(sink.times.data(), sink.count);
     const std::span<const double> values(sink.values.data(), sink.count);
@@ -318,7 +319,7 @@ void PlotSeriesItem::written(const decltype(source)&) {
     } else {
         plots::SignalProgram program{};
         static_cast<void>(plots::parse_signal_source(text, program));
-        signal_ = program;
+        signal_.set(program);
         make_ring(signal_ring_capacity);
     }
     notify_plot();

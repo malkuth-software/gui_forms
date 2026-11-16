@@ -2,6 +2,7 @@
 
 #include "gui_forms/binding/number_format/number_format.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -58,10 +59,10 @@ void label_number(TickLabel& label, double value, int decimals, std::string& scr
     NumberFormat format{};
     if (decimals >= 0 && decimals <= 9) {
         format.kind = NumberFormatKind::fixed;
-        format.precision = static_cast<std::uint32_t>(decimals);
+        format.precision.set(static_cast<std::uint32_t>(decimals));
     } else {
         format.kind = NumberFormatKind::general;
-        format.precision = 6U;
+        format.precision.set(6U);
     }
     // -0 would print "-0": a tick at zero is zero.
     const double shown = value == 0.0 ? 0.0 : value;
@@ -105,7 +106,7 @@ void label_duration(TickLabel& label, double value, const DurationLabel& form, s
     scratch.clear();
     NumberFormat format{};
     format.kind = NumberFormatKind::fixed;
-    format.precision = static_cast<std::uint32_t>(std::min(form.decimals, 9));
+    format.precision.set(static_cast<std::uint32_t>(std::min(form.decimals, 9)));
     const double scaled = value * form.factor;
     const double shown = scaled == 0.0 ? 0.0 : scaled;
     append_formatted_number(scratch, shown, format);

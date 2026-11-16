@@ -30,6 +30,7 @@
 #include "gui_forms/window/window.hpp"
 #include "support/routed_input_probe.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -87,7 +88,7 @@ public:
         if (event.action == PointerAction::down && event.button == PointerButton::primary) {
             DragStart start{};
             start.threshold = threshold;
-            start.source = subject_rect();
+            start.source.set(subject_rect());
             last_start = tracker.press(event, start);
             event.handled = last_start == DragStartResult::armed || last_start == DragStartResult::started;
             return;

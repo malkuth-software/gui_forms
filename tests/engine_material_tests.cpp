@@ -37,6 +37,7 @@
 #include "../src/core/engine/primitives/material/material_bake_policy.hpp"
 #include "../src/core/engine/primitives/material/material_primitive.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -209,15 +210,15 @@ void choices_are_the_recipe_roles() {
         const ControlVisualRole role = static_cast<ControlVisualRole>(index);
         require(choices[index] == control_visual_role_name(role), "the choices are the roles' names in enum order");
         const PrimitiveParameterBlock parameters = recipe(choices[index]);
-        const std::optional<ControlVisualRole> chosen =
+        const stxlib::Optional<ControlVisualRole> chosen =
             material_primitive().theme_material(parameters, ControlVisualRole::panel);
-        require(chosen && *chosen == role, "the chosen recipe is the theme material's role, whatever the family");
+        require(chosen.present() && (*chosen.value()) == role, "the chosen recipe is the theme material's role, whatever the family");
     }
     require(choices[roles] == "family", "the last choice is the part's family (EC1)");
     const PrimitiveParameterBlock defaults = default_parameters(descriptor);
-    const std::optional<ControlVisualRole> family =
+    const stxlib::Optional<ControlVisualRole> family =
         material_primitive().theme_material(defaults, ControlVisualRole::menu_item);
-    require(family && *family == ControlVisualRole::menu_item, "by default the material draws the part's family");
+    require(family.present() && (*family.value()) == ControlVisualRole::menu_item, "by default the material draws the part's family");
     require(descriptor.outsets == (Insets{8.0, 8.0, 8.0, 8.0}), "the material draws 8 units outside its box");
     require(descriptor.inputs_read.empty(), "a material reads no inputs, so it never bakes per frame");
     for (const PrimitiveParameterDeclaration& parameter : descriptor.parameters) {
@@ -225,9 +226,9 @@ void choices_are_the_recipe_roles() {
     }
     const EnginePrimitive* const plate = builtin_primitive_registry().find("pill_plate");
     require(plate != nullptr, "the registry has the pill plate");
-    const std::optional<ControlVisualRole> pill =
+    const stxlib::Optional<ControlVisualRole> pill =
         (*plate).theme_material(default_parameters((*plate).descriptor()), ControlVisualRole::button);
-    require(!pill, "a relief primitive draws no theme material");
+    require(pill.absent(), "a relief primitive draws no theme material");
 }
 
 // -- refusals ----------------------------------------------------------------------

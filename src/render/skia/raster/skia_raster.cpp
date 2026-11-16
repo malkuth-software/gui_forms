@@ -49,6 +49,7 @@
 #include "include/effects/SkShaderMaskFilter.h"
 #include "include/effects/SkGradient.h"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -1091,7 +1092,7 @@ bool SkiaRaster::register_bundled_fonts(std::shared_ptr<gui_forms::detail::Bundl
     // The faces of the families with faces of their own (font-family: Selawik), each read the
     // first time text names its family; a role's family draws through the role's faces above.
     for (const FontFamilyRecord& family : bundled_font_families) {
-        if (family.role) continue;
+        if (family.role.present()) continue;
         for (const FontFamilyFace& family_face : family.faces) {
             const text::LazyFaceLoader loader = text::BundledFaceLoader{set, family_face.file_name};
             if (!(*impl_).register_lazy_family_font(family.id, family_face.weight, family_face.italic, loader)) {
@@ -1465,25 +1466,25 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
     std::unordered_set<std::uint64_t> active;
     for (const ImageId id : registry.image_ids()) {
         active.insert(id.value);
-        const std::optional<ImageResourceView> resource = registry.find(id);
-        if (!resource) {
+        const stxlib::Optional<ImageResourceView> resource = registry.find(id);
+        if (resource.absent()) {
             synchronized = false;
             continue;
         }
         const Impl::ImageMap::const_iterator existing = (*impl_).images.find(id.value);
         if (existing != (*impl_).images.end() &&
-            (*existing).second.content_hash == (*resource).content_hash) {
+            (*existing).second.content_hash == ((*resource.value())).content_hash) {
             continue;
         }
-        if (apply_image_patch(*resource)) {
+        if (apply_image_patch((*resource.value()))) {
             continue;
         }
 
-        if ((*resource).metadata.width >
+        if (((*resource.value())).metadata.width >
                 static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
-            (*resource).metadata.height >
+            ((*resource.value())).metadata.height >
                 static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
-            (*resource).metadata.decoded_byte_count >
+            ((*resource.value())).metadata.decoded_byte_count >
                 std::numeric_limits<std::size_t>::max()) {
             (*impl_).images.erase(id.value);
             synchronized = false;
@@ -1491,15 +1492,15 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
         }
 
         const SkImageInfo output_info = SkImageInfo::Make(
-            static_cast<int>((*resource).metadata.width),
-            static_cast<int>((*resource).metadata.height),
+            static_cast<int>(((*resource.value())).metadata.width),
+            static_cast<int>(((*resource.value())).metadata.height),
             kBGRA_8888_SkColorType,
             kPremul_SkAlphaType,
             SkColorSpace::MakeSRGB());
         const std::size_t row_bytes = output_info.minRowBytes();
         const std::optional<std::size_t> output_bytes = output_info.checkedByteSize(row_bytes);
-        if (row_bytes != static_cast<std::size_t>((*resource).metadata.width) * 4U ||
-            !output_bytes || *output_bytes != (*resource).metadata.decoded_byte_count) {
+        if (row_bytes != static_cast<std::size_t>(((*resource.value())).metadata.width) * 4U ||
+            !output_bytes || *output_bytes != ((*resource.value())).metadata.decoded_byte_count) {
             (*impl_).images.erase(id.value);
             synchronized = false;
             continue;
@@ -1509,16 +1510,16 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
         sk_sp<SkData> pixel_data;
         bool pixels_opaque = false;
         const bool patchable =
-            (*resource).encoding == ImageResourceEncoding::bgra32_premultiplied;
+            ((*resource.value())).encoding == ImageResourceEncoding::bgra32_premultiplied;
         if (patchable) {
-            if ((*resource).row_bytes != row_bytes ||
-                (*resource).encoded.size() != (*resource).metadata.decoded_byte_count) {
+            if (((*resource.value())).row_bytes != row_bytes ||
+                ((*resource.value())).encoded.size() != ((*resource.value())).metadata.decoded_byte_count) {
                 (*impl_).images.erase(id.value);
                 synchronized = false;
                 continue;
             }
             pixel_data = SkData::MakeWithCopy(
-                (*resource).encoded.data(), (*resource).encoded.size());
+                ((*resource.value())).encoded.data(), ((*resource.value())).encoded.size());
         } else {
             const gui_forms::image::PixelTarget target{gui_forms::image::PixelOrder::bgra,
                                                        gui_forms::image::PixelAlpha::premultiplied};
@@ -1526,10 +1527,10 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
             const std::span<std::byte> pixels(
                 static_cast<std::byte*>((*pixel_data).writable_data()), *output_bytes);
             const gui_forms::image::ResourcePixelResult decoded =
-                decoder.decode(*resource, target, pixels, row_bytes);
+                decoder.decode((*resource.value()), target, pixels, row_bytes);
             if (decoded.error != gui_forms::image::ResourcePixelError::none ||
-                decoded.width != (*resource).metadata.width ||
-                decoded.height != (*resource).metadata.height) {
+                decoded.width != ((*resource.value())).metadata.width ||
+                decoded.height != ((*resource.value())).metadata.height) {
                 (*impl_).images.erase(id.value);
                 synchronized = false;
                 continue;
@@ -1549,7 +1550,7 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
             continue;
         }
         Impl::DecodedImage record{};
-        record.content_hash = (*resource).content_hash;
+        record.content_hash = ((*resource.value())).content_hash;
         record.image = std::move(image);
         record.pixels_opaque = pixels_opaque;
         record.drawn_as_copy = pixels_opaque;

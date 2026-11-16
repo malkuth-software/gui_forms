@@ -9,6 +9,7 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -1401,16 +1402,15 @@ std::optional<PropertyDescriptor> PropertyGrid::selected_descriptor(
         : std::optional<PropertyDescriptor>{(*target).second.descriptor};
 }
 
-std::optional<PropertyValueOrigin> PropertyGrid::selected_origin(
+stxlib::Optional<PropertyValueOrigin> PropertyGrid::selected_origin(
     std::string_view property_name) const {
     const Control::Ptr selected = selected_object();
     if (!selected) return {};
     const Impl::EditTargetMap::iterator target = (*impl_).edit_targets.find(
         registered_name(property_name));
     return target != (*impl_).edit_targets.end()
-        ? std::optional<PropertyValueOrigin>{
-              (*selected).property_value_origin((*target).second.property_name)}
-        : std::optional<PropertyValueOrigin>{};
+        ? stxlib::Optional<PropertyValueOrigin>::of((*selected).property_value_origin((*target).second.property_name))
+        : stxlib::Optional<PropertyValueOrigin>::none();
 }
 
 bool PropertyGrid::set_property_expanded(std::string_view property_name,
@@ -1429,14 +1429,14 @@ bool PropertyGrid::set_property_expanded(std::string_view property_name,
     return (*(*impl_).list).set_row_expanded((*found).second, expanded);
 }
 
-std::optional<bool> PropertyGrid::property_expanded(
+stxlib::Optional<bool> PropertyGrid::property_expanded(
     std::string_view property_name) const {
     if (!(*impl_).list) return {};
     const std::string canonical = registered_name(property_name);
     const Impl::StringMap::iterator found =
         (*impl_).property_to_row.find(canonical);
     return found == (*impl_).property_to_row.end()
-        ? std::optional<bool>{}
+        ? stxlib::Optional<bool>::none()
         : (*(*impl_).list).row_expanded((*found).second);
 }
 

@@ -5,6 +5,7 @@
 
 #include "binding_key_order.hpp"
 
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -32,17 +33,17 @@ BindingSchema::BindingSchema(std::vector<BindingColumn> columns) {
     }
 }
 
-std::optional<std::size_t> BindingSchema::find(std::string_view name) const {
+stxlib::Optional<std::size_t> BindingSchema::find(std::string_view name) const {
     if (blank_name(name)) {
-        return std::nullopt;
+        return stxlib::Optional<std::size_t>::none();
     }
     const std::string canonical = canonical_binding_name(name);
     for (std::size_t index = 0U; index < columns_.size(); ++index) {
         if (columns_[index].name == canonical) {
-            return index;
+            return stxlib::Optional<std::size_t>::of(index);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 std::size_t BindingSchema::append(BindingColumn column) {
@@ -57,7 +58,7 @@ std::size_t BindingSchema::append(BindingColumn column) {
     const std::string::size_type last = column.name.find_last_not_of(" \t\r\n");
     std::string spelling = column.name.substr(first, last - first + 1U);
     column.name = canonical_binding_name(column.name);
-    if (find(column.name)) {
+    if (find(column.name).present()) {
         throw std::invalid_argument("GUI.Forms binding schema repeats the column " + column.name);
     }
     // Both vectors grow before either changes, so a refused allocation

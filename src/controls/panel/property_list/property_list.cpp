@@ -7,6 +7,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <vector>
 #include <string>
 #include <array>
@@ -603,7 +604,7 @@ void PropertyList::set_groups(std::vector<PropertyGroupSpec> groups) {
                     "PropertyList choice value must be empty or one declared choice");
             }
             if (row.editor == PropertyEditorKind::boolean &&
-                !binding_value_to_bool(BindingValue{row.value})) {
+                binding_value_to_bool(BindingValue{row.value}).absent()) {
                 throw std::invalid_argument(
                     "PropertyList Boolean value must be True, False, 1, or 0");
             }
@@ -631,7 +632,7 @@ bool PropertyList::set_value(std::string_view row_id, std::string value) {
             "PropertyList choice value must be empty or one declared choice");
     }
     if (model.editor == PropertyEditorKind::boolean &&
-        !binding_value_to_bool(BindingValue{value})) {
+        binding_value_to_bool(BindingValue{value}).absent()) {
         throw std::invalid_argument(
             "PropertyList Boolean value must be True, False, 1, or 0");
     }
@@ -750,11 +751,11 @@ bool PropertyList::set_row_expanded(std::string_view id, bool expanded) {
     return true;
 }
 
-std::optional<bool> PropertyList::row_expanded(std::string_view id) const {
+stxlib::Optional<bool> PropertyList::row_expanded(std::string_view id) const {
     const Impl::RowState* row = (*impl_).find_row(id);
     return row && (*impl_).spec(*row).expandable
-        ? std::optional<bool>{(*impl_).spec(*row).expanded}
-        : std::optional<bool>{};
+        ? stxlib::Optional<bool>::of((*impl_).spec(*row).expanded)
+        : stxlib::Optional<bool>::none();
 }
 
 std::optional<std::string> PropertyList::value(std::string_view id) const {

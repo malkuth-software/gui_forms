@@ -25,6 +25,7 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -439,7 +440,7 @@ private:
     // it; the blur's storage, reused from one blur to the next. Released
     // with the effect.
     std::shared_ptr<PartRaster> backdrop_{};
-    std::optional<BackdropKey> backdrop_key_{};
+    stxlib::Optional<BackdropKey> backdrop_key_{};
     std::unique_ptr<engine_primitives::BoxBlurWork, effect_detail::BlurWorkRelease> blur_work_{};
 };
 

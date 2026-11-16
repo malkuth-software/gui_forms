@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/binding_provider/binding_provider.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -59,7 +60,7 @@ public:
     [[nodiscard]] bool editable(std::size_t row) const { return editable_.at(row) != 0U; }
     void set_editable(std::size_t row, bool editable);
     // The row's index, found by a linear search.
-    [[nodiscard]] std::optional<std::size_t> find(std::string_view stable_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> find(std::string_view stable_id) const;
 
     // An error text for a cell, or for the row with binding_whole_row; an
     // empty text clears it. Kept by stable ID, so it follows the row.

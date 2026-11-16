@@ -624,7 +624,7 @@ DragStartResult DragTrackerSession::start(const DragStart& start, DragInputMode 
     } else if (mode == DragInputMode::pointer) {
         const bool down = press != nullptr && (*press).action == PointerAction::down && finite_point((*press).position);
         const bool threshold = std::isfinite(start.threshold) && start.threshold >= 0.0;
-        const bool source = !start.source || finite_rect(*start.source);
+        const bool source = start.source.absent() || finite_rect((*start.source.value()));
         if (!down || !threshold || !source) problem = DragStartResult::bad_input;
     }
     Control& subject = start.subject != nullptr ? *start.subject : *owner_;
@@ -661,7 +661,7 @@ DragStartResult DragTrackerSession::start(const DragStart& start, DragInputMode 
     if (mode == DragInputMode::pointer) {
         pointer_ = (*press).position;
         modifiers_ = (*press).modifiers;
-        const Rect source = start.source ? *start.source : subject.absolute_bounds();
+        const Rect source = start.source.present() ? (*start.source.value()) : subject.absolute_bounds();
         begun = engine.arm(*this, *owner_, subject, start.key, pointer_, source, start.threshold);
     } else {
         modifiers_ = Modifier::none;

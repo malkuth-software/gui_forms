@@ -1456,7 +1456,7 @@ void paint_live_surface_part(Painter& painter, const PartPaint& part, const std:
 // or no raster of its size made.
 bool paint_light_plane_part(Painter& painter, const Control& control, const PartPaint& part,
                             const std::span<const Rect> clips) {
-    const PartLightPlanes& light = *part.light_planes;
+    const PartLightPlanes& light = (*part.light_planes.value());
     if (!light.planes || light.raster == nullptr || !paintable(part.bounds)) return false;
     if (part_visual_context(control, part.states).high_contrast) return false;
     const SurfaceRoot* const root = control.attached_surface_root();
@@ -1495,7 +1495,7 @@ void paint_part_clipped(Painter& painter, const Control& control, const PartPain
                         const std::span<const Rect> clips) {
     // A bake carries the part's whole look; where it cannot be shown the
     // part goes on to its recipe.
-    if (part.light_planes && paint_light_plane_part(painter, control, part, clips)) return;
+    if (part.light_planes.present() && paint_light_plane_part(painter, control, part, clips)) return;
     // A content surface's frame is content: no theme, rule or high-contrast
     // recipe draws it.
     if (part.live_surface && part.role == PartRole::image) {

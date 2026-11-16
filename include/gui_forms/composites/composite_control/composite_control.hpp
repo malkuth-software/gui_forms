@@ -92,6 +92,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/scheduler.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -344,7 +345,7 @@ private:
     };
     // The drag in progress, if any.
     struct DragState final {
-        std::optional<std::size_t> part{};
+        stxlib::Optional<std::size_t> part{};
         // The maps-to value at the press (live mode's restore).
         BindingValue pressed_value{};
         // The range's logical ends, fixed when the drag plans.
@@ -356,7 +357,7 @@ private:
 
     void ensure_geometry() const;
     void invalidate_geometry() noexcept;
-    [[nodiscard]] std::optional<std::size_t> part_at(Point local_point) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> part_at(Point local_point) const;
     [[nodiscard]] AnatomyStateSet part_states(std::size_t part) const;
 
     // What a property write did.
@@ -387,7 +388,7 @@ private:
 
     // Children (composite_children.cpp).
     void make_children();
-    void write_bound_children(std::optional<std::size_t> changed);
+    void write_bound_children(stxlib::Optional<std::size_t> changed);
     void child_changed(std::size_t binding);
     void child_activated(std::size_t child);
     void child_property_fired(std::size_t rule);
@@ -414,11 +415,11 @@ private:
     Event<const CompositeEvent&> raised_{};
     mutable Geometry geometry_{};
     mutable CompositeStatistics statistics_{};
-    std::optional<std::size_t> hot_part_{};
-    std::optional<std::size_t> pressed_part_{};
+    stxlib::Optional<std::size_t> hot_part_{};
+    stxlib::Optional<std::size_t> pressed_part_{};
     // The part a primary release ended on, when it is the pressed one: the
     // click that follows activates it.
-    std::optional<std::size_t> released_part_{};
+    stxlib::Optional<std::size_t> released_part_{};
     bool pressed_inside_{};
     std::unique_ptr<DragTracker> drag_{};
     DragState drag_state_{};

@@ -4,6 +4,7 @@
 #include "gui_forms/text/types/text_types.hpp"
 #include "../../text/unicode/unicode_search_fold_data.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -406,7 +407,7 @@ std::string_view helpbook_read_error_name(HelpBookReadError error) noexcept {
     return {};
 }
 
-std::optional<std::size_t> HelpBookSection::find(std::string_view stable_id) const noexcept {
+stxlib::Optional<std::size_t> HelpBookSection::find(std::string_view stable_id) const noexcept {
     std::size_t low = 0U;
     std::size_t high = records.size();
     while (low < high) {
@@ -417,8 +418,8 @@ std::optional<std::size_t> HelpBookSection::find(std::string_view stable_id) con
             high = middle;
         }
     }
-    if (low < records.size() && records[low].stable_id == stable_id) return low;
-    return std::nullopt;
+    if (low < records.size() && records[low].stable_id == stable_id) return stxlib::Optional<std::size_t>::of(low);
+    return stxlib::Optional<std::size_t>::none();
 }
 
 std::size_t HelpBookSection::keyword_position(std::string_view folded_prefix) const noexcept {
@@ -617,8 +618,8 @@ HelpBookCompileResult compile_helpbook_section(const HelpCatalog& catalog, std::
 
     build_help_contents(skeleton, topics, effective, section.contents);
     for (std::size_t node = 0U; node < section.contents.nodes.size(); ++node) {
-        const std::optional<std::size_t> record = section.find(section.contents.nodes[node].stable_id);
-        if (record.has_value()) section.records[*record].contents_node = static_cast<std::uint32_t>(node);
+        const stxlib::Optional<std::size_t> record = section.find(section.contents.nodes[node].stable_id);
+        if (record.present()) section.records[(*record.value())].contents_node = static_cast<std::uint32_t>(node);
     }
 
     for (std::size_t index = 0U; index < section.records.size(); ++index) {

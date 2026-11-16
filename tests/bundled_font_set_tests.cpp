@@ -19,6 +19,7 @@
 #include "../src/host/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -282,7 +283,7 @@ bool construction_is_validated() {
 std::vector<std::string_view> own_family_faces() {
     std::vector<std::string_view> faces{};
     for (const gui_forms::FontFamilyRecord& record : gui_forms::bundled_font_families) {
-        if (record.role) continue;
+        if (record.role.present()) continue;
         for (const gui_forms::FontFamilyFace& face : record.faces) {
             const bool listed = std::find(faces.begin(), faces.end(), face.file_name) != faces.end();
             if (!listed) faces.push_back(face.file_name);
@@ -357,10 +358,10 @@ bool registry_matches_the_face_uses() {
         }
         if (!require(gui_forms::font_family_record(record.id) == &record, "a number does not find its family"))
             return false;
-        if (!record.role) continue;
+        if (record.role.absent()) continue;
         std::size_t role_faces = 0U;
         for (const gui_forms::detail::BundledFaceUse& use : uses) {
-            if (!use.role || *use.role != *record.role) continue;
+            if (!use.role || *use.role != (*record.role.value())) continue;
             ++role_faces;
             bool listed = false;
             for (const gui_forms::FontFamilyFace& face : record.faces) {
@@ -372,7 +373,7 @@ bool registry_matches_the_face_uses() {
         }
         if (!require(role_faces == record.faces.size(), "a role family lists a face the role does not register"))
             return false;
-        if (!require(gui_forms::role_font_family(*record.role) == record.id, "a role does not find its family"))
+        if (!require(gui_forms::role_font_family((*record.role.value())) == record.id, "a role does not find its family"))
             return false;
     }
     const bool fixed = require(gui_forms::selawik_font_family.value == 1U &&
@@ -393,11 +394,11 @@ bool registry_matches_the_face_uses() {
 // no name here; an unlisted number is not valid; a substitution's face file finds its family.
 bool family_names_resolve_bundled_faces_only() {
     const gui_forms::FontFamilyRecord* const selawik = gui_forms::font_family_named("selawik");
-    if (!require(selawik != nullptr && !(*selawik).role && (*selawik).id == gui_forms::selawik_font_family,
+    if (!require(selawik != nullptr && (*selawik).role.absent() && (*selawik).id == gui_forms::selawik_font_family,
                  "Selawik is not a family with faces of its own"))
         return false;
     const gui_forms::FontFamilyRecord* const rapids = gui_forms::font_family_named("PORTSMOUTH RAPIDS");
-    if (!require(rapids != nullptr && (*rapids).role == gui_forms::FontRole::control &&
+    if (!require(rapids != nullptr && (*rapids).role == stxlib::Optional<gui_forms::FontRole>::of(gui_forms::FontRole::control) &&
                      (*rapids).id == gui_forms::portsmouth_rapids_font_family,
                  "Portsmouth Rapids is not the control role's family"))
         return false;
@@ -418,7 +419,7 @@ bool family_names_resolve_bundled_faces_only() {
     };
     for (const Named& entry : drawing_families) {
         const gui_forms::FontFamilyRecord* const record = gui_forms::font_family_named(entry.name);
-        if (!require(record != nullptr && (*record).id == entry.id && !(*record).role,
+        if (!require(record != nullptr && (*record).id == entry.id && (*record).role.absent(),
                      "a substitution table family is not a family with faces of its own"))
             return false;
     }

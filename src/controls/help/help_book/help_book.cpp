@@ -5,6 +5,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/typography/types/typography_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -135,30 +136,30 @@ void HelpBook::show_page(HelpPageModel page, std::string_view anchor) {
 }
 
 bool HelpBook::show_record(const HelpBookSection& section, std::string_view stable_id, std::string_view anchor) {
-    const std::optional<std::size_t> record = section.find(stable_id);
-    if (!record.has_value()) return false;
+    const stxlib::Optional<std::size_t> record = section.find(stable_id);
+    if (record.absent()) return false;
     HelpPageModel page{};
-    static_cast<void>(build_help_page(section, *record, page));
+    static_cast<void>(build_help_page(section, (*record.value()), page));
     show_page(std::move(page), anchor);
     return true;
 }
 
 bool HelpBook::scroll_to_anchor(std::string_view anchor) {
-    const std::optional<std::size_t> block = page_.find_anchor(anchor);
-    if (!block.has_value()) return false;
+    const stxlib::Optional<std::size_t> block = page_.find_anchor(anchor);
+    if (block.absent()) return false;
     // Open every section around the block, innermost outward.
     bool opened = false;
-    std::optional<std::size_t> section = page_.blocks[*block].section;
-    while (section.has_value()) {
-        if (open_sections_[*section] == 0U) {
-            open_sections_[*section] = 1U;
+    stxlib::Optional<std::size_t> section = page_.blocks[(*block.value())].section;
+    while (section.present()) {
+        if (open_sections_[(*section.value())] == 0U) {
+            open_sections_[(*section.value())] = 1U;
             opened = true;
         }
-        const std::size_t heading = page_.sections[*section].heading;
+        const std::size_t heading = page_.sections[(*section.value())].heading;
         section = page_.blocks[heading].section;
     }
     if (opened) relayout();
-    const stxlib::Optional<double> found_top = block_top(*block);
+    const stxlib::Optional<double> found_top = block_top((*block.value()));
     const double* const top = found_top.value();
     if (top == nullptr) return false;
     static_cast<void>(scroll_to(Point{0.0, std::max(0.0, *top - paper_top)}));
@@ -263,10 +264,10 @@ const HelpBookImage* HelpBook::find_image(std::string_view name) const noexcept 
 
 bool HelpBook::block_shown(std::size_t block, LayoutMode mode) const noexcept {
     if (mode.print) return true;
-    std::optional<std::size_t> section = page_.blocks[block].section;
-    while (section.has_value()) {
-        if (open_sections_[*section] == 0U) return false;
-        section = page_.blocks[page_.sections[*section].heading].section;
+    stxlib::Optional<std::size_t> section = page_.blocks[block].section;
+    while (section.present()) {
+        if (open_sections_[(*section.value())] == 0U) return false;
+        section = page_.blocks[page_.sections[(*section.value())].heading].section;
     }
     return true;
 }
@@ -298,13 +299,13 @@ void HelpBook::lay_out_runs(std::size_t block_index, double left, double width, 
         layout_run.font = run_font(run, base);
         layout_run.run = run.line_break ? no_text : run_index;
         layout_run.joined_start = joined.size();
-        layout_run.link = run.link.has_value();
+        layout_run.link = run.link.present();
         joined.append(layout_run.text);
         runs.push_back(layout_run);
-        const bool link_ends = run.link.has_value() &&
+        const bool link_ends = run.link.present() &&
                                (index + 1U == block.run_count || page_.runs[run_index + 1U].link != run.link);
         if (mode.print && link_ends) {
-            const HelpPageLink& link = page_.links[*run.link];
+            const HelpPageLink& link = page_.links[(*run.link.value())];
             if (!link.target_title.empty()) {
                 LayoutRun suffix{};
                 // The bracketed title is the layout's own text.
@@ -332,7 +333,7 @@ void HelpBook::lay_out_runs(std::size_t block_index, double left, double width, 
         if (line_end_byte(joined[index])) opportunities[index] = LineBreakOpportunity::mandatory;
     }
     const bool wraps = block.kind != HelpPageBlockKind::code;
-    const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", base), std::nullopt);
+    const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", base), stxlib::Optional<double>::none());
     std::string folded;
     std::vector<std::string_view> words;
     double line_x = 0.0;
@@ -474,8 +475,8 @@ void HelpBook::lay_out_block(std::size_t block_index, double left, double width,
         top += 1.0;
         return;
     }
-    if (block.kind == HelpPageBlockKind::image && block.image.has_value()) {
-        const HelpPageImage& page_image = page_.images[*block.image];
+    if (block.kind == HelpPageBlockKind::image && block.image.present()) {
+        const HelpPageImage& page_image = page_.images[(*block.image.value())];
         const HelpBookImage* image = find_image(page_image.source);
         if (image != nullptr && (*image).size.width > 0.0 && (*image).size.height > 0.0) {
             const double scale = std::min(1.0, content_width / (*image).size.width);
@@ -532,7 +533,7 @@ void HelpBook::lay_out_block(std::size_t block_index, double left, double width,
         if (block.callout == HelpCalloutKind::caution) label = labels_.caution;
         FontSpec label_font = body_font();
         label_font.weight = 700;
-        const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", label_font), std::nullopt);
+        const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", label_font), stxlib::Optional<double>::none());
         laid.marker_texts.push_back(std::string(label));
         LaidPiece piece{};
         piece.kind = PieceKind::label;
@@ -550,7 +551,7 @@ void HelpBook::lay_out_block(std::size_t block_index, double left, double width,
         // The marker hangs in the indent: a bullet, or the item's number.
         const double item_indent = list_indent * static_cast<double>(block.level + 1U);
         std::string marker = block.marker == MarkdownListMarker::ordered ? std::to_string(block.ordinal) + "." : "\xE2\x80\xA2";
-        const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", base), std::nullopt);
+        const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", base), stxlib::Optional<double>::none());
         const double marker_width = text_width(marker, base);
         laid.marker_texts.push_back(std::move(marker));
         LaidPiece piece{};
@@ -595,7 +596,7 @@ void HelpBook::lay_out(double width, LayoutMode mode, LaidOut& laid) const {
     const double title_left = close_shown ? close_title_left : paper_left;
     FontSpec title_font = text_font(FontSpec{FontRole::control, title_size, 400, false});
     const LineBoxMetrics title_metrics =
-        line_box_metrics(resolve_text_layout_utf8(" ", title_font), std::nullopt);
+        line_box_metrics(resolve_text_layout_utf8(" ", title_font), stxlib::Optional<double>::none());
     laid.close = close_shown ? Rect{paper_left, top, close_size, close_size} : Rect{};
     const double title_height = std::max(title_metrics.height, close_shown ? close_size : 0.0);
     laid.title = Rect{title_left, top, std::max(0.0, width - paper_right - title_left), title_height};
@@ -624,7 +625,7 @@ void HelpBook::lay_out(double width, LayoutMode mode, LaidOut& laid) const {
              ++piece) {
             const LaidPiece& laid_piece = laid.pieces[piece];
             if (laid_piece.kind != PieceKind::link) continue;
-            const std::size_t link = *page_.runs[laid_piece.run].link;
+            const std::size_t link = (*page_.runs[laid_piece.run].link.value());
             if (std::find(seen_links.begin(), seen_links.end(), link) != seen_links.end()) continue;
             seen_links.push_back(link);
             laid.stops.push_back(FocusStop{false, link});
@@ -677,7 +678,7 @@ stxlib::Optional<Rect> HelpBook::link_bounds(std::size_t link) const noexcept {
     const Point offset = content_offset();
     stxlib::Optional<Rect> result{};
     for (const LaidPiece& piece : layout_.pieces) {
-        if (piece.kind != PieceKind::link || page_.runs[piece.run].link != link) continue;
+        if (piece.kind != PieceKind::link || page_.runs[piece.run].link != stxlib::Optional<std::size_t>::of(link)) continue;
         const Rect moved{piece.bounds.x + offset.x, piece.bounds.y + offset.y, piece.bounds.width,
                          piece.bounds.height};
         const Rect* const so_far = result.value();
@@ -809,8 +810,8 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
                                   laid_block.bounds.width, laid_block.bounds.height};
             paint_part(painter, *this, divider);
         }
-        if (laid_block.image.width > 0.0 && block.image.has_value()) {
-            const HelpBookImage* image = find_image(page_.images[*block.image].source);
+        if (laid_block.image.width > 0.0 && block.image.present()) {
+            const HelpBookImage* image = find_image(page_.images[(*block.image.value())].source);
             if (image != nullptr) {
                 PartPaint picture{};
                 picture.family = ControlVisualRole::tool_tip;
@@ -841,7 +842,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
             part.text = lend_paint_text(text);
             part.family = ControlVisualRole::tool_tip;
             if (piece.kind == PieceKind::link) {
-                const std::size_t link = *page_.runs[piece.run].link;
+                const std::size_t link = (*page_.runs[piece.run].link.value());
                 const bool was_visited = visited(page_.links[link].target);
                 part.family = was_visited ? ControlVisualRole::visited_link : ControlVisualRole::link;
                 if (holds(hovered_link_, link)) part.states.insert(AnatomyState::hot);
@@ -850,7 +851,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
             }
             paint_text_part_at(painter, *this, part, Point{bounds.x, piece.baseline + offset.y}, bounds.width);
             if (piece.kind == PieceKind::link) {
-                const std::size_t link = *page_.runs[piece.run].link;
+                const std::size_t link = (*page_.runs[piece.run].link.value());
                 PartPaint underline{};
                 underline.family = part.family;
                 underline.role = PartRole::glyph;
@@ -938,7 +939,7 @@ stxlib::Optional<std::size_t> HelpBook::link_at(Point local) const noexcept {
     for (const LaidPiece& piece : layout_.pieces) {
         if (piece.kind != PieceKind::link || !piece.bounds.contains(content)) continue;
         // A link piece's run always names its link (lay_out_runs).
-        const std::size_t link = *page_.runs[piece.run].link;
+        const std::size_t link = (*page_.runs[piece.run].link.value());
         return stxlib::Optional<std::size_t>::of(link);
     }
     return stxlib::Optional<std::size_t>::none();
@@ -1196,11 +1197,11 @@ std::vector<SemanticNode> HelpBook::semantic_virtual_children() const {
             }
             children.push_back(std::move(heading));
         }
-        if (block.kind == HelpPageBlockKind::image && block.image.has_value()) {
+        if (block.kind == HelpPageBlockKind::image && block.image.present()) {
             SemanticNode image{};
             image.stable_id = prefix + ".image-" + std::to_string(laid_block.block);
             image.role = SemanticRole::image;
-            image.name = page_.images[*block.image].alternative;
+            image.name = page_.images[(*block.image.value())].alternative;
             image.bounds = Rect{laid_block.bounds.x + offset.x, laid_block.bounds.y + offset.y,
                                 laid_block.bounds.width, laid_block.bounds.height};
             image.states = SemanticState::enabled | SemanticState::visible;
@@ -1213,7 +1214,7 @@ std::vector<SemanticNode> HelpBook::semantic_virtual_children() const {
         link.stable_id = prefix + ".link-" + std::to_string(stop.index);
         link.role = SemanticRole::link;
         for (const LaidPiece& piece : layout_.pieces) {
-            if (piece.kind == PieceKind::link && page_.runs[piece.run].link == stop.index) {
+            if (piece.kind == PieceKind::link && page_.runs[piece.run].link == stxlib::Optional<std::size_t>::of(stop.index)) {
                 link.name.append(page_.runs[piece.run].text.substr(piece.begin, piece.end - piece.begin));
             }
         }

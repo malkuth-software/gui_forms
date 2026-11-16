@@ -228,7 +228,7 @@ std::unique_ptr<Bitmap> Bitmap::adjusted(
     std::unique_ptr<gui_drawing::Bitmap> result = std::make_unique<Bitmap>((*storage_).width, (*storage_).height,
                                            (*storage_).pixel_format);
     // Without a colour matrix the adjustment is the remap alone.
-    if (!adjustment.color_matrix.has_value()) {
+    if (adjustment.color_matrix.absent()) {
         for (std::uint32_t y = 0; y < (*storage_).height; ++y) {
             for (std::uint32_t x = 0; x < (*storage_).width; ++x) {
                 const Color remapped = remapped_color(adjustment, load_color(*storage_, x, y));
@@ -237,7 +237,7 @@ std::unique_ptr<Bitmap> Bitmap::adjusted(
         }
         return result;
     }
-    const std::array<double, 25>& matrix = *adjustment.color_matrix;
+    const std::array<double, 25>& matrix = (*adjustment.color_matrix.value());
     for (std::uint32_t y = 0; y < (*storage_).height; ++y) {
         for (std::uint32_t x = 0; x < (*storage_).width; ++x) {
             const Color input = remapped_color(adjustment, load_color(*storage_, x, y));

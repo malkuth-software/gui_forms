@@ -257,7 +257,7 @@ ApplicationWindow splash_entry(const char* id, HostPopupFocus focus) {
     HostPopupPlacement placement{};
     placement.kind = HostTransientKind::tool_tip;
     placement.focus = focus;
-    entry.popup = placement;
+    entry.popup.set(placement);
     return entry;
 }
 
@@ -562,10 +562,10 @@ void splashscreen_shows_and_hands_over() {
     require(splashscreen.set_status("Loading the theme") == SplashscreenError::none &&
                 (*record).status == "Loading the theme" && (*record).presented == 2U,
             "a status change presents a frame at once");
-    require(splashscreen.set_progress(0.5) == SplashscreenError::none && (*record).progress == 0.5 &&
+    require(splashscreen.set_progress(stxlib::Optional<double>::of(0.5)) == SplashscreenError::none && (*record).progress == stxlib::Optional<double>::of(0.5) &&
                 (*record).presented == 3U,
             "a progress change presents a frame at once");
-    require(splashscreen.set_progress(1.5) == SplashscreenError::invalid_argument && (*record).progress == 0.5,
+    require(splashscreen.set_progress(stxlib::Optional<double>::of(1.5)) == SplashscreenError::invalid_argument && (*record).progress == stxlib::Optional<double>::of(0.5),
             "a progress outside [0, 1] is refused");
     const SplashscreenResult second =
         Splashscreen::show_on(options, std::make_unique<host::HeadlessSplashscreenSurface>(nullptr));

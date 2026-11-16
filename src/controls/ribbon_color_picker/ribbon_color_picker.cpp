@@ -314,13 +314,13 @@ Size RibbonColorPicker::palette_size() const {
 // The entry of `all` the value matches: Automatic for none, else the first
 // palette or recent entry of that colour, or none when the colour is not
 // offered.
-std::optional<std::size_t> RibbonColorPicker::current_entry(const std::vector<Cell>& all) const {
+stxlib::Optional<std::size_t> RibbonColorPicker::current_entry(const std::vector<Cell>& all) const {
     const stxlib::Optional<Color> shown = value.read();
-    if (shown.absent()) return 0U;
+    if (shown.absent()) return stxlib::Optional<std::size_t>::of(0U);
     for (std::size_t entry = 1; entry < all.size(); ++entry) {
-        if (all[entry].color == shown) return entry;
+        if (all[entry].color == shown) return stxlib::Optional<std::size_t>::of(entry);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 RibbonColorPicker::PaletteEntryParts RibbonColorPicker::entry_parts(const std::vector<Cell>& all, std::size_t entry) const {
@@ -357,10 +357,10 @@ RibbonColorPicker::PaletteEntryParts RibbonColorPicker::entry_parts(const std::v
 
 AnatomyStateSet RibbonColorPicker::entry_states(const std::vector<Cell>& all, std::size_t entry) const {
     AnatomyStateSet states;
-    if (hot_entry_ == entry) states.insert(AnatomyState::hot);
-    if (current_entry(all) == entry) states.insert(AnatomyState::selected);
+    if (hot_entry_ == stxlib::Optional<std::size_t>::of(entry)) states.insert(AnatomyState::hot);
+    if (current_entry(all) == stxlib::Optional<std::size_t>::of(entry)) states.insert(AnatomyState::selected);
     const Window* const host = attached_window();
-    if (palette_focused_ && focus_entry_ == entry && host != nullptr && (*host).focus_cue_visible()) {
+    if (palette_focused_ && focus_entry_ == stxlib::Optional<std::size_t>::of(entry) && host != nullptr && (*host).focus_cue_visible()) {
         states.insert(AnatomyState::focus_visible);
     }
     return states;
@@ -541,9 +541,9 @@ void RibbonColorPicker::palette_pointer(PointerEvent& event) {
     const Rect absolute = (*palette_overlay_).absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
     const std::vector<Cell> all = cells();
-    std::optional<std::size_t> hit{};
+    stxlib::Optional<std::size_t> hit{};
     for (std::size_t entry = 0; entry < all.size(); ++entry) {
-        if (all[entry].bounds.contains(local)) hit = entry;
+        if (all[entry].bounds.contains(local)) hit.set(entry);
     }
     if (event.action == PointerAction::leave) hit.reset();
     if (event.action == PointerAction::leave || event.action == PointerAction::move ||
@@ -555,9 +555,9 @@ void RibbonColorPicker::palette_pointer(PointerEvent& event) {
         return;
     }
     if (event.button != PointerButton::primary) return;
-    event.handled = hit.has_value();
+    event.handled = hit.present();
     // A click is a release over an entry, as in a menu.
-    if (event.action == PointerAction::up && hit) commit(all[*hit].color);
+    if (event.action == PointerAction::up && hit.present()) commit(all[(*hit.value())].color);
 }
 
 // Arrows move through the entries (Up and Down to the nearest entry in the
@@ -571,16 +571,16 @@ void RibbonColorPicker::palette_key(KeyEvent& event) {
     const std::vector<Cell> all = cells();
     const std::size_t current = std::min(focus_entry_.value_or(0U), all.size() - 1U);
     const std::uint32_t key = event.physical_key;
-    std::optional<std::size_t> next{};
+    stxlib::Optional<std::size_t> next{};
     if (key == PhysicalKey::enter || key == PhysicalKey::space) {
         event.handled = true;
         commit(all[current].color);
         return;
     }
-    if (key == PhysicalKey::right) next = std::min(current + 1U, all.size() - 1U);
-    if (key == PhysicalKey::left) next = current == 0U ? 0U : current - 1U;
-    if (key == PhysicalKey::home) next = 0U;
-    if (key == PhysicalKey::end) next = all.size() - 1U;
+    if (key == PhysicalKey::right) next.set(std::min(current + 1U, all.size() - 1U));
+    if (key == PhysicalKey::left) next.set(current == 0U ? 0U : current - 1U);
+    if (key == PhysicalKey::home) next.set(0U);
+    if (key == PhysicalKey::end) next.set(all.size() - 1U);
     if (key == PhysicalKey::up || key == PhysicalKey::down) {
         const Rect from = all[current].bounds;
         const double centre = from.x + from.width * 0.5;
@@ -597,12 +597,12 @@ void RibbonColorPicker::palette_key(KeyEvent& event) {
             if (nearer_row || (same_row && distance < best_distance)) {
                 best_row = bounds.y;
                 best_distance = distance;
-                next = entry;
+                next.set(entry);
             }
         }
-        if (!next) next = current;
+        if (next.absent()) next.set(current);
     }
-    if (!next) return;
+    if (next.absent()) return;
     focus_entry_ = next;
     (*palette_overlay_).invalidate(Dirty::paint | Dirty::semantics);
     event.handled = true;
@@ -636,11 +636,11 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     // By keyboard the keyboard starts on the current colour, or on Automatic
     // when the colour is not offered; by pointer only on the current colour.
     const std::vector<Cell> all = cells();
-    const std::optional<std::size_t> current = current_entry(all);
+    const stxlib::Optional<std::size_t> current = current_entry(all);
     if (mode == MenuOpenMode::pointer) {
         focus_entry_ = current;
     } else {
-        focus_entry_ = current.value_or(0U);
+        focus_entry_.set(current.value_or(0U));
     }
     (*layer_).set_content(palette_overlay_);
     overlay_ = (*window).open_overlay(self, layer_);
@@ -653,11 +653,11 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     // emptied layer stays in the owner and holds the focus scope.
     const Rect anchor = absolute_bounds();
     const Rect hung{anchor.x, anchor.y, anchor.width, anchor.height + placement.gap};
-    const std::optional<Rect> face = drop_down_popup_face(*window, hung, placement.preferred_size, anchor.x);
+    const stxlib::Optional<Rect> face = drop_down_popup_face(*window, hung, placement.preferred_size, anchor.x);
     bool lifted = false;
-    if (face.has_value()) {
+    if (face.present()) {
         (*layer_).clear_content();
-        lifted = lift_.lift(*window, palette_overlay_, *face);
+        lifted = lift_.lift(*window, palette_overlay_, (*face.value()));
         if (!lifted) (*layer_).set_content(palette_overlay_);
     }
     (*layer_).focusable = lifted;
@@ -786,7 +786,7 @@ std::vector<SemanticNode> RibbonColorPicker::palette_semantic_children() const {
     if (!palette_open_ || !palette_overlay_) return nodes;
     const std::vector<Cell> all = cells();
     const Rect absolute = (*palette_overlay_).absolute_bounds();
-    const std::optional<std::size_t> current = current_entry(all);
+    const stxlib::Optional<std::size_t> current = current_entry(all);
     const std::string prefix(stable_id().value());
     for (std::size_t entry = 0; entry < all.size(); ++entry) {
         SemanticNode node{};
@@ -799,8 +799,8 @@ std::vector<SemanticNode> RibbonColorPicker::palette_semantic_children() const {
         const Rect bounds = all[entry].bounds;
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | SemanticState::enabled | SemanticState::focusable;
-        if (current == entry) node.states |= SemanticState::selected;
-        if (palette_focused_ && focus_entry_ == entry) node.states |= SemanticState::focused;
+        if (current == stxlib::Optional<std::size_t>::of(entry)) node.states |= SemanticState::selected;
+        if (palette_focused_ && focus_entry_ == stxlib::Optional<std::size_t>::of(entry)) node.states |= SemanticState::focused;
         node.actions = {SemanticAction::press};
         nodes.push_back(std::move(node));
     }

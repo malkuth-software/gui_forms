@@ -80,9 +80,9 @@ std::optional<double> amplitude(const CompiledThemeRules& theme, const CompiledT
     facts.forced_high_contrast = forced;
     const CompiledThemeRules::Resolution resolution = theme.resolve(facts);
     if (resolution.outcome != CompiledThemeRules::Outcome::primitive) return std::nullopt;
-    const std::optional<std::size_t> index = find_parameter((*resolution.primitive).descriptor(), "amplitude");
-    require(index.has_value(), "the bulge has an amplitude");
-    const double value = resolution.parameters.values[*index].number;
+    const stxlib::Optional<std::size_t> index = find_parameter((*resolution.primitive).descriptor(), "amplitude");
+    require(index.present(), "the bulge has an amplitude");
+    const double value = resolution.parameters.values[(*index.value())].number;
     return value;
 }
 

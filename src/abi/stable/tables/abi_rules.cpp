@@ -24,6 +24,7 @@
 #include "gui_forms/window.hpp"
 #include "../windows/abi_window_handle.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -223,11 +224,11 @@ void run_property(PropertyAction& property_action, const RuleFiring&) {
         if (!current) {
             return;
         }
-        const std::optional<bool> held = binding_value_to_bool(*current);
-        if (!held) {
+        const stxlib::Optional<bool> held = binding_value_to_bool(*current);
+        if (held.absent()) {
             return;
         }
-        const bool toggled = !*held;
+        const bool toggled = !(*held.value());
         (*control).set_property_value(property_action.property, BindingValue{toggled});
     } catch (...) {
         // A property the target refuses ends this action only. It is not

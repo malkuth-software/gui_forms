@@ -40,6 +40,7 @@
 #include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -625,7 +626,7 @@ void test_per_edge_reservation() {
     (*root).add_child(child);
     Window window(root, Size{200.0, 100.0});
     WindowBandOptions options{};
-    options.edges = WindowBandEdges{0.0, 6.0, 3.0, 2.0};
+    options.edges.set(WindowBandEdges{0.0, 6.0, 3.0, 2.0});
     window.declare_band(options);
     window.perform_layout();
     const WindowBandSnapshot declared = window.band_snapshot();
@@ -651,7 +652,7 @@ void test_per_edge_reservation() {
     }
     WindowBandTexture texture{};
     texture.procedural.pattern = ProceduralPattern::pinstripe;
-    appearance.texture = texture;
+    appearance.texture.set(texture);
     window.set_band_appearance(appearance);
     window.perform_layout();
     appearance.texture.reset();
@@ -682,11 +683,11 @@ void test_per_edge_reservation() {
     // Refusals leave the declaration as it was.
     const double nan = std::numeric_limits<double>::quiet_NaN();
     WindowBandOptions bad = options;
-    bad.edges = WindowBandEdges{0.0, -1.0, 0.0, 0.0};
+    bad.edges.set(WindowBandEdges{0.0, -1.0, 0.0, 0.0});
     require(refused(window, bad), "a negative edge is refused");
-    bad.edges = WindowBandEdges{nan, 1.0, 0.0, 0.0};
+    bad.edges.set(WindowBandEdges{nan, 1.0, 0.0, 0.0});
     require(refused(window, bad), "a NaN edge is refused");
-    bad.edges = WindowBandEdges{0.0, 0.0, 33.0, 0.0};
+    bad.edges.set(WindowBandEdges{0.0, 0.0, 33.0, 0.0});
     require(refused(window, bad), "an edge past 32 is refused");
 
     // Full screen: hides gives up every edge, stays keeps them.
@@ -708,7 +709,7 @@ void test_per_edge_snapping() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("edge.dpi.root"));
     Window window(root, Size{200.0, 100.0});
     WindowBandOptions options{};
-    options.edges = WindowBandEdges{1.0, 0.0, 2.0, 0.3};
+    options.edges.set(WindowBandEdges{1.0, 0.0, 2.0, 0.3});
     window.declare_band(options);
     window.set_scale(1.25);
     window.perform_layout();
@@ -821,7 +822,7 @@ void test_roles_and_texture() {
     WindowBandTexture texture{};
     texture.source = WindowBandTextureSource::finish;
     texture.finish.kind = FinishKind::orange_peel;
-    role.texture = texture;
+    role.texture.set(texture);
     window.set_band_appearance(role);
     require(window.band_snapshot().textured, "the band reports its texture");
     ShapePainter painter{};
@@ -835,7 +836,7 @@ void test_roles_and_texture() {
     WindowBandAppearance glint = role;
     WindowBandTexture glinting = texture;
     glinting.finish.kind = FinishKind::glint;
-    glint.texture = glinting;
+    glint.texture.set(glinting);
     require(!window_band_appearance_valid(glint), "the glint is refused over the band");
     WindowBandTexture tiled{};
     tiled.procedural.tile = 0.0;

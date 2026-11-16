@@ -9,6 +9,7 @@
 #include "gui_forms/controls/tab_page.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -319,9 +320,9 @@ void HelpBookViewer::set_home(std::string stable_id) {
 std::string HelpBookViewer::home_page() const {
     if (!section_) return {};
     const HelpBookSection& section = *section_;
-    if (!home_.empty() && section.find(home_).has_value()) return home_;
+    if (!home_.empty() && section.find(home_).present()) return home_;
     for (const HelpContentsNode& node : section.contents.nodes) {
-        if (section.find(node.stable_id).has_value()) return node.stable_id;
+        if (section.find(node.stable_id).present()) return node.stable_id;
     }
     if (!section.records.empty()) return section.records.front().stable_id;
     return {};
@@ -329,9 +330,9 @@ std::string HelpBookViewer::home_page() const {
 
 std::string HelpBookViewer::record_title(std::string_view stable_id) const {
     if (!section_) return std::string(stable_id);
-    const std::optional<std::size_t> record = (*section_).find(stable_id);
-    if (!record.has_value()) return std::string(stable_id);
-    const std::string& title = (*section_).records[*record].title;
+    const stxlib::Optional<std::size_t> record = (*section_).find(stable_id);
+    if (record.absent()) return std::string(stable_id);
+    const std::string& title = (*section_).records[(*record.value())].title;
     return title.empty() ? std::string(stable_id) : title;
 }
 

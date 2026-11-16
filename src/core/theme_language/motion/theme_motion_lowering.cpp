@@ -2,6 +2,7 @@
 
 #include "../source_text/theme_source_text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -1093,15 +1094,15 @@ void fail_at(MotionLoweringProblem& problem, DiagnosticCode code, std::uint32_t 
 const PrimitiveParameterDeclaration* track_parameter(const KeyframeTrack& track, const PrimitiveDescriptor* primitive,
                                                      bool animated, std::uint32_t token,
                                                      MotionLoweringProblem& problem) {
-    const std::optional<std::size_t> found =
-        primitive == nullptr ? std::optional<std::size_t>{} : find_parameter(*primitive, track.property);
-    if (!found) {
+    const stxlib::Optional<std::size_t> found =
+        primitive == nullptr ? stxlib::Optional<std::size_t>::none() : find_parameter(*primitive, track.property);
+    if (found.absent()) {
         fail_at(problem, DiagnosticCode::value_form_not_admitted, token,
                 track.property + ": keyframes move opacity, scale, translate and the parameters of the rule's "
                                  "primitive");
         return nullptr;
     }
-    const PrimitiveParameterDeclaration& parameter = (*primitive).parameters[*found];
+    const PrimitiveParameterDeclaration& parameter = (*primitive).parameters[(*found.value())];
     if (parameter.kind != PrimitiveParameterKind::number || (animated && !parameter.animated)) {
         fail_at(problem, DiagnosticCode::value_wrong_kind, token, animated ? "an animated parameter" : "a number parameter");
         return nullptr;
@@ -1522,16 +1523,16 @@ MotionLoweringOutcome build_declared_transitions(const WrittenTransitions& writt
         FrameInterval delay{};
         if (!written.delays.empty()) delay = written.delays[index % written.delays.size()];
         if (target.kind == TransitionTargetKind::parameter) {
-            const std::optional<std::size_t> found =
-                primitive == nullptr ? std::optional<std::size_t>{} : find_parameter(*primitive, target.name);
-            if (!found) {
+            const stxlib::Optional<std::size_t> found =
+                primitive == nullptr ? stxlib::Optional<std::size_t>::none() : find_parameter(*primitive, target.name);
+            if (found.absent()) {
                 problem.code = DiagnosticCode::value_form_not_admitted;
                 problem.token = target.token;
                 problem.detail = target.name + ": transitions move opacity, scale, translate, face and the animated "
                                                "parameters of the rule's primitive";
                 return MotionLoweringOutcome::refused;
             }
-            const PrimitiveParameterDeclaration& parameter = (*primitive).parameters[*found];
+            const PrimitiveParameterDeclaration& parameter = (*primitive).parameters[(*found.value())];
             if (parameter.kind != PrimitiveParameterKind::number || !parameter.animated) {
                 problem.code = DiagnosticCode::value_wrong_kind;
                 problem.token = target.token;

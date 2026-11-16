@@ -12,6 +12,7 @@
 #include "gui_forms/resources/types/image_resource_types.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -169,7 +170,7 @@ void test_scan(const std::filesystem::path& root) {
             "the per-user theme wins its name and compiles");
     require(harbour != nullptr && (*harbour).header.version == "2.0.0" && (*harbour).header.author == "A. User",
             "the header is read");
-    require(harbour != nullptr && (*harbour).theme != nullptr && (*(*harbour).theme).icon_override("toolbar.save"),
+    require(harbour != nullptr && (*harbour).theme != nullptr && (*(*harbour).theme).icon_override("toolbar.save").present(),
             "the theme's icon is read from its folder");
     const UserThemeCandidate* const dusk = candidate(scan, "dusk");
     require(dusk != nullptr && (*dusk).theme == nullptr && !(*dusk).diagnostics.empty(),
@@ -191,7 +192,7 @@ void test_scan(const std::filesystem::path& root) {
     require(select_user_theme(resources, scan, chosen) == ThemeSelection::selected && harbour != nullptr &&
                 resources.user_theme() == (*harbour).theme.get(),
             "a theme is selected by name");
-    require(resources.icon("toolbar.save") != save.image, "the selected theme's icon is drawn");
+    require(resources.icon("toolbar.save") != stxlib::Optional<gui_forms::ImageId>::of(save.image), "the selected theme's icon is drawn");
     const ThemeChoice back{.kind = ThemeChoiceKind::built_in, .name = {}};
     require(select_user_theme(resources, scan, back) == ThemeSelection::built_in &&
                 resources.user_theme() == nullptr,

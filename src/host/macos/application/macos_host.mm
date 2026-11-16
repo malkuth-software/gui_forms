@@ -183,8 +183,8 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
         [application setActivationPolicy:NSApplicationActivationPolicyRegular];
         detail::install_application_menu();
 
-        const Size initialSize = options.capture_size.has_value()
-            ? *options.capture_size : options.initial_size;
+        const Size initialSize = options.capture_size.present()
+            ? (*options.capture_size.value()) : options.initial_size;
         const NSRect frame = NSMakeRect(0.0, 0.0,
                                         initialSize.width,
                                         initialSize.height);

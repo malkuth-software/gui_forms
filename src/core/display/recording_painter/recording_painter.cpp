@@ -627,7 +627,7 @@ TextResolutionStatus RecordingPainter::fill_cluster_advances_utf8(
 
 bool RecordingPainter::refuses_image(ImageId image) noexcept {
     if (images_ == nullptr || image.value == 0U) return false;
-    if ((*images_).find(image).has_value()) return false;
+    if ((*images_).find(image).present()) return false;
     if (stale_image_draws_ == 0U) first_stale_image_ = image;
     stale_image_draws_ = stale_image_draws_ + 1U;
     return true;

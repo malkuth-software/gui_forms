@@ -13,6 +13,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cerrno>
 #include <charconv>
@@ -213,18 +214,18 @@ bool HostedClient::pump(std::chrono::milliseconds timeout) {
     return running;
 }
 
-std::optional<std::uint32_t> HostedClient::acquire_slot(std::chrono::milliseconds timeout) {
+stxlib::Optional<std::uint32_t> HostedClient::acquire_slot(std::chrono::milliseconds timeout) {
     // At most a day, so now() + timeout cannot overflow (A-gf-host-02-F13).
     const std::chrono::milliseconds bounded = std::min(timeout, std::chrono::milliseconds(std::chrono::hours(24)));
     const std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::now() + bounded;
     for (;;) {
         for (std::uint32_t slot = 0U; slot < slot_count_; ++slot) {
-            if (slot_free_[slot]) return slot;
+            if (slot_free_[slot]) return stxlib::Optional<std::uint32_t>::of(slot);
         }
         const std::chrono::steady_clock::duration left = deadline - std::chrono::steady_clock::now();
         const std::chrono::milliseconds wait = std::chrono::duration_cast<std::chrono::milliseconds>(left);
-        if (wait.count() <= 0) return std::nullopt;
-        if (!pump(wait)) return std::nullopt;
+        if (wait.count() <= 0) return stxlib::Optional<std::uint32_t>::none();
+        if (!pump(wait)) return stxlib::Optional<std::uint32_t>::none();
     }
 }
 

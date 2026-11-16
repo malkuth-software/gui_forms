@@ -20,6 +20,7 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <iostream>
@@ -294,24 +295,24 @@ void test_icons() {
     require(has(compiled, "W502", "harbour/icons/security.shield.png", 0U), "a fixed icon's override is W502");
     require(has(compiled, "W501", "harbour/icons/toolbar.open.png", 0U), "an unknown icon is W501");
     const std::shared_ptr<const Theme> theme = compiled.theme();
-    const std::optional<ImageId> replaced = theme == nullptr ? std::nullopt : (*theme).icon_override("toolbar.save");
-    require(replaced && images.find(*replaced), "the override is the theme's image");
-    require(theme != nullptr && !(*theme).icon_override("security.shield") && !(*theme).icon_override("toolbar.open"),
+    const stxlib::Optional<ImageId> replaced = theme == nullptr ? stxlib::Optional<gui_forms::ImageId>::none() : (*theme).icon_override("toolbar.save");
+    require(replaced.present() && images.find((*replaced.value())).present(), "the override is the theme's image");
+    require(theme != nullptr && (*theme).icon_override("security.shield").absent() && (*theme).icon_override("toolbar.open").absent(),
             "an override refused is ignored");
 
-    require(resources.icon("toolbar.save") == save.image, "the program's icon without a user theme");
+    require(resources.icon("toolbar.save") == stxlib::Optional<gui_forms::ImageId>::of(save.image), "the program's icon without a user theme");
     resources.set_user_theme(theme);
     require(resources.icon("toolbar.save") == replaced, "an overridable icon takes the user theme's");
-    require(resources.icon("security.shield") == shield.image, "a fixed icon stays the program's");
-    require(!resources.icon("toolbar.open"), "an icon not registered is none");
+    require(resources.icon("security.shield") == stxlib::Optional<gui_forms::ImageId>::of(shield.image), "a fixed icon stays the program's");
+    require(resources.icon("toolbar.open").absent(), "an icon not registered is none");
     resources.set_user_theme(nullptr);
-    require(resources.icon("toolbar.save") == save.image, "the program's icon once no user theme is selected");
+    require(resources.icon("toolbar.save") == stxlib::Optional<gui_forms::ImageId>::of(save.image), "the program's icon once no user theme is selected");
 
     // The image rules: each refusal a warning, the theme compiling.
     const UserThemeFiles bad = theme_of(std::string(header), {{"icons/toolbar.save.png", clear_png}});
     const ThemeCompileResult clear = compile_user_theme(bad, library, images, with_icons, ThemeRuleSet::user);
     require(clear.succeeded() && has(clear, "W503", "harbour/icons/toolbar.save.png", 0U) &&
-                !(*clear.theme()).icon_override("toolbar.save"),
+                (*clear.theme()).icon_override("toolbar.save").absent(),
             "a fully transparent icon is W503");
     const UserThemeFiles wide = theme_of(std::string(header), {{"icons/toolbar.save.png", wide_png}});
     const ThemeCompileResult over = compile_user_theme(wide, library, images, with_icons, ThemeRuleSet::user);

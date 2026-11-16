@@ -1,5 +1,6 @@
 #include "gui_forms/text_shaping.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -43,14 +44,14 @@ public:
 
 class OrderedMockFallback final : public FontFallbackResolver {
 public:
-  std::optional<FontFallbackMatch>
+  stxlib::Optional<FontFallbackMatch>
   resolve(const FontFallbackRequest &request) override {
     observed_attempts.assign(request.attempted_faces.begin(),
                              request.attempted_faces.end());
     if (request.cluster.empty()) {
-      return std::nullopt;
+      return stxlib::Optional<gui_forms::FontFallbackMatch>::none();
     }
-    return FontFallbackMatch{FontFaceId{99}, request.cluster.size()};
+    return stxlib::Optional<gui_forms::FontFallbackMatch>::of(FontFallbackMatch{FontFaceId{99}, request.cluster.size()});
   }
 
   std::vector<FontFaceId> observed_attempts;
@@ -131,9 +132,9 @@ void test_fallback_preserves_attempt_order() {
                                          U'\U0001f4bb'};
   const FontFallbackRequest request{FontFaceId{7}, attempts, cluster, "en",
                                     open_type_tag('z', 'y', 'y', 'y')};
-  const std::optional<FontFallbackMatch> match = fallback.resolve(request);
-  require(match && (*match).face == FontFaceId{99} &&
-              (*match).covered_scalars == cluster.size() &&
+  const stxlib::Optional<FontFallbackMatch> match = fallback.resolve(request);
+  require(match.present() && ((*match.value())).face == FontFaceId{99} &&
+              ((*match.value())).covered_scalars == cluster.size() &&
               fallback.observed_attempts == attempts,
           "fallback services must receive caller-declared attempt order and the "
           "complete grapheme cluster");

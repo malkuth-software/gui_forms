@@ -26,6 +26,7 @@
 #include "gui_forms/theme/theme_overrides/theme_overrides.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <atomic>
 #include <array>
@@ -2022,12 +2023,12 @@ void Control::validate_authored_surface_material_images(
     if (surface_root_ == nullptr) return;
     for (const MaterialFillLayer& fill : material.fills) {
         if (fill.kind != MaterialFillKind::image) continue;
-        const std::optional<ImageResourceView> resource =
+        const stxlib::Optional<ImageResourceView> resource =
             (*surface_root_).image_resources().find(fill.image);
-        if (!resource ||
-            static_cast<double>((*resource).metadata.width) !=
+        if (resource.absent() ||
+            static_cast<double>(((*resource.value())).metadata.width) !=
                 fill.image_pixel_size.width ||
-            static_cast<double>((*resource).metadata.height) !=
+            static_cast<double>(((*resource.value())).metadata.height) !=
                 fill.image_pixel_size.height) {
             throw std::invalid_argument(
                 "control authored surface image is missing or has stale pixel geometry");
@@ -2130,10 +2131,10 @@ std::any Control::read_view(const decltype(tag)&) const {
 void Control::write_help_field(std::string detail::ControlHelpFields::* slot, LocaleField field,
                                std::string incoming) {
     require_mutable();
-    const std::optional<LocaleRefusal> refusal = check_locale_value(field, incoming);
-    if (refusal.has_value()) {
+    const stxlib::Optional<LocaleRefusal> refusal = check_locale_value(field, incoming);
+    if (refusal.present()) {
         throw std::invalid_argument("GUI.Forms " + std::string(locale_field_name(field)) +
-                                    " refused: " + std::string(locale_refusal_name(*refusal)));
+                                    " refused: " + std::string(locale_refusal_name((*refusal.value()))));
     }
     if (help_fields_ == nullptr) {
         if (incoming.empty()) return;

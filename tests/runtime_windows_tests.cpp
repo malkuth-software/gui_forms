@@ -644,7 +644,7 @@ void test_modal_windows() {
     require(windows.show_modal(std::move(unowned)).status.error == HostServiceError::invalid_argument,
             "unowned modal window accepted");
     ApplicationWindow popup = make_entry("modal", "main");
-    popup.popup = HostPopupPlacement{};
+    popup.popup.set(HostPopupPlacement{});
     require(windows.show_modal(std::move(popup)).status.error == HostServiceError::invalid_argument,
             "modal popup accepted");
     require(windows.window_count() == 2U, "a refused modal window opened");

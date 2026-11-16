@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -71,7 +72,7 @@ public:
     const std::string& spelling(std::size_t index) const&& = delete;
     // The index of the column named name in any spelling that folds to it,
     // or empty. A name that is blank finds nothing.
-    [[nodiscard]] std::optional<std::size_t> find(std::string_view name) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> find(std::string_view name) const;
     // Appends a column under the constructor's checks; returns its index.
     std::size_t append(BindingColumn column);
     // Whether value may be stored in column: the null value always, else a

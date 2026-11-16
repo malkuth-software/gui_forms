@@ -8,6 +8,7 @@
 #include "gui_forms/window.hpp"
 #include "../src/core/control/control/control_input_access.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -854,7 +855,7 @@ void test_command_bar_rebuild_and_keyboard() {
     StateObserver command_observer{};
     gf::on(run.invoked(), command_observer, &StateObserver::command);
     gf::on((*bar).invoked(), observer, &CollectionObserver::command);
-    (*bar).set_items({{.id = 1, .label = "Run", .shortcut = gf::KeyGesture{gf::PhysicalKey::r, gf::Modifier::control}, .command = &run},
+    (*bar).set_items({{.id = 1, .label = "Run", .shortcut = stxlib::Optional<gui_forms::KeyGesture>::of(gf::KeyGesture{gf::PhysicalKey::r, gf::Modifier::control}), .command = &run},
                      {.id = 2, .label = "Help"}});
     window.flush();
     require((*bar).item(0).arranged_bounds().width == 150.0 &&

@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -133,9 +134,9 @@ public:
     [[nodiscard]] bool is_assigned(MaskPosition position) const noexcept;
     // The first edit position at or after `from` (forward), or at or before
     // it (backward); none when there is no such position.
-    [[nodiscard]] std::optional<MaskPosition> find_edit_position(MaskPosition from,
+    [[nodiscard]] stxlib::Optional<MaskPosition> find_edit_position(MaskPosition from,
                                                                  bool forward) const noexcept;
-    [[nodiscard]] std::optional<MaskPosition> last_assigned_position() const noexcept;
+    [[nodiscard]] stxlib::Optional<MaskPosition> last_assigned_position() const noexcept;
 
     // The character an unassigned position shows: any non-control scalar.
     // Throws std::invalid_argument otherwise.

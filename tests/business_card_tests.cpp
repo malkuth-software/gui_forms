@@ -33,6 +33,7 @@
 #include "headless_host.hpp"
 #include "support/fake_framebuffer.hpp"
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -488,10 +489,10 @@ void heading_band_rule() {
     (*band).set_bounds({0.0, 0.0, 640.0, band_bottom});
     (*f.root).add_child(band);
     (*f.window).perform_layout();
-    expect(!(*f.card).heading_band_bottom().has_value(), "no rule by default");
+    expect((*f.card).heading_band_bottom().absent(), "no rule by default");
     (*f.card).set_heading_band(band);
-    const std::optional<double> bottom = (*f.card).heading_band_bottom();
-    expect(bottom.has_value() && std::abs(*bottom - (band_bottom - absolute.y)) < 1e-9,
+    const stxlib::Optional<double> bottom = (*f.card).heading_band_bottom();
+    expect(bottom.present() && std::abs((*bottom.value()) - (band_bottom - absolute.y)) < 1e-9,
            "the band's lower edge, in the card's coordinates");
     const Point under_band{stock.x + stock.width * 0.5, stock.y + stock.height * 0.25};
     const Point below_band{stock.x + stock.width * 0.5, stock.y + stock.height * 0.75};
@@ -501,7 +502,7 @@ void heading_band_rule() {
     expect(removed == band, "the band leaves the page");
     removed.reset();
     band.reset();
-    expect(!(*f.card).heading_band_bottom().has_value() && (*f.card).hit_test_local(under_band),
+    expect((*f.card).heading_band_bottom().absent() && (*f.card).hit_test_local(under_band),
            "a band destroyed sets no rule");
 }
 

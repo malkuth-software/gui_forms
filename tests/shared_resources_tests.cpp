@@ -75,8 +75,8 @@ void test_a_window_alone_keeps_its_own_resources() {
             "windows built alone share resources");
     require((*a.resources()).window_count() == 1U, "a window alone is not its resources' only window");
     const ImageId image = a.load_png(png()).image;
-    require(image.value != 0U && a.image_resources().find(image).has_value() &&
-                !b.image_resources().find(image).has_value(),
+    require(image.value != 0U && a.image_resources().find(image).present() &&
+                b.image_resources().find(image).absent(),
             "an image leaked into another window's registry");
     const std::shared_ptr<ImageList> list = std::make_shared<ImageList>(a);
     require((*list).belongs_to(a) && !(*list).belongs_to(b), "an image list belongs to a window that does not share");
@@ -98,7 +98,7 @@ void test_shared_images_and_image_lists() {
     Window b(root_b, {300.0, 100.0}, shared);
     require(a.shares_resources_with(b) && (*shared).window_count() == 2U, "windows do not share resources");
     const ImageId image = a.load_png(png()).image;
-    require(b.image_resources().find(image).has_value(), "an image loaded through one window is missing in the other");
+    require(b.image_resources().find(image).present(), "an image loaded through one window is missing in the other");
 
     // An ImageList made for one window is accepted by a control in the other.
     const std::shared_ptr<ImageList> list = std::make_shared<ImageList>(a, Size{16.0, 16.0});
@@ -164,7 +164,7 @@ void test_moved_subtree_keeps_its_images() {
     b.perform_layout();
     require((*button).attached_window() == &b && (*button).image_list() == list,
             "the moved button lost its image list");
-    require((*picture).image.read() == raw && b.image_resources().find(raw).has_value(),
+    require((*picture).image.read() == raw && b.image_resources().find(raw).present(),
             "the moved picture lost its image");
     ImagePainter after;
     (*button).on_paint(after, {0.0, 0.0, 120.0, 30.0});
@@ -177,7 +177,7 @@ void test_moved_subtree_keeps_its_images() {
     // Window a closes: the images stay, and the ImageList made for it keeps
     // working through the resources.
     a.reset();
-    require((*shared).window_count() == 1U && b.image_resources().find(keyed).has_value(),
+    require((*shared).window_count() == 1U && b.image_resources().find(keyed).present(),
             "images lost with the window they were loaded through");
     require((*list).bound_window() == nullptr && (*list).belongs_to(b), "image list lost after its window closed");
     require((*list).add_png("close", png()).image.value != 0U, "image list unusable after its window closed");
@@ -185,8 +185,8 @@ void test_moved_subtree_keeps_its_images() {
     (*button).on_paint(late, {0.0, 0.0, 120.0, 30.0});
     require(late.images.size() == 1U && late.images[0] == keyed, "button image lost after the source window closed");
     (*list).dispose();
-    require(!b.image_resources().find(keyed).has_value(), "disposing the image list did not release its images");
-    require(b.image_resources().find(raw).has_value(), "disposing the image list released another image");
+    require(b.image_resources().find(keyed).absent(), "disposing the image list did not release its images");
+    require(b.image_resources().find(raw).present(), "disposing the image list released another image");
 }
 
 // A run in which a floating window is built with the main window's
@@ -238,7 +238,7 @@ void test_runtime_window_shares_the_main_window_resources() {
     static_cast<void>((*main_root).remove_child((*picture).runtime_id()));
     (*floating_root).add_child(picture);
     require((*picture).attached_window() == &floating_model &&
-                floating_model.image_resources().find(image).has_value(),
+                floating_model.image_resources().find(image).present(),
             "the moved picture's image is missing in the floating window");
     floating_model.perform_layout();
     ImagePainter painted;

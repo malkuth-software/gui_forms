@@ -10,6 +10,7 @@
 #include "../../surface_root/access/surface_resource_access.hpp"
 #include "gui_forms/resources/image_atlas/image_atlas.hpp"
 
+#include <stxlib/optional.hpp>
 #include <atomic>
 #include <cstdio>
 
@@ -223,7 +224,7 @@ void ApplicationResources::register_icon(std::string_view identifier, ImageId im
     for (const IconDeclaration& declared : icons_) {
         if (declared.identifier == identifier) throw std::invalid_argument("the icon is already registered");
     }
-    if (!images_.find(image)) throw std::invalid_argument("the icon's image is not one of these resources'");
+    if (images_.find(image).absent()) throw std::invalid_argument("the icon's image is not one of these resources'");
     // Both reserved first, so that neither push_back can throw between
     // them.
     icons_.reserve(icons_.size() + 1U);
@@ -232,23 +233,23 @@ void ApplicationResources::register_icon(std::string_view identifier, ImageId im
     icon_images_.push_back(image);
 }
 
-std::optional<ImageId> ApplicationResources::icon(std::string_view identifier) const noexcept {
+stxlib::Optional<ImageId> ApplicationResources::icon(std::string_view identifier) const noexcept {
     for (std::size_t index = 0U; index < icons_.size(); ++index) {
         if (icons_[index].identifier != identifier) continue;
         if (icons_[index].policy == IconOverride::overridable && user_theme_ != nullptr) {
-            const std::optional<ImageId> replaced = (*user_theme_).icon_override(identifier);
-            if (replaced) return replaced;
+            const stxlib::Optional<ImageId> replaced = (*user_theme_).icon_override(identifier);
+            if (replaced.present()) return replaced;
         }
-        return icon_images_[index];
+        return stxlib::Optional<ImageId>::of(icon_images_[index]);
     }
-    return std::nullopt;
+    return stxlib::Optional<ImageId>::none();
 }
 
-std::optional<ImageId> ApplicationResources::program_icon(std::string_view identifier) const noexcept {
+stxlib::Optional<ImageId> ApplicationResources::program_icon(std::string_view identifier) const noexcept {
     for (std::size_t index = 0U; index < icons_.size(); ++index) {
-        if (icons_[index].identifier == identifier) return icon_images_[index];
+        if (icons_[index].identifier == identifier) return stxlib::Optional<ImageId>::of(icon_images_[index]);
     }
-    return std::nullopt;
+    return stxlib::Optional<ImageId>::none();
 }
 
 ThemeCompileResult ApplicationResources::compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program,

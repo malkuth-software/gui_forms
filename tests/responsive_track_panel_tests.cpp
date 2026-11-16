@@ -14,6 +14,7 @@
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
 #include "gui_forms/window/window.hpp"
+#include "../src/platform/stxlib_bridge.hpp"
 
 #include <cmath>
 #include <cstdlib>
@@ -75,7 +76,7 @@ void test_content_shrink_precedes_authored_collapse() {
         {ResponsiveTrackSizeMode::fixed, 40.0, 40.0, 40.0, 1.0},
         {ResponsiveTrackSizeMode::remaining, 20.0, 100.0, 0.0, 1.0},
         {ResponsiveTrackSizeMode::content, 30.0, 60.0, 100.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
     };
     const std::vector<double> measured{0.0, 0.0, 60.0};
     const ResponsiveTrackResolution shrink = resolve_responsive_tracks(
@@ -97,12 +98,12 @@ void test_content_shrink_precedes_authored_collapse() {
 void test_hidden_tracks_and_deterministic_priority_order() {
     const std::vector<ResponsiveTrackSpec> specs{
         {ResponsiveTrackSizeMode::fixed, 123.0, 221.0, 320.0, 1.0,
-         false, 20U},
+         false, stxlib::Optional<std::uint16_t>::of(20U)},
         {ResponsiveTrackSizeMode::remaining, 150.0, 300.0, 0.0, 1.0},
         {ResponsiveTrackSizeMode::fixed, 163.0, 291.0, 360.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
         {ResponsiveTrackSizeMode::fixed, 30.0, 30.0, 30.0, 1.0, true,
-         5U},
+         stxlib::Optional<std::uint16_t>::of(5U)},
     };
     const std::vector<double> measured(4U);
     const ResponsiveTrackResolution reference = resolve_responsive_tracks(
@@ -168,7 +169,7 @@ struct FocusFixture final {
         (*root).set_track_specs({
             {ResponsiveTrackSizeMode::remaining, 80.0, 120.0, 0.0, 1.0},
             {ResponsiveTrackSizeMode::fixed, 120.0, 120.0, 120.0, 1.0,
-             false, 10U},
+             false, stxlib::Optional<std::uint16_t>::of(10U)},
         });
         (*content).dock = DockStyle::fill;
         (*selection).dock = DockStyle::fill;
@@ -235,7 +236,7 @@ void test_text_scale_reflow_transactions_and_resize_stability() {
         {ResponsiveTrackSizeMode::content, 28.0, 40.0, 120.0, 1.0},
         {ResponsiveTrackSizeMode::remaining, 30.0, 100.0, 0.0, 1.0},
         {ResponsiveTrackSizeMode::content, 20.0, 24.0, 80.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
     });
     std::shared_ptr<Label> title = make_control<Label>(
         StableId("responsive.scale.title"), "Current location");
@@ -304,7 +305,7 @@ void test_invalid_specs_reject_atomically() {
     const std::vector<ResponsiveTrackSpec> accepted{
         {ResponsiveTrackSizeMode::fixed, 20.0, 20.0, 20.0, 1.0},
         {ResponsiveTrackSizeMode::remaining, 10.0, 20.0, 0.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
     };
     (*panel).set_track_specs(accepted);
     bool bounds_rejected = false;
@@ -319,9 +320,9 @@ void test_invalid_specs_reject_atomically() {
     try {
         (*panel).set_track_specs({
             {ResponsiveTrackSizeMode::fixed, 10.0, 10.0, 10.0, 1.0,
-             false, 7U},
+             false, stxlib::Optional<std::uint16_t>::of(7U)},
             {ResponsiveTrackSizeMode::fixed, 10.0, 10.0, 10.0, 1.0,
-             false, 7U},
+             false, stxlib::Optional<std::uint16_t>::of(7U)},
         });
     } catch (const std::invalid_argument&) {
         duplicate_priority_rejected = true;
@@ -395,7 +396,7 @@ void test_track_settings_as_properties() {
                                 BindingValue{make_property_collection("String", BindingValueKind::text, items)});
     const std::span<const ResponsiveTrackSpec> specs = (*panel).track_specs();
     require(specs.size() == 2U && specs[0].size_mode == ResponsiveTrackSizeMode::fixed &&
-                specs[0].collapse_priority == std::optional<std::uint16_t>(2U) &&
+                specs[0].collapse_priority == gui_forms::platform::stxlib_optional(std::optional<std::uint16_t>(2U)) &&
                 specs[1].remaining_weight == 2.0 && specs[1].hidden && specs[1].preferred == 200.0,
             "track settings: the specs read from their text");
     const std::optional<BindingValue> read = (*panel).property_value("track_specs");

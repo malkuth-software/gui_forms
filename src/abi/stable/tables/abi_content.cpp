@@ -22,6 +22,7 @@
 #include "gui_forms/controls/content_surface.hpp"
 #include "gui_forms/controls/content_text_editor.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
@@ -1291,11 +1292,11 @@ gf_status content_editor_composition_range_body(gf_object editor, std::uint32_t*
     std::shared_ptr<ContentTextEditor> found;
     const gf_status entered = enter_editor(editor, editor_composition_range_slot, found);
     if (entered != GF_STATUS_OK) return entered;
-    const std::optional<Utf8Range> range = (*found).composition_range();
-    *present = range ? 1U : 0U;
-    if (range) {
-        *start = (*range).start.value();
-        *end = (*range).end.value();
+    const stxlib::Optional<Utf8Range> range = (*found).composition_range();
+    *present = range.present() ? 1U : 0U;
+    if (range.present()) {
+        *start = ((*range.value())).start.value();
+        *end = ((*range.value())).end.value();
     }
     return GF_STATUS_OK;
 }
@@ -1313,9 +1314,9 @@ gf_status content_editor_caret_quad_body(gf_object editor, std::uint32_t* presen
     std::shared_ptr<ContentTextEditor> found;
     const gf_status entered = enter_editor(editor, editor_caret_quad_slot, found);
     if (entered != GF_STATUS_OK) return entered;
-    const std::optional<ContentQuad> caret = (*found).caret_quad();
-    *present = caret ? 1U : 0U;
-    if (caret) *quad = quad_value(*caret);
+    const stxlib::Optional<ContentQuad> caret = (*found).caret_quad();
+    *present = caret.present() ? 1U : 0U;
+    if (caret.present()) *quad = quad_value((*caret.value()));
     return GF_STATUS_OK;
 }
 

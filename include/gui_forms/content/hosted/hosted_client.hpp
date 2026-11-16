@@ -21,6 +21,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/content/hosted/hosted_protocol.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -72,7 +73,7 @@ public:
 
     // A slot the parent has released, pumping up to `timeout` for one; none
     // on timeout, stop or a closed channel.
-    [[nodiscard]] std::optional<std::uint32_t> acquire_slot(std::chrono::milliseconds timeout);
+    [[nodiscard]] stxlib::Optional<std::uint32_t> acquire_slot(std::chrono::milliseconds timeout);
     // The slot's writable bytes, slot_bytes() long, valid while the client
     // lives. An empty span for a slot that does not exist.
     [[nodiscard]] std::span<std::byte> slot_pixels(std::uint32_t slot) noexcept;

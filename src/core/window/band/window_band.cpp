@@ -176,8 +176,8 @@ SurfaceMaterial band_texture_material(const WindowBandTexture& texture) {
 
 bool window_band_options_valid(const WindowBandOptions& options) noexcept {
     bool width = band_width_valid(options.width);
-    if (options.edges) {
-        const WindowBandEdges& edges = *options.edges;
+    if (options.edges.present()) {
+        const WindowBandEdges& edges = (*options.edges.value());
         width = band_width_valid(edges.left) && band_width_valid(edges.top) && band_width_valid(edges.right) &&
                 band_width_valid(edges.bottom);
     }
@@ -216,7 +216,7 @@ bool window_band_appearance_valid(const WindowBandAppearance& appearance) noexce
     default: role = false; break;
     }
     const bool frequency = std::isfinite(appearance.frequency) && appearance.frequency >= 0.0;
-    const bool texture = !appearance.texture || window_band_texture_valid(*appearance.texture);
+    const bool texture = appearance.texture.absent() || window_band_texture_valid((*appearance.texture.value()));
     return known && role && frequency && texture;
 }
 
@@ -292,8 +292,8 @@ void SurfaceRoot::refresh_band() {
         context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
         const ControlVisualRecipe& recipe = (*theme_).resolve(ControlVisualRole::window, context);
         Insets asked{};
-        if (band_.options.edges) {
-            const WindowBandEdges& edges = *band_.options.edges;
+        if (band_.options.edges.present()) {
+            const WindowBandEdges& edges = (*band_.options.edges.value());
             asked = Insets{edges.left, edges.top, edges.right, edges.bottom};
         } else {
             double uniform = default_band_width;
@@ -330,7 +330,7 @@ void SurfaceRoot::refresh_band() {
                 resolved.cycling = pose.motion == ActiveBorderMotion::cycling;
                 if (resolved.flashing || resolved.cycling) resolved.frequency = pose.frequency;
             }
-            resolved.textured = appearance.texture.has_value();
+            resolved.textured = appearance.texture.present();
         }
         resolved.reserved = snapped_band_edges(asked, scale_);
         if (!any_edge(resolved.reserved)) resolved.textured = false;
@@ -434,7 +434,7 @@ void SurfaceRoot::paint_band(detail::RecordingPainter& candidate, std::span<cons
     const std::array<Rect, 4> strips = band_strips(client_size_, widths);
     const Rect content = content_rect();
     std::optional<SurfaceMaterial> texture{};
-    if (band_.textured && band_.appearance.texture) texture = band_texture_material(*band_.appearance.texture);
+    if (band_.textured && band_.appearance.texture.present()) texture = band_texture_material((*band_.appearance.texture.value()));
     for (const Rect& rectangle : painted) {
         // A painted rectangle wholly inside the content draws no band.
         if (content.contains(rectangle)) continue;

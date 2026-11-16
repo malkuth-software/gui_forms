@@ -14,6 +14,7 @@
 #include "../../core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "gui_forms/controls/button_base.hpp"
 
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -175,12 +176,12 @@ void CompositeControl::make_children() {
     }
 }
 
-void CompositeControl::write_bound_children(const std::optional<std::size_t> changed) {
+void CompositeControl::write_bound_children(const stxlib::Optional<std::size_t> changed) {
     if (writing_children_) return;
     const FlagScope writing(writing_children_);
     const CompositeDefinition& definition = *definition_;
     for (const CompositeChildBinding& binding : definition.child_bindings) {
-        if (changed && binding.source != *changed) continue;
+        if (changed.present() && binding.source != (*changed.value())) continue;
         if (definition.properties[binding.source].command) continue;
         const Control::Ptr target = child(binding.child);
         if (!target) continue;

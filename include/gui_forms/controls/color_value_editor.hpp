@@ -84,7 +84,7 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
-    static std::optional<std::uint8_t> parse_nibble(char digit) noexcept;
+    static stxlib::Optional<std::uint8_t> parse_nibble(char digit) noexcept;
     void commit_text(const std::string& text);
     void commit(std::string_view text);
     void cancel();

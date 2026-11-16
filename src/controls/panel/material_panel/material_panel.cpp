@@ -3,6 +3,7 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <stdexcept>
 #include <utility>
@@ -31,11 +32,11 @@ void MaterialPanel::validate_window_images(
     for (const MaterialFillLayer* layer : layers) {
         const MaterialFillLayer& fill = *layer;
         if (fill.kind != MaterialFillKind::image) continue;
-        const std::optional<ImageResourceView> resource = (*window()).image_resources().find(fill.image);
-        if (!resource ||
-            static_cast<double>((*resource).metadata.width) !=
+        const stxlib::Optional<ImageResourceView> resource = (*window()).image_resources().find(fill.image);
+        if (resource.absent() ||
+            static_cast<double>(((*resource.value())).metadata.width) !=
                 fill.image_pixel_size.width ||
-            static_cast<double>((*resource).metadata.height) !=
+            static_cast<double>(((*resource.value())).metadata.height) !=
                 fill.image_pixel_size.height) {
             throw std::invalid_argument(
                 "material image is missing from the attached Window or its declared pixel size is stale");

@@ -13,6 +13,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -290,9 +291,9 @@ namespace {
 // A stock icon's size on a button: its fixed size, else 16 units (the
 // toolbar and menu icon size), at which the nearest variant is shown.
 Size stock_button_image_size(ImageId image) noexcept {
-    const std::optional<StockIconImage> icon = stock_icon_image_parts(image);
-    if (!icon) return {};
-    const double side = (*icon).size ? static_cast<double>(*(*icon).size) : 16.0;
+    const stxlib::Optional<StockIconImage> icon = stock_icon_image_parts(image);
+    if (icon.absent()) return {};
+    const double side = ((*icon.value())).size.present() ? static_cast<double>((*((*icon.value())).size.value())) : 16.0;
     return {side, side};
 }
 
@@ -303,7 +304,7 @@ Size stock_button_image_size(ImageId image) noexcept {
 void ButtonBase::write_view(const decltype(image)&, ImageId incoming) {
     require_mutable();
     if (incoming.value != 0U && !is_stock_icon_image(incoming) && window() != nullptr &&
-        !(*window()).image_resources().find(incoming)) {
+        (*window()).image_resources().find(incoming).absent()) {
         throw std::invalid_argument("Button image ID is not live in its Window");
     }
     if (image_ == incoming && image_index_ == -1 && image_key_.empty()) return;
@@ -407,7 +408,7 @@ void ButtonBase::on_attached_to_window() {
     if (image_list_ && !(*image_list_).belongs_to(*window())) {
         throw std::logic_error("Button cannot attach to a different ImageList Window");
     }
-    if (image_.value != 0U && !is_stock_icon_image(image_) && !(*window()).image_resources().find(image_)) {
+    if (image_.value != 0U && !is_stock_icon_image(image_) && (*window()).image_resources().find(image_).absent()) {
         throw std::logic_error("Button cannot attach with a foreign or stale image ID");
     }
 }
@@ -427,9 +428,10 @@ Size ButtonBase::measure(Size available) {
         image_size = stock_button_image_size(image_);
     } else if (image_.value != 0U) {
         if (window() != nullptr) {
-            if (const std::optional<ImageResourceView> resource = (*window()).image_resources().find(image_)) {
-                image_size = {static_cast<double>((*resource).metadata.width),
-                              static_cast<double>((*resource).metadata.height)};
+            const stxlib::Optional<ImageResourceView> resource = (*window()).image_resources().find(image_);
+            if (resource.present()) {
+                image_size = {static_cast<double>(((*resource.value())).metadata.width),
+                              static_cast<double>(((*resource.value())).metadata.height)};
             }
         }
     } else if (image_list_ && (*image_list_).is_alive() &&
@@ -488,11 +490,11 @@ ImageListResolution ButtonBase::resolved_button_image(bool selected) const noexc
         return result;
     }
     if (image_.value != 0U && window() != nullptr) {
-        const std::optional<ImageResourceView> resource = (*window()).image_resources().find(image_);
-        if (!resource) return result;
+        const stxlib::Optional<ImageResourceView> resource = (*window()).image_resources().find(image_);
+        if (resource.absent()) return result;
         result.image = image_;
-        result.source_size = {static_cast<double>((*resource).metadata.width),
-                              static_cast<double>((*resource).metadata.height)};
+        result.source_size = {static_cast<double>(((*resource.value())).metadata.width),
+                              static_cast<double>(((*resource.value())).metadata.height)};
         result.resolved_state = ImageVisualState::normal;
         result.resolved_scale = 1.0;
         return result;

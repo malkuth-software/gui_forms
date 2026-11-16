@@ -571,7 +571,7 @@ void EnginePartTable::clear_image_variants() noexcept {
     // allocates.
     std::size_t kept = 0U;
     for (std::size_t index = 0U; index < image_variants_.size(); ++index) {
-        if (!image_variants_[index].request.procedural) {
+        if (image_variants_[index].request.procedural.absent()) {
             forget_variant(image_variants_[index]);
             continue;
         }
@@ -583,7 +583,7 @@ void EnginePartTable::clear_image_variants() noexcept {
 
 void EnginePartTable::forget_variant(const HeldImageVariant& held) noexcept {
     statistics_.shared_bytes = statistics_.shared_bytes - (*held.raster).pixels().size();
-    if (held.request.procedural) {
+    if (held.request.procedural.present()) {
         statistics_.procedural_patterns = statistics_.procedural_patterns - 1U;
     } else {
         statistics_.image_variants = statistics_.image_variants - 1U;
@@ -714,7 +714,7 @@ stxlib::Optional<std::uint64_t> EnginePartTable::lend_image_variants(const PartR
     for (std::size_t index = 0U; index < count; ++index) {
         const ImageVariantRequest& asked = wanted[index];
         if (asked.layer >= lent.layers.size()) continue;
-        const bool pattern = asked.procedural.has_value();
+        const bool pattern = asked.procedural.present();
         std::size_t found = image_variants_.size();
         for (std::size_t held = 0U; held < image_variants_.size(); ++held) {
             if (same_variant(image_variants_[held].request, asked)) found = held;
@@ -769,7 +769,7 @@ void EnginePartTable::hold_variant(const ImageVariantRequest& asked, const std::
     // Commit: nothing below allocates.
     make_shared_room(bytes);
     image_variants_.push_back(HeldImageVariant{asked, made, paint_sequence});
-    if (asked.procedural) {
+    if (asked.procedural.present()) {
         statistics_.procedural_patterns = statistics_.procedural_patterns + 1U;
     } else {
         statistics_.image_variants = statistics_.image_variants + 1U;
@@ -797,7 +797,7 @@ PatternGeneration EnginePartTable::generate_pattern(const std::uint64_t paint_se
         }
         if (held) continue;
         const std::shared_ptr<PartRaster> made =
-            engine_primitives::make_procedural_pattern(*asked.procedural, asked.scale.value, asked.extent);
+            engine_primitives::make_procedural_pattern((*asked.procedural.value()), asked.scale.value, asked.extent);
         if (!made) continue;
         hold_variant(asked, made, paint_sequence);
         statistics_.procedural_generations = statistics_.procedural_generations + 1U;

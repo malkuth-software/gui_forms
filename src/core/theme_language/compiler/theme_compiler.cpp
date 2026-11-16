@@ -307,7 +307,7 @@ struct EmittedRule final {
 // the primitive `descriptor` describes.
 [[nodiscard]] bool names_parameter(const PrimitiveDescriptor& descriptor, std::string_view folded) {
     const std::string registered = registered_name_from_kebab(folded);
-    const bool named = !registered.empty() && find_parameter(descriptor, registered).has_value();
+    const bool named = !registered.empty() && find_parameter(descriptor, registered).present();
     return named;
 }
 
@@ -2053,7 +2053,7 @@ bool CompilePass::lower_colour_scheme(const SyntaxNode& node) {
         report(DiagnosticCode::value_syntax, property, "color-scheme: light | dark | light dark");
         return false;
     }
-    sheet_.colour_schemes = declared;
+    sheet_.colour_schemes.set(declared);
     return true;
 }
 
@@ -2364,9 +2364,9 @@ bool CompilePass::lower_declaration(const SyntaxNode& node, PropertyClass kind, 
     if (selection.primitive != nullptr) {
         const PrimitiveDescriptor& descriptor = (*selection.primitive).descriptor();
         const std::string registered = registered_name_from_kebab(folded_);
-        const std::optional<std::size_t> parameter =
-            registered.empty() ? std::optional<std::size_t>{} : find_parameter(descriptor, registered);
-        if (parameter) return lower_parameter(node, descriptor, *parameter);
+        const stxlib::Optional<std::size_t> parameter =
+            registered.empty() ? stxlib::Optional<std::size_t>::none() : find_parameter(descriptor, registered);
+        if (parameter.present()) return lower_parameter(node, descriptor, (*parameter.value()));
     }
     // The parameters of a dropped primitive go with it.
     if (!selection.selects && selection.dropped) return true;
@@ -2476,9 +2476,9 @@ bool CompilePass::lower_parameter(const SyntaxNode& node, const PrimitiveDescrip
     if (!keyword_of(first, "a keyword")) return false;
     fold_ascii(first.text, folded_);
     const std::string registered = registered_name_from_kebab(folded_);
-    const std::optional<std::size_t> choice =
-        registered.empty() ? std::optional<std::size_t>{} : find_choice(declared, registered);
-    if (!choice) {
+    const stxlib::Optional<std::size_t> choice =
+        registered.empty() ? stxlib::Optional<std::size_t>::none() : find_choice(declared, registered);
+    if (choice.absent()) {
         // R2-07: a keyword the engine lacks is an error, or a warning when
         // the sheet declares a newer engine.
         const DiagnosticCode code =
@@ -2486,7 +2486,7 @@ bool CompilePass::lower_parameter(const SyntaxNode& node, const PrimitiveDescrip
         report(code, first.token, clipped_theme_detail(first.text));
         return newer_engine_;
     }
-    lowered.declaration = RuleDeclaration::choice_value(declared.name, declared.choices[*choice]);
+    lowered.declaration = RuleDeclaration::choice_value(declared.name, declared.choices[(*choice.value())]);
     add_lowered(std::move(lowered));
     return true;
 }

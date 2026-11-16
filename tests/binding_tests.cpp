@@ -32,7 +32,9 @@
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "support/binding_test_rows.hpp"
 #include "support/named_callbacks.hpp"
+#include "../src/platform/stxlib_bridge.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -347,14 +349,14 @@ private:
 
 void test_value_conversion_is_strict_and_invariant() {
     require(binding_value_kind(BindingValue{}) == BindingValueKind::null &&
-                binding_value_to_bool(std::string("TRUE")) == true &&
-                binding_value_to_signed(std::string("-42")) == -42 &&
-                binding_value_to_unsigned(std::string("42")) == 42U &&
-                binding_value_to_number(std::string("12.5")) == 12.5,
+                binding_value_to_bool(std::string("TRUE")) == stxlib::Optional<bool>::of(true) &&
+                binding_value_to_signed(std::string("-42")) == stxlib::Optional<std::int64_t>::of(-42) &&
+                binding_value_to_unsigned(std::string("42")) == stxlib::Optional<std::uint64_t>::of(42U) &&
+                binding_value_to_number(std::string("12.5")) == stxlib::Optional<double>::of(12.5),
             "binding scalar conversion must cover null, Boolean, integer, and invariant number values");
-    require(!binding_value_to_unsigned(std::string("-1")) &&
-                !binding_value_to_number(std::string("12.5ms")) &&
-                !binding_value_to_signed(2.5) &&
+    require(binding_value_to_unsigned(std::string("-1")).absent() &&
+                binding_value_to_number(std::string("12.5ms")).absent() &&
+                binding_value_to_signed(2.5).absent() &&
                 canonical_binding_name("  DataMember  ") == "datamember",
             "binding conversion must reject partial, negative-unsigned, and fractional-integer input");
     require(binding_value_kind(BindingValue{Point{1.0, 2.0}}) ==
@@ -964,10 +966,10 @@ void test_edit_transactions_list_mutation_and_context() {
                 std::optional<BindingValue>{std::string("committed")},
             "EndEdit must retire rollback state without changing committed fields");
 
-    const std::optional<std::size_t> inserted = (*fixture.source).insert(
+    const stxlib::Optional<std::size_t> inserted = (*fixture.source).insert(
         1U, gui_forms::test_rows::row_of(*fixture.source, {"record.middle", {{"name", std::string("Middle")}}}));
-    require(inserted == std::optional<std::size_t>{1U} && (*fixture.source).count() == 3U &&
-                (*fixture.source).find("name", std::string("Middle")) == 1U,
+    require(inserted == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{1U}) && (*fixture.source).count() == 3U &&
+                (*fixture.source).find("name", std::string("Middle")) == stxlib::Optional<std::size_t>::of(1U),
             "BindingSource must support stable insertion and field search");
     require(manager.remove_at(1U) &&
                 (*fixture.source).count() == 2U,

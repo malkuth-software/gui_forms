@@ -50,8 +50,8 @@ struct Fixture final {
         (*shelf).add_child(arrange);
         (*shelf).add_child(more);
         (*shelf).group_gap = 4.0;
-        (*shelf).group_spec[*selection] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U});
-        (*shelf).group_spec[*arrange] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U});
+        (*shelf).group_spec[*selection] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0, 176.0, 176.0, stxlib::Optional<std::uint16_t>::of(2U)});
+        (*shelf).group_spec[*arrange] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{306.0, 306.0, 306.0, stxlib::Optional<std::uint16_t>::of(1U)});
         (*shelf).set_overflow_actuator(*more);
         window.perform_layout();
     }
@@ -102,7 +102,7 @@ void test_focus_protection_and_atomic_metadata() {
     const stxlib::Optional<CommandOverflowGroupSpec> before = (*fixture.shelf).group_spec[*fixture.selection].read();
     bool rejected = false;
     try {
-        (*fixture.shelf).group_spec[*fixture.selection] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0, 176.0, 176.0, 1U});
+        (*fixture.shelf).group_spec[*fixture.selection] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0, 176.0, 176.0, stxlib::Optional<std::uint16_t>::of(1U)});
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
@@ -125,7 +125,7 @@ void test_group_spec_child_property() {
     const stxlib::Optional<CommandOverflowGroupSpec> written = shelf.group_spec[*fixture.selection].read();
     const CommandOverflowGroupSpec* written_spec = written.value();
     require(written_spec != nullptr && (*written_spec).minimum == 150.0 && (*written_spec).preferred == 170.5 &&
-                (*written_spec).maximum == 0.0 && !(*written_spec).collapse_priority,
+                (*written_spec).maximum == 0.0 && (*written_spec).collapse_priority.absent(),
             "group spec: a name-keyed text write without a priority reaches the typed read");
     require(shelf.group_spec[*fixture.more].read().absent() &&
                 !shelf.should_serialize_child_property(*fixture.more, "group_spec"),
@@ -139,7 +139,7 @@ void test_group_spec_child_property() {
     }
     bool actuator_refused = false;
     try {
-        shelf.group_spec[*fixture.more] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{72.0, 72.0, 72.0, 3U});
+        shelf.group_spec[*fixture.more] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{72.0, 72.0, 72.0, stxlib::Optional<std::uint16_t>::of(3U)});
     } catch (const std::invalid_argument&) {
         actuator_refused = true;
     }

@@ -340,12 +340,12 @@ bool decoded_opaque(const std::uint8_t corner_alpha) {
     ImageRegistry registry;
     const ImageLoadResult loaded = registry.load_png(encoded);
     expect(static_cast<bool>(loaded), "the test image loads");
-    const std::optional<ImageResourceView> view = registry.find(loaded.image);
-    expect(view.has_value(), "the test image is found");
+    const stxlib::Optional<ImageResourceView> view = registry.find(loaded.image);
+    expect(view.present(), "the test image is found");
     std::vector<std::byte> decoded(4U * 4U * 4U, std::byte{0});
     image::ResourcePixelDecoder decoder;
     const image::PixelTarget target{image::PixelOrder::bgra, image::PixelAlpha::premultiplied};
-    const image::ResourcePixelResult result = decoder.decode(*view, target, decoded, 16U);
+    const image::ResourcePixelResult result = decoder.decode((*view.value()), target, decoded, 16U);
     expect(result.error == image::ResourcePixelError::none, "the test image decodes");
     return result.every_pixel_opaque;
 }

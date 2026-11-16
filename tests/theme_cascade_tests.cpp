@@ -14,6 +14,7 @@
 #include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cmath>
 #include <cstdlib>
@@ -84,9 +85,9 @@ std::vector<RuleDeclaration> bulge(double amplitude) {
 }
 
 double amplitude_of(const CompiledThemeRules::Resolution& resolution) {
-    const std::optional<std::size_t> index = find_parameter((*resolution.primitive).descriptor(), "amplitude");
-    require(index.has_value(), "the bulge has an amplitude");
-    const double value = resolution.parameters.values[*index].number;
+    const stxlib::Optional<std::size_t> index = find_parameter((*resolution.primitive).descriptor(), "amplitude");
+    require(index.present(), "the bulge has an amplitude");
+    const double value = resolution.parameters.values[(*index.value())].number;
     return value;
 }
 
@@ -218,9 +219,9 @@ void specificity_and_ties() {
     const CompiledThemeRules cascaded = CompiledThemeRules::compile(split, builtin_primitive_registry());
     const std::vector<std::string> tinted{"tinted"};
     const CompiledThemeRules::Resolution both = cascaded.resolve(face_of("x", tinted));
-    const std::optional<std::size_t> light = find_parameter((*both.primitive).descriptor(), "light_colour");
+    const stxlib::Optional<std::size_t> light = find_parameter((*both.primitive).descriptor(), "light_colour");
     require(both.level == CascadeLevel::class_rule && amplitude_of(both) == 0.6 &&
-                both.parameters.values[*light].colour == Color::rgba(10, 20, 30),
+                both.parameters.values[(*light.value())].colour == Color::rgba(10, 20, 30),
             "each parameter takes its winning declaration among the rules for the same primitive");
 }
 

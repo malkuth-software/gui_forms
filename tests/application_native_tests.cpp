@@ -3,6 +3,7 @@
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -556,7 +557,7 @@ void open_splash_window(RuntimeWindowsProbe& state, const ApplicationWindows& wi
     HostPopupPlacement placement{};
     placement.kind = HostTransientKind::tool_tip;
     placement.origin = DesktopLogicalPoint{40.0, 40.0};
-    entry.popup = placement;
+    entry.popup.set(placement);
     const ApplicationWindowOpenResult opened = windows.open_window(std::move(entry));
     state.splash_open = opened.status;
     if (!opened.status.accepted()) return;

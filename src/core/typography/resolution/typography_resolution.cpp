@@ -1,6 +1,7 @@
 #include "gui_forms/typography.hpp"
 #include "gui_forms/text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -181,14 +182,14 @@ TextResolutionStatus estimate_cluster_advances_utf8(
 }
 
 LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary,
-                                std::optional<double> used_line_height) noexcept {
+                                stxlib::Optional<double> used_line_height) noexcept {
     FontVerticalMetrics design{primary.ascent, primary.descent, primary.line_gap, 0.0};
-    if (primary.design_metrics) design = *primary.design_metrics;
+    if (primary.design_metrics.present()) design = (*primary.design_metrics.value());
     const double ascent = std::round(design.ascent);
     const double descent = std::round(design.descent);
     const double gap = std::round(design.line_gap);
     LineBoxMetrics metrics{};
-    metrics.height = used_line_height ? *used_line_height : ascent + descent + gap;
+    metrics.height = used_line_height.present() ? (*used_line_height.value()) : ascent + descent + gap;
     const double leading = metrics.height - (ascent + descent);
     metrics.baseline = ascent + std::floor(leading * 0.5);
     metrics.x_height = design.x_height;

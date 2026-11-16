@@ -4,6 +4,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <deque>
 #include <optional>
@@ -92,7 +93,7 @@ public:
     // The unfinished composition's marked text: the range the last composing
     // input inserted, while the composition is open and no other edit has
     // changed the text since; none otherwise.
-    [[nodiscard]] std::optional<Utf8Range> composition_range() const noexcept;
+    [[nodiscard]] stxlib::Optional<Utf8Range> composition_range() const noexcept;
 
     // Replaces the whole text without history: the caret goes to the end,
     // the history and any composition end. No host call.

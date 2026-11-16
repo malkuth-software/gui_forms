@@ -4,6 +4,7 @@
 #include "gui_forms/document_view/types/document_view_types.hpp"
 #include "gui_forms/types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -73,7 +74,7 @@ struct GUI_FORMS_API PreparedParagraphProof final {
 // and a family's.
 struct GUI_FORMS_API PreparedFontSource final {
     std::span<const std::byte> encoded{};
-    std::optional<FontRole> role{};
+    stxlib::Optional<FontRole> role{};
     std::uint16_t weight{400};
     bool italic{};
     std::uint32_t face_index{};

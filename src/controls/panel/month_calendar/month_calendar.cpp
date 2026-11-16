@@ -8,6 +8,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -197,7 +198,7 @@ void MonthCalendar::set_range(DateTimeValue minimum, DateTimeValue maximum) {
 void MonthCalendar::set_today_date(DateTimeValue date) {
     require_mutable();
     if (!valid_date_time(date)) throw std::invalid_argument("MonthCalendar today date is invalid");
-    set_today_ = civil_date(date);
+    set_today_.set(civil_date(date));
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -535,8 +536,8 @@ constexpr CustomStateIndex bolded_state{0U};
 AnatomyStateSet MonthCalendar::day_states(DateTimeValue date) const {
     AnatomyStateSet states;
     const bool enabled = in_range(date) && effectively_enabled();
-    if (enabled && hot_date_ && same_day(*hot_date_, date)) states.insert(AnatomyState::hot);
-    if (enabled && dragging_ && hot_date_ && same_day(*hot_date_, date)) states.insert(AnatomyState::pressed);
+    if (enabled && hot_date_.present() && same_day((*hot_date_.value()), date)) states.insert(AnatomyState::hot);
+    if (enabled && dragging_ && hot_date_.present() && same_day((*hot_date_.value()), date)) states.insert(AnatomyState::pressed);
     const std::int64_t day = serial_day(date);
     if (day >= serial_day(selection_.start) && day <= serial_day(selection_.end)) {
         states.insert(AnatomyState::selected);
@@ -749,7 +750,7 @@ void MonthCalendar::handle_pointer(PointerEvent& event) {
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
         hot_zone_ = zone;
         if (zone == Zone::day && in_range(date)) {
-            hot_date_ = date;
+            hot_date_.set(date);
             if (dragging_) select(bounded_range(anchor_, date), date);
         } else if (!dragging_) {
             hot_date_.reset();
@@ -771,7 +772,7 @@ void MonthCalendar::handle_pointer(PointerEvent& event) {
         }
         if (zone != Zone::day || !in_range(date)) return;
         if (!has_modifier(event.modifiers, Modifier::shift)) anchor_ = date;
-        hot_date_ = date;
+        hot_date_.set(date);
         dragging_ = true;
         set_pointer_capture(true);
         select(bounded_range(anchor_, date), date);

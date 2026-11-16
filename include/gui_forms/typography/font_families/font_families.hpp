@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -53,7 +54,7 @@ struct GUI_FORMS_API FontFamilyRecord final {
     FontFamilyKind kind{FontFamilyKind::bundled};
     // The role whose faces are this family's, or none for a family whose
     // faces are registered as its own.
-    std::optional<FontRole> role{};
+    stxlib::Optional<FontRole> role{};
     // The faces, at least one.
     std::span<const FontFamilyFace> faces{};
 };
@@ -139,16 +140,16 @@ inline constexpr std::array<FontFamilyFace, 2> selawik_semibold_faces{{
 
 // The bundled families, in the order of their numbers.
 inline constexpr std::array<FontFamilyRecord, 8> bundled_font_families{{
-    {selawik_font_family, "Selawik", FontFamilyKind::bundled, std::nullopt, detail::selawik_faces},
-    {portsmouth_rapids_font_family, "Portsmouth Rapids", FontFamilyKind::bundled, FontRole::control,
+    {selawik_font_family, "Selawik", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::selawik_faces},
+    {portsmouth_rapids_font_family, "Portsmouth Rapids", FontFamilyKind::bundled, stxlib::Optional<FontRole>::of(FontRole::control),
      detail::portsmouth_rapids_faces},
-    {carlito_font_family, "Carlito", FontFamilyKind::bundled, FontRole::content, detail::carlito_faces},
-    {cousine_font_family, "Cousine", FontFamilyKind::bundled, FontRole::monospace, detail::cousine_faces},
-    {arimo_font_family, "Arimo", FontFamilyKind::bundled, std::nullopt, detail::arimo_faces},
-    {tinos_font_family, "Tinos", FontFamilyKind::bundled, std::nullopt, detail::tinos_faces},
-    {portsmouth_mono_font_family, "Portsmouth Mono", FontFamilyKind::bundled, std::nullopt,
+    {carlito_font_family, "Carlito", FontFamilyKind::bundled, stxlib::Optional<FontRole>::of(FontRole::content), detail::carlito_faces},
+    {cousine_font_family, "Cousine", FontFamilyKind::bundled, stxlib::Optional<FontRole>::of(FontRole::monospace), detail::cousine_faces},
+    {arimo_font_family, "Arimo", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::arimo_faces},
+    {tinos_font_family, "Tinos", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::tinos_faces},
+    {portsmouth_mono_font_family, "Portsmouth Mono", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(),
      detail::portsmouth_mono_faces},
-    {selawik_semibold_font_family, "Selawik Semibold", FontFamilyKind::bundled, std::nullopt,
+    {selawik_semibold_font_family, "Selawik Semibold", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(),
      detail::selawik_semibold_faces},
 }};
 
@@ -247,7 +248,7 @@ inline constexpr std::array<GenericFontFamily, 13> generic_font_families{{
 // The family whose faces are `role`'s.
 [[nodiscard]] constexpr FontFamilyId role_font_family(FontRole role) noexcept {
     for (const FontFamilyRecord& record : bundled_font_families) {
-        if (record.role && *record.role == role) return record.id;
+        if (record.role.present() && (*record.role.value()) == role) return record.id;
     }
     return FontFamilyId{};
 }
@@ -332,13 +333,13 @@ struct GUI_FORMS_API FontFamilyOrder final {
 [[nodiscard]] GUI_FORMS_API FontFamilyOrder font_family_order(const FontSpec& font) noexcept;
 
 // The position of `family` in `order`, or none.
-[[nodiscard]] constexpr std::optional<std::size_t> font_family_position(const FontFamilyOrder& order,
+[[nodiscard]] constexpr stxlib::Optional<std::size_t> font_family_position(const FontFamilyOrder& order,
                                                                         FontFamilyId family) noexcept {
-    std::optional<std::size_t> result{};
+    stxlib::Optional<std::size_t> result{};
     if (family.value == 0U) return result;
     for (std::size_t index = 0U; index < order.count; ++index) {
         if (order.families[index] == family) {
-            result = index;
+            result.set(index);
             break;
         }
     }

@@ -17,6 +17,7 @@
 #include "gui_forms/controls/tool_strip_container.hpp"
 
 #include "commands-and-menus_form.hpp"
+#include <stxlib/optional.hpp>
 
 namespace gui_forms::gallery::pages {
 namespace {
@@ -176,9 +177,9 @@ private:
         const std::shared_ptr<CommandBar>& bar = document_.gallery_commands_bar;
         (*bar).set_items({
             {.id = bar_new, .label = "New", .accessible_name = "New document",
-             .shortcut = KeyGesture{PhysicalKey::n, Modifier::control}, .command = new_.get()},
+             .shortcut = stxlib::Optional<KeyGesture>::of(KeyGesture{PhysicalKey::n, Modifier::control}), .command = new_.get()},
             {.id = bar_save, .label = "Save", .accessible_name = "Save",
-             .shortcut = KeyGesture{PhysicalKey::s, Modifier::control}, .command = save_.get()},
+             .shortcut = stxlib::Optional<KeyGesture>::of(KeyGesture{PhysicalKey::s, Modifier::control}), .command = save_.get()},
             {.id = bar_delete, .label = "Delete", .accessible_name = "Delete",
              .command = delete_.get()},
             {.id = bar_wrap, .label = "Word wrap", .accessible_name = "Word wrap",

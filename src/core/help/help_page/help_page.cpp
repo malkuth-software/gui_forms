@@ -1,5 +1,6 @@
 #include "gui_forms/help/help_page/help_page.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <utility>
 
@@ -135,12 +136,12 @@ std::string_view help_callout_name(HelpCalloutKind kind) noexcept {
     return {};
 }
 
-std::optional<std::size_t> HelpPageModel::find_anchor(std::string_view anchor) const noexcept {
-    if (anchor.empty()) return std::nullopt;
+stxlib::Optional<std::size_t> HelpPageModel::find_anchor(std::string_view anchor) const noexcept {
+    if (anchor.empty()) return stxlib::Optional<std::size_t>::none();
     for (std::size_t index = 0U; index < blocks.size(); ++index) {
-        if (blocks[index].anchor == anchor) return index;
+        if (blocks[index].anchor == anchor) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 void HelpPageModel::clear() noexcept {
@@ -226,17 +227,17 @@ MarkdownParseResult build_help_page(std::string_view stable_id, std::string_view
                 open_sections.pop_back();
             }
         }
-        if (!open_sections.empty()) block.section = open_sections.back().section;
+        if (!open_sections.empty()) block.section.set(open_sections.back().section);
         // The runs, and whether the block is one image and nothing else.
         block.first_run = page.runs.size();
-        std::optional<std::size_t> only_image{};
+        stxlib::Optional<std::size_t> only_image{};
         bool image_only = source_block.span_count > 0U;
         heading_text.clear();
         for (std::size_t index = 0U; index < source_block.span_count; ++index) {
             const MarkdownSpan& span = document.spans[source_block.first_span + index];
-            if (span.image.has_value()) {
-                page.images[*span.image].alternative.append(span.text);
-                if (only_image.has_value() && *only_image != *span.image) image_only = false;
+            if (span.image.present()) {
+                page.images[(*span.image.value())].alternative.append(span.text);
+                if (only_image.present() && (*only_image.value()) != (*span.image.value())) image_only = false;
                 only_image = span.image;
             } else if (span.kind != MarkdownSpanKind::text || !trim_line(span.text).empty()) {
                 image_only = false;
@@ -254,7 +255,7 @@ MarkdownParseResult build_help_page(std::string_view stable_id, std::string_view
             page.runs.push_back(std::move(run));
         }
         block.run_count = page.runs.size() - block.first_run;
-        if (image_only && only_image.has_value() && block.kind == HelpPageBlockKind::paragraph) {
+        if (image_only && only_image.present() && block.kind == HelpPageBlockKind::paragraph) {
             block.kind = HelpPageBlockKind::image;
             block.image = only_image;
         }
@@ -279,8 +280,8 @@ MarkdownParseResult build_help_page(const HelpBookSection& section, std::size_t 
     if (!parsed.succeeded()) return parsed;
     for (HelpPageLink& link : page.links) {
         if (link.kind != HelpLinkKind::topic && link.kind != HelpLinkKind::popup) continue;
-        const std::optional<std::size_t> target = section.find(link.target);
-        if (target.has_value()) link.target_title = section.records[*target].title;
+        const stxlib::Optional<std::size_t> target = section.find(link.target);
+        if (target.present()) link.target_title = section.records[(*target.value())].title;
     }
     append_line_entries(section, record, page);
     return parsed;

@@ -15,6 +15,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -101,11 +102,11 @@ ImageAtlasError fill_solid(ImageAtlas& atlas, ImageAtlasSlot slot, std::uint8_t 
 // The byte at channel 0 of pixel (x, y) of the backing image.
 std::uint8_t image_byte(const ApplicationResources& resources, const ImageAtlas& atlas, std::uint32_t x,
                         std::uint32_t y) {
-    const std::optional<ImageResourceView> view = resources.images().find(atlas.image());
-    expect(view.has_value(), "the backing image is in the registry");
-    const std::size_t offset = static_cast<std::size_t>(y) * static_cast<std::size_t>((*view).row_bytes) +
+    const stxlib::Optional<ImageResourceView> view = resources.images().find(atlas.image());
+    expect(view.present(), "the backing image is in the registry");
+    const std::size_t offset = static_cast<std::size_t>(y) * static_cast<std::size_t>(((*view.value())).row_bytes) +
                                static_cast<std::size_t>(x) * 4U;
-    const std::uint8_t value = static_cast<std::uint8_t>((*view).encoded[offset]);
+    const std::uint8_t value = static_cast<std::uint8_t>(((*view.value())).encoded[offset]);
     return value;
 }
 
@@ -133,7 +134,7 @@ void test_slot_lifecycle() {
     expect(atlas.fill(first.slot, 16U, std::span<const std::byte>(pixels)) == ImageAtlasError::none,
            "the fill is accepted");
     expect(atlas.filled(first.slot), "the slot is filled");
-    expect(atlas.image() == image && (*resources).images().find(image).has_value(),
+    expect(atlas.image() == image && (*resources).images().find(image).present(),
            "the backing image keeps its ImageId through a fill");
     expect(image_byte(*resources, atlas, 0U, 0U) == 10U && image_byte(*resources, atlas, 1U, 1U) == 10U,
            "the gutter's corner repeats the slot's top-left pixel");
@@ -145,8 +146,8 @@ void test_slot_lifecycle() {
                painter.regions[0].source == (Rect{1.0, 1.0, 4.0, 4.0}) &&
                painter.regions[0].destination == (Rect{2.0, 3.0, 8.0, 8.0}),
            "the draw takes the slot inside its gutter");
-    const std::optional<Rect> source = atlas.source_rectangle(first.slot);
-    expect(source.has_value() && *source == (Rect{1.0, 1.0, 4.0, 4.0}), "the source rectangle is inside the gutter");
+    const stxlib::Optional<Rect> source = atlas.source_rectangle(first.slot);
+    expect(source.present() && (*source.value()) == (Rect{1.0, 1.0, 4.0, 4.0}), "the source rectangle is inside the gutter");
 
     const ImageAtlasAcquire again = atlas.acquire(10U);
     expect(again.outcome == ImageAtlasAcquireOutcome::hit && again.slot == first.slot, "the key is found");
@@ -189,7 +190,7 @@ void test_replacement_and_stale_handles() {
     expect(fill_solid(atlas, two, 9U) == ImageAtlasError::stale_slot, "the stale handle cannot fill");
     expect(!atlas.draw_unrecorded(painter, two, Rect{0.0, 0.0, 2.0, 2.0}), "the stale handle cannot draw");
     expect(!atlas.release(two), "the stale handle cannot release");
-    expect(!atlas.source_rectangle(two).has_value() && !atlas.filled(two), "the stale handle names nothing");
+    expect(atlas.source_rectangle(two).absent() && !atlas.filled(two), "the stale handle names nothing");
     expect(!atlas.filled(four.slot), "the replaced slot is unfilled for its new key");
     const ImageAtlasStatistics replaced = atlas.statistics();
     expect(replaced.replacements == 1U && replaced.assignments == 3U && replaced.stale_rejections == 3U &&

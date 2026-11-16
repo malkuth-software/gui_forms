@@ -372,9 +372,9 @@ void test_series_item() {
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && !(*series).signal().has_value(), "a source that does not parse is refused");
+    require(threw && (*series).signal().absent(), "a source that does not parse is refused");
     (*series).source = std::string("signal(sine, frequency 2Hz)");
-    require((*series).signal().has_value(), "a parsed source sets the signal program");
+    require((*series).signal().present(), "a parsed source sets the signal program");
     const std::array<double, 2> unequal{1.0, 2.0};
     threw = false;
     try {

@@ -159,12 +159,12 @@ private:
     }
 
     void set_level_property(const BindingValue& value) {
-        const std::optional<double> converted = binding_value_to_number(value);
-        if (!converted || *converted < 0.0 || *converted > 1.0) {
+        const stxlib::Optional<double> converted = binding_value_to_number(value);
+        if (converted.absent() || (*converted.value()) < 0.0 || (*converted.value()) > 1.0) {
             throw std::invalid_argument("Level must be within 0..1");
         }
-        if (level_ == *converted) return;
-        level_ = *converted;
+        if (level_ == (*converted.value())) return;
+        level_ = (*converted.value());
         level_changed_.emit(level_);
         invalidate(Dirty::paint | Dirty::semantics);
     }
@@ -238,7 +238,7 @@ private:
         member.name = "Threshold";
         member.description = "Nested percentage threshold.";
         member.value = BindingValue{0.5};
-        member.declared_kind = BindingValueKind::number;
+        member.declared_kind.set(BindingValueKind::number);
         member.converter_name = "percent";
         return make_property_object("OptionalSettings", {std::move(member)});
     }
@@ -361,24 +361,24 @@ private:
 
 std::string format_percent_or_invalid(const BindingValue& value,
                                       const PropertyDescriptor&) {
-    const std::optional<double> number = binding_value_to_number(value);
-    return number ? std::to_string(*number * 100.0) + "%"
+    const stxlib::Optional<double> number = binding_value_to_number(value);
+    return number.present() ? std::to_string((*number.value()) * 100.0) + "%"
                   : std::string("<invalid>");
 }
 
 std::string format_percent_or_empty(const BindingValue& value,
                                     const PropertyDescriptor&) {
-    const std::optional<double> number = binding_value_to_number(value);
-    return number ? std::to_string(*number * 100.0) + "%" : std::string{};
+    const stxlib::Optional<double> number = binding_value_to_number(value);
+    return number.present() ? std::to_string((*number.value()) * 100.0) + "%" : std::string{};
 }
 
 std::optional<BindingValue> parse_bounded_percent(
     std::string_view text, const BindingValue&, const PropertyDescriptor&) {
     if (text.empty() || text.back() != '%') return {};
-    const std::optional<double> number = binding_value_to_number(
+    const stxlib::Optional<double> number = binding_value_to_number(
         BindingValue{std::string(text.substr(0U, text.size() - 1U))});
-    return number && *number >= 0.0 && *number <= 100.0
-        ? std::optional<BindingValue>{BindingValue{*number / 100.0}}
+    return number.present() && (*number.value()) >= 0.0 && (*number.value()) <= 100.0
+        ? std::optional<BindingValue>{BindingValue{(*number.value()) / 100.0}}
         : std::optional<BindingValue>{};
 }
 
@@ -386,10 +386,10 @@ std::optional<BindingValue> parse_converted_percent(
     std::string_view text, const BindingValue&,
     const PropertyDescriptor& descriptor) {
     if (text.empty() || text.back() != '%') return {};
-    const std::optional<double> number = binding_value_to_number(BindingValue{
+    const stxlib::Optional<double> number = binding_value_to_number(BindingValue{
         std::string(text.substr(0U, text.size() - 1U))});
-    return number
-        ? convert_property_value(BindingValue{*number / 100.0}, descriptor)
+    return number.present()
+        ? convert_property_value(BindingValue{(*number.value()) / 100.0}, descriptor)
         : std::optional<BindingValue>{};
 }
 
@@ -402,10 +402,10 @@ public:
 
     void operator()(const BindingValue& value) const {
         const std::shared_ptr<NumericUpDown> retained = editor_.lock();
-        const std::optional<double> converted = binding_value_to_number(value);
-        if (!retained || !converted) return;
+        const stxlib::Optional<double> converted = binding_value_to_number(value);
+        if (!retained || converted.absent()) return;
         *synchronizing_ = true;
-        (*retained).value = *converted;
+        (*retained).value = (*converted.value());
         *synchronizing_ = false;
     }
 
@@ -453,14 +453,14 @@ private:
 
 std::optional<PropertyEditorBinding> create_percent_stepper(
     const PropertyEditorRequest& request) {
-    const std::optional<double> number = binding_value_to_number(request.value);
-    if (!number) return {};
+    const stxlib::Optional<double> number = binding_value_to_number(request.value);
+    if (number.absent()) return {};
     std::shared_ptr<NumericUpDown> editor = make_control<NumericUpDown>(
         StableId(request.stable_id));
     (*editor).set_range(0.0, 1.0);
     (*editor).increment = 0.05;
     (*editor).decimal_places = 2U;
-    (*editor).value = *number;
+    (*editor).value = (*number.value());
     std::shared_ptr<bool> synchronizing = std::make_shared<bool>(false);
     PropertyEditorBinding binding;
     binding.control = editor;
@@ -611,7 +611,7 @@ void test_property_row_hierarchy_pointer_and_reset_contract() {
     require(child_editor && !(*child_editor).visible.read() && reset && (*reset).enabled.read() &&
                 window.dispatch_pointer({PointerAction::down,
                     PointerButton::primary, {10.0, 31.0}}) &&
-                (*properties).row_expanded(parent.stable_id) == true &&
+                (*properties).row_expanded(parent.stable_id) == stxlib::Optional<bool>::of(true) &&
                 (*child_editor).visible.read(),
             "row disclosure hit testing must expand the same retained hierarchy used by layout");
     require((*reset).perform_click() && reset_requested,
@@ -634,9 +634,9 @@ void test_property_origins_and_metadata_driven_property_grid() {
 
     require((*grid).selected_object() == target && (*grid).property_list() &&
                 (*(*grid).property_list()).groups().size() >= 4U &&
-                (*grid).selected_origin("Text") == PropertyValueOrigin::local &&
+                (*grid).selected_origin("Text") == stxlib::Optional<gui_forms::PropertyValueOrigin>::of(PropertyValueOrigin::local) &&
                 (*grid).selected_origin("Checked") ==
-                    PropertyValueOrigin::defaulted,
+                    stxlib::Optional<gui_forms::PropertyValueOrigin>::of(PropertyValueOrigin::defaulted),
             "PropertyGrid must project categorized descriptors and exact local/default origins");
     std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>((*grid).editor("Text"));
     std::shared_ptr<gui_forms::CheckBox> checked = std::dynamic_pointer_cast<CheckBox>((*grid).editor("Checked"));
@@ -683,13 +683,13 @@ void test_property_origins_and_metadata_driven_property_grid() {
 
     require((*grid).reset_property("Text") && (*target).text.read().empty() &&
                 (*grid).selected_origin("Text") ==
-                    PropertyValueOrigin::defaulted &&
+                    stxlib::Optional<gui_forms::PropertyValueOrigin>::of(PropertyValueOrigin::defaulted) &&
                 changes.back().reset,
             "PropertyGrid reset must use the registered reset/default path and refresh origin state");
 
     const std::shared_ptr<gui_forms::NumericUpDown> bounds_x = std::dynamic_pointer_cast<NumericUpDown>(
         (*grid).editor("Bounds.X"));
-    require(bounds_x && (*grid).property_expanded("Bounds") == false &&
+    require(bounds_x && (*grid).property_expanded("Bounds") == stxlib::Optional<bool>::of(false) &&
                 !(*bounds_x).visible.read() &&
                 (*grid).set_property_expanded("Bounds", true) &&
                 (*bounds_x).visible.read(),
@@ -735,7 +735,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
             "expanded compound rows must publish their state and collapse action through the semantic tree");
     require(window.perform_semantic_action(
                 "inspection.grid.property.bounds", SemanticAction::collapse) &&
-                (*grid).property_expanded("Bounds") == false &&
+                (*grid).property_expanded("Bounds") == stxlib::Optional<bool>::of(false) &&
                 !(*bounds_x).visible.read() &&
                 window.perform_semantic_action(
                     "inspection.grid.property.bounds", SemanticAction::expand) &&
@@ -873,7 +873,7 @@ void test_nullable_standard_values_culture_and_nested_services() {
     const std::optional<BindingValue> localized_parse = (*converters).parse(
         "1.234,5", BindingValue{0.0}, numeric);
     require(localized == "1.234,5" && localized_parse &&
-                binding_value_to_number(*localized_parse) == 1234.5,
+                binding_value_to_number(*localized_parse) == stxlib::Optional<double>::of(1234.5),
             "numeric conversion context must localize and parse per registry without mutating process locale");
 
     PropertyValueConverter percent;
@@ -1076,8 +1076,8 @@ void test_recursive_object_and_collection_projection_and_mutation() {
     require((*grid).insert_collection_item(
                 "Settings.Modes", 1U, BindingValue{std::string("USB")}) &&
                 (*grid).editor("Settings.Modes[3]") != nullptr &&
-                (*grid).property_expanded("Settings") == true &&
-                (*grid).property_expanded("Settings.Modes") == true &&
+                (*grid).property_expanded("Settings") == stxlib::Optional<bool>::of(true) &&
+                (*grid).property_expanded("Settings.Modes") == stxlib::Optional<bool>::of(true) &&
                 (*grid).move_collection_item("Settings.Modes", 3U, 0U) &&
                 (*std::dynamic_pointer_cast<TextBox>(
                     (*grid).editor("Settings.Modes[0]"))).text.read() == "WFM" &&
@@ -1087,13 +1087,13 @@ void test_recursive_object_and_collection_projection_and_mutation() {
             "collection insert, move, and remove must atomically rebuild homogeneous snapshots, preserve disclosure, and reject invalid indices");
 
     require((*grid).reset_property("Settings") &&
-                (*grid).property_expanded("Settings.Endpoint") == true &&
+                (*grid).property_expanded("Settings.Endpoint") == stxlib::Optional<bool>::of(true) &&
                 (*std::dynamic_pointer_cast<TextBox>(
                     (*grid).editor("Settings.Endpoint.Host"))).text.read() == "localhost" &&
                 (*std::dynamic_pointer_cast<TextBox>(
                     (*grid).editor("Settings.Modes[1]"))).text.read() == "FM" &&
                 (*grid).selected_origin("Settings.Modes[1]") ==
-                    PropertyValueOrigin::defaulted,
+                    stxlib::Optional<gui_forms::PropertyValueOrigin>::of(PropertyValueOrigin::defaulted),
             "resetting a nested owner must restore its structurally equal default while retaining independent view expansion state");
     static_cast<void>(changed);
 }

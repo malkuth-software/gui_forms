@@ -16,6 +16,7 @@
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <limits>
 #include <array>
@@ -2282,12 +2283,12 @@ const PrimitiveDescriptor& MaterialPrimitive::descriptor() const noexcept {
     return material_descriptor;
 }
 
-std::optional<ControlVisualRole> MaterialPrimitive::theme_material(const PrimitiveParameterBlock& parameters,
+stxlib::Optional<ControlVisualRole> MaterialPrimitive::theme_material(const PrimitiveParameterBlock& parameters,
                                                                    ControlVisualRole family) const noexcept {
     const double position = parameters.values[material_recipe].number;
-    if (position == family_recipe) return family;
+    if (position == family_recipe) return stxlib::Optional<ControlVisualRole>::of(family);
     const ControlVisualRole role = static_cast<ControlVisualRole>(static_cast<std::uint8_t>(position));
-    return role;
+    return stxlib::Optional<ControlVisualRole>::of(role);
 }
 
 PartShape MaterialPrimitive::shape(const PrimitiveParameterBlock& parameters) const noexcept {
@@ -2360,7 +2361,7 @@ std::size_t MaterialPrimitive::image_variants(const PrimitiveParameterBlock&, co
             pattern.layer = index;
             pattern.scale = target.scale;
             pattern.extent = procedural_extent(layer.procedural, box, target.scale.value);
-            pattern.procedural = layer.procedural;
+            pattern.procedural.set(layer.procedural);
             requests[count] = pattern;
             count = count + 1U;
             continue;

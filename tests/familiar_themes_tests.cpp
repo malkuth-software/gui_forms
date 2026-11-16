@@ -15,6 +15,7 @@
 #include "../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
 #include "gui_forms/theme.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstdint>
 #include <cstdio>
@@ -109,7 +110,7 @@ void each_theme_builds() {
         const FamiliarTheme which = static_cast<FamiliarTheme>(index);
         const std::string_view id = familiar_theme_id(which);
         require(!id.empty(), "each theme has an id");
-        require(familiar_theme_named(id) == which, "the id names its theme");
+        require(familiar_theme_named(id) == stxlib::Optional<gui_forms::FamiliarTheme>::of(which), "the id names its theme");
         const FamiliarThemeBuild& build = familiar_theme_build(which);
         print_diagnostics(id, build.diagnostics);
         require(build.diagnostics.empty(), "each floor sheet compiles with no diagnostics");
@@ -130,10 +131,10 @@ void each_theme_builds() {
                 "exactly a theme with a dark sheet offers the dark colour scheme");
     }
     require(!familiar_theme_dark_floor_sheet(FamiliarTheme::macos_style).empty(), "macos-style has a dark sheet");
-    require(!familiar_theme_named("gui-forms"), "the default theme is not a familiar one");
+    require(familiar_theme_named("gui-forms").absent(), "the default theme is not a familiar one");
     // The stock Windows-familiar theme is a familiar one, light and dark
     // (owner, 2026-11-10).
-    require(familiar_theme_named("windows-professional") == FamiliarTheme::windows_professional,
+    require(familiar_theme_named("windows-professional") == stxlib::Optional<gui_forms::FamiliarTheme>::of(FamiliarTheme::windows_professional),
             "windows-professional is the stock Windows-familiar theme");
     require(!familiar_theme_dark_floor_sheet(FamiliarTheme::windows_professional).empty(),
             "windows-professional has a dark sheet");

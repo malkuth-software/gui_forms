@@ -5,6 +5,7 @@
 #include "gui_forms/help/help_records/help_records.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -109,7 +110,7 @@ struct GUI_FORMS_API HelpBookSection final {
     std::vector<HelpLinkEntry> links{};
 
     // The record holding `stable_id`, or none.
-    [[nodiscard]] std::optional<std::size_t> find(std::string_view stable_id) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> find(std::string_view stable_id) const noexcept;
     // The first keyword entry not before `folded_prefix`: the index tab's
     // type-ahead position.
     [[nodiscard]] std::size_t keyword_position(std::string_view folded_prefix) const noexcept;

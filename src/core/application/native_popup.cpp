@@ -4,6 +4,7 @@
 
 #include "application_state.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cmath>
 #include <string>
 #include <utility>
@@ -200,7 +201,7 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     popup.kind = opening.kind;
     popup.focus = opening.focus;
     popup.origin = DesktopLogicalPoint{placed.x, placed.y};
-    entry.popup = popup;
+    entry.popup.set(popup);
     // Made before the window, so the window's closed callback can reach it.
     std::shared_ptr<NativePopupRecord> record = std::make_shared<NativePopupRecord>(borrowed);
     entry.options.closed = NativePopupClosed{record};

@@ -15,6 +15,7 @@
 #include "../toasts/toast_presenter.hpp"
 #include "../../resources/stock_icons/stock_icon_cache.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -276,13 +277,13 @@ void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool wid
     ControlVisualContext base_context;
     base_context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
     base_context.high_contrast = presentation_settings_.high_contrast;
-    const std::optional<double> base_band = surface_material_resize_band(backplane_base(base_context));
-    if (base_band) {
+    const stxlib::Optional<double> base_band = surface_material_resize_band(backplane_base(base_context));
+    if (base_band.present()) {
         // The outer band moves with the edges too, its rounded corners
         // reaching in by their radius.
         const Insets& band = band_.reserved;
         const double widest = std::max(std::max(band.left, band.top), std::max(band.right, band.bottom));
-        double reach = std::max(*base_band, widest);
+        double reach = std::max((*base_band.value()), widest);
         if (widest > 0.0 && band_.corners.shape == WindowCornerShape::rounded) {
             reach = std::max(reach, band_.corners.radius);
         }

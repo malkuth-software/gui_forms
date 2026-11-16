@@ -10,6 +10,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <stdexcept>
 #include <unordered_set>
@@ -122,17 +123,17 @@ bool Ribbon::show_application_overlay(MenuOpenMode mode) {
     // below the File tab, reaching past the owner's edges where it must;
     // the overlay above stays as its catcher. Otherwise it stays whole.
     const Size size = (*application_overlay_).panel_size();
-    const std::optional<Rect> face = drop_down_popup_face(*lift_window, file, size, file.x);
-    if (face.has_value()) {
+    const stxlib::Optional<Rect> face = drop_down_popup_face(*lift_window, file, size, file.x);
+    if (face.present()) {
         if (!application_panel_) {
             application_panel_ = make_control<RibbonApplicationMenu>(
                 StableId(std::string(stable_id().value()) + ".application-menu.panel"), *this,
                 RibbonApplicationMenu::Mode::panel);
         }
-        (*application_panel_).set_requested_bounds({0.0, 0.0, (*face).width, (*face).height});
+        (*application_panel_).set_requested_bounds({0.0, 0.0, ((*face.value())).width, ((*face.value())).height});
         (*application_panel_).reset(keyboard);
-        if (application_lift_.lift(*lift_window, application_panel_, *face, PopupLiftInput::forwarded)) {
-            application_face_ = *face;
+        if (application_lift_.lift(*lift_window, application_panel_, (*face.value()), PopupLiftInput::forwarded)) {
+            application_face_ = (*face.value());
             (*application_overlay_).set_mode(RibbonApplicationMenu::Mode::catcher);
         }
     }

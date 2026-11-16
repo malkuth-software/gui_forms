@@ -2,6 +2,7 @@
 
 #include "../input_control_utilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
@@ -543,13 +544,13 @@ void TextEditingEngine::handle_key(KeyEvent& event) {
     }
 }
 
-std::optional<Utf8Range> TextEditingEngine::composition_range() const noexcept {
+stxlib::Optional<Utf8Range> TextEditingEngine::composition_range() const noexcept {
     const bool marked_current = composing_ && store_.revision() == marked_revision_ &&
                                 marked_start_.value() <= marked_end_.value() &&
                                 marked_end_.value() <= store_.utf8_size().value();
-    if (!marked_current) return std::nullopt;
+    if (!marked_current) return stxlib::Optional<Utf8Range>::none();
     const Utf8Range range{marked_start_, marked_end_};
-    return range;
+    return stxlib::Optional<Utf8Range>::of(range);
 }
 
 void TextEditingEngine::handle_text_input(TextInputEvent& event) {

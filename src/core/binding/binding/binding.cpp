@@ -6,6 +6,7 @@
 
 #include "../support/binding_support.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <bit>
@@ -272,9 +273,9 @@ bool Binding::update_source(bool automatic) {
                                      desired == BindingValueKind::signed_integer ||
                                      desired == BindingValueKind::unsigned_integer;
             if (!handled && shown != nullptr && number_kind && !options_.format_string.empty()) {
-                const std::optional<NumberFormat> format = parse_number_format(options_.format_string);
+                const stxlib::Optional<NumberFormat> format = parse_number_format(options_.format_string);
                 const std::optional<std::string> plain =
-                    format ? plain_number_text(*shown, *format) : std::optional<std::string>{};
+                    format.present() ? plain_number_text(*shown, (*format.value())) : std::optional<std::string>{};
                 if (plain) proposed = *plain;
             }
         }

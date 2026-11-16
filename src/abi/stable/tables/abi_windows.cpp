@@ -18,6 +18,7 @@
 #include "gui_forms/window/band/window_band.hpp"
 
 
+#include <stxlib/optional.hpp>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -1167,7 +1168,7 @@ std::optional<WindowBandOptions> band_options_from(const gf_window_band_options&
     options.width = record.width;
     if ((record.flags & GF_WINDOW_BAND_PER_EDGE) != 0U) {
         options.width = 0.0;
-        options.edges = WindowBandEdges{record.edges.left, record.edges.top, record.edges.right, record.edges.bottom};
+        options.edges.set(WindowBandEdges{record.edges.left, record.edges.top, record.edges.right, record.edges.bottom});
     }
     if (!window_band_options_valid(options)) return std::nullopt;
     return options;
@@ -1199,7 +1200,7 @@ std::optional<WindowBandColourRole> band_role_from(gf_window_band_role role) noe
 // finish it names (GF_PROCEDURAL_PATTERN_*, GF_HATCH_STYLE_* and GF_FINISH_*
 // are the C++ enumerations' orders; a hatch reads its style from the seed).
 // False for an unknown texture, kind or hatch style.
-bool band_texture_from(const gf_window_band_appearance& record, std::optional<WindowBandTexture>& texture) noexcept {
+bool band_texture_from(const gf_window_band_appearance& record, stxlib::Optional<WindowBandTexture>& texture) noexcept {
     texture.reset();
     if (record.texture == GF_WINDOW_BAND_TEXTURE_NONE) return true;
     WindowBandTexture made{};
@@ -1230,7 +1231,7 @@ bool band_texture_from(const gf_window_band_appearance& record, std::optional<Wi
     } else {
         return false;
     }
-    texture = made;
+    texture.set(made);
     return true;
 }
 

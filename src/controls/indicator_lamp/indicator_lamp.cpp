@@ -9,6 +9,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -280,9 +281,9 @@ void IndicatorLamp::paint_baked_lens(Painter& painter, const Placement& placed, 
                    .family = lit_now ? lit_family(lit_state_) : ControlVisualRole::choice};
     lens.key.set(PartKey{"lens", {}, {}});
     const double power = lit_now ? std::min(1.0, power_) : 0.0;
-    lens.light_planes = PartLightPlanes{.planes = std::move(bake),
+    lens.light_planes.set(PartLightPlanes{.planes = std::move(bake),
                                         .drive = engine_light::LampDrive{lit_colour(), power},
-                                        .raster = &baked_lens_};
+                                        .raster = &baked_lens_});
     paint_part(painter, *this, lens);
 }
 

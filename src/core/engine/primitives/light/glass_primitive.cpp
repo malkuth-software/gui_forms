@@ -11,6 +11,7 @@
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -182,19 +183,19 @@ PartShape GlassPrimitive::shape(const PrimitiveParameterBlock& parameters) const
 }
 
 // Glass names its recipe or none; it never reads the part's family.
-std::optional<ControlVisualRole> GlassPrimitive::theme_material(const PrimitiveParameterBlock& parameters,
+stxlib::Optional<ControlVisualRole> GlassPrimitive::theme_material(const PrimitiveParameterBlock& parameters,
                                                                 ControlVisualRole) const noexcept {
     const double position = parameters.values[glass_recipe].number;
-    if (!(position >= 1.0)) return std::nullopt;
+    if (!(position >= 1.0)) return stxlib::Optional<ControlVisualRole>::none();
     const ControlVisualRole role = static_cast<ControlVisualRole>(static_cast<std::uint8_t>(position - 1.0));
-    return role;
+    return stxlib::Optional<ControlVisualRole>::of(role);
 }
 
-std::optional<std::uint32_t> GlassPrimitive::backplane_margin(const PrimitiveParameterBlock& parameters,
+stxlib::Optional<std::uint32_t> GlassPrimitive::backplane_margin(const PrimitiveParameterBlock& parameters,
                                                               DeviceScale scale) const noexcept {
     const std::uint32_t half = glass_box_half(parameters.values[glass_blur].number, scale.value);
     const std::uint32_t margin = half * 3U;
-    return margin;
+    return stxlib::Optional<std::uint32_t>::of(margin);
 }
 
 // With the material layers, the recipe's material must be lent and valid,

@@ -4,6 +4,7 @@
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/controls/property_list_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <memory>
 #include <optional>
 #include <span>
@@ -26,7 +27,7 @@ public:
     bool set_reset_enabled(std::string_view row_id, bool enabled);
     bool set_group_expanded(std::string_view group_id, bool expanded);
     bool set_row_expanded(std::string_view row_id, bool expanded);
-    [[nodiscard]] std::optional<bool> row_expanded(
+    [[nodiscard]] stxlib::Optional<bool> row_expanded(
         std::string_view row_id) const;
     [[nodiscard]] std::optional<std::string> value(
         std::string_view row_id) const;

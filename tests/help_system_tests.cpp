@@ -32,6 +32,7 @@
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
@@ -167,7 +168,7 @@ void paper_pane() {
     // The listed controls: tools' page lists the pen's help line.
     require((*book).show_record(*section, "app.tools"), "the tools page shows");
     (*program.window).perform_layout();
-    require((*book).page().find_anchor("app.tools.pen").has_value(), "the pen is a line on the tools page");
+    require((*book).page().find_anchor("app.tools.pen").present(), "the pen is a line on the tools page");
     // Links: Tab moves through the stops; Enter follows.
     std::vector<std::string> followed;
     SubscriptionToken following = (*book).link_activated().subscribe(RecordLink{&followed});
@@ -471,12 +472,12 @@ void language_files() {
     require(static_cast<bool>(user_file) && static_cast<bool>(help.load_user_overrides(user_file.text)),
             "the user's file loads");
     const LocaleResolvedField line = help.resolve_field("app.silent", LocaleField::help_line);
-    require(line.text == "My own note." && line.origin == LocaleLayerKind::user, "the override reads back");
+    require(line.text == "My own note." && line.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::user), "the override reads back");
     const LocaleResolvedField keywords = help.resolve_field("app.silent", LocaleField::keywords);
-    require(keywords.text == "silence; quiet, button" && keywords.origin == LocaleLayerKind::program,
+    require(keywords.text == "silence; quiet, button" && keywords.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::program),
             "fields the override leaves out keep the program's value");
     const HelpResolvedRecord shown = help.catalog().resolve("app.silent");
-    require(shown.help_line.text == "My own note." && shown.help_line.origin == HelpLayer::user,
+    require(shown.help_line.text == "My own note." && shown.help_line.origin == stxlib::Optional<gui_forms::HelpLayer>::of(HelpLayer::user),
             "the help view shows the override");
     require(provider.help_string(*program.silent) == "Does nothing, quietly.",
             "getters return the program's value, never the override");
@@ -486,16 +487,16 @@ void language_files() {
 
     // The way back, then removing the file.
     help.use_built_in_language(true);
-    require(help.resolve_field("app.silent", LocaleField::help_line).origin == LocaleLayerKind::program,
+    require(help.resolve_field("app.silent", LocaleField::help_line).origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::program),
             "the way back sets the override aside");
     help.use_built_in_language(false);
-    require(help.resolve_field("app.silent", LocaleField::help_line).origin == LocaleLayerKind::user,
+    require(help.resolve_field("app.silent", LocaleField::help_line).origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::user),
             "leaving the way back restores it");
     help.clear_user_overrides();
     require(help.resolve_field("app.silent", LocaleField::help_line).text == "Does nothing, quietly.",
             "without the file the program's value shows");
     provider.set_help_string(program.silent, "");
-    require(help.resolve_field("app.silent", LocaleField::help_line).origin == std::nullopt,
+    require(help.resolve_field("app.silent", LocaleField::help_line).origin.absent(),
             "a value cleared in code leaves the program layer");
 
     // A translation, and the language rule for user files.
@@ -505,9 +506,9 @@ void language_files() {
         "</control></control></controls></locale>";
     require(static_cast<bool>(help.load_translation(french)), "the translation loads");
     const LocaleResolvedField pen_line = help.resolve_field("app.tools.pen", LocaleField::help_line);
-    require(pen_line.origin == LocaleLayerKind::translation, "the translation's field shows");
+    require(pen_line.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::translation), "the translation's field shows");
     const LocaleResolvedField pen_body = help.resolve_field("app.tools.pen", LocaleField::help);
-    require(pen_body.origin == LocaleLayerKind::program && pen_body.fallback,
+    require(pen_body.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::program) && pen_body.fallback,
             "an untranslated field falls back to the program's value, marked");
     const LocaleReadResult english_user = help.load_user_overrides(user_file.text);
     require(english_user.error == LocaleFileError::language_mismatch, "an English user file is refused under French");

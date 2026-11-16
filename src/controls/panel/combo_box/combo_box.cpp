@@ -11,6 +11,7 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <optional>
@@ -306,9 +307,9 @@ void ComboBox::show_rows() {
         layer.placement = placement;
         if (lift_.lifted()) {
             const Rect combo = absolute_bounds();
-            const std::optional<Rect> face =
+            const stxlib::Optional<Rect> face =
                 drop_down_popup_face(*window(), combo, placement.preferred_size, combo.x);
-            if (face.has_value()) static_cast<void>(lift_.move(*face));
+            if (face.present()) static_cast<void>(lift_.move((*face.value())));
         }
     }
 }
@@ -634,9 +635,9 @@ void ComboBox::open_drop_down(std::string_view pattern) {
     // In a Popup the list may reach past the owner onto the desktop; the
     // layer stays in the owner, takes outside clicks and holds the focus
     // scope while the Popup has the keys.
-    const std::optional<Rect> face =
+    const stxlib::Optional<Rect> face =
         drop_down_popup_face(*window(), combo, Size{requested_width, overlay_height}, combo.x);
-    const bool lifted = face.has_value() && lift_list(list, *face, PopupLiftInput::forwarded);
+    const bool lifted = face.present() && lift_list(list, (*face.value()), PopupLiftInput::forwarded);
     if (lifted) (*layer).focusable = true;
     else (*layer).add_child(list);
 
@@ -686,8 +687,8 @@ void ComboBox::open_field_list(double width, double height) {
     OverlayToken field_token = (*window()).open_overlay(shared_from_this(), anchored);
     // The editor keeps the keys and drives the list wherever it shows.
     const Rect combo = absolute_bounds();
-    const std::optional<Rect> face = drop_down_popup_face(*window(), combo, Size{width, height}, combo.x);
-    const bool lifted = face.has_value() && lift_list(field_list, *face, PopupLiftInput::kept_by_owner);
+    const stxlib::Optional<Rect> face = drop_down_popup_face(*window(), combo, Size{width, height}, combo.x);
+    const bool lifted = face.present() && lift_list(field_list, (*face.value()), PopupLiftInput::kept_by_owner);
     if (!lifted) (*anchored).set_content(field_list);
     overlay_layer_ = anchored;
     overlay_list_ = field_list;

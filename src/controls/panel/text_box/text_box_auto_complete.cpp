@@ -11,6 +11,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <iterator>
 #include <optional>
@@ -434,8 +435,8 @@ void TextBox::open_auto_complete_list() {
     const Rect anchor_bounds = (*anchor).absolute_bounds();
     const double row_height = (*list).item_height.read() * effective_text_scale();
     const Size list_size = auto_complete_list_size(session, anchor_bounds.width, row_height);
-    const std::optional<Rect> face = drop_down_popup_face(*window(), anchor_bounds, list_size, anchor_bounds.x);
-    const bool lifted = face.has_value() && session.lift.lift(*window(), list, *face, PopupLiftInput::kept_by_owner);
+    const stxlib::Optional<Rect> face = drop_down_popup_face(*window(), anchor_bounds, list_size, anchor_bounds.x);
+    const bool lifted = face.present() && session.lift.lift(*window(), list, (*face.value()), PopupLiftInput::kept_by_owner);
     if (lifted) {
         session.lift_closed = (*window()).popup_window_closed().subscribe(*this,
             Delegate<std::size_t>::bind<TextBox, &TextBox::auto_complete_popup_closed>(*this));
@@ -476,9 +477,9 @@ void TextBox::place_auto_complete_list() {
     placement.preferred_size = list_size;
     (*session.layer).placement = placement;
     if (session.lift.lifted() && window() != nullptr) {
-        const std::optional<Rect> face =
+        const stxlib::Optional<Rect> face =
             drop_down_popup_face(*window(), anchor_bounds, list_size, anchor_bounds.x);
-        if (face.has_value()) static_cast<void>(session.lift.move(*face));
+        if (face.present()) static_cast<void>(session.lift.move((*face.value())));
     }
 }
 

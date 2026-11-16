@@ -18,6 +18,7 @@
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 
+#include <stxlib/optional.hpp>
 #include <bit>
 #include <cstring>
 #include <cstdint>
@@ -220,7 +221,7 @@ void check_splash_scale() {
   gui_forms::detail::SplashscreenFrame frame{};
   frame.size = Size{200.0, 100.0};
   frame.status = "Loading";
-  frame.progress = 0.5;
+  frame.progress.set(0.5);
   require((*surface).present(frame), "the splash presents a frame at scale 2");
   Display *const display = XOpenDisplay(nullptr);
   require(display != nullptr, "cannot connect to the X server");

@@ -22,6 +22,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -779,10 +780,10 @@ void composition_range_is_public() {
     ContentTextEditor& editor = *fixture.editor;
     require(window.request_focus(fixture.editor), "the editor takes focus");
     place_caret(editor, 2U);
-    require(!editor.composition_range(), "no composition at first");
+    require(editor.composition_range().absent(), "no composition at first");
     require(type(window, "kk", true) && editor.text() == "abkk", "a composition inserts its marked text");
-    const std::optional<Utf8Range> marked = editor.composition_range();
-    require(marked && (*marked).start.value() == 2U && (*marked).end.value() == 4U,
+    const stxlib::Optional<Utf8Range> marked = editor.composition_range();
+    require(marked.present() && ((*marked.value())).start.value() == 2U && ((*marked.value())).end.value() == 4U,
             "the composition range is the marked text");
     require(editor.composition_rectangles().empty(), "without a current layout it has no boxes");
     require(submit_fixed(editor) == ContentLayoutResult::accepted, "the layout is accepted");
@@ -791,7 +792,7 @@ void composition_range_is_public() {
             "its boxes are its clusters'");
     require(editor.composition_quads().size() == 2U && editor.composition_quads()[0].bounds() == boxes[0],
             "its quads are its boxes without a transform");
-    require(type(window, "\xE3\x81\x8B") && !editor.composition_range(), "committing ends the composition");
+    require(type(window, "\xE3\x81\x8B") && editor.composition_range().absent(), "committing ends the composition");
 }
 
 // A layout transform: caret, selection, hit testing and the published
@@ -804,8 +805,8 @@ void transformed_layout_boxes() {
     place_caret(editor, 1U);
     const stxlib::Optional<Rect> plain_caret = editor.caret_rectangle();
     require(plain_caret.present(), "the plain layout has a caret");
-    const std::optional<ContentQuad> plain_quad = editor.caret_quad();
-    require(plain_quad && (*plain_quad).bounds() == *plain_caret.value(), "without a transform the quad is the rectangle");
+    const stxlib::Optional<ContentQuad> plain_quad = editor.caret_quad();
+    require(plain_quad.present() && ((*plain_quad.value())).bounds() == *plain_caret.value(), "without a transform the quad is the rectangle");
 
     // A quarter turn: local.x = 100 - y, local.y = x.
     ContentLayoutTransform turn{};
@@ -818,10 +819,10 @@ void transformed_layout_boxes() {
     ContentTextLayout turned = plain;
     turned.transform.set(turn);
     require(editor.submit_layout(turned) == ContentLayoutResult::accepted, "a turned layout is accepted");
-    const std::optional<ContentQuad> quad = editor.caret_quad();
-    require(quad && *quad == map_content_box(turn, *plain_caret.value()), "the caret's quad is the mapped bar");
+    const stxlib::Optional<ContentQuad> quad = editor.caret_quad();
+    require(quad.present() && (*quad.value()) == map_content_box(turn, *plain_caret.value()), "the caret's quad is the mapped bar");
     const stxlib::Optional<Rect> caret = editor.caret_rectangle();
-    require(caret.present() && *caret.value() == (*quad).bounds(), "caret_rectangle is the quad's bounds");
+    require(caret.present() && *caret.value() == ((*quad.value())).bounds(), "caret_rectangle is the quad's bounds");
     editor.select(Utf8Offset(0U), Utf8Offset(1U));
     const std::vector<ContentQuad> selection = editor.selection_quads();
     const Rect a_box{origin_x, origin_y, advance, line_height};

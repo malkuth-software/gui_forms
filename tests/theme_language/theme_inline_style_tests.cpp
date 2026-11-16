@@ -30,6 +30,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <iostream>
@@ -150,9 +151,9 @@ std::shared_ptr<const Theme> theme_from(std::string_view sheet) {
 
 std::size_t amplitude_index() {
     const EnginePrimitive* const bulge = builtin_primitive_registry().find("bulge");
-    const std::optional<std::size_t> found =
-        bulge == nullptr ? std::optional<std::size_t>{} : find_parameter((*bulge).descriptor(), "amplitude");
-    return found ? *found : 0U;
+    const stxlib::Optional<std::size_t> found =
+        bulge == nullptr ? stxlib::Optional<std::size_t>::none() : find_parameter((*bulge).descriptor(), "amplitude");
+    return found.present() ? (*found.value()) : 0U;
 }
 
 // The pad face's plan in its window.
@@ -194,9 +195,9 @@ ControlVisualRecipe high_contrast_recipe(const PadWindow& held) {
 
 std::size_t parameter_index(std::string_view primitive, std::string_view parameter) {
     const EnginePrimitive* const found = builtin_primitive_registry().find(primitive);
-    const std::optional<std::size_t> index =
-        found == nullptr ? std::optional<std::size_t>{} : find_parameter((*found).descriptor(), parameter);
-    return index ? *index : 0U;
+    const stxlib::Optional<std::size_t> index =
+        found == nullptr ? stxlib::Optional<std::size_t>::none() : find_parameter((*found).descriptor(), parameter);
+    return index.present() ? (*index.value()) : 0U;
 }
 
 std::size_t field_index(MaterialField field) { return static_cast<std::size_t>(field); }

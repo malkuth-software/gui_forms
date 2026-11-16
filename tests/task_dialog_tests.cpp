@@ -25,6 +25,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -124,7 +125,7 @@ TaskDialogPage full_page() {
     page.expander = TaskDialogExpander{.text = "Hand-saved stations: 7. Scanned: 42."};
     page.footnote = "The previous list is kept as a backup.";
     page.footnote_icon = TaskDialogIcon::information;
-    page.progress_bar = TaskDialogProgressBar{.value = 40.0};
+    page.progress_bar.set(TaskDialogProgressBar{.value = 40.0});
     return page;
 }
 
@@ -175,7 +176,7 @@ void validation() {
     missing.default_button = "nowhere";
     require(throws_invalid(SetPage{dialog.get(), missing}), "a default button the page lacks is refused");
     TaskDialogPage progress;
-    progress.progress_bar = TaskDialogProgressBar{.minimum = 5.0, .maximum = 5.0};
+    progress.progress_bar.set(TaskDialogProgressBar{.minimum = 5.0, .maximum = 5.0});
     require(throws_invalid(SetPage{dialog.get(), progress}), "empty progress bounds are refused");
     TaskDialogPage done;
     done.heading = "Done";
@@ -301,7 +302,7 @@ void modal_presentation() {
     require((*(*dialog).verification_check_box()).checked.read() && recorder.verifications.size() == 3U,
             "the verification state is checked again for the result below");
     (*dialog).set_progress_value(250.0);
-    require((*dialog).page().progress_bar && (*(*dialog).page().progress_bar).value == 100.0,
+    require((*dialog).page().progress_bar.present() && ((*(*dialog).page().progress_bar.value())).value == 100.0,
             "a progress value is clamped to the bounds");
 
     static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::escape}));

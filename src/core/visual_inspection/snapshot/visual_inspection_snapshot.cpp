@@ -567,7 +567,7 @@ void append_control(std::ostringstream& output,
            << ",\"stable_id\":";
     append_json_string(output, control.stable_id);
     output << ",\"parent_runtime_id\":";
-    if (control.parent_runtime_id) output << (*control.parent_runtime_id).value;
+    if (control.parent_runtime_id.present()) output << ((*control.parent_runtime_id.value())).value;
     else output << "null";
     output << ",\"parent_stable_id\":";
     append_json_string(output, control.parent_stable_id);
@@ -655,14 +655,14 @@ void append_control(std::ostringstream& output,
     if (control.authored_material) append_material(output, *control.authored_material);
     else output << "null";
     output << ",\"display_chunk\":";
-    if (control.display_chunk) {
-        output << "{\"generation\":" << (*control.display_chunk).generation
+    if (control.display_chunk.present()) {
+        output << "{\"generation\":" << ((*control.display_chunk.value())).generation
                << ",\"plane\":";
-        append_json_string(output, paint_plane_name((*control.display_chunk).plane));
+        append_json_string(output, paint_plane_name(((*control.display_chunk.value())).plane));
         output << ",\"logical_bounds\":";
-        append_rect(output, (*control.display_chunk).logical_bounds);
+        append_rect(output, ((*control.display_chunk.value())).logical_bounds);
         output << ",\"command_count\":"
-               << (*control.display_chunk).command_count << '}';
+               << ((*control.display_chunk.value())).command_count << '}';
     } else {
         output << "null";
     }

@@ -7,6 +7,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <stdexcept>
@@ -259,16 +260,16 @@ void DockWorkspace::set_floats_shown_while_inactive(bool shown) {
     }
 }
 
-void DockWorkspace::set_floating_window_shown_while_inactive(DockSiteId site, std::optional<bool> shown) {
+void DockWorkspace::set_floating_window_shown_while_inactive(DockSiteId site, stxlib::Optional<bool> shown) {
     std::size_t index = 0U;
     while (index < floating_visibility_.size() && !(floating_visibility_[index].site == site)) ++index;
-    if (shown) {
+    if (shown.present()) {
         if (index == floating_visibility_.size()) {
             FloatingVisibility entry{};
             entry.site = site;
             floating_visibility_.push_back(entry);
         }
-        floating_visibility_[index].shown = *shown;
+        floating_visibility_[index].shown = (*shown.value());
     } else if (index < floating_visibility_.size()) {
         floating_visibility_.erase(floating_visibility_.begin() + static_cast<std::ptrdiff_t>(index));
     }
@@ -1271,8 +1272,8 @@ std::optional<DockEdit> DockWorkspace::dock_back_edit(const DockSubject& subject
     std::vector<DockEdit> candidates{};
     candidates.reserve(3U);
     const DockPanelRecord* const record = find_record(layout_, panel);
-    if (record != nullptr && (*record).docked) {
-        const DockDockedMemory& memory = *(*record).docked;
+    if (record != nullptr && (*record).docked.present()) {
+        const DockDockedMemory& memory = (*(*record).docked.value());
         const DockNode* const stack = layout_.find_node(memory.stack);
         const bool a_stack = stack != nullptr && ((*stack).kind == DockNodeKind::tool_stack ||
                                                   (*stack).kind == DockNodeKind::document_stack);
@@ -1335,21 +1336,21 @@ ApplicationWindowHandle DockWorkspace::window_of(const DockSite& site) const {
     return handle;
 }
 
-std::optional<Point> DockWorkspace::desktop_origin(const DockSite& site) const {
+stxlib::Optional<Point> DockWorkspace::desktop_origin(const DockSite& site) const {
     const ApplicationWindowHandle handle = window_of(site);
-    if (!handle.active()) return std::nullopt;
+    if (!handle.active()) return stxlib::Optional<Point>::none();
     const HostWindowFrameResult frame = handle.frame();
-    if (!frame.status.accepted()) return std::nullopt;
+    if (!frame.status.accepted()) return stxlib::Optional<Point>::none();
     const Rect absolute = site.absolute_bounds();
     const Point origin{frame.frame.content.x + absolute.x, frame.frame.content.y + absolute.y};
-    return origin;
+    return stxlib::Optional<Point>::of(origin);
 }
 
 bool DockWorkspace::site_contains(const DockSite& site, Point desktop) const {
-    const std::optional<Point> origin = desktop_origin(site);
-    if (!origin) return false;
+    const stxlib::Optional<Point> origin = desktop_origin(site);
+    if (origin.absent()) return false;
     const Rect client = site.client_rectangle();
-    const Rect bounds{(*origin).x, (*origin).y, client.width, client.height};
+    const Rect bounds{((*origin.value())).x, ((*origin.value())).y, client.width, client.height};
     const bool inside = bounds.contains(desktop);
     return inside;
 }

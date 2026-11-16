@@ -2,6 +2,7 @@
 
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <optional>
 #include <span>
 
@@ -30,7 +31,7 @@ class SheenPrimitive final : public EnginePrimitive {
 public:
     [[nodiscard]] const PrimitiveDescriptor& descriptor() const noexcept override;
     [[nodiscard]] bool blank(const PrimitiveParameterBlock& parameters) const noexcept override;
-    [[nodiscard]] std::optional<PointerOverlay> pointer_overlay(const PrimitiveParameterBlock& parameters,
+    [[nodiscard]] stxlib::Optional<PointerOverlay> pointer_overlay(const PrimitiveParameterBlock& parameters,
                                                                 Size part) const noexcept override;
 
 private:

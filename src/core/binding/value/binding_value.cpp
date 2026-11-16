@@ -5,7 +5,9 @@
 #include "gui_forms/window.hpp"
 
 #include "../support/binding_support.hpp"
+#include "../../../platform/stxlib_bridge.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <bit>
 #include <charconv>
@@ -89,26 +91,26 @@ std::optional<Number> parse_number(std::string_view text) noexcept {
 BindingValue apply_format_string(const BindingValue& value,
                                  std::string_view format) {
     if (format.empty()) return value;
-    const std::optional<NumberFormat> parsed = parse_number_format(format);
-    if (!parsed) {
+    const stxlib::Optional<NumberFormat> parsed = parse_number_format(format);
+    if (parsed.absent()) {
         throw std::invalid_argument(
             "GUI.Forms native binding formats are the standard numeric formats F, N, P, C, E and G");
     }
     std::string text{};
     if (const std::int64_t* const signed_value = std::get_if<std::int64_t>(&value)) {
-        append_formatted_number(text, *signed_value, *parsed);
+        append_formatted_number(text, *signed_value, (*parsed.value()));
         return text;
     }
     if (const std::uint64_t* const unsigned_value = std::get_if<std::uint64_t>(&value)) {
-        append_formatted_number(text, *unsigned_value, *parsed);
+        append_formatted_number(text, *unsigned_value, (*parsed.value()));
         return text;
     }
-    const std::optional<double> number = binding_value_to_number(value);
-    if (!number) {
+    const stxlib::Optional<double> number = binding_value_to_number(value);
+    if (number.absent()) {
         throw std::invalid_argument(
             "GUI.Forms binding number format requires a numeric source value");
     }
-    append_formatted_number(text, *number, *parsed);
+    append_formatted_number(text, (*number.value()), (*parsed.value()));
     return text;
 }
 
@@ -135,7 +137,7 @@ void validate_options(const BindingOptions& options) {
         !valid_control_update_mode(options.control_update_mode)) {
         throw std::invalid_argument("GUI.Forms binding update mode is invalid");
     }
-    if (!options.format_string.empty() && !parse_number_format(options.format_string)) {
+    if (!options.format_string.empty() && parse_number_format(options.format_string).absent()) {
         throw std::invalid_argument(
             "GUI.Forms native binding format must be a standard numeric format: F, N, P, C, E or G "
             "with a precision of 0 to 99");
@@ -329,7 +331,7 @@ bool valid_property_value_tree_impl(const BindingValue& value,
             const bool schema_valid = valid_nested_kind(declared_kind) &&
                 (runtime_kind != BindingValueKind::null
                      ? runtime_kind == declared_kind
-                     : member.nullable && member.declared_kind.has_value()) &&
+                     : member.nullable && member.declared_kind.present()) &&
                 ((declared_kind == BindingValueKind::enumeration) ==
                  static_cast<bool>(member.enumeration)) &&
                 (!member.enumeration ||
@@ -678,22 +680,22 @@ std::string binding_value_to_string(const BindingValue& value) {
     return std::visit(BindingValueTextVisitor{}, value);
 }
 
-std::optional<bool> binding_value_to_bool(const BindingValue& value) noexcept {
-    return std::visit(BindingValueBoolVisitor{}, value);
+stxlib::Optional<bool> binding_value_to_bool(const BindingValue& value) noexcept {
+    return gui_forms::platform::stxlib_optional(std::visit(BindingValueBoolVisitor{}, value));
 }
 
-std::optional<std::int64_t> binding_value_to_signed(
+stxlib::Optional<std::int64_t> binding_value_to_signed(
     const BindingValue& value) noexcept {
-    return std::visit(BindingValueSignedVisitor{}, value);
+    return gui_forms::platform::stxlib_optional(std::visit(BindingValueSignedVisitor{}, value));
 }
 
-std::optional<std::uint64_t> binding_value_to_unsigned(
+stxlib::Optional<std::uint64_t> binding_value_to_unsigned(
     const BindingValue& value) noexcept {
-    return std::visit(BindingValueUnsignedVisitor{}, value);
+    return gui_forms::platform::stxlib_optional(std::visit(BindingValueUnsignedVisitor{}, value));
 }
 
-std::optional<double> binding_value_to_number(const BindingValue& value) noexcept {
-    return std::visit(BindingValueNumberVisitor{}, value);
+stxlib::Optional<double> binding_value_to_number(const BindingValue& value) noexcept {
+    return gui_forms::platform::stxlib_optional(std::visit(BindingValueNumberVisitor{}, value));
 }
 
 std::optional<BindingValue> convert_binding_value(
@@ -754,33 +756,33 @@ std::optional<BindingValue> convert_binding_value(
     }
     switch (target_kind) {
     case BindingValueKind::null: return BindingValue{};
-    case BindingValueKind::boolean:
-        if (const std::optional<bool> converted = binding_value_to_bool(value)) {
-            return BindingValue{*converted};
-        }
+    case BindingValueKind::boolean: {
+        const stxlib::Optional<bool> converted = binding_value_to_bool(value);
+        if (converted.present()) return BindingValue{(*converted.value())};
         return std::nullopt;
-    case BindingValueKind::signed_integer:
-        if (const std::optional<std::int64_t> converted = binding_value_to_signed(value)) {
-            return BindingValue{*converted};
-        }
+    }
+    case BindingValueKind::signed_integer: {
+        const stxlib::Optional<std::int64_t> converted = binding_value_to_signed(value);
+        if (converted.present()) return BindingValue{(*converted.value())};
         return std::nullopt;
-    case BindingValueKind::unsigned_integer:
-        if (const std::optional<std::uint64_t> converted = binding_value_to_unsigned(value)) {
-            return BindingValue{*converted};
-        }
+    }
+    case BindingValueKind::unsigned_integer: {
+        const stxlib::Optional<std::uint64_t> converted = binding_value_to_unsigned(value);
+        if (converted.present()) return BindingValue{(*converted.value())};
         return std::nullopt;
-    case BindingValueKind::number:
-        if (const std::optional<double> converted = binding_value_to_number(value)) {
-            return BindingValue{*converted};
-        }
+    }
+    case BindingValueKind::number: {
+        const stxlib::Optional<double> converted = binding_value_to_number(value);
+        if (converted.present()) return BindingValue{(*converted.value())};
         return std::nullopt;
+    }
     case BindingValueKind::text:
         return BindingValue{binding_value_to_string(value)};
-    case BindingValueKind::image:
-        if (const std::optional<std::uint64_t> converted = binding_value_to_unsigned(value)) {
-            return BindingValue{ImageId{*converted}};
-        }
+    case BindingValueKind::image: {
+        const stxlib::Optional<std::uint64_t> converted = binding_value_to_unsigned(value);
+        if (converted.present()) return BindingValue{ImageId{(*converted.value())}};
         return std::nullopt;
+    }
     case BindingValueKind::point:
     case BindingValueKind::size:
     case BindingValueKind::rectangle:

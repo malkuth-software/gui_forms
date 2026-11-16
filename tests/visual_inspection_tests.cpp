@@ -200,7 +200,7 @@ void test_state_damage_staleness_bounds_and_json() {
     const VisualInspectionSnapshot stale =
         (*fixture.window).visual_inspection_snapshot();
     const VisualControlInspection* stale_text = stale.find("inspection.text");
-    require(stale_text && (*stale_text).display_chunk &&
+    require(stale_text && (*stale_text).display_chunk.present() &&
                 !(*stale_text).display_chunk_current &&
                 !stale.pending_damage[paint_plane_index(PaintPlane::control)].empty(),
             "inspection must report a stale chunk and non-destructively retain pending damage");

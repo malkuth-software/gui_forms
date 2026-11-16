@@ -130,9 +130,9 @@ std::size_t copies_of(const Compilation& compilation, std::string_view label) {
 
 std::size_t amplitude_index() {
     const EnginePrimitive* const bulge = builtin_primitive_registry().find("bulge");
-    const std::optional<std::size_t> found =
-        bulge == nullptr ? std::optional<std::size_t>{} : find_parameter((*bulge).descriptor(), "amplitude");
-    return found ? *found : 0U;
+    const stxlib::Optional<std::size_t> found =
+        bulge == nullptr ? stxlib::Optional<std::size_t>::none() : find_parameter((*bulge).descriptor(), "amplitude");
+    return found.present() ? (*found.value()) : 0U;
 }
 
 // What a part asks the cascade.

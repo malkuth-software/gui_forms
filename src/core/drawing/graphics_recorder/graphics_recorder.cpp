@@ -1,4 +1,5 @@
 #include "../support/drawing_support.hpp"
+#include <stxlib/optional.hpp>
 
 GraphicsStateToken GraphicsRecorder::save() {
     require_recordable();
@@ -56,7 +57,7 @@ void GraphicsRecorder::set_transform(Matrix transform) {
 void GraphicsRecorder::set_clip(RectF clip) {
     require_recordable();
     require_finite(clip, "graphics clip");
-    state_.clip = state_.transform.transform_bounds(clip);
+    state_.clip.set(state_.transform.transform_bounds(clip));
     DrawingCommand command;
     command.kind = CommandKind::set_clip;
     command.state = state_;
@@ -103,7 +104,7 @@ GraphicsState GraphicsRecorder::current_state() const {
 bool GraphicsRecorder::is_visible(PointF point) const {
     require_alive();
     require_finite(point, "visibility point");
-    return !state_.clip || (*state_.clip).contains(state_.transform.transform(point));
+    return state_.clip.absent() || ((*state_.clip.value())).contains(state_.transform.transform(point));
 }
 
 SizeF GraphicsRecorder::measure_string(std::string_view utf8, const Font& font,
@@ -496,7 +497,7 @@ void GraphicsRecorder::draw_string_over_fill(std::string_view utf8, const Font& 
     }
     // Every part in device space, within the clip in force (or a bound far
     // beyond any surface when there is none).
-    const RectF base = state_.clip ? *state_.clip
+    const RectF base = state_.clip.present() ? (*state_.clip.value())
                                    : RectF{-unclipped_extent, -unclipped_extent, unclipped_extent * 2.0,
                                            unclipped_extent * 2.0};
     const RectF covered = RectF::intersection(base, state_.transform.transform_bounds(fill));
@@ -523,7 +524,7 @@ void GraphicsRecorder::draw_string_over_fill(std::string_view utf8, const Font& 
         DrawingCommand command;
         command.kind = CommandKind::draw_string;
         command.state = state_;
-        command.state.clip = parts[index];
+        command.state.clip.set(parts[index]);
         command.first = origin;
         command.color = colours[index];
         command.font = font_snapshot;
@@ -728,11 +729,11 @@ void GraphicsRecorder::frame_into(GraphicsRecorder& target, const double scale, 
         framed = source;
         framed.state.transform = source.state.transform.followed_by(device);
         RectF clip = device_clip;
-        if (source.state.clip) {
-            const RectF scaled = device.transform_bounds(*source.state.clip);
+        if (source.state.clip.present()) {
+            const RectF scaled = device.transform_bounds((*source.state.clip.value()));
             clip = intersect_rectangles(scaled, device_clip);
         }
-        framed.state.clip = clip;
+        framed.state.clip.set(clip);
     }
     target.state_ = GraphicsState{};
     target.saved_.clear();
@@ -880,7 +881,7 @@ std::string GraphicsRecorder::deterministic_trace() const {
         trace += std::to_string(index) + "|" + command_name(command.kind);
         append_command_fields(command, trace);
         trace += "|transform=" + matrix_text(command.state.transform);
-        trace += command.state.clip ? "|clip=" + rect_text(*command.state.clip) : "|clip=none";
+        trace += command.state.clip.present() ? "|clip=" + rect_text((*command.state.clip.value())) : "|clip=none";
         trace += "|quality=" +
                  std::to_string(static_cast<unsigned>(command.state.smoothing)) + "," +
                  std::to_string(static_cast<unsigned>(command.state.interpolation)) + "," +

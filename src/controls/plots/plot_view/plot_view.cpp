@@ -13,6 +13,7 @@
 #include "../../basic/number_text.hpp"
 #include "../../../platform/stxlib_bridge.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -316,7 +317,7 @@ PlotQuery PlotView::query() const {
 
 void PlotView::clear_query() {
     require_mutable();
-    if (!(*engine_).model().selection().has_value()) return;
+    if ((*engine_).model().selection().absent()) return;
     (*engine_).model().clear_selection();
     invalidate(Dirty::paint);
     raise_outcome(false, true, stxlib::Optional<PlotPointPick>::none(), stxlib::Optional<std::size_t>::none());
@@ -448,7 +449,7 @@ void PlotView::update_ambient() {
     bool produced = false;
     for (std::size_t index = 0U; index < series_items_.size(); ++index) {
         const PlotSeriesItem& item = *series_items_[index];
-        produced = produced || item.signal().has_value() || static_cast<bool>(item.channel());
+        produced = produced || item.signal().present() || static_cast<bool>(item.channel());
     }
     if (!produced || live_host_) {
         clock.withdraw_control_ambient(*this);
@@ -468,9 +469,9 @@ bool PlotView::on_ambient_frame(FrameTime now) {
     const plots::SignalFrame frame = signal_clock_.advance(now, 16U);
     for (std::size_t index = 0U; index < series_items_.size(); ++index) {
         PlotSeriesItem& item = *series_items_[index];
-        if (item.signal().has_value() && frame.tick_count != 0U) {
+        if (item.signal().present() && frame.tick_count != 0U) {
             plots::SignalFrame own = frame;
-            own.samples_per_tick = (*item.signal()).samples_per_tick;
+            own.samples_per_tick = ((*item.signal().value())).samples_per_tick;
             static_cast<void>(item.run_signal_frame(own, *signal_sink_));
         }
         if (item.channel()) {
@@ -526,9 +527,9 @@ void PlotView::handle_pointer(PointerEvent& event) {
             if (centre != nullptr) {
                 DragStart start{};
                 start.key = handle.id;
-                start.source = Rect{absolute.x + (*centre).x - handle_pick_radius,
+                start.source.set(Rect{absolute.x + (*centre).x - handle_pick_radius,
                                     absolute.y + (*centre).y - handle_pick_radius, handle_pick_radius * 2.0,
-                                    handle_pick_radius * 2.0};
+                                    handle_pick_radius * 2.0});
                 handle_drag_state_.set(HandleDrag{handle.id, handle.x, handle.y});
                 const DragStartResult result = handle_drag_.press(event, start);
                 if (result == DragStartResult::armed || result == DragStartResult::started) {
@@ -887,7 +888,7 @@ void PlotView::send_live_update(bool reset_view) {
         if (series.borrowed) {
             series.borrowed_x = item.borrowed_x();
             series.borrowed_y = item.borrowed_y();
-        } else if (!series.channel && !series.signal.has_value()) {
+        } else if (!series.channel && series.signal.absent()) {
             series.columns = live_columns(index, item);
         }
         state.series.push_back(std::move(series));

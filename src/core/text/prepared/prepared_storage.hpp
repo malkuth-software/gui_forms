@@ -3,6 +3,7 @@
 #include "gui_forms/prepared_text.hpp"
 #include "../shaping/shaped_text_geometry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <atomic>
 #include <condition_variable>
@@ -71,7 +72,7 @@ private:
 struct PreparedFontFace final {
     std::unique_ptr<std::byte[]> bytes{};
     std::size_t size{};
-    std::optional<FontRole> role{};
+    stxlib::Optional<FontRole> role{};
     std::uint16_t weight{400};
     bool italic{};
     std::uint32_t index{};

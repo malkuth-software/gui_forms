@@ -9,6 +9,7 @@
 
 #include <gui_forms/content/hosted/hosted_client.hpp>
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -74,9 +75,9 @@ int main() {
             // The defect this example is about. Only this process ends.
             std::abort();
         }
-        const std::optional<std::uint32_t> slot = (*client).acquire_slot(std::chrono::milliseconds(100));
-        if (!slot) continue;
-        if (!publish_band(*client, *slot, step)) break;
+        const stxlib::Optional<std::uint32_t> slot = (*client).acquire_slot(std::chrono::milliseconds(100));
+        if (slot.absent()) continue;
+        if (!publish_band(*client, (*slot.value()), step)) break;
         ++step;
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }

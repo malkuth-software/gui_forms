@@ -96,7 +96,7 @@ FontFamilyOrder font_family_order(const FontSpec& font) noexcept {
     for (std::size_t index = 0U; index < stack.count; ++index) {
         const FontFamilyId family = stack.families[index];
         if (!font_family_drawable(family)) continue;
-        if (font_family_position(order, family)) continue;
+        if (font_family_position(order, family).present()) continue;
         order.families[order.count] = family;
         order.count = order.count + 1U;
     }

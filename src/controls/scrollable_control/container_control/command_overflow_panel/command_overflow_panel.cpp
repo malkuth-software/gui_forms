@@ -96,9 +96,9 @@ std::string format_command_overflow_group_spec(const stxlib::Optional<CommandOve
     append_number(text, (*spec).preferred);
     text.push_back(' ');
     append_number(text, (*spec).maximum);
-    if ((*spec).collapse_priority) {
+    if ((*spec).collapse_priority.present()) {
         text.append(" priority ");
-        text.append(std::to_string(*(*spec).collapse_priority));
+        text.append(std::to_string((*(*spec).collapse_priority.value())));
     }
     return text;
 }
@@ -123,7 +123,7 @@ stxlib::Optional<CommandOverflowGroupSpec> parse_command_overflow_group_spec(std
         if (keyword != "priority" || priority.empty() || parsed.ec != std::errc{} || parsed.ptr != end) {
             throw std::invalid_argument("CommandOverflowPanel group spec ends with priority and a number to 65535");
         }
-        spec.collapse_priority = parsed_priority;
+        spec.collapse_priority.set(parsed_priority);
     }
     if (!next_word(text, position).empty()) {
         throw std::invalid_argument("CommandOverflowPanel group spec has text after its priority");
@@ -206,7 +206,7 @@ void CommandOverflowPanel::prepare_write(const Control& child,
     }
     const std::uint64_t id = child.runtime_id().value;
     for (const GroupSpecMap::value_type& entry : group_specs_) {
-        if (entry.first != id && spec.collapse_priority && entry.second.collapse_priority == spec.collapse_priority) {
+        if (entry.first != id && spec.collapse_priority.present() && entry.second.collapse_priority == spec.collapse_priority) {
             throw std::invalid_argument("CommandOverflowPanel collapse priorities must be unique");
         }
     }

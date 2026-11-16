@@ -496,7 +496,7 @@ void seam_keyboard_and_pointer() {
             "the left stack's seam is found");
     const std::shared_ptr<PageView> left = site.stack_view(stack_of(workspace, "classes"));
     const double width = (*left).client_rectangle().width;
-    require(site.focus_seam(left_seam) && site.focused_seam() == left_seam, "the seam takes the keyboard");
+    require(site.focus_seam(left_seam) && site.focused_seam() == stxlib::Optional<std::size_t>::of(left_seam), "the seam takes the keyboard");
     require(key(window, PhysicalKey::right), "Right moves the seam");
     window.perform_layout();
     require(near((*left).client_rectangle().width, width + 8.0), "the seam moved 8 units right");
@@ -514,11 +514,11 @@ void seam_keyboard_and_pointer() {
     seams = site.realized_seams();
     std::size_t expected = left_seam;
     while (expected + 1U < seams.size()) {
-        require(key(window, PhysicalKey::tab) && site.focused_seam() == expected + 1U, "Tab steps to the next seam");
+        require(key(window, PhysicalKey::tab) && site.focused_seam() == stxlib::Optional<std::size_t>::of(expected + 1U), "Tab steps to the next seam");
         ++expected;
     }
     static_cast<void>(key(window, PhysicalKey::tab));
-    require(!site.focused_seam().has_value(), "Tab past the last seam leaves the site's seams");
+    require(site.focused_seam().absent(), "Tab past the last seam leaves the site's seams");
 
     // The pointer drags the seam; the solver keeps the right side's minimum.
     window.perform_layout();
@@ -1029,7 +1029,7 @@ void lifetime_and_refusals() {
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && !(*navigator).current_index(), "an entry without an identity is refused");
+    require(threw && (*navigator).current_index().absent(), "an entry without an identity is refused");
     (*navigator).set_entries({}, {}, DockNavigatorList::documents);
     require(!(*navigator).choose() && !(*navigator).step(1) && !(*navigator).switch_list(),
             "an empty navigator chooses nothing");
@@ -1043,7 +1043,7 @@ void lifetime_and_refusals() {
     (*navigator).set_entries({DockNavigatorEntry{DockPanelId("a"), "A"}},
                              {DockNavigatorEntry{DockPanelId("b"), "B"}, DockNavigatorEntry{DockPanelId("c"), "C"}},
                              DockNavigatorList::tools);
-    require((*navigator).current_list() == DockNavigatorList::tools && (*navigator).current_index() == 0U &&
+    require((*navigator).current_list() == DockNavigatorList::tools && (*navigator).current_index() == stxlib::Optional<std::size_t>::of(0U) &&
                 (*navigator).switch_list() && (*navigator).current_list() == DockNavigatorList::documents &&
                 !(*navigator).select(DockNavigatorList::documents, 5U),
             "the navigator selects within its lists");

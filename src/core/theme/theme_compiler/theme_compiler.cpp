@@ -274,14 +274,14 @@ std::shared_ptr<detail::ThemeImageLease> lease_image(const std::string& encoded,
         error = image.error;
         return nullptr;
     }
-    const std::optional<ImageResourceView> view = images.find(image.image);
-    if (!view) {
+    const stxlib::Optional<ImageResourceView> view = images.find(image.image);
+    if (view.absent()) {
         // Not reached: a loaded image is found until the next mutation.
         static_cast<void>(images.remove(image.image));
         error = ImageResourceError::invalid_signature;
         return nullptr;
     }
-    const Size pixel_size{static_cast<double>((*view).metadata.width), static_cast<double>((*view).metadata.height)};
+    const Size pixel_size{static_cast<double>(((*view.value())).metadata.width), static_cast<double>(((*view.value())).metadata.height)};
     std::shared_ptr<detail::ThemeImageLease> made =
         std::make_shared<detail::ThemeImageLease>(registry, image.image, pixel_size);
     shares.entries.push_back(ThemeImageShares::Entry{digest, made});
@@ -322,13 +322,13 @@ std::shared_ptr<detail::ThemeImageLease> checked_icon(const UserIcon& icon, Imag
         refused = std::string(image_resource_error_name(error));
         return nullptr;
     }
-    const std::optional<ImageResourceView> view = images.find((*lease).image());
-    if (!view) {
+    const stxlib::Optional<ImageResourceView> view = images.find((*lease).image());
+    if (view.absent()) {
         refused = "not in the registry";
         return nullptr;
     }
-    const std::uint32_t width = (*view).metadata.width;
-    const std::uint32_t height = (*view).metadata.height;
+    const std::uint32_t width = ((*view.value())).metadata.width;
+    const std::uint32_t height = ((*view.value())).metadata.height;
     if (width > maximum_icon_side || height > maximum_icon_side) {
         refused = "larger than 1024 by 1024 pixels";
         return nullptr;
@@ -339,7 +339,7 @@ std::shared_ptr<detail::ThemeImageLease> checked_icon(const UserIcon& icon, Imag
     if (pixels.size() < needed) pixels.resize(needed);
     const std::span<std::byte> target_pixels(pixels.data(), needed);
     const image::PixelTarget target{image::PixelOrder::bgra, image::PixelAlpha::premultiplied};
-    const image::ResourcePixelResult decoded = decoder.decode(*view, target, target_pixels, row_bytes);
+    const image::ResourcePixelResult decoded = decoder.decode((*view.value()), target, target_pixels, row_bytes);
     if (decoded.error != image::ResourcePixelError::none) {
         refused = "does not decode";
         return nullptr;
@@ -569,7 +569,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
     // A program theme with rules for the dark scheme but no dark variant
     // (T4 theme variants): a dark window shows GUI.Forms' own dark theme,
     // so the rules apply nowhere. A user theme is layered, and has none.
-    const bool dark_declared = (*definition).rules.colour_schemes && (*(*definition).rules.colour_schemes).dark;
+    const bool dark_declared = (*definition).rules.colour_schemes.present() && ((*(*definition).rules.colour_schemes.value())).dark;
     if (set == ThemeRuleSet::program && !dark_declared && dark_rules) {
         found.push_back(public_diagnostic(
             problem_of(DiagnosticCode::scheme_rules_without_variant, sheet_file(root), "color-scheme: light dark")));

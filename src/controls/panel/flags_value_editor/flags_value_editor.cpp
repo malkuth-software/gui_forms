@@ -8,6 +8,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -317,9 +318,9 @@ void FlagsValueEditor::open_drop_down() {
         editor.x, 0.0, std::max(0.0, client.width - list_width));
     (*list).set_requested_bounds({overlay_x, y, list_width, height});
     OverlayToken token = (*window()).open_overlay(shared_from_this(), layer);
-    const std::optional<Rect> face =
+    const stxlib::Optional<Rect> face =
         drop_down_popup_face(*window(), editor, Size{overlay_width.read(), height}, editor.x);
-    const bool lifted = face.has_value() && lift_.lift(*window(), list, *face);
+    const bool lifted = face.present() && lift_.lift(*window(), list, (*face.value()));
     if (lifted) (*layer).focusable = true;
     else (*layer).add_child(list);
 

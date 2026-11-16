@@ -20,6 +20,7 @@
 // integers.
 
 #include "gui_forms/export/application_export.hpp"
+#include <stxlib/optional.hpp>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -58,7 +59,7 @@ struct GUI_FORMS_API NumberFormat final {
     // empty or zero precision gives a double's shortest text that parses
     // back to the same value (scientific from an exponent of 15 or below
     // -5) and an integer's every digit.
-    std::optional<std::uint32_t> precision;
+    stxlib::Optional<std::uint32_t> precision;
     // The exponent letter's case: "E" for an upper-case format letter.
     bool upper_case{true};
 
@@ -72,7 +73,7 @@ struct GUI_FORMS_API NumberFormat final {
 // in either case, then at most two decimal digits. Empty for any other
 // text, the empty string included (an empty format string means "no
 // format" to its callers, not a format).
-[[nodiscard]] GUI_FORMS_API std::optional<NumberFormat> parse_number_format(std::string_view text) noexcept;
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<NumberFormat> parse_number_format(std::string_view text) noexcept;
 
 // Appends `value` under `format` to `output`; nothing else of `output`
 // changes.

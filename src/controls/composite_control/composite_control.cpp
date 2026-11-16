@@ -13,6 +13,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -171,7 +172,7 @@ CompositeControl::~CompositeControl() = default;
 
 void CompositeControl::initialize_control_tree() {
     make_children();
-    write_bound_children(std::nullopt);
+    write_bound_children(stxlib::Optional<std::size_t>::none());
     apply_look();
 }
 
@@ -297,7 +298,7 @@ void CompositeControl::property_changed(const std::size_t index) {
     }
     CompositeInstanceAccess::fire_trigger(*this, CompositeTrigger::changed, {}, index, 0.0);
     if (!is_alive()) return;
-    write_bound_children(index);
+    write_bound_children(stxlib::Optional<std::size_t>::of(index));
 }
 
 void CompositeControl::raise(const std::size_t event, BindingValue payload) {
@@ -607,7 +608,7 @@ const ControlAnatomy& CompositeControl::anatomy() const noexcept {
 
 AnatomyStateSet CompositeControl::anatomy_states() const {
     AnatomyStateSet states = base_anatomy_states();
-    if (pressed_part_ && pressed_inside_) states.insert(AnatomyState::pressed);
+    if (pressed_part_.present() && pressed_inside_) states.insert(AnatomyState::pressed);
     if (drag_ != nullptr && (*drag_).running()) states.insert(AnatomyState::captured);
     const CompositeEvaluator evaluator(*this, CompositeFiring{});
     for (const control_language::CompositeStateDefinition& state : (*definition_).states) {
@@ -621,10 +622,10 @@ AnatomyStateSet CompositeControl::anatomy_states() const {
 AnatomyStateSet CompositeControl::part_states(const std::size_t part) const {
     AnatomyStateSet states{};
     const CompositePartDefinition& declared = (*definition_).parts[part];
-    const bool captured = drag_ != nullptr && (*drag_).running() && drag_state_.part == part;
+    const bool captured = drag_ != nullptr && (*drag_).running() && drag_state_.part == stxlib::Optional<std::size_t>::of(part);
     for (const AnatomyState state : declared.states) {
-        const bool active = (state == AnatomyState::hot && hot_part_ == part) ||
-                            (state == AnatomyState::pressed && pressed_part_ == part && pressed_inside_) ||
+        const bool active = (state == AnatomyState::hot && hot_part_ == stxlib::Optional<std::size_t>::of(part)) ||
+                            (state == AnatomyState::pressed && pressed_part_ == stxlib::Optional<std::size_t>::of(part) && pressed_inside_) ||
                             (state == AnatomyState::captured && captured) ||
                             (state == AnatomyState::disabled && geometry_.disabled[part]);
         if (active) states.insert(state);
@@ -716,7 +717,7 @@ void CompositeControl::on_paint(Painter& painter, const Rect local_damage) {
 
 void CompositeControl::paint_hook(Painter&, const CompositePaintHook&) {}
 
-std::optional<std::size_t> CompositeControl::part_at(const Point local_point) const {
+stxlib::Optional<std::size_t> CompositeControl::part_at(const Point local_point) const {
     ensure_geometry();
     const Rect client = client_rectangle();
     for (std::size_t offset = geometry_.count; offset > 2U; --offset) {
@@ -737,9 +738,9 @@ std::optional<std::size_t> CompositeControl::part_at(const Point local_point) co
             region.shape = shape_of(part);
             hit = part_hit(region, local_point);
         }
-        if (hit) return index;
+        if (hit) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 // -- input -------------------------------------------------------------------------
@@ -753,9 +754,9 @@ void CompositeControl::activate_part(const std::size_t part) {
 void CompositeControl::on_mouse_down(MouseEventArgs& arguments) {
     if (arguments.button == PointerButton::primary) {
         released_part_.reset();
-        const std::optional<std::size_t> part = part_at(arguments.location);
-        if (part) {
-            const CompositePartDefinition& declared = (*definition_).parts[*part];
+        const stxlib::Optional<std::size_t> part = part_at(arguments.location);
+        if (part.present()) {
+            const CompositePartDefinition& declared = (*definition_).parts[(*part.value())];
             pressed_part_ = part;
             pressed_inside_ = true;
             invalidate(Dirty::paint);
@@ -763,20 +764,20 @@ void CompositeControl::on_mouse_down(MouseEventArgs& arguments) {
             if (declared.press != 0U) arguments.handled = true;
             if (pressing(declared, ControlPress::drag) && drag_ != nullptr && declared.drag) {
                 const Rect own = absolute_bounds();
-                const Rect box = geometry_.published[*part];
+                const Rect box = geometry_.published[(*part.value())];
                 DragStart start{};
-                start.key = static_cast<std::uint64_t>(*part);
-                start.source = Rect{own.x + box.x, own.y + box.y, box.width, box.height};
+                start.key = static_cast<std::uint64_t>((*part.value()));
+                start.source.set(Rect{own.x + box.x, own.y + box.y, box.width, box.height});
                 start.threshold = (*definition_).drags[*declared.drag].threshold;
                 drag_state_ = DragState{};
                 drag_state_.part = part;
                 const DragStartResult result = (*drag_).press(pointer_event_of(arguments), start);
                 if (result == DragStartResult::armed || result == DragStartResult::started) arguments.handled = true;
             }
-            if (pressing(declared, ControlPress::down)) activate_part(*part);
+            if (pressing(declared, ControlPress::down)) activate_part((*part.value()));
             if (pressing(declared, ControlPress::repeat)) {
-                activate_part(*part);
-                begin_repeat(*part);
+                activate_part((*part.value()));
+                begin_repeat((*part.value()));
             }
             if (!is_alive()) return;
         }
@@ -791,8 +792,8 @@ void CompositeControl::on_mouse_move(MouseEventArgs& arguments) {
         const bool taken = (*drag_).pointer(pointer_event_of(arguments));
         if (taken) arguments.handled = true;
     }
-    const std::optional<std::size_t> part = part_at(arguments.location);
-    const bool inside = pressed_part_.has_value() && part == pressed_part_;
+    const stxlib::Optional<std::size_t> part = part_at(arguments.location);
+    const bool inside = pressed_part_.present() && part == pressed_part_;
     if (part != hot_part_ || inside != pressed_inside_) {
         hot_part_ = part;
         pressed_inside_ = inside;
@@ -810,8 +811,8 @@ void CompositeControl::on_mouse_up(MouseEventArgs& arguments) {
             // The release of a drag is no click.
             if (planned) arguments.suppress_click = true;
         }
-        const std::optional<std::size_t> part = part_at(arguments.location);
-        if (pressed_part_ && part == pressed_part_ && !arguments.suppress_click) released_part_ = pressed_part_;
+        const stxlib::Optional<std::size_t> part = part_at(arguments.location);
+        if (pressed_part_.present() && part == pressed_part_ && !arguments.suppress_click) released_part_ = pressed_part_;
         pressed_part_.reset();
         pressed_inside_ = false;
         repeat_frames_.disconnect();
@@ -823,10 +824,10 @@ void CompositeControl::on_mouse_up(MouseEventArgs& arguments) {
 }
 
 void CompositeControl::on_mouse_click(MouseEventArgs& arguments) {
-    const std::optional<std::size_t> part = released_part_;
+    const stxlib::Optional<std::size_t> part = released_part_;
     released_part_.reset();
-    if (part && pressing((*definition_).parts[*part], ControlPress::click)) {
-        activate_part(*part);
+    if (part.present() && pressing((*definition_).parts[(*part.value())], ControlPress::click)) {
+        activate_part((*part.value()));
         if (!is_alive()) return;
     }
     CompositeInstanceAccess::fire_trigger(*this, CompositeTrigger::click, {}, std::nullopt, 0.0);
@@ -835,7 +836,7 @@ void CompositeControl::on_mouse_click(MouseEventArgs& arguments) {
 }
 
 void CompositeControl::on_mouse_leave() {
-    if (hot_part_) {
+    if (hot_part_.present()) {
         hot_part_.reset();
         invalidate(Dirty::paint);
     }
@@ -960,12 +961,12 @@ void CompositeControl::begin_repeat(const std::size_t part) {
 void CompositeControl::repeat_step() {
     // Repeats while the pressed part is held under the pointer; a part
     // that became disabled (its command no longer enabled) stops it.
-    if (!pressed_part_ || !has_pointer_capture()) {
+    if (pressed_part_.absent() || !has_pointer_capture()) {
         repeat_frames_.disconnect();
         return;
     }
     if (!pressed_inside_) return;
-    const std::optional<std::size_t> command = (*definition_).parts[*pressed_part_].activates;
+    const std::optional<std::size_t> command = (*definition_).parts[(*pressed_part_.value())].activates;
     if (!command || !run_command(*command)) repeat_frames_.disconnect();
 }
 
@@ -981,14 +982,14 @@ double CompositeControl::drag_fraction(const double value) const noexcept {
 }
 
 void CompositeControl::plan_drag(DragPlan& plan) {
-    if (!drag_state_.part) {
+    if (drag_state_.part.absent()) {
         plan.refused = true;
         return;
     }
-    const CompositePartDefinition& part = (*definition_).parts[*drag_state_.part];
+    const CompositePartDefinition& part = (*definition_).parts[(*drag_state_.part.value())];
     const CompositeDragDefinition& drag = (*definition_).drags[*part.drag];
     ensure_geometry();
-    const Rect box = geometry_.logical[*drag_state_.part];
+    const Rect box = geometry_.logical[(*drag_state_.part.value())];
     const bool block = drag.axis == control_language::ControlDragAxis::block_axis;
     const CompositeEvaluator evaluator(*this, CompositeFiring{});
     double start = 0.0;
@@ -1016,8 +1017,8 @@ void CompositeControl::plan_drag(DragPlan& plan) {
 }
 
 void CompositeControl::preview_drag(const DragTrackerFrame& frame) {
-    if (!drag_state_.part) return;
-    const CompositePartDefinition& part = (*definition_).parts[*drag_state_.part];
+    if (drag_state_.part.absent()) return;
+    const CompositePartDefinition& part = (*definition_).parts[(*drag_state_.part.value())];
     const CompositeDragDefinition& drag = (*definition_).drags[*part.drag];
     drag_state_.frame_value = frame.value;
     CompositeFiring firing{};
@@ -1047,8 +1048,8 @@ void CompositeControl::preview_drag(const DragTrackerFrame& frame) {
 }
 
 void CompositeControl::finish_drag(const DragTrackerFrame& frame) {
-    if (!drag_state_.part) return;
-    const CompositePartDefinition& part = (*definition_).parts[*drag_state_.part];
+    if (drag_state_.part.absent()) return;
+    const CompositePartDefinition& part = (*definition_).parts[(*drag_state_.part.value())];
     const CompositeDragDefinition& drag = (*definition_).drags[*part.drag];
     const bool commits = drag_end_commits(frame.end);
     const DragState ended = drag_state_;
@@ -1097,7 +1098,7 @@ bool CompositeControl::begin_keyboard_drag() {
     for (std::size_t index = 2U; index < (*definition_).parts.size(); ++index) {
         if (!(*definition_).parts[index].drag) continue;
         drag_state_ = DragState{};
-        drag_state_.part = index;
+        drag_state_.part.set(index);
         DragStart start{};
         start.key = static_cast<std::uint64_t>(index);
         const DragStartResult result = (*drag_).begin_keyboard(start);

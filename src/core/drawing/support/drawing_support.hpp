@@ -543,8 +543,8 @@ void append_element_text(const PathElement& element, std::string& result) {
 [[nodiscard]] std::string image_attributes_text(
     const ImageAttributesSnapshot& attributes) {
     std::string result;
-    if (attributes.color_matrix.has_value()) {
-        const std::array<double, 25>& matrix = *attributes.color_matrix;
+    if (attributes.color_matrix.present()) {
+        const std::array<double, 25>& matrix = (*attributes.color_matrix.value());
         result = "matrix:";
         for (std::size_t index = 0; index < matrix.size(); ++index) {
             if (index != 0U) result += ",";

@@ -8,6 +8,7 @@
 #include "gui_forms/controls/calendar_values.hpp"
 #include "gui_forms/controls/month_calendar_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -52,7 +53,7 @@ public:
     // time-zone service) until set_today_date sets it.
     [[nodiscard]] DateTimeValue today_date() const noexcept { return set_today_.value_or(system_today_); }
     void set_today_date(DateTimeValue date);
-    [[nodiscard]] bool today_date_set() const noexcept { return set_today_.has_value(); }
+    [[nodiscard]] bool today_date_set() const noexcept { return set_today_.present(); }
     // The first day of the first month shown.
     [[nodiscard]] DateTimeValue first_displayed_month() const noexcept;
     // Scrolls the months shown by `months` (negative: back), within
@@ -238,13 +239,13 @@ private:
     // The system clock's date, read once at construction; set_today_ replaces
     // it once set_today_date has run, so the two cannot disagree.
     DateTimeValue system_today_{};
-    std::optional<DateTimeValue> set_today_{};
+    stxlib::Optional<DateTimeValue> set_today_{};
     std::int32_t first_year_{2000};
     std::uint8_t first_month_{1U};
     std::vector<DateTimeValue> bolded_{};
     std::vector<DateTimeValue> annually_bolded_{};
     std::vector<DateTimeValue> monthly_bolded_{};
-    std::optional<DateTimeValue> hot_date_{};
+    stxlib::Optional<DateTimeValue> hot_date_{};
     Zone hot_zone_{Zone::none};
     Zone pressed_zone_{Zone::none};
     bool dragging_{};
@@ -254,7 +255,7 @@ private:
     // generation it was made for.
     bool provider_follows_locale_{true};
     bool first_day_follows_locale_{true};
-    mutable std::optional<std::uint64_t> locale_provider_generation_{};
+    mutable stxlib::Optional<std::uint64_t> locale_provider_generation_{};
     mutable DateTimeFormatProvider locale_provider_{};
     Event<const CalendarDateRange&> date_changed_{};
     Event<const CalendarDateRange&> date_selected_{};

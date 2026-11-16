@@ -10,6 +10,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -319,18 +320,18 @@ ContentFrameSink ContentTextEditor::open_frames(bool opaque) {
 
 stxlib::Optional<Rect> ContentTextEditor::caret_rectangle() const {
     if (!layout_current()) return stxlib::Optional<Rect>::none();
-    const std::optional<Rect> caret = caret_at((*editing_).selection().caret);
-    if (!caret) return stxlib::Optional<Rect>::none();
-    const Rect local = local_bounds(*caret);
+    const stxlib::Optional<Rect> caret = caret_at((*editing_).selection().caret);
+    if (caret.absent()) return stxlib::Optional<Rect>::none();
+    const Rect local = local_bounds((*caret.value()));
     return stxlib::Optional<Rect>::of(local);
 }
 
-std::optional<ContentQuad> ContentTextEditor::caret_quad() const {
-    if (!layout_current()) return std::nullopt;
-    const std::optional<Rect> caret = caret_at((*editing_).selection().caret);
-    if (!caret) return std::nullopt;
-    const ContentQuad quad = local_quad(*caret);
-    return quad;
+stxlib::Optional<ContentQuad> ContentTextEditor::caret_quad() const {
+    if (!layout_current()) return stxlib::Optional<ContentQuad>::none();
+    const stxlib::Optional<Rect> caret = caret_at((*editing_).selection().caret);
+    if (caret.absent()) return stxlib::Optional<ContentQuad>::none();
+    const ContentQuad quad = local_quad((*caret.value()));
+    return stxlib::Optional<ContentQuad>::of(quad);
 }
 
 std::vector<Rect> ContentTextEditor::range_boxes(Utf8Offset start, Utf8Offset end) const {
@@ -402,25 +403,25 @@ std::vector<ContentQuad> ContentTextEditor::selection_quads() const {
     return quads;
 }
 
-std::optional<Utf8Range> ContentTextEditor::composition_range() const {
-    const std::optional<Utf8Range> range = (*editing_).composition_range();
+stxlib::Optional<Utf8Range> ContentTextEditor::composition_range() const {
+    const stxlib::Optional<Utf8Range> range = (*editing_).composition_range();
     return range;
 }
 
 std::vector<Rect> ContentTextEditor::composition_rectangles() const {
     std::vector<Rect> boxes{};
-    const std::optional<Utf8Range> range = (*editing_).composition_range();
-    if (!range) return boxes;
-    boxes = range_boxes((*range).start, (*range).end);
+    const stxlib::Optional<Utf8Range> range = (*editing_).composition_range();
+    if (range.absent()) return boxes;
+    boxes = range_boxes(((*range.value())).start, ((*range.value())).end);
     for (Rect& box : boxes) box = local_bounds(box);
     return boxes;
 }
 
 std::vector<ContentQuad> ContentTextEditor::composition_quads() const {
     std::vector<ContentQuad> quads{};
-    const std::optional<Utf8Range> range = (*editing_).composition_range();
-    if (!range) return quads;
-    const std::vector<Rect> boxes = range_boxes((*range).start, (*range).end);
+    const stxlib::Optional<Utf8Range> range = (*editing_).composition_range();
+    if (range.absent()) return quads;
+    const std::vector<Rect> boxes = range_boxes(((*range.value())).start, ((*range.value())).end);
     quads.reserve(boxes.size());
     for (const Rect& box : boxes) quads.push_back(local_quad(box));
     return quads;
@@ -560,8 +561,8 @@ void ContentTextEditor::set_selection(TextSelection selection) {
     publish_change(selection_changed_, (*editing_).selection());
 }
 
-std::optional<std::size_t> ContentTextEditor::line_of(Utf8Offset offset) const {
-    if (!layout_current() || layout_.lines.empty()) return std::nullopt;
+stxlib::Optional<std::size_t> ContentTextEditor::line_of(Utf8Offset offset) const {
+    if (!layout_current() || layout_.lines.empty()) return stxlib::Optional<std::size_t>::none();
     // A line holds the offsets from its start to before its end; its end
     // belongs to it only when no later line starts there (a wrapped line's
     // end is the next line's start, where the caret goes).
@@ -569,13 +570,13 @@ std::optional<std::size_t> ContentTextEditor::line_of(Utf8Offset offset) const {
         std::upper_bound(layout_.lines.begin(), layout_.lines.end(), offset, EndsAfter{});
     if (after != layout_.lines.end() && (*after).range.start <= offset) {
         const std::size_t index = static_cast<std::size_t>(after - layout_.lines.begin());
-        return index;
+        return stxlib::Optional<std::size_t>::of(index);
     }
-    if (after == layout_.lines.begin()) return std::nullopt;
+    if (after == layout_.lines.begin()) return stxlib::Optional<std::size_t>::none();
     const std::vector<ContentTextLine>::const_iterator before = after - 1;
-    if ((*before).range.end != offset) return std::nullopt;
+    if ((*before).range.end != offset) return stxlib::Optional<std::size_t>::none();
     const std::size_t index = static_cast<std::size_t>(before - layout_.lines.begin());
-    return index;
+    return stxlib::Optional<std::size_t>::of(index);
 }
 
 double ContentTextEditor::boundary_x_on_line(std::size_t line, Utf8Offset offset) const {
@@ -604,19 +605,19 @@ double ContentTextEditor::boundary_x_on_line(std::size_t line, Utf8Offset offset
     return left;
 }
 
-std::optional<Rect> ContentTextEditor::caret_at(Utf8Offset offset) const {
-    if (!layout_current()) return std::nullopt;
+stxlib::Optional<Rect> ContentTextEditor::caret_at(Utf8Offset offset) const {
+    if (!layout_current()) return stxlib::Optional<Rect>::none();
     const ContentCaretStop* const stop = find_caret_stop(layout_, offset);
     if (stop != nullptr) {
         const Rect caret = (*stop).caret;
-        return caret;
+        return stxlib::Optional<Rect>::of(caret);
     }
-    const std::optional<std::size_t> line = line_of(offset);
-    if (!line) return std::nullopt;
-    const double x = boundary_x_on_line(*line, offset);
-    const Rect& box = layout_.lines[*line].bounds;
+    const stxlib::Optional<std::size_t> line = line_of(offset);
+    if (line.absent()) return stxlib::Optional<Rect>::none();
+    const double x = boundary_x_on_line((*line.value()), offset);
+    const Rect& box = layout_.lines[(*line.value())].bounds;
     const Rect caret{x - editor_caret_width / 2.0, box.y, editor_caret_width, box.height};
-    return caret;
+    return stxlib::Optional<Rect>::of(caret);
 }
 
 Utf8Offset ContentTextEditor::position_on_line(std::size_t line, double x) const {
@@ -642,8 +643,8 @@ bool ContentTextEditor::move_by_line(KeyEvent& event) {
     const bool home_end = key == PhysicalKey::home || key == PhysicalKey::end;
     if (!multiline_ || (!vertical && !home_end)) return false;
     const TextSelection selection = (*editing_).selection();
-    const std::optional<std::size_t> row = line_of(selection.caret);
-    if (!row) {
+    const stxlib::Optional<std::size_t> row = line_of(selection.caret);
+    if (row.absent()) {
         // Without a current layout Up and Down do nothing (the engine's Home
         // and End still go to the ends of the text).
         if (vertical) event.handled = true;
@@ -655,17 +656,17 @@ bool ContentTextEditor::move_by_line(KeyEvent& event) {
     double goal = preferred_x_;
     if (home_end) {
         const bool first = key == PhysicalKey::home;
-        const ContentTextLine& line = layout_.lines[*row];
+        const ContentTextLine& line = layout_.lines[(*row.value())];
         if (command) {
             next = first ? Utf8Offset(0U) : (*editing_).store().utf8_size();
         } else {
             next = first ? line.range.start : line.range.end;
         }
     } else {
-        if (goal < 0.0) goal = boundary_x_on_line(*row, selection.caret);
+        if (goal < 0.0) goal = boundary_x_on_line((*row.value()), selection.caret);
         const bool up = key == PhysicalKey::up;
         const std::size_t last = layout_.lines.size() - 1U;
-        std::size_t target = *row;
+        std::size_t target = (*row.value());
         if (up && target > 0U) target -= 1U;
         if (!up && target < last) target += 1U;
         next = position_on_line(target, goal);

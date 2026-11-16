@@ -98,7 +98,7 @@ void CommandBar::set_items(std::vector<CommandItem> items) {
         for (std::size_t earlier = 0U; earlier < index; ++earlier) {
             if (items[earlier].id == value.id) throw std::invalid_argument("duplicate CommandBar item id");
         }
-        if (value.shortcut && value.command == nullptr) {
+        if (value.shortcut.present() && value.command == nullptr) {
             throw std::invalid_argument("CommandBar shortcuts require a Command");
         }
     }
@@ -259,8 +259,8 @@ void CommandBar::install_shortcuts() {
     for (std::size_t index = 0U; index < (*revision_).items.size(); ++index) {
         const CommandItem& value = (*revision_).items[index];
         Entry& entry = *(*revision_).entries[index];
-        if (value.shortcut && (*entry.button).command_connected()) {
-            entry.shortcut = (*value.command).bind_shortcut(*window(), *value.shortcut);
+        if (value.shortcut.present() && (*entry.button).command_connected()) {
+            entry.shortcut = (*value.command).bind_shortcut(*window(), (*value.shortcut.value()));
         }
     }
 }

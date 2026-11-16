@@ -5,6 +5,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -66,27 +67,27 @@ stxlib::Optional<Color> ColorValueEditor::parse_value(std::string_view text) {
     std::uint8_t channels[4]{0U, 0U, 0U, 255U};
     const std::size_t count = text.size() == 9U ? 4U : 3U;
     for (std::size_t index = 0U; index < count; ++index) {
-        const std::optional<std::uint8_t> high =
+        const stxlib::Optional<std::uint8_t> high =
             parse_nibble(text[1U + index * 2U]);
-        const std::optional<std::uint8_t> low =
+        const stxlib::Optional<std::uint8_t> low =
             parse_nibble(text[2U + index * 2U]);
-        if (!high || !low) return stxlib::Optional<Color>::none();
-        channels[index] = static_cast<std::uint8_t>((*high << 4U) | *low);
+        if (high.absent() || low.absent()) return stxlib::Optional<Color>::none();
+        channels[index] = static_cast<std::uint8_t>(((*high.value()) << 4U) | (*low.value()));
     }
     const Color parsed = Color::rgba(channels[0], channels[1], channels[2], channels[3]);
     return stxlib::Optional<Color>::of(parsed);
 }
 
-std::optional<std::uint8_t> ColorValueEditor::parse_nibble(
+stxlib::Optional<std::uint8_t> ColorValueEditor::parse_nibble(
     char digit) noexcept {
     if (digit >= '0' && digit <= '9') {
-        return static_cast<std::uint8_t>(digit - '0');
+        return stxlib::Optional<std::uint8_t>::of(static_cast<std::uint8_t>(digit - '0'));
     }
     if (digit >= 'a' && digit <= 'f') {
-        return static_cast<std::uint8_t>(digit - 'a' + 10);
+        return stxlib::Optional<std::uint8_t>::of(static_cast<std::uint8_t>(digit - 'a' + 10));
     }
     if (digit >= 'A' && digit <= 'F') {
-        return static_cast<std::uint8_t>(digit - 'A' + 10);
+        return stxlib::Optional<std::uint8_t>::of(static_cast<std::uint8_t>(digit - 'A' + 10));
     }
     return {};
 }

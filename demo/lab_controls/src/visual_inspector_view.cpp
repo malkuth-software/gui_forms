@@ -207,10 +207,10 @@ InspectorContent inspector_content(Window* owner, const std::string& target_stab
         {"MATERIAL", material_summary(*target), inspector_ink},
         {"RESOLVED FONT", representative_font_text(*target), inspector_ink},
         {"DISPLAY", operation_summary(*target), inspector_ink},
-        {"CHUNK", (*target).display_chunk
+        {"CHUNK", (*target).display_chunk.present()
              ? ((*target).display_chunk_current ? "current generation " :
                                                 "STALE generation ") +
-                   std::to_string((*(*target).display_chunk).generation)
+                   std::to_string(((*(*target).display_chunk.value())).generation)
              : "not painted", (*target).display_chunk_current ? inspector_blue :
                                                                inspector_gold},
         {"THEME", (*target).theme_id +

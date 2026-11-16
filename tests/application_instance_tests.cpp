@@ -27,6 +27,7 @@
 #include "gui_forms/window/window.hpp"
 #include "support/theme_definition_heap.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -121,7 +122,7 @@ void test_windows_join_and_close() {
     ApplicationConfig config{};
     PresentationSettings presentation{};
     presentation.text_scale = 1.5;
-    config.presentation = presentation;
+    config.presentation.set(presentation);
     ApplicationCreateResult created = Application::create(std::move(config));
     require(static_cast<bool>(created), "the application is made");
     Application& application = *created.application;

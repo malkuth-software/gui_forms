@@ -24,7 +24,7 @@ struct GUI_FORMS_API CommandOverflowGroupSpec final {
     double minimum{};
     double preferred{};
     double maximum{};
-    std::optional<std::uint16_t> collapse_priority;
+    stxlib::Optional<std::uint16_t> collapse_priority;
 
     friend bool operator==(const CommandOverflowGroupSpec& left,
                            const CommandOverflowGroupSpec& right) {
@@ -40,7 +40,7 @@ struct GUI_FORMS_API CommandOverflowGroupResult final {
     double measured{};
     double allocated{};
     bool collapsed{};
-    std::optional<std::uint16_t> collapse_priority;
+    stxlib::Optional<std::uint16_t> collapse_priority;
 
     friend bool operator==(const CommandOverflowGroupResult& left,
                            const CommandOverflowGroupResult& right) {

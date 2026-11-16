@@ -19,6 +19,7 @@
 
 #include "gui_forms/surface_root/surface_root.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -109,7 +110,7 @@ void NodeCanvas::start_gesture(NodeCanvasGesture gesture, const MouseEventArgs& 
     link_refused_ = false;
     DragStart start{};
     start.key = static_cast<std::uint64_t>(gesture);
-    start.source = window_source;
+    start.source.set(window_source);
     start.threshold = threshold;
     const DragStartResult result = (*drag_).press(pointer_event_of(arguments), start);
     if (result == DragStartResult::armed || result == DragStartResult::started) {

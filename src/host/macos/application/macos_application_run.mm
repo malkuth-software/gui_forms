@@ -21,6 +21,7 @@
 #include "macos_window_delegates.hpp"
 #include "macos_window_requests.hpp"
 #include "../view/macos_view.hpp"
+#include <stxlib/optional.hpp>
 
 namespace gui_forms::host {
 
@@ -219,15 +220,15 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         owner_id = (*owner).id;
         ownerWindow = (*owner).window;
     }
-    const std::optional<gui_forms::HostPopupPlacement> popup = entry.popup;
+    const stxlib::Optional<gui_forms::HostPopupPlacement> popup = entry.popup;
     const gui_forms::HostWindowKind kind =
-        gui_forms::host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.has_value());
+        gui_forms::host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.present());
     const bool floating = gui_forms::host_window_kind_traits(kind).floating;
     gui_forms::HostWindowDescription description;
     description.stable_id = entry.stable_id;
     description.owner = owner_id;
     description.kind = kind;
-    if (popup.has_value()) description.transient = (*popup).kind;
+    if (popup.present()) description.transient = ((*popup.value())).kind;
     outcome.admission = admit(description);
     if (!outcome.admission.status.accepted()) {
         outcome.failure_code = 2;
@@ -235,8 +236,8 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     }
     const gui_forms::HostWindowId id = outcome.admission.window;
 
-    const GFSize initialSize = entry.options.capture_size.has_value()
-        ? *entry.options.capture_size : entry.options.initial_size;
+    const GFSize initialSize = entry.options.capture_size.present()
+        ? (*entry.options.capture_size.value()) : entry.options.initial_size;
     const NSRect frame = NSMakeRect(0.0, 0.0, initialSize.width, initialSize.height);
     const bool transparentFullSizeContent = entry.options.titlebar_presentation ==
         MacTitlebarPresentation::transparent_full_size_content;
@@ -251,14 +252,14 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     }
     if (transparentFullSizeContent) style |= NSWindowStyleMaskFullSizeContentView;
     NSWindow* nativeWindow = nil;
-    if (popup.has_value()) {
+    if (popup.present()) {
         // A native popup (owner, 2026-11-04): undecorated, never
         // activating the application, kept above its owner as a child
         // window; only a focus-taking popup becomes key. Its shadow is
         // drawn by the program in its own pixels, not by AppKit.
-        const bool splash = gui_forms::host_transient_is_splash((*popup).kind);
+        const bool splash = gui_forms::host_transient_is_splash(((*popup.value())).kind);
         const BOOL takesFocus =
-            !splash && (*popup).focus == gui_forms::HostPopupFocus::takes_focus ? YES : NO;
+            !splash && ((*popup.value())).focus == gui_forms::HostPopupFocus::takes_focus ? YES : NO;
         GUIFormsPopupPanel* popupPanel = [[GUIFormsPopupPanel alloc] initWithContentRect:frame
                                                                               takesFocus:takesFocus];
         [popupPanel setHidesOnDeactivate:NO];
@@ -271,7 +272,7 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
             // popups and menus, as the host tooltip did; a splashscreen
             // floats above the program's windows.
             [popupPanel setIgnoresMouseEvents:YES];
-            const NSWindowLevel level = (*popup).kind == gui_forms::HostTransientKind::tool_tip
+            const NSWindowLevel level = ((*popup.value())).kind == gui_forms::HostTransientKind::tool_tip
                 ? NSStatusWindowLevel : NSFloatingWindowLevel;
             [popupPanel setLevel:level];
         }
@@ -324,7 +325,7 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         [nativeWindow setTitleVisibility:NSWindowTitleHidden];
     }
     // A popup's size is the program's bounds, below any window minimum.
-    const NSSize minimumSize = popup.has_value()
+    const NSSize minimumSize = popup.present()
         ? NSMakeSize(0.0, 0.0)
         : NSMakeSize(entry.options.minimum_size.width, entry.options.minimum_size.height);
     [nativeWindow setContentMinSize:minimumSize];
@@ -349,11 +350,11 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     // for this window's frame.
     slots_.push_back(std::move(created));
 
-    if (popup.has_value()) {
+    if (popup.present()) {
         if (ownerWindow != nil) [ownerWindow addChildWindow:nativeWindow ordered:NSWindowAbove];
         if (!entry.options.initially_visible) [nativeWindow orderOut:nil];
         // Placed where the program put it, before it is shown.
-        const gui_forms::Rect content{(*popup).origin.x, (*popup).origin.y, initialSize.width,
+        const gui_forms::Rect content{((*popup.value())).origin.x, ((*popup.value())).origin.y, initialSize.width,
                                       initialSize.height};
         if (!request_frame_impl(id, content).accepted()) {
             abandon_open(id, nativeWindow, ownerWindow, view);
@@ -384,7 +385,7 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         [nativeWindow setFrame:placed display:NO];
     }
     // A Splash is never a drop target: it takes no input.
-    if (popup.has_value() && gui_forms::host_transient_is_splash((*popup).kind)) [view unregisterDraggedTypes];
+    if (popup.present() && gui_forms::host_transient_is_splash(((*popup.value())).kind)) [view unregisterDraggedTypes];
 
     if ([view initializeHost] == NO) {
         abandon_open(id, nativeWindow, ownerWindow, view);
@@ -418,7 +419,7 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     window_created(id, entry.options.initially_visible);
     if (entry.options.initially_visible && !floating) {
         const bool takesKey = primary == YES ||
-            (popup.has_value() && (*popup).focus == gui_forms::HostPopupFocus::takes_focus);
+            (popup.present() && ((*popup.value())).focus == gui_forms::HostPopupFocus::takes_focus);
         if (takesKey) [nativeWindow makeKeyAndOrderFront:nil];
         else [nativeWindow orderFront:nil];
     }

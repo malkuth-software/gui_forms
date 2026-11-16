@@ -16,6 +16,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <variant>
 #include <span>
@@ -405,9 +406,9 @@ bool DataGridView::cell_read_only(DataGridViewRowPosition row, std::size_t colum
     if (field.empty()) return true;
     // A field the provider has not got is written by the built-in table,
     // which grows it; any other provider's missing field is read-only.
-    const std::optional<std::size_t> bound = (*data_source_).column_of(field);
-    if (!bound) return !(*data_source_).table();
-    return (*data_source_).read_only(row.value, *bound);
+    const stxlib::Optional<std::size_t> bound = (*data_source_).column_of(field);
+    if (bound.absent()) return !(*data_source_).table();
+    return (*data_source_).read_only(row.value, (*bound.value()));
 }
 
 DataGridViewRowId DataGridView::row_id(DataGridViewRowPosition position) const {
@@ -462,15 +463,15 @@ std::string styled_text(const BindingValue& value, const DataGridViewCellStyle& 
         return text;
     }
     if (style.format && is_number_kind(kind)) {
-        const std::optional<NumberFormat> format = parse_number_format(*style.format);
-        if (format) {
+        const stxlib::Optional<NumberFormat> format = parse_number_format(*style.format);
+        if (format.present()) {
             std::string text{};
             if (const std::int64_t* const signed_value = std::get_if<std::int64_t>(&value)) {
-                append_formatted_number(text, *signed_value, *format);
+                append_formatted_number(text, *signed_value, (*format.value()));
             } else if (const std::uint64_t* const unsigned_value = std::get_if<std::uint64_t>(&value)) {
-                append_formatted_number(text, *unsigned_value, *format);
+                append_formatted_number(text, *unsigned_value, (*format.value()));
             } else {
-                append_formatted_number(text, std::get<double>(value), *format);
+                append_formatted_number(text, std::get<double>(value), (*format.value()));
             }
             return text;
         }
@@ -3225,9 +3226,9 @@ DataGridView::CommitOutcome DataGridView::commit_text(const CellKey& key, DataGr
         // as the plain number it shows.
         std::string plain = text;
         if (style.format && is_number_kind(value_kind)) {
-            const std::optional<NumberFormat> format = parse_number_format(*style.format);
+            const stxlib::Optional<NumberFormat> format = parse_number_format(*style.format);
             std::optional<std::string> unformatted{};
-            if (format) unformatted = plain_number_text(text, *format);
+            if (format.present()) unformatted = plain_number_text(text, (*format.value()));
             if (unformatted) plain = std::move(*unformatted);
         }
         const std::optional<BindingValue> converted = convert_binding_value(BindingValue{plain}, value_kind);
@@ -3664,7 +3665,7 @@ bool DataGridView::add_new_row() {
         for (std::size_t column = 0; column < columns_.size(); ++column) {
             const std::string& field = columns_[column].data_property_name;
             if (field.empty() || binding_value_kind(values[column]) == BindingValueKind::null) continue;
-            if (built_in && !(*source).column_of(field)) static_cast<void>((*built_in).find_or_add_column(field));
+            if (built_in && (*source).column_of(field).absent()) static_cast<void>((*built_in).find_or_add_column(field));
         }
         if (!is_alive() || !(*source).is_alive()) return false;
         BindingRow added{};
@@ -3673,8 +3674,8 @@ bool DataGridView::add_new_row() {
         for (std::size_t column = 0; column < columns_.size(); ++column) {
             const std::string& field = columns_[column].data_property_name;
             if (field.empty() || binding_value_kind(values[column]) == BindingValueKind::null) continue;
-            const std::optional<std::size_t> bound = (*source).column_of(field);
-            if (bound) added.values[*bound] = values[column];
+            const stxlib::Optional<std::size_t> bound = (*source).column_of(field);
+            if (bound.present()) added.values[(*bound.value())] = values[column];
         }
         adding_row_ = true;
         synchronizing_position_ = true;
@@ -3831,9 +3832,9 @@ std::string DataGridView::held_cell_error_text(DataGridViewRowPosition row, std:
     if (row_source_ != DataGridViewRowSource::binding_source || is_new_row(row)) return {};
     const std::string& field = columns_[column].data_property_name;
     if (field.empty()) return {};
-    const std::optional<std::size_t> bound = (*data_source_).column_of(field);
-    if (!bound) return {};
-    return (*data_source_).error(row.value, *bound);
+    const stxlib::Optional<std::size_t> bound = (*data_source_).column_of(field);
+    if (bound.absent()) return {};
+    return (*data_source_).error(row.value, (*bound.value()));
 }
 
 void DataGridView::set_cell_error_text(DataGridViewRowPosition row, std::size_t column, std::string text) {
@@ -3901,7 +3902,7 @@ void DataGridView::validate_cell_style(const DataGridViewCellStyle& style) {
             throw std::invalid_argument("DataGridView cell style padding must be finite and not negative");
         }
     }
-    if (style.format && !(*style.format).empty() && !parse_number_format(*style.format)) {
+    if (style.format && !(*style.format).empty() && parse_number_format(*style.format).absent()) {
         throw std::invalid_argument(
             "DataGridView cell style formats are the standard numeric formats F, N, P, C, E and G "
             "with a precision of 0 to 99");

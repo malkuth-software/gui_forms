@@ -3,6 +3,7 @@
 #include <stx_rtf2md/markdown.hpp>
 #include <stx_rtf2md/rtf.hpp>
 
+#include <stxlib/optional.hpp>
 #include <limits>
 #include <new>
 #include <stdexcept>
@@ -61,24 +62,24 @@ bool RtfConversionResult::succeeded() const noexcept {
     return !failed_state;
 }
 
-std::optional<MarkdownLossReport> RtfConversionResult::losses() const noexcept {
+stxlib::Optional<MarkdownLossReport> RtfConversionResult::losses() const noexcept {
     const Imported* imported_state = std::get_if<Imported>(&state_);
-    if (imported_state != nullptr) return (*imported_state).losses;
+    if (imported_state != nullptr) return stxlib::Optional<MarkdownLossReport>::of((*imported_state).losses);
     const Exported* exported_state = std::get_if<Exported>(&state_);
-    if (exported_state != nullptr) return (*exported_state).losses;
-    return std::nullopt;
+    if (exported_state != nullptr) return stxlib::Optional<MarkdownLossReport>::of((*exported_state).losses);
+    return stxlib::Optional<MarkdownLossReport>::none();
 }
 
-std::optional<RtfBodySize> RtfConversionResult::body() const noexcept {
+stxlib::Optional<RtfBodySize> RtfConversionResult::body() const noexcept {
     const Imported* imported_state = std::get_if<Imported>(&state_);
-    if (imported_state == nullptr) return std::nullopt;
-    return (*imported_state).body;
+    if (imported_state == nullptr) return stxlib::Optional<RtfBodySize>::none();
+    return stxlib::Optional<RtfBodySize>::of((*imported_state).body);
 }
 
-std::optional<RtfConversionError> RtfConversionResult::error() const noexcept {
+stxlib::Optional<RtfConversionError> RtfConversionResult::error() const noexcept {
     const Failed* failure = std::get_if<Failed>(&state_);
-    if (failure == nullptr) return std::nullopt;
-    return (*failure).error;
+    if (failure == nullptr) return stxlib::Optional<RtfConversionError>::none();
+    return stxlib::Optional<RtfConversionError>::of((*failure).error);
 }
 
 std::uint64_t RtfConversionResult::offset() const noexcept {

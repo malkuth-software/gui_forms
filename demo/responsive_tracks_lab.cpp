@@ -299,14 +299,14 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
     (*surface).orientation = ResponsiveTrackOrientation::vertical;
     (*surface).set_track_specs({
         {ResponsiveTrackSizeMode::content, 40.0, 40.0, 100.0, 1.0,
-         false, 50U},
+         false, stxlib::Optional<std::uint16_t>::of(50U)},
         {ResponsiveTrackSizeMode::content, 23.0, 23.0, 90.0, 1.0},
         {ResponsiveTrackSizeMode::content, 45.0, 66.0, 160.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
         {ResponsiveTrackSizeMode::content, 40.0, 40.0, 140.0, 1.0},
         {ResponsiveTrackSizeMode::remaining, 24.0, 200.0, 0.0, 1.0},
         {ResponsiveTrackSizeMode::content, 24.0, 24.0, 80.0, 1.0,
-         false, 20U},
+         false, stxlib::Optional<std::uint16_t>::of(20U)},
     });
     (*surface).dock = DockStyle::fill;
 
@@ -336,10 +336,10 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
         make_control<ResponsiveTrackPanel>(StableId("responsive.workspace"));
     (*workspace).set_track_specs({
         {ResponsiveTrackSizeMode::fixed, 123.0, 221.0, 320.0, 1.0,
-         false, 20U},
+         false, stxlib::Optional<std::uint16_t>::of(20U)},
         {ResponsiveTrackSizeMode::remaining, 150.0, 300.0, 0.0, 1.0},
         {ResponsiveTrackSizeMode::fixed, 163.0, 291.0, 360.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
     });
     (*workspace).dock = DockStyle::fill;
     (*workspace).margin = Insets{};

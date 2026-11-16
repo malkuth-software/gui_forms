@@ -6,6 +6,7 @@
 #include "../overlay/overlay_attachment.hpp"
 #include "../../text/prepared/prepared_storage.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
@@ -132,7 +133,7 @@ VisualPaintOperationSnapshot inspect_operation(
 
 struct PendingInspectionNode final {
     Control::Ptr control;
-    std::optional<RuntimeId> parent_runtime_id;
+    stxlib::Optional<RuntimeId> parent_runtime_id;
     std::string parent_stable_id;
     std::size_t depth{};
     bool overlay_tree{};
@@ -184,14 +185,14 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
     const Rect window_clip{0.0, 0.0, client_size_.width, client_size_.height};
     std::vector<PendingInspectionNode> pending;
     if (root_) {
-        pending.push_back({root_, std::nullopt, {}, 0U, false, window_clip, 0U});
+        pending.push_back({root_, stxlib::Optional<RuntimeId>::none(), {}, 0U, false, window_clip, 0U});
     }
     for (OverlayList::reverse_iterator iterator = overlays_.rbegin();
          iterator != overlays_.rend(); ++iterator) {
         if (!*iterator || !(*(*iterator)).connected()) continue;
         const Control::Ptr overlay = (*(*iterator)).overlay();
         if (overlay) {
-            pending.push_back({overlay, std::nullopt, {}, 0U, true, window_clip, 0U});
+            pending.push_back({overlay, stxlib::Optional<RuntimeId>::none(), {}, 0U, true, window_clip, 0U});
         }
     }
 
@@ -278,7 +279,7 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
             const std::shared_ptr<const detail::DisplayChunk> chunk =
                 (*control).display_chunk_;
             if (chunk) {
-                inspected.display_chunk = (*chunk).info();
+                inspected.display_chunk.set((*chunk).info());
                 inspected.total_display_operations = (*chunk).commands().size();
                 inspected.display_chunk_current =
                     !has_dirty((*control).dirty_, Dirty::paint) &&
@@ -315,7 +316,7 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
                 continue;
             }
             pending.push_back({child,
-                               std::optional<RuntimeId>{(*control).runtime_id_},
+                               stxlib::Optional<RuntimeId>::of((*control).runtime_id_),
                                std::string((*control).stable_id_.value()),
                                current.depth + 1U,
                                current.overlay_tree, child_clip,

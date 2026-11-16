@@ -1,5 +1,6 @@
 #include "gui_forms/controls/plot_series_item_custom.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -65,13 +66,13 @@ void PlotHeatmapSeries::set_grid(std::span<const double> values, std::size_t row
     value_extent_ = finite_extent(values_);
 }
 
-void PlotHeatmapSeries::set_domain(std::optional<plots::PlotRange> domain) {
-    if (domain.has_value() && !(*domain).valid()) throw std::invalid_argument("a heatmap domain must be valid");
+void PlotHeatmapSeries::set_domain(stxlib::Optional<plots::PlotRange> domain) {
+    if (domain.present() && !((*domain.value())).valid()) throw std::invalid_argument("a heatmap domain must be valid");
     domain_ = domain;
 }
 
 plots::PlotRange PlotHeatmapSeries::domain() const noexcept {
-    const plots::PlotRange result = domain_.has_value() ? *domain_ : value_extent_;
+    const plots::PlotRange result = domain_.present() ? (*domain_.value()) : value_extent_;
     return result;
 }
 
@@ -130,14 +131,14 @@ void PlotHistogramSeries::set_samples(std::span<const double> samples, std::size
     rebin();
 }
 
-void PlotHistogramSeries::set_range(std::optional<plots::PlotRange> range) {
-    if (range.has_value() && !(*range).valid()) throw std::invalid_argument("a histogram range must be valid");
+void PlotHistogramSeries::set_range(stxlib::Optional<plots::PlotRange> range) {
+    if (range.present() && !((*range.value())).valid()) throw std::invalid_argument("a histogram range must be valid");
     range_ = range;
     rebin();
 }
 
 void PlotHistogramSeries::rebin() {
-    const plots::PlotRange range = range_.has_value() ? *range_ : finite_extent(samples_);
+    const plots::PlotRange range = range_.present() ? (*range_.value()) : finite_extent(samples_);
     spec_ = plots::BinSpec{range.minimum, range.maximum, counts_.size()};
     plots::SeriesSpans<double> values{};
     values.first = std::span<const double>(samples_.data(), samples_.size());

@@ -8,6 +8,7 @@
 #include "gui_forms/plots/series_picker/series_picker.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -75,7 +76,7 @@ public:
     void set_colormap(plots::BuiltInColormap colormap) noexcept { colormap_ = colormap; }
     [[nodiscard]] plots::BuiltInColormap colormap() const noexcept { return colormap_; }
     // A fixed colour domain (valid), or none to follow the values.
-    void set_domain(std::optional<plots::PlotRange> domain);
+    void set_domain(stxlib::Optional<plots::PlotRange> domain);
     [[nodiscard]] plots::PlotRange domain() const noexcept;
     [[nodiscard]] std::size_t rows() const noexcept { return rows_; }
     [[nodiscard]] std::size_t columns() const noexcept { return columns_; }
@@ -93,7 +94,7 @@ private:
     plots::PlotRange area_x_{0.0, 1.0};
     plots::PlotRange area_y_{0.0, 1.0};
     plots::PlotRange value_extent_{0.0, 1.0};
-    std::optional<plots::PlotRange> domain_{};
+    stxlib::Optional<plots::PlotRange> domain_{};
     plots::BuiltInColormap colormap_{plots::BuiltInColormap::gui_forms_default};
 };
 
@@ -108,7 +109,7 @@ public:
     void set_samples(std::span<const double> samples, std::size_t bins);
     // A fixed bin range (valid), or none for the samples' finite extent;
     // the samples are counted again.
-    void set_range(std::optional<plots::PlotRange> range);
+    void set_range(stxlib::Optional<plots::PlotRange> range);
     static constexpr std::size_t maximum_bins = 65536U;
     [[nodiscard]] std::span<const std::uint64_t> counts() const& noexcept { return counts_; }
     std::span<const std::uint64_t> counts() const&& = delete;
@@ -127,7 +128,7 @@ private:
 
     std::vector<double> samples_{};
     std::vector<std::uint64_t> counts_{};
-    std::optional<plots::PlotRange> range_{};
+    stxlib::Optional<plots::PlotRange> range_{};
     plots::BinSpec spec_{};
     plots::BinTally tally_{};
 };

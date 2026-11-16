@@ -43,8 +43,8 @@ constexpr SlotIdentity read_field_slot{GF_TABLE_HELP, 14U};
 
 // The C ABI's origin for a resolved field's layer.
 [[nodiscard]] gf_locale_origin origin_of(const LocaleResolvedField& field) noexcept {
-    if (!field.origin.has_value()) return GF_LOCALE_ORIGIN_NONE;
-    switch (*field.origin) {
+    if (field.origin.absent()) return GF_LOCALE_ORIGIN_NONE;
+    switch ((*field.origin.value())) {
     case LocaleLayerKind::built_in:
         return GF_LOCALE_ORIGIN_BUILT_IN;
     case LocaleLayerKind::program:

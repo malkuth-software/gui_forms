@@ -3,6 +3,7 @@
 #include "gui_forms/window.hpp"
 #include "../../surface_root/requests/alert_route.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <array>
@@ -1040,12 +1041,12 @@ HostServiceStatus HostServices::play_sound_cue(
         ++snapshot_.rejected_requests;
         return status;
     }
-    const bool coalesced = last_sound_cue_ == request.cue &&
+    const bool coalesced = last_sound_cue_ == stxlib::Optional<HostSoundCue>::of(request.cue) &&
         last_sound_timestamp_ != 0U &&
         snapshot_.sound_coalescing_window_nanoseconds != 0U &&
         request.timestamp_nanoseconds - last_sound_timestamp_ <=
             snapshot_.sound_coalescing_window_nanoseconds;
-    last_sound_cue_ = request.cue;
+    last_sound_cue_.set(request.cue);
     last_sound_timestamp_ = request.timestamp_nanoseconds;
     if (request.gain == 0.0) {
         ++snapshot_.sound_muted;

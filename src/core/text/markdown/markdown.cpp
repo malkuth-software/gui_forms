@@ -1,5 +1,6 @@
 #include "gui_forms/text/markdown/markdown.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -59,10 +60,10 @@ bool MarkdownParseResult::succeeded() const noexcept {
     return parsed;
 }
 
-std::optional<MarkdownParseError> MarkdownParseResult::error() const noexcept {
+stxlib::Optional<MarkdownParseError> MarkdownParseResult::error() const noexcept {
     const Failed* failure = std::get_if<Failed>(&state_);
-    if (failure == nullptr) return std::nullopt;
-    return (*failure).error;
+    if (failure == nullptr) return stxlib::Optional<MarkdownParseError>::none();
+    return stxlib::Optional<MarkdownParseError>::of((*failure).error);
 }
 
 Utf8Offset MarkdownParseResult::offset() const noexcept {
@@ -98,8 +99,8 @@ struct Piece final {
     std::string text{};
     Utf8Range source{};
     MarkdownSpanStyle style{};
-    std::optional<std::size_t> link{};
-    std::optional<std::size_t> image{};
+    stxlib::Optional<std::size_t> link{};
+    stxlib::Optional<std::size_t> image{};
 };
 
 // A character of literal text that may be dialect markup: an unescaped
@@ -119,8 +120,8 @@ struct SpanAttributes final {
     bool italic{};
     bool strikethrough{};
     MarkdownBaseline baseline{MarkdownBaseline::normal};
-    std::optional<MarkdownRgb> colour{};
-    std::optional<MarkdownRgb> background{};
+    stxlib::Optional<MarkdownRgb> colour{};
+    stxlib::Optional<MarkdownRgb> background{};
     std::int8_t size_step{};
 };
 
@@ -226,12 +227,12 @@ struct ByteStyle final {
             MarkdownRgb colour{};
             if (!parse_colour(item.substr(6U), colour)) return false;
             seen_colour = true;
-            attributes.colour = colour;
+            attributes.colour.set(colour);
         } else if (item.starts_with("bg=") && !seen_background) {
             MarkdownRgb colour{};
             if (!parse_colour(item.substr(3U), colour)) return false;
             seen_background = true;
-            attributes.background = colour;
+            attributes.background.set(colour);
         } else if (item.size() == 7U && item.starts_with("size=") && !seen_size) {
             const char sign = item[5];
             const char digit = item[6];
@@ -256,8 +257,8 @@ void add_attributes(SpanAttributes& style, const SpanAttributes& own) noexcept {
     style.italic = style.italic || own.italic;
     style.strikethrough = style.strikethrough || own.strikethrough;
     if (own.baseline != MarkdownBaseline::normal) style.baseline = own.baseline;
-    if (own.colour.has_value()) style.colour = own.colour;
-    if (own.background.has_value()) style.background = own.background;
+    if (own.colour.present()) style.colour = own.colour;
+    if (own.background.present()) style.background = own.background;
     if (own.size_step != 0) style.size_step = own.size_step;
 }
 
@@ -372,8 +373,8 @@ struct MarkdownParser final {
         piece.text = std::move(text);
         piece.source = range;
         piece.style = current_style();
-        if (!open_links.empty()) piece.link = open_links.back();
-        if (!open_images.empty()) piece.image = open_images.back();
+        if (!open_links.empty()) piece.link.set(open_links.back());
+        if (!open_images.empty()) piece.image.set(open_images.back());
         joined_bytes += piece.text.size();
         pieces.push_back(std::move(piece));
         cursor = std::max(cursor, range.end.value());

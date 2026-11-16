@@ -3,6 +3,7 @@
 #include "gui_forms/binding/collection_cell/collection_cell.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>

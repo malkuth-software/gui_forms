@@ -45,6 +45,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/export/application_export.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -203,7 +204,7 @@ public:
     void set_heading_band(const std::shared_ptr<const Control>& band);
     // The band's lower edge in this control's coordinates, or none without
     // a rule in force.
-    [[nodiscard]] std::optional<double> heading_band_bottom() const noexcept;
+    [[nodiscard]] stxlib::Optional<double> heading_band_bottom() const noexcept;
 
     // The turn (hand): whether this card can show it (it is in a window
     // and, at its last try, its host lent an offscreen renderer for the
@@ -328,7 +329,7 @@ private:
     // The point on the card's face (as laid out at rest) under
     // `local_point` while the card is turned, or none off the card or on
     // its back.
-    [[nodiscard]] std::optional<Point> face_point(Point local_point) const noexcept;
+    [[nodiscard]] stxlib::Optional<Point> face_point(Point local_point) const noexcept;
     void begin_turn_gesture();
     void settle_turn();
     void turn_over(double direction);
