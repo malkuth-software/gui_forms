@@ -1,0 +1,16 @@
+#include <gui_forms/nodes.hpp>
+
+#include <stxlib/fail_fast.hpp>
+#include <stxlib/shared.hpp>
+#include <memory>
+
+int main() {
+    gui_forms::Tree tree;
+    tree.root = stxlib::take_or_fail_fast(stxlib::Shared<gui_forms::Leaf>::make());
+    tree.parent = tree.root;
+    const stxlib::Shared<gui_forms::Leaf> leaf = stxlib::static_shared_cast<gui_forms::Leaf>(tree.root);
+    const int weight = (*tree.root).weight;
+    const bool empty = tree.root.empty();
+    tree.root.reset();
+    return weight + (*leaf).colour + (empty ? 1 : 0);
+}

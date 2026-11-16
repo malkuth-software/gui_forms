@@ -1,0 +1,6 @@
+#include <gui_forms/guards.hpp>
+
+int main() {
+    gui_forms::Named named;
+    return named.label.has_value() ? 1 : 0;
+}

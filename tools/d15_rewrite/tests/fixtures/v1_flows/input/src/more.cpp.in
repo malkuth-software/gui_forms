@@ -1,0 +1,26 @@
+#include <gui_forms/more.hpp>
+
+#include <optional>
+
+namespace gui_forms {
+
+Source::~Source() noexcept {
+}
+
+Holder::Holder() noexcept : limit_(std::nullopt) {
+}
+
+Holder::Holder(const int start) noexcept : limit_(start) {
+}
+
+void Holder::set_limit(const std::optional<int> limit) noexcept {
+    limit_ = limit;
+    if (limit_ < 3) limit_.emplace(3);
+}
+
+std::optional<int> pick(const bool first) noexcept {
+    if (first) return 1;
+    return first ? std::optional<int>(2) : std::nullopt;
+}
+
+} // namespace gui_forms

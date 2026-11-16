@@ -1,0 +1,32 @@
+#include <gui_forms/text.hpp>
+
+#include <stxlib/text_view.hpp>
+#include <cstddef>
+#include <string>
+#include <string_view>
+#include "platform/stxlib_bridge.hpp"
+
+namespace gui_forms {
+
+namespace {
+
+[[nodiscard]] std::size_t count_spaces(const std::string_view text) noexcept {
+    std::size_t spaces = 0U;
+    for (const char character : text) {
+        if (character == ' ') ++spaces;
+    }
+    return spaces;
+}
+
+} // namespace
+
+std::size_t measure(const stxlib::TextView text) noexcept {
+    if (text.empty()) return 0U;
+    return text.count() + count_spaces(gui_forms::platform::standard_text(text));
+}
+
+bool same_name(stxlib::TextView name) noexcept {
+    return name == "gauge";
+}
+
+} // namespace gui_forms

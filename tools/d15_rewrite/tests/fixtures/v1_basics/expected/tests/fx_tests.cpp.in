@@ -1,0 +1,38 @@
+#include <gui_forms/fx.hpp>
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+namespace {
+
+[[nodiscard]] bool check(const stxlib::Optional<gui_forms::Color>& expected, const gui_forms::Box& box) {
+    return box.fill() == expected;
+}
+
+} // namespace
+
+int main() {
+    gui_forms::Box box;
+    box.set_fill(stxlib::Optional<gui_forms::Color>::of(gui_forms::Color{3U}));
+    box.set_fill(stxlib::Optional<gui_forms::Color>::none());
+    box.set_fill({});
+    gui_forms::Style style;
+    style.fill.set(gui_forms::Color{4U});
+    style.index.set(2U);
+    style.index.reset();
+    if (style.fill.absent()) return 1;
+    if (style.fill.present()) style.index.reset();
+    if (style.fill.absent()) return 2;
+    const unsigned direct = (*style.fill.value()).value;
+    const unsigned star = ((*style.fill.value())).value;
+    const unsigned checked = (*style.fill.value()).value;
+    const bool same = style.fill == stxlib::Optional<gui_forms::Color>::of(gui_forms::Color{4U});
+    const bool absent = style.index.absent();
+    const unsigned taken = box.fill().take().value;
+    const unsigned taken_star = (box.fill().take()).value;
+    const stxlib::Optional<gui_forms::Color> local = box.fill();
+    const bool local_present = local.present();
+    const bool helper = check(style.fill, box);
+    const unsigned flags = (same ? 1U : 0U) + (absent ? 1U : 0U) + (local_present ? 1U : 0U) + (helper ? 1U : 0U);
+    return direct + star + checked + taken + taken_star + flags == 0U ? 0 : 3;
+}

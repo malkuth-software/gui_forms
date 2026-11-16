@@ -1,0 +1,13 @@
+#pragma once
+
+#include <stxlib/text_view.hpp>
+#include <cstddef>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+[[nodiscard]] std::size_t measure(stxlib::TextView text) noexcept;
+[[nodiscard]] bool same_name(stxlib::TextView name) noexcept;
+
+} // namespace gui_forms

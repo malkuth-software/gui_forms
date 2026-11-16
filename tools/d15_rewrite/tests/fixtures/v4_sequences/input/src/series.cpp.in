@@ -1,0 +1,14 @@
+#include <gui_forms/series.hpp>
+
+#include <cstddef>
+#include <span>
+
+namespace gui_forms {
+
+double total(const std::span<const double> values) noexcept {
+    double sum = 0.0;
+    for (std::size_t index = 0U; index < values.size(); ++index) sum += values[index];
+    return sum;
+}
+
+} // namespace gui_forms

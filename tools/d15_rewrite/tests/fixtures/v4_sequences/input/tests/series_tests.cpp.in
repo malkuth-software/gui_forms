@@ -1,0 +1,9 @@
+#include <gui_forms/series.hpp>
+
+int main() {
+    gui_forms::Series series;
+    series.samples.push_back(1.0);
+    series.samples.reserve(4U);
+    const double sum = gui_forms::total(series.samples);
+    return series.samples.size() == 1U && sum > 0.0 ? 0 : 1;
+}

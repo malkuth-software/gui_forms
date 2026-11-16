@@ -1,0 +1,12 @@
+#include <gui_forms/label.hpp>
+
+#include <string>
+
+int main() {
+    gui_forms::Label label;
+    label.text = "gauge";
+    const std::string copy = label.text;
+    const bool same = label.text == "gauge";
+    const std::size_t length = label.text.size();
+    return same && length == copy.size() ? 0 : 1;
+}

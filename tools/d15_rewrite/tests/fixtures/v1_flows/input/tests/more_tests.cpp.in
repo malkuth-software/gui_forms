@@ -1,0 +1,30 @@
+#include <gui_forms/more.hpp>
+
+#include <optional>
+
+#define REQUIRE(condition) ((condition) ? 0 : 1)
+
+namespace {
+
+class Table final : public gui_forms::Source {
+public:
+    [[nodiscard]] std::optional<int> find(const int key) const noexcept override {
+        if (key < 0) return std::nullopt;
+        return key;
+    }
+};
+
+} // namespace
+
+int main() {
+    Table table;
+    const gui_forms::Source& source = table;
+    int failures = REQUIRE(source.find(1).has_value());
+    failures += REQUIRE(gui_forms::pick(true) == 1);
+    const gui_forms::Range range{std::nullopt, 4};
+    failures += REQUIRE(range.high.has_value());
+    gui_forms::Holder holder(2);
+    holder.set_limit(std::make_optional(5));
+    holder.set_limit();
+    return failures;
+}
