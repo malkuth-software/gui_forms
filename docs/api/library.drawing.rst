@@ -967,7 +967,7 @@ Types
 
    .. cpp:member:: std::vector<ContentCaretStop> carets
 
-   .. cpp:member:: std::optional<ContentLayoutTransform> transform
+   .. cpp:member:: stxlib::Optional<ContentLayoutTransform> transform
 
       When set, every box above (lines, clusters, caret stops) is in the layout's own coordinates and this maps them to local coordinates: the editor's caret, selection, hit testing, input-method caret and published text layout follow the mapped text. Unset, the boxes are local coordinates, as before.
 

@@ -308,7 +308,7 @@ gui_forms::DockLayout
       Where a panel is: docked, floating, auto-hidden, hidden (a placeholder)
       or absent, with its stack, index and floating site.
 
-   .. cpp:function:: std::optional<DockNodeId> pin_owner(const DockPanelId& panel) const
+   .. cpp:function:: stxlib::Optional<DockNodeId> pin_owner(const DockPanelId& panel) const
 
       The root-level item whose pin governs a panel: its stack, when that is a
       docked tool stack of the main site or auto-hidden. A panel inside a group

@@ -382,7 +382,7 @@ gui_forms::TableLayoutPanelCompat
 
    .. cpp:function:: static const std::array<ChildPropertyEntry, table_child_property_count>& table_child_property_entries() noexcept
 
-   .. cpp:function:: std::optional<TableLayoutCellPosition> cell_position(const Control& child) const
+   .. cpp:function:: stxlib::Optional<TableLayoutCellPosition> cell_position(const Control& child) const
 
       The cell the last layout placed ``child`` in: its explicit cell, or the
       one automatic placement found. When the last layout placed it nowhere,

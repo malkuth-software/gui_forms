@@ -1503,7 +1503,7 @@ Related types
 
       What a call whose storage was too small needs; null otherwise.
 
-   .. cpp:function:: std::optional<ParagraphRequestError> error() const noexcept
+   .. cpp:function:: stxlib::Optional<ParagraphRequestError> error() const noexcept
 
       The error of a refused request; none otherwise.
 
@@ -1770,6 +1770,12 @@ Related types
 
    .. cpp:member:: std::size_t mask_bytes
 
+   .. cpp:member:: std::size_t glyph_face_bytes
+
+      The font banks' glyph faces: their typefaces' bytes as STXlib holds them after the latest rasterization (bytes_held), and the most one rasterization has held, typefaces and faces together (bytes_peak), since the service began.
+
+   .. cpp:member:: std::size_t glyph_face_peak_bytes
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: PreparedTextKey final
@@ -1905,6 +1911,14 @@ Related types
    .. cpp:member:: constexpr std::size_t mask_owners
 
       Default: ``2``.
+
+   .. cpp:member:: constexpr std::size_t glyph_store_bytes
+
+      Glyph faces, in bytes (owner, 2026-11-16): each face's glyph store (its glyphs in font units, read once for every size) and each rasterization's fitted outlines per face. STXlib takes storage as it is needed and never more than these. Default: ``1U * 1024U * 1024U``.
+
+   .. cpp:member:: constexpr std::size_t fitted_glyph_bytes
+
+      Default: ``1U * 1024U * 1024U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3943,9 +3957,13 @@ Functions, constants and aliases
 
 ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
 
-.. cpp:function:: LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, std::optional<double> line_height)
+.. cpp:function:: LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, stxlib::Optional<double> line_height)
 
    The line box every line of a paragraph in ``font`` shares, as TextBlock's: the provider's resolution of a space in the effective font, then line_box_metrics with ``line_height`` (a used line height in logical pixels, already scaled; none for ``line-height: normal``). A null provider uses estimate_text_layout_utf8. Resolving may allocate in the provider; call it once per font and keep the answer in ParagraphStyle.
+
+.. cpp:function:: inline LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, const std::optional<double> line_height)
+
+   Deprecated for one stage (D15 V1, Q3): the std::optional form, for GUI.Forms' own tests, examples and tools while they move; V2 removes it.
 
 .. cpp:function:: ParagraphStorageRequirement paragraph_storage_bound(std::string_view text, ParagraphWhiteSpace white_space, ParagraphGlyphOutput glyph_output = ParagraphGlyphOutput::none) noexcept
 

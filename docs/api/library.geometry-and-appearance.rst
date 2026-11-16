@@ -1554,33 +1554,33 @@ Types
 
    A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part. Lengths are logical units, the grid's spacing world units, the flow's speed world units a second. The forced high-contrast records set the colours: the plate, the state's edge and the focus colour. ``texture`` holds no layer for ``background-texture: none``.
 
-   .. cpp:member:: std::optional<Color> fill
+   .. cpp:member:: stxlib::Optional<Color> fill
 
-   .. cpp:member:: std::optional<Color> stroke
+   .. cpp:member:: stxlib::Optional<Color> stroke
 
-   .. cpp:member:: std::optional<double> stroke_width
+   .. cpp:member:: stxlib::Optional<double> stroke_width
 
-   .. cpp:member:: std::optional<double> dash
+   .. cpp:member:: stxlib::Optional<double> dash
 
-   .. cpp:member:: std::optional<double> gap
+   .. cpp:member:: stxlib::Optional<double> gap
 
-   .. cpp:member:: std::optional<double> halo_width
+   .. cpp:member:: stxlib::Optional<double> halo_width
 
-   .. cpp:member:: std::optional<Color> halo
+   .. cpp:member:: stxlib::Optional<Color> halo
 
-   .. cpp:member:: std::optional<double> corner_radius
+   .. cpp:member:: stxlib::Optional<double> corner_radius
 
-   .. cpp:member:: std::optional<double> grid_spacing
+   .. cpp:member:: stxlib::Optional<double> grid_spacing
 
-   .. cpp:member:: std::optional<double> grid_band
+   .. cpp:member:: stxlib::Optional<double> grid_band
 
-   .. cpp:member:: std::optional<CanvasTextureLayers> texture
+   .. cpp:member:: stxlib::Optional<CanvasTextureLayers> texture
 
-   .. cpp:member:: std::optional<CanvasFlowStyle> flow
+   .. cpp:member:: stxlib::Optional<CanvasFlowStyle> flow
 
-   .. cpp:member:: std::optional<double> flow_speed
+   .. cpp:member:: stxlib::Optional<double> flow_speed
 
-   .. cpp:member:: std::optional<double> flow_spacing
+   .. cpp:member:: stxlib::Optional<double> flow_spacing
 
 .. cpp:namespace:: gui_forms
 
@@ -1588,25 +1588,25 @@ Types
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
 
-   .. cpp:member:: std::optional<double> block_size
+   .. cpp:member:: stxlib::Optional<double> block_size
 
-   .. cpp:member:: std::optional<double> minimum_inline_size
+   .. cpp:member:: stxlib::Optional<double> minimum_inline_size
 
-   .. cpp:member:: std::optional<double> padding_inline
+   .. cpp:member:: stxlib::Optional<double> padding_inline
 
-   .. cpp:member:: std::optional<double> gap
+   .. cpp:member:: stxlib::Optional<double> gap
 
-   .. cpp:member:: std::optional<double> margin_block_start
+   .. cpp:member:: stxlib::Optional<double> margin_block_start
 
-   .. cpp:member:: std::optional<double> margin_block_end
+   .. cpp:member:: stxlib::Optional<double> margin_block_end
 
    .. cpp:member:: double taper
 
-   .. cpp:member:: std::optional<Color> taper_colour
+   .. cpp:member:: stxlib::Optional<Color> taper_colour
 
    .. cpp:member:: double flare
 
-   .. cpp:member:: std::optional<Color> flare_colour
+   .. cpp:member:: stxlib::Optional<Color> flare_colour
 
    .. cpp:member:: double edge_shadow_width
 
@@ -1694,25 +1694,25 @@ Types
 
    A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle. Lengths are logical units; a taper, flare or edge shadow of zero draws nothing. A part's stripe pattern (RecipeField::stripe_pitch to stripe_reduced_motion; the barber pole, owner rulings of 2026-11-11), each unset where no rule sets it, when the stripe effect keeps its own value: pitch auto (the fill's inner thickness, at least 8), a pale share of 0.4, 45 degrees, a backward lean travelling forward at 0.8 pitches a second, the fill as the theme paints it under translucent pale bands, a gloss over opaque stripe colours, and still bands under reduced motion. A pitch of 0 is ``auto``.
 
-   .. cpp:member:: std::optional<double> pitch
+   .. cpp:member:: stxlib::Optional<double> pitch
 
-   .. cpp:member:: std::optional<double> ratio
+   .. cpp:member:: stxlib::Optional<double> ratio
 
-   .. cpp:member:: std::optional<double> angle_degrees
+   .. cpp:member:: stxlib::Optional<double> angle_degrees
 
-   .. cpp:member:: std::optional<StripeSense> lean
+   .. cpp:member:: stxlib::Optional<StripeSense> lean
 
-   .. cpp:member:: std::optional<StripeSense> direction
+   .. cpp:member:: stxlib::Optional<StripeSense> direction
 
-   .. cpp:member:: std::optional<double> speed
+   .. cpp:member:: stxlib::Optional<double> speed
 
-   .. cpp:member:: std::optional<Color> colour
+   .. cpp:member:: stxlib::Optional<Color> colour
 
-   .. cpp:member:: std::optional<Color> ground
+   .. cpp:member:: stxlib::Optional<Color> ground
 
-   .. cpp:member:: std::optional<StripeGloss> gloss
+   .. cpp:member:: stxlib::Optional<StripeGloss> gloss
 
-   .. cpp:member:: std::optional<StripeReducedMotion> reduced_motion
+   .. cpp:member:: stxlib::Optional<StripeReducedMotion> reduced_motion
 
 .. cpp:namespace:: gui_forms
 
@@ -1806,7 +1806,7 @@ Types
 
       Default: ``{1.0, 1.0}``.
 
-   .. cpp:member:: std::optional<ControlTextShadow> text_shadow
+   .. cpp:member:: stxlib::Optional<ControlTextShadow> text_shadow
 
       The shadow under the recipe's text, if any (E9.6, data only).
 
@@ -1814,7 +1814,7 @@ Types
 
       The part's metrics and shape, where a rule naming the part sets them.
 
-   .. cpp:member:: std::optional<Color> fill_text
+   .. cpp:member:: stxlib::Optional<Color> fill_text
 
       The text's colour where it lies over a fill (``fill-text-color``, the value bar study's section 3.6), if the theme sets one; none, the built-in recipes' value, draws such text in the fill's own selected text colour.
 
@@ -4994,7 +4994,7 @@ Types
 
    .. cpp:member:: double taper
 
-   .. cpp:member:: std::optional<Color> taper_colour
+   .. cpp:member:: stxlib::Optional<Color> taper_colour
 
    .. cpp:member:: double flare
 
