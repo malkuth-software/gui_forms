@@ -204,6 +204,13 @@ void test_lease_and_borrowed_views() {
     narrow.count = 2U;
     narrow.stride_bytes = 4U;
     require(validate_series_view(narrow) == SeriesViewCheck::stride_too_small, "a stride under the element refuses");
+    // A-gf-core-09-F4: an offset within one element of SIZE_MAX (a negative
+    // offset converted) overflows, whatever the count.
+    SeriesView<float> wrapped = view;
+    wrapped.offset_bytes = static_cast<std::size_t>(-4);
+    require(validate_series_view(wrapped) == SeriesViewCheck::size_overflow, "an offset that wraps refuses");
+    wrapped.count = 1U;
+    require(validate_series_view(wrapped) == SeriesViewCheck::size_overflow, "a single element past SIZE_MAX refuses");
     SeriesLease lease;
     const BorrowedSeries<float> borrowed(view, lease);
     {
