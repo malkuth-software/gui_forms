@@ -278,6 +278,7 @@ protected:
         return {};
     }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     HostClipboardTextResult read_clipboard_text_impl() override {
         HostClipboardTextResult result;
         result.generation = static_cast<std::uint64_t>(GetClipboardSequenceNumber());
@@ -347,7 +348,10 @@ protected:
         CloseClipboard();
         return {};
     }
+#endif
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     HostClipboardFilesResult read_clipboard_files_impl() override {
         HostClipboardFilesResult result;
         if (!IsClipboardFormatAvailable(CF_HDROP)) return result;
@@ -396,6 +400,7 @@ protected:
     HostServiceStatus write_clipboard_image_impl(HostImageView image) override {
         return gui_forms::host::detail::write_windows_clipboard_image(owner_, image);
     }
+#endif
 
     HostDialogResult show_dialog_impl(const HostDialogRequest& request) override {
         if (std::holds_alternative<HostMessageDialogRequest>(request.payload)) {
@@ -429,6 +434,9 @@ protected:
             std::get<HostColorDialogRequest>(request.payload), custom_colors_);
     }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+
     // The shell opens the address in the user's browser or mail program
     // (HostServices::open_url validated it: an http, https or mailto
     // address). ShellExecuteW returns a value above 32 on success.
@@ -441,6 +449,7 @@ protected:
         const bool started = reinterpret_cast<INT_PTR>(opened) > 32;
         return started ? HostServiceStatus{} : HostServiceStatus{HostServiceError::backend_failure};
     }
+#endif
 
     HostServiceStatus play_sound_cue_impl(
         const HostSoundCueRequest& request) override {

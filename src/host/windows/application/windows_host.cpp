@@ -4245,6 +4245,11 @@ HostCapabilities windows_capabilities() {
         capabilities.available = capabilities.available | HostCapability::locale;
     }
 #endif
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    capabilities.available = without_capability(capabilities.available,
+                                                high_integrity_compiled_out_capabilities);
+#endif
     return capabilities;
 }
 

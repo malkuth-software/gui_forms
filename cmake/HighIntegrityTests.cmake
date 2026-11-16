@@ -97,9 +97,21 @@ list(JOIN _gf_high_integrity_binaries "|" _gf_high_integrity_binaries)
 if(TARGET gui_forms_abi_objects)
     string(APPEND _gf_high_integrity_binaries "|$<JOIN:$<TARGET_OBJECTS:gui_forms_abi_objects>,|>")
 endif()
+# The list the test reads: absent_symbols.txt, and the clipboard text
+# entries unless the build keeps that allowance.
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/manifests/high_integrity/absent_symbols.txt" _gf_high_integrity_absent)
+if(NOT GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/manifests/high_integrity/absent_clipboard_text.txt"
+         _gf_high_integrity_clipboard_text)
+    string(APPEND _gf_high_integrity_absent "${_gf_high_integrity_clipboard_text}")
+endif()
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/high_integrity_absent_symbols.txt" "${_gf_high_integrity_absent}")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/manifests/high_integrity/absent_symbols.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/manifests/high_integrity/absent_clipboard_text.txt")
 add_test(NAME gui_forms_high_integrity_surface
     COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
         "-DBINARIES=${_gf_high_integrity_binaries}"
-        "-DFORBIDDEN=${CMAKE_CURRENT_SOURCE_DIR}/manifests/high_integrity/absent_symbols.txt"
+        "-DFORBIDDEN=${CMAKE_CURRENT_BINARY_DIR}/high_integrity_absent_symbols.txt"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckSystemImports.cmake")
 set_tests_properties(gui_forms_high_integrity_surface PROPERTIES LABELS high_integrity TIMEOUT 600)

@@ -124,8 +124,10 @@ protected:
     HostServiceStatus set_pointer_capture_impl(bool captured, std::uint64_t pointer_id) override;
     // The manager's copy of the clipboard: the host posts the text it sees
     // (SurfaceInputKind::clipboard), and the program's own writes are kept.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     HostClipboardTextResult read_clipboard_text_impl() override;
     HostServiceStatus write_clipboard_text_impl(std::string_view text) override;
+#endif
     HostDialogResult show_dialog_impl(const HostDialogRequest& request) override;
     HostServiceStatus play_sound_cue_impl(const HostSoundCueRequest& request) override;
 

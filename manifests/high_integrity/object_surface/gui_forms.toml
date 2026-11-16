@@ -7,10 +7,10 @@
 #
 # The two prove complementary things. absent_symbols.txt refuses named
 # symbols, defined or imported, so it also proves that the compiled-out
-# entries (load_app_font_family, the dialogs, hosted content) are not in the
-# objects. This file states the closed list of leaves the objects may call
-# outside themselves: getenv, the user's locale, process spawning and the
-# file dialogs are on no list, so a scan that finds one fails, and so does any
+# entries (load_app_font_family, open_url, clipboard images, hosted content)
+# are not in the objects. This file states the closed list of leaves the
+# objects may call outside themselves: getenv, the user's locale and process
+# spawning are on no list, so a scan that finds one fails, and so does any
 # leaf nobody has given a reason for.
 #
 # DRAFT, written without a build: the libc++, STXlib and C library globs below

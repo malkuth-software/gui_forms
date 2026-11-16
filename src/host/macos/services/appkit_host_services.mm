@@ -676,6 +676,9 @@ protected:
         return {};
     }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+
     // The address goes to Launch Services, which opens it in the user's
     // browser or mail program and returns at once (HostServices::open_url
     // validated it: an http, https or mailto address).
@@ -693,6 +696,7 @@ protected:
         }
         return {};
     }
+#endif
 
     HostServiceStatus warp_pointer_impl(gui_forms::Point position) override {
         NSView* const view = backdrop_view_;
@@ -718,6 +722,7 @@ protected:
         return {};
     }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     HostClipboardTextResult read_clipboard_text_impl() override {
         HostClipboardTextResult result;
         if (pasteboard_ == nil) {
@@ -756,7 +761,9 @@ protected:
                    ? HostServiceStatus{}
                    : HostServiceStatus{HostServiceError::backend_failure};
     }
+#endif
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     gui_forms::HostClipboardFilesResult read_clipboard_files_impl() override {
         gui_forms::HostClipboardFilesResult result;
         if (pasteboard_ == nil) {
@@ -788,6 +795,7 @@ protected:
     HostServiceStatus write_clipboard_image_impl(gui_forms::HostImageView image) override {
         return gui_forms::host::detail::write_appkit_clipboard_image(pasteboard_, image);
     }
+#endif
 
     HostDialogResult show_dialog_impl(const HostDialogRequest& request) override {
         if (const HostMessageDialogRequest* payload_pointer =

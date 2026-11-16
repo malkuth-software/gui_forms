@@ -4507,7 +4507,15 @@ Functions, constants and aliases
 
 ``#include <gui_forms/host/types/host_capability/host_capability.hpp>``
 
+.. cpp:function:: constexpr HostCapability without_capability(HostCapability available, HostCapability removed) noexcept
+
+   ``available`` without the flags of ``removed``.
+
 .. cpp:function:: constexpr bool has_capability(HostCapability available, HostCapability requested) noexcept
+
+.. cpp:var:: constexpr HostCapability high_integrity_compiled_out_capabilities
+
+   The host services a high-integrity build does not compile (cmake/HighIntegrity.cmake): opening addresses, clipboard images and clipboard file references, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from its own, so their requests are refused as unsupported. Value: ``HostCapability::open_url | HostCapability::clipboard_images``.
 
 .. cpp:namespace:: gui_forms
 

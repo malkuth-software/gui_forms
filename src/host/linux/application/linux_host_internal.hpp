@@ -179,12 +179,19 @@ protected:
                                              std::uint64_t) override;
   HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest &request) override;
   HostServiceStatus warp_pointer_impl(Point position) override;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
   HostServiceStatus open_url_impl(std::string_view url_utf8) override;
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
   HostClipboardTextResult read_clipboard_text_impl() override;
   HostServiceStatus write_clipboard_text_impl(std::string_view text) override;
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
   HostClipboardImageResult read_clipboard_image_impl() override;
   HostClipboardFilesResult read_clipboard_files_impl() override;
   HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
+#endif
   HostDialogResult show_dialog_impl(const HostDialogRequest &request) override;
   HostServiceStatus play_sound_cue_impl(const HostSoundCueRequest &) override;
   HostServiceStatus add_tray_icon_impl(HostTrayIconId icon_id,

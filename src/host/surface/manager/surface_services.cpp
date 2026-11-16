@@ -63,6 +63,7 @@ HostServiceStatus Services::set_pointer_capture_impl(bool captured, std::uint64_
     return {};
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
 HostClipboardTextResult Services::read_clipboard_text_impl() {
     HostClipboardTextResult result;
     const Runtime& runtime = window_.runtime;
@@ -82,6 +83,7 @@ HostServiceStatus Services::write_clipboard_text_impl(std::string_view text) {
     runtime.host.write_clipboard(runtime.clipboard_text);
     return {};
 }
+#endif
 
 HostDialogResult Services::show_dialog_impl(const HostDialogRequest& request) {
     const HostMessageDialogRequest* message = std::get_if<HostMessageDialogRequest>(&request.payload);

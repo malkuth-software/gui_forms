@@ -1,0 +1,6 @@
+# Symbols a high-integrity build without the clipboard text allowance
+# (GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT) must not define or use;
+# cmake/HighIntegrityTests.cmake adds them to absent_symbols.txt. One CMake
+# regular expression per line, matched against `nm -C` output.
+read_clipboard_text_impl\(
+write_clipboard_text_impl\(

@@ -30,8 +30,11 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-// The process environment, handed to the address opener (posix_spawn).
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// The process environment, handed to the address opener (posix_spawn). A
+// high-integrity build has no address opener (cmake/HighIntegrity.cmake).
 extern char** environ;
+#endif
 
 namespace gui_forms::host::linux_detail {
 namespace {
@@ -553,6 +556,9 @@ HostServiceStatus Services::warp_pointer_impl(Point position) {
   return {};
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+
 // open_url: the desktop's address opener, xdg-open, found on PATH. A
 // shell starts it in the background and exits at once, and that shell is
 // reaped here, so the opener is never a child of this process and nothing
@@ -583,6 +589,7 @@ HostServiceStatus Services::open_url_impl(std::string_view url_utf8) {
     return {HostServiceError::backend_failure};
   return {};
 }
+#endif
 
 void Services::relative_raw_motion(Point raw, Point accelerated, std::uint64_t timestamp) {
   if (!relative_.active)
@@ -603,6 +610,7 @@ void Services::relative_raw_motion(Point raw, Point accelerated, std::uint64_t t
   }
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
 HostClipboardTextResult Services::read_clipboard_text_impl() {
   Runtime &runtime = window_.runtime;
   HostClipboardTextResult result;
@@ -631,6 +639,8 @@ HostServiceStatus Services::write_clipboard_text_impl(std::string_view text) {
               ? HostServiceError::none
               : HostServiceError::backend_failure};
 }
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 HostClipboardFilesResult Services::read_clipboard_files_impl() {
   Runtime& runtime = window_.runtime;
   std::vector<std::byte> bytes = runtime.read_selection(
@@ -681,6 +691,7 @@ HostServiceStatus Services::write_clipboard_image_impl(HostImageView image) {
               ? HostServiceError::none
               : HostServiceError::backend_failure};
 }
+#endif
 HostDialogResult Services::show_dialog_impl(const HostDialogRequest &request) {
   return window_.dialog(request);
 }

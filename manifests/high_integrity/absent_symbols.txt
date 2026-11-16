@@ -41,3 +41,16 @@ content_start_hosted
 content_hosted_input
 shm_open
 socketpair
+# Desktop services: no address is opened, and no clipboard image or file
+# reference is read or written (clipboard text: absent_clipboard_text.txt).
+open_url_impl\(
+read_clipboard_image_impl\(
+write_clipboard_image_impl\(
+read_clipboard_files_impl\(
+query_auto_complete_impl\(
+read_appkit_clipboard_image\(
+write_appkit_clipboard_image\(
+read_windows_clipboard_image\(
+write_windows_clipboard_image\(
+ShellExecute
+posix_spawn$

@@ -65,6 +65,11 @@ HostCapabilities headless_capabilities() {
             pc_key_map()};
     // The simulated platform may report either corner shape.
     capabilities.window_corner_shapes = WindowCornerShapes{true, true};
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    capabilities.available = without_capability(capabilities.available,
+                                                high_integrity_compiled_out_capabilities);
+#endif
     return capabilities;
 }
 } // namespace gui_forms::host
