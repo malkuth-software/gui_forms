@@ -188,6 +188,8 @@ Types
      - PointF is a finite logical-coordinate pair.
    * - :cpp:class:`PointI <gui_drawing::PointI>`
      - PointI is a signed integer pixel-coordinate pair.
+   * - :cpp:class:`RadialGradientBrush <gui_drawing::RadialGradientBrush>`
+     - A radial gradient (owner, 2026-11-16: added to the drawing table before the seal).
    * - :cpp:class:`RecorderRasterResult <gui_drawing::RecorderRasterResult>`
      -  
    * - :cpp:class:`RectF <gui_drawing::RectF>`
@@ -484,6 +486,12 @@ Types
    .. cpp:member:: double cell_size
 
       A checker brush's cell width; 0 for every other kind.
+
+   .. cpp:member:: double radius
+
+      A radial gradient brush's radius about ``center`` and its focus (where position 0 lies); 0 and the origin for every other kind.
+
+   .. cpp:member:: PointF focus
 
 .. cpp:namespace:: gui_drawing
 
@@ -3025,6 +3033,37 @@ Types
 
 .. cpp:namespace:: gui_drawing
 
+.. cpp:class:: RadialGradientBrush final : public Brush
+
+   ``#include <gui_forms/drawing/brush/radial_gradient_brush.hpp>``
+
+   A radial gradient (owner, 2026-11-16: added to the drawing table before the seal). The colour at a point is the blend's colour at the offset t whose circle passes through it: the circle of radius t * radius centred at focus + t * (center - focus). Position 0 is the focus, position 1 the circle of ``radius`` about ``center``; with the focus at the centre (the default) t is the distance from the centre over the radius. Past position 1 the wrap mode repeats the blend (tile), reflects it (the three flips) or holds its last colour (clamp, the default). The blend holds 2 through 4096 colours at ascending positions from 0 to 1, as LinearGradientBrush::set_interpolation_colors requires; the default is ``center_color`` to ``edge_color``. Colours interpolate premultiplied, in sRGB-encoded values, as every gradient does (the blending rule).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RadialGradientBrush(PointF center, double radius, Color center_color, Color edge_color, WrapMode wrap_mode = WrapMode::clamp)
+
+      Throws std::invalid_argument for a centre that is not finite, a radius that is not positive and at most 1,000,000, or a wrap mode outside the enumeration.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_interpolation_colors(const ColorBlend& blend)
+
+   .. cpp:function:: void set_focus(PointF focus)
+
+      Moves position 0 to ``focus``, which must lie strictly inside the circle (std::invalid_argument otherwise; the brush is unchanged).
+
+   .. cpp:function:: void set_wrap_mode(WrapMode mode)
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: BrushSnapshot snapshot() const override
+
+.. cpp:namespace:: gui_drawing
+
 .. cpp:struct:: RecorderRasterResult final
 
    ``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>``
@@ -3539,6 +3578,8 @@ Enumerations
    .. cpp:enumerator:: conic_gradient
 
    .. cpp:enumerator:: checker
+
+   .. cpp:enumerator:: radial_gradient
 
 .. cpp:namespace:: gui_drawing
 
@@ -4505,7 +4546,7 @@ Functions, constants and aliases
 
 .. cpp:function:: DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::DrawingCommand> commands, Painter& painter)
 
-   Replays a GUI.Drawing recording (GraphicsRecorder::commands()) onto a Painter, in order, in the painter's current coordinates: the recording's origin is the painter's. Each drawing command is drawn inside a save and restore of its own, under its state's clip (already in recording coordinates) and its transform's translation, so the painter's state is as it was when the call returns. Drawn: - fill_rectangle, fill_rectangles: fill_rect, fill_rects; - fill_polygon: fill_polygon (alternate is even-odd, winding nonzero); - fill_proportion: the covered part under clip_rounded_rect_corners; - fill_ellipse, fill_path: fill_path (a path's figures as the raster executor builds them: a line or curve not starting at the current point starts a figure, rectangles and ellipses are closed figures, an arc extends its figure); - draw_rectangle: stroke_rect for a solid pen, stroke_polyline round the rectangle for a dashed one; - draw_line, draw_lines: stroke_polyline; - draw_line_segments: stroke_segments; - draw_ellipse, draw_path: stroke_path; - draw_markers, fill_grid_pattern: draw_markers, fill_grid_pattern. A fill whose brush is not solid draws its shape as a clip (clip_rect for rectangles, clip_path for polygons, ellipses and paths) and the brush's paint over the shape's bounds: a linear gradient brush as fill_linear_gradient_spread on the executor's line, a path gradient as fill_radial_gradient_spread on the executor's circle, a conic gradient as fill_conic_gradient, a checker as fill_checker and a hatch as fill_hatch, each anchored at the recording's origin; the wrap mode is the spread (tile repeats, the flips reflect, clamp pads). A gradient whose colours and positions are not valid gradient stops fills with its primary colour, as the executor does. A pen maps to a StrokeStyle as the raster executor draws it: preset dashes in multiples of the width, a custom pattern as given (at most maximum_dash_intervals entries, an even count of 2 or more). Left out (counted unsupported): clear (the control paints its own background), draw_string (FontSnapshot to FontSpec waits for the font identity work), images and texture brushes (their pixels have no image identity in a painter), a path with an element outside the enumeration, and any command whose custom dash pattern does not fit a StrokeStyle. Reads ``commands`` during the call only; allocates scratch storage once per call, reused across commands.
+   Replays a GUI.Drawing recording (GraphicsRecorder::commands()) onto a Painter, in order, in the painter's current coordinates: the recording's origin is the painter's. Each drawing command is drawn inside a save and restore of its own, under its state's clip (already in recording coordinates) and its transform's translation, so the painter's state is as it was when the call returns. Drawn: - fill_rectangle, fill_rectangles: fill_rect, fill_rects; - fill_polygon: fill_polygon (alternate is even-odd, winding nonzero); - fill_proportion: the covered part under clip_rounded_rect_corners; - fill_ellipse, fill_path: fill_path (a path's figures as the raster executor builds them: a line or curve not starting at the current point starts a figure, rectangles and ellipses are closed figures, an arc extends its figure); - draw_rectangle: stroke_rect for a solid pen, stroke_polyline round the rectangle for a dashed one; - draw_line, draw_lines: stroke_polyline; - draw_line_segments: stroke_segments; - draw_ellipse, draw_path: stroke_path; - draw_markers, fill_grid_pattern: draw_markers, fill_grid_pattern. A fill whose brush is not solid draws its shape as a clip (clip_rect for rectangles, clip_path for polygons, ellipses and paths) and the brush's paint over the shape's bounds: a linear gradient brush as fill_linear_gradient_spread on the executor's line, a path gradient as fill_radial_gradient_spread on the executor's circle, a radial gradient brush as fill_radial_gradient_spread (or fill_focal_radial_gradient when its focus is not its centre), a conic gradient as fill_conic_gradient, a checker as fill_checker and a hatch as fill_hatch, each anchored at the recording's origin; the wrap mode is the spread (tile repeats, the flips reflect, clamp pads). A gradient whose colours and positions are not valid gradient stops fills with its primary colour, as the executor does. A pen maps to a StrokeStyle as the raster executor draws it: preset dashes in multiples of the width, a custom pattern as given (at most maximum_dash_intervals entries, an even count of 2 or more). Left out (counted unsupported): clear (the control paints its own background), draw_string (FontSnapshot to FontSpec waits for the font identity work), images and texture brushes (their pixels have no image identity in a painter), a path with an element outside the enumeration, and any command whose custom dash pattern does not fit a StrokeStyle. Reads ``commands`` during the call only; allocates scratch storage once per call, reused across commands.
 
 .. cpp:namespace:: gui_drawing
 

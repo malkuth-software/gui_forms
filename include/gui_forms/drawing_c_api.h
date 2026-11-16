@@ -232,7 +232,10 @@ typedef enum gd_object_kind {
     /* Reserved for a depth-composited bitmap (a picture with a depth plane,
        so a 3D view's overlay can depth-test 2D marks); no entry creates one
        yet, and no other kind will take the value. */
-    GD_OBJECT_DEPTH_BITMAP_RESERVED = 16
+    GD_OBJECT_DEPTH_BITMAP_RESERVED = 16,
+    /* 1.1, provisional */
+    GD_OBJECT_TEXTURE_BRUSH = 17,
+    GD_OBJECT_RADIAL_GRADIENT_BRUSH = 18
 } gd_object_kind;
 
 typedef enum gd_wrap_mode {
@@ -1014,6 +1017,48 @@ typedef struct gd_api_v0 {
      * exports gd_get_api_v0 and its gf_ entry points alone.
      */
     gd_result (*raster_initialize)(void);
+    /*
+     * ABI 1.1, provisional: the texture and radial gradient brushes
+     * (owner, 2026-11-16: appended before the seal). Each validates its
+     * whole input first; a refusal creates or changes nothing.
+     *
+     * A brush filling with bitmap's pixels as they are at this call (later
+     * changes to the bitmap do not reach the brush, which holds no
+     * reference to it): one bitmap pixel per unit, its top-left corner at
+     * the origin, then mapped by the brush's transform, sampled as the
+     * recorder's quality says. Outside the bitmap, wrap_mode (gd_wrap_mode)
+     * repeats it (GD_WRAP_TILE), repeats it mirrored every other copy
+     * across x, y or both (the flips), or extends its edge pixels
+     * (GD_WRAP_CLAMP). bitmap must be a live GD_OBJECT_BITMAP handle with
+     * no lock or edit open (GD_ERROR_INVALID_STATE otherwise); a wrap mode
+     * outside the enumeration fails GD_ERROR_INVALID_ARGUMENT.
+     */
+    gd_result (*texture_brush_create)(gd_handle bitmap, uint32_t wrap_mode, gd_handle* brush);
+    gd_result (*texture_brush_set_wrap_mode)(gd_handle brush, uint32_t wrap_mode);
+    /* The map from the bitmap's pixel units to the recorder's units; every
+       element finite. */
+    gd_result (*texture_brush_set_transform)(gd_handle brush, gd_matrix transform);
+    /* A radial gradient from center_color at the centre to edge_color on
+       the circle of radius (positive, at most 1,000,000) about center
+       (finite). Past the circle wrap_mode repeats the colours
+       (GD_WRAP_TILE), reflects them (the three flips) or holds the edge
+       colour (GD_WRAP_CLAMP). Colours interpolate premultiplied, in
+       sRGB-encoded values. */
+    gd_result (*radial_gradient_brush_create)(gd_point center, double radius,
+                                              gd_color center_color, gd_color edge_color,
+                                              uint32_t wrap_mode, gd_handle* brush);
+    /* As linear_gradient_set_interpolation: 2 through 4,096 colours at
+       strictly ascending positions from 0 to 1. */
+    gd_result (*radial_gradient_brush_set_interpolation)(gd_handle brush,
+                                                         const gd_color* colors,
+                                                         const double* positions,
+                                                         uint64_t count);
+    /* Moves position 0 to focus, which must lie strictly inside the circle:
+       the colour at a point is then the one at offset t whose circle, of
+       radius t * radius about focus + t * (center - focus), passes through
+       it. A focus on or outside the circle fails
+       GD_ERROR_INVALID_ARGUMENT. */
+    gd_result (*radial_gradient_brush_set_focus)(gd_handle brush, gd_point focus);
 } gd_api_v0;
 
 /*

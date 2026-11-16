@@ -182,6 +182,7 @@ void fill_brush_stops(const gui_drawing::BrushSnapshot& brush, BrushStops& writt
     case BrushKind::linear_gradient:
     case BrushKind::path_gradient:
     case BrushKind::conic_gradient: return true;
+    case BrushKind::radial_gradient: return brush.radius > 0.0 && std::isfinite(brush.radius);
     case BrushKind::checker: return brush.cell_size > 0.0 && std::isfinite(brush.cell_size);
     case BrushKind::hatch: return hatch_style_of(brush.hatch_style, style);
     case BrushKind::texture:
@@ -215,7 +216,8 @@ void fill_with_brush(Painter& painter, const gui_drawing::BrushSnapshot& brush, 
     }
     case BrushKind::linear_gradient:
     case BrushKind::path_gradient:
-    case BrushKind::conic_gradient: break;
+    case BrushKind::conic_gradient:
+    case BrushKind::radial_gradient: break;
     case BrushKind::solid:
     default:
         painter.fill_rect(area, primary);
@@ -243,6 +245,17 @@ void fill_with_brush(Painter& painter, const gui_drawing::BrushSnapshot& brush, 
         const Point start{centre.x - along_x * half_length, centre.y - along_y * half_length};
         const Point end{centre.x + along_x * half_length, centre.y + along_y * half_length};
         painter.fill_linear_gradient_spread(area, start, end, stops.view(), spread_of(brush.wrap_mode));
+        return;
+    }
+    if (brush.kind == BrushKind::radial_gradient) {
+        const Point centre = point_of(brush.center);
+        const Point focus = point_of(brush.focus);
+        const Size radii{brush.radius, brush.radius};
+        if (focus == centre) {
+            painter.fill_radial_gradient_spread(area, centre, radii, stops.view(), spread_of(brush.wrap_mode));
+            return;
+        }
+        painter.fill_focal_radial_gradient(area, centre, radii, focus, stops.view(), spread_of(brush.wrap_mode));
         return;
     }
     // A path gradient: the executor's circle about the centre through the

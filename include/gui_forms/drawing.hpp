@@ -9,6 +9,7 @@
 #include "gui_forms/drawing/brush/hatch_brush.hpp"
 #include "gui_forms/drawing/brush/linear_gradient_brush.hpp"
 #include "gui_forms/drawing/brush/path_gradient_brush.hpp"
+#include "gui_forms/drawing/brush/radial_gradient_brush.hpp"
 #include "gui_forms/drawing/color/color.hpp"
 #include "gui_forms/drawing/font/font.hpp"
 #include "gui_forms/drawing/geometry/drawing_geometry.hpp"

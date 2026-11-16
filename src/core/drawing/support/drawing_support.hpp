@@ -444,6 +444,9 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
         result += color_text(brush.colors[index]) + "@" +
                   number(brush.positions[index]);
     }
+    if (brush.kind == BrushKind::radial_gradient) {
+        result += ",radius=" + number(brush.radius) + ",focus=" + point_text(brush.focus);
+    }
     return result;
 }
 

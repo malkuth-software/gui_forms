@@ -45,6 +45,7 @@ enum class BrushKind : std::uint8_t {
     texture,
     conic_gradient,
     checker,
+    radial_gradient,
 };
 
 // How a pen's segments meet (in the compatibility order: miter, bevel,
@@ -126,6 +127,10 @@ struct GUI_FORMS_API BrushSnapshot final {
     Matrix transform;
     // A checker brush's cell width; 0 for every other kind.
     double cell_size{};
+    // A radial gradient brush's radius about `center` and its focus (where
+    // position 0 lies); 0 and the origin for every other kind.
+    double radius{};
+    PointF focus;
 };
 
 } // namespace gui_drawing

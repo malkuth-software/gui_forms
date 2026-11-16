@@ -516,6 +516,21 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         paint.setShader(std::move(made.shader));
         return true;
     }
+    if (brush.kind == BrushKind::radial_gradient) {
+        if (!(brush.radius > 0.0)) return false;
+        const SkPoint center{static_cast<SkScalar>(brush.center.x), static_cast<SkScalar>(brush.center.y)};
+        const SkScalar radius = static_cast<SkScalar>(brush.radius);
+        // Position 0 at the focus: the circles grow from it to the edge
+        // circle, their centres moving from the focus to the centre.
+        SkGradientShaderResult made = brush.focus == brush.center
+            ? SkShaders::RadialGradient(center, radius, gradient)
+            : SkShaders::TwoPointConicalGradient(
+                  {static_cast<SkScalar>(brush.focus.x), static_cast<SkScalar>(brush.focus.y)}, 0.0F, center,
+                  radius, gradient);
+        if (made.rejection != SkGradientRejection::kNone) return false;
+        paint.setShader(std::move(made.shader));
+        return true;
+    }
     double radius{};
     for (const PointF point : brush.points) {
         radius = std::max(radius, std::hypot(point.x - brush.center.x,

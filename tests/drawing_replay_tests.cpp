@@ -123,6 +123,25 @@ public:
         last_rect = rect;
         last_checker = pattern;
     }
+    void fill_radial_gradient_spread(Rect rect, Point center, Size radii, std::span<const GradientStop> stops,
+                                     GradientSpreadMode spread) override {
+        calls.push_back("radial");
+        last_rect = rect;
+        last_start = center;
+        last_radii = radii;
+        last_count = stops.size();
+        last_spread = spread;
+    }
+    void fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                    std::span<const GradientStop> stops, GradientSpreadMode spread) override {
+        calls.push_back("focal");
+        last_rect = rect;
+        last_start = center;
+        last_end = focus;
+        last_radii = radii;
+        last_count = stops.size();
+        last_spread = spread;
+    }
 
     std::vector<std::string> calls;
     int depth{};
@@ -142,6 +161,7 @@ public:
     GradientSpreadMode last_spread{GradientSpreadMode::pad};
     HatchPattern last_hatch{};
     CheckerPattern last_checker{};
+    Size last_radii{};
 };
 
 [[nodiscard]] std::size_t count_calls(const CallPainter& painter, std::string_view name) {
@@ -335,6 +355,30 @@ void unsupported_commands_are_counted() {
     CHECK(painter.calls.empty());
 }
 
+// A radial gradient brush replays as a radial fill, or a focal one when
+// its focus has moved, with its wrap mode as the spread.
+void radial_gradient_brushes_replay() {
+    gui_drawing::GraphicsRecorder recorder;
+    gui_drawing::RadialGradientBrush plain({8, 8}, 6.0, gui_drawing::Color::from_argb(0xffff0000U),
+                                           gui_drawing::Color::from_argb(0xff0000ffU), gui_drawing::WrapMode::tile);
+    recorder.fill_rectangle(plain, {0, 0, 16, 16});
+    CallPainter first;
+    CHECK(replay_drawing_commands(recorder.commands(), first).drawn == 1U);
+    CHECK(count_calls(first, "radial") == 1U && first.last_start == (Point{8, 8}) &&
+          first.last_radii == (Size{6, 6}) && first.last_count == 2U &&
+          first.last_spread == GradientSpreadMode::repeat);
+
+    gui_drawing::RadialGradientBrush focal({8, 8}, 6.0, gui_drawing::Color::from_argb(0xffff0000U),
+                                           gui_drawing::Color::from_argb(0xff0000ffU));
+    focal.set_focus({5, 8});
+    gui_drawing::GraphicsRecorder focused;
+    focused.fill_rectangle(focal, {0, 0, 16, 16});
+    CallPainter second;
+    CHECK(replay_drawing_commands(focused.commands(), second).drawn == 1U);
+    CHECK(count_calls(second, "focal") == 1U && second.last_end == (Point{5, 8}) &&
+          second.last_spread == GradientSpreadMode::pad);
+}
+
 } // namespace
 
 int main() {
@@ -343,5 +387,6 @@ int main() {
     paths_ellipses_and_brushes_replay();
     path_verbs_follow_the_executor();
     unsupported_commands_are_counted();
+    radial_gradient_brushes_replay();
     return 0;
 }

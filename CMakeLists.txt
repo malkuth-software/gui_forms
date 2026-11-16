@@ -1027,6 +1027,7 @@ add_library(gui_drawing_core STATIC
     src/core/drawing/brush/hatch_brush.cpp
     src/core/drawing/brush/linear_gradient_brush.cpp
     src/core/drawing/brush/path_gradient_brush.cpp
+    src/core/drawing/brush/radial_gradient_brush.cpp
     src/core/drawing/brush/solid_brush.cpp
     src/core/drawing/color/color.cpp
     src/core/drawing/font/font.cpp

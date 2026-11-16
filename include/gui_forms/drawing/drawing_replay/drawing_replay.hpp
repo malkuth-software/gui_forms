@@ -56,8 +56,9 @@ struct GUI_FORMS_API DrawingReplayReport final {
 // rectangles, clip_path for polygons, ellipses and paths) and the brush's
 // paint over the shape's bounds: a linear gradient brush as
 // fill_linear_gradient_spread on the executor's line, a path gradient as
-// fill_radial_gradient_spread on the executor's circle, a conic gradient
-// as fill_conic_gradient, a checker as fill_checker and a hatch as
+// fill_radial_gradient_spread on the executor's circle, a radial gradient
+// brush as fill_radial_gradient_spread (or fill_focal_radial_gradient when
+// its focus is not its centre), a conic gradient as fill_conic_gradient, a checker as fill_checker and a hatch as
 // fill_hatch, each anchored at the recording's origin; the wrap mode is the
 // spread (tile repeats, the flips reflect, clamp pads). A gradient whose
 // colours and positions are not valid gradient stops fills with its
