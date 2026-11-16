@@ -149,7 +149,7 @@ gui_forms::CommandBar
       gf::Window window(bar, gf::Size{240.0, 32.0});
       (*bar).set_items({{.id = 1,
                          .label = "Save",
-                         .shortcut = gf::KeyGesture{gf::PhysicalKey::s, gf::Modifier::control},
+                         .shortcut = stxlib::Optional<gf::KeyGesture>::of(gf::KeyGesture{gf::PhysicalKey::s, gf::Modifier::control}),
                          .command = &save}});
       window.dispatch_key(gf::KeyEvent{gf::KeyAction::down, gf::PhysicalKey::s,
                                        gf::Modifier::control});   // executes save

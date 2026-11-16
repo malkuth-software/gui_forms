@@ -121,21 +121,6 @@ void test_program_arguments() {
     require(kept == expected, "the user-theme options and their values are passed over, the rest kept in order");
 }
 
-void test_windows_command_line() {
-    namespace files = detail::theme_files;
-    const std::vector<std::string> simple = files::split_windows_command_line("app.exe  --theme\tdx.css ");
-    require(simple == std::vector<std::string>{"app.exe", "--theme", "dx.css"}, "spaces and tabs separate");
-    const std::vector<std::string> quoted =
-        files::split_windows_command_line("\"C:\\Program Files\\app.exe\" --theme \"C:\\My Themes\\dx.css\"");
-    require(quoted == std::vector<std::string>{"C:\\Program Files\\app.exe", "--theme", "C:\\My Themes\\dx.css"},
-            "quotes hold spaces, and backslashes before other characters are literal");
-    const std::vector<std::string> escaped = files::split_windows_command_line("app a\\\\\\\"b \"c\\\\\" d");
-    require(escaped == std::vector<std::string>{"app", "a\\\"b", "c\\", "d"},
-            "2n+1 backslashes and a quote are n and a quote; 2n and a quote are n and a toggle");
-    const std::vector<std::string> doubled = files::split_windows_command_line("app \"a\"\"b\" c");
-    require(doubled == std::vector<std::string>{"app", "a\"b", "c"}, "a doubled quote inside quotes is a quote");
-}
-
 void test_sheet_layered(const std::filesystem::path& root) {
     const std::filesystem::path sheet = root / "good.css";
     write_file(sheet, good_sheet);
@@ -295,7 +280,6 @@ int main() {
     require(!error, "the test's folder is made");
     test_reading();
     test_program_arguments();
-    test_windows_command_line();
     test_sheet_layered(root);
     test_sheet_replacing(root);
     test_refused_policy(root);

@@ -160,8 +160,8 @@ gui_forms::CommandOverflowPanel
       (*shelf).add_child(arrange);
       (*shelf).add_child(more);
       (*shelf).group_gap = 4.0;
-      (*shelf).group_spec[*selection] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U});
-      (*shelf).group_spec[*arrange] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U});
+      (*shelf).group_spec[*selection] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, stxlib::Optional<std::uint16_t>::of(std::uint16_t{2})});
+      (*shelf).group_spec[*arrange] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, stxlib::Optional<std::uint16_t>::of(std::uint16_t{1})});
       (*shelf).set_overflow_actuator(*more);
 
       gf::Window window(shelf, {600.0, 66.0});

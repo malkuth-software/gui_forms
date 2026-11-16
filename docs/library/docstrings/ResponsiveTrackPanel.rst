@@ -150,7 +150,7 @@ narrow:
    inspector_track.minimum = 120.0;
    inspector_track.preferred = 120.0;
    inspector_track.maximum = 120.0;
-   inspector_track.collapse_priority = std::uint16_t{10};
+   inspector_track.collapse_priority = stxlib::Optional<std::uint16_t>::of(std::uint16_t{10});
    std::vector<gf::ResponsiveTrackSpec> tracks;
    tracks.push_back(content_track);
    tracks.push_back(inspector_track);
