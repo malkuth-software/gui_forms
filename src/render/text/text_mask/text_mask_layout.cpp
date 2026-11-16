@@ -1,5 +1,8 @@
 #include "text_mask_native.hpp"
-#include <linebreak.h>
+#include <stxlib/result.hpp>
+#include <stxlib/text.hpp>
+#include <stxlib/textlayout.hpp>
+#include <stxlib/view.hpp>
 #include <algorithm>
 
 namespace gui_forms::detail {
@@ -19,7 +22,7 @@ public:
           trial_(MaskAllocator<NativeGlyph>(ledger, MaskResource::shaping)),
           glyphs_(MaskAllocator<NativeGlyph>(ledger, MaskResource::shaping)),
           lines_(MaskAllocator<TextMaskLine>(ledger, MaskResource::workspace)),
-          breaks_(MaskAllocator<char>(ledger, MaskResource::workspace)),
+          breaks_(MaskAllocator<stxlib::textlayout::LineBreak>(ledger, MaskResource::workspace)),
           cluster_edges_(MaskAllocator<std::uint8_t>(ledger, MaskResource::workspace)) {
         // Fixed bounded job storage is charged as workspace while the call is
         // live; runtime-sized arrays use measured allocator requests separately.
@@ -30,8 +33,15 @@ public:
         breaks_.resize(text_.size());
         cluster_edges_.resize(text_.size() + 1U);
         if (!text_.empty()) {
-            const utf8_t* source = reinterpret_cast<const utf8_t*>(text_.data());
-            set_linebreaks_utf8(source, text_.size(), "-strict", breaks_.data());
+            // UAX #14 over the whole text as one piece (stxlib::textlayout;
+            // libunibreak's "-strict" until 2026-11-16, whose CJ as NS is
+            // the default here).
+            const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(text_.data(), text_.size());
+            const stxlib::TextView* const text = validated.value();
+            if (text == nullptr) throw NativeFailure(TextMaskStatus::invalid_input);
+            const stxlib::MutableView<stxlib::textlayout::LineBreak> output(breaks_.data(), breaks_.size());
+            const stxlib::Status found = stxlib::textlayout::find_line_breaks(output, *text);
+            if (found.failed()) throw NativeFailure(TextMaskStatus::native_failure);
         }
     }
 
@@ -85,7 +95,7 @@ private:
     NativeGlyphBuffer trial_;
     NativeGlyphBuffer glyphs_;
     std::vector<TextMaskLine, MaskAllocator<TextMaskLine>> lines_;
-    std::vector<char, MaskAllocator<char>> breaks_;
+    std::vector<stxlib::textlayout::LineBreak, MaskAllocator<stxlib::textlayout::LineBreak>> breaks_;
     std::vector<std::uint8_t, MaskAllocator<std::uint8_t>> cluster_edges_;
     std::size_t glyph_count_{0};
     std::size_t line_count_{0};
@@ -111,8 +121,10 @@ private:
         for (std::size_t index = 1; index < edges.size(); ++index) {
             const std::size_t end = edges[index];
             if (end <= begin || cluster_edges_[origin + end] == 0) continue;
-            const char decision = breaks_[origin + end - 1U];
-            if (end != content.size() && decision != LINEBREAK_ALLOWBREAK && decision != LINEBREAK_MUSTBREAK) continue;
+            const stxlib::textlayout::LineBreak decision = breaks_[origin + end - 1U];
+            const bool may_end = decision == stxlib::textlayout::LineBreak::allowed ||
+                                 decision == stxlib::textlayout::LineBreak::mandatory;
+            if (end != content.size() && !may_end) continue;
             const std::size_t visible_end = trimmed_soft_end(content, begin, end);
             const NativeShape shape = paragraph.shape(begin, visible_end, trial_);
             if (shape.advance > width) { first_overflow = end; break; }

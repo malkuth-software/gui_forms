@@ -1,5 +1,5 @@
-// Paragraph layout over the bundled text engine (HarfBuzz, FreeType,
-// SheenBidi and libunibreak, as the hosts' painters use them): the engine's
+// Paragraph layout over the bundled text engine (HarfBuzz, FreeType and
+// stxlib::textlayout, as the hosts' painters use them): the engine's
 // cluster advances sum to its shaped width; collapsed, verified layout
 // paints the lines TextBlock paints for Latin, Hebrew, Arabic and emoji
 // text, in both directions, at several widths; the estimated fit shapes

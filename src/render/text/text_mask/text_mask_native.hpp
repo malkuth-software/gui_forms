@@ -6,11 +6,11 @@
 #include "../../../core/text/unicode/unicode_grapheme.hpp"
 
 #include <stxlib/glyph_face.hpp>
+#include <stxlib/textlayout.hpp>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <hb-ft.h>
-#include <SheenBidi/SheenBidi.h>
 
 namespace gui_forms::detail::mask_native {
 
@@ -90,8 +90,9 @@ struct NativeWork final {
 
 // One paragraph's resolved bidi levels survive all candidate line trials.
 // Source borrows the admitted key; fonts, ledger and work outlive this object.
-// First-party arrays use counted allocators; native library allocations remain
-// opaque. Caller owns the counted output, reused across trials.
+// First-party arrays use counted allocators and the bidi analysis is charged
+// in bytes; HarfBuzz's allocations remain opaque. Caller owns the counted
+// output, reused across trials.
 class NativeParagraph final {
 public:
     NativeParagraph(const std::shared_ptr<MaskLedger>& ledger, NativeFonts& fonts,
@@ -108,10 +109,22 @@ private:
     std::string_view text_{};
     std::vector<std::size_t, MaskAllocator<std::size_t>> edges_;
     std::vector<NativeCluster, MaskAllocator<NativeCluster>> clusters_;
-    SBAlgorithmRef algorithm_{};
-    SBParagraphRef paragraph_{};
+    // The paragraph's bidi analysis (stxlib::textlayout: levels and script
+    // runs) and the line analysis each shape() reuses. They allocate on
+    // STXlib's allocator; analysis_charge_ charges their bytes_held to the
+    // ledger as workspace after each analysis (charge_analysis).
+    stxlib::textlayout::Paragraph paragraph_{};
+    stxlib::textlayout::Line line_{};
+    std::shared_ptr<MaskLedger> ledger_;
+    MaskCharge analysis_charge_{};
+    std::size_t charged_bytes_{0};
     hb_buffer_t* buffer_{};
     void release() noexcept;
+    // Charges what the analyses hold now in place of the last charge. It
+    // follows a growth (STXlib cannot be asked to stay within a budget), so
+    // the ledger may be passed by one growth before the budget failure
+    // ends the job.
+    void charge_analysis();
     void append_run(const std::size_t line_begin, const std::size_t line_end,
         const std::size_t run_begin, const std::size_t run_end,
         const NativeCluster& cluster, const bool rtl,

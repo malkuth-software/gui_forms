@@ -33,8 +33,6 @@ source files carry "Copyright (C) 1996-2025".)
 | threadpool_atomic_fast (the owner's thread pool) | falseywinchnet/backend `6eb51f84` | MIT | all (in the Threading archive, linked into each program) | `licenses/threadpool_atomic_fast.txt` | `threadpool_atomic_fast-LICENSE.txt` |
 | HarfBuzz | 14.6.0, `c7a7457b` | HarfBuzz licence ("Old MIT") | all (the `--features all` SDK also installs the static library and headers) | `licenses/HarfBuzz.txt` | `HarfBuzz-COPYING.txt` |
 | FreeType | 2.14.2, `f4205da1` | FreeType License (FTL), elected from FTL/GPLv2 | all (the `--features all` SDK also installs the static library and headers) | `licenses/FreeType-FTL.txt` | `FreeType-FTL.txt` |
-| SheenBidi | 2.9.0, `829d9991` | Apache-2.0 | all | `licenses/SheenBidi.txt` | `SheenBidi-LICENSE.txt` |
-| MD4C (the markdown framework's parser) | 0.6.0, `7fc1815a` | MIT | all | `licenses/MD4C.txt` | `MD4C-LICENSE.txt` |
 | stx_zlib (the owned zlib codec) | in this repository | MIT; the zlib License notices of the puff-derived inflate and the zlib-informed deflate are retained | all | `licenses/stx_zlib.txt`, `licenses/stx_zlib-puff.txt` and `licenses/stx_zlib-zlib.txt` | `stx_zlib-LICENSE.txt`, `stx_zlib-LICENSE-puff.txt` and `stx_zlib-LICENSE-zlib.txt` (and `share/licenses/stx_zlib/`) |
 | stx_png (the owned PNG codec) | in this repository | MIT | all | `licenses/stx_png.txt` | `stx_png-LICENSE.txt` (and `share/licenses/stx_png/`) |
 | stx_conv (the owner's CONV resampler) | in this repository | MIT | all | `licenses/stx_conv.txt` | `stx_conv-LICENSE.txt` (and `share/licenses/stx_conv/`) |
@@ -44,7 +42,7 @@ source files carry "Copyright (C) 1996-2025".)
 | stx_btree (the row height index's sequence tree, in STXlib) | in STXlib (`src/algorithms/stx_btree/`), at stx's `stxlib.lock` commit | MIT; a C++ form of bbtree by Xiangpeng Hao (MIT OR Apache-2.0, MIT taken), whose notice is retained | all | `licenses/stx_btree.txt` and `licenses/stx_btree-NOTICE.txt` | `stx_btree-LICENSE.txt` and `stx_btree-NOTICE.txt` |
 | stx_minmallocpp (STXlib's allocator, in its state archive) | in STXlib (`src/state/stx_minmallocpp/`), at stx's `stxlib.lock` commit | MIT (STXlib's own code, under STXlib's licence); derived from mimalloc (MIT), whose notice its NOTICE retains | all (compiled into STXlib's static state archive, which each program and the C ABI library link once; sanitizer builds use the host allocator) | `licenses/stx_minmallocpp-NOTICE.txt` | `stx_minmallocpp-NOTICE.txt` |
 | tz database (STXlib's zone data) | in STXlib (`third_party/tzdata/`) | public domain (its LICENSE) | all | `licenses/tzdata.txt` | `tzdata-LICENSE.txt` |
-| Unicode Character Database (STXlib's case-folding tables) | Unicode 18.0.0 `CaseFolding.txt`, in STXlib (`third_party/unicode-18.0.0/`), generated into stxlib_algorithms | Unicode License v3 | all | `licenses/stxlib-Unicode.txt` | `stxlib-unicode-LICENSE.txt` |
+| Unicode Character Database (STXlib's case-folding and text layout tables) | Unicode 18.0.0 `CaseFolding.txt`, and the bidi, line-break and script data stxlib::textlayout reads, in STXlib (`third_party/unicode-18.0.0/`), generated into stxlib_algorithms | Unicode License v3 | all | `licenses/stxlib-Unicode.txt` | `stxlib-unicode-LICENSE.txt` |
 | stxlib::glyphs (the glyph face the text rasterizers draw with, in STXlib) | in STXlib (`src/algorithms/glyphs/`), at stx's `stxlib.lock` commit | MIT (STXlib's own code); a conversion of the designs of ttf-parser and Skrifa/read-fonts (MIT OR Apache-2.0, MIT taken) and part of the FreeType Project's auto-hinter (FTL), whose notices its NOTICE retains | all | `licenses/stxlib-glyphs-NOTICE.txt` | `stxlib-glyphs-NOTICE.txt` |
 | stxlib::markdown (in STXlib; carries MD4C's licence) | in STXlib (`src/algorithms/markdown/`), at stx's `stxlib.lock` commit | MIT; its NOTICE carries MD4C's licence (MIT) | all | `licenses/stxlib-markdown-NOTICE.txt` | `stxlib-markdown-NOTICE.txt` |
 | HTML Standard named character references (stxlib::markdown's entity table) | WHATWG `entities.json`, in STXlib (`third_party/whatwg-entities/`), generated into stxlib_algorithms | CC-BY-4.0 (the HTML Standard; its LICENSE carries the attribution) | all | `licenses/whatwg-entities.txt` | `whatwg-entities-LICENSE.txt` |
@@ -74,9 +72,6 @@ Font provenance (commits and byte hashes) is in `fonts/ATTRIBUTION.md`.
 
 ## Not shipped
 
-- libunibreak 8.0 (`28a2756b`): linked only by the development text-mask
-  profile (`GUI_FORMS_BUILD_TEXT_MASKS`), which is never installed or
-  packaged.
 - System libraries a program loads from the operating system and that
   GUI.Forms does not distribute: on Linux, the C and C++ runtimes, X11 and
   the ATK/AT-SPI bridge (LGPL 2.1 or later, dynamically linked); on macOS,

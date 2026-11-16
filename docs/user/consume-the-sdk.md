@@ -167,7 +167,7 @@ shape.
 A program may link its own HarfBuzz and FreeType beside
 `GUIForms::Application`, for content it lays out and renders itself (see
 [Content surfaces](content-surfaces.md)). GUI.Forms' text engine and its
-pinned FreeType, HarfBuzz, SheenBidi and libunibreak are inside the
+pinned FreeType and HarfBuzz are inside the
 Application library and not exported from it: its export list holds only
 GUI.Forms' declarations, so no `hb_` or `FT_` symbol of ours is visible to
 your program, and your copies never replace ours. The static Core,

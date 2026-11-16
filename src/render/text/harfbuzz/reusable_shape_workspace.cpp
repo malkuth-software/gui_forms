@@ -1,7 +1,6 @@
 #include "reusable_shape_workspace.hpp"
 
 #include <hb.h>
-#include <stx_text_allocation.h>
 
 #include <algorithm>
 #include <limits>
@@ -12,12 +11,6 @@
 namespace gui_forms::render::text {
 namespace {
 
-static_assert(STX_SHEENBIDI_ARENA_ALIGNMENT == 16U, "ArenaUnit is one arena alignment unit");
-
-// The SheenBidi arena's bytes for a text of `text_bytes` bytes (see the
-// class comment): 40 a byte, plus 16 KiB for its fixed-size blocks.
-constexpr std::size_t arena_bytes_per_text_byte = 40U;
-constexpr std::size_t arena_fixed_bytes = 16U * 1024U;
 // Staged glyphs: four a byte, plus 64.
 constexpr std::size_t glyphs_per_text_byte = 4U;
 constexpr std::size_t glyph_margin = 64U;
@@ -41,13 +34,7 @@ constexpr std::size_t glyph_margin = 64U;
 } // namespace
 
 ReusableShapeWorkspace::ReusableShapeWorkspace(const std::uint64_t engine_identity)
-    : engine_(engine_identity), arena_(std::make_unique<StxSheenBidiArena>()), buffer_(nullptr, hb_buffer_destroy) {
-    (*arena_).base = nullptr;
-    (*arena_).capacity = 0U;
-    (*arena_).used = 0U;
-    (*arena_).top = std::numeric_limits<std::size_t>::max();
-    (*arena_).peak = 0U;
-}
+    : engine_(engine_identity), buffer_(nullptr, hb_buffer_destroy) {}
 
 ReusableShapeWorkspace::~ReusableShapeWorkspace() = default;
 
@@ -61,9 +48,6 @@ void ReusableShapeWorkspace::reserve(const std::size_t text_bytes) {
     // leaves the workspace as it was.
     const std::size_t visual_capacity = checked_product(text_bytes, 2U);
     const std::size_t glyph_capacity = checked_sum(checked_product(text_bytes, glyphs_per_text_byte), glyph_margin);
-    const std::size_t arena_bytes =
-        checked_sum(checked_product(text_bytes, arena_bytes_per_text_byte), arena_fixed_bytes);
-    const std::size_t arena_unit_count = arena_bytes / sizeof(ArenaUnit);
     const std::size_t buffer_glyphs = checked_product(text_bytes, 2U);
     if (buffer_glyphs > static_cast<std::size_t>(std::numeric_limits<unsigned int>::max())) {
         throw std::length_error("Shaping workspace exceeds HarfBuzz's buffer length");
@@ -84,7 +68,6 @@ void ReusableShapeWorkspace::reserve(const std::size_t text_bytes) {
     CountedArray<WorkspaceVisualSegment> visual(visual_capacity);
     CountedArray<BoundedFontRun> runs(visual_capacity);
     CountedArray<ShapedGlyph> glyphs(glyph_capacity);
-    CountedArray<ArenaUnit> arena_units(arena_unit_count);
     std::unique_ptr<hb_buffer_t, void (*)(hb_buffer_t*)> buffer(hb_buffer_create(), hb_buffer_destroy);
     if (!buffer || !hb_buffer_allocation_successful(buffer.get()) ||
         !hb_buffer_pre_allocate(buffer.get(), static_cast<unsigned int>(buffer_glyphs))) {
@@ -98,10 +81,7 @@ void ReusableShapeWorkspace::reserve(const std::size_t text_bytes) {
     visual_ = std::move(visual);
     runs_ = std::move(runs);
     glyphs_ = std::move(glyphs);
-    arena_units_ = std::move(arena_units);
     buffer_ = std::move(buffer);
-    (*arena_).base = reinterpret_cast<unsigned char*>(arena_units_.data());
-    (*arena_).capacity = arena_units_.size() * sizeof(ArenaUnit);
     staged_ = StagedShaping{};
     staged_.runs = runs_.data();
     staged_.glyphs = glyphs_.data();

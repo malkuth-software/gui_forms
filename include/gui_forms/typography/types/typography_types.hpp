@@ -106,8 +106,8 @@ struct GUI_FORMS_API ResolvedTextLayout final {
 [[nodiscard]] GUI_FORMS_API const char* text_resolution_status_name(
     TextResolutionStatus status) noexcept;
 
-// What a line may do after one byte of UTF-8 text (UAX #14's classes, as
-// libunibreak reports them). A byte that does not end a scalar value is
+// What a line may do after one byte of UTF-8 text (UAX #14's decisions:
+// prohibited, allowed, mandatory). A byte that does not end a scalar value is
 // inside_character; the last byte of a text is always mandatory.
 enum class LineBreakOpportunity : std::uint8_t {
     prohibited,

@@ -65,7 +65,7 @@ class Painter;
 //
 // Direction: lines break in logical order. Each line is drawn as one run,
 // and the bundled engine reorders it for display as its own UAX #9
-// paragraph (SheenBidi, its base level from its first strong character),
+// paragraph (UAX #9, its base level from its first strong character),
 // as TextBlock's lines are. Not supported: one base direction carried
 // across the paragraph's lines, embedding controls spanning lines, and
 // vertical text. ParagraphStyle::direction only resolves the start and end

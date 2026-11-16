@@ -28,7 +28,7 @@ def prepare_host(source: Path, fetch_text: bool) -> None:
     """Prepare what a host's configure reads, before configuring source.
 
     Nothing is fetched here any more: the renderer (stx_skia) and the text
-    sources (HarfBuzz, FreeType, libunibreak, MD4C, SheenBidi) are in the stx
+    sources (HarfBuzz, FreeType) are in the stx
     repository, which cmake/Stx.cmake builds into the stx package at
     stx.lock's commit during the configure, or links already built (a source
     SDK carries the source, tools/build_sdk.py). fetch_text is kept for the

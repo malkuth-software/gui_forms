@@ -60,7 +60,7 @@ class Fixture:
             "stx": make_repository(base / "deps/stx-src", {
                 "LICENSE": "MIT\n", "CMakeLists.txt": "# stx\n", "stx_skia/CMakeLists.txt": "# stx_skia\n",
                 "third_party/harfbuzz/src/hb.cc": "// hb\n", "third_party/freetype/LICENSE.TXT": "FTL\n",
-                "third_party/libunibreak/src/linebreak.c": "/* lb */\n",
+                "third_party/unicode/LICENSE.txt": "Unicode\n",
                 ".github/workflows/stx.yml": "name: stx\n"}),
             "miniaudio": make_repository(base / "deps/miniaudio-src", {
                 "LICENSE": "MIT-0\n", "miniaudio.h": "/* ma */\n", "extras/stb_vorbis.c": "/* v */\n"}),
@@ -118,7 +118,7 @@ class SourceArchiveTests(unittest.TestCase):
         name: str
         for name in ("CMakeLists.txt", "tools/build_sdk.py", "SDK_MANIFEST.json",
                      "stx/LICENSE", "stx/stx_skia/CMakeLists.txt", "stx/third_party/harfbuzz/src/hb.cc",
-                     "stx/third_party/freetype/LICENSE.TXT", "stx/third_party/libunibreak/src/linebreak.c",
+                     "stx/third_party/freetype/LICENSE.TXT", "stx/third_party/unicode/LICENSE.txt",
                      "third_party/miniaudio/miniaudio.h"):
             self.assertIn(self.top + name, members)
         self.assertNotIn(self.top + "stx/.github/workflows/stx.yml", members)

@@ -125,8 +125,7 @@ cmake --install build
 ```
 
 The CPU renderer, `stx_skia/`, builds with the tree from the stx checkout,
-as do HarfBuzz, FreeType, SheenBidi and MD4C; libunibreak (also in stx) is
-needed only for the optional development text-mask profile. Linux native tests need an X11 display;
+as do HarfBuzz and FreeType. Linux native tests need an X11 display;
 use `xvfb-run -a ctest --test-dir build --output-on-failure` on a headless runner.
 
 Pass the absolute path to the same `cmake/llvm22.cmake` to every consumer
@@ -227,7 +226,7 @@ holds one directory, `gui-forms-sdk-<version>/`, containing:
 
   | Path | Source | Pinned in |
   |---|---|---|
-  | `stx/` | the stx repository: `stx_skia/`, the stx libraries and every third-party source (HarfBuzz without `test/` and `perf/`, FreeType, libunibreak, MD4C, SheenBidi, the Unicode data) | `stx.lock` |
+  | `stx/` | the stx repository: `stx_skia/`, the stx libraries and every third-party source (HarfBuzz without `test/` and `perf/`, FreeType, the Unicode data) | `stx.lock` |
   | `third_party/miniaudio/` | miniaudio | `cmake/Audio.cmake` |
 
 - `SDK_MANIFEST.json`, which names the build entry point (`"build":

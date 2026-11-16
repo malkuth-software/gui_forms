@@ -226,12 +226,13 @@ void test_glyph_runs_paint_like_text(render::SkiaRaster& raster, render::SkiaRas
 // - HarfBuzzFontEngine::thread_native_allocations(): FreeType's heap calls
 //   through the engine's FT_Memory (a fallback face's glyph ink extents
 //   come from FT_Load_Glyph, which allocates for composite glyphs; the
-//   engine keeps them per glyph and size after the warm-up reads them), HarfBuzz's through its hb_malloc_impl
-//   hooks, and SheenBidi's calls that went to the C heap (all must stay
-//   zero), and SheenBidi's calls served by the workspace's arena (reported,
-//   not an allocation: the arena is reserved storage);
+//   engine keeps them per glyph and size after the warm-up reads them) and
+//   HarfBuzz's through its hb_malloc_impl hooks (both must stay zero);
 // - AllocationScope: the counted text_layout subsystem (the buffers' and
-//   workspace's arrays), which must not change.
+//   workspace's arrays, and the workspace's bidi analysis, whose
+//   stxlib::textlayout Paragraph and Line count their bytes_held as it
+//   changes), which must not change: the analysis grew to the corpus's
+//   largest paragraph during the warm-up and is reused.
 // Not counted: Skia (layout does not reach it) and other threads (none run).
 void test_layout_allocates_nothing(render::SkiaRaster& raster) {
     const std::vector<std::string> texts = corpus();
@@ -287,10 +288,6 @@ void test_layout_allocates_nothing(render::SkiaRaster& raster) {
             "no FreeType allocation; counted " + std::to_string(native_after.freetype - native_before.freetype));
     require(native_after.harfbuzz == native_before.harfbuzz,
             "no HarfBuzz allocation; counted " + std::to_string(native_after.harfbuzz - native_before.harfbuzz));
-    require(native_after.sheenbidi_heap == native_before.sheenbidi_heap,
-            "SheenBidi stays in the workspace's arena; heap calls " +
-                std::to_string(native_after.sheenbidi_heap - native_before.sheenbidi_heap));
-    require(native_after.sheenbidi_arena > native_before.sheenbidi_arena, "SheenBidi ran from the arena");
 }
 
 } // namespace

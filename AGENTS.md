@@ -126,8 +126,8 @@ tools/std_surface_census.py update` lowers it in the same change (update
 refuses to raise a count). Conversions between the two vocabularies inside
 GUI.Forms go through the private bridge, `src/platform/stxlib_bridge.hpp`.
 
-`stx_skia/` and every third-party source (FreeType, HarfBuzz, libunibreak,
-md4c, SheenBidi, the Unicode data) live in the stx repository since
+`stx_skia/` and every third-party source (FreeType, HarfBuzz, the Unicode
+data) live in the stx repository since
 2026-11-08; this repository pins that checkout in `stx.lock` and carries no
 third-party sources. `stx_skia/`'s own style check, with its shrink-only
 allowance, runs there (`stx_skia/AGENTS.md` in stx).

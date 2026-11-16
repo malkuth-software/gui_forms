@@ -1,6 +1,7 @@
 #include "harfbuzz_font_engine.hpp"
 #include "bounded_shape_workspace.hpp"
 #include "reusable_shape_workspace.hpp"
+#include "../textlayout/text_analysis.hpp"
 #include "../../../core/text/unicode/unicode_grapheme.hpp"
 #include "../../../core/types/restrict/restrict.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
@@ -12,14 +13,17 @@
 #include FT_TRUETYPE_TABLES_H
 #include <hb-ft.h>
 #include <hb.h>
-#include <SheenBidi/SheenBidi.h>
-#include <linebreak.h>
 #include <stx_text_allocation.h>
+#include <stxlib/result.hpp>
+#include <stxlib/text.hpp>
+#include <stxlib/textlayout.hpp>
+#include <stxlib/view.hpp>
 
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <limits>
 #include <new>
@@ -67,45 +71,30 @@ std::size_t decode_scalars_to(std::string_view utf8, Utf8Range range,
     return written;
 }
 
-struct BidiOwner final {
-    SBAlgorithmRef algorithm = nullptr;
-    SBParagraphRef paragraph = nullptr;
-    SBLineRef line = nullptr;
-    BidiOwner() = default;
-    BidiOwner(const BidiOwner&) = delete;
-    BidiOwner& operator=(const BidiOwner&) = delete;
-    ~BidiOwner() {
-        if (line) { SBLineRelease(line); }
-        if (paragraph) { SBParagraphRelease(paragraph); }
-        if (algorithm) { SBAlgorithmRelease(algorithm); }
-    }
-    void clear_line() {
-        if (line) { SBLineRelease(line); line = nullptr; }
-        if (paragraph) { SBParagraphRelease(paragraph); paragraph = nullptr; }
-    }
-};
 struct DirectionRun final { Utf8Range range{}; bool rtl{}; };
+
+// Each paragraph of `utf8` (already validated) reordered as one line: the
+// runs of every paragraph in visual order, paragraph after paragraph. The
+// analysis is local: its storage is counted under text_layout while the
+// call holds it.
 std::vector<DirectionRun> visual_direction_runs(std::string_view utf8) {
     std::vector<DirectionRun> runs{};
-    const SBCodepointSequence sequence{SBStringEncodingUTF8, utf8.data(), utf8.size()};
-    BidiOwner owner{};
-    owner.algorithm = SBAlgorithmCreate(&sequence);
-    if (!owner.algorithm) { throw std::bad_alloc(); }
+    const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
+    const stxlib::TextView* const text = validated.value();
+    if (text == nullptr) throw std::runtime_error("Bidi analysis of invalid UTF-8");
+    TextAnalysis analysis{};
     std::size_t offset = 0;
     while (offset < utf8.size()) {
-        owner.paragraph = SBAlgorithmCreateParagraph(owner.algorithm, offset, utf8.size() - offset, SBLevelDefaultLTR);
-        if (!owner.paragraph) { throw std::bad_alloc(); }
-        const std::size_t length = SBParagraphGetLength(owner.paragraph);
-        if (length == 0 || length > utf8.size() - offset) { throw std::runtime_error("Invalid bidi paragraph length"); }
-        owner.line = SBParagraphCreateLine(owner.paragraph, offset, length);
-        if (!owner.line) { throw std::bad_alloc(); }
-        const SBRun* values = SBLineGetRunsPtr(owner.line);
-        const std::size_t count = SBLineGetRunCount(owner.line);
-        for (std::size_t i = 0; i < count; ++i) {
-            runs.push_back({{Utf8Offset(values[i].offset), Utf8Offset(values[i].offset + values[i].length)}, (values[i].level & 1) != 0});
+        const std::size_t length = analyse_paragraph_line(*text, offset, analysis);
+        const stxlib::View<stxlib::textlayout::BidiRun> line_runs = analysis.line.runs();
+        const std::size_t count = line_runs.count();
+        for (std::size_t index = 0; index < count; ++index) {
+            const stxlib::textlayout::BidiRun& run = line_runs[index];
+            const Utf8Range range{Utf8Offset(run.offset), Utf8Offset(run.offset + run.length)};
+            const DirectionRun direction{range, (run.level & 1U) != 0U};
+            runs.push_back(direction);
         }
         offset += length;
-        owner.clear_line();
     }
     return runs;
 }
@@ -169,25 +158,6 @@ struct LibraryOwner final {
     const std::uint64_t identity = next.fetch_add(1U, std::memory_order_relaxed);
     return identity;
 }
-
-// Installs a SheenBidi arena for one bidi analysis (none: the C heap) and
-// restores the one installed before. Declared before the BidiOwner whose
-// objects it serves, so that they are released while it is installed.
-class SheenBidiArenaScope final {
-public:
-    explicit SheenBidiArenaScope(StxSheenBidiArena* arena) noexcept : active_(arena != nullptr) {
-        if (active_) previous_ = stx_sheenbidi_use_arena(arena);
-    }
-    ~SheenBidiArenaScope() {
-        if (active_) static_cast<void>(stx_sheenbidi_use_arena(previous_));
-    }
-    SheenBidiArenaScope(const SheenBidiArenaScope&) = delete;
-    SheenBidiArenaScope& operator=(const SheenBidiArenaScope&) = delete;
-
-private:
-    StxSheenBidiArena* previous_{};
-    bool active_{};
-};
 
 struct ReleaseFace final {
     void operator()(FT_Face face) const noexcept {
@@ -1001,11 +971,11 @@ public:
     // element (asserted in debug and sanitizer builds), the promise
     // fill_bounded_parts's restricted parameters make. `call` holds the
     // call's fonts and HarfBuzz buffer (a buffer lent to it is reused);
-    // `arena`, when not null, serves the bidi analysis's SheenBidi
-    // allocations. Output is BoundedShapedText or StagedShaping.
+    // `analysis` is the bidi analysis to reuse (the workspace's, or the
+    // bounded call's own). Output is BoundedShapedText or StagedShaping.
     template <typename Output>
     void fill_bounded_runs(const std::string_view utf8, const FontSpec font, ShapeCall& call,
-        StxSheenBidiArena* const arena,
+        TextAnalysis& analysis,
         const std::span<Face* const> candidates, const std::span<const std::size_t> edges,
         const std::span<char32_t> scalar_scratch, const std::span<WorkspaceFontSegment> segments,
         const std::span<WorkspaceDirectionRun> directions, const std::span<WorkspaceVisualSegment> visual,
@@ -1016,7 +986,7 @@ public:
         const std::array<overlap::ByteRange, 2> read{
             overlap::ByteRange{utf8.data(), utf8.size()}, overlap::byte_range(edges)};
         overlap::require_disjoint_writes(written, read);
-        fill_bounded_parts(utf8.data(), utf8.size(), font, call, arena, candidates, edges.data(), edges.size(),
+        fill_bounded_parts(utf8.data(), utf8.size(), font, call, analysis, candidates, edges.data(), edges.size(),
             scalar_scratch.data(), scalar_scratch.size(), segments.data(), segments.size(), directions.data(),
             directions.size(), visual.data(), visual.size(), output);
     }
@@ -1025,7 +995,7 @@ public:
     // through two of them (fill_bounded_runs checks it).
     template <typename Output>
     void fill_bounded_parts(const char* GUI_FORMS_RESTRICT text, const std::size_t text_size, const FontSpec font,
-        ShapeCall& call, StxSheenBidiArena* const arena, const std::span<Face* const> candidates, const std::size_t* GUI_FORMS_RESTRICT edge_data,
+        ShapeCall& call, TextAnalysis& analysis, const std::span<Face* const> candidates, const std::size_t* GUI_FORMS_RESTRICT edge_data,
         const std::size_t edge_count, char32_t* GUI_FORMS_RESTRICT scalar_data, const std::size_t scalar_size,
         WorkspaceFontSegment* GUI_FORMS_RESTRICT segment_data, const std::size_t segment_size,
         WorkspaceDirectionRun* GUI_FORMS_RESTRICT direction_data, const std::size_t direction_size,
@@ -1060,34 +1030,25 @@ public:
             }
         }
 
-        const SheenBidiArenaScope arena_scope(arena);
-        BidiOwner bidi{};
-        const SBCodepointSequence sequence{SBStringEncodingUTF8, utf8.data(), utf8.size()};
-        bidi.algorithm = SBAlgorithmCreate(&sequence);
-        if (bidi.algorithm == nullptr) throw std::bad_alloc();
+        // Each paragraph reordered as one line (stxlib::textlayout); the runs'
+        // offsets are bytes of the whole text.
+        const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
+        const stxlib::TextView* const text = validated.value();
+        if (text == nullptr) throw std::runtime_error("Bounded bidi analysis of invalid UTF-8");
         std::size_t offset = 0;
         std::size_t direction_count = 0;
         while (offset < utf8.size()) {
-            bidi.paragraph = SBAlgorithmCreateParagraph(bidi.algorithm, offset, utf8.size() - offset, SBLevelDefaultLTR);
-            if (bidi.paragraph == nullptr) throw std::bad_alloc();
-            const std::size_t length = SBParagraphGetLength(bidi.paragraph);
-            if (length == 0 || length > utf8.size() - offset) throw std::runtime_error("Invalid bounded bidi paragraph");
-            bidi.line = SBParagraphCreateLine(bidi.paragraph, offset, length);
-            if (bidi.line == nullptr) throw std::bad_alloc();
-            const std::size_t count = SBLineGetRunCount(bidi.line);
+            const std::size_t length = analyse_paragraph_line(*text, offset, analysis);
+            const stxlib::View<stxlib::textlayout::BidiRun> runs = analysis.line.runs();
+            const std::size_t count = runs.count();
             if (count > scalar_capacity - direction_count) throw std::length_error("Direction capacity exceeded");
-            const SBRun* runs = SBLineGetRunsPtr(bidi.line);
             for (std::size_t index = 0; index < count; ++index) {
-                const SBRun& run = runs[index];
-                if (run.offset > utf8.size() || run.length > utf8.size() - run.offset) {
-                    throw std::runtime_error("Invalid bounded bidi run");
-                }
+                const stxlib::textlayout::BidiRun& run = runs[index];
                 directions[direction_count] = WorkspaceDirectionRun{
                     .range = {Utf8Offset(run.offset), Utf8Offset(run.offset + run.length)}, .rtl = (run.level & 1U) != 0};
                 ++direction_count;
             }
             offset += length;
-            bidi.clear_line();
         }
         std::size_t visual_count = 0;
         for (std::size_t index = 0; index < direction_count; ++index) {
@@ -1415,7 +1376,8 @@ std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_bounded(
     const std::span<WorkspaceVisualSegment> visual_scratch(visual.get(), visual_capacity);
     const std::span<Impl::Face* const> selected_faces(candidates.data(), candidate_count);
     Impl::ShapeCall call{};
-    (*impl_).fill_bounded_runs(utf8, font, call, nullptr, selected_faces, edges, scalar_scratch,
+    TextAnalysis analysis{};
+    (*impl_).fill_bounded_runs(utf8, font, call, analysis, selected_faces, edges, scalar_scratch,
         segment_scratch, direction_scratch, visual_scratch, output);
     return owner;
 }
@@ -1476,7 +1438,8 @@ std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_with_workspace(
             staged.glyph_capacity = limits.glyphs;
             try {
                 Impl::ShapeCall call{};
-                (*impl_).fill_bounded_runs(utf8, font, call, nullptr, selected, edges, scalars, segments, directions,
+                TextAnalysis analysis{};
+                (*impl_).fill_bounded_runs(utf8, font, call, analysis, selected, edges, scalars, segments, directions,
                                            visual, staged);
             } catch (...) {
                 staged.run_capacity = run_capacity;
@@ -1573,7 +1536,7 @@ TextExtent HarfBuzzFontEngine::shape_in_workspace(const std::string_view utf8, c
         Impl::ShapeCall call{};
         const BufferLoan loan(workspace.buffer_, call.buffer);
         try {
-            (*impl_).fill_bounded_runs(utf8, font, call, workspace.arena_.get(), selected, edges, scalars, segments,
+            (*impl_).fill_bounded_runs(utf8, font, call, workspace.analysis_, selected, edges, scalars, segments,
                                        directions, visual, staged);
         } catch (const std::length_error&) {
             // More runs or glyphs than the workspace stages.
@@ -1602,8 +1565,6 @@ NativeAllocationCounts HarfBuzzFontEngine::thread_native_allocations() noexcept 
     NativeAllocationCounts counts{};
     counts.freetype = freetype_allocations;
     counts.harfbuzz = stx_text_harfbuzz_allocations();
-    counts.sheenbidi_heap = stx_text_sheenbidi_heap_allocations();
-    counts.sheenbidi_arena = stx_text_sheenbidi_arena_allocations();
     return counts;
 }
 
@@ -1724,11 +1685,14 @@ FontVerticalMetrics design_line_metrics(FT_Face face, const FontSpec font) {
     return result;
 }
 
-[[nodiscard]] LineBreakOpportunity line_break_opportunity(unsigned char decision) noexcept {
+// The opportunity a stxlib::textlayout decision names (compared by name:
+// the two enumerations need not share values).
+[[nodiscard]] LineBreakOpportunity line_break_opportunity(const stxlib::textlayout::LineBreak decision) noexcept {
     switch (decision) {
-    case LINEBREAK_MUSTBREAK: return LineBreakOpportunity::mandatory;
-    case LINEBREAK_ALLOWBREAK: return LineBreakOpportunity::allowed;
-    case LINEBREAK_INSIDEACHAR: return LineBreakOpportunity::inside_character;
+    case stxlib::textlayout::LineBreak::mandatory: return LineBreakOpportunity::mandatory;
+    case stxlib::textlayout::LineBreak::allowed: return LineBreakOpportunity::allowed;
+    case stxlib::textlayout::LineBreak::inside_character: return LineBreakOpportunity::inside_character;
+    case stxlib::textlayout::LineBreak::prohibited:
     default: return LineBreakOpportunity::prohibited;
     }
 }
@@ -1737,25 +1701,41 @@ FontVerticalMetrics design_line_metrics(FT_Face face, const FontSpec font) {
 
 TextResolutionStatus HarfBuzzFontEngine::fill_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept {
-    if (opportunities.size() != utf8.size() || !validate_utf8(utf8).valid()) {
-        return TextResolutionStatus::invalid_request;
-    }
+    if (opportunities.size() != utf8.size()) return TextResolutionStatus::invalid_request;
+    const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
+    const stxlib::TextView* const text = validated.value();
+    if (text == nullptr) return TextResolutionStatus::invalid_request;
     if (utf8.empty()) return TextResolutionStatus::exact;
-    // libunibreak writes one char per input byte. The caller's storage is
-    // one byte per entry, so it takes the decisions in place, and each is
-    // then read back as a byte and replaced by its opportunity.
-    static_assert(sizeof(LineBreakOpportunity) == sizeof(char));
-    char* const decisions = reinterpret_cast<char*>(opportunities.data());
-    const utf8_t* const source = reinterpret_cast<const utf8_t*>(utf8.data());
-    set_linebreaks_utf8(source, utf8.size(), "-strict", decisions);
+    // The caller's storage holds the library's decisions during the call
+    // (no allocation): its bytes are reused as LineBreak objects, which
+    // find_line_breaks writes, and each is then read and replaced by the
+    // LineBreakOpportunity it names. Both are one byte, trivially
+    // destructible, so the reuse ends no lifetime that needed ending; the
+    // replacements transparently replace the caller's objects.
+    using Decision = stxlib::textlayout::LineBreak;
+    static_assert(sizeof(Decision) == sizeof(LineBreakOpportunity));
+    static_assert(alignof(Decision) == alignof(LineBreakOpportunity));
+    static_assert(std::is_trivially_destructible_v<Decision>);
+    static_assert(std::is_trivially_destructible_v<LineBreakOpportunity>);
     const std::size_t size = utf8.size();
+    std::byte* const storage = reinterpret_cast<std::byte*>(opportunities.data());
+    Decision* const decisions = ::new (static_cast<void*>(storage)) Decision[size];
+    const stxlib::MutableView<Decision> output(decisions, size);
+    // The whole text is one piece, as libunibreak read it: its end is
+    // mandatory (LB3), so no forcing is needed. CJ is NS, which is what
+    // libunibreak's "-strict" gave.
+    const stxlib::Status found = stxlib::textlayout::find_line_breaks(output, *text);
+    // find_line_breaks fails only when the counts differ, which they do not;
+    // were it to fail, nothing it wrote is read and every entry is
+    // prohibited.
+    const bool written = !found.failed();
     for (std::size_t index = 0U; index < size; ++index) {
-        const unsigned char decision = static_cast<unsigned char>(decisions[index]);
-        opportunities[index] = line_break_opportunity(decision);
+        Decision decision = Decision::prohibited;
+        if (written) decision = decisions[index];
+        const LineBreakOpportunity opportunity = line_break_opportunity(decision);
+        ::new (static_cast<void*>(storage + index)) LineBreakOpportunity(opportunity);
     }
-    // The end of the text ends its last line, whether or not it ends in a
-    // line terminator (libunibreak reports LINEBREAK_INDETERMINATE there).
-    opportunities[size - 1U] = LineBreakOpportunity::mandatory;
+    if (!written) return TextResolutionStatus::invalid_request;
     return TextResolutionStatus::exact;
 }
 

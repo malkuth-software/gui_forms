@@ -891,8 +891,8 @@ void test_paint_visible_lines() {
 // layout's own code and these test classes. The fixed provider allocates
 // nothing, so the bundled engine's shaping is not exercised here; with it,
 // HarfBuzzFontEngine::shape and the SkiaRaster kept-layout cache allocate
-// per call (and SheenBidi and HarfBuzz call malloc directly, which this
-// counter does not see). Zero allocation through the engine is a follow-up.
+// per call (and HarfBuzz calls malloc and the bidi analysis STXlib's
+// allocator directly, which this counter does not see). Zero allocation through the engine is a follow-up.
 void test_no_allocations() {
     FixedMetrics metrics(true);
     const std::array<std::string_view, 4> rows{

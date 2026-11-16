@@ -235,6 +235,65 @@ void links_breaks_and_text() {
     check_source_ranges(source, document, "links");
 }
 
+// The reader is stxlib::markdown (CommonMark 0.31.2). These are the places
+// where MD4C, the reader before it, departed from CommonMark, now read
+// CommonMark's way, and the mappings the tape gives that MD4C left to the
+// caller (a mail autolink's scheme, a hard break's line ending, a NUL's byte).
+void commonmark_readings() {
+    // A code span whose closing backticks start a line: one soft break after
+    // it, not two.
+    const std::string_view code_span = "``\nfo\n``\no\n";
+    const MarkdownDocument spanned = parse(code_span);
+    require(spanned.blocks.size() == 1U && block_text(spanned, 0U) == "fo o", "one line ending after a code span");
+    check_source_ranges(code_span, spanned, "code span closer");
+    // A fence line after the container of an unclosed fenced block has
+    // ended opens a new code block.
+    const std::string_view fenced = "- ```\n  a\n```\nb\n";
+    const MarkdownDocument fences = parse(fenced);
+    require(fences.blocks.size() == 2U, "a fence after its item opens a second block");
+    require(fences.blocks[0].kind == MarkdownBlockKind::code_block && block_text(fences, 0U) == "a",
+            "the item's code block");
+    require(fences.blocks[1].kind == MarkdownBlockKind::code_block && block_text(fences, 1U) == "b",
+            "the fence after the item opens a code block");
+    check_source_ranges(fenced, fences, "fence after container");
+    // An emphasis mark inside a reference link's label closes nothing.
+    const std::string_view labelled = "*a [b][*] c*\n\n[*]: /u\n";
+    const MarkdownDocument labels = parse(labelled);
+    require(labels.blocks.size() == 1U && block_text(labels, 0U) == "a b c", "the label's mark is not text");
+    require(labels.links.size() == 1U && labels.links[0].target == "/u", "the reference link");
+    for (std::size_t index = 0U; index < labels.blocks[0].span_count; ++index) {
+        require(span_of(labels, 0U, index).style.italic, "the emphasis spans the link");
+    }
+    check_source_ranges(labelled, labels, "reference label");
+    // An item that begins with a blank line ends at a second one.
+    const std::string_view blank_item = "-\n  f\n\n\n  f\n";
+    const MarkdownDocument items = parse(blank_item);
+    require(items.blocks.size() == 2U, "the item and its later paragraph");
+    require(items.blocks[0].kind == MarkdownBlockKind::list_item && block_text(items, 0U) == "f", "the item");
+    require(items.blocks[1].kind == MarkdownBlockKind::paragraph && block_text(items, 1U) == "f",
+            "the item's later paragraph");
+    check_source_ranges(blank_item, items, "blank item");
+    // A mail autolink's target keeps the mailto: scheme.
+    const std::string_view mail = "Write <a@b.c>.\n";
+    const MarkdownDocument mailed = parse(mail);
+    require(mailed.links.size() == 1U && mailed.links[0].target == "mailto:a@b.c", "a mail autolink");
+    require(block_text(mailed, 0U) == "Write a@b.c.", "the address is the link's text");
+    // A hard break written with spaces maps to its line ending.
+    const std::string_view spaced = "a  \nb\n";
+    const MarkdownDocument broken = parse(spaced);
+    require(broken.blocks.size() == 1U && span_of(broken, 0U, 1U).kind == MarkdownSpanKind::line_break,
+            "a hard break of spaces");
+    require(source_text(spaced, span_of(broken, 0U, 1U).source) == "\n", "the break maps to its line ending");
+    check_source_ranges(spaced, broken, "spaced break");
+    // A NUL is U+FFFD and maps to its own byte.
+    const std::string nul = std::string("a") + '\0' + "b\n";
+    const MarkdownDocument nulled = parse(nul);
+    require(block_text(nulled, 0U) == "a\xEF\xBF\xBD" "b", "a NUL is U+FFFD");
+    require(nulled.blocks[0].span_count == 1U && span_of(nulled, 0U, 0U).source.end.value() == 3U,
+            "the NUL's byte is covered by its span");
+    check_source_ranges(nul, nulled, "nul");
+}
+
 // A stop source that is already stopped.
 struct StoppedSource final {
     std::stop_source source{};
@@ -551,6 +610,7 @@ int main(int count, char** values) {
         blocks_and_lists();
         dialect_attributes();
         links_breaks_and_text();
+        commonmark_readings();
         failures();
         const std::array<const char*, 4> names{"wordpad", "word", "textedit", "richtextbox"};
         for (const char* name : names) cross_check(directory, name);

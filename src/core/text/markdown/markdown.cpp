@@ -3,21 +3,21 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
-#include <climits>
-#include <functional>
+#include <cstdint>
 #include <new>
 #include <stdexcept>
 #include <system_error>
 #include <utility>
 
-// MD4C (stx third_party/md4c, MIT): the CommonMark parser. It calls back into
-// MarkdownParser with text that points into the source or at its own static
-// strings; nothing it passes is retained past a callback.
-#include "md4c.h"
-extern "C" {
-#include "entity.h"
-}
-
+// stxlib::markdown (STXlib, a conversion of MD4C 0.6.0's design; its NOTICE
+// carries MD4C's): the CommonMark 0.31.2 reader. It writes a tape of events
+// and returns; MarkdownParser then reads the tape in order. The tape's
+// ranges are offsets into the source, and its decoded text (character
+// references, destinations, titles) is the tape's own, copied out here.
+#include "stxlib/markdown.hpp"
+#include "stxlib/result.hpp"
+#include "stxlib/threads.hpp"
+#include "stxlib/view.hpp"
 namespace gui_forms {
 
 bool operator==(const MarkdownRgb& left, const MarkdownRgb& right) noexcept {
@@ -73,57 +73,9 @@ Utf8Offset MarkdownParseResult::offset() const noexcept {
 
 namespace {
 
-// Appends the UTF-8 encoding of scalar, or of U+FFFD for a value that is
-// not a scalar (zero, a surrogate or past U+10FFFF).
-void append_scalar(std::string& text, unsigned scalar) {
-    if (scalar == 0U || scalar > 0x10FFFFU || (scalar >= 0xD800U && scalar <= 0xDFFFU)) scalar = 0xFFFDU;
-    if (scalar < 0x80U) {
-        text.push_back(static_cast<char>(scalar));
-    } else if (scalar < 0x800U) {
-        text.push_back(static_cast<char>(0xC0U | (scalar >> 6U)));
-        text.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
-    } else if (scalar < 0x10000U) {
-        text.push_back(static_cast<char>(0xE0U | (scalar >> 12U)));
-        text.push_back(static_cast<char>(0x80U | ((scalar >> 6U) & 0x3FU)));
-        text.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
-    } else {
-        text.push_back(static_cast<char>(0xF0U | (scalar >> 18U)));
-        text.push_back(static_cast<char>(0x80U | ((scalar >> 12U) & 0x3FU)));
-        text.push_back(static_cast<char>(0x80U | ((scalar >> 6U) & 0x3FU)));
-        text.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
-    }
-}
+// U+FFFD, the text a NUL byte of the source is shown as.
+constexpr std::string_view replacement_character = "\xEF\xBF\xBD";
 
-// Appends what a character reference stands for: a numeric reference's
-// scalar, a named reference's one or two scalars, or the reference itself
-// when MD4C passed one it does not resolve.
-void append_entity(std::string& text, std::string_view reference) {
-    if (reference.starts_with("&#") && reference.ends_with(';')) {
-        std::string_view digits = reference.substr(2U, reference.size() - 3U);
-        int radix = 10;
-        if (digits.starts_with('x') || digits.starts_with('X')) {
-            digits.remove_prefix(1U);
-            radix = 16;
-        }
-        unsigned scalar = 0U;
-        const char* first = digits.data();
-        const char* last = digits.data() + digits.size();
-        const std::from_chars_result read = std::from_chars(first, last, scalar, radix);
-        if (read.ec == std::errc() && read.ptr == last && !digits.empty()) {
-            append_scalar(text, scalar);
-        } else {
-            text.append(reference);
-        }
-        return;
-    }
-    const ENTITY* entity = entity_lookup(reference.data(), reference.size());
-    if (entity == nullptr) {
-        text.append(reference);
-        return;
-    }
-    append_scalar(text, (*entity).codepoints[0]);
-    if ((*entity).codepoints[1] != 0U) append_scalar(text, (*entity).codepoints[1]);
-}
 
 // Where a piece of a block's text came from, which decides how it maps to
 // the source.
@@ -135,11 +87,11 @@ enum class PieceOrigin : std::uint8_t {
     // A soft line break, a hard line break or a code block's line feed:
     // source is the line ending.
     line_ending,
-    // Text MD4C supplies: source is empty where it stands.
+    // Text the reader supplies: source is empty where it stands.
     supplied,
 };
 
-// One callback's text, as the block being built collects it.
+// One text event's text, as the block being built collects it.
 struct Piece final {
     PieceOrigin origin{PieceOrigin::literal};
     MarkdownSpanKind kind{MarkdownSpanKind::text};
@@ -309,22 +261,22 @@ void add_attributes(SpanAttributes& style, const SpanAttributes& own) noexcept {
     if (own.size_step != 0) style.size_step = own.size_step;
 }
 
-// The list a list item belongs to, while MD4C is inside it.
+// The list a list item belongs to, while the tape is inside it.
 struct ListState final {
     MarkdownListMarker marker{MarkdownListMarker::bullet};
     std::uint32_t next{1U};
 };
 
-// The list item MD4C has entered whose first block has not begun yet.
+// The list item the tape has entered whose first block has not begun yet.
 struct PendingItem final {
     MarkdownListMarker marker{MarkdownListMarker::bullet};
     std::size_t level{};
     std::uint32_t counted{};
 };
 
-// The MD4C callback context for one parse. Callbacks return nonzero to stop
-// MD4C; failure then names why. The parser borrows source, document and
-// limits for the call and keeps nothing after it.
+// The tape reader for one parse. Each step returns false to stop; failure
+// then names why. The parser borrows source, document and limits for the
+// call and keeps nothing after it.
 struct MarkdownParser final {
     std::string_view source{};
     MarkdownDocument* document{};
@@ -351,8 +303,8 @@ struct MarkdownParser final {
     std::size_t strike{};
     // An attribute-only paragraph's alignment, for the next block.
     std::optional<MarkdownAlignment> pending_alignment{};
-    // The end of the last source byte a piece mapped; text MD4C supplies
-    // stands here.
+    // The end of the last source byte a piece mapped; text the reader
+    // supplies stands here.
     std::size_t cursor{};
     std::size_t text_bytes{};
 
@@ -366,33 +318,16 @@ struct MarkdownParser final {
         return stop_requested;
     }
 
-    // The source range text occupies, or none when MD4C passed one of its
-    // own strings.
-    [[nodiscard]] std::optional<Utf8Range> source_range(const MD_CHAR* text, MD_SIZE size) const noexcept {
-        // MD4C's own strings are separate objects: compare with the total
-        // pointer order.
-        const std::less<const char*> before{};
-        const char* begin = source.data();
-        const char* end = begin + source.size();
-        if (before(text, begin) || !before(text, end)) return std::nullopt;
-        const std::size_t start = static_cast<std::size_t>(text - begin);
-        if (size > source.size() - start) return std::nullopt;
-        const Utf8Range range{Utf8Offset(start), Utf8Offset(start + size)};
-        return range;
-    }
-
-    // The first line ending at or after the cursor ("\n", "\r\n" or "\r"),
-    // or an empty range at the end of the source.
-    [[nodiscard]] Utf8Range next_line_ending() const noexcept {
-        std::size_t position = std::min(cursor, source.size());
-        while (position < source.size() && source[position] != '\n' && source[position] != '\r') ++position;
-        std::size_t end = position;
-        if (end < source.size()) {
-            ++end;
-            if (source[position] == '\r' && end < source.size() && source[end] == '\n') ++end;
-        }
-        const Utf8Range range{Utf8Offset(position), Utf8Offset(end)};
-        return range;
+    // The line ending a break event's range ends with ("\n", "\r\n" or
+    // "\r"): a hard break's range also holds the backslash or the spaces
+    // before it, which are markup. Empty at the end of a source with no
+    // final line ending.
+    [[nodiscard]] Utf8Range line_ending_within(Utf8Range range) const noexcept {
+        std::size_t position = range.start.value();
+        const std::size_t end = range.end.value();
+        while (position < end && source[position] != '\n' && source[position] != '\r') ++position;
+        const Utf8Range ending{Utf8Offset(position), Utf8Offset(end)};
+        return ending;
     }
 
     [[nodiscard]] MarkdownSpanStyle current_style() const noexcept {
@@ -426,7 +361,7 @@ struct MarkdownParser final {
         return true;
     }
 
-    // Adds one callback's text to the block being built, starting a
+    // Adds one text event's text to the block being built, starting a
     // paragraph when there is none (a tight list item's text).
     [[nodiscard]] bool append(PieceOrigin origin, MarkdownSpanKind kind, std::string&& text, Utf8Range range) {
         if (!building && !begin(MarkdownBlockKind::paragraph, 0U)) return false;
@@ -465,8 +400,7 @@ struct MarkdownParser final {
         return true;
     }
 
-    [[nodiscard]] bool append_line_ending(MarkdownSpanKind kind, bool soft) {
-        const Utf8Range range = next_line_ending();
+    [[nodiscard]] bool append_line_ending(MarkdownSpanKind kind, bool soft, Utf8Range range) {
         const std::size_t position = joined_bytes;
         std::string text{};
         if (soft) text = " ";
@@ -688,28 +622,29 @@ struct MarkdownParser final {
         return true;
     }
 
-    [[nodiscard]] bool enter_block(MD_BLOCKTYPE type, void* detail) {
+    [[nodiscard]] bool enter_block(const stxlib::markdown::Event& event) {
+        const stxlib::markdown::BlockType type = static_cast<stxlib::markdown::BlockType>(event.type);
         switch (type) {
-        case MD_BLOCK_DOC:
+        case stxlib::markdown::BlockType::document:
             return true;
-        case MD_BLOCK_QUOTE:
+        case stxlib::markdown::BlockType::quote:
             if (!finish()) return false;
             ++quotes;
             return true;
-        case MD_BLOCK_UL: {
+        case stxlib::markdown::BlockType::bullet_list: {
             if (!finish()) return false;
             const ListState list{MarkdownListMarker::bullet, 1U};
             lists.push_back(list);
             return true;
         }
-        case MD_BLOCK_OL: {
+        case stxlib::markdown::BlockType::ordered_list: {
             if (!finish()) return false;
-            const MD_BLOCK_OL_DETAIL& ordered = *static_cast<const MD_BLOCK_OL_DETAIL*>(detail);
-            const ListState list{MarkdownListMarker::ordered, ordered.start};
+            // Event::detail is the first item's number.
+            const ListState list{MarkdownListMarker::ordered, event.detail};
             lists.push_back(list);
             return true;
         }
-        case MD_BLOCK_LI: {
+        case stxlib::markdown::BlockType::list_item: {
             if (!finish()) return false;
             PendingItem item{};
             if (!lists.empty()) {
@@ -721,302 +656,218 @@ struct MarkdownParser final {
             pending_item = item;
             return true;
         }
-        case MD_BLOCK_HR:
+        case stxlib::markdown::BlockType::rule:
             return begin(MarkdownBlockKind::rule, 0U);
-        case MD_BLOCK_H: {
-            const MD_BLOCK_H_DETAIL& heading = *static_cast<const MD_BLOCK_H_DETAIL*>(detail);
-            return begin(MarkdownBlockKind::heading, heading.level);
-        }
-        case MD_BLOCK_CODE:
+        case stxlib::markdown::BlockType::heading:
+            // Event::data is the level, 1 to 6.
+            return begin(MarkdownBlockKind::heading, event.data);
+        case stxlib::markdown::BlockType::code_block:
             return begin(MarkdownBlockKind::code_block, 0U);
-        case MD_BLOCK_P:
+        case stxlib::markdown::BlockType::paragraph:
             return begin(MarkdownBlockKind::paragraph, 0U);
-        case MD_BLOCK_HTML:
-        case MD_BLOCK_TABLE:
-        case MD_BLOCK_THEAD:
-        case MD_BLOCK_TBODY:
-        case MD_BLOCK_TR:
-        case MD_BLOCK_TH:
-        case MD_BLOCK_TD:
-        case MD_BLOCK_FOOTNOTE_DEF_SECTION:
-        case MD_BLOCK_FOOTNOTE_DEF:
-        case MD_BLOCK_ADMONITION:
-        case MD_BLOCK_BLANK:
         default:
-            // HTML blocks are off (MD_FLAG_NOHTML) and tables are off; any
-            // other block MD4C adds is read through its text alone.
+            // A block type this reader does not know is read through its
+            // text alone.
             return true;
         }
     }
 
-    [[nodiscard]] bool leave_block(MD_BLOCKTYPE type) {
+    [[nodiscard]] bool leave_block(const stxlib::markdown::Event& event) {
+        const stxlib::markdown::BlockType type = static_cast<stxlib::markdown::BlockType>(event.type);
         switch (type) {
-        case MD_BLOCK_QUOTE:
+        case stxlib::markdown::BlockType::quote:
             if (!finish()) return false;
             if (quotes > 0U) --quotes;
             return true;
-        case MD_BLOCK_UL:
-        case MD_BLOCK_OL:
+        case stxlib::markdown::BlockType::bullet_list:
+        case stxlib::markdown::BlockType::ordered_list:
             if (!finish()) return false;
             if (!lists.empty()) lists.pop_back();
             return true;
-        case MD_BLOCK_LI:
+        case stxlib::markdown::BlockType::list_item:
             pending_item.reset();
             return finish();
-        case MD_BLOCK_HR:
-        case MD_BLOCK_H:
-        case MD_BLOCK_CODE:
-        case MD_BLOCK_P:
+        case stxlib::markdown::BlockType::rule:
+        case stxlib::markdown::BlockType::heading:
+        case stxlib::markdown::BlockType::code_block:
+        case stxlib::markdown::BlockType::paragraph:
             return finish();
-        case MD_BLOCK_DOC:
-        case MD_BLOCK_HTML:
-        case MD_BLOCK_TABLE:
-        case MD_BLOCK_THEAD:
-        case MD_BLOCK_TBODY:
-        case MD_BLOCK_TR:
-        case MD_BLOCK_TH:
-        case MD_BLOCK_TD:
-        case MD_BLOCK_FOOTNOTE_DEF_SECTION:
-        case MD_BLOCK_FOOTNOTE_DEF:
-        case MD_BLOCK_ADMONITION:
-        case MD_BLOCK_BLANK:
+        case stxlib::markdown::BlockType::document:
         default:
             return true;
         }
     }
 
-    // A link destination, decoded from MD4C's attribute pieces. The pieces
-    // are MD4C's for the callback only; the result is a copy.
-    [[nodiscard]] bool attribute_text(const MD_ATTRIBUTE& attribute, std::string& result) const {
-        std::size_t index = 0U;
-        MD_OFFSET offset = 0U;
-        while (offset < attribute.size) {
-            const MD_OFFSET end = attribute.substr_offsets[index + 1U];
-            const std::string_view part(attribute.text + offset, end - offset);
-            if (attribute.substr_types[index] == MD_TEXT_ENTITY) {
-                append_entity(result, part);
-            } else if (attribute.substr_types[index] == MD_TEXT_NULLCHAR) {
-                append_scalar(result, 0xFFFDU);
-            } else {
-                result.append(part);
-            }
-            offset = end;
-            ++index;
-        }
+    // Counts a link's or image's decoded strings against the text limit.
+    [[nodiscard]] bool count_attribute_bytes(std::size_t bytes) noexcept {
+        if (bytes > (*limits).text_bytes - text_bytes) return stop(MarkdownParseError::limit_exceeded);
+        text_bytes += bytes;
         return true;
     }
 
-    [[nodiscard]] bool enter_span(MD_SPANTYPE type, void* detail) {
+    [[nodiscard]] bool enter_span(const stxlib::markdown::Event& event, const stxlib::markdown::Document& tape) {
+        const stxlib::markdown::SpanType type = static_cast<stxlib::markdown::SpanType>(event.type);
         switch (type) {
-        case MD_SPAN_STRONG:
+        case stxlib::markdown::SpanType::strong:
             ++strong;
             return true;
-        case MD_SPAN_EM:
+        case stxlib::markdown::SpanType::emphasis:
             ++emphasis;
             return true;
-        case MD_SPAN_CODE:
+        case stxlib::markdown::SpanType::code:
             ++code;
             return true;
-        case MD_SPAN_DEL:
+        case stxlib::markdown::SpanType::strikethrough:
             ++strike;
             return true;
-        case MD_SPAN_A: {
-            const MD_SPAN_A_DETAIL& link = *static_cast<const MD_SPAN_A_DETAIL*>(detail);
+        case stxlib::markdown::SpanType::link: {
+            // Event::detail is the destination's attribute; the title's is
+            // the next. Both are decoded in the tape's text.
+            const stxlib::View<char> target = tape.attribute(event.detail);
+            const stxlib::View<char> title = tape.attribute(event.detail + 1U);
             MarkdownLink entry{};
-            if (!attribute_text(link.href, entry.target)) return false;
-            if (!attribute_text(link.title, entry.title)) return false;
-            const std::size_t link_bytes = entry.target.size() + entry.title.size();
-            if (link_bytes > (*limits).text_bytes - text_bytes) return stop(MarkdownParseError::limit_exceeded);
-            text_bytes += link_bytes;
+            // A mail autolink's destination is the address as written; the
+            // link target keeps the "mailto:" scheme a reader opens it by
+            // (MD4C wrote it into the destination).
+            const bool mail = (event.flags & stxlib::markdown::event_flags::mail_address) != 0;
+            if (mail) entry.target = "mailto:";
+            entry.target.append(target.data(), target.count());
+            entry.title.assign(title.data(), title.count());
+            if (!count_attribute_bytes(entry.target.size() + entry.title.size())) return false;
             open_links.push_back((*document).links.size());
             (*document).links.push_back(std::move(entry));
             return true;
         }
-        case MD_SPAN_IMG: {
-            // An image is its alternative text, which MD4C passes as text;
-            // its source and title are recorded, never opened.
-            const MD_SPAN_IMG_DETAIL& image = *static_cast<const MD_SPAN_IMG_DETAIL*>(detail);
+        case stxlib::markdown::SpanType::image: {
+            // An image is its alternative text, the text events up to its
+            // leave; its source and title are recorded, never opened.
+            const stxlib::View<char> image_source = tape.attribute(event.detail);
+            const stxlib::View<char> title = tape.attribute(event.detail + 1U);
             MarkdownImage entry{};
-            if (!attribute_text(image.src, entry.source)) return false;
-            if (!attribute_text(image.title, entry.title)) return false;
-            const std::size_t image_bytes = entry.source.size() + entry.title.size();
-            if (image_bytes > (*limits).text_bytes - text_bytes) return stop(MarkdownParseError::limit_exceeded);
-            text_bytes += image_bytes;
+            entry.source.assign(image_source.data(), image_source.count());
+            entry.title.assign(title.data(), title.count());
+            if (!count_attribute_bytes(entry.source.size() + entry.title.size())) return false;
             open_images.push_back((*document).images.size());
             (*document).images.push_back(std::move(entry));
             return true;
         }
-        case MD_SPAN_INS:
-        case MD_SPAN_U:
-        case MD_SPAN_LATEXMATH:
-        case MD_SPAN_LATEXMATH_DISPLAY:
-        case MD_SPAN_WIKILINK:
-        case MD_SPAN_SPOILER:
-        case MD_SPAN_SUPERSCRIPT:
-        case MD_SPAN_SUBSCRIPT:
-        case MD_SPAN_FOOTNOTE_REF:
-        case MD_SPAN_MARK:
         default:
-            // Only enabled by flags this parser does not set.
+            // A span type this reader does not know is read through its
+            // text alone.
             return true;
         }
     }
 
-    [[nodiscard]] bool leave_span(MD_SPANTYPE type) {
+    [[nodiscard]] bool leave_span(const stxlib::markdown::Event& event) {
+        const stxlib::markdown::SpanType type = static_cast<stxlib::markdown::SpanType>(event.type);
         switch (type) {
-        case MD_SPAN_STRONG:
+        case stxlib::markdown::SpanType::strong:
             if (strong > 0U) --strong;
             return true;
-        case MD_SPAN_EM:
+        case stxlib::markdown::SpanType::emphasis:
             if (emphasis > 0U) --emphasis;
             return true;
-        case MD_SPAN_CODE:
+        case stxlib::markdown::SpanType::code:
             if (code > 0U) --code;
             return true;
-        case MD_SPAN_DEL:
+        case stxlib::markdown::SpanType::strikethrough:
             if (strike > 0U) --strike;
             return true;
-        case MD_SPAN_A:
+        case stxlib::markdown::SpanType::link:
             if (!open_links.empty()) open_links.pop_back();
             return true;
-        case MD_SPAN_IMG:
+        case stxlib::markdown::SpanType::image:
             if (!open_images.empty()) open_images.pop_back();
             return true;
-        case MD_SPAN_INS:
-        case MD_SPAN_U:
-        case MD_SPAN_LATEXMATH:
-        case MD_SPAN_LATEXMATH_DISPLAY:
-        case MD_SPAN_WIKILINK:
-        case MD_SPAN_SPOILER:
-        case MD_SPAN_SUPERSCRIPT:
-        case MD_SPAN_SUBSCRIPT:
-        case MD_SPAN_FOOTNOTE_REF:
-        case MD_SPAN_MARK:
         default:
             return true;
         }
     }
 
-    [[nodiscard]] bool add_text(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size) {
-        const std::optional<Utf8Range> range = source_range(text, size);
+    [[nodiscard]] bool add_text(const stxlib::markdown::Event& event, const stxlib::markdown::Document& tape) {
+        const stxlib::markdown::TextType type = static_cast<stxlib::markdown::TextType>(event.type);
+        const Utf8Range range{Utf8Offset(event.begin), Utf8Offset(event.end)};
         const Utf8Range here{Utf8Offset(cursor), Utf8Offset(cursor)};
         switch (type) {
-        case MD_TEXT_SOFTBR:
-            return append_line_ending(MarkdownSpanKind::text, true);
-        case MD_TEXT_BR:
-            return append_line_ending(MarkdownSpanKind::line_break, false);
-        case MD_TEXT_NULLCHAR: {
-            std::string replacement{};
-            append_scalar(replacement, 0xFFFDU);
-            return append(PieceOrigin::decoded, MarkdownSpanKind::text, std::move(replacement), range.value_or(here));
+        case stxlib::markdown::TextType::literal:
+        case stxlib::markdown::TextType::code: {
+            if (range.empty()) return true;
+            const bool markable = type == stxlib::markdown::TextType::literal && code == 0U;
+            return append_literal(range, markable);
         }
-        case MD_TEXT_ENTITY: {
-            std::string decoded{};
-            append_entity(decoded, std::string_view(text, size));
-            return append(PieceOrigin::decoded, MarkdownSpanKind::text, std::move(decoded), range.value_or(here));
+        case stxlib::markdown::TextType::reference: {
+            const stxlib::View<char> decoded = tape.reference_text(event);
+            std::string text(decoded.data(), decoded.count());
+            return append(PieceOrigin::decoded, MarkdownSpanKind::text, std::move(text), range);
         }
-        case MD_TEXT_NORMAL:
-        case MD_TEXT_CODE:
-        case MD_TEXT_HTML:
-        case MD_TEXT_LATEXMATH:
-        default: {
-            if (size == 0U) return true;
-            if (range.has_value()) {
-                const bool markable = type == MD_TEXT_NORMAL && code == 0U;
-                return append_literal(*range, markable);
-            }
-            // A code block's line feed stands for its line ending; other
-            // supplied text stands where the cursor is.
-            const std::string_view supplied(text, size);
-            const bool code_block = building && block.kind == MarkdownBlockKind::code_block;
-            if (code_block && supplied == "\n") {
-                return append_line_ending(MarkdownSpanKind::text, false);
-            }
-            return append(PieceOrigin::supplied, MarkdownSpanKind::text, std::string(supplied), here);
+        case stxlib::markdown::TextType::null_character: {
+            std::string text(replacement_character);
+            return append(PieceOrigin::decoded, MarkdownSpanKind::text, std::move(text), range);
         }
+        case stxlib::markdown::TextType::soft_break:
+            return append_line_ending(MarkdownSpanKind::text, true, line_ending_within(range));
+        case stxlib::markdown::TextType::hard_break:
+            return append_line_ending(MarkdownSpanKind::line_break, false, line_ending_within(range));
+        case stxlib::markdown::TextType::line_end:
+            // A code block's line feed stands for its line ending.
+            return append_line_ending(MarkdownSpanKind::text, false, line_ending_within(range));
+        case stxlib::markdown::TextType::code_space: {
+            // Supplied text, an empty range where it stands (MarkdownSpan),
+            // although the tape names the line ending it replaces.
+            std::string text(" ");
+            return append(PieceOrigin::supplied, MarkdownSpanKind::text, std::move(text), here);
+        }
+        case stxlib::markdown::TextType::code_indent: {
+            // Event::detail spaces that are not source bytes.
+            std::string text(static_cast<std::size_t>(event.detail), ' ');
+            return append(PieceOrigin::supplied, MarkdownSpanKind::text, std::move(text), here);
+        }
+        default:
+            // A text type this reader does not know adds nothing.
+            return true;
         }
     }
 
-    // MD4C's callbacks. Each one is a C entry point: exceptions stay inside.
-    // Their types are checked by the MD_PARSER field assignments.
-    static int block_start(MD_BLOCKTYPE type, void* detail, void* context) noexcept {
-        MarkdownParser& parser = *static_cast<MarkdownParser*>(context);
-        const int result = parser.guard_block(type, detail, true);
-        return result;
-    }
-
-    static int block_end(MD_BLOCKTYPE type, void* detail, void* context) noexcept {
-        MarkdownParser& parser = *static_cast<MarkdownParser*>(context);
-        const int result = parser.guard_block(type, detail, false);
-        return result;
-    }
-
-    static int span_start(MD_SPANTYPE type, void* detail, void* context) noexcept {
-        MarkdownParser& parser = *static_cast<MarkdownParser*>(context);
-        const int result = parser.guard_span(type, detail, true);
-        return result;
-    }
-
-    static int span_end(MD_SPANTYPE type, void* detail, void* context) noexcept {
-        MarkdownParser& parser = *static_cast<MarkdownParser*>(context);
-        const int result = parser.guard_span(type, detail, false);
-        return result;
-    }
-
-    static int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size, void* context) noexcept {
-        MarkdownParser& parser = *static_cast<MarkdownParser*>(context);
-        const int result = parser.guard_text(type, text, size);
-        return result;
-    }
-
-    [[nodiscard]] int guard_block(MD_BLOCKTYPE type, void* detail, bool entering) noexcept {
-        if (cancelled()) {
-            static_cast<void>(stop(MarkdownParseError::cancelled));
-            return 1;
+    // One event of the tape. Cancellation is read at every block the tape
+    // enters, as the reader read it once per block.
+    [[nodiscard]] bool read_event(const stxlib::markdown::Event& event, const stxlib::markdown::Document& tape) {
+        switch (event.kind) {
+        case stxlib::markdown::EventKind::enter_block:
+            if (cancelled()) return stop(MarkdownParseError::cancelled);
+            return enter_block(event);
+        case stxlib::markdown::EventKind::leave_block:
+            return leave_block(event);
+        case stxlib::markdown::EventKind::enter_span:
+            return enter_span(event, tape);
+        case stxlib::markdown::EventKind::leave_span:
+            return leave_span(event);
+        case stxlib::markdown::EventKind::text:
+            return add_text(event, tape);
+        default:
+            return true;
         }
-        try {
-            const bool kept = entering ? enter_block(type, detail) : leave_block(type);
-            return kept ? 0 : 1;
-        } catch (const std::bad_alloc&) {
-            static_cast<void>(stop(MarkdownParseError::limit_exceeded));
-        } catch (const std::length_error&) {
-            static_cast<void>(stop(MarkdownParseError::limit_exceeded));
-        }
-        return 1;
     }
 
-    [[nodiscard]] int guard_span(MD_SPANTYPE type, void* detail, bool entering) noexcept {
-        if (cancelled()) {
-            static_cast<void>(stop(MarkdownParseError::cancelled));
-            return 1;
+    // Reads the whole tape in order, then finishes the last block.
+    [[nodiscard]] bool read_tape(const stxlib::markdown::Document& tape) {
+        const stxlib::usize count = tape.events.count();
+        for (stxlib::usize index = 0U; index < count; ++index) {
+            const stxlib::markdown::Event& event = tape.events[index];
+            if (!read_event(event, tape)) return false;
         }
-        try {
-            const bool kept = entering ? enter_span(type, detail) : leave_span(type);
-            return kept ? 0 : 1;
-        } catch (const std::bad_alloc&) {
-            static_cast<void>(stop(MarkdownParseError::limit_exceeded));
-        } catch (const std::length_error&) {
-            static_cast<void>(stop(MarkdownParseError::limit_exceeded));
-        }
-        return 1;
-    }
-
-    [[nodiscard]] int guard_text(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size) noexcept {
-        if (cancelled()) {
-            static_cast<void>(stop(MarkdownParseError::cancelled));
-            return 1;
-        }
-        try {
-            const bool kept = add_text(type, text, size);
-            return kept ? 0 : 1;
-        } catch (const std::bad_alloc&) {
-            static_cast<void>(stop(MarkdownParseError::limit_exceeded));
-        } catch (const std::length_error&) {
-            static_cast<void>(stop(MarkdownParseError::limit_exceeded));
-        }
-        return 1;
+        const bool finished = finish();
+        return finished;
     }
 };
+
+// Requests the tape reader's stop when the caller's token is signalled; a
+// std::stop_callback runs it on the thread that requests the stop.
+struct RequestTapeStop final {
+    stxlib::StopSignal* signal{};
+
+    void operator()() const noexcept { (*signal).request(); }
+};
+
 
 // The offsets at which the source's lines start, for block source ranges.
 void line_starts(std::string_view source, std::vector<std::size_t>& starts) {
@@ -1102,43 +953,49 @@ MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& do
                                    std::stop_token cancellation) {
     document.clear();
     if (cancellation.stop_requested()) return MarkdownParseResult::failed(MarkdownParseError::cancelled, Utf8Offset(0U));
-    if (source.size() > limits.source_bytes || source.size() > UINT_MAX) {
+    if (source.size() > limits.source_bytes || source.size() > stxlib::markdown::largest_source_bytes) {
         return MarkdownParseResult::failed(MarkdownParseError::limit_exceeded, Utf8Offset(0U));
     }
     const Utf8ValidationResult valid = validate_utf8(source);
     if (!valid.valid()) return MarkdownParseResult::failed(MarkdownParseError::invalid_utf8, valid.error_offset);
+    // The tape. Tables and task lists are read as text; raw HTML is text.
+    // Its own tables keep the reader's default limits; the source limit is
+    // the caller's, checked above. The stop signal is read once per block;
+    // the bridge, declared after it, is removed before it ends.
+    stxlib::markdown::Options options{};
+    options.strikethrough = true;
+    stxlib::markdown::Limits tape_limits{};
+    tape_limits.source_bytes = source.size();
+    stxlib::StopSignal tape_stop{};
+    const std::stop_callback<RequestTapeStop> stop_bridge(cancellation, RequestTapeStop{&tape_stop});
+    stxlib::markdown::Document tape{};
+    const stxlib::View<char> tape_source(source.data(), source.size());
+    const stxlib::Status status = stxlib::markdown::parse(tape_source, options, tape_limits, tape, &tape_stop);
+    if (status.failed()) {
+        // interrupted is the token's stop; a reader limit or its allocation
+        // failure is a limit, as MarkdownParseError says.
+        const bool interrupted = (*status.error()).kind() == stxlib::ErrorKind::interrupted;
+        const MarkdownParseError error = interrupted ? MarkdownParseError::cancelled : MarkdownParseError::limit_exceeded;
+        return MarkdownParseResult::failed(error, Utf8Offset(0U));
+    }
     MarkdownParser state{};
     state.source = source;
     state.document = &document;
     state.limits = &limits;
     state.cancellation = cancellation;
-    MD_PARSER parser{};
-    parser.abi_version = 0U;
-    // Tables and task lists are read as text; raw HTML is text.
-    parser.flags = MD_FLAG_STRIKETHROUGH | MD_FLAG_NOHTML;
-    parser.enter_block = MarkdownParser::block_start;
-    parser.leave_block = MarkdownParser::block_end;
-    parser.enter_span = MarkdownParser::span_start;
-    parser.leave_span = MarkdownParser::span_end;
-    parser.text = MarkdownParser::text_callback;
-    const int parsed = md_parse(source.data(), static_cast<MD_SIZE>(source.size()), &parser, &state);
-    bool finished = state.failure.has_value() == false && parsed == 0;
-    if (finished) {
-        try {
-            finished = state.finish();
-            if (finished) place_blocks(source, document);
-        } catch (const std::bad_alloc&) {
-            static_cast<void>(state.stop(MarkdownParseError::limit_exceeded));
-            finished = false;
-        } catch (const std::length_error&) {
-            static_cast<void>(state.stop(MarkdownParseError::limit_exceeded));
-            finished = false;
-        }
+    bool finished = false;
+    try {
+        finished = state.read_tape(tape);
+        if (finished) place_blocks(source, document);
+    } catch (const std::bad_alloc&) {
+        static_cast<void>(state.stop(MarkdownParseError::limit_exceeded));
+        finished = false;
+    } catch (const std::length_error&) {
+        static_cast<void>(state.stop(MarkdownParseError::limit_exceeded));
+        finished = false;
     }
     if (!finished) {
         document.clear();
-        // MD4C reports its own allocation failure as -1 with no failure of
-        // ours recorded.
         const MarkdownParseError error = state.failure.value_or(MarkdownParseError::limit_exceeded);
         return MarkdownParseResult::failed(error, Utf8Offset(0U));
     }

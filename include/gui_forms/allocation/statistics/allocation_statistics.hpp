@@ -34,7 +34,7 @@
 // - text_layout: the paragraph layout's reused storage (ParagraphBuffers'
 //   lines, collapsed text, break opportunities, advances, glyph runs and
 //   glyphs) and the bundled engine's shaping workspace arrays (its scalars,
-//   segments, runs, staged glyphs and SheenBidi arena) and its fallback
+//   segments, runs, staged glyphs and bidi analysis) and its fallback
 //   faces' glyph ink-extent caches; the workspace's
 //   grapheme tables and HarfBuzz buffer are not counted. Also the text
 //   rasterizers' glyph faces (STXlib's, which allocate on STXlib's own
