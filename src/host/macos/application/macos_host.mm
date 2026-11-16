@@ -81,6 +81,12 @@ HostCapabilities macos_capabilities() {
         capabilities.locale = *locale;
         capabilities.available = capabilities.available | HostCapability::locale;
     }
+    // Presentation (docs/user/presentation.md): the IOSurface direct path
+    // where the policy turns it on. No host scroll: the view passes no
+    // scrolls yet.
+    const gui_forms::host::presentation::PresentPolicy policy =
+        gui_forms::host::presentation::present_policy_from_environment();
+    if (policy.direct) capabilities.available = capabilities.available | HostCapability::direct_buffers;
     return capabilities;
 }
 

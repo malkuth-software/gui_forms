@@ -2575,6 +2575,14 @@ HostCapabilities linux_capabilities() {
     capabilities.locale = *locale;
     capabilities.available = capabilities.available | HostCapability::locale;
   }
+  // Presentation (docs/user/presentation.md): what the policy turns on. The
+  // direct path is reported only in a build that has it; a window whose
+  // server refuses it presents on the copy path.
+  const presentation::PresentPolicy policy = presentation::present_policy_from_environment();
+#if defined(GUI_FORMS_HAVE_XPRESENT) && defined(GUI_FORMS_HAVE_XSHM)
+  if (policy.direct) capabilities.available = capabilities.available | HostCapability::direct_buffers;
+#endif
+  if (policy.host_scroll) capabilities.available = capabilities.available | HostCapability::host_scroll;
   return capabilities;
 }
 int run_linux_application(std::vector<LinuxApplicationWindow> windows,
