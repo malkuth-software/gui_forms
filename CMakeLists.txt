@@ -52,7 +52,21 @@ if(APPLE)
     add_compile_options(-Werror=unguarded-availability -Werror=unguarded-availability-new)
 endif()
 if(WIN32)
-    add_compile_definitions(_WIN32_WINNT=0x0A00 WINVER=0x0A00)
+    # NOMINMAX: the Windows SDK's minwindef.h defines min and max as macros
+    # unless it is set, which breaks std::min and std::max after <windows.h>
+    # (MinGW-w64's headers define them for C only).
+    add_compile_definitions(_WIN32_WINNT=0x0A00 WINVER=0x0A00 NOMINMAX)
+endif()
+# The Windows targets: MinGW-w64 (MINGW, the MSYS2 CLANG64 toolchain,
+# cmake/llvm22.cmake) or the MSVC target, x86_64-pc-windows-msvc, compiled by
+# the same clang with its GNU command line (cmake/llvm22-windows-msvc.cmake).
+# CMake sets MSVC only for an MSVC-style command line (cl, clang-cl), so the
+# MSVC target is recognised by the ABI the compiler simulates.
+if(WIN32 AND NOT MINGW AND CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC"
+   AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
+    set(GUI_FORMS_WINDOWS_MSVC_TARGET ON)
+else()
+    set(GUI_FORMS_WINDOWS_MSVC_TARGET OFF)
 endif()
 
 set(CMAKE_C_STANDARD 11)
@@ -230,7 +244,7 @@ include(cmake/LocalizablePlugin.cmake)
 # of the runtimes; the C ABI library (cmake/CAbi.cmake) is one module of its
 # own for C and C# programs. tools/package_programs.py rejects a package
 # that imports a GCC or LLVM runtime DLL, or any DLL but the system's.
-if(WIN32 AND NOT MSVC)
+if(MINGW)
     add_link_options(-static)
 endif()
 # Linker pruning for Release programs and the C ABI library, the modules
@@ -250,6 +264,11 @@ if(NOT MSVC AND NOT EMSCRIPTEN)
     set(_gf_linked_module "$<OR:$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>,$<STREQUAL:$<TARGET_PROPERTY:TYPE>,MODULE_LIBRARY>,$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>>")
     if(APPLE)
         add_link_options($<$<AND:$<CONFIG:Release>,${_gf_linked_module}>:LINKER:-dead_strip>)
+    elseif(GUI_FORMS_WINDOWS_MSVC_TARGET)
+        # lld-link's spelling: /OPT:REF drops unreferenced sections, and
+        # /OPT:NOICF keeps identical-code folding off, as above.
+        add_link_options($<$<AND:$<CONFIG:Release>,${_gf_linked_module}>:LINKER:/OPT:REF>
+                         $<$<AND:$<CONFIG:Release>,${_gf_linked_module}>:LINKER:/OPT:NOICF>)
     else()
         add_link_options($<$<AND:$<CONFIG:Release>,${_gf_linked_module}>:LINKER:--gc-sections>)
     endif()
@@ -261,8 +280,8 @@ endif()
 # Linux link uses the system linker, so both stay off until their toolchains
 # pin an LLVM 22 linker. The archives then hold bitcode, which a consumer
 # links with the same pinned toolchain (docs/user/consume-the-sdk.md).
-option(GUI_FORMS_LTO "Link Release builds with ThinLTO where the pinned toolchain's linker is lld (MinGW)" ON)
-if(GUI_FORMS_LTO AND MINGW)
+option(GUI_FORMS_LTO "Link Release builds with ThinLTO where the pinned toolchain's linker is lld (MinGW, the MSVC target)" ON)
+if(GUI_FORMS_LTO AND (MINGW OR GUI_FORMS_WINDOWS_MSVC_TARGET))
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 endif()
 include(CMakePackageConfigHelpers)
@@ -327,7 +346,11 @@ target_link_libraries(gui_forms_threading PRIVATE Threads::Threads stxlib::bound
 set_target_properties(gui_forms_threading PROPERTIES VISIBILITY_INLINES_HIDDEN YES)
 if(WIN32)
     target_compile_definitions(gui_forms_threading PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
-    target_link_libraries(gui_forms_threading PRIVATE winpthread)
+    # MinGW's winpthread; the MSVC target has none, and STXlib's threads are
+    # Win32 threads there.
+    if(MINGW)
+        target_link_libraries(gui_forms_threading PRIVATE winpthread)
+    endif()
 endif()
 
 
@@ -376,12 +399,14 @@ function(gui_forms_application_add_archives target)
     foreach(_gf_archive IN LISTS ARGN)
         if(APPLE)
             list(APPEND _gf_whole "LINKER:-force_load,$<TARGET_FILE:${_gf_archive}>")
+        elseif(GUI_FORMS_WINDOWS_MSVC_TARGET)
+            list(APPEND _gf_whole "LINKER:/WHOLEARCHIVE:$<TARGET_FILE:${_gf_archive}>")
         else()
             list(APPEND _gf_whole "$<TARGET_FILE:${_gf_archive}>")
         endif()
         target_link_libraries(${target} PUBLIC "$<BUILD_INTERFACE:${_gf_archive}>")
     endforeach()
-    if(NOT APPLE)
+    if(NOT APPLE AND NOT GUI_FORMS_WINDOWS_MSVC_TARGET)
         # SHELL: keeps each group whole: CMake removes repeated link options,
         # which would otherwise merge the --whole-archive of two groups.
         string(JOIN " " _gf_group ${_gf_whole})
@@ -878,7 +903,9 @@ target_link_libraries(gui_forms_core PUBLIC stxlib::boundary stxlib::state)
 target_link_libraries(gui_forms_core PRIVATE stxlib::algorithms)
 if(WIN32)
     target_compile_definitions(gui_forms_core PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
-    target_link_libraries(gui_forms_core PUBLIC winpthread)
+    if(MINGW)
+        target_link_libraries(gui_forms_core PUBLIC winpthread)
+    endif()
 endif()
 target_include_directories(gui_forms_core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -2226,7 +2253,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         PUBLIC gui_forms_core gui_forms_skia
         PRIVATE gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32
     )
-    if(MINGW)
+    if(WIN32)
         add_library(gui_forms_application STATIC
             src/runtime/application_bundle.cpp
             src/runtime/application/application.cpp
@@ -6945,8 +6972,9 @@ endif()
 # MinGW-w64 CRT (add_link_options(-static) above). Their licences come from
 # the toolchain prefix, the directory above the compiler's bin (the CLANG64
 # tree); the LLVM exception does not require them for embedded runtime code,
-# and they are installed anyway.
-if(WIN32 AND NOT MSVC)
+# and they are installed anyway. The MSVC target embeds Microsoft's runtime
+# objects instead, under the Visual Studio licence (Stage B, temporary).
+if(MINGW)
     get_filename_component(_gf_toolchain_bin "${CMAKE_CXX_COMPILER}" DIRECTORY)
     get_filename_component(_gf_toolchain_prefix "${_gf_toolchain_bin}" DIRECTORY)
     set(_gf_runtime_licence_sources

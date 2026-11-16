@@ -282,6 +282,20 @@ if(WIN32 AND MINGW)
             -l "$<TARGET_LINKER_FILE:gui_forms_abi>"
         BYPRODUCTS "${_gf_abi_msvc_import}"
         VERBATIM)
+elseif(GUI_FORMS_WINDOWS_MSVC_TARGET)
+    # The MSVC target: lld-link writes the one import library, in the MSVC
+    # format, from the link .def; it is written again from the entry points'
+    # .def by llvm-lib, without the shim's Win32 names, as above.
+    if(NOT GUI_FORMS_LLVM_LIB)
+        get_filename_component(_gf_abi_compiler_dir "${CMAKE_C_COMPILER}" DIRECTORY)
+        find_program(GUI_FORMS_LLVM_LIB NAMES llvm-lib HINTS "${_gf_abi_compiler_dir}" REQUIRED)
+    endif()
+    add_custom_command(TARGET gui_forms_abi POST_BUILD
+        COMMAND "${GUI_FORMS_LLVM_LIB}" /nologo /machine:x64
+            "/def:${_gf_abi_generated}/${_gf_abi_output_name}.def"
+            "/name:${_gf_abi_output_name}.dll"
+            "/out:$<TARGET_LINKER_FILE:gui_forms_abi>"
+        VERBATIM)
 endif()
 
 # The conformance kit (stage C8): the C11 checks of ownership, threads,
