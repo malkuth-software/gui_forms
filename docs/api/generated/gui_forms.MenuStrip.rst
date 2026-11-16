@@ -66,7 +66,7 @@ gui_forms::MenuStrip
          items closes an open menu and clears :cpp:member:`selected_item_id <gui_forms::MenuStrip::selected_item_id>` if that item is
          gone or hidden.
 
-      **active_index** : ``std::optional<std::size_t>``, default ``std::nullopt``, read-only
+      **active_index** : ``stxlib::Optional<std::size_t>``, default ``std::nullopt``, read-only
          The index in :cpp:func:`items <gui_forms::MenuStrip::items>` of the menu that is open, or no value.
 
       **is_open** : ``bool``, default ``false``, read-only
@@ -85,7 +85,7 @@ gui_forms::MenuStrip
          top-level item's ID and the :cpp:class:`ContextMenu <gui_forms::ContextMenu>` invocation. It follows the
          command's own ``invoked`` event and comes before the menu closes.
 
-      **open_changed** : ``Event<std::optional<std::size_t>>``
+      **open_changed** : ``Event<stxlib::Optional<std::size_t>>``
          Raised with the index of the menu that opens and with no value when the
          open menu closes. Switching directly from one menu to another raises it
          once, with the new index.
@@ -252,7 +252,7 @@ gui_forms::MenuStrip
 
       Sets :cpp:func:`items <gui_forms::MenuStrip::items>`; see the property's description above.
 
-   .. cpp:function:: std::optional<std::size_t> active_index() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> active_index() const noexcept
 
       The index in :cpp:func:`items <gui_forms::MenuStrip::items>` of the menu that is open, or no value.
 
@@ -276,7 +276,7 @@ gui_forms::MenuStrip
       top-level item's ID and the :cpp:class:`ContextMenu <gui_forms::ContextMenu>` invocation. It follows the
       command's own ``invoked`` event and comes before the menu closes.
 
-   .. cpp:function:: Event<std::optional<std::size_t>>& open_changed() noexcept
+   .. cpp:function:: Event<stxlib::Optional<std::size_t>>& open_changed() noexcept
 
       Raised with the index of the menu that opens and with no value when the
       open menu closes. Switching directly from one menu to another raises it

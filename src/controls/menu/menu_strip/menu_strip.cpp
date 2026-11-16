@@ -59,15 +59,16 @@ MenuStrip::MenuStrip(StableId stable_id)
 
 void MenuStrip::on_overlay_item_invoked(
     const MenuItemInvocation& invocation) {
-    if (!active_index_ || *active_index_ >= items_.size()) return;
+    const std::size_t* const active = active_index_.value();
+    if (active == nullptr || *active >= items_.size()) return;
     MenuStripInvocation forwarded{
         std::string(stable_id().value()),
-        items_[*active_index_].stable_id, invocation};
+        items_[*active].stable_id, invocation};
     item_invoked_.emit(forwarded);
 }
 
 void MenuStrip::on_overlay_open_changed(bool open_state) {
-    if (open_state || switching_ || !active_index_) return;
+    if (open_state || switching_ || active_index_.absent()) return;
     active_index_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(open_changed_, active_index_);
@@ -158,7 +159,7 @@ bool MenuStrip::open(const std::size_t index, const MenuOpenMode mode) {
         throw std::invalid_argument("MenuStrip opening mode is invalid");
     if (index >= items_.size() || !items_[index].visible ||
         !items_[index].enabled || !attached_window()) return false;
-    if (active_index_ == index && (*overlay_).is_open()) return true;
+    if (holds(active_index_, index) && (*overlay_).is_open()) return true;
     // A merge may have left the menu empty, or holding only empty submenus.
     std::vector<MenuItemSpec> menu = menu_detail::prune_empty_submenus(items_[index].items);
     if (menu.empty()) return false;
@@ -167,8 +168,8 @@ bool MenuStrip::open(const std::size_t index, const MenuOpenMode mode) {
     if (menu_detail::snapshot_items(menu).empty()) return false;
     switching_ = (*overlay_).is_open();
     if (switching_) (*overlay_).close();
-    active_index_ = index;
-    hot_index_ = index;
+    active_index_.set(index);
+    hot_index_.set(index);
     (*overlay_).set_items(std::move(menu));
     const std::vector<Rect> bounds = item_bounds();
     const Rect absolute = absolute_bounds();
@@ -257,35 +258,43 @@ std::vector<Rect> MenuStrip::item_bounds() const {
     return result;
 }
 
-std::optional<std::size_t> MenuStrip::index_at(Point window_point) const {
+stxlib::Optional<std::size_t> MenuStrip::index_at(Point window_point) const {
     const Rect absolute = absolute_bounds();
-    if (!absolute.contains(window_point)) return {};
+    if (!absolute.contains(window_point)) return stxlib::Optional<std::size_t>::none();
     const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
     const std::vector<Rect> bounds = item_bounds();
     for (std::size_t index = 0; index < bounds.size(); ++index) {
-        if (items_[index].visible && bounds[index].contains(local)) return index;
+        if (items_[index].visible && bounds[index].contains(local)) return stxlib::Optional<std::size_t>::of(index);
     }
-    return {};
+    return stxlib::Optional<std::size_t>::none();
 }
 
-std::optional<std::size_t> MenuStrip::next_enabled(
+bool MenuStrip::holds(const stxlib::Optional<std::size_t>& held, std::size_t index) noexcept {
+    const std::size_t* const current = held.value();
+    const bool result = current != nullptr && *current == index;
+    return result;
+}
+
+stxlib::Optional<std::size_t> MenuStrip::next_enabled(
     std::size_t start, int direction) const {
-    if (items_.empty()) return {};
+    if (items_.empty()) return stxlib::Optional<std::size_t>::none();
     for (std::size_t step = 1U; step <= items_.size(); ++step) {
         const std::ptrdiff_t raw = static_cast<std::ptrdiff_t>(start) +
             static_cast<std::ptrdiff_t>(direction) *
                 static_cast<std::ptrdiff_t>(step);
         const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(items_.size());
         const std::size_t index = static_cast<std::size_t>((raw % count + count) % count);
-        if (items_[index].visible && items_[index].enabled) return index;
+        if (items_[index].visible && items_[index].enabled) return stxlib::Optional<std::size_t>::of(index);
     }
-    return {};
+    return stxlib::Optional<std::size_t>::none();
 }
 
 bool MenuStrip::navigate_root(int direction) {
-    if (!active_index_) return false;
-    const std::optional<std::size_t> next = next_enabled(*active_index_, direction);
-    if (!next) return false;
+    const std::size_t* const active = active_index_.value();
+    if (active == nullptr) return false;
+    const stxlib::Optional<std::size_t> found = next_enabled(*active, direction);
+    const std::size_t* const next = found.value();
+    if (next == nullptr) return false;
     const bool opened = open(*next);
     return opened;
 }
@@ -293,22 +302,23 @@ bool MenuStrip::navigate_root(int direction) {
 bool MenuStrip::handle_overlay_pointer(const PointerEvent& event) {
     if (event.action != PointerAction::move &&
         event.action != PointerAction::down) return false;
-    const std::optional<std::size_t> index = index_at(event.position);
-    if (!index || !items_[*index].enabled) return false;
-    set_hot(index);
-    if (event.action == PointerAction::move && active_index_ != index) {
+    const stxlib::Optional<std::size_t> found = index_at(event.position);
+    const std::size_t* const index = found.value();
+    if (index == nullptr || !items_[*index].enabled) return false;
+    set_hot(found);
+    if (event.action == PointerAction::move && !holds(active_index_, *index)) {
         const bool opened = open(*index, MenuOpenMode::pointer);
         return opened;
     }
     if (event.action == PointerAction::down) {
-        if (active_index_ == index) close();
+        if (holds(active_index_, *index)) close();
         else static_cast<void>(open(*index, MenuOpenMode::pointer));
         return true;
     }
     return true;
 }
 
-void MenuStrip::set_hot(std::optional<std::size_t> index) {
+void MenuStrip::set_hot(stxlib::Optional<std::size_t> index) {
     if (hot_index_ == index) return;
     hot_index_ = index;
     invalidate(Dirty::paint | Dirty::semantics);
@@ -335,8 +345,8 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (!items_[index].visible) continue;
         const Rect item = bounds[index];
-        const bool active = active_index_ == index;
-        const bool hot = hot_index_ == index;
+        const bool active = holds(active_index_, index);
+        const bool hot = holds(hot_index_, index);
         const bool selected = selected_item_id_ == items_[index].stable_id;
         // An open item shows pressed.
         AnatomyStateSet plate_states;
@@ -373,8 +383,9 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
                            {text_x, item.y + std::max(item_font.size, item.height * 0.5 + item_font.size * 0.35)},
                            std::max(0.0, item.x + item.width - text_x));
     }
-    if (focused_ && !active_index_ && hot_index_) {
-        const Rect item = bounds[*hot_index_];
+    const std::size_t* const hot_item = hot_index_.value();
+    if (focused_ && active_index_.absent() && hot_item != nullptr) {
+        const Rect item = bounds[*hot_item];
         PartPaint ring;
         ring.family = ControlVisualRole::menu_item;
         ring.role = PartRole::focus;
@@ -387,26 +398,28 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
 }
 
 void MenuStrip::on_mouse_move(MouseEventArgs& arguments) {
-    const std::optional<std::size_t> index = index_at(arguments.window_position);
-    set_hot(index);
-    if (is_open() && index && active_index_ != index &&
+    const stxlib::Optional<std::size_t> found = index_at(arguments.window_position);
+    const std::size_t* const index = found.value();
+    set_hot(found);
+    if (is_open() && index != nullptr && !holds(active_index_, *index) &&
         items_[*index].enabled) {
         static_cast<void>(open(*index, MenuOpenMode::pointer));
     }
-    arguments.handled = hot_index_.has_value();
+    arguments.handled = hot_index_.present();
     Control::on_mouse_move(arguments);
 }
 
 void MenuStrip::on_mouse_leave() {
-    if (!is_open()) set_hot({});
+    if (!is_open()) set_hot(stxlib::Optional<std::size_t>::none());
     Control::on_mouse_leave();
 }
 
 void MenuStrip::on_mouse_down(MouseEventArgs& arguments) {
     if (arguments.button == PointerButton::primary) {
-        const std::optional<std::size_t> index = index_at(arguments.window_position);
-        if (index && items_[*index].enabled) {
-            if (active_index_ == index && is_open()) close();
+        const stxlib::Optional<std::size_t> found = index_at(arguments.window_position);
+        const std::size_t* const index = found.value();
+        if (index != nullptr && items_[*index].enabled) {
+            if (holds(active_index_, *index) && is_open()) close();
             else static_cast<void>(open(*index, MenuOpenMode::pointer));
             arguments.handled = true;
         }
@@ -417,25 +430,27 @@ void MenuStrip::on_mouse_down(MouseEventArgs& arguments) {
 void MenuStrip::on_key_down(KeyEventArgs& arguments) {
     Control::on_key_down(arguments);
     if (arguments.handled || !focused_) return;
-    std::optional<std::size_t> current = active_index_ ? active_index_ : hot_index_;
-    if (!current) {
+    stxlib::Optional<std::size_t> held = active_index_.present() ? active_index_ : hot_index_;
+    if (held.absent()) {
         for (std::size_t index = 0; index < items_.size(); ++index) {
             if (items_[index].visible && items_[index].enabled) {
-                current = index;
+                held.set(index);
                 break;
             }
         }
     }
-    if (!current) return;
+    const std::size_t* const current = held.value();
+    if (current == nullptr) return;
     if (arguments.physical_key == PhysicalKey::left ||
         arguments.physical_key == PhysicalKey::right) {
         // Toward the reading end moves on.
         const std::uint32_t onward = effective_layout_direction() == LayoutDirection::right_to_left
             ? PhysicalKey::left : PhysicalKey::right;
-        const std::optional<std::size_t> next = next_enabled(*current,
+        const stxlib::Optional<std::size_t> next = next_enabled(*current,
             arguments.physical_key == onward ? 1 : -1);
-        if (next) {
-            if (is_open()) static_cast<void>(open(*next));
+        const std::size_t* const next_index = next.value();
+        if (next_index != nullptr) {
+            if (is_open()) static_cast<void>(open(*next_index));
             else set_hot(next);
         }
     } else if (arguments.physical_key == PhysicalKey::down ||
@@ -452,10 +467,10 @@ void MenuStrip::on_key_down(KeyEventArgs& arguments) {
 
 void MenuStrip::on_focus_changed(bool focused) {
     focused_ = focused;
-    if (focused_ && !hot_index_) {
+    if (focused_ && hot_index_.absent()) {
         for (std::size_t index = 0; index < items_.size(); ++index) {
             if (items_[index].visible && items_[index].enabled) {
-                hot_index_ = index;
+                hot_index_.set(index);
                 break;
             }
         }
@@ -496,10 +511,10 @@ std::vector<SemanticNode> MenuStrip::semantic_virtual_children() const {
         if (selected_item_id_ == items_[index].stable_id) {
             node.states |= SemanticState::selected;
         }
-        if (active_index_ == index) {
+        if (holds(active_index_, index)) {
             node.states |= SemanticState::expanded;
         }
-        if (focused_ && hot_index_ == index) node.states |= SemanticState::focused;
+        if (focused_ && holds(hot_index_, index)) node.states |= SemanticState::focused;
         node.actions = {SemanticAction::focus, SemanticAction::press,
                         SemanticAction::expand, SemanticAction::collapse};
         nodes.push_back(std::move(node));
@@ -516,14 +531,14 @@ bool MenuStrip::on_semantic_child_action(std::string_view id,
     const std::size_t index = static_cast<std::size_t>(
         std::distance(items_.begin(), found));
     if (action == SemanticAction::collapse) {
-        if (active_index_ != index) return false;
+        if (!holds(active_index_, index)) return false;
         close();
         return true;
     }
     if (action != SemanticAction::focus && action != SemanticAction::press &&
         action != SemanticAction::expand) return false;
     if (window()) static_cast<void>((*window()).request_focus(shared_from_this()));
-    set_hot(index);
+    set_hot(stxlib::Optional<std::size_t>::of(index));
     if (action != SemanticAction::focus) {
         const bool opened = open(index);
         return opened;
@@ -551,9 +566,9 @@ bool MenuStrip::process_mnemonic_self(char32_t character) {
     }
     if (matches.empty()) return false;
     std::size_t selected = matches.front();
-    const std::optional<std::size_t> current = active_index_
-        ? active_index_ : hot_index_;
-    if (current) {
+    const stxlib::Optional<std::size_t> held = active_index_.present() ? active_index_ : hot_index_;
+    const std::size_t* const current = held.value();
+    if (current != nullptr) {
         const std::vector<std::size_t>::iterator found =
             std::find(matches.begin(), matches.end(), *current);
         if (found != matches.end()) {
@@ -566,7 +581,7 @@ bool MenuStrip::process_mnemonic_self(char32_t character) {
         // the focus transaction that would authorize opening the overlay.
         return true;
     }
-    set_hot(selected);
+    set_hot(stxlib::Optional<std::size_t>::of(selected));
     const bool opened = open(selected);
     return opened;
 }
@@ -692,7 +707,7 @@ void MenuStrip::publish_realized_item_geometry(std::size_t item,
 
     const std::size_t index = realized_item_index(item);
     const Rect bounds = item_bounds()[index];
-    const bool emphasised = active_index_ == index ||
+    const bool emphasised = holds(active_index_, index) ||
                             selected_item_id_ == items_[index].stable_id;
     FontSpec item_font = text_font(font.read());
     if (emphasised) {
@@ -715,10 +730,10 @@ void MenuStrip::publish_realized_item_geometry(std::size_t item,
 AnatomyStateSet MenuStrip::realized_item_anatomy_states(std::size_t item) const {
     AnatomyStateSet states;
     const std::size_t index = realized_item_index(item);
-    if (hot_index_ == index) {
+    if (holds(hot_index_, index)) {
         states.insert(AnatomyState::hot);
     }
-    if (active_index_ == index) {
+    if (holds(active_index_, index)) {
         states.insert(AnatomyState::open);
     }
     if (selected_item_id_ == items_[index].stable_id) {
@@ -751,7 +766,7 @@ namespace {
 // The events MenuStrip adds to those of Control, in declaration order.
 constexpr std::array<InteractionDeclaration, 2> menu_strip_interactions{{
     {.name = "item_invoked", .payload = "MenuStripInvocation", .mutable_payload = false},
-    {.name = "open_changed", .payload = "std::optional<std::size_t>", .mutable_payload = false},
+    {.name = "open_changed", .payload = "stxlib::Optional<std::size_t>", .mutable_payload = false},
 }};
 
 } // namespace

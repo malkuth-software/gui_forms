@@ -10299,7 +10299,7 @@
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
         {"name": "item_invoked", "payload": "MenuStripInvocation", "mutable_payload": false},
-        {"name": "open_changed", "payload": "std::optional<std::size_t>", "mutable_payload": false}
+        {"name": "open_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false}
       ]
     },
     {
