@@ -275,16 +275,25 @@ void RibbonApplicationMenu::activate(const Row& row) {
     }
     const Control::Ptr lifetime = shared_from_this();
     const Control::Ptr owner = ribbon.shared_from_this();
+    // Copies taken before closing: the control that gets focus back may
+    // replace either list, and running the command may replace the
+    // application menu (A-gf-controls-11-F7).
+    std::string recent_id;
+    MenuItemSpec item;
+    if (row.recent) {
+        recent_id = ribbon.recent_items_[row.index].stable_id;
+    } else {
+        item = ribbon.application_menu_[row.index];
+    }
     // Closes a submenu of this menu too.
     ribbon.close_menus();
+    if (!ribbon.is_alive()) return;
     const std::string ribbon_id(ribbon.stable_id().value());
     if (row.recent) {
-        const RibbonRecentItemInvocation invoked{ribbon_id, ribbon.recent_items_[row.index].stable_id};
+        const RibbonRecentItemInvocation invoked{ribbon_id, recent_id};
         ribbon.recent_item_invoked_.emit(invoked);
         return;
     }
-    // A copy: running the command may replace the application menu.
-    const MenuItemSpec item = ribbon.application_menu_[row.index];
     std::string command_id;
     if (item.command) {
         command_id = (*item.command).stable_id();
