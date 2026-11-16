@@ -828,9 +828,35 @@ public static unsafe class Layout
             failures += expect(output, "gf_relative_pointer_state.reserved offset", (long)((byte*)&value.reserved - start), 92);
         }
         {
+            gf_effect_mask_layer value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_effect_mask_layer size", sizeof(gf_effect_mask_layer), 56);
+            failures += expect(output, "gf_effect_mask_layer.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_effect_mask_layer.mode offset", (long)((byte*)&value.mode - start), 4);
+            failures += expect(output, "gf_effect_mask_layer.composite offset", (long)((byte*)&value.composite - start), 8);
+            failures += expect(output, "gf_effect_mask_layer.start_rgba offset", (long)((byte*)&value.start_rgba - start), 12);
+            failures += expect(output, "gf_effect_mask_layer.end_rgba offset", (long)((byte*)&value.end_rgba - start), 16);
+            failures += expect(output, "gf_effect_mask_layer.reserved offset", (long)((byte*)&value.reserved - start), 20);
+            failures += expect(output, "gf_effect_mask_layer.start offset", (long)((byte*)&value.start - start), 24);
+            failures += expect(output, "gf_effect_mask_layer.end offset", (long)((byte*)&value.end - start), 40);
+        }
+        {
+            gf_content_effect value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_content_effect size", sizeof(gf_content_effect), 1216);
+            failures += expect(output, "gf_content_effect.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_content_effect.has_colour_matrix offset", (long)((byte*)&value.has_colour_matrix - start), 4);
+            failures += expect(output, "gf_content_effect.has_colour_table offset", (long)((byte*)&value.has_colour_table - start), 8);
+            failures += expect(output, "gf_content_effect.mask_count offset", (long)((byte*)&value.mask_count - start), 12);
+            failures += expect(output, "gf_content_effect.colour_matrix offset", (long)((byte*)value.colour_matrix - start), 16);
+            failures += expect(output, "gf_content_effect.colour_table offset", (long)((byte*)value.colour_table - start), 176);
+            failures += expect(output, "gf_content_effect.blur offset", (long)((byte*)&value.blur - start), 1200);
+            failures += expect(output, "gf_content_effect.masks offset", (long)((byte*)&value.masks - start), 1208);
+        }
+        {
             gf_controls_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_controls_table size", sizeof(gf_controls_table), 152);
+            failures += expect(output, "gf_controls_table size", sizeof(gf_controls_table), 160);
             failures += expect(output, "gf_controls_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_controls_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_controls_table.suspend_layout offset", (long)((byte*)&value.suspend_layout - start), 8);
@@ -851,6 +877,7 @@ public static unsafe class Layout
             failures += expect(output, "gf_controls_table.relative_pointer_state offset", (long)((byte*)&value.relative_pointer_state - start), 128);
             failures += expect(output, "gf_controls_table.warp_pointer offset", (long)((byte*)&value.warp_pointer - start), 136);
             failures += expect(output, "gf_controls_table.set_pointer_release_regions offset", (long)((byte*)&value.set_pointer_release_regions - start), 144);
+            failures += expect(output, "gf_controls_table.set_content_effect offset", (long)((byte*)&value.set_content_effect - start), 152);
         }
         {
             gf_text_decoration value = default;

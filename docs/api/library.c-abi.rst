@@ -780,6 +780,8 @@ Types
 
    .. cpp:function:: gf_status set_pointer_release_regions(gf_object object, const gf_logical_rect* regions, uint32_t count) const noexcept
 
+   .. cpp:function:: gf_status set_content_effect(gf_object object, const gf_content_effect* effect) const noexcept
+
 .. cpp:namespace:: gui_forms::abi
 
 .. cpp:class:: CustomControlsTable

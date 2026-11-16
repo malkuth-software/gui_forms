@@ -452,7 +452,7 @@ stxlib::Optional<ToolStripDropTarget> ToolStripContainer::target_at(Point local)
                 target.position = position;
                 target.marker = vertical ? Rect{start, between - half, thickness, marker_thickness}
                                          : Rect{between - half, start, marker_thickness, thickness};
-                return target;
+                return stxlib::Optional<ToolStripDropTarget>::of(target);
             }
             line = end;
         }

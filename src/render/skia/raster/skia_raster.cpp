@@ -6,10 +6,10 @@
 #include "gui_forms/paint_framebuffer.hpp"
 
 #include "gui_forms/live_surface.hpp"
-#if defined(GUI_FORMS_PREPARED_TEXT)
-#include "prepared_skia_frame.hpp"
 #include "skia_map_scale.hpp"
 #include "skia_paint_path.hpp"
+#if defined(GUI_FORMS_PREPARED_TEXT)
+#include "prepared_skia_frame.hpp"
 #endif
 
 #include "../../text/harfbuzz/bundled_face_loader.hpp"

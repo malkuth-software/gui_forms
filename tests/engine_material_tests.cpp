@@ -1778,10 +1778,12 @@ void mask_modes_and_composites() {
     for (const MaskCase& mask_case : cases) {
         SurfaceMaterial masked = face;
         masked.masks = mask_case.layers;
-        require(valid_surface_material(masked), std::string("a ") + mask_case.what + " mask is valid");
+        const std::string valid_message = std::string("a ") + mask_case.what + " mask is valid";
+        require(valid_surface_material(masked), valid_message.c_str());
         const TestRaster drawn = draw(masked, logical, 1.0);
         const std::array<std::uint8_t, 4> expected{mask_case.expected, 0U, 0U, mask_case.expected};
-        require(drawn.pixel(18U, 18U) == expected, std::string("the ") + mask_case.what + " mask's exact weight");
+        const std::string weight_message = std::string("the ") + mask_case.what + " mask's exact weight";
+        require(drawn.pixel(18U, 18U) == expected, weight_message.c_str());
     }
     // The bottom layer's composite is not read: one layer that subtracts
     // is the plain alpha mask.

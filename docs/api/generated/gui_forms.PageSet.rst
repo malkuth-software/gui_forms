@@ -195,7 +195,7 @@ gui_forms::PageSet
           status = right.select(gf::PageId{"notes"}, gf::PageSelectionCause::programmatic);
       }
       // One pages_changed and one selected_page_changed were published by
-      // ``right`` when the batch closed.
+      // `right` when the batch closed.
       static_cast<void>(status);
 
 

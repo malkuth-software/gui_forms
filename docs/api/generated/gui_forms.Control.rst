@@ -769,7 +769,7 @@ gui_forms::Control
       std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("dialog"));
       std::shared_ptr<gf::Button> ok = gf::make_control<gf::Button>(gf::StableId("dialog.ok"), "OK");
       (*ok).set_bounds({300.0, 200.0, 80.0, 28.0});
-      (*ok).anchor = gf::AnchorStyles::right \| gf::AnchorStyles::bottom;
+      (*ok).anchor = gf::AnchorStyles::right | gf::AnchorStyles::bottom;
       (*root).add_child(ok);
 
       gf::Window window(root, gf::Size{400.0, 240.0});

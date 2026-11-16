@@ -938,6 +938,15 @@ std::string_view part_blend_name(PartBlend blend) {
     case PartBlend::normal: return "normal";
     case PartBlend::multiply: return "multiply";
     case PartBlend::screen: return "screen";
+    case PartBlend::overlay: return "overlay";
+    case PartBlend::darken: return "darken";
+    case PartBlend::lighten: return "lighten";
+    case PartBlend::color_dodge: return "color-dodge";
+    case PartBlend::color_burn: return "color-burn";
+    case PartBlend::hard_light: return "hard-light";
+    case PartBlend::soft_light: return "soft-light";
+    case PartBlend::difference: return "difference";
+    case PartBlend::exclusion: return "exclusion";
     }
     return {};
 }

@@ -1104,7 +1104,7 @@ void test_theme_filters() {
 }
 
 void test_refusals() {
-    const std::array<Refusal, 98> refusals{{
+    const std::array<Refusal, 104> refusals{{
         {"#a { reflection: below backplane 1px }", DiagnosticCode::value_syntax},
         {"#a { reflection: below 1px mirror }", DiagnosticCode::keyword_unknown},
         {"#a { reflection: below 4px 6px }", DiagnosticCode::value_out_of_range},

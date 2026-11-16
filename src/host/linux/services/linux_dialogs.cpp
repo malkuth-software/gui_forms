@@ -1,10 +1,13 @@
-#include "../application/linux_host_internal.hpp"
+// The GUI.Forms headers first: linux_host_internal.hpp brings in Xlib.h,
+// whose `#define Status int` would break stxlib::Status (result.hpp, through
+// color_picker.hpp's stxlib::Unique).
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
 #include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/text_box.hpp"
+#include "../application/linux_host_internal.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>

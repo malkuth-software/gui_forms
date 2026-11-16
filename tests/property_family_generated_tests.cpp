@@ -691,27 +691,27 @@ void test_data_grid_view_properties() {
         expect((*control).show_editing_icon.read() == sample, "DataGridView.show_editing_icon: a write stores");
     }
     {
-        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)};
         (*control).default_cell_style = sample;
         expect((*control).default_cell_style.read() == sample, "DataGridView.default_cell_style: a write stores");
     }
     {
-        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)};
         (*control).rows_default_cell_style = sample;
         expect((*control).rows_default_cell_style.read() == sample, "DataGridView.rows_default_cell_style: a write stores");
     }
     {
-        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)};
         (*control).alternating_rows_default_cell_style = sample;
         expect((*control).alternating_rows_default_cell_style.read() == sample, "DataGridView.alternating_rows_default_cell_style: a write stores");
     }
     {
-        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)};
         (*control).column_headers_default_cell_style = sample;
         expect((*control).column_headers_default_cell_style.read() == sample, "DataGridView.column_headers_default_cell_style: a write stores");
     }
     {
-        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)};
         (*control).row_headers_default_cell_style = sample;
         expect((*control).row_headers_default_cell_style.read() == sample, "DataGridView.row_headers_default_cell_style: a write stores");
     }

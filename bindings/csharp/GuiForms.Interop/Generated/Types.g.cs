@@ -881,7 +881,35 @@ public unsafe struct gf_relative_pointer_state
     public uint reserved;
 }
 
-/// <summary>gf_controls_table (table, 152 bytes).</summary>
+/// <summary>gf_effect_mask_layer (extensible, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_effect_mask_layer
+{
+    public uint struct_size;
+    public gf_effect_mask_mode mode;
+    public gf_effect_mask_composite composite;
+    public uint start_rgba;
+    public uint end_rgba;
+    public uint reserved;
+    public gf_logical_point start;
+    public gf_logical_point end;
+}
+
+/// <summary>gf_content_effect (extensible, 1216 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_effect
+{
+    public uint struct_size;
+    public uint has_colour_matrix;
+    public uint has_colour_table;
+    public uint mask_count;
+    public fixed double colour_matrix[20];
+    public fixed byte colour_table[1024];
+    public double blur;
+    public gf_effect_mask_layer* masks;
+}
+
+/// <summary>gf_controls_table (table, 160 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_controls_table
 {
@@ -905,6 +933,7 @@ public unsafe struct gf_controls_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_relative_pointer_state*, gf_status> relative_pointer_state;
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_point, uint*, gf_status> warp_pointer;
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, uint, gf_status> set_pointer_release_regions;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_effect*, gf_status> set_content_effect;
 }
 
 /// <summary>gf_text_decoration (record, 56 bytes).</summary>

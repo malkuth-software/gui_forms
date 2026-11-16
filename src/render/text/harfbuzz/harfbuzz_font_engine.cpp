@@ -938,7 +938,7 @@ public:
         account_array(faces.capacity(), sizeof(Face), limit, bytes);
         account_array(maximum_faces, sizeof(Face*), limit, bytes);
         account_array(1U, sizeof(ShapeCall), limit, bytes);
-        account_array(1U, sizeof(BidiOwner), limit, bytes);
+        account_array(1U, sizeof(TextAnalysis), limit, bytes);
         account_array(1U, sizeof(ShapedText), limit, bytes);
         return bytes;
     }
@@ -1032,12 +1032,12 @@ public:
         // Each paragraph reordered as one line (stxlib::textlayout); the runs'
         // offsets are bytes of the whole text.
         const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
-        const stxlib::TextView* const text = validated.value();
-        if (text == nullptr) throw std::runtime_error("Bounded bidi analysis of invalid UTF-8");
+        const stxlib::TextView* const validated_text = validated.value();
+        if (validated_text == nullptr) throw std::runtime_error("Bounded bidi analysis of invalid UTF-8");
         std::size_t offset = 0;
         std::size_t direction_count = 0;
         while (offset < utf8.size()) {
-            const std::size_t length = analyse_paragraph_line(*text, offset, analysis);
+            const std::size_t length = analyse_paragraph_line(*validated_text, offset, analysis);
             const stxlib::View<stxlib::textlayout::BidiRun> runs = analysis.line.runs();
             const std::size_t count = runs.count();
             if (count > scalar_capacity - direction_count) throw std::length_error("Direction capacity exceeded");

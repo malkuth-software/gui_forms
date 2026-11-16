@@ -42,8 +42,12 @@ public:
 
     void detach_view() noexcept override;
 
-private:
+    // The IOSurface state, defined in the .mm and named here so its
+    // file-local helpers (free_surfaces, hide_layer) can take it; it stays
+    // incomplete outside that file.
     struct State;
+
+private:
     std::unique_ptr<State> state_;
 };
 

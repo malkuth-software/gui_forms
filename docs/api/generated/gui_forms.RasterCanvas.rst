@@ -202,8 +202,8 @@ gui_forms::RasterCanvas
           void draw_at(gf::MouseEventArgs& arguments) {
               const gui_drawing::PointF at =
                   client_to_bitmap(point_from_window(arguments.window_position));
-              if (at.x < 0.0 \|\| at.y < 0.0 \|\|
-                  at.x >= static_cast<double>((*bitmap.read()).width()) \|\|
+              if (at.x < 0.0 || at.y < 0.0 ||
+                  at.x >= static_cast<double>((*bitmap.read()).width()) ||
                   at.y >= static_cast<double>((*bitmap.read()).height())) {
                   return;
               }

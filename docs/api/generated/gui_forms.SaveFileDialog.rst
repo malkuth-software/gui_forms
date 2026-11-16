@@ -157,7 +157,7 @@ gui_forms::SaveFileDialog
       gf::Window window(root, {320.0, 200.0});
       gf::SaveFileDialog dialog;
       dialog.title = "Export report";
-      dialog.filter = "Reports\|*.txt\|All files\|*.*";
+      dialog.filter = "Reports|*.txt|All files|*.*";
       dialog.default_ext = "txt";
       dialog.file_name = "summary";
       const gf::DialogResult result = dialog.show_dialog(window);

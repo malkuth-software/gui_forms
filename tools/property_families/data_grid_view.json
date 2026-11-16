@@ -249,7 +249,7 @@
       "hand": [
         "prepare validates the style; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
-      "sample": "DataGridViewCellStyle{.wrap_mode = true}"
+      "sample": "DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)}"
     },
     {
       "name": "rows_default_cell_style",
@@ -269,7 +269,7 @@
       "hand": [
         "prepare validates the style; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
-      "sample": "DataGridViewCellStyle{.wrap_mode = true}"
+      "sample": "DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)}"
     },
     {
       "name": "alternating_rows_default_cell_style",
@@ -289,7 +289,7 @@
       "hand": [
         "prepare validates the style; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
-      "sample": "DataGridViewCellStyle{.wrap_mode = true}"
+      "sample": "DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)}"
     },
     {
       "name": "column_headers_default_cell_style",
@@ -309,7 +309,7 @@
       "hand": [
         "prepare validates the style; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
-      "sample": "DataGridViewCellStyle{.wrap_mode = true}"
+      "sample": "DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)}"
     },
     {
       "name": "row_headers_default_cell_style",
@@ -329,7 +329,7 @@
       "hand": [
         "prepare validates the style; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
-      "sample": "DataGridViewCellStyle{.wrap_mode = true}"
+      "sample": "DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)}"
     },
     {
       "name": "enable_headers_visual_styles",

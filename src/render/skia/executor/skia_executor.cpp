@@ -95,6 +95,12 @@ namespace {
     return forms;
 }
 
+// A linear-light expanded stop's colour (gui_forms::Color, plain channels;
+// forms_color_of above already turned an empty colour transparent).
+[[nodiscard]] SkColor to_sk_color(gui_forms::Color color) noexcept {
+    return SkColorSetARGB(color.alpha, color.red, color.green, color.blue);
+}
+
 [[nodiscard]] std::uint8_t premultiply(std::uint8_t channel,
                                        std::uint8_t alpha) noexcept {
     return static_cast<std::uint8_t>(

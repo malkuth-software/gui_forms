@@ -348,10 +348,10 @@ bool X11Windowing::owned_by(HostWindowId window,
        ++depth) {
     if (current == ancestor)
       return true;
-    const std::optional<HostWindowId> next = owner(current);
-    if (!next.has_value())
+    const stxlib::Optional<HostWindowId> next = owner(current);
+    if (next.absent())
       return false;
-    current = *next;
+    current = *next.value();
   }
   return false;
 }

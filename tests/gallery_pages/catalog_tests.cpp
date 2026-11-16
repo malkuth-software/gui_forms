@@ -23,7 +23,7 @@ void test_catalog_pages_resolve_and_headers_describe_pages() {
             std::string(gallery::surface_id_prefix) + std::string(page.id);
         require((*navigation_list(window)).index_of(std::string(gallery::navigation_id_prefix) +
                                                     std::string(page.id))
-                    .has_value(),
+                    .present(),
                 "every page must have a navigation row");
         const std::shared_ptr<Label> title =
             std::dynamic_pointer_cast<Label>(window.find(surface_id + ".title"));

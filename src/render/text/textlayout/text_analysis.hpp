@@ -52,8 +52,8 @@ public:
     // Counts the change of bytes_held since the last count.
     void account() noexcept {
         const std::size_t held = bytes_held();
-        if (held > counted_) count_allocation(AllocationSubsystem::text_layout, held - counted_);
-        if (held < counted_) count_release(AllocationSubsystem::text_layout, counted_ - held);
+        if (held > counted_) detail::count_allocation(AllocationSubsystem::text_layout, held - counted_);
+        if (held < counted_) detail::count_release(AllocationSubsystem::text_layout, counted_ - held);
         counted_ = held;
     }
 

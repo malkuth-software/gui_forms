@@ -457,6 +457,10 @@ public:
     SurfaceCapsuleHelpTarget capsule_help{};
     bool quitting{};
 
+    // The host's capabilities with the manager's own presentation bits
+    // (reference_presentation and direct_buffers always, host_scroll as the
+    // policy turns it on).
+    [[nodiscard]] HostCapabilities capabilities() const;
 private:
     void handle(SurfaceInputRecord& record);
     void handle_pointer(const SurfaceInputRecord& record);
@@ -485,10 +489,6 @@ private:
     // The client window and position a surface point reaches for pointer
     // input: the pressed window while a press lasts, else the desk's hit.
     [[nodiscard]] SurfaceDeskHit pointer_target(Point point) const noexcept;
-    // The host's capabilities with the manager's own presentation bits
-    // (reference_presentation and direct_buffers always, host_scroll as the
-    // policy turns it on).
-    [[nodiscard]] HostCapabilities capabilities() const;
     // Composes the damage into the host's surface and presents it.
     void compose();
     // The reference host scroll for one window whose copies are composable:

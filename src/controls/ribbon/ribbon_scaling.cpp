@@ -154,8 +154,8 @@ void validate_reduction_order(const RibbonTabSpec& tab, const std::vector<std::v
             }
             continue;
         }
-        const stxlib::Optional<std::size_t> found = gallery_of(tab.groups[group]);
-        const std::size_t* const gallery = found.value();
+        const stxlib::Optional<std::size_t> gallery_found = gallery_of(tab.groups[group]);
+        const std::size_t* const gallery = gallery_found.value();
         if (gallery == nullptr) throw std::invalid_argument("Ribbon gallery step names a group without a gallery");
         if (group_layouts[layout_steps[group]].size == RibbonGroupSize::collapsed) {
             throw std::invalid_argument("Ribbon gallery step follows its group's collapse");

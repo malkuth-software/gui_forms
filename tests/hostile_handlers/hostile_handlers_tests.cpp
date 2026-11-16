@@ -646,7 +646,7 @@ void check_combo_box(Stage& stage, Findings& findings) {
     const std::shared_ptr<ComboBox> combo = subject_as<ComboBox>(stage);
     if (combo == nullptr) return;
     const std::size_t count = (*combo).items.read().size();
-    const stxlib::Optional<std::size_t> selected = (*combo).selected_index();
+    const stxlib::Optional<std::size_t> selected = (*combo).selected_index.read();
     const std::size_t* const selected_index = selected.value();
     if (selected_index != nullptr && *selected_index >= count) findings.fail("ComboBox's selected index is past its items");
     const ComboBox& view = *combo;

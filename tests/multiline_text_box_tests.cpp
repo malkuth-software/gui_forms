@@ -648,7 +648,7 @@ void caret_blink_follows_settings() {
     PresentationSettings never = fixture.window.presentation_settings();
     never.caret = CaretSettings{0U, SettingOrigin::host};
     fixture.window.set_presentation_settings(never);
-    static_cast<void>(fixture.window.poll_frame_schedule(*deadline));
+    static_cast<void>(fixture.window.poll_frame_schedule(*deadline.value()));
     static_cast<void>(fixture.window.take_damage());
     require(fixture.window.next_wake().absent(), "turning blinking off stops the running timer");
     painter.lines = 0U;

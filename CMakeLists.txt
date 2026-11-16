@@ -1079,6 +1079,10 @@ add_library(gui_drawing_core STATIC
     src/core/drawing/region/region.cpp
     src/core/drawing/string_format/string_format.cpp
     src/core/drawing/texture_brush/texture_brush.cpp
+    # The Painter's bridge for recorded GUI.Drawing (gd_*) commands, which
+    # the Skia executor (gui_drawing_skia) also calls: here, since this
+    # target links gui_forms_core (the Painter) beside the recorder.
+    src/core/drawing/drawing_replay/drawing_replay.cpp
 )
 target_include_directories(gui_drawing_core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -1087,6 +1091,11 @@ target_include_directories(gui_drawing_core PUBLIC
 target_include_directories(gui_drawing_core PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/generated/font_substitution)
 target_compile_features(gui_drawing_core PUBLIC cxx_std_20)
+# Drawing paths take the engine's trigonometry (engine_math, built into
+# gui_forms_core; drawing_support.hpp), so every program that links the
+# drawing core links the core too. gui_forms_core builds no drawing source,
+# so the link is one way.
+target_link_libraries(gui_drawing_core PRIVATE gui_forms_core)
 set_target_properties(gui_drawing_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # The GUI.Drawing C API (gui_forms/drawing_c_api.h). Its objects ship inside
@@ -1186,10 +1195,6 @@ gui_forms_verify_effects(gui_forms_plot_primitives
     SOURCES src/plots/signal_program/signal_program.cpp)
 
 add_library(gui_forms_controls STATIC
-    # The Painter's bridge for recorded GUI.Drawing (gd_*) commands: core
-    # drawing infrastructure, built here because only this target links both
-    # gui_forms_core (the Painter) and gui_drawing_core (the recorder).
-    src/core/drawing/drawing_replay/drawing_replay.cpp
     src/controls/basic/basic_control_rendering.cpp
     src/controls/connected_controls/connected_controls.cpp
     src/controls/panel/panel.cpp

@@ -2645,7 +2645,7 @@ typedef uint32_t gf_effect_mask_composite;
  * logical units (the standard deviation is half of it, as CSS blur()'s
  * radius is read). */
 #define GF_CONTENT_EFFECT_MAXIMUM_MASKS 4u
-#define GF_CONTENT_EFFECT_MAXIMUM_BLUR 16.0
+#define GF_CONTENT_EFFECT_MAXIMUM_BLUR 16u
 
 /*
  * One mask layer: a linear ramp from start_rgba at start to end_rgba at

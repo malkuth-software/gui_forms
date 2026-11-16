@@ -662,6 +662,41 @@
       "type": "uint32"
     },
     {
+      "name": "GF_PROCEDURAL_PATTERN_HATCH",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HATCH_STYLE_HORIZONTAL",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HATCH_STYLE_VERTICAL",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HATCH_STYLE_FORWARD_DIAGONAL",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HATCH_STYLE_BACKWARD_DIAGONAL",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HATCH_STYLE_CROSS",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HATCH_STYLE_DIAGONAL_CROSS",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
       "name": "GF_FINISH_DUSTY_MATTE",
       "value": 0,
       "type": "uint32"
@@ -1769,6 +1804,56 @@
     {
       "name": "GF_RELATIVE_POINTER_END_SUPERSEDED",
       "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_EFFECT_MASK_MODE_ALPHA",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_EFFECT_MASK_MODE_LUMINANCE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_EFFECT_MASK_MODE_INVERSE_ALPHA",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_EFFECT_MASK_MODE_INVERSE_LUMINANCE",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_EFFECT_MASK_COMPOSITE_ADD",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_EFFECT_MASK_COMPOSITE_SUBTRACT",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_EFFECT_MASK_COMPOSITE_INTERSECT",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_EFFECT_MASK_COMPOSITE_EXCLUDE",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_EFFECT_MAXIMUM_MASKS",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_EFFECT_MAXIMUM_BLUR",
+      "value": 16,
       "type": "uint32"
     },
     {
@@ -3567,6 +3652,14 @@
     },
     {
       "name": "gf_relative_pointer_end",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_effect_mask_mode",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_effect_mask_composite",
       "type": "uint32_t"
     },
     {
@@ -9283,9 +9376,121 @@
       ]
     },
     {
+      "name": "gf_effect_mask_layer",
+      "kind": "extensible",
+      "size": 56,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "mode",
+          "type": "gf_effect_mask_mode",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "composite",
+          "type": "gf_effect_mask_composite",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "start_rgba",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "end_rgba",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "start",
+          "type": "gf_logical_point",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "end",
+          "type": "gf_logical_point",
+          "offset": 40,
+          "size": 16
+        }
+      ]
+    },
+    {
+      "name": "gf_content_effect",
+      "kind": "extensible",
+      "size": 1216,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "has_colour_matrix",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "has_colour_table",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "mask_count",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "colour_matrix",
+          "type": "double[20]",
+          "offset": 16,
+          "size": 160
+        },
+        {
+          "name": "colour_table",
+          "type": "uint8_t[1024]",
+          "offset": 176,
+          "size": 1024
+        },
+        {
+          "name": "blur",
+          "type": "double",
+          "offset": 1200,
+          "size": 8
+        },
+        {
+          "name": "masks",
+          "type": "const gf_effect_mask_layer*",
+          "offset": 1208,
+          "size": 8
+        }
+      ]
+    },
+    {
       "name": "gf_controls_table",
       "kind": "table",
-      "size": 152,
+      "size": 160,
       "align": 8,
       "fields": [
         {
@@ -9667,6 +9872,26 @@
               {
                 "name": "count",
                 "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "set_content_effect",
+          "type": "function",
+          "offset": 152,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "effect",
+                "type": "const gf_content_effect*"
               }
             ]
           },

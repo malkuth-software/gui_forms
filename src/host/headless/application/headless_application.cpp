@@ -209,9 +209,9 @@ HostServiceStatus HeadlessWindowing::run_modal_impl(HostWindowId window) {
                 owned_by_modal = true;
                 break;
             }
-            const std::optional<HostWindowId> next = owner(current);
-            if (!next.has_value()) break;
-            current = *next;
+            const stxlib::Optional<HostWindowId> next = owner(current);
+            if (next.absent()) break;
+            current = *next.value();
         }
         if (!owned_by_modal) blocked_.push_back(candidate);
     }
@@ -286,10 +286,10 @@ void HeadlessWindowing::move_native(HostWindowId window, Rect content) {
         carried.reserve(maximum_windows);
         for (std::size_t index = 0U; index < natives_.size(); ++index) {
             const HostWindowId candidate = natives_[index].id;
-            const std::optional<HostWindowKind> candidate_kind = kind(candidate);
-            const std::optional<HostWindowId> candidate_owner = owner(candidate);
-            if (!candidate_kind.has_value() || !candidate_owner.has_value()) continue;
-            if (*candidate_owner != window || !host_window_kind_traits(*candidate_kind).floating) continue;
+            const stxlib::Optional<HostWindowKind> candidate_kind = kind(candidate);
+            const stxlib::Optional<HostWindowId> candidate_owner = owner(candidate);
+            if (candidate_kind.absent() || candidate_owner.absent()) continue;
+            if (*candidate_owner.value() != window || !host_window_kind_traits(*candidate_kind.value()).floating) continue;
             carried.push_back(candidate);
         }
         // The primary window's native rectangle moves with them, as the
@@ -415,8 +415,8 @@ HostServiceStatus HeadlessWindowing::bring_to_front_impl(HostWindowId window) {
         raise_native(pending[next]);
         for (std::size_t index = order_.size(); index > 0U; --index) {
             const HostWindowId candidate = order_[index - 1U];
-            const std::optional<HostWindowId> candidate_owner = owner(candidate);
-            if (candidate_owner.has_value() && *candidate_owner == pending[next]) {
+            const stxlib::Optional<HostWindowId> candidate_owner = owner(candidate);
+            if (candidate_owner.present() && *candidate_owner.value() == pending[next]) {
                 pending.push_back(candidate);
             }
         }

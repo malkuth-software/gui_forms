@@ -73,7 +73,7 @@
       "reviewed": false,
       "summary": "Runs the retained layout barrier; paint remains host-demand driven."
     },
-    "gui_forms::SurfaceRoot::paint|std::optional<PaintReceipt> (Painter &, Rect)": {
+    "gui_forms::SurfaceRoot::paint|stxlib::Optional<PaintReceipt> (Painter &, Rect)": {
       "reviewed": false,
       "summary": "Acquires the exclusive revision/epoch lease, applies bounded layout, replays damaged retained planes, produces an exact receipt only for a coherent current result, and defers reentrant input/paint."
     },
@@ -101,7 +101,7 @@
       "reviewed": false,
       "summary": "Reports retained damage or due scheduled work without polling controls."
     },
-    "gui_forms::SurfaceRoot::next_wake|std::optional<FrameTime> () const noexcept": {
+    "gui_forms::SurfaceRoot::next_wake|stxlib::Optional<FrameTime> () const noexcept": {
       "reviewed": false,
       "summary": "Returns the earliest eligible frame/timer deadline, respecting occlusion."
     },

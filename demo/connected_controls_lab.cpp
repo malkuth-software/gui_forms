@@ -186,13 +186,31 @@ std::shared_ptr<const Theme> pearl_theme() {
     return theme;
 }
 
+// The lab's segment face. A button's font cell holds a FontSpec, a check
+// box's (the label capability) an stxlib::Optional<FontSpec>: one overload
+// per cell value type.
+FontSpec segment_font() {
+    const FontSpec font{FontRole::control, 10.0, 600, false, 0.08};
+    return font;
+}
+
+template <typename Capability>
+void set_segment_font(PropertyCell<FontSpec, Capability>& cell) {
+    cell = segment_font();
+}
+
+template <typename Capability>
+void set_segment_font(PropertyCell<stxlib::Optional<FontSpec>, Capability>& cell) {
+    cell = stxlib::Optional<FontSpec>::of(segment_font());
+}
+
 template <typename ButtonType>
 std::shared_ptr<ButtonType> segment(std::string id, std::string text,
                                     const Rect bounds,
                                     const std::shared_ptr<LabRoot>& root) {
     std::shared_ptr<ButtonType> result = make_control<ButtonType>(
         StableId(std::move(id)), std::move(text));
-    (*result).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 10.0, 600, false, 0.08});
+    set_segment_font((*result).font);
     (*result).margin = Insets{};
     add_at(root, result, bounds);
     return result;

@@ -11,6 +11,7 @@
 #include "../src/core/host/presentation/presentation_shim.hpp"
 #include "../src/core/host/presentation/presentation_trace.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -19,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -829,7 +831,11 @@ public:
     NonWaitingPath() : buffer(make_image(16U, 16U, 0U)) {}
 
     DirectAcquire acquire(PresentExtent extent) override {
-        const PresentHoldCount count = count_present_holds(displayed);
+        // std::vector<bool> holds no bools to view: copied for the span.
+        std::array<bool, 16> flags{};
+        const std::size_t flagged = std::min(displayed.size(), flags.size());
+        for (std::size_t index = 0U; index < flagged; ++index) flags[index] = displayed[index];
+        const PresentHoldCount count = count_present_holds(std::span<const bool>(flags.data(), flagged));
         displayed.erase(displayed.begin(), displayed.begin() + static_cast<std::ptrdiff_t>(count.displaced));
         if (count.held >= pool) return DirectAcquire::refused(DirectRefusal::busy);
         // Stands for nextDrawable, which may wait while the pool is held.

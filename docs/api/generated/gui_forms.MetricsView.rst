@@ -94,7 +94,7 @@ gui_forms::MetricsView
               gf::on(timer.tick(), *this, &MetricsRefresh::on_tick);
               timer.start();
           }
-          void on_tick() { (*view).invalidate(gf::Dirty::paint \| gf::Dirty::semantics); }
+          void on_tick() { (*view).invalidate(gf::Dirty::paint | gf::Dirty::semantics); }
       };
 
       void example() {

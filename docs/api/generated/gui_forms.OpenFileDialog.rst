@@ -142,7 +142,7 @@ gui_forms::OpenFileDialog
       gf::Window window(root, {320.0, 200.0});
       gf::OpenFileDialog dialog;
       dialog.title = "Open recordings";
-      dialog.filter = "Recordings\|*.wav;*.flac\|All files\|*.*";
+      dialog.filter = "Recordings|*.wav;*.flac|All files|*.*";
       dialog.multiselect = true;
       const gf::DialogResult result = dialog.show_dialog(window);
       if (result == gf::DialogResult::ok) {

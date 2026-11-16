@@ -1506,6 +1506,14 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status set_content_effect(gf_object object, const gf_content_effect* effect) const noexcept {
+        if (table_.struct_size < 160u || table_.set_content_effect == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_content_effect(object, effect);
+        return called;
+    }
+
 private:
     gf_controls_table table_;
 };

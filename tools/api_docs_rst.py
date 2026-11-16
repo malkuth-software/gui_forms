@@ -290,17 +290,32 @@ class Linker:
 
     def prose(self, text: str, owner: str = "", members: frozenset[str] = frozenset()) -> str:
         pattern = re.compile(r"(?<![`:\\\w])`([^`\n]+)`(?![`_\w])")
-        # Outside the code spans a comment's | (an absolute value, |x|) is
-        # text, not a reStructuredText substitution reference.
-        pieces: list[str] = []
-        last: int = 0
-        match: re.Match[str]
-        for match in pattern.finditer(text):
-            pieces.append(text[last:match.start()].replace("|", "\\|"))
-            pieces.append(self.span(match.group(1), owner, members))
-            last = match.end()
-        pieces.append(text[last:].replace("|", "\\|"))
-        return "".join(pieces)
+        # Outside the code spans and literal blocks a comment's | (an absolute
+        # value, |x|) is text, not a reStructuredText substitution reference.
+        # A literal block (after a line ending "::", or a code-block
+        # directive) is code and keeps its | as written.
+        out: list[str] = []
+        literal: bool = False
+        line: str
+        for line in text.split("\n"):
+            stripped: str = line.strip()
+            if literal and stripped and not line[:1].isspace():
+                literal = False
+            if literal:
+                out.append(line)
+                continue
+            pieces: list[str] = []
+            last: int = 0
+            match: re.Match[str]
+            for match in pattern.finditer(line):
+                pieces.append(line[last:match.start()].replace("|", "\\|"))
+                pieces.append(self.span(match.group(1), owner, members))
+                last = match.end()
+            pieces.append(line[last:].replace("|", "\\|"))
+            out.append("".join(pieces))
+            if stripped.endswith("::") or stripped.startswith(".. code-block::"):
+                literal = True
+        return "\n".join(out)
 
 
 # --- C++ domain declarations ---------------------------------------------------------
