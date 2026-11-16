@@ -361,6 +361,32 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python template_harness/harness/ci_sanitizer_seed.py restore --artifact-id "${{ steps.seed.outputs.artifact-id }}"
+      - name: Identify and verify LLVM release compiler
+        id: compiler
+        if: steps.receipt.outputs.reused != 'true'
+        run: python template_harness/harness/compiler_identity.py
+      # Linux links the harness's static position-independent C++ runtime
+      # (cmake/llvm22.cmake refuses a configure without it), cached under the
+      # native jobs' key.
+      - name: Select the Linux runtime prefix
+        id: linux-runtime
+        if: steps.receipt.outputs.reused != 'true'
+        run: |
+          directory="$(python template_harness/harness/linux_runtime_manifest.py --directory-name)"
+          echo "GUI_FORMS_LLVM_RUNTIME=$PWD/.build/toolchain/$directory" >> "$GITHUB_ENV"
+          echo "directory=$directory" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        if: steps.receipt.outputs.reused != 'true'
+        with:
+          path: .build/toolchain/${{ steps.linux-runtime.outputs.directory }}
+          key: gui-linux-runtimes-v1-${{ steps.linux-runtime.outputs.directory }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('template_harness/harness/build_linux_runtimes.py', 'template_harness/harness/linux_runtime_manifest.py', 'template_harness/harness/macos_runtime_manifest.py') }}
+      - name: Build the static Linux runtimes
+        if: steps.receipt.outputs.reused != 'true'
+        run: |
+          if [ ! -f "$GUI_FORMS_LLVM_RUNTIME/runtime-manifest.json" ]; then
+            python template_harness/harness/build_linux_runtimes.py --work "$RUNNER_TEMP/llvm-runtimes" --prefix "$GUI_FORMS_LLVM_RUNTIME" --jobs 4
+          fi
+          python template_harness/harness/linux_runtime_manifest.py "$GUI_FORMS_LLVM_RUNTIME"
       # A pull request builds and runs only the tests its changed paths can
       # affect (the areas of tools/test_areas.json; every test when it touches
       # CMake, the toolchain, the core headers or this workflow); a merge
