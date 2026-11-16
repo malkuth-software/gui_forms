@@ -1389,10 +1389,11 @@ void Runtime::place_input() {
     NativeWindow* target = keyboard_window();
     std::optional<Rect> caret{};
     if (target != nullptr && !(*target).closed) {
-        const std::optional<Rect> local = (*(*target).entry.model).text_input_caret();
-        if (local.has_value())
-            caret = Rect{(*local).x + (*target).content.x, (*local).y + (*target).content.y, (*local).width,
-                         (*local).height};
+        const stxlib::Optional<Rect> local = (*(*target).entry.model).text_input_caret();
+        if (local.present()) {
+            const Rect& own = *local.value();
+            caret = Rect{own.x + (*target).content.x, own.y + (*target).content.y, own.width, own.height};
+        }
     }
     const bool editing = caret.has_value();
     if (caret == placed_caret_ && editing == placed_editing_) return;

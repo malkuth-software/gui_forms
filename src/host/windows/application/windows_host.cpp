@@ -3408,11 +3408,11 @@ private:
     // without an input context on this window; a refused placement leaves
     // the input method's own default.
     void place_input_method_windows() {
-        const std::optional<Rect> caret = (*model_).text_input_caret();
-        if (!caret) return;
+        const stxlib::Optional<Rect> caret = (*model_).text_input_caret();
+        if (caret.absent()) return;
         const HIMC context = ImmGetContext(hwnd_);
         if (context == nullptr) return;
-        const RECT device = device_rect(*caret);
+        const RECT device = device_rect(*caret.value());
         COMPOSITIONFORM composition{};
         composition.dwStyle = CFS_POINT;
         composition.ptCurrentPos = POINT{device.left, device.top};

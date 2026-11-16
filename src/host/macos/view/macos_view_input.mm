@@ -647,9 +647,10 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
     // the focused control's left edge. Without one, a box at the origin.
     NSRect caret = NSMakeRect(0.0, 0.0, 1.0, 18.0);
     if (_model) {
-        const std::optional<GFRect> inputCaret = (*_model).text_input_caret();
-        if (inputCaret) {
-            caret = NSMakeRect((*inputCaret).x, (*inputCaret).y, (*inputCaret).width, (*inputCaret).height);
+        const stxlib::Optional<GFRect> inputCaret = (*_model).text_input_caret();
+        if (inputCaret.present()) {
+            const GFRect& placed = *inputCaret.value();
+            caret = NSMakeRect(placed.x, placed.y, placed.width, placed.height);
         }
     }
     const NSRect inWindow = [self convertRect:caret toView:nil];

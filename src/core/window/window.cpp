@@ -1631,15 +1631,18 @@ std::vector<Control::Ptr> SurfaceRoot::focus_candidates(
     return result;
 }
 
-std::optional<Rect> SurfaceRoot::text_input_caret() {
+stxlib::Optional<Rect> SurfaceRoot::text_input_caret() {
     require_root_thread("text input caret");
     const Control::Ptr focused = focused_.lock();
-    if (!focused || !eligible(focused)) return std::nullopt;
+    if (!focused || !eligible(focused)) return stxlib::Optional<Rect>::none();
     const Rect bounds = (*focused).absolute_bounds();
-    const std::optional<Rect> local = (*focused).text_input_caret();
+    const stxlib::Optional<Rect> local = (*focused).text_input_caret();
     Rect caret{bounds.x, bounds.y, 1.0, bounds.height};
-    if (local) caret = Rect{bounds.x + (*local).x, bounds.y + (*local).y, (*local).width, (*local).height};
-    return caret;
+    if (local.present()) {
+        const Rect& own = *local.value();
+        caret = Rect{bounds.x + own.x, bounds.y + own.y, own.width, own.height};
+    }
+    return stxlib::Optional<Rect>::of(caret);
 }
 
 bool SurfaceRoot::move_focus(bool forward) {

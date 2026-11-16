@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms::detail {
 
 // One queued input event and the sequence post_input gave it.
@@ -67,7 +69,7 @@ struct SubSurfaceChannel final {
     WindowDispatcher end_dispatcher{};
     std::weak_ptr<SubSurfaceEndListener> end_listener{};
     // The newest text input caret, in the sub-surface's coordinates.
-    std::optional<Rect> text_input_caret{};
+    stxlib::Optional<Rect> text_input_caret{};
     bool stop_requested{};
     // The sub-surface thread's synchronous invokes, revoked by stop() before
     // it joins (detail::RevocableInvokes). Made with the channel, named by

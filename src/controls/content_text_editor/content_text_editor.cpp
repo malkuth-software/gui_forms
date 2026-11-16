@@ -317,12 +317,12 @@ ContentFrameSink ContentTextEditor::open_frames(bool opaque) {
     return sink;
 }
 
-std::optional<Rect> ContentTextEditor::caret_rectangle() const {
-    if (!layout_current()) return std::nullopt;
+stxlib::Optional<Rect> ContentTextEditor::caret_rectangle() const {
+    if (!layout_current()) return stxlib::Optional<Rect>::none();
     const std::optional<Rect> caret = caret_at((*editing_).selection().caret);
-    if (!caret) return std::nullopt;
+    if (!caret) return stxlib::Optional<Rect>::none();
     const Rect local = local_bounds(*caret);
-    return local;
+    return stxlib::Optional<Rect>::of(local);
 }
 
 std::optional<ContentQuad> ContentTextEditor::caret_quad() const {
@@ -822,16 +822,16 @@ void ContentTextEditor::reset_caret_blink() {
 void ContentTextEditor::toggle_caret() {
     if (!focused_) return;
     caret_visible_ = !caret_visible_;
-    const std::optional<Rect> caret = caret_rectangle();
-    if (caret) {
-        invalidate(*caret);
+    const stxlib::Optional<Rect> caret = caret_rectangle();
+    if (caret.present()) {
+        invalidate(*caret.value());
     } else {
         invalidate(Dirty::paint);
     }
 }
 
-std::optional<Rect> ContentTextEditor::text_input_caret() const {
-    const std::optional<Rect> caret = caret_rectangle();
+stxlib::Optional<Rect> ContentTextEditor::text_input_caret() const {
+    const stxlib::Optional<Rect> caret = caret_rectangle();
     return caret;
 }
 
@@ -912,12 +912,12 @@ void ContentTextEditor::on_paint(Painter& painter, Rect local_damage) {
         paint_part(painter, *this, plate);
     }
     if (!focused_ || !caret_visible_ || !(*editing_).selection().empty()) return;
-    const std::optional<Rect> caret = caret_rectangle();
-    if (!caret) return;
+    const stxlib::Optional<Rect> caret = caret_rectangle();
+    if (caret.absent()) return;
     PartPaint bar;
     bar.family = ControlVisualRole::editor;
     bar.role = PartRole::caret;
-    bar.bounds = *caret;
+    bar.bounds = *caret.value();
     bar.states = states;
     paint_part(painter, *this, bar);
 }
@@ -1010,8 +1010,8 @@ void ContentTextEditor::publish_part_geometry(std::span<PartGeometry> geometry) 
     record.scrollable = panel.scrollable;
     if (surface_) record.content = PartGeometry::from_bounds(bounds);
     if (focused_ && caret_visible_ && (*editing_).selection().empty()) {
-        const std::optional<Rect> caret = caret_rectangle();
-        if (caret) record.caret = PartGeometry::from_bounds(*caret);
+        const stxlib::Optional<Rect> caret = caret_rectangle();
+        if (caret.present()) record.caret = PartGeometry::from_bounds(*caret.value());
     }
     const std::vector<Rect> highlight = selection_rectangles();
     if (!highlight.empty()) {

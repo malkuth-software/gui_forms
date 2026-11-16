@@ -5061,7 +5061,7 @@ void Control::on_drag_bubble(DragEvent&) {}
 void Control::on_focus_changed(bool) {}
 bool Control::reveal_focused_descendant(const Control&) { return false; }
 Control::Ptr Control::focus_target() const { return nullptr; }
-std::optional<Rect> Control::text_input_caret() const { return std::nullopt; }
+stxlib::Optional<Rect> Control::text_input_caret() const { return stxlib::Optional<Rect>::none(); }
 void Control::on_focus_cue_changed(bool) {}
 void Control::on_activate() {}
 

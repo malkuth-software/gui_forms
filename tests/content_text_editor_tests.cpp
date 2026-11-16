@@ -315,8 +315,8 @@ void keyboard_editing_requests_layouts() {
     require(!requested.empty() && requested.back() == editor.text_revision(),
             "an edit requests a layout for the new revision");
     require(texts.size() == 1U && texts.back() == "abx", "the edit raises text_changed");
-    require(!editor.caret_rectangle(), "no caret is drawn from a stale layout");
-    require(submit_fixed(editor) == ContentLayoutResult::accepted && editor.caret_rectangle(),
+    require(editor.caret_rectangle().absent(), "no caret is drawn from a stale layout");
+    require(submit_fixed(editor) == ContentLayoutResult::accepted && editor.caret_rectangle().present(),
             "the consumer's new layout brings the caret back");
     require(press(window, PhysicalKey::left) && caret_of(editor) == 2U, "Left moves back a grapheme");
     require(press(window, PhysicalKey::backspace) && editor.text() == "ax" && caret_of(editor) == 1U,
@@ -345,23 +345,23 @@ void caret_and_line_movement_follow_the_layout() {
     require(window.request_focus(fixture.editor), "the editor takes focus");
 
     place_caret(editor, 0U);
-    std::optional<Rect> caret = editor.caret_rectangle();
-    require(caret && near((*caret).x, origin_x - 0.5) && near((*caret).y, origin_y) &&
-                near((*caret).height, line_height),
+    stxlib::Optional<Rect> caret = editor.caret_rectangle();
+    require(caret.present() && near((*caret.value()).x, origin_x - 0.5) && near((*caret.value()).y, origin_y) &&
+                near((*caret.value()).height, line_height),
             "the caret at 0 stands at the first cluster's leading edge");
     place_caret(editor, 2U);
     caret = editor.caret_rectangle();
-    require(caret && near((*caret).x, origin_x + 2.0 * advance - 0.5) && near((*caret).y, origin_y),
+    require(caret.present() && near((*caret.value()).x, origin_x + 2.0 * advance - 0.5) && near((*caret.value()).y, origin_y),
             "the caret at a line's end stands after its last cluster");
     place_caret(editor, 3U);
     caret = editor.caret_rectangle();
-    require(caret && near((*caret).x, origin_x - 0.5) && near((*caret).y, origin_y + line_height),
+    require(caret.present() && near((*caret.value()).x, origin_x - 0.5) && near((*caret.value()).y, origin_y + line_height),
             "the caret after the break starts the next line");
     // ContentTextEditor keeps its override protected; the window reads it
     // through Control, as here.
     const Control& as_control = editor;
-    const std::optional<Rect> ime = as_control.text_input_caret();
-    require(ime && *ime == *caret, "the input method's caret is the drawn caret");
+    const stxlib::Optional<Rect> ime = as_control.text_input_caret();
+    require(ime.present() && *ime.value() == *caret.value(), "the input method's caret is the drawn caret");
 
     place_caret(editor, 4U);
     require(press(window, PhysicalKey::up) && caret_of(editor) == 1U, "Up keeps the caret's x on the line above");
@@ -421,13 +421,13 @@ void clusters_ligatures_and_caret_stops() {
     fi.clusters.push_back({.range = {Utf8Offset(2U), Utf8Offset(3U)}, .line = 0U, .bounds = Rect{20.0, 0.0, 10.0, 20.0}});
     require((*ligature).submit_layout(fi) == ContentLayoutResult::accepted, "a ligature layout is accepted");
     place_caret(*ligature, 1U);
-    std::optional<Rect> caret = (*ligature).caret_rectangle();
-    require(caret && near((*caret).x, 9.5), "a caret inside a ligature divides it by its bytes");
+    stxlib::Optional<Rect> caret = (*ligature).caret_rectangle();
+    require(caret.present() && near((*caret.value()).x, 9.5), "a caret inside a ligature divides it by its bytes");
 
     fi.carets.push_back({.offset = Utf8Offset(1U), .caret = Rect{12.0, 0.0, 2.0, 18.0}});
     require((*ligature).submit_layout(fi) == ContentLayoutResult::accepted, "caret stops are accepted");
     caret = (*ligature).caret_rectangle();
-    require(caret && *caret == (Rect{12.0, 0.0, 2.0, 18.0}), "a caret stop overrides the derived caret");
+    require(caret.present() && *caret.value() == (Rect{12.0, 0.0, 2.0, 18.0}), "a caret stop overrides the derived caret");
 
     std::shared_ptr<ContentTextEditor> rtl =
         make_control<ContentTextEditor>(StableId("content-editor.rtl"), std::string("ab"));
@@ -441,10 +441,10 @@ void clusters_ligatures_and_caret_stops() {
     require((*rtl).submit_layout(mirrored) == ContentLayoutResult::accepted, "a right-to-left layout is accepted");
     place_caret(*rtl, 0U);
     caret = (*rtl).caret_rectangle();
-    require(caret && near((*caret).x, 24.5), "a right-to-left cluster's leading edge is its right");
+    require(caret.present() && near((*caret.value()).x, 24.5), "a right-to-left cluster's leading edge is its right");
     place_caret(*rtl, 2U);
     caret = (*rtl).caret_rectangle();
-    require(caret && near((*caret).x, 4.5), "after the last right-to-left cluster the caret is at its left");
+    require(caret.present() && near((*caret.value()).x, 4.5), "after the last right-to-left cluster the caret is at its left");
 }
 
 void input_method_composition() {
@@ -662,10 +662,10 @@ void layouts_measured_outside_paint_or_after_it() {
     require(type(window, "d") && !editor.layout_current(), "the next edit waits for a layout");
     CountingPainter before_layout{};
     static_cast<void>(window.paint(before_layout, Rect{0.0, 0.0, 320.0, 240.0}));
-    require(!editor.caret_rectangle() && editor.selection_rectangles().empty(),
+    require(editor.caret_rectangle().absent() && editor.selection_rectangles().empty(),
             "until the layout comes the editor shows no caret and keeps working");
     require(press(window, PhysicalKey::left) && caret_of(editor) == 3U, "keys still move the caret without a layout");
-    require(submit_fixed(editor) == ContentLayoutResult::accepted && editor.caret_rectangle(),
+    require(submit_fixed(editor) == ContentLayoutResult::accepted && editor.caret_rectangle().present(),
             "a layout submitted after the consumer's paint is accepted");
 }
 
@@ -676,7 +676,7 @@ void resubmitting_the_same_revision_is_silent() {
     require(submit_fixed(editor) == ContentLayoutResult::accepted, "the first layout is accepted");
     place_caret(editor, 1U);
     window.perform_layout();
-    const std::optional<Rect> first = editor.caret_rectangle();
+    const stxlib::Optional<Rect> first = editor.caret_rectangle();
     std::vector<std::uint64_t> requested;
     std::vector<std::string> texts;
     std::vector<TextSelection> selections;
@@ -694,8 +694,8 @@ void resubmitting_the_same_revision_is_silent() {
         require(editor.submit_layout(scrolled) == ContentLayoutResult::accepted,
                 "a layout for the same revision is accepted again");
         window.perform_layout();
-        const std::optional<Rect> moved = editor.caret_rectangle();
-        require(first && moved && near((*moved).y, (*first).y + shift) && near((*moved).x, (*first).x),
+        const stxlib::Optional<Rect> moved = editor.caret_rectangle();
+        require(first.present() && moved.present() && near((*moved.value()).y, (*first.value()).y + shift) && near((*moved.value()).x, (*first.value()).x),
                 "the resubmitted layout moves the caret with the consumer's scroll");
     }
     require(editor.text_revision() == revision, "resubmitting does not change the revision");
@@ -802,10 +802,10 @@ void transformed_layout_boxes() {
     ContentTextLayout plain = fixed_layout(editor.text(), editor.text_revision());
     require(editor.submit_layout(plain) == ContentLayoutResult::accepted, "the plain layout is accepted");
     place_caret(editor, 1U);
-    const std::optional<Rect> plain_caret = editor.caret_rectangle();
-    require(plain_caret.has_value(), "the plain layout has a caret");
+    const stxlib::Optional<Rect> plain_caret = editor.caret_rectangle();
+    require(plain_caret.present(), "the plain layout has a caret");
     const std::optional<ContentQuad> plain_quad = editor.caret_quad();
-    require(plain_quad && (*plain_quad).bounds() == *plain_caret, "without a transform the quad is the rectangle");
+    require(plain_quad && (*plain_quad).bounds() == *plain_caret.value(), "without a transform the quad is the rectangle");
 
     // A quarter turn: local.x = 100 - y, local.y = x.
     ContentLayoutTransform turn{};
@@ -819,9 +819,9 @@ void transformed_layout_boxes() {
     turned.transform.set(turn);
     require(editor.submit_layout(turned) == ContentLayoutResult::accepted, "a turned layout is accepted");
     const std::optional<ContentQuad> quad = editor.caret_quad();
-    require(quad && *quad == map_content_box(turn, *plain_caret), "the caret's quad is the mapped bar");
-    const std::optional<Rect> caret = editor.caret_rectangle();
-    require(caret && *caret == (*quad).bounds(), "caret_rectangle is the quad's bounds");
+    require(quad && *quad == map_content_box(turn, *plain_caret.value()), "the caret's quad is the mapped bar");
+    const stxlib::Optional<Rect> caret = editor.caret_rectangle();
+    require(caret.present() && *caret.value() == (*quad).bounds(), "caret_rectangle is the quad's bounds");
     editor.select(Utf8Offset(0U), Utf8Offset(1U));
     const std::vector<ContentQuad> selection = editor.selection_quads();
     const Rect a_box{origin_x, origin_y, advance, line_height};

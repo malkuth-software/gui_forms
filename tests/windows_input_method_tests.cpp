@@ -31,7 +31,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -103,11 +103,11 @@ struct RunChecks final {
         require(hwnd != nullptr, "the fixture's native window does not exist");
         require(window.request_focus((*(*state).fixture).text), "the text box takes focus");
         window.perform_layout();
-        const std::optional<Rect> caret = window.text_input_caret();
-        require(caret.has_value(), "a focused text box names an input caret");
+        const stxlib::Optional<Rect> caret = window.text_input_caret();
+        require(caret.present(), "a focused text box names an input caret");
         RECT client{};
         require(GetClientRect(hwnd, &client) != FALSE, "the client rectangle");
-        const RECT expected = expected_device_rect(*caret, client);
+        const RECT expected = expected_device_rect(*caret.value(), client);
         require(expected.right > expected.left && expected.bottom > expected.top,
                 "the caret lies inside the client area");
 

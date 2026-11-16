@@ -1115,9 +1115,9 @@ gf_status content_editor_caret_rectangle_body(gf_object editor, std::uint32_t* p
     std::shared_ptr<ContentTextEditor> found;
     const gf_status entered = enter_editor(editor, editor_caret_rectangle_slot, found);
     if (entered != GF_STATUS_OK) return entered;
-    const std::optional<Rect> caret = (*found).caret_rectangle();
-    *present = caret ? 1U : 0U;
-    if (caret) *rectangle = rect_value(*caret);
+    const stxlib::Optional<Rect> caret = (*found).caret_rectangle();
+    *present = caret.present() ? 1U : 0U;
+    if (caret.present()) *rectangle = rect_value(*caret.value());
     return GF_STATUS_OK;
 }
 

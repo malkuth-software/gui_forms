@@ -1958,7 +1958,7 @@ gui_forms::Control
 
       The inner control that takes keyboard focus for this one: a composite field (ComboBox with an edit field, NumericUpDown, MaskedTextBox, SearchField and the like) returns its edit part, which must be a descendant. SurfaceRoot::request_focus gives focus to the target instead (Windows Forms' Focus on a ComboBox puts the caret in its edit), and SurfaceRoot::active_control reports the composite while its target has focus. A composite with a target keeps focusable false itself, so keyboard traversal reaches only the target. The default is null: the control takes focus itself.
 
-   .. cpp:function:: virtual std::optional<Rect> text_input_caret() const
+   .. cpp:function:: virtual stxlib::Optional<Rect> text_input_caret() const
 
       Where an input method places its composition and candidate windows while this control has focus: the caret's box, in local coordinates. The base returns none, and SurfaceRoot::text_input_caret then uses a one-unit-wide box at the control's left edge.
 

@@ -11,6 +11,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // Counters of a host's side of its sub-surface's requests (design note
@@ -233,7 +235,7 @@ protected:
     void on_text_input(TextInputEvent& event) override;
     void on_focus_changed(bool focused) override;
     // The sub-surface's published caret: its coordinates are the host's.
-    [[nodiscard]] std::optional<Rect> text_input_caret() const override;
+    [[nodiscard]] stxlib::Optional<Rect> text_input_caret() const override;
 
 private:
     // The sub-surface's key return target for one thread. The host owns it

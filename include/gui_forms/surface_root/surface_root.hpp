@@ -50,6 +50,8 @@
 #include <variant>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class UpdateScope;
@@ -1100,7 +1102,7 @@ public:
     // one-unit-wide box at its left edge when it names none; none without
     // an eligible focused control. Hosts read it when the input method
     // asks. Root thread only.
-    [[nodiscard]] std::optional<Rect> text_input_caret();
+    [[nodiscard]] stxlib::Optional<Rect> text_input_caret();
     // Raised by request_focus after focus moved, once the controls' own
     // focus notifications (on_focus_changed, focus_observed) ran; not raised
     // when focus is dropped because the focused control left the window. A

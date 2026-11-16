@@ -1480,7 +1480,7 @@ gui_forms::SurfaceRoot
 
       Whether :cpp:func:`control <gui_forms::SurfaceRoot::control>` is focused (Control.Focused): it holds focus, or its focus target does.
 
-   .. cpp:function:: std::optional<Rect> text_input_caret()
+   .. cpp:function:: stxlib::Optional<Rect> text_input_caret()
 
       The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control. Hosts read it when the input method asks. Root thread only.
 
