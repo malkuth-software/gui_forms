@@ -2,6 +2,7 @@
 // kernel, the keyboard stepping and the session's state machine.
 
 #include "drag_engine.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
@@ -655,7 +656,7 @@ double DragEngine::distance_to(const DragLanding& landing, Point adjusted_pointe
         const Rect rect = landing.rect;
         const double dx = std::max({rect.x - adjusted_pointer.x, 0.0, adjusted_pointer.x - (rect.x + rect.width)});
         const double dy = std::max({rect.y - adjusted_pointer.y, 0.0, adjusted_pointer.y - (rect.y + rect.height)});
-        const double distance = std::hypot(dx, dy);
+        const double distance = engine_hypotenuse(dx, dy);
         return distance;
     }
     case DragMetric::euclidean:
@@ -664,7 +665,7 @@ double DragEngine::distance_to(const DragLanding& landing, Point adjusted_pointe
     }
     const double dx = adjusted_pointer.x - landing.anchor.x;
     const double dy = adjusted_pointer.y - landing.anchor.y;
-    const double distance = std::hypot(dx, dy);
+    const double distance = engine_hypotenuse(dx, dy);
     return distance;
 }
 

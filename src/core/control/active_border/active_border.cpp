@@ -2,6 +2,7 @@
 // limiter and rest poses, the colour over time and the stroke's path.
 
 #include "gui_forms/control/active_border/active_border.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -85,7 +86,10 @@ Color active_border_colour_at(const ActiveBorderPose& pose, double seconds) noex
         return lit ? pose.lit : pose.alternate;
     }
     case ActiveBorderMotion::cycling: {
-        const double amount = 0.5 - 0.5 * std::cos(full_turn * pose.frequency * time);
+        // The phase within one cycle first (fmod is exact), so the engine's
+        // deterministic cosine stays in its range however long the border runs.
+        const double phase = std::fmod(pose.frequency * time, 1.0);
+        const double amount = 0.5 - 0.5 * engine_sine_cosine(full_turn * phase).cosine;
         const Color blended = Color::rgba(mixed_channel(pose.lit.red, pose.alternate.red, amount),
                                           mixed_channel(pose.lit.green, pose.alternate.green, amount),
                                           mixed_channel(pose.lit.blue, pose.alternate.blue, amount),

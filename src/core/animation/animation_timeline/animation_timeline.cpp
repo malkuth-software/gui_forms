@@ -1,4 +1,5 @@
 #include "gui_forms/animation.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -88,14 +89,18 @@ double apply_easing(EasingCurve easing, double progress) noexcept {
         const double shifted = value - 2.625 / divisor;
         return scale * shifted * shifted + 0.984375;
     }
-    case EasingCurve::elastic_out:
+    case EasingCurve::elastic_out: {
         if (value == 0.0 || value == 1.0) {
             return value;
         }
-        return std::pow(2.0, -10.0 * value) *
-                   std::sin((value * 10.0 - 0.75) *
-                            (2.0 * 3.14159265358979323846 / 3.0)) +
-               1.0;
+        // The engine's deterministic power and sine (the same bits on
+        // every host).
+        const double decay = engine_power(2.0, -10.0 * value);
+        const EngineSineCosine swing = engine_sine_cosine(
+            (value * 10.0 - 0.75) * (2.0 * 3.14159265358979323846 / 3.0));
+        const double eased = decay * swing.sine + 1.0;
+        return eased;
+    }
     }
     return value;
 }
