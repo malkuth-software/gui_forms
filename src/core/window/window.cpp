@@ -3948,7 +3948,7 @@ void SurfaceRoot::sync_invalidation_overlay() {
     }
 }
 
-void SurfaceRoot::set_invalidation_overlay(std::optional<bool> enabled) {
+void SurfaceRoot::set_invalidation_overlay(stxlib::Optional<bool> enabled) {
     require_root_thread("invalidation overlay setting");
     invalidation_overlay_setting_ = enabled;
     // Applied by the next sync, as a process switch change is.

@@ -23,7 +23,7 @@ namespace {
 
 } // namespace
 
-void SurfaceRoot::set_tool_tips_shown(std::optional<bool> shown) {
+void SurfaceRoot::set_tool_tips_shown(stxlib::Optional<bool> shown) {
     require_root_thread("tooltip switch");
     if (tool_tips_shown_ == shown) return;
     tool_tips_shown_ = shown;

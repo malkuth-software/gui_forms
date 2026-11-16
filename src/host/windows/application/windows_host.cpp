@@ -3689,9 +3689,9 @@ private:
         // The invalidation overlay on, off, or following the program's
         // switch (tools/contention_fuzz.py toggles it under load).
         if (command == "overlay on" || command == "overlay off" || command == "overlay default") {
-            std::optional<bool> enabled{};
-            if (command == "overlay on") enabled = true;
-            if (command == "overlay off") enabled = false;
+            stxlib::Optional<bool> enabled{};
+            if (command == "overlay on") enabled.set(true);
+            if (command == "overlay off") enabled.set(false);
             (*model_).set_invalidation_overlay(enabled);
             collect_damage();
             return TRUE;

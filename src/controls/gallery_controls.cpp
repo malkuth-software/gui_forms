@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <utility>
+#include <stxlib/optional.hpp>
 
 #ifndef GUI_FORMS_VERSION_STRING
 // CMake defines this from project(GUIForms VERSION ...); a bare syntax check
@@ -245,7 +246,7 @@ void GalleryContext::invalidation_overlay_clicked(GalleryContext& context, const
     if (context.window == nullptr) return;
     GalleryWindow& gallery = *context.window;
     const bool shown = (*gallery.gallery_diagnostics_invalidation).checked.read();
-    gallery.set_invalidation_overlay(shown);
+    gallery.set_invalidation_overlay(stxlib::Optional<bool>::of(shown));
 }
 
 void GalleryContext::classic_relief_clicked(GalleryContext& context, const RuleFiring&)

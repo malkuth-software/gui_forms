@@ -15,7 +15,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -548,8 +548,8 @@ gf_status overlays_set_tool_tips_shown_body(gf_object window, gf_tool_tips_setti
     if (found != GF_STATUS_OK) {
         return found;
     }
-    std::optional<bool> shown{};
-    if (setting != GF_TOOL_TIPS_FOLLOW) shown = setting == GF_TOOL_TIPS_SHOWN;
+    stxlib::Optional<bool> shown{};
+    if (setting != GF_TOOL_TIPS_FOLLOW) shown.set(setting == GF_TOOL_TIPS_SHOWN);
     (*target).set_tool_tips_shown(shown);
     return GF_STATUS_OK;
 }
@@ -580,8 +580,8 @@ gf_status overlays_tool_tips_shown_body(gf_object window, std::uint32_t* shown,
     }
     *shown = (*target).tool_tips_shown() ? 1U : 0U;
     if (setting != nullptr) {
-        const std::optional<bool> own = (*target).tool_tips_shown_setting();
-        *setting = !own.has_value() ? GF_TOOL_TIPS_FOLLOW : (*own ? GF_TOOL_TIPS_SHOWN : GF_TOOL_TIPS_HIDDEN);
+        const stxlib::Optional<bool> own = (*target).tool_tips_shown_setting();
+        *setting = own.absent() ? GF_TOOL_TIPS_FOLLOW : (*own.value() ? GF_TOOL_TIPS_SHOWN : GF_TOOL_TIPS_HIDDEN);
     }
     return GF_STATUS_OK;
 }

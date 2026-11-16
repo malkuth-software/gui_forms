@@ -58,6 +58,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -1666,7 +1667,7 @@ void tool_tips_are_asked_of_the_parent() {
     require(!window.tool_tip_visible(), "withdrawing closes it");
 
     // The window's switch: the hover request is declined, nothing shows.
-    window.set_tool_tips_shown(false);
+    window.set_tool_tips_shown(stxlib::Optional<bool>::of(false));
     const std::uint64_t before_declined = (*host).request_statistics().received;
     static_cast<void>(window.dispatch_pointer(pointer_move(Point{20.0 + 16.0, 40.0 + 11.0})));
     require(drain_until_requests(window, *host, ReceivedAtLeast{before_declined + 1U}), "asked again");

@@ -26,7 +26,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -35,6 +35,27 @@
 namespace {
 
 using namespace gui_forms;
+
+// D15 Q3: set_invalidation_overlay and set_tool_tips_shown keep their
+// deprecated std::optional forms for one stage; a plain bool or {} must not
+// reach them silently. Each plain call below is refused (a deleted overload
+// or an ambiguity), and the stxlib form is accepted.
+template <typename Root>
+concept takes_plain_overlay = requires(Root& root) { root.set_invalidation_overlay(true); };
+template <typename Root>
+concept takes_empty_overlay = requires(Root& root) { root.set_invalidation_overlay({}); };
+template <typename Root>
+concept takes_plain_tool_tips = requires(Root& root) { root.set_tool_tips_shown(false); };
+template <typename Root>
+concept takes_empty_tool_tips = requires(Root& root) { root.set_tool_tips_shown({}); };
+template <typename Root>
+concept takes_optional_switches = requires(Root& root) {
+    root.set_invalidation_overlay(stxlib::Optional<bool>::of(true));
+    root.set_tool_tips_shown(stxlib::Optional<bool>::none());
+};
+static_assert(!takes_plain_overlay<Window> && !takes_empty_overlay<Window>);
+static_assert(!takes_plain_tool_tips<Window> && !takes_empty_tool_tips<Window>);
+static_assert(takes_optional_switches<Window>);
 
 class NullPainter final : public Painter {
 public:
@@ -168,11 +189,11 @@ void window_attribution() {
     Window window(root, Size{200.0, 120.0});
     window.perform_layout();
     NullPainter painter;
-    window.set_invalidation_overlay(false);
+    window.set_invalidation_overlay(stxlib::Optional<bool>::of(false));
     window.paint(painter, {0.0, 0.0, 200.0, 120.0});
     expect(window.invalidation_overlay() == nullptr, "off, a window keeps no overlay");
 
-    window.set_invalidation_overlay(true);
+    window.set_invalidation_overlay(stxlib::Optional<bool>::of(true));
     InvalidationOverlay* const overlay = window.invalidation_overlay();
     expect(overlay != nullptr && window.invalidation_overlay_enabled(), "on, the window makes its overlay");
     (*label).text = "Changed";
@@ -196,7 +217,7 @@ void window_attribution() {
     expect(records_cause(*overlay, InvalidationCause::external_content, "shim"),
            "a host's presented external content is outlined");
 
-    window.set_invalidation_overlay(false);
+    window.set_invalidation_overlay(stxlib::Optional<bool>::of(false));
     expect(window.invalidation_overlay() == nullptr, "turned off, the overlay is released");
 }
 
@@ -206,7 +227,7 @@ void process_switch() {
     Window following(root, Size{100.0, 80.0});
     std::shared_ptr<Panel> other_root = make_control<Panel>(StableId("switch.other"));
     Window opted_out(other_root, Size{100.0, 80.0});
-    opted_out.set_invalidation_overlay(false);
+    opted_out.set_invalidation_overlay(stxlib::Optional<bool>::of(false));
 
     const std::uint64_t generation = invalidation_overlay_default_generation();
     set_invalidation_overlay_default(!before);
@@ -218,7 +239,7 @@ void process_switch() {
     std::shared_ptr<Panel> late_root = make_control<Panel>(StableId("switch.late"));
     Window late(late_root, Size{100.0, 80.0});
     expect(late.invalidation_overlay_enabled(), "a window made later follows the switch too");
-    opted_out.set_invalidation_overlay(std::nullopt);
+    opted_out.set_invalidation_overlay(stxlib::Optional<bool>::none());
     expect(opted_out.invalidation_overlay_enabled(), "a cleared setting follows the switch again");
     set_invalidation_overlay_default(false);
     expect(!following.invalidation_overlay_enabled() && !late.invalidation_overlay_enabled(),
@@ -269,7 +290,7 @@ void counters_card() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("counters.root"));
     Window window(root, Size{200.0, 120.0});
     window.perform_layout();
-    window.set_invalidation_overlay(true);
+    window.set_invalidation_overlay(stxlib::Optional<bool>::of(true));
     NullPainter painter;
     window.paint(painter, {0.0, 0.0, 200.0, 120.0});
     InvalidationOverlay* const filled = window.invalidation_overlay();
@@ -280,7 +301,7 @@ void counters_card() {
         if (line.substr(0U, 6U) == "paint ") paints = true;
     }
     expect(paints, "a line counts paints and damage");
-    window.set_invalidation_overlay(std::nullopt);
+    window.set_invalidation_overlay(stxlib::Optional<bool>::none());
 }
 
 int main() {

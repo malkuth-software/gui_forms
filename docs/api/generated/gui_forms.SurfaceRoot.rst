@@ -102,7 +102,7 @@ gui_forms::SurfaceRoot
       **overrides** : ``WindowOverrides*``, read-only
          Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
-      **invalidation_overlay_setting** : ``std::optional<bool>``, read-only
+      **invalidation_overlay_setting** : ``stxlib::Optional<bool>``, read-only
 
       **text_metrics_provider** : ``TextMetricsProvider*``
 
@@ -271,7 +271,7 @@ gui_forms::SurfaceRoot
 
       **relative_pointer_snapshot** : ``RelativePointerSnapshot``, read-only
 
-      **tool_tips_shown_setting** : ``std::optional<bool>``, read-only
+      **tool_tips_shown_setting** : ``stxlib::Optional<bool>``, read-only
          Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
       **tool_tips_shown** : ``bool``, default follows the application's ``tool_tips_shown()``
@@ -775,7 +775,7 @@ gui_forms::SurfaceRoot
 
       Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
-   .. cpp:function:: std::optional<bool> invalidation_overlay_setting() const noexcept
+   .. cpp:function:: stxlib::Optional<bool> invalidation_overlay_setting() const noexcept
 
    .. cpp:function:: TextMetricsProvider* text_metrics_provider() const noexcept
 
@@ -1015,7 +1015,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: RelativePointerSnapshot relative_pointer_snapshot() const noexcept
 
-   .. cpp:function:: std::optional<bool> tool_tips_shown_setting() const noexcept
+   .. cpp:function:: stxlib::Optional<bool> tool_tips_shown_setting() const noexcept
 
       Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
@@ -1027,6 +1027,10 @@ gui_forms::SurfaceRoot
       joined (``Application::set_tool_tips_shown``), and shows tooltips when it
       joined none. Turning it off closes a tooltip that
       shows. :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>` shows one regardless.
+
+   .. cpp:function:: void set_tool_tips_shown(stxlib::Optional<bool> shown)
+
+      Sets :cpp:func:`tool_tips_shown <gui_forms::SurfaceRoot::tool_tips_shown>`; see the property's description above.
 
    .. cpp:function:: void set_tool_tips_shown(std::optional<bool> shown)
 
@@ -1764,9 +1768,13 @@ gui_forms::SurfaceRoot
 
       Native host borrows its painter until shutdown; clear before destroying it. Created framebuffers own their rendering state independently of the host.
 
-   .. cpp:function:: void set_invalidation_overlay(std::optional<bool> enabled)
+   .. cpp:function:: void set_invalidation_overlay(stxlib::Optional<bool> enabled)
 
       The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp). The window's own setting: on, off, or none to follow the process switch (set_invalidation_overlay_default, read from GUI_FORMS_DEBUG_INVALIDATION at first). Turning it off drops the outlines; turning it on records from the next damage. Neither damages the window. UI thread.
+
+   .. cpp:function:: void set_invalidation_overlay(std::optional<bool> enabled)
+
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: void set_paint_wake_handler(std::function<void()> wake)
 

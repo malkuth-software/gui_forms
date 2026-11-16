@@ -703,8 +703,18 @@ public:
     // from GUI_FORMS_DEBUG_INVALIDATION at first). Turning it off drops
     // the outlines; turning it on records from the next damage. Neither
     // damages the window. UI thread.
-    void set_invalidation_overlay(std::optional<bool> enabled);
-    [[nodiscard]] std::optional<bool> invalidation_overlay_setting() const noexcept {
+    void set_invalidation_overlay(stxlib::Optional<bool> enabled);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<bool>")]]
+    void set_invalidation_overlay(std::optional<bool> enabled) {
+        stxlib::Optional<bool> owned{};
+        if (enabled.has_value()) owned.set(*enabled);
+        set_invalidation_overlay(owned);
+    }
+    // A plain bool is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<bool>::of(enabled).
+    void set_invalidation_overlay(bool enabled) = delete;
+    [[nodiscard]] stxlib::Optional<bool> invalidation_overlay_setting() const noexcept {
         return invalidation_overlay_setting_;
     }
     // Whether the overlay is on now, after the process switch's last
@@ -1297,10 +1307,20 @@ public:
     // decides (Application::tool_tips_shown), and with none they show.
     // Turning tooltips off closes one that
     // shows. UI thread.
-    [[nodiscard]] std::optional<bool> tool_tips_shown_setting() const noexcept {
+    [[nodiscard]] stxlib::Optional<bool> tool_tips_shown_setting() const noexcept {
         return tool_tips_shown_;
     }
-    void set_tool_tips_shown(std::optional<bool> shown);
+    void set_tool_tips_shown(stxlib::Optional<bool> shown);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<bool>")]]
+    void set_tool_tips_shown(std::optional<bool> shown) {
+        stxlib::Optional<bool> owned{};
+        if (shown.has_value()) owned.set(*shown);
+        set_tool_tips_shown(owned);
+    }
+    // A plain bool is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<bool>::of(shown).
+    void set_tool_tips_shown(bool shown) = delete;
     // Whether this window's tooltips show now: its own switch, or the
     // program's while it has none.
     [[nodiscard]] bool tool_tips_shown() const noexcept;
@@ -2671,7 +2691,7 @@ private:
     // overlay); never null once that constructor finished.
     std::unique_ptr<detail::ToolTipRoute> tool_tips_;
     ToolTipSettings tool_tip_settings_{};
-    std::optional<bool> tool_tips_shown_{};
+    stxlib::Optional<bool> tool_tips_shown_{};
     // The joined application's switch (Application::tool_tips_shown), shared
     // so it outlives the application; null for a window that joined none.
     std::shared_ptr<const std::atomic<bool>> application_tool_tips_shown_{};
@@ -2773,7 +2793,7 @@ private:
     // paint. The line storage is the overlay's and is reused.
     void fill_overlay_counters();
     std::unique_ptr<InvalidationOverlay> invalidation_overlay_{};
-    std::optional<bool> invalidation_overlay_setting_{};
+    stxlib::Optional<bool> invalidation_overlay_setting_{};
     std::uint64_t invalidation_overlay_generation_{};
     std::vector<InvalidationCauseRecord> invalidation_causes_{};
     InvalidationCause damage_cause_{InvalidationCause::control};
