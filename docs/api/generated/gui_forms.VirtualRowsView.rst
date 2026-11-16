@@ -43,7 +43,7 @@ gui_forms::VirtualRowsView
 
       **row_count** : ``std::size_t``, read-only
 
-      **measured_row_budget** : ``std::optional<std::size_t>``
+      **measured_row_budget** : ``stxlib::Optional<std::size_t>``
          The most rows kept measured, or none (the default) for no bound. Past
          it, measured rows far from the first visible row return to the
          estimate after each settle; the viewport's band is always kept.
@@ -85,7 +85,7 @@ gui_forms::VirtualRowsView
          ListBox's conventions: Shift extends from the anchor, Ctrl toggles, a
          press drags a range, Ctrl+Space toggles the current row.
 
-      **selected_row** : ``std::optional<VirtualRowIndex>``
+      **selected_row** : ``stxlib::Optional<VirtualRowIndex>``
          The current row: in the single mode the selected row; in the extended mode the row the keyboard and the last press are at, which Ctrl may have unselected.
 
       **selected_ranges** : ``std::span<const VirtualRowRange>``, read-only
@@ -102,7 +102,7 @@ gui_forms::VirtualRowsView
 
       **columns** : ``std::span<const VirtualRowsColumn>``
 
-      **sort_column** : ``std::optional<std::size_t>``, read-only
+      **sort_column** : ``stxlib::Optional<std::size_t>``, read-only
 
       **sort_direction** : ``VirtualRowsSort``, read-only
 
@@ -224,11 +224,15 @@ gui_forms::VirtualRowsView
 
    .. cpp:function:: std::size_t row_count() const noexcept
 
-   .. cpp:function:: std::optional<std::size_t> measured_row_budget() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> measured_row_budget() const noexcept
 
       The most rows kept measured, or none (the default) for no bound. Past
       it, measured rows far from the first visible row return to the
       estimate after each settle; the viewport's band is always kept.
+
+   .. cpp:function:: void set_measured_row_budget(stxlib::Optional<std::size_t> rows)
+
+      Sets :cpp:func:`measured_row_budget <gui_forms::VirtualRowsView::measured_row_budget>`; see the property's description above.
 
    .. cpp:function:: void set_measured_row_budget(std::optional<std::size_t> rows)
 
@@ -297,13 +301,17 @@ gui_forms::VirtualRowsView
 
       Sets :cpp:func:`selection_mode <gui_forms::VirtualRowsView::selection_mode>`; see the property's description above.
 
-   .. cpp:function:: std::optional<VirtualRowIndex> selected_row() const noexcept
+   .. cpp:function:: stxlib::Optional<VirtualRowIndex> selected_row() const noexcept
 
       The current row: in the single mode the selected row; in the extended mode the row the keyboard and the last press are at, which Ctrl may have unselected.
 
-   .. cpp:function:: void set_selected_row(std::optional<VirtualRowIndex> row)
+   .. cpp:function:: void set_selected_row(stxlib::Optional<VirtualRowIndex> row)
 
       Makes a row current and selects it alone (none: clears the selection), setting the anchor, and raises selection_changed when that changes anything; does not scroll. Throws std::out_of_range for a row past the end.
+
+   .. cpp:function:: void set_selected_row(std::optional<VirtualRowIndex> row)
+
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: std::span<const VirtualRowRange> selected_ranges() const& noexcept
 
@@ -326,7 +334,7 @@ gui_forms::VirtualRowsView
 
       Replaces the columns (none: no header) and clears the sort. Throws std::invalid_argument, changing nothing, for more than maximum_columns, an empty or repeated id, header text that is not valid UTF-8, or a width or minimum that is not finite, negative, or a width below its minimum; std::logic_error while a target runs.
 
-   .. cpp:function:: std::optional<std::size_t> sort_column() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> sort_column() const noexcept
 
    .. cpp:function:: VirtualRowsSort sort_direction() const noexcept
 
@@ -413,7 +421,7 @@ gui_forms::VirtualRowsView
 
       A row's rectangle in local coordinates (it may lie outside the viewport). Throws std::out_of_range for a row past the end.
 
-   .. cpp:function:: std::optional<VirtualRowIndex> row_at(Point local_point) const noexcept
+   .. cpp:function:: stxlib::Optional<VirtualRowIndex> row_at(Point local_point) const noexcept
 
       The row under a local point inside the viewport, or none.
 
@@ -437,7 +445,7 @@ gui_forms::VirtualRowsView
 
       The column's cell in ``row`` (a row rectangle, row_bounds): the column's horizontal extent over the row's vertical one, mirrored right to left; it may reach past the viewport. Throws std::out_of_range for a column past the end.
 
-   .. cpp:function:: std::optional<std::size_t> column_at(Point local_point) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> column_at(Point local_point) const noexcept
 
       The column whose extent holds the local x of ``local_point``, or none.
 
@@ -445,9 +453,13 @@ gui_forms::VirtualRowsView
 
       Sets a column's width and raises column_resized when it changed. Throws std::out_of_range for a column past the end and std::invalid_argument for a width that is not finite or below the column's minimum, changing nothing.
 
-   .. cpp:function:: void set_sort(std::optional<std::size_t> column, VirtualRowsSort direction)
+   .. cpp:function:: void set_sort(stxlib::Optional<std::size_t> column, VirtualRowsSort direction)
 
       The sort indicator: ``column`` sorted in ``direction`` (none, or column none, clears it). Throws std::out_of_range for a column past the end.
+
+   .. cpp:function:: void set_sort(std::optional<std::size_t> column, VirtualRowsSort direction)
+
+      The standard form, kept for one stage (D15 Q3).
 
 
    .. rubric:: Extension points

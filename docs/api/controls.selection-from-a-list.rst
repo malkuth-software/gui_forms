@@ -5936,9 +5936,9 @@ Related types
 
    A change of the selection, after it happened: the current row before and after (the row the keyboard and the last press are at; in the single mode the selected row) and how many rows are selected now. Raised when the current row or the set of selected rows changes. A current row erased reports ``current`` none.
 
-   .. cpp:member:: std::optional<VirtualRowIndex> previous
+   .. cpp:member:: stxlib::Optional<VirtualRowIndex> previous
 
-   .. cpp:member:: std::optional<VirtualRowIndex> current
+   .. cpp:member:: stxlib::Optional<VirtualRowIndex> current
 
    .. cpp:member:: std::size_t selected_count
 

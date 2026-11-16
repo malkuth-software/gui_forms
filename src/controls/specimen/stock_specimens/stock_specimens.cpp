@@ -816,7 +816,7 @@ StockSpecimenInstance make_virtual_rows_view(const StockSpecimen&, StableId id) 
     (*control).set_row_callbacks(callbacks);
     (*control).set_estimated_row_height(2.0 * specimen_row_padding + 2.0 * specimen_line_height);
     (*control).reset_rows(specimen_message_rows);
-    (*control).set_selected_row(VirtualRowIndex{1U});
+    (*control).set_selected_row(stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{1U}));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }

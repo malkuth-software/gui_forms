@@ -9,14 +9,12 @@
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
-#include "../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
 #include <charconv>
 #include <cmath>
 #include <cstdint>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <span>
@@ -64,10 +62,10 @@ using input_control_detail::includes;
     return range;
 }
 
-[[nodiscard]] std::optional<VirtualRowIndex> as_row_index(std::optional<std::size_t> row) noexcept {
-    if (!row.has_value()) return std::nullopt;
-    const VirtualRowIndex index{*row};
-    return index;
+[[nodiscard]] stxlib::Optional<VirtualRowIndex> as_row_index(stxlib::Optional<std::size_t> row) noexcept {
+    if (row.absent()) return stxlib::Optional<VirtualRowIndex>::none();
+    const VirtualRowIndex index{*row.value()};
+    return stxlib::Optional<VirtualRowIndex>::of(index);
 }
 
 constexpr std::array<PartField<VirtualRowsView::Parts>, 5> virtual_rows_view_part_fields{{
@@ -228,8 +226,8 @@ void VirtualRowsView::reset_rows(std::size_t count) {
     require_mutable();
     if (count > maximum_rows) throw std::length_error("VirtualRowsView holds at most maximum_rows rows");
     const Control::Ptr lifetime = shared_from_this();
-    const std::optional<std::size_t> previous = selected_;
-    const bool had_selection = previous.has_value() || !ranges_.empty();
+    const stxlib::Optional<std::size_t> previous = selected_;
+    const bool had_selection = previous.present() || !ranges_.empty();
     (*heights_).assign(count, (*heights_).estimated_height());
     offset_ = 0.0;
     anchor_row_ = 0U;
@@ -265,12 +263,12 @@ void VirtualRowsView::insert_rows(VirtualRowIndex at, std::size_t count) {
         const std::size_t room = SIZE_MAX - pending_appended_;
         pending_appended_ = count > room ? SIZE_MAX : pending_appended_ + count;
     }
-    if (selected_.has_value() && *selected_ >= at.value) selected_ = *selected_ + count;
-    if (selection_anchor_.has_value() && *selection_anchor_ >= at.value) {
-        selection_anchor_ = *selection_anchor_ + count;
+    if (selected_.present() && *selected_.value() >= at.value) selected_.set(*selected_.value() + count);
+    if (selection_anchor_.present() && *selection_anchor_.value() >= at.value) {
+        selection_anchor_.set(*selection_anchor_.value() + count);
     }
     shift_selection_for_insert(at.value, count);
-    if (hot_.has_value() && *hot_ >= at.value) hot_ = *hot_ + count;
+    if (hot_.present() && *hot_.value() >= at.value) hot_.set(*hot_.value() + count);
     // Rows inserted at or before the anchor push it down with its content;
     // an end anchor stays the end.
     if (anchored_at_end_) {
@@ -292,26 +290,26 @@ void VirtualRowsView::erase_rows(VirtualRowIndex at, std::size_t count) {
     if (count == 0U) return;
     const std::size_t end = at.value + count;
     const Control::Ptr lifetime = shared_from_this();
-    const std::optional<std::size_t> previous = selected_;
+    const stxlib::Optional<std::size_t> previous = selected_;
     (*heights_).erase(at.value, count);
     bool selection_erased = shift_selection_for_erase(at.value, count);
-    if (selected_.has_value() && *selected_ >= at.value && *selected_ < end) {
+    if (selected_.present() && *selected_.value() >= at.value && *selected_.value() < end) {
         selected_.reset();
         selection_erased = true;
-    } else if (selected_.has_value() && *selected_ >= end) {
-        selected_ = *selected_ - count;
+    } else if (selected_.present() && *selected_.value() >= end) {
+        selected_.set(*selected_.value() - count);
     }
     // An erased anchor moves to the first row after the erased ones.
-    if (selection_anchor_.has_value() && *selection_anchor_ >= end) {
-        selection_anchor_ = *selection_anchor_ - count;
-    } else if (selection_anchor_.has_value() && *selection_anchor_ >= at.value) {
-        selection_anchor_ = at.value;
+    if (selection_anchor_.present() && *selection_anchor_.value() >= end) {
+        selection_anchor_.set(*selection_anchor_.value() - count);
+    } else if (selection_anchor_.present() && *selection_anchor_.value() >= at.value) {
+        selection_anchor_.set(at.value);
         if (at.value >= row_count()) selection_anchor_.reset();
     }
-    if (hot_.has_value() && *hot_ >= at.value && *hot_ < end) {
+    if (hot_.present() && *hot_.value() >= at.value && *hot_.value() < end) {
         hot_.reset();
-    } else if (hot_.has_value() && *hot_ >= end) {
-        hot_ = *hot_ - count;
+    } else if (hot_.present() && *hot_.value() >= end) {
+        hot_.set(*hot_.value() - count);
     }
     if (anchored_at_end_) {
         anchor_row_ = row_count();
@@ -385,7 +383,7 @@ void VirtualRowsView::invalidate_rows(VirtualRowIndex first, std::size_t count) 
     report_scroll();
 }
 
-void VirtualRowsView::set_measured_row_budget(std::optional<std::size_t> rows) {
+void VirtualRowsView::set_measured_row_budget(stxlib::Optional<std::size_t> rows) {
     require_outside_callback();
     require_mutable();
     measured_budget_ = rows;
@@ -469,7 +467,7 @@ void VirtualRowsView::capture_anchor() noexcept {
     anchor_top_ = top - offset_;
 }
 
-std::optional<double> VirtualRowsView::request_row_height(std::size_t row, double current) {
+stxlib::Optional<double> VirtualRowsView::request_row_height(std::size_t row, double current) {
     VirtualRowMeasure request{};
     request.row = VirtualRowIndex{row};
     request.width = viewport_.width;
@@ -479,15 +477,15 @@ std::optional<double> VirtualRowsView::request_row_height(std::size_t row, doubl
         callbacks_.measure(request);
     }
     ++statistics_.rows_measured;
-    if (!std::isfinite(request.height)) return std::nullopt;
+    if (!std::isfinite(request.height)) return stxlib::Optional<double>::none();
     const double height = std::clamp(request.height, minimum_row_height, maximum_row_height);
-    return height;
+    return stxlib::Optional<double>::of(height);
 }
 
 bool VirtualRowsView::measure_row(std::size_t row) {
-    const std::optional<double> height = request_row_height(row, (*heights_).height_of(row));
-    if (!height.has_value()) return false;
-    static_cast<void>((*heights_).set_height(row, *height));
+    const stxlib::Optional<double> height = request_row_height(row, (*heights_).height_of(row));
+    if (height.absent()) return false;
+    static_cast<void>((*heights_).set_height(row, *height.value()));
     return true;
 }
 
@@ -517,10 +515,10 @@ std::size_t VirtualRowsView::measure_band(double top, double bottom, std::size_t
         const double current = cursor.height();
         if (!cursor.measured()) {
             ++asked;
-            const std::optional<double> height = request_row_height(row, current);
-            if (height.has_value()) {
-                static_cast<void>(heights.stage_height(*height));
-                shift = shift + (RowHeightIndex::stored_height(*height) - current);
+            const stxlib::Optional<double> height = request_row_height(row, current);
+            if (height.present()) {
+                static_cast<void>(heights.stage_height(*height.value()));
+                shift = shift + (RowHeightIndex::stored_height(*height.value()) - current);
                 ++fresh;
                 stretch_length = heights.staged_count();
             } else {
@@ -590,8 +588,8 @@ bool VirtualRowsView::settle() {
 }
 
 void VirtualRowsView::enforce_measured_budget(std::size_t band_first, std::size_t band_end) {
-    if (!measured_budget_.has_value()) return;
-    const std::size_t budget = *measured_budget_;
+    if (measured_budget_.absent()) return;
+    const std::size_t budget = *measured_budget_.value();
     const std::size_t measured = (*heights_).measured_count();
     if (measured <= budget) return;
     const std::size_t count = row_count();
@@ -763,12 +761,12 @@ Rect VirtualRowsView::row_bounds(VirtualRowIndex row) const {
     return bounds;
 }
 
-std::optional<VirtualRowIndex> VirtualRowsView::row_at(Point local_point) const noexcept {
-    if (!viewport_.contains(local_point) || row_count() == 0U) return std::nullopt;
+stxlib::Optional<VirtualRowIndex> VirtualRowsView::row_at(Point local_point) const noexcept {
+    if (!viewport_.contains(local_point) || row_count() == 0U) return stxlib::Optional<VirtualRowIndex>::none();
     const double content = offset_ + (local_point.y - viewport_.y);
-    if (content >= (*heights_).total_height()) return std::nullopt;
+    if (content >= (*heights_).total_height()) return stxlib::Optional<VirtualRowIndex>::none();
     const VirtualRowIndex index{(*heights_).row_at(content)};
-    return index;
+    return stxlib::Optional<VirtualRowIndex>::of(index);
 }
 
 void VirtualRowsView::update_scroll_bar() {
@@ -802,7 +800,7 @@ void VirtualRowsView::on_vertical_scroll(double value) {
 
 // -- selection --------------------------------------------------------------------------
 
-std::optional<VirtualRowIndex> VirtualRowsView::selected_row() const noexcept {
+stxlib::Optional<VirtualRowIndex> VirtualRowsView::selected_row() const noexcept {
     return as_row_index(selected_);
 }
 
@@ -815,12 +813,12 @@ void VirtualRowsView::set_selection_mode(ListSelectionMode mode) {
     invalidate(Dirty::semantics);
     if (mode != ListSelectionMode::one) return;
     // The single mode keeps the current row selected alone.
-    const std::size_t wanted = selected_.has_value() ? 1U : 0U;
+    const std::size_t wanted = selected_.present() ? 1U : 0U;
     const bool same = ranges_.size() == wanted &&
-                      (wanted == 0U || ranges_[0] == range_of(*selected_, 1U));
+                      (wanted == 0U || ranges_[0] == range_of(*selected_.value(), 1U));
     if (same) return;
-    if (selected_.has_value()) {
-        select_only(*selected_, 1U);
+    if (selected_.present()) {
+        select_only(*selected_.value(), 1U);
     } else {
         ranges_.clear();
     }
@@ -828,20 +826,20 @@ void VirtualRowsView::set_selection_mode(ListSelectionMode mode) {
     raise_selection(selected_);
 }
 
-void VirtualRowsView::set_selected_row(std::optional<VirtualRowIndex> row) {
+void VirtualRowsView::set_selected_row(stxlib::Optional<VirtualRowIndex> row) {
     require_outside_callback();
     require_mutable();
-    if (row.has_value() && (*row).value >= row_count()) {
+    if (row.present() && (*row.value()).value >= row_count()) {
         throw std::out_of_range("VirtualRowsView selected row past the end");
     }
-    const std::optional<std::size_t> previous = selected_;
-    std::optional<std::size_t> next{};
-    if (row.has_value()) next = (*row).value;
-    const std::size_t wanted = next.has_value() ? 1U : 0U;
-    const bool same_set = ranges_.size() == wanted && (wanted == 0U || ranges_[0] == range_of(*next, 1U));
+    const stxlib::Optional<std::size_t> previous = selected_;
+    stxlib::Optional<std::size_t> next{};
+    if (row.present()) next.set((*row.value()).value);
+    const std::size_t wanted = next.present() ? 1U : 0U;
+    const bool same_set = ranges_.size() == wanted && (wanted == 0U || ranges_[0] == range_of(*next.value(), 1U));
     if (same_set && next == previous) return;
-    if (next.has_value()) {
-        select_only(*next, 1U);
+    if (next.present()) {
+        select_only(*next.value(), 1U);
     } else {
         ranges_.clear();
     }
@@ -875,14 +873,14 @@ void VirtualRowsView::select_range(VirtualRowIndex anchor, VirtualRowIndex curre
     if (anchor.value >= rows || current.value >= rows) {
         throw std::out_of_range("VirtualRowsView selected range past the end");
     }
-    const std::optional<std::size_t> previous = selected_;
+    const stxlib::Optional<std::size_t> previous = selected_;
     const std::size_t first = std::min(anchor.value, current.value);
     const std::size_t count = std::max(anchor.value, current.value) - first + 1U;
     const bool same_set = ranges_.size() == 1U && ranges_[0] == range_of(first, count);
-    selection_anchor_ = anchor.value;
+    selection_anchor_.set(anchor.value);
     if (same_set && previous == current.value) return;
     select_only(first, count);
-    selected_ = current.value;
+    selected_.set(current.value);
     invalidate(Dirty::paint | Dirty::semantics);
     raise_selection(previous);
 }
@@ -1008,31 +1006,31 @@ void VirtualRowsView::select_and_reveal(std::size_t row, SelectGesture gesture) 
     // already naming it (A-gf-controls-14-F3).
     if (row >= row_count()) return;
     const Control::Ptr lifetime = shared_from_this();
-    const std::optional<std::size_t> previous = selected_;
+    const stxlib::Optional<std::size_t> previous = selected_;
     const bool extended = selection_mode_ == ListSelectionMode::multiple_extended;
     bool changed = false;
     if (extended && gesture == SelectGesture::toggle) {
         toggle_row(row);
-        selection_anchor_ = row;
+        selection_anchor_.set(row);
         changed = true;
-    } else if (extended && gesture == SelectGesture::extend && selection_anchor_.has_value()) {
-        const std::size_t first = std::min(*selection_anchor_, row);
-        const std::size_t count = std::max(*selection_anchor_, row) - first + 1U;
+    } else if (extended && gesture == SelectGesture::extend && selection_anchor_.present()) {
+        const std::size_t first = std::min(*selection_anchor_.value(), row);
+        const std::size_t count = std::max(*selection_anchor_.value(), row) - first + 1U;
         changed = !(ranges_.size() == 1U && ranges_[0] == range_of(first, count));
         select_only(first, count);
     } else {
         changed = !(ranges_.size() == 1U && ranges_[0] == range_of(row, 1U));
         select_only(row, 1U);
-        selection_anchor_ = row;
+        selection_anchor_.set(row);
     }
-    selected_ = row;
+    selected_.set(row);
     scroll_to_row(VirtualRowIndex{row}, VirtualRowAlignment::nearest);
     if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed || previous != selected_) raise_selection(previous);
 }
 
-void VirtualRowsView::raise_selection(std::optional<std::size_t> previous) {
+void VirtualRowsView::raise_selection(stxlib::Optional<std::size_t> previous) {
     VirtualRowSelection change{};
     change.previous = as_row_index(previous);
     change.current = as_row_index(selected_);
@@ -1103,10 +1101,10 @@ void VirtualRowsView::arrange(Rect final_bounds) {
 AnatomyStateSet VirtualRowsView::row_states(std::size_t row) const {
     AnatomyStateSet states;
     if (selected_at(row)) states.insert(AnatomyState::selected);
-    if (hot_.has_value() && *hot_ == row) states.insert(AnatomyState::hot);
+    if (hot_.present() && *hot_.value() == row) states.insert(AnatomyState::hot);
     // The current row carries the focus; in the extended mode it may be
     // unselected.
-    const bool current = selected_.has_value() && *selected_ == row && focused_;
+    const bool current = selected_.present() && *selected_.value() == row && focused_;
     if (current) states.insert(AnatomyState::current);
     if (!effectively_enabled()) states.insert(AnatomyState::disabled);
     const Window* const host = attached_window();
@@ -1239,10 +1237,10 @@ void VirtualRowsView::handle_pointer(PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::move || event.action == PointerAction::leave) {
-        std::optional<std::size_t> hot{};
+        stxlib::Optional<std::size_t> hot{};
         if (event.action == PointerAction::move) {
-            const std::optional<VirtualRowIndex> under = row_at(local);
-            if (under.has_value()) hot = (*under).value;
+            const stxlib::Optional<VirtualRowIndex> under = row_at(local);
+            if (under.present()) hot.set((*under.value()).value);
         }
         if (hot != hot_) {
             hot_ = hot;
@@ -1259,10 +1257,10 @@ void VirtualRowsView::handle_pointer(PointerEvent& event) {
     if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
     if (!is_alive()) return;
     event.handled = true;
-    const std::optional<VirtualRowIndex> under = row_at(local);
-    if (!under.has_value()) return;
-    const std::size_t row = (*under).value;
-    const bool again = selected_.has_value() && *selected_ == row;
+    const stxlib::Optional<VirtualRowIndex> under = row_at(local);
+    if (under.absent()) return;
+    const std::size_t row = (*under.value()).value;
+    const bool again = selected_.present() && *selected_.value() == row;
     const bool extended = selection_mode_ == ListSelectionMode::multiple_extended;
     SelectGesture gesture = SelectGesture::replace;
     if (extended && includes(event.modifiers, Modifier::shift)) {
@@ -1291,7 +1289,7 @@ void VirtualRowsView::drag_to(Point local) {
         const double content = offset_ + (local.y - viewport_.y);
         row = std::min((*heights_).row_at(content), count - 1U);
     }
-    if (selected_.has_value() && *selected_ == row) return;
+    if (selected_.present() && *selected_.value() == row) return;
     select_and_reveal(row, SelectGesture::extend);
 }
 
@@ -1301,8 +1299,8 @@ void VirtualRowsView::handle_key(KeyEvent& event) {
     if (count == 0U) return;
     const Control::Ptr lifetime = shared_from_this();
     const std::uint32_t key = event.physical_key;
-    const bool has_selection = selected_.has_value();
-    const std::size_t from = has_selection ? *selected_ : std::min(first_realized_, count - 1U);
+    const bool has_selection = selected_.present();
+    const std::size_t from = has_selection ? *selected_.value() : std::min(first_realized_, count - 1U);
     const bool extended = selection_mode_ == ListSelectionMode::multiple_extended;
     if (key == PhysicalKey::space && extended && command_modifier(event.modifiers)) {
         // Ctrl+Space toggles the current row (the row in view without one).
@@ -1416,20 +1414,20 @@ void VirtualRowsView::row_identity(std::size_t row, std::string& identity) const
     identity.append(digits.data(), length);
 }
 
-std::optional<std::size_t> VirtualRowsView::row_of_child_id(std::string_view stable_id_text) const noexcept {
+stxlib::Optional<std::size_t> VirtualRowsView::row_of_child_id(std::string_view stable_id_text) const noexcept {
     const std::string_view view_id = stable_id().value();
     const std::size_t prefix = view_id.size() + row_segment.size();
-    if (stable_id_text.size() <= prefix) return std::nullopt;
-    if (stable_id_text.substr(0U, view_id.size()) != view_id) return std::nullopt;
-    if (stable_id_text.substr(view_id.size(), row_segment.size()) != row_segment) return std::nullopt;
+    if (stable_id_text.size() <= prefix) return stxlib::Optional<std::size_t>::none();
+    if (stable_id_text.substr(0U, view_id.size()) != view_id) return stxlib::Optional<std::size_t>::none();
+    if (stable_id_text.substr(view_id.size(), row_segment.size()) != row_segment) return stxlib::Optional<std::size_t>::none();
     const std::string_view digits = stable_id_text.substr(prefix);
     // One canonical spelling per row: no leading zero but "0" itself.
-    if (digits.size() > 1U && digits.front() == '0') return std::nullopt;
+    if (digits.size() > 1U && digits.front() == '0') return stxlib::Optional<std::size_t>::none();
     std::size_t row = 0U;
     const std::from_chars_result parsed = std::from_chars(digits.data(), digits.data() + digits.size(), row);
-    if (parsed.ec != std::errc{} || parsed.ptr != digits.data() + digits.size()) return std::nullopt;
-    if (row >= row_count()) return std::nullopt;
-    return row;
+    if (parsed.ec != std::errc{} || parsed.ptr != digits.data() + digits.size()) return stxlib::Optional<std::size_t>::none();
+    if (row >= row_count()) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(row);
 }
 
 SemanticDescriptor VirtualRowsView::semantic_descriptor() const {
@@ -1439,8 +1437,8 @@ SemanticDescriptor VirtualRowsView::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.row_count.set(row_count());
-    if (selected_.has_value()) {
-        description_.row = VirtualRowIndex{*selected_};
+    if (selected_.present()) {
+        description_.row = VirtualRowIndex{*selected_.value()};
         description_.name.clear();
         description_.value.clear();
         if (callbacks_.describe) {
@@ -1496,7 +1494,7 @@ std::vector<SemanticNode> VirtualRowsView::semantic_virtual_children() const {
         node.states = SemanticState::visible | SemanticState::focusable;
         if (enabled) node.states |= SemanticState::enabled;
         if (selected_at(row)) node.states |= SemanticState::selected;
-        if (selected_.has_value() && *selected_ == row && focused_) node.states |= SemanticState::focused;
+        if (selected_.present() && *selected_.value() == row && focused_) node.states |= SemanticState::focused;
         node.actions = {SemanticAction::focus, SemanticAction::select, SemanticAction::press};
         children.push_back(std::move(node));
     }
@@ -1520,16 +1518,16 @@ bool VirtualRowsView::on_semantic_child_action(std::string_view stable_id_text, 
                                                std::string_view) {
     if (!effectively_enabled() || in_callback_) return false;
     // A column header's press is a click on it (a sortable column only).
-    const std::optional<std::size_t> column = column_of_child_id(stable_id_text);
-    if (column.has_value()) {
-        if (action != SemanticAction::press || !columns_[*column].sortable) return false;
+    const stxlib::Optional<std::size_t> column = column_of_child_id(stable_id_text);
+    if (column.present()) {
+        if (action != SemanticAction::press || !columns_[*column.value()].sortable) return false;
         VirtualRowsHeaderClick click{};
-        click.column = *column;
+        click.column = *column.value();
         header_clicked_.emit(click);
         return true;
     }
-    const std::optional<std::size_t> row = row_of_child_id(stable_id_text);
-    if (!row.has_value()) return false;
+    const stxlib::Optional<std::size_t> row = row_of_child_id(stable_id_text);
+    if (row.absent()) return false;
     if (action != SemanticAction::focus && action != SemanticAction::select && action != SemanticAction::press) {
         return false;
     }
@@ -1539,12 +1537,12 @@ bool VirtualRowsView::on_semantic_child_action(std::string_view stable_id_text, 
     // may erase or reset the rows: the row is found again from its ID after
     // each (A-gf-controls-14-F3).
     if (!is_alive()) return true;
-    const std::optional<std::size_t> focused_row = row_of_child_id(stable_id_text);
-    if (!focused_row.has_value()) return false;
-    select_and_reveal(*focused_row, SelectGesture::replace);
+    const stxlib::Optional<std::size_t> focused_row = row_of_child_id(stable_id_text);
+    if (focused_row.absent()) return false;
+    select_and_reveal(*focused_row.value(), SelectGesture::replace);
     if (action != SemanticAction::press || !is_alive()) return true;
-    const std::optional<std::size_t> selected_row = row_of_child_id(stable_id_text);
-    if (selected_row.has_value()) activate(*selected_row);
+    const stxlib::Optional<std::size_t> selected_row = row_of_child_id(stable_id_text);
+    if (selected_row.present()) activate(*selected_row.value());
     return true;
 }
 

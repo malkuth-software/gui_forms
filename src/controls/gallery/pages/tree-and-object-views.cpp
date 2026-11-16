@@ -743,11 +743,11 @@ private:
 
     // VirtualRowsView
     void on_message_selected(const VirtualRowSelection& change) {
-        if (!change.current.has_value()) {
+        if (change.current.absent()) {
             (*status_).text = "VirtualRowsView selection cleared";
             return;
         }
-        const std::size_t row = (*change.current).value;
+        const std::size_t row = (*change.current.value()).value;
         (*status_).text = "VirtualRowsView message " + std::to_string(row + 1U) + " from " +
                           std::string(SeededMessages::sender_of(row)) + " selected";
     }

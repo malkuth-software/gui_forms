@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -87,8 +86,8 @@ void VirtualRowsView::move_column(std::size_t from, std::size_t to) {
     columns_.erase(columns_.begin() + static_cast<std::ptrdiff_t>(from));
     columns_.insert(columns_.begin() + static_cast<std::ptrdiff_t>(to), std::move(moved));
     // The sort column follows its column; the others between shift by one.
-    if (sort_column_.has_value()) {
-        std::size_t sorted = *sort_column_;
+    if (sort_column_.present()) {
+        std::size_t sorted = *sort_column_.value();
         if (sorted == from) {
             sorted = to;
         } else if (from < sorted && sorted <= to) {
@@ -96,7 +95,7 @@ void VirtualRowsView::move_column(std::size_t from, std::size_t to) {
         } else if (to <= sorted && sorted < from) {
             sorted = sorted + 1U;
         }
-        sort_column_ = sorted;
+        sort_column_.set(sorted);
     }
     hot_column_.reset();
     place_columns();
@@ -107,13 +106,13 @@ void VirtualRowsView::move_column(std::size_t from, std::size_t to) {
     column_moved_.emit(change);
 }
 
-void VirtualRowsView::set_sort(std::optional<std::size_t> column, VirtualRowsSort direction) {
+void VirtualRowsView::set_sort(stxlib::Optional<std::size_t> column, VirtualRowsSort direction) {
     require_outside_callback();
-    if (column.has_value() && *column >= columns_.size()) {
+    if (column.present() && *column.value() >= columns_.size()) {
         throw std::out_of_range("VirtualRowsView: column past the end");
     }
-    const bool cleared = !column.has_value() || direction == VirtualRowsSort::none;
-    const std::optional<std::size_t> next = cleared ? std::nullopt : column;
+    const bool cleared = column.absent() || direction == VirtualRowsSort::none;
+    const stxlib::Optional<std::size_t> next = cleared ? stxlib::Optional<std::size_t>::none() : column;
     const VirtualRowsSort next_direction = cleared ? VirtualRowsSort::none : direction;
     if (next == sort_column_ && next_direction == sort_direction_) return;
     sort_column_ = next;
@@ -147,28 +146,28 @@ Rect VirtualRowsView::column_cell(std::size_t column, Rect row) const {
 // By the strip's descent, O(log columns): left to right a column holds
 // [start, start + width) from the viewport's left; mirrored it holds
 // (start, start + width] measured from the viewport's right.
-std::optional<std::size_t> VirtualRowsView::column_at(Point local_point) const noexcept {
+stxlib::Optional<std::size_t> VirtualRowsView::column_at(Point local_point) const noexcept {
     const std::size_t count = column_strip_.count();
     if (!mirrored_) {
         const std::size_t found = column_strip_.position_at(local_point.x - viewport_.x);
-        if (found >= count) return std::nullopt;
-        return found;
+        if (found >= count) return stxlib::Optional<std::size_t>::none();
+        return stxlib::Optional<std::size_t>::of(found);
     }
     const double distance = viewport_.x + viewport_.width - local_point.x;
     const std::size_t past = column_strip_.first_start_at_or_past(distance, 0U, count);
-    if (past == 0U) return std::nullopt;
+    if (past == 0U) return stxlib::Optional<std::size_t>::none();
     const std::size_t found = past - 1U;
-    if (distance > column_strip_.start(found) + column_strip_.width(found)) return std::nullopt;
-    return found;
+    if (distance > column_strip_.start(found) + column_strip_.width(found)) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(found);
 }
 
 AnatomyStateSet VirtualRowsView::column_states(std::size_t column) const noexcept {
     AnatomyStateSet states;
-    if (hot_column_.has_value() && *hot_column_ == column) states.insert(AnatomyState::hot);
+    if (hot_column_.present() && *hot_column_.value() == column) states.insert(AnatomyState::hot);
     const bool pressed = header_gesture_ != HeaderGesture::none && header_gesture_ != HeaderGesture::resizing &&
                          gesture_column_ == column;
     if (pressed) states.insert(AnatomyState::pressed);
-    if (sort_column_.has_value() && *sort_column_ == column) states.insert(AnatomyState::selected);
+    if (sort_column_.present() && *sort_column_.value() == column) states.insert(AnatomyState::selected);
     return states;
 }
 
@@ -182,7 +181,7 @@ VirtualRowsView::ColumnHeaderParts VirtualRowsView::column_header_parts(std::siz
     record.column_header = PartGeometry::from_bounds(shown);
     // The sort glyph's lane is kept at the reading end (the right, or the
     // left right to left); the label takes the rest, inset.
-    const bool sorted = sort_column_.has_value() && *sort_column_ == column;
+    const bool sorted = sort_column_.present() && *sort_column_.value() == column;
     const double lane = sorted ? sort_glyph_lane : 0.0;
     const double label_width = std::max(0.0, header.width - 2.0 * label_inset - lane);
     const double label_x = mirrored_ ? header.x + label_inset + lane : header.x + label_inset;
@@ -254,21 +253,21 @@ void VirtualRowsView::paint_column_headers(Painter& painter) const {
 
 // -- the header's pointer ---------------------------------------------------------------
 
-std::optional<std::size_t> VirtualRowsView::divider_at(Point local) const noexcept {
-    if (!header_.contains(local)) return std::nullopt;
+stxlib::Optional<std::size_t> VirtualRowsView::divider_at(Point local) const noexcept {
+    if (!header_.contains(local)) return stxlib::Optional<std::size_t>::none();
     for (std::size_t column = 0U; column < columns_.size(); ++column) {
         if (!columns_[column].resizable) continue;
         const Rect extent = column_extent(column);
         const double edge = mirrored_ ? extent.x : extent.x + extent.width;
-        if (std::fabs(local.x - edge) <= column_grip_half_width) return column;
+        if (std::fabs(local.x - edge) <= column_grip_half_width) return stxlib::Optional<std::size_t>::of(column);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 std::size_t VirtualRowsView::reorder_target(Point local) const noexcept {
     // The column under the pointer, or the nearer end past the columns.
-    const std::optional<std::size_t> under = column_at(local);
-    if (under.has_value()) return *under;
+    const stxlib::Optional<std::size_t> under = column_at(local);
+    if (under.present()) return *under.value();
     const double reading = mirrored_ ? viewport_.x + viewport_.width - local.x : local.x - viewport_.x;
     const std::size_t target = reading < 0.0 ? 0U : columns_.size() - 1U;
     return target;
@@ -276,16 +275,16 @@ std::size_t VirtualRowsView::reorder_target(Point local) const noexcept {
 
 bool VirtualRowsView::header_press(Point local, Modifier modifiers) {
     if (columns_.empty() || !header_.contains(local)) return false;
-    const std::optional<std::size_t> divider = divider_at(local);
-    if (divider.has_value()) {
+    const stxlib::Optional<std::size_t> divider = divider_at(local);
+    if (divider.present()) {
         header_gesture_ = HeaderGesture::resizing;
-        gesture_column_ = *divider;
-        gesture_width_ = columns_[*divider].width;
+        gesture_column_ = *divider.value();
+        gesture_width_ = columns_[*divider.value()].width;
     } else {
-        const std::optional<std::size_t> under = column_at(local);
-        if (!under.has_value()) return true;
+        const stxlib::Optional<std::size_t> under = column_at(local);
+        if (under.absent()) return true;
         header_gesture_ = HeaderGesture::pressed;
-        gesture_column_ = *under;
+        gesture_column_ = *under.value();
     }
     gesture_start_ = local;
     gesture_modifiers_ = modifiers;
@@ -294,7 +293,7 @@ bool VirtualRowsView::header_press(Point local, Modifier modifiers) {
 }
 
 bool VirtualRowsView::header_move(Point local) {
-    std::optional<std::size_t> hot{};
+    stxlib::Optional<std::size_t> hot{};
     if (header_.contains(local)) hot = column_at(local);
     if (hot != hot_column_) {
         hot_column_ = hot;
@@ -342,7 +341,7 @@ bool VirtualRowsView::header_release(Point local) {
         return true;
     case HeaderGesture::pressed: {
         invalidate(Dirty::paint);
-        const bool on_header = header_.contains(local) && column_at(local) == std::optional<std::size_t>(column);
+        const bool on_header = header_.contains(local) && column_at(local) == stxlib::Optional<std::size_t>::of(column);
         if (on_header && columns_[column].sortable) {
             VirtualRowsHeaderClick click{};
             click.column = column;
@@ -368,16 +367,16 @@ void VirtualRowsView::column_identity(std::size_t column, std::string& identity)
     identity.append(columns_[column].id);
 }
 
-std::optional<std::size_t> VirtualRowsView::column_of_child_id(std::string_view stable_id_text) const noexcept {
+stxlib::Optional<std::size_t> VirtualRowsView::column_of_child_id(std::string_view stable_id_text) const noexcept {
     const std::string_view own = stable_id().value();
-    if (stable_id_text.size() <= own.size() + column_segment.size()) return std::nullopt;
-    if (stable_id_text.substr(0U, own.size()) != own) return std::nullopt;
-    if (stable_id_text.substr(own.size(), column_segment.size()) != column_segment) return std::nullopt;
+    if (stable_id_text.size() <= own.size() + column_segment.size()) return stxlib::Optional<std::size_t>::none();
+    if (stable_id_text.substr(0U, own.size()) != own) return stxlib::Optional<std::size_t>::none();
+    if (stable_id_text.substr(own.size(), column_segment.size()) != column_segment) return stxlib::Optional<std::size_t>::none();
     const std::string_view id = stable_id_text.substr(own.size() + column_segment.size());
     for (std::size_t column = 0U; column < columns_.size(); ++column) {
-        if (columns_[column].id == id) return column;
+        if (columns_[column].id == id) return stxlib::Optional<std::size_t>::of(column);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 void VirtualRowsView::append_column_semantics(std::vector<SemanticNode>& children) const {
@@ -392,7 +391,7 @@ void VirtualRowsView::append_column_semantics(std::vector<SemanticNode>& childre
         node.role = SemanticRole::column_header;
         node.column_index.set(column + 1U);
         node.name = columns_[column].header;
-        if (sort_column_.has_value() && *sort_column_ == column) {
+        if (sort_column_.present() && *sort_column_.value() == column) {
             node.value = sort_direction_ == VirtualRowsSort::ascending ? "ascending" : "descending";
         }
         node.bounds = {absolute.x + shown.x, absolute.y + shown.y, shown.width, shown.height};
