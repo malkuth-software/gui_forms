@@ -18,13 +18,20 @@ namespace gui_forms::detail {
 // blinks (the caret then stays shown and no timer runs). Read each time a
 // control schedules its blink, so a changed setting applies from the next
 // caret movement or focus.
+// A high-integrity build has no motion (cmake/HighIntegrity.cmake): the caret
+// is steady and no blink timer runs.
 [[nodiscard]] inline std::optional<FrameInterval> caret_blink_phase(const Window& window) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    static_cast<void>(window);
+    return std::nullopt;
+#else
     const std::uint32_t milliseconds = window.presentation_settings().caret.blink_milliseconds;
     if (milliseconds == 0U) {
         return std::nullopt;
     }
     const FrameInterval phase = std::chrono::milliseconds(milliseconds);
     return phase;
+#endif
 }
 
 // Schedules a text control's caret blink in `window`: a UI timer that rests

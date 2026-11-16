@@ -82,10 +82,18 @@ void AnimationTimer::start(Control& owner, FrameInterval interval, Tick tick) {
     State& state = *state_;
     state.owner = owner.shared_from_this();
     state.interval = interval;
-    state.tick = std::make_shared<const Tick>(std::move(tick));
     ++state.generation;
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build has no motion (cmake/HighIntegrity.cmake): the
+    // timer validates its arguments and never ticks, so no clock is read and
+    // no frame is requested; the control keeps the presentation it has at
+    // rest. (Timer, the program's own, still ticks.)
+    state.started = false;
+#else
+    state.tick = std::make_shared<const Tick>(std::move(tick));
     state.started = true;
     schedule(state_);
+#endif
 }
 
 void AnimationTimer::stop() noexcept {
@@ -144,6 +152,10 @@ FrameInterval AnimationTimer::interval() const noexcept {
 }
 
 void AnimationTimer::schedule(const std::shared_ptr<State>& shared) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Never scheduled in a high-integrity build (start): no clock is read.
+    static_cast<void>(shared);
+#else
     State& state = *shared;
     state.request.disconnect();
     state.waiting_for_paint = false;
@@ -177,6 +189,7 @@ void AnimationTimer::schedule(const std::shared_ptr<State>& shared) {
     const FrameTime first_tick = now + (period - into_period);
     state.request = (*window).schedule_ui_timer(*owner, period, first_tick,
                                                 Callback{shared});
+#endif
 }
 
 void AnimationTimer::Callback::operator()(FrameTime now) const {

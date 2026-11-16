@@ -40,16 +40,28 @@ FrameTime MotionClock::now() const noexcept {
     return steady;
 }
 
+// A high-integrity build has no motion (cmake/HighIntegrity.cmake): every
+// move is suppressed, so it reaches its target in the call that starts it and
+// the clock is never armed; theme durations are not read, and no ambient
+// motion is enlisted.
 bool MotionClock::suppressed() const noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    return true;
+#else
     const bool reduced = (*window_).presentation_settings().reduced_motion;
     const bool hidden = (*window_).occluded();
     return reduced || hidden;
+#endif
 }
 
 bool MotionClock::ambient_suppressed() const noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    return true;
+#else
     const bool switched_off = !(*window_).presentation_settings().ambient_motion;
     const bool stopped = suppressed() || switched_off;
     return stopped;
+#endif
 }
 
 void MotionClock::enlist_ambient(std::uint32_t part_slot, std::uint32_t part_generation, FrameInterval interval) {
