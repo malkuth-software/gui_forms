@@ -74,6 +74,51 @@ Color colour_before(std::span<const GradientStop> placed, double offset) noexcep
     return colour;
 }
 
+// CSS's placement (css-images-3, "color stop fixup") into `placed`, which
+// is cleared first: each stop's offset along the gradient in its own
+// measure (a fraction of the line, the ray or the turn), not yet within
+// [0, 1]. `line` is the gradient's length in logical units, by which a
+// position's units are divided (0: units are ignored).
+void place_stops(std::span<const AuthoredGradientStop> stops, double line, std::vector<GradientStop>& placed) {
+    placed.clear();
+    const std::size_t count = stops.size();
+    double greatest = 0.0;
+    for (std::size_t index = 0U; index < count; ++index) {
+        const AuthoredGradientStop& stop = stops[index];
+        GradientStop place{};
+        place.color = stop.colour;
+        if (stop.positioned) {
+            const double along = line > 0.0 ? stop.position.units / line : 0.0;
+            place.offset = stop.position.fraction + along;
+        } else if (index == 0U) {
+            place.offset = 0.0;
+        } else if (index + 1U == count) {
+            place.offset = 1.0;
+        } else {
+            // Placed below, between its fixed neighbours.
+            place.offset = greatest;
+        }
+        if (index > 0U) place.offset = std::max(place.offset, greatest);
+        greatest = place.offset;
+        placed.push_back(place);
+    }
+    // The unpositioned stops between two fixed ones (the first, the last
+    // and the positioned), evenly.
+    std::size_t before = 0U;
+    for (std::size_t index = 1U; index < count; ++index) {
+        const bool fixed = stops[index].positioned || index + 1U == count;
+        if (!fixed) continue;
+        const std::size_t gap = index - before;
+        const double from = placed[before].offset;
+        const double to = placed[index].offset;
+        for (std::size_t inner = before + 1U; inner < index; ++inner) {
+            const double step = static_cast<double>(inner - before) / static_cast<double>(gap);
+            placed[inner].offset = from + (to - from) * step;
+        }
+        before = index;
+    }
+}
+
 // The placed stops within [0, 1], with the colours at both ends, into
 // `stops`, which is cleared first.
 void clipped_stops(std::span<const GradientStop> placed, std::vector<GradientStop>& stops) {
