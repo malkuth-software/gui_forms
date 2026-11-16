@@ -1902,6 +1902,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
         src/host/linux/application/x11_windowing.cpp
         src/host/linux/application/x11_shm_present.cpp
+        src/host/linux/application/x11_present_direct.cpp
         src/host/linux/settings/xsettings_parse.cpp
         src/host/linux/locale/strftime_date_pattern.cpp
         src/host/linux/locale/posix_locale.cpp
@@ -1935,6 +1936,18 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xext)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1)
     endif()
+    # The X11 direct presentation path (docs/user/presentation.md): MIT-SHM
+    # pixmaps presented with the Present extension, where libXpresent and
+    # libXext are present; without them the path refuses as unsupported and
+    # the window keeps the copy path.
+    find_path(GUI_FORMS_XPRESENT_INCLUDE_DIR X11/extensions/Xpresent.h)
+    find_library(GUI_FORMS_XPRESENT_LIBRARY Xpresent)
+    if(GUI_FORMS_XPRESENT_INCLUDE_DIR AND GUI_FORMS_XPRESENT_LIBRARY AND TARGET X11::Xext)
+        target_include_directories(gui_forms_host_linux PRIVATE ${GUI_FORMS_XPRESENT_INCLUDE_DIR})
+        target_link_libraries(gui_forms_host_linux PUBLIC ${GUI_FORMS_XPRESENT_LIBRARY})
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XPRESENT=1)
+        set(GUI_FORMS_XPRESENT_AVAILABLE ON)
+    endif()
     # Relative pointer mode (cp34): XI 2 raw motion where libXi is present;
     # without it the host reports no relative_pointer or raw_pointer_motion.
     if(TARGET X11::Xi)
@@ -1965,6 +1978,9 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
             list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES X11::${_gf_x11})
         endif()
     endforeach()
+    if(GUI_FORMS_XPRESENT_AVAILABLE)
+        list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_XPRESENT_LIBRARY})
+    endif()
     gui_forms_application_library(gui_forms_application
         ARCHIVES ${_gf_application_archives}
         LIBRARIES ${_gf_application_libraries} ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})

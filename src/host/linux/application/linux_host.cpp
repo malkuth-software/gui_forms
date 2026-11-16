@@ -419,11 +419,18 @@ const unsigned char* compose_invalidation_overlay(NativeWindow& window, Invalida
   if (box.right <= box.left || box.bottom <= box.top) return nullptr;
   const std::size_t frame_bytes = row_bytes * static_cast<std::size_t>(height);
   if (window.overlay_scratch.size() != frame_bytes) window.overlay_scratch.assign(frame_bytes, std::byte{0});
-  const std::size_t row_offset = static_cast<std::size_t>(box.left) * 4U;
-  const std::size_t row_length = static_cast<std::size_t>(box.right - box.left) * 4U;
-  for (std::int32_t y = box.top; y < box.bottom; ++y) {
-    const std::size_t offset = static_cast<std::size_t>(y) * row_bytes + row_offset;
-    std::memcpy(window.overlay_scratch.data() + offset, source + offset, row_length);
+  if (window.presenter && (*window.presenter).direct_available()) {
+    // The direct path writes from the frame outside the overlay's box too
+    // (an older buffer's missing damage): the scratch frame is the whole
+    // raster while the overlay is on.
+    std::memcpy(window.overlay_scratch.data(), source, frame_bytes);
+  } else {
+    const std::size_t row_offset = static_cast<std::size_t>(box.left) * 4U;
+    const std::size_t row_length = static_cast<std::size_t>(box.right - box.left) * 4U;
+    for (std::int32_t y = box.top; y < box.bottom; ++y) {
+      const std::size_t offset = static_cast<std::size_t>(y) * row_bytes + row_offset;
+      std::memcpy(window.overlay_scratch.data() + offset, source + offset, row_length);
+    }
   }
   if (overlay != nullptr) {
     InvalidationOverlayTarget target{};
@@ -438,13 +445,20 @@ const unsigned char* compose_invalidation_overlay(NativeWindow& window, Invalida
 }
 
 // The window's presentation shim, made at its first present: the copy path
-// always, with host scroll as the process's policy (GUI_FORMS_PRESENT)
-// turns it on.
+// always, with host scroll and the X11 Present direct path as the
+// process's policy (GUI_FORMS_PRESENT) turns them on.
 presentation::PresentationShim& window_presenter(NativeWindow& window) {
   if (window.presenter) return *window.presenter;
   const presentation::PresentPolicy policy = presentation::present_policy_from_environment();
   window.copy_path.scroll_enabled = policy.host_scroll;
   std::unique_ptr<presentation::PresentationDirectPath> direct{};
+  window.direct_path = nullptr;
+  if (policy.direct) {
+    std::unique_ptr<X11PresentPath> pixmaps =
+        std::make_unique<X11PresentPath>(window.runtime.display, window.xid, window.visual, window.depth);
+    window.direct_path = pixmaps.get();
+    direct = std::move(pixmaps);
+  }
   window.presenter = std::make_unique<presentation::PresentationShim>(&window.copy_path, std::move(direct), nullptr);
   return *window.presenter;
 }
@@ -619,6 +633,7 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
   window.copy_path.alpha_mask = window.alpha_mask;
   window.copy_path.present_alpha = window.present_alpha;
   window.copy_path.copied = &copied;
+  if (window.direct_path != nullptr) (*window.direct_path).present_alpha = window.present_alpha;
   const presentation::PresentReport report = presenter.present(frame);
   window.copy_path.copied = nullptr;
   if (report.path == presentation::PresentPath::direct) {
@@ -1029,6 +1044,8 @@ Runtime::Runtime() {
     XRRSelectInput(display, DefaultRootWindow(display), RRScreenChangeNotifyMask);
   }
 #endif
+  // The Present extension, for the X11 direct path's idle notices.
+  present_opcode = x11_present_opcode(display);
 #if defined(GUI_FORMS_HAVE_XI2)
   // XI 2.0 raw motion, for relative pointer mode (Services).
   int xi_event = 0;
@@ -1317,6 +1334,7 @@ void NativeWindow::mark_transient(const HostPopupPlacement &popup) {
 NativeWindow::~NativeWindow() {
   // The shim first: its direct path's server resources go before the
   // display closes.
+  direct_path = nullptr;
   presenter.reset();
   shared_image.release();
   (*entry.model).set_dispatch_wake_handler({});
@@ -2174,6 +2192,17 @@ void Runtime::dispatch(XEvent &event) {
     return;
   }
 #endif
+  // A Present idle notice frees one of a window's direct pixmaps for
+  // writing (x11_present_direct.hpp).
+  X11PresentEvent present_event{};
+  if (read_x11_present_event(display, present_opcode, event, present_event)) {
+    for (std::size_t i = 0; i < windows.size(); ++i) {
+      NativeWindow &receiving = *windows[i];
+      if (receiving.xid == present_event.window && receiving.direct_path != nullptr)
+        (*receiving.direct_path).idle(present_event.pixmap, present_event.serial);
+    }
+    return;
+  }
   // Tray icon windows belong to a window's services, not to the window.
   for (std::size_t i = 0; i < windows.size(); ++i)
     if ((*windows[i]).services && (*(*windows[i]).services).tray_event(event))

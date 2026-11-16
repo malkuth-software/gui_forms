@@ -1,5 +1,6 @@
 #pragma once
 #include "x11_shm_present.hpp"
+#include "x11_present_direct.hpp"
 #include "../../../core/host/presentation/presentation_shim.hpp"
 #include "../accessibility/linux_accessibility.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
@@ -459,6 +460,10 @@ public:
   // the display closes; the present's device rectangles, reused.
   X11CopyPath copy_path{*this};
   std::unique_ptr<presentation::PresentationShim> presenter;
+  // The shim's X11 Present direct path (observing; owned by `presenter`),
+  // null while the presentation policy leaves it off. Receives the
+  // window's PresentIdleNotify events (Runtime::dispatch).
+  X11PresentPath *direct_path{};
   std::vector<presentation::PresentRect> present_rects;
   // The invalidation overlay's present-time storage (gui_forms/diagnostics/
   // invalidation_overlay), reused: the scratch frame the outlines are
@@ -556,6 +561,8 @@ public:
   // pointer mode is not offered (Services drops relative_pointer and
   // raw_pointer_motion).
   int xi_opcode{-1};
+  // The Present extension's opcode (x11_present_direct.hpp); -1 without it.
+  int present_opcode{-1};
   // The server's 32-bit millisecond time of an event, unwrapped and mapped
   // onto the steady clock (HostEventClock): PointerEvent and
   // HostRelativeMotionEvent timestamps. UI thread.
