@@ -2,6 +2,7 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
+#include "gui_forms/window.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "drag_engine.hpp"
@@ -176,17 +177,15 @@ public:
     Point velocity{};
 
 private:
-    // The scroll timer's target. The timer is the session's member and
-    // skips the ticks of a destroyed timer, all on the window's thread, so
-    // `session` is valid whenever it calls. A tick reports unchanged: the
-    // tracker cannot see the owner's paints (the timer's paint gate needs
-    // note_painted from on_paint), so it paces at the display interval and
-    // the owner's scroll invalidates what moved.
+    // The scroll repeat's target. Its request is the session's member
+    // (scroll_frames_), revoked by stop_scroll and on destruction, and a
+    // revoked request is never called, all on the window's thread, so
+    // `session` is valid whenever it calls. The owner's scroll invalidates
+    // what moved.
     struct ScrollTick final {
         DragTrackerSession* session;
-        AnimationTickResult operator()(FrameTime now) const {
+        void operator()(FrameTime now) const {
             (*session).scroll_tick(now);
-            return AnimationTickResult::unchanged;
         }
     };
 
@@ -262,11 +261,15 @@ private:
     // maximum_withdrawn_drag_targets, live count withdrawn_count_.
     std::array<std::uint32_t, maximum_withdrawn_drag_targets> withdrawn_{};
     std::size_t withdrawn_count_{};
-    // Auto-scroll's frames: started when the pointer enters a band, stopped
-    // when it leaves, at the content's end, at every session end, on detach
-    // and destruction. A window that cancels its frame requests stops it
-    // too; the next pointer move in a band starts it again.
-    AnimationTimer scroll_timer_{};
+    // Auto-scroll's repeat: a UI timer on the owner's window
+    // (SurfaceRoot::schedule_ui_timer, Timer's path), not an animation:
+    // auto-scroll is input behaviour, so it runs where motion is not
+    // compiled (cmake/HighIntegrity.cmake) and is not gated on the owner's
+    // paints. Started when the pointer enters a band, revoked when it
+    // leaves, at the content's end, at every session end, on detach and
+    // destruction. A window that cancels its frame requests ends it too;
+    // the next pointer move in a band starts it again.
+    FrameRequestToken scroll_frames_{};
     FrameTime last_tick_{};
 };
 
@@ -829,17 +832,18 @@ void DragTrackerSession::update_scroll(Point pointer) {
         stop_scroll();
         return;
     }
-    if (scroll_timer_.started()) return;
+    if (scroll_frames_.connected()) return;
     const Control::Ptr owner = observed_.lock();
     if (!owner) return;
+    const BorrowedPointer<Window> window = (*owner).attached_window();
+    if (window == nullptr) return;
     last_tick_ = FrameClock::now();
-    // The interval is the display's and the target is set, so start does
-    // not refuse them.
-    scroll_timer_.start(*owner, display_frame_interval, ScrollTick{this});
+    const FrameTime first_tick = last_tick_ + display_frame_interval;
+    scroll_frames_ = (*window).schedule_ui_timer(*owner, display_frame_interval, first_tick, ScrollTick{this});
 }
 
 void DragTrackerSession::stop_scroll() noexcept {
-    scroll_timer_.stop();
+    scroll_frames_.disconnect();
     velocity = Point{};
 }
 
