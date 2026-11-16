@@ -8,13 +8,13 @@ source only when the package must be built:
 
 | stx path | What | GUI.Forms uses it for |
 |---|---|---|
-| `third_party/harfbuzz/` | HarfBuzz 14.6.0 at `c7a7457b`, without `test/` and `perf/` | shaping (`GUI_FORMS_ENABLE_HARFBUZZ_TEXT`) |
 | `third_party/freetype/` | FreeType 2.14.2 at `f4205da1` | glyph loading and rasterisation, with the options header in `cmake/freetype/` |
-| `third_party/libunibreak/` | libunibreak 8.0 at `28a2756b` | UAX #14 line breaking in the text engine (`cmake/LineBreak.cmake`) |
-| `third_party/md4c/` | MD4C 0.6.0 | the markdown framework's CommonMark parser |
-| `third_party/sheenbidi/` | SheenBidi 2.9.0 | bidirectional ordering in the text adapter |
 | `third_party/unicode/` | the Unicode 17 licence and the provenance of GUI.Forms' generated grapheme tables | the tables' attribution |
 | `stx_skia/` | the CPU Skia derivative (Skia `chrome/m152`, pruned and converted) | the Skia adapters, linked from the stx package |
+
+HarfBuzz, libunibreak, MD4C and SheenBidi left on 2026-11-16: GUI.Forms
+shapes with STXlib's shaper, reads Markdown with stxlib::markdown and takes
+line breaks and bidi from stxlib::textlayout (STXlib, in the stx package).
 
 Each stx directory keeps its licence, its PROVENANCE file and its intake
 record (stx `third_party/README.md`), unchanged from when they were here. The
