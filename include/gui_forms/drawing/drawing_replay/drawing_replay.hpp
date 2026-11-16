@@ -31,6 +31,14 @@ struct GUI_FORMS_API DrawingReplayReport final {
     }
 };
 
+// How replay_drawing_commands draws what needs the painter's device grid.
+struct GUI_FORMS_API DrawingReplayOptions final {
+    // The painter's display scale, device pixels per unit, for texture
+    // brushes (minimum_device_scale to maximum_device_scale); any other
+    // value, such as the default 0, leaves texture brushes out.
+    double display_scale{};
+};
+
 // Replays a GUI.Drawing recording (GraphicsRecorder::commands()) onto a
 // Painter, in order, in the painter's current coordinates: the recording's
 // origin is the painter's. Each drawing command is drawn inside a save and
@@ -60,7 +68,19 @@ struct GUI_FORMS_API DrawingReplayReport final {
 // brush as fill_radial_gradient_spread (or fill_focal_radial_gradient when
 // its focus is not its centre), a conic gradient as fill_conic_gradient, a checker as fill_checker and a hatch as
 // fill_hatch, each anchored at the recording's origin; the wrap mode is the
-// spread (tile repeats, the flips reflect, clamp pads). A gradient whose
+// spread (tile repeats, the flips reflect, clamp pads). A texture brush,
+// when the options name the painter's display scale, is baked into one
+// PartRaster over the device pixels its area touches and drawn with
+// draw_part_raster under clip_rect(area): each pixel samples the image at
+// its centre through the inverse of the brush's transform, wrapped per
+// axis as the raster executor wraps it (tile repeats, a flip mirrors that
+// axis, clamp holds the edge texel), nearest for the nearest interpolation
+// mode and bilinear otherwise, in premultiplied BGRA8 with integer
+// weights. The bake assumes the recording's origin lies on a device pixel;
+// when the painter's translation puts it between pixels, the texture is
+// placed up to half a device pixel from where the executor draws it. A
+// texture with no pixels or a singular transform draws nothing; a fill of
+// more than 2^24 device pixels is left out (counted unsupported). A gradient whose
 // colours and positions are not valid gradient stops fills with its
 // primary colour, as the executor does.
 // A pen maps to a StrokeStyle as the raster executor draws it: preset
@@ -69,13 +89,16 @@ struct GUI_FORMS_API DrawingReplayReport final {
 //
 // Left out (counted unsupported): clear (the control paints its own
 // background), draw_string (FontSnapshot to FontSpec waits for the font
-// identity work), images and texture brushes (their pixels have no image
-// identity in a painter), a path with an element outside the enumeration,
+// identity work), images (their pixels have no image identity in a
+// painter), texture brushes without a display scale, a path with an element outside the enumeration,
 // and any command whose custom dash pattern does not fit a StrokeStyle.
 //
 // Reads `commands` during the call only; allocates scratch storage once
 // per call, reused across commands.
 [[nodiscard]] GUI_FORMS_API DrawingReplayReport replay_drawing_commands(
     std::span<const gui_drawing::DrawingCommand> commands, Painter& painter);
+// As above, with `options`; texture brushes allocate one raster per fill.
+[[nodiscard]] GUI_FORMS_API DrawingReplayReport replay_drawing_commands(
+    std::span<const gui_drawing::DrawingCommand> commands, Painter& painter, DrawingReplayOptions options);
 
 } // namespace gui_forms

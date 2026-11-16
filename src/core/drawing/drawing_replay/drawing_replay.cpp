@@ -1,10 +1,13 @@
 #include "gui_forms/drawing/drawing_replay/drawing_replay.hpp"
 
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <span>
 #include <vector>
 
@@ -156,6 +159,282 @@ void fill_brush_stops(const gui_drawing::BrushSnapshot& brush, BrushStops& writt
     return GradientSpreadMode::pad;
 }
 
+// Texture brush replay (DrawingReplayOptions::display_scale). The texture
+// is baked into one PartRaster over the device pixels of the area it fills,
+// sampled as the raster executor's image shader samples it: through the
+// inverse of the brush's transform, wrapped per axis (tile repeats, a flip
+// mirrors, clamp holds the edge texel), nearest or bilinear by the state's
+// interpolation mode, in premultiplied BGRA8 with integer weights.
+
+// The most device pixels one texture fill bakes (64 MiB of raster); a
+// larger fill is left out and counted unsupported.
+constexpr std::uint64_t maximum_texture_replay_pixels = std::uint64_t{1} << 24U;
+// Image coordinates are held inside this magnitude before they become texel
+// indices, so the conversion to a 64-bit integer is defined; a double has no
+// fractional precision left beyond it anyway.
+constexpr double texture_coordinate_limit = 4'503'599'627'370'496.0; // 2^52
+// Bilinear weights in 1/256 of a texel.
+constexpr std::int64_t texture_weight_unit = 256;
+
+enum class TextureAxisWrap : std::uint8_t { repeat, mirror, clamp };
+
+[[nodiscard]] TextureAxisWrap texture_wrap_x(gui_drawing::WrapMode mode) noexcept {
+    switch (mode) {
+    case gui_drawing::WrapMode::tile:
+    case gui_drawing::WrapMode::tile_flip_y: return TextureAxisWrap::repeat;
+    case gui_drawing::WrapMode::tile_flip_x:
+    case gui_drawing::WrapMode::tile_flip_xy: return TextureAxisWrap::mirror;
+    case gui_drawing::WrapMode::clamp:
+    default: break;
+    }
+    return TextureAxisWrap::clamp;
+}
+
+[[nodiscard]] TextureAxisWrap texture_wrap_y(gui_drawing::WrapMode mode) noexcept {
+    switch (mode) {
+    case gui_drawing::WrapMode::tile:
+    case gui_drawing::WrapMode::tile_flip_x: return TextureAxisWrap::repeat;
+    case gui_drawing::WrapMode::tile_flip_y:
+    case gui_drawing::WrapMode::tile_flip_xy: return TextureAxisWrap::mirror;
+    case gui_drawing::WrapMode::clamp:
+    default: break;
+    }
+    return TextureAxisWrap::clamp;
+}
+
+// The texel `index` reaches along an axis of `size` texels (size > 0).
+[[nodiscard]] std::int64_t wrap_texel(std::int64_t index, std::int64_t size, TextureAxisWrap wrap) noexcept {
+    switch (wrap) {
+    case TextureAxisWrap::repeat: {
+        std::int64_t wrapped = index % size;
+        if (wrapped < 0) wrapped += size;
+        return wrapped;
+    }
+    case TextureAxisWrap::mirror: {
+        const std::int64_t period = size * 2;
+        std::int64_t wrapped = index % period;
+        if (wrapped < 0) wrapped += period;
+        if (wrapped >= size) wrapped = period - 1 - wrapped;
+        return wrapped;
+    }
+    case TextureAxisWrap::clamp:
+    default: break;
+    }
+    const std::int64_t clamped = std::clamp<std::int64_t>(index, 0, size - 1);
+    return clamped;
+}
+
+// Image coordinates of a recording point: the inverse of a brush transform
+// (gui_drawing::Matrix maps x' = m11 x + m21 y + dx, y' = m12 x + m22 y + dy).
+struct TextureInverse final {
+    double u_per_x{};
+    double u_per_y{};
+    double u_origin{};
+    double v_per_x{};
+    double v_per_y{};
+    double v_origin{};
+};
+
+// False when the transform is singular or not finite (the executor's shader
+// then draws nothing).
+[[nodiscard]] bool invert_texture_transform(const gui_drawing::Matrix& transform, TextureInverse& inverse) noexcept {
+    const double determinant = transform.m11() * transform.m22() - transform.m21() * transform.m12();
+    if (!std::isfinite(determinant) || determinant == 0.0) return false;
+    TextureInverse written{};
+    written.u_per_x = transform.m22() / determinant;
+    written.u_per_y = -transform.m21() / determinant;
+    written.v_per_x = -transform.m12() / determinant;
+    written.v_per_y = transform.m11() / determinant;
+    written.u_origin = -(written.u_per_x * transform.dx() + written.u_per_y * transform.dy());
+    written.v_origin = -(written.v_per_x * transform.dx() + written.v_per_y * transform.dy());
+    const bool finite = std::isfinite(written.u_per_x) && std::isfinite(written.u_per_y) &&
+                        std::isfinite(written.v_per_x) && std::isfinite(written.v_per_y) &&
+                        std::isfinite(written.u_origin) && std::isfinite(written.v_origin);
+    if (!finite) return false;
+    inverse = written;
+    return true;
+}
+
+// The texture a bake reads: validated pixels (bgra32_premultiplied, row
+// stride row_bytes) and its wrap per axis.
+struct TextureSource final {
+    std::span<const std::byte> pixels;
+    std::size_t row_bytes{};
+    std::int64_t width{};
+    std::int64_t height{};
+    TextureAxisWrap wrap_x{TextureAxisWrap::repeat};
+    TextureAxisWrap wrap_y{TextureAxisWrap::repeat};
+};
+
+// One texel's four channels in memory order (blue, green, red, alpha).
+struct Texel final {
+    std::array<std::int64_t, 4> channels{};
+};
+
+[[nodiscard]] Texel read_texel(const TextureSource& source, std::int64_t column, std::int64_t row) noexcept {
+    const std::size_t offset = static_cast<std::size_t>(row) * source.row_bytes +
+                               static_cast<std::size_t>(column) * part_raster_bytes_per_pixel;
+    Texel texel{};
+    for (std::size_t channel = 0U; channel < texel.channels.size(); ++channel) {
+        texel.channels[channel] = std::to_integer<std::int64_t>(source.pixels[offset + channel]);
+    }
+    return texel;
+}
+
+[[nodiscard]] double held_coordinate(double coordinate) noexcept {
+    const double held = std::clamp(coordinate, -texture_coordinate_limit, texture_coordinate_limit);
+    return held;
+}
+
+// Writes the texel nearest image point (u, v) into `destination`.
+void sample_nearest(const TextureSource& source, double u, double v, std::span<std::uint8_t> destination) noexcept {
+    const std::int64_t column = wrap_texel(static_cast<std::int64_t>(std::floor(held_coordinate(u))), source.width,
+                                           source.wrap_x);
+    const std::int64_t row = wrap_texel(static_cast<std::int64_t>(std::floor(held_coordinate(v))), source.height,
+                                        source.wrap_y);
+    const Texel texel = read_texel(source, column, row);
+    for (std::size_t channel = 0U; channel < texel.channels.size(); ++channel) {
+        destination[channel] = static_cast<std::uint8_t>(texel.channels[channel]);
+    }
+}
+
+// Writes the bilinear sample at image point (u, v) into `destination`: the
+// four texels whose centres surround it, each index wrapped, weighted in
+// 1/256 of a texel. Every output channel is a rounded convex combination
+// with the same weights, so colour never exceeds alpha.
+void sample_bilinear(const TextureSource& source, double u, double v, std::span<std::uint8_t> destination) noexcept {
+    const double across = held_coordinate(u) - 0.5;
+    const double down = held_coordinate(v) - 0.5;
+    const double left_edge = std::floor(across);
+    const double top_edge = std::floor(down);
+    const std::int64_t right_weight = static_cast<std::int64_t>(
+        std::lround((across - left_edge) * static_cast<double>(texture_weight_unit)));
+    const std::int64_t bottom_weight = static_cast<std::int64_t>(
+        std::lround((down - top_edge) * static_cast<double>(texture_weight_unit)));
+    const std::int64_t left_index = static_cast<std::int64_t>(left_edge);
+    const std::int64_t top_index = static_cast<std::int64_t>(top_edge);
+    const std::int64_t left = wrap_texel(left_index, source.width, source.wrap_x);
+    const std::int64_t right = wrap_texel(left_index + 1, source.width, source.wrap_x);
+    const std::int64_t top = wrap_texel(top_index, source.height, source.wrap_y);
+    const std::int64_t bottom = wrap_texel(top_index + 1, source.height, source.wrap_y);
+    const Texel top_left = read_texel(source, left, top);
+    const Texel top_right = read_texel(source, right, top);
+    const Texel bottom_left = read_texel(source, left, bottom);
+    const Texel bottom_right = read_texel(source, right, bottom);
+    const std::int64_t left_weight = texture_weight_unit - right_weight;
+    const std::int64_t top_weight = texture_weight_unit - bottom_weight;
+    constexpr std::int64_t half = texture_weight_unit * texture_weight_unit / 2;
+    for (std::size_t channel = 0U; channel < top_left.channels.size(); ++channel) {
+        const std::int64_t upper = top_left.channels[channel] * left_weight + top_right.channels[channel] * right_weight;
+        const std::int64_t lower =
+            bottom_left.channels[channel] * left_weight + bottom_right.channels[channel] * right_weight;
+        const std::int64_t mixed = upper * top_weight + lower * bottom_weight;
+        destination[channel] = static_cast<std::uint8_t>((mixed + half) / (texture_weight_unit * texture_weight_unit));
+    }
+}
+
+// A texel sampler: sample_nearest or sample_bilinear, chosen once per bake.
+using TextureSampler = void (*)(const TextureSource& source, double u, double v,
+                                std::span<std::uint8_t> destination) noexcept;
+
+// A baked texture fill: its raster and the logical point of its top-left
+// device pixel.
+struct BakedTexture final {
+    std::shared_ptr<PartRaster> raster;
+    Point origin;
+};
+
+enum class TextureBake : std::uint8_t {
+    baked,
+    // Nothing to draw: an empty area, a texture without pixels or a
+    // singular transform (as the executor draws nothing).
+    nothing,
+    // The fill is larger than maximum_texture_replay_pixels or its
+    // device bounds overflow; left out.
+    too_large
+};
+
+// Bakes the texture brush `brush` over the device pixels `area` touches at
+// `scale` device pixels per unit, each pixel sampled at its centre. Writes
+// `baked` only on TextureBake::baked; allocates the one raster.
+[[nodiscard]] TextureBake bake_texture(const gui_drawing::BrushSnapshot& brush,
+                                       gui_drawing::InterpolationMode interpolation, Rect area, double scale,
+                                       BakedTexture& baked) {
+    const gui_drawing::ImageSnapshot& image = brush.image;
+    if (!(area.width > 0.0) || !(area.height > 0.0) || !image.has_pixels()) return TextureBake::nothing;
+    if (image.width == 0U || image.height == 0U) return TextureBake::nothing;
+    if (image.pixel_format != gui_drawing::PixelFormat::bgra32_premultiplied) return TextureBake::nothing;
+    const std::span<const std::byte> pixels = image.pixels();
+    const std::size_t row_bytes = image.row_bytes();
+    const std::size_t tight = static_cast<std::size_t>(image.width) * part_raster_bytes_per_pixel;
+    if (row_bytes < tight) return TextureBake::nothing;
+    const std::size_t needed = row_bytes * (static_cast<std::size_t>(image.height) - 1U) + tight;
+    if (pixels.size() < needed) return TextureBake::nothing;
+    TextureInverse inverse{};
+    if (!invert_texture_transform(brush.transform, inverse)) return TextureBake::nothing;
+
+    const double left_edge = std::floor(area.x * scale);
+    const double top_edge = std::floor(area.y * scale);
+    const double right_edge = std::ceil((area.x + area.width) * scale);
+    const double bottom_edge = std::ceil((area.y + area.height) * scale);
+    const double width = right_edge - left_edge;
+    const double height = bottom_edge - top_edge;
+    const bool bounded = std::isfinite(width) && std::isfinite(height) && width >= 1.0 && height >= 1.0 &&
+                         width <= static_cast<double>(maximum_part_raster_side) &&
+                         height <= static_cast<double>(maximum_part_raster_side);
+    if (!bounded) return TextureBake::too_large;
+    const std::uint32_t columns = static_cast<std::uint32_t>(width);
+    const std::uint32_t rows = static_cast<std::uint32_t>(height);
+    const std::uint64_t pixel_count = std::uint64_t{columns} * std::uint64_t{rows};
+    if (pixel_count > maximum_texture_replay_pixels) return TextureBake::too_large;
+    std::shared_ptr<PartRaster> raster = PartRaster::create(DeviceExtent{columns, rows}, DeviceScale{scale});
+    if (raster == nullptr) return TextureBake::too_large;
+
+    TextureSource source{};
+    source.pixels = pixels;
+    source.row_bytes = row_bytes;
+    source.width = static_cast<std::int64_t>(image.width);
+    source.height = static_cast<std::int64_t>(image.height);
+    source.wrap_x = texture_wrap_x(brush.wrap_mode);
+    source.wrap_y = texture_wrap_y(brush.wrap_mode);
+    // The executor samples nearest only for the nearest mode (sampling_for).
+    const bool nearest = interpolation == gui_drawing::InterpolationMode::nearest;
+    const TextureSampler sample = nearest ? &sample_nearest : &sample_bilinear;
+    const PartRasterView view = (*raster).view();
+    for (std::uint32_t row = 0U; row < rows; ++row) {
+        const double y = (top_edge + static_cast<double>(row) + 0.5) / scale;
+        const std::span<std::uint8_t> line = view.pixels.subspan(static_cast<std::size_t>(row) * view.row_bytes,
+                                                                 static_cast<std::size_t>(columns) *
+                                                                     part_raster_bytes_per_pixel);
+        for (std::uint32_t column = 0U; column < columns; ++column) {
+            const double x = (left_edge + static_cast<double>(column) + 0.5) / scale;
+            const double u = inverse.u_per_x * x + inverse.u_per_y * y + inverse.u_origin;
+            const double v = inverse.v_per_x * x + inverse.v_per_y * y + inverse.v_origin;
+            const std::span<std::uint8_t> destination =
+                line.subspan(static_cast<std::size_t>(column) * part_raster_bytes_per_pixel,
+                             part_raster_bytes_per_pixel);
+            sample(source, u, v, destination);
+        }
+    }
+    (*raster).record_opacity();
+    baked.raster = std::move(raster);
+    baked.origin = Point{left_edge / scale, top_edge / scale};
+    return TextureBake::baked;
+}
+
+// How a command's brush is replayed beyond the brush itself: the display
+// scale texture fills bake at (0 leaves them out) and the state's
+// interpolation mode.
+struct BrushReplay final {
+    double display_scale{};
+    gui_drawing::InterpolationMode interpolation{gui_drawing::InterpolationMode::default_mode};
+};
+
+[[nodiscard]] bool replay_scale_valid(double scale) noexcept {
+    const bool valid = std::isfinite(scale) && scale >= minimum_device_scale && scale <= maximum_device_scale;
+    return valid;
+}
+
 // The Painter's hatch style for a brush's, or false for a value outside the
 // enumeration.
 [[nodiscard]] bool hatch_style_of(gui_drawing::HatchStyle style, HatchStyle& written) noexcept {
@@ -171,11 +450,11 @@ void fill_brush_stops(const gui_drawing::BrushSnapshot& brush, BrushStops& writt
     return false;
 }
 
-// Whether the painter can draw `brush` (replay_drawing_commands): every kind
-// but texture, whose pixels have no image identity here; a gradient whose
+// Whether the painter can draw `brush` (replay_drawing_commands): every kind,
+// texture only when the replay names a valid display scale; a gradient whose
 // stops are not valid gradient stops is drawn in its primary colour, as the
 // executor draws it.
-[[nodiscard]] bool brush_replayable(const gui_drawing::BrushSnapshot& brush) noexcept {
+[[nodiscard]] bool brush_replayable(const gui_drawing::BrushSnapshot& brush, double display_scale) noexcept {
     HatchStyle style{};
     switch (brush.kind) {
     case BrushKind::solid:
@@ -187,7 +466,7 @@ void fill_brush_stops(const gui_drawing::BrushSnapshot& brush, BrushStops& writt
                std::isfinite(brush.radius_y);
     case BrushKind::checker: return brush.cell_size > 0.0 && std::isfinite(brush.cell_size);
     case BrushKind::hatch: return hatch_style_of(brush.hatch_style, style);
-    case BrushKind::texture:
+    case BrushKind::texture: return replay_scale_valid(display_scale);
     default: break;
     }
     return false;
@@ -195,26 +474,42 @@ void fill_brush_stops(const gui_drawing::BrushSnapshot& brush, BrushStops& writt
 
 // Fills `area` with `brush`'s paint as the raster executor shades it, in
 // the recording's coordinates (patterns anchored at its origin), under the
-// clip the caller set. The brush passed brush_replayable.
-void fill_with_brush(Painter& painter, const gui_drawing::BrushSnapshot& brush, Rect area) {
+// clip the caller set. The brush passed brush_replayable. False when a
+// texture fill is too large to bake (nothing is drawn).
+[[nodiscard]] bool fill_with_brush(Painter& painter, const gui_drawing::BrushSnapshot& brush, Rect area,
+                                   BrushReplay replay) {
     const Color primary = color_of(brush.primary);
     BrushStops stops;
     switch (brush.kind) {
+    case BrushKind::texture: {
+        BakedTexture baked;
+        const TextureBake bake = bake_texture(brush, replay.interpolation, area, replay.display_scale, baked);
+        if (bake == TextureBake::too_large) return false;
+        if (bake == TextureBake::nothing) return true;
+        // The raster covers whole device pixels; the area's edges cut it,
+        // in a save of its own so neighbouring rectangles of one command
+        // are not clipped to each other.
+        painter.save();
+        painter.clip_rect(area);
+        painter.draw_part_raster(baked.raster, baked.origin);
+        painter.restore();
+        return true;
+    }
     case BrushKind::checker: {
         CheckerPattern checker{};
         checker.cell = brush.cell_size;
         checker.first = primary;
         checker.second = color_of(brush.secondary);
         painter.fill_checker(area, checker);
-        return;
+        return true;
     }
     case BrushKind::hatch: {
         HatchPattern hatch{};
-        if (!hatch_style_of(brush.hatch_style, hatch.style)) return;
+        if (!hatch_style_of(brush.hatch_style, hatch.style)) return true;
         hatch.fore = primary;
         hatch.back = color_of(brush.secondary);
         painter.fill_hatch(area, hatch);
-        return;
+        return true;
     }
     case BrushKind::linear_gradient:
     case BrushKind::path_gradient:
@@ -223,17 +518,17 @@ void fill_with_brush(Painter& painter, const gui_drawing::BrushSnapshot& brush, 
     case BrushKind::solid:
     default:
         painter.fill_rect(area, primary);
-        return;
+        return true;
     }
     fill_brush_stops(brush, stops);
     if (stops.count == 0U) {
         painter.fill_rect(area, primary);
-        return;
+        return true;
     }
     if (brush.kind == BrushKind::conic_gradient) {
         const double start = std::fmod(brush.angle, 360.0);
         painter.fill_conic_gradient(area, point_of(brush.center), start, stops.view());
-        return;
+        return true;
     }
     if (brush.kind == BrushKind::linear_gradient) {
         // The executor's line: through the bounds' centre at the brush's
@@ -247,7 +542,7 @@ void fill_with_brush(Painter& painter, const gui_drawing::BrushSnapshot& brush, 
         const Point start{centre.x - along_x * half_length, centre.y - along_y * half_length};
         const Point end{centre.x + along_x * half_length, centre.y + along_y * half_length};
         painter.fill_linear_gradient_spread(area, start, end, stops.view(), spread_of(brush.wrap_mode));
-        return;
+        return true;
     }
     if (brush.kind == BrushKind::radial_gradient) {
         const Point centre = point_of(brush.center);
@@ -255,10 +550,10 @@ void fill_with_brush(Painter& painter, const gui_drawing::BrushSnapshot& brush, 
         const Size radii{brush.radius, brush.radius_y};
         if (focus == centre) {
             painter.fill_radial_gradient_spread(area, centre, radii, stops.view(), spread_of(brush.wrap_mode));
-            return;
+            return true;
         }
         painter.fill_focal_radial_gradient(area, centre, radii, focus, stops.view(), spread_of(brush.wrap_mode));
-        return;
+        return true;
     }
     // A path gradient: the executor's circle about the centre through the
     // farthest boundary point.
@@ -268,10 +563,11 @@ void fill_with_brush(Painter& painter, const gui_drawing::BrushSnapshot& brush, 
     }
     if (!(radius > 0.0)) {
         painter.fill_rect(area, primary);
-        return;
+        return true;
     }
     painter.fill_radial_gradient_spread(area, point_of(brush.center), Size{radius, radius}, stops.view(),
                                         spread_of(brush.wrap_mode));
+    return true;
 }
 
 // The point at `degrees` on the ellipse inscribed in `bounds` (clockwise,
@@ -371,7 +667,7 @@ void append_ellipse(gui_drawing::RectF bounds, PaintPath& path) {
     return mode == gui_drawing::FillMode::winding ? PolygonFillRule::nonzero : PolygonFillRule::even_odd;
 }
 
-[[nodiscard]] ReplayClass classify(const DrawingCommand& command) noexcept {
+[[nodiscard]] ReplayClass classify(const DrawingCommand& command, double display_scale) noexcept {
     switch (command.kind) {
     case CommandKind::save:
     case CommandKind::restore:
@@ -387,7 +683,7 @@ void append_ellipse(gui_drawing::RectF bounds, PaintPath& path) {
     case CommandKind::fill_proportion:
     case CommandKind::fill_ellipse:
     case CommandKind::fill_path:
-        return brush_replayable(command.brush) ? ReplayClass::drawable : ReplayClass::unsupported;
+        return brush_replayable(command.brush, display_scale) ? ReplayClass::drawable : ReplayClass::unsupported;
     case CommandKind::draw_rectangle:
     case CommandKind::draw_line:
     case CommandKind::draw_lines:
@@ -429,8 +725,11 @@ void write_points(std::span<const gui_drawing::PointF> source, std::vector<Point
 }
 
 // Draws one drawable command, already under its state. False when its pen
-// does not fit a StrokeStyle (nothing is drawn).
-[[nodiscard]] bool draw_command(const DrawingCommand& command, Painter& painter, ReplayScratch& scratch) {
+// does not fit a StrokeStyle or its texture fill is too large to bake
+// (nothing is drawn).
+[[nodiscard]] bool draw_command(const DrawingCommand& command, Painter& painter, ReplayScratch& scratch,
+                                double display_scale) {
+    const BrushReplay replay{display_scale, command.state.interpolation};
     const Color fill = color_of(command.brush.primary);
     const bool solid = command.brush.kind == BrushKind::solid;
     StrokeStyle stroke;
@@ -438,11 +737,10 @@ void write_points(std::span<const gui_drawing::PointF> source, std::vector<Point
     case CommandKind::fill_rectangle:
         if (solid) {
             painter.fill_rect(rect_of(command.rect), fill);
-        } else {
-            fill_with_brush(painter, command.brush, rect_of(command.rect));
+            return true;
         }
-        return true;
-    case CommandKind::fill_rectangles:
+        return fill_with_brush(painter, command.brush, rect_of(command.rect), replay);
+    case CommandKind::fill_rectangles: {
         scratch.rects.clear();
         for (const gui_drawing::RectF rect : command.rects) scratch.rects.push_back(rect_of(rect));
         if (solid) {
@@ -451,8 +749,12 @@ void write_points(std::span<const gui_drawing::PointF> source, std::vector<Point
         }
         // Each rectangle filled alone: the pattern is anchored at the
         // recording's origin, so neighbours still join.
-        for (const Rect rect : scratch.rects) fill_with_brush(painter, command.brush, rect);
-        return true;
+        bool every = true;
+        for (const Rect rect : scratch.rects) {
+            if (!fill_with_brush(painter, command.brush, rect, replay)) every = false;
+        }
+        return every;
+    }
     case CommandKind::fill_polygon: {
         write_points(command.points, scratch.points);
         const PolygonFillRule rule = rule_of(command.path.fill_mode);
@@ -467,8 +769,7 @@ void write_points(std::span<const gui_drawing::PointF> source, std::vector<Point
         scratch.path.close();
         if (!valid_paint_path(scratch.path.view())) return false;
         painter.clip_path(scratch.path.view(), rule);
-        fill_with_brush(painter, command.brush, paint_path_bounds(scratch.path.view()));
-        return true;
+        return fill_with_brush(painter, command.brush, paint_path_bounds(scratch.path.view()), replay);
     }
     case CommandKind::fill_proportion: {
         const Rect track = rect_of(command.rect);
@@ -478,10 +779,9 @@ void write_points(std::span<const gui_drawing::PointF> source, std::vector<Point
         painter.clip_rounded_rect_corners(track, radii);
         if (solid) {
             painter.fill_rect(part, fill);
-        } else {
-            fill_with_brush(painter, command.brush, part);
+            return true;
         }
-        return true;
+        return fill_with_brush(painter, command.brush, part, replay);
     }
     case CommandKind::fill_ellipse:
     case CommandKind::fill_path: {
@@ -502,8 +802,7 @@ void write_points(std::span<const gui_drawing::PointF> source, std::vector<Point
             return true;
         }
         painter.clip_path(scratch.path.view(), rule);
-        fill_with_brush(painter, command.brush, paint_path_bounds(scratch.path.view()));
-        return true;
+        return fill_with_brush(painter, command.brush, paint_path_bounds(scratch.path.view()), replay);
     }
     case CommandKind::draw_ellipse:
     case CommandKind::draw_path: {
@@ -594,10 +893,18 @@ void write_points(std::span<const gui_drawing::PointF> source, std::vector<Point
 
 DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::DrawingCommand> commands,
                                             Painter& painter) {
+    const DrawingReplayOptions options{};
+    const DrawingReplayReport report = replay_drawing_commands(commands, painter, options);
+    return report;
+}
+
+DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::DrawingCommand> commands,
+                                            Painter& painter, DrawingReplayOptions options) {
     DrawingReplayReport report;
     ReplayScratch scratch;
+    const double display_scale = replay_scale_valid(options.display_scale) ? options.display_scale : 0.0;
     for (const DrawingCommand& command : commands) {
-        const ReplayClass replay = classify(command);
+        const ReplayClass replay = classify(command, display_scale);
         if (replay == ReplayClass::state) {
             ++report.state;
             continue;
@@ -616,7 +923,7 @@ DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::Drawing
         painter.save();
         if (state.clip.has_value()) painter.clip_rect(rect_of(*state.clip));
         painter.translate(Point{state.transform.dx(), state.transform.dy()});
-        const bool drawn = draw_command(command, painter, scratch);
+        const bool drawn = draw_command(command, painter, scratch, display_scale);
         painter.restore();
         if (drawn) {
             ++report.drawn;

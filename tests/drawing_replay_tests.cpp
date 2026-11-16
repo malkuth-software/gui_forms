@@ -1,9 +1,11 @@
 #include "gui_forms/drawing/drawing_replay/drawing_replay.hpp"
 #include "gui_forms/drawing.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
 
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <span>
 #include <string>
 #include <string_view>
@@ -162,6 +164,14 @@ public:
     HatchPattern last_hatch{};
     CheckerPattern last_checker{};
     Size last_radii{};
+    std::shared_ptr<const PartRaster> last_raster;
+    Point last_raster_origin{};
+
+    void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin, double) override {
+        calls.push_back("part_raster");
+        last_raster = raster;
+        last_raster_origin = origin;
+    }
 };
 
 [[nodiscard]] std::size_t count_calls(const CallPainter& painter, std::string_view name) {
@@ -355,6 +365,107 @@ void unsupported_commands_are_counted() {
     CHECK(painter.calls.empty());
 }
 
+// The blue, green, red and alpha bytes of a baked texture's pixel.
+[[nodiscard]] std::uint32_t raster_bgra(const PartRaster& raster, std::uint32_t x, std::uint32_t y) {
+    const std::size_t offset = static_cast<std::size_t>(y) * raster.row_bytes() + static_cast<std::size_t>(x) * 4U;
+    std::uint32_t value = 0U;
+    for (std::size_t channel = 0U; channel < 4U; ++channel) {
+        value = (value << 8U) | static_cast<std::uint32_t>(raster.pixels()[offset + channel]);
+    }
+    return value;
+}
+
+constexpr std::uint32_t baked_red = 0x0000ffffU;
+constexpr std::uint32_t baked_blue = 0xff0000ffU;
+
+// Replays one fill of `brush` over `area` at `scale` with `interpolation`
+// into `painter`.
+DrawingReplayReport replay_texture_fill(const gui_drawing::TextureBrush& brush, gui_drawing::RectF area,
+                                        double scale, gui_drawing::InterpolationMode interpolation,
+                                        CallPainter& painter) {
+    gui_drawing::GraphicsRecorder recorder;
+    recorder.set_quality(gui_drawing::SmoothingMode::default_mode, interpolation,
+                         gui_drawing::PixelOffsetMode::default_mode, gui_drawing::CompositingMode::source_over,
+                         gui_drawing::CompositingQuality::default_mode);
+    recorder.fill_rectangle(brush, area);
+    const DrawingReplayOptions options{scale};
+    const DrawingReplayReport report = replay_drawing_commands(recorder.commands(), painter, options);
+    return report;
+}
+
+// With the painter's display scale, a texture brush bakes into one part
+// raster over its area's device pixels, wrapped per axis as the executor
+// wraps it (tile, mirror, clamp), moved by its transform, nearest or
+// bilinear; an over-large fill is counted unsupported.
+void texture_brushes_replay_as_baked_rasters() {
+    gui_drawing::Bitmap tile(2U, 1U);
+    tile.set_pixel(0U, 0U, gui_drawing::Color::from_argb(0xffff0000U));
+    tile.set_pixel(1U, 0U, gui_drawing::Color::from_argb(0xff0000ffU));
+    const gui_drawing::InterpolationMode nearest = gui_drawing::InterpolationMode::nearest;
+
+    gui_drawing::TextureBrush tiled(tile, gui_drawing::WrapMode::tile);
+    CallPainter tiled_painter;
+    CHECK(replay_texture_fill(tiled, {0, 0, 4, 1}, 1.0, nearest, tiled_painter).drawn == 1U);
+    CHECK(count_calls(tiled_painter, "part_raster") == 1U && count_calls(tiled_painter, "clip") == 1U);
+    CHECK(tiled_painter.last_clip == (Rect{0, 0, 4, 1}) && tiled_painter.last_raster_origin == (Point{0, 0}));
+    CHECK(tiled_painter.depth == 0);
+    const PartRaster& tiled_raster = *tiled_painter.last_raster;
+    CHECK(tiled_raster.extent() == (DeviceExtent{4U, 1U}) && tiled_raster.opaque());
+    CHECK(raster_bgra(tiled_raster, 0U, 0U) == baked_red && raster_bgra(tiled_raster, 1U, 0U) == baked_blue &&
+          raster_bgra(tiled_raster, 2U, 0U) == baked_red && raster_bgra(tiled_raster, 3U, 0U) == baked_blue);
+
+    gui_drawing::TextureBrush mirrored(tile, gui_drawing::WrapMode::tile_flip_x);
+    CallPainter mirrored_painter;
+    CHECK(replay_texture_fill(mirrored, {0, 0, 4, 1}, 1.0, nearest, mirrored_painter).drawn == 1U);
+    const PartRaster& mirrored_raster = *mirrored_painter.last_raster;
+    CHECK(raster_bgra(mirrored_raster, 0U, 0U) == baked_red && raster_bgra(mirrored_raster, 1U, 0U) == baked_blue &&
+          raster_bgra(mirrored_raster, 2U, 0U) == baked_blue && raster_bgra(mirrored_raster, 3U, 0U) == baked_red);
+
+    gui_drawing::TextureBrush clamped(tile, gui_drawing::WrapMode::clamp);
+    CallPainter clamped_painter;
+    CHECK(replay_texture_fill(clamped, {0, 0, 4, 1}, 1.0, nearest, clamped_painter).drawn == 1U);
+    const PartRaster& clamped_raster = *clamped_painter.last_raster;
+    CHECK(raster_bgra(clamped_raster, 0U, 0U) == baked_red && raster_bgra(clamped_raster, 1U, 0U) == baked_blue &&
+          raster_bgra(clamped_raster, 2U, 0U) == baked_blue && raster_bgra(clamped_raster, 3U, 0U) == baked_blue);
+
+    // Moved one unit right, the texel left of the origin is the tile's
+    // last one.
+    gui_drawing::TextureBrush moved(tile, gui_drawing::WrapMode::tile);
+    moved.set_transform(gui_drawing::Matrix(1.0, 0.0, 0.0, 1.0, 1.0, 0.0));
+    CallPainter moved_painter;
+    CHECK(replay_texture_fill(moved, {0, 0, 2, 1}, 1.0, nearest, moved_painter).drawn == 1U);
+    const PartRaster& moved_raster = *moved_painter.last_raster;
+    CHECK(raster_bgra(moved_raster, 0U, 0U) == baked_blue && raster_bgra(moved_raster, 1U, 0U) == baked_red);
+
+    // At scale 2 the area covers twice the device pixels, and a fractional
+    // area rounds out to whole pixels (0.5 to 3.5 becomes 0 to 4). Moved a
+    // quarter unit right, the third column's centre (x 1.25) samples the
+    // image at u 1, halfway between the texels' centres, so bilinear
+    // sampling mixes them evenly: (255 * 128 * 256 + 32768) / 65536 = 128.
+    gui_drawing::TextureBrush halfway(tile, gui_drawing::WrapMode::tile);
+    halfway.set_transform(gui_drawing::Matrix(1.0, 0.0, 0.0, 1.0, 0.25, 0.0));
+    CallPainter scaled_painter;
+    CHECK(replay_texture_fill(halfway, {0.25, 0, 1.5, 1}, 2.0, gui_drawing::InterpolationMode::bilinear,
+                              scaled_painter).drawn == 1U);
+    const PartRaster& scaled_raster = *scaled_painter.last_raster;
+    CHECK(scaled_raster.extent() == (DeviceExtent{4U, 2U}) && scaled_raster.scale() == (DeviceScale{2.0}));
+    CHECK(scaled_painter.last_raster_origin == (Point{0.0, 0.0}));
+    CHECK(scaled_painter.last_clip == (Rect{0.25, 0, 1.5, 1}));
+    CHECK(raster_bgra(scaled_raster, 2U, 0U) == 0x800080ffU);
+    CHECK(raster_bgra(scaled_raster, 2U, 1U) == 0x800080ffU);
+
+    // A fill of more than 2^24 device pixels is left out; without a
+    // display scale every texture fill is.
+    CallPainter large_painter;
+    const DrawingReplayReport large =
+        replay_texture_fill(tiled, {0, 0, 5000, 5000}, 1.0, nearest, large_painter);
+    CHECK(large.unsupported == 1U && large.drawn == 0U && count_calls(large_painter, "part_raster") == 0U);
+    CallPainter unscaled_painter;
+    const DrawingReplayReport unscaled =
+        replay_texture_fill(tiled, {0, 0, 4, 1}, 0.0, nearest, unscaled_painter);
+    CHECK(unscaled.unsupported == 1U && unscaled_painter.calls.empty());
+}
+
 // A radial gradient brush replays as a radial fill, or a focal one when
 // its focus has moved, with its wrap mode as the spread.
 void radial_gradient_brushes_replay() {
@@ -396,5 +507,6 @@ int main() {
     path_verbs_follow_the_executor();
     unsupported_commands_are_counted();
     radial_gradient_brushes_replay();
+    texture_brushes_replay_as_baked_rasters();
     return 0;
 }
