@@ -105,7 +105,7 @@ struct GUI_FORMS_API ToolStripItemSpec final {
     // How the item joins another strip when its strip merges (MergeAction,
     // merge_strips), and its position there; none matches by text only.
     MergeAction merge_action{MergeAction::append};
-    std::optional<std::size_t> merge_index{};
+    stxlib::Optional<std::size_t> merge_index{};
 };
 
 // A click on an item, after any command it carries has executed.

@@ -645,7 +645,7 @@ Related types
 
       How the item joins another strip's menu when its strip merges (MergeAction), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
 
-   .. cpp:member:: std::optional<std::size_t> merge_index
+   .. cpp:member:: stxlib::Optional<std::size_t> merge_index
 
 .. cpp:namespace:: gui_forms
 
@@ -817,7 +817,7 @@ Related types
 
       How the menu joins another menu strip when its strip merges (MergeAction, merge_strips), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
 
-   .. cpp:member:: std::optional<std::size_t> merge_index
+   .. cpp:member:: stxlib::Optional<std::size_t> merge_index
 
 .. cpp:namespace:: gui_forms
 
@@ -2629,7 +2629,7 @@ Related types
 
       How the item joins another strip when its strip merges (MergeAction, merge_strips), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
 
-   .. cpp:member:: std::optional<std::size_t> merge_index
+   .. cpp:member:: stxlib::Optional<std::size_t> merge_index
 
 .. cpp:namespace:: gui_forms
 

@@ -21,6 +21,8 @@
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/menu_strip_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 namespace detail {
@@ -38,7 +40,7 @@ struct GUI_FORMS_API MenuStripItemSpec final {
     // (MergeAction, merge_strips), and its position there; none matches by
     // text only.
     MergeAction merge_action{MergeAction::append};
-    std::optional<std::size_t> merge_index{};
+    stxlib::Optional<std::size_t> merge_index{};
 };
 
 struct GUI_FORMS_API MenuStripInvocation final {

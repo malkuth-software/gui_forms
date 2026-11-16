@@ -18,6 +18,8 @@
 #include <utility>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 enum class MenuItemKind : std::uint8_t {
@@ -89,7 +91,7 @@ struct GUI_FORMS_API MenuItemSpec final {
     // How the item joins another strip's menu when its strip merges
     // (MergeAction), and its position there; none matches by text only.
     MergeAction merge_action{MergeAction::append};
-    std::optional<std::size_t> merge_index{};
+    stxlib::Optional<std::size_t> merge_index{};
 };
 
 struct GUI_FORMS_API MenuItemInvocation final {
