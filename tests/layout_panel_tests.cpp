@@ -695,9 +695,9 @@ void test_scaled_panel_and_group_are_public_layout_controls() {
                 (*grouped).requested_bounds() == grouped_preferred,
             "scaled layout must publish retained slots without overwriting authored bounds");
     require((*root).design_bounds(*child) ==
-                std::optional(Rect{10.0, 20.0, 30.0, 40.0}) &&
+                stxlib::Optional<Rect>::of(Rect{10.0, 20.0, 30.0, 40.0}) &&
                 (*group).design_bounds(*grouped) ==
-                std::optional(Rect{5.0, 10.0, 20.0, 15.0}),
+                stxlib::Optional<Rect>::of(Rect{5.0, 10.0, 20.0, 15.0}),
             "scaled layouts must retain queryable authored geometry");
 
     (*root).set_design_bounds(*child, {20.0, 10.0, 40.0, 20.0});
@@ -706,7 +706,7 @@ void test_scaled_panel_and_group_are_public_layout_controls() {
             "runtime slot mutation must relayout without a custom subclass");
     static_cast<void>((*root).remove_child((*child).runtime_id()));
     window.perform_layout();
-    require(!(*root).design_bounds(*child),
+    require((*root).design_bounds(*child).absent(),
             "scaled layouts must revoke detached child metadata deterministically");
 
     bool invalid_size_rejected = false;

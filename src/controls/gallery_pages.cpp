@@ -383,8 +383,8 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         // below 660 was cut off with no way to reach it (sweep defect D3).
         double body_height = 660.0;
         for (const Control::Ptr& child : (*body).children()) {
-            const std::optional<Rect> slot = (*body).design_bounds(*child);
-            const Rect placed = slot ? *slot : (*child).requested_bounds();
+            const stxlib::Optional<Rect> slot = (*body).design_bounds(*child);
+            const Rect placed = slot.value_or((*child).requested_bounds());
             body_height = std::max(body_height, placed.y + placed.height + 16.0);
         }
         const double page_height = strip_height + body_height;
