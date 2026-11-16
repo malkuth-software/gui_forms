@@ -33,7 +33,7 @@ if(NOT DEFINED BINARIES OR BINARIES STREQUAL "")
 endif()
 string(REPLACE "|" ";" binaries "${BINARIES}")
 set(refused_pattern
-    "(gui_forms_|gui_drawing_|stxlib_|libc\\+\\+|libunwind|libstdc\\+\\+|libgcc_s_|libwinpthread|freetype|harfbuzz|sheenbidi|unibreak)")
+    "(gui_forms_|gui_drawing_|stxlib_|libc\\+\\+|libunwind|libstdc\\+\\+|libgcc_s_|libwinpthread|freetype|harfbuzz)")
 
 set(failures "")
 foreach(binary IN LISTS binaries)

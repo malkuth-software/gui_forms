@@ -76,7 +76,7 @@ struct NativeCluster final {
     std::size_t begin{0};
     std::size_t end{0};
     std::uint32_t face{0};
-    // The ISO 15924 tag of the cluster's script (SheenBidi's), or 0 for the
+    // The ISO 15924 tag of the cluster's script (stxlib::textlayout's), or 0 for the
     // common, inherited and unknown scripts: the shaper then takes the run's
     // first character with a script of its own.
     std::uint32_t script{0};

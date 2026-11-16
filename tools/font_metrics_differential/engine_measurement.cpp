@@ -2,158 +2,65 @@
 
 #include "harfbuzz_font_engine.hpp"
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_ADVANCES_H
-#include FT_SFNT_NAMES_H
-#include FT_TRUETYPE_IDS_H
-#include FT_TRUETYPE_TABLES_H
+#include <stxlib/font_file.hpp>
+#include <stxlib/vector.hpp>
+#include <stxlib/view.hpp>
 
 #include <algorithm>
+#include <new>
 #include <optional>
+#include <string>
 
-// One face's measurements: facts and per-code-point advances from FreeType in
-// font units, then line metrics, corpus string widths and greedy line breaks
-// from the bundled HarfBuzz engine, which shapes exactly as GUI.Forms does
-// (ADR-004: unhinted advances at the logical size).
+// One face's measurements: facts and per-code-point advances from the font's
+// own tables in font units (STXlib's font reader, which reads them as
+// FreeType 2.14.2 did), then line metrics, corpus string widths and greedy
+// line breaks from the bundled text engine, which shapes exactly as
+// GUI.Forms does (ADR-004: unhinted advances at the logical size).
 
 namespace gui_forms::tools::font_metrics {
 
 namespace {
 
-// Owns one FreeType library for the measurement of one face.
-class FreeTypeLibrary final {
-public:
-    FreeTypeLibrary() {
-        if (FT_Init_FreeType(&handle_) != 0) throw std::runtime_error("FreeType initialization failed");
-    }
-    ~FreeTypeLibrary() { FT_Done_FreeType(handle_); }
-    FreeTypeLibrary(const FreeTypeLibrary&) = delete;
-    FreeTypeLibrary& operator=(const FreeTypeLibrary&) = delete;
-    [[nodiscard]] FT_Library handle() const noexcept { return handle_; }
-
-private:
-    FT_Library handle_{};
-};
-
-// Owns one memory face; the encoded bytes must outlive it.
-class FreeTypeFace final {
-public:
-    FreeTypeFace(const FreeTypeLibrary& library, std::span<const std::byte> encoded) {
-        const FT_Byte* const base = reinterpret_cast<const FT_Byte*>(encoded.data());
-        const FT_Long length = static_cast<FT_Long>(encoded.size());
-        if (FT_New_Memory_Face(library.handle(), base, length, 0, &handle_) != 0) {
-            throw InputRejected("FreeType refused the face");
-        }
-    }
-    ~FreeTypeFace() { FT_Done_Face(handle_); }
-    FreeTypeFace(const FreeTypeFace&) = delete;
-    FreeTypeFace& operator=(const FreeTypeFace&) = delete;
-    [[nodiscard]] FT_Face handle() const noexcept { return handle_; }
-
-private:
-    FT_Face handle_{};
-};
-
-void append_utf8(std::string& output, char32_t scalar) {
-    if (scalar < 0x80U) {
-        output.push_back(static_cast<char>(scalar));
-    } else if (scalar < 0x800U) {
-        output.push_back(static_cast<char>(0xC0U | (scalar >> 6U)));
-        output.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
-    } else if (scalar < 0x10000U) {
-        output.push_back(static_cast<char>(0xE0U | (scalar >> 12U)));
-        output.push_back(static_cast<char>(0x80U | ((scalar >> 6U) & 0x3FU)));
-        output.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
-    } else {
-        output.push_back(static_cast<char>(0xF0U | (scalar >> 18U)));
-        output.push_back(static_cast<char>(0x80U | ((scalar >> 12U) & 0x3FU)));
-        output.push_back(static_cast<char>(0x80U | ((scalar >> 6U) & 0x3FU)));
-        output.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
-    }
+// The font name `name_id` as UTF-8, by FreeType 2.14.2's choice of record
+// (stxlib::glyphs::font_name); empty when the font has none.
+std::string face_name(const stxlib::glyphs::Font& font, const stxlib::u32 name_id) {
+    stxlib::Vector<char> text{};
+    const stxlib::Status read = stxlib::glyphs::font_name(font, name_id, text);
+    if (read.failed()) throw std::bad_alloc();
+    std::string name{};
+    name.reserve(static_cast<std::size_t>(text.count()));
+    for (stxlib::usize index = 0; index < text.count(); ++index) name.push_back(text[index]);
+    return name;
 }
 
-// Decodes a Windows-platform name (UTF-16BE). An unpaired surrogate becomes
-// U+FFFD.
-std::string utf8_from_utf16be(const FT_Byte* units, FT_UInt byte_count) {
-    std::string output{};
-    output.reserve(byte_count);
-    const FT_UInt unit_count = byte_count / 2U;
-    FT_UInt index = 0U;
-    while (index < unit_count) {
-        const char32_t unit = (static_cast<char32_t>(units[index * 2U]) << 8U) | units[index * 2U + 1U];
-        ++index;
-        const bool high = unit >= 0xD800U && unit <= 0xDBFFU;
-        if (high && index < unit_count) {
-            const char32_t next = (static_cast<char32_t>(units[index * 2U]) << 8U) | units[index * 2U + 1U];
-            if (next >= 0xDC00U && next <= 0xDFFFU) {
-                ++index;
-                const char32_t scalar = 0x10000U + ((unit - 0xD800U) << 10U) + (next - 0xDC00U);
-                append_utf8(output, scalar);
-                continue;
-            }
-        }
-        const bool surrogate = unit >= 0xD800U && unit <= 0xDFFFU;
-        append_utf8(output, surrogate ? U'�' : unit);
-    }
-    return output;
-}
+// The name table's version string (name identifier 5).
+constexpr stxlib::u32 name_version = 5;
 
-// The name with name_id, preferring Windows Unicode US English, then any
-// Windows Unicode name, then Macintosh Roman read as ASCII.
-std::string face_name(FT_Face face, FT_UShort name_id) {
-    const FT_UInt count = FT_Get_Sfnt_Name_Count(face);
-    std::optional<std::string> windows_any{};
-    std::optional<std::string> macintosh{};
-    for (FT_UInt index = 0U; index < count; ++index) {
-        FT_SfntName name{};
-        if (FT_Get_Sfnt_Name(face, index, &name) != 0 || name.name_id != name_id) continue;
-        if (name.platform_id == TT_PLATFORM_MICROSOFT && name.encoding_id == TT_MS_ID_UNICODE_CS) {
-            std::string decoded = utf8_from_utf16be(name.string, name.string_len);
-            if (name.language_id == TT_MS_LANGID_ENGLISH_UNITED_STATES) return decoded;
-            if (!windows_any) windows_any = std::move(decoded);
-        } else if (name.platform_id == TT_PLATFORM_MACINTOSH && name.encoding_id == TT_MAC_ID_ROMAN && !macintosh) {
-            std::string ascii{};
-            ascii.reserve(name.string_len);
-            for (FT_UInt octet = 0U; octet < name.string_len; ++octet) {
-                const FT_Byte value = name.string[octet];
-                ascii.push_back(value < 0x80U ? static_cast<char>(value) : '?');
-            }
-            macintosh = std::move(ascii);
-        }
-    }
-    if (windows_any) return *windows_any;
-    if (macintosh) return *macintosh;
-    return std::string{};
-}
-
-FaceFacts read_facts(FT_Face face, std::string_view file_name, std::span<const std::byte> encoded) {
-    const TT_HoriHeader* const horizontal = static_cast<const TT_HoriHeader*>(FT_Get_Sfnt_Table(face, FT_SFNT_HHEA));
-    const TT_OS2* const os2 = static_cast<const TT_OS2*>(FT_Get_Sfnt_Table(face, FT_SFNT_OS2));
-    if (horizontal == nullptr || os2 == nullptr) throw InputRejected("face lacks hhea or OS/2");
+FaceFacts read_facts(const stxlib::glyphs::Font& font, std::string_view file_name, std::span<const std::byte> encoded) {
+    if (font.os2_version == 0xFFFFU) throw InputRejected("face lacks hhea or OS/2");
     FaceFacts facts{};
     facts.file_name = std::string(file_name);
     facts.byte_count = encoded.size();
     facts.sha256_hex = sha256_hex(encoded);
-    facts.family = face_name(face, TT_NAME_ID_FONT_FAMILY);
-    facts.version = face_name(face, TT_NAME_ID_VERSION_STRING);
-    facts.units_per_em = (*face).units_per_EM;
-    facts.weight_class = (*os2).usWeightClass;
-    facts.italic = ((*os2).fsSelection & 1U) != 0U;
-    facts.hhea_ascender = (*horizontal).Ascender;
-    facts.hhea_descender = (*horizontal).Descender;
-    facts.hhea_line_gap = (*horizontal).Line_Gap;
-    facts.typo_ascender = (*os2).sTypoAscender;
-    facts.typo_descender = (*os2).sTypoDescender;
-    facts.typo_line_gap = (*os2).sTypoLineGap;
-    facts.win_ascent = (*os2).usWinAscent;
-    facts.win_descent = (*os2).usWinDescent;
-    facts.glyph_count = static_cast<std::uint32_t>((*face).num_glyphs);
+    facts.family = face_name(font, stxlib::glyphs::name_family);
+    facts.version = face_name(font, name_version);
+    facts.units_per_em = static_cast<std::uint16_t>(font.units_per_em);
+    facts.weight_class = static_cast<std::uint16_t>(font.weight_class);
+    facts.italic = (font.selection & 1U) != 0U;
+    facts.hhea_ascender = static_cast<std::int16_t>(font.hhea_ascender);
+    facts.hhea_descender = static_cast<std::int16_t>(font.hhea_descender);
+    facts.hhea_line_gap = static_cast<std::int16_t>(font.hhea_line_gap);
+    facts.typo_ascender = static_cast<std::int16_t>(font.typo_ascender);
+    facts.typo_descender = static_cast<std::int16_t>(font.typo_descender);
+    facts.typo_line_gap = static_cast<std::int16_t>(font.typo_line_gap);
+    facts.win_ascent = static_cast<std::uint16_t>(font.win_ascent);
+    facts.win_descent = static_cast<std::uint16_t>(font.win_descent);
+    facts.glyph_count = static_cast<std::uint32_t>(font.glyph_count);
     if (facts.units_per_em == 0U) throw InputRejected("face has zero units per em");
     return facts;
 }
 
-std::vector<CodepointAdvance> read_advances(FT_Face face) {
+std::vector<CodepointAdvance> read_advances(const stxlib::glyphs::Font& font) {
     std::size_t count = 0U;
     for (const CodepointRange& range : advance_coverage) count += range.last - range.first + 1U;
     std::vector<CodepointAdvance> advances{};
@@ -162,14 +69,10 @@ std::vector<CodepointAdvance> read_advances(FT_Face face) {
         for (char32_t codepoint = range.first; codepoint <= range.last; ++codepoint) {
             CodepointAdvance advance{};
             advance.codepoint = codepoint;
-            const FT_UInt glyph = FT_Get_Char_Index(face, codepoint);
+            const stxlib::u32 glyph = stxlib::glyphs::glyph_of(font, static_cast<stxlib::u32>(codepoint));
             if (glyph != 0U) {
-                FT_Fixed units{};
-                if (FT_Get_Advance(face, glyph, FT_LOAD_NO_SCALE, &units) != 0) {
-                    throw std::runtime_error("FreeType advance query failed");
-                }
                 advance.mapped = true;
-                advance.advance_units = static_cast<std::int32_t>(units);
+                advance.advance_units = static_cast<std::int32_t>(stxlib::glyphs::advance_of(font, glyph));
             }
             advances.push_back(advance);
         }
@@ -270,10 +173,12 @@ FaceMeasurement measure_face(std::string_view file_name, std::span<const std::by
     validate_face_bytes(encoded);
     FaceMeasurement measurement{};
     {
-        const FreeTypeLibrary library{};
-        const FreeTypeFace face(library, encoded);
-        measurement.facts = read_facts(face.handle(), file_name, encoded);
-        measurement.advances = read_advances(face.handle());
+        const stxlib::View<stxlib::u8> bytes(reinterpret_cast<const stxlib::u8*>(encoded.data()), encoded.size());
+        stxlib::glyphs::Font font{};
+        const stxlib::Status opened = stxlib::glyphs::open_font(bytes, 0U, font);
+        if (opened.failed()) throw InputRejected("the font reader refused the face");
+        measurement.facts = read_facts(font, file_name, encoded);
+        measurement.advances = read_advances(font);
     }
     measurement.sizes = measure_sizes(encoded, corpus);
     if (with_gdi) {

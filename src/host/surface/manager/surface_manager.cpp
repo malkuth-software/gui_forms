@@ -517,7 +517,7 @@ NativeWindow::NativeWindow(Runtime& host, SurfaceApplicationWindow source, HostW
     register_fonts(raster, runtime.fonts);
     (*entry.model).set_text_metrics_provider(&raster);
     (*entry.model).set_framebuffer_painter(&raster);
-    (*entry.model).metrics().set_renderer("Skia CPU / HarfBuzz / FreeType / surface window manager", true);
+    (*entry.model).metrics().set_renderer("Skia CPU / STXlib text / surface window manager", true);
     services = std::make_unique<Services>(*this);
     // The availability record (stage DP): the manager composes each damage
     // rectangle.

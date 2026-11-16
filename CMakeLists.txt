@@ -159,17 +159,8 @@ option(GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT "Build the Wayland linux-dmabuf (
 # cmake/emscripten.cmake; WebGL2 is its present backend and nothing else.
 option(GUI_FORMS_ENABLE_WEB_HOST "Build the browser host (Emscripten) with the private CPU renderer" ${EMSCRIPTEN})
 # ADR-004: the Skia painter, the C drawing API and the Win32 host all draw
-# text with the shared text engine (gui_forms_text_engine), which shapes,
-# measures and draws with STXlib and is always built. FreeType remains only
-# for what STXlib's font reader does not yet give (a face's family name, its
-# weight class and a collection's face count): GUI.Drawing's Skia executor
-# choosing a face, the metrics differential and the raster profile probe. The
-# stx package builds it with the renderer or the Win32 host.
-if(GUI_FORMS_ENABLE_SKIA OR GUI_FORMS_ENABLE_WINDOWS_HOST)
-    set(GUI_FORMS_WITH_FREETYPE ON)
-else()
-    set(GUI_FORMS_WITH_FREETYPE OFF)
-endif()
+# text with the shared text engine (gui_forms_text_engine), which reads
+# fonts, shapes, measures and draws with STXlib and is always built.
 option(GUI_FORMS_BUILD_FUZZERS "Build libFuzzer entry points" OFF)
 # Stage FD5: the program that generates a form document's C++ header; the SDK
 # installs it. A cross build has no host to run it on.
@@ -190,7 +181,6 @@ option(GUI_FORMS_BUILD_TEXT_LAYOUT_PROBE "Build the private text shaping diagnos
 option(GUI_FORMS_BUILD_LABEL_LAYOUT_PROBE "Build the fixed Label measurement diagnostic" OFF)
 option(GUI_FORMS_BUILD_TEXT_WORKER_PROBE "Build the private text worker lifecycle proof" OFF)
 option(GUI_FORMS_BUILD_TEXT_PAINT_PROBE "Build the private prepared glyph raster proof" OFF)
-option(GUI_FORMS_BUILD_TEXT_RASTER_PROFILE_PROBE "Build the diagnostic text rasterization profile probe" OFF)
 option(GUI_FORMS_BUILD_TEXT_ENGINE_BENCHMARK "Build the shared text engine cost benchmark" OFF)
 option(GUI_FORMS_BUILD_PAINT_PROFILE "Build the Gallery paint workload that the Linux profiling job samples" OFF)
 option(GUI_FORMS_BUILD_BLEND_STUDY "Build the Gallery blend and opaque study workload (tools/blend_study.py)" OFF)
@@ -267,9 +257,8 @@ include(CMakePackageConfigHelpers)
 # notes:planning/stages/RT-rich-text/PLAN.md and, for audio builds, stx_vorbis);
 # stx_skia, the CPU Skia derivative the Skia adapters draw with (without the
 # adapters only its red/blue swap kernel, stx_skia::swizzle, with which the
-# core, the controls and the hosts swap RGBA and BGRA rows); and stx_text, the
-# third-party sources of stx third_party/ (owner, 2026-11-05: this repository
-# carries none) compiled with GUI.Forms' options. Imported targets' headers are
+# core, the controls and the hosts swap RGBA and BGRA rows). No third-party
+# source is compiled (FreeType, the last, left on 2026-11-16). Imported targets' headers are
 # system headers here. The package also carries STXlib at stx's stxlib.lock
 # commit (stxlib::algorithms; the controls' row height index adapts its
 # RowHeightIndex), so stx.lock is the only pin for both.
@@ -935,8 +924,8 @@ endif()
 
 # The shared text engine: shaping, measurement and glyph coverage are
 # STXlib's (stxlib::glyphs); bidi levels, UAX #14 line breaking and script
-# runs are stxlib::textlayout's (HarfBuzz, FreeType, SheenBidi and
-# libunibreak until 2026-11-16). Both are in stxlib::algorithms.
+# runs are stxlib::textlayout's (until 2026-11-16 other libraries did this
+# work). Both are in stxlib::algorithms.
 add_library(gui_forms_text_engine STATIC
     src/render/text/harfbuzz/harfbuzz_font_engine.cpp
     src/render/text/harfbuzz/bounded_shape_workspace.cpp
@@ -959,37 +948,35 @@ endif()
 set_target_properties(gui_forms_text_engine PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
-if(TARGET stx_text::freetype)
-    # Stage F's metrics differential (tools/font_metrics_differential): the
-    # bundled engine's measurements of two faces, a GDI oracle on Windows, and
-    # the comparison under a mapping's tolerance.
-    add_library(gui_forms_font_metrics_differential STATIC
-        tools/font_metrics_differential/differential_inputs.cpp
-        tools/font_metrics_differential/engine_measurement.cpp
-        tools/font_metrics_differential/differential_compare.cpp
-        tools/font_metrics_differential/differential_report.cpp
-        tools/font_metrics_differential/metric_snapshot.cpp
-    )
-    if(WIN32)
-        target_sources(gui_forms_font_metrics_differential PRIVATE
-            tools/font_metrics_differential/gdi_measurement_windows.cpp)
-        target_link_libraries(gui_forms_font_metrics_differential PRIVATE gdi32)
-    else()
-        target_sources(gui_forms_font_metrics_differential PRIVATE
-            tools/font_metrics_differential/gdi_measurement_unavailable.cpp)
-    endif()
-    target_include_directories(gui_forms_font_metrics_differential
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential)
-    target_link_libraries(gui_forms_font_metrics_differential
-        PUBLIC gui_forms_core
-        PRIVATE gui_forms_text_engine stx_text::freetype)
-    add_executable(gui_forms_font_metrics_differential_tool
-        tools/font_metrics_differential/font_metrics_differential_main.cpp)
-    set_target_properties(gui_forms_font_metrics_differential_tool PROPERTIES
-        OUTPUT_NAME gui_forms_font_metrics_differential)
-    target_link_libraries(gui_forms_font_metrics_differential_tool PRIVATE
-        gui_forms_font_metrics_differential)
+# Stage F's metrics differential (tools/font_metrics_differential): the
+# bundled engine's measurements of two faces, a GDI oracle on Windows, and
+# the comparison under a mapping's tolerance.
+add_library(gui_forms_font_metrics_differential STATIC
+    tools/font_metrics_differential/differential_inputs.cpp
+    tools/font_metrics_differential/engine_measurement.cpp
+    tools/font_metrics_differential/differential_compare.cpp
+    tools/font_metrics_differential/differential_report.cpp
+    tools/font_metrics_differential/metric_snapshot.cpp
+)
+if(WIN32)
+    target_sources(gui_forms_font_metrics_differential PRIVATE
+        tools/font_metrics_differential/gdi_measurement_windows.cpp)
+    target_link_libraries(gui_forms_font_metrics_differential PRIVATE gdi32)
+else()
+    target_sources(gui_forms_font_metrics_differential PRIVATE
+        tools/font_metrics_differential/gdi_measurement_unavailable.cpp)
 endif()
+target_include_directories(gui_forms_font_metrics_differential
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential)
+target_link_libraries(gui_forms_font_metrics_differential
+    PUBLIC gui_forms_core
+    PRIVATE gui_forms_text_engine stxlib::algorithms)
+add_executable(gui_forms_font_metrics_differential_tool
+    tools/font_metrics_differential/font_metrics_differential_main.cpp)
+set_target_properties(gui_forms_font_metrics_differential_tool PROPERTIES
+    OUTPUT_NAME gui_forms_font_metrics_differential)
+target_link_libraries(gui_forms_font_metrics_differential_tool PRIVATE
+    gui_forms_font_metrics_differential)
 
 if(GUI_FORMS_BUILD_PREPARED_TEXT)
     target_sources(gui_forms_core PRIVATE
@@ -1758,8 +1745,8 @@ if(GUI_FORMS_ENABLE_SKIA)
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/executor
     )
     # ADR-004: the C drawing API draws text with the shared text engine and
-    # compositor; FreeType chooses a collection's face by family and weight
-    # (STXlib's font reader gives neither yet).
+    # compositor; STXlib's font reader chooses a collection's face by family
+    # and weight.
     target_link_libraries(gui_drawing_skia
         PUBLIC gui_drawing_core
         PRIVATE
@@ -1767,7 +1754,7 @@ if(GUI_FORMS_ENABLE_SKIA)
             stxlib::state
             gui_forms_text_engine
             gui_forms_core
-            stx_text::freetype
+            stxlib::algorithms
             stx_skia::stx_skia
     )
     if(APPLE)
@@ -1915,7 +1902,6 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     set(_gf_application_libraries)
     if(TARGET gui_forms_text_engine)
         list(APPEND _gf_application_archives gui_forms_text_engine)
-        list(APPEND _gf_application_libraries stx_text::freetype)
     endif()
     set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE} ${GUI_FORMS_IOSURFACE}
         ${GUI_FORMS_COREGRAPHICS} ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS} ${GUI_FORMS_COREFOUNDATION})
@@ -2039,7 +2025,6 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     set(_gf_application_libraries)
     if(TARGET gui_forms_text_engine)
         list(APPEND _gf_application_archives gui_forms_text_engine)
-        list(APPEND _gf_application_libraries stx_text::freetype)
     endif()
     # The host's system libraries, which the installed package names again
     # (cmake/ApplicationPackage.cmake).
@@ -2164,7 +2149,6 @@ if(GUI_FORMS_ENABLE_WEB_HOST)
     set(_gf_application_libraries)
     if(TARGET gui_forms_text_engine)
         list(APPEND _gf_application_archives gui_forms_text_engine)
-        list(APPEND _gf_application_libraries stx_text::freetype)
     endif()
     set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES)
     gui_forms_application_library(gui_forms_application
@@ -2243,8 +2227,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         gui_forms_application_library(gui_forms_application
             ARCHIVES gui_forms_core gui_drawing_core gui_drawing_skia gui_forms_controls gui_forms_host_windows
                      gui_forms_skia gui_forms_text_engine
-            LIBRARIES stx_text::freetype
-                      ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
+            LIBRARIES ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
         gui_forms_install_bundled_fonts()
     endif()
     # The Win32 compatibility shim (src/host/windows/win32_compat_shim.cpp)
@@ -3142,19 +3125,6 @@ if(GUI_FORMS_BUILD_TEXT_PAINT_PROBE)
     target_link_libraries(gui_forms_text_paint_probe PRIVATE gui_forms_text_engine stxlib::algorithms Threads::Threads)
 endif()
 
-if(GUI_FORMS_BUILD_TEXT_RASTER_PROFILE_PROBE)
-    # Its reference raster profiles are FreeType's (STXlib shapes the runs).
-    if(NOT TARGET stx_text::freetype)
-        message(FATAL_ERROR "The text raster profile probe requires FreeType (a build with Skia or the Win32 host)")
-    endif()
-    add_executable(gui_forms_text_raster_profile_probe benchmarks/text_raster_profile_probe.cpp)
-    target_link_libraries(gui_forms_text_raster_profile_probe PRIVATE gui_forms_text_engine stx_text::freetype)
-    if(TARGET gui_forms_skia)
-        target_link_libraries(gui_forms_text_raster_profile_probe PRIVATE gui_forms_controls gui_forms_skia)
-        target_compile_definitions(gui_forms_text_raster_profile_probe PRIVATE GUI_FORMS_PROFILE_PROBE_SKIA_REFERENCE)
-    endif()
-endif()
-
 if(GUI_FORMS_BUILD_TEXT_ENGINE_BENCHMARK)
     add_executable(gui_forms_text_engine_benchmark benchmarks/text_engine_benchmark.cpp)
     target_link_libraries(gui_forms_text_engine_benchmark PRIVATE gui_forms_text_engine gui_forms_core)
@@ -3945,15 +3915,6 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_png_malformed_sweep_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_png_malformed_sweep_tests COMMAND gui_forms_png_malformed_sweep_tests)
 
-    if(TARGET stx_text::freetype)
-        # Decision 3A: FreeType refuses compressed data; plain fonts still load.
-        add_executable(gui_forms_freetype_zlib_tests tests/freetype_zlib_tests.cpp)
-        target_link_libraries(gui_forms_freetype_zlib_tests PRIVATE stx_text::freetype)
-        target_compile_definitions(gui_forms_freetype_zlib_tests PRIVATE
-            GUI_FORMS_TEST_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf")
-        add_test(NAME gui_forms_freetype_zlib_tests COMMAND gui_forms_freetype_zlib_tests)
-    endif()
-
     add_executable(gui_forms_png_color_tests tests/image/png_color_tests.cpp)
     target_link_libraries(gui_forms_png_color_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_png_color_tests COMMAND gui_forms_png_color_tests)
@@ -4298,17 +4259,6 @@ if(GUI_FORMS_BUILD_TESTS)
             "GUI_FORMS_CRASHING_PROGRAM=\"$<TARGET_FILE:gui_forms_example_crashing_program>\"")
         add_test(NAME gui_forms_example_hosted_crash COMMAND gui_forms_example_hosted_crash)
         set_tests_properties(gui_forms_example_hosted_crash PROPERTIES TIMEOUT 60)
-    endif()
-    # The one shared GUI.Forms library, the C ABI library, exports no symbol
-    # of the pinned text stack (cmake/CheckForeignTextSymbols.cmake), so a
-    # consumer's own FreeType never meets ours. A C++ program
-    # links the stack statically into its one module and exports nothing.
-    if(TARGET gui_forms_abi)
-        add_test(NAME gui_forms_foreign_text_symbols_tests
-            COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
-                "-DLIBRARIES=$<TARGET_FILE:gui_forms_abi>"
-                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckForeignTextSymbols.cmake")
-        set_tests_properties(gui_forms_foreign_text_symbols_tests PROPERTIES TIMEOUT 120)
     endif()
     add_executable(gui_forms_sub_surface_tests tests/sub_surface_tests.cpp)
     target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls gui_forms_host_headless)
@@ -4778,23 +4728,20 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_bounded_shape_tests tests/bounded_shape_tests.cpp)
         target_link_libraries(gui_forms_bounded_shape_tests PRIVATE gui_forms_text_engine)
         add_test(NAME gui_forms_bounded_shape_tests COMMAND gui_forms_bounded_shape_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-        # The differential measures with FreeType (built with Skia or the Win32 host).
-        if(TARGET gui_forms_font_metrics_differential)
-            add_executable(gui_forms_font_metrics_differential_tests tests/font_metrics_differential_tests.cpp)
-            target_link_libraries(gui_forms_font_metrics_differential_tests PRIVATE gui_forms_font_metrics_differential)
-            add_test(NAME gui_forms_font_metrics_differential_tests COMMAND gui_forms_font_metrics_differential_tests
-                "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
-                "${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential/corpus/forms_latin_v1.txt")
-            # Stage F's metric gate (step F4): bundled candidates against the
-            # committed reference snapshots, on every host.
-            add_executable(gui_forms_font_metrics_gate_tests tests/font_metrics_gate_tests.cpp)
-            target_link_libraries(gui_forms_font_metrics_gate_tests PRIVATE
-                gui_forms_font_metrics_differential gui_drawing_core)
-            add_test(NAME gui_forms_font_metrics_gate_tests COMMAND gui_forms_font_metrics_gate_tests
-                "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
-                "${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential/corpus/forms_latin_v1.txt"
-                "${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential/reference_snapshots")
-        endif()
+        add_executable(gui_forms_font_metrics_differential_tests tests/font_metrics_differential_tests.cpp)
+        target_link_libraries(gui_forms_font_metrics_differential_tests PRIVATE gui_forms_font_metrics_differential)
+        add_test(NAME gui_forms_font_metrics_differential_tests COMMAND gui_forms_font_metrics_differential_tests
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential/corpus/forms_latin_v1.txt")
+        # Stage F's metric gate (step F4): bundled candidates against the
+        # committed reference snapshots, on every host.
+        add_executable(gui_forms_font_metrics_gate_tests tests/font_metrics_gate_tests.cpp)
+        target_link_libraries(gui_forms_font_metrics_gate_tests PRIVATE
+            gui_forms_font_metrics_differential gui_drawing_core)
+        add_test(NAME gui_forms_font_metrics_gate_tests COMMAND gui_forms_font_metrics_gate_tests
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential/corpus/forms_latin_v1.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential/reference_snapshots")
 
         add_executable(gui_forms_bounded_shape_workspace_tests tests/bounded_shape_workspace_tests.cpp)
         target_link_libraries(gui_forms_bounded_shape_workspace_tests PRIVATE gui_forms_text_engine)
@@ -6936,14 +6883,11 @@ install(FILES assets/icons/heroicons/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR
 install(FILES assets/icons/heroicons/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Heroicons-PROVENANCE.md)
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 # Every third-party component the SDK and the programs ship, with its licence
-# and the FreeType credit (THIRD_PARTY_NOTICES.md).
+# (THIRD_PARTY_NOTICES.md).
 install(FILES THIRD_PARTY_NOTICES.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 # The stx package keeps the stx source's licence files at their source paths.
 set(gui_forms_stx_notices "${GUI_FORMS_STX_BUILD_PREFIX_DIR}/share/stx_text/notices")
 install(FILES "${gui_forms_stx_notices}/third_party/unicode/LICENSE.txt" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Unicode-LICENSE.txt)
-if(GUI_FORMS_WITH_FREETYPE)
-    install(FILES "${gui_forms_stx_notices}/third_party/freetype/docs/FTL.TXT" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME FreeType-FTL.txt)
-endif()
 if(GUI_FORMS_ENABLE_SKIA)
     install(FILES "${gui_forms_stx_notices}/stx_skia/LICENSE-Skia" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Skia-LICENSE.txt)
     install(FILES "${gui_forms_stx_notices}/stx_skia/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_skia-LICENSE.txt)
@@ -7304,8 +7248,7 @@ endif()
 # bits on the two. Every target this directory defines gets -ffp-contract=off; the
 # stx libraries (stx_zlib, stx_png, stx_conv, stx_rtf2md, stx_vorbis) set it on their own
 # targets in their own build. A kernel that wants fusion spells it std::fma, so the choice is
-# visible and gives the same bits everywhere. Third-party code (FreeType)
-# keeps its own flags in the stx package (cmake/stx_package/);
+# visible and gives the same bits everywhere;
 # miniaudio is compiled inside src/audio/audio.cpp and so takes the flag with it. stx_skia sets -ffp-contract=off on its
 # library itself; its raster pipeline's explicit fused stages (the FMA entries in the FMA
 # log) are a separate matter.

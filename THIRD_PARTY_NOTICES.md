@@ -14,24 +14,12 @@ fonts' `ATTRIBUTION.md`, the Unicode data provenance and the provenance
 records of the vendored sources. `tools/package_programs.py` checks every
 program package against it (see the end of this file).
 
-## FreeType
-
-FreeType is used under the FreeType License (FTL), which GUI.Forms elects
-from FreeType's dual licence (the FTL or the GNU GPL version 2). No GPL
-licence text is shipped.
-
-Portions of this software are copyright © 2026 The FreeType Project (www.freetype.org). All rights reserved.
-
-(2026 is the release year of the pinned FreeType 2.14.2, 2026-03-01; its
-source files carry "Copyright (C) 1996-2025".)
-
 ## Components
 
 | Component | Version or revision | Licence used | Ships on | Package licence file | SDK licence file |
 |---|---|---|---|---|---|
 | GUI.Forms | this release | MIT | all | `licenses/GUIForms.txt` | `LICENSE` |
 | threadpool_atomic_fast (the owner's thread pool) | falseywinchnet/backend `6eb51f84` | MIT | all (in the Threading archive, linked into each program) | `licenses/threadpool_atomic_fast.txt` | `threadpool_atomic_fast-LICENSE.txt` |
-| FreeType | 2.14.2, `f4205da1` | FreeType License (FTL), elected from FTL/GPLv2 | all (GUI.Drawing's face choice by family and weight; shaping, measurement and glyph drawing are STXlib's) | `licenses/FreeType-FTL.txt` | `FreeType-FTL.txt` |
 | stx_zlib (the owned zlib codec) | in this repository | MIT; the zlib License notices of the puff-derived inflate and the zlib-informed deflate are retained | all | `licenses/stx_zlib.txt`, `licenses/stx_zlib-puff.txt` and `licenses/stx_zlib-zlib.txt` | `stx_zlib-LICENSE.txt`, `stx_zlib-LICENSE-puff.txt` and `stx_zlib-LICENSE-zlib.txt` (and `share/licenses/stx_zlib/`) |
 | stx_png (the owned PNG codec) | in this repository | MIT | all | `licenses/stx_png.txt` | `stx_png-LICENSE.txt` (and `share/licenses/stx_png/`) |
 | stx_conv (the owner's CONV resampler) | in this repository | MIT | all | `licenses/stx_conv.txt` | `stx_conv-LICENSE.txt` (and `share/licenses/stx_conv/`) |

@@ -57,7 +57,7 @@ SCALAR: re.Pattern[str] = re.compile(
     r'|std::u?intptr_t|std::u?intmax_t|std::byte|std::nullptr_t|std::max_align_t|std::thread::id|std::once_flag'
     r'|std::memory_order|std::errc|std::strong_ordering|std::partial_ordering|std::weak_ordering'
     r'|BOOL|BYTE|WORD|DWORD|UINT|LONG|ULONG|LONG_PTR|ULONG_PTR|UINT_PTR|WPARAM|LPARAM|LRESULT|HRESULT|ATOM|COLORREF'
-    r'|H[A-Z]+|GType|gboolean|gint|guint|gsize|FT_\w+|hb_codepoint_t|(?:gf|gd)_\w+)$')
+    r'|H[A-Z]+|GType|gboolean|gint|guint|gsize|(?:gf|gd)_\w+)$')
 STANDARD_TRIVIAL: frozenset[str] = frozenset({
     'atomic', 'atomic_flag', 'atomic_uint64_t', 'atomic_uint32_t', 'atomic_size_t', 'atomic_bool', 'atomic_int', 'atomic_ref', 'span', 'string_view', 'basic_string_view', 'u8string_view',
     'u16string_view', 'u32string_view', 'wstring_view', 'reference_wrapper', 'bitset', 'source_location',

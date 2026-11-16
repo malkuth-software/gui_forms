@@ -1334,7 +1334,7 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
   (*entry.model).set_framebuffer_painter(&raster);
   (*entry.model)
       .metrics()
-      .set_renderer("Skia CPU / HarfBuzz / FreeType / X11", true);
+      .set_renderer("Skia CPU / STXlib text / X11", true);
   services = std::make_unique<Services>(*this);
   // The availability record (stage DP): the X11 host copies each damage
   // rectangle.

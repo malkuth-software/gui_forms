@@ -36,9 +36,9 @@
 #include "../../../host/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_TRUETYPE_TABLES_H
+#include <stxlib/font_file.hpp>
+#include <stxlib/vector.hpp>
+#include <stxlib/view.hpp>
 
 #include <algorithm>
 #include <array>
@@ -47,6 +47,7 @@
 #include <cstring>
 #include <limits>
 #include <stdexcept>
+#include <new>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -946,8 +947,9 @@ namespace text = gui_forms::render::text;
 
 namespace {
 
-// Vertical metrics per em, unrounded, from the face's tables as FreeType
-// reads them (hhea, falling back to OS/2).
+// Vertical metrics per em, unrounded, from the face's tables as STXlib's
+// font reader gives them by FreeType 2.14.2's rule (hhea, falling back to
+// OS/2).
 struct FaceMetrics final {
     double ascent{};
     double descent{};
@@ -1003,54 +1005,38 @@ struct ResolvedFont final {
     FaceMetrics metrics{};
 };
 
-class FreeTypeLibrary final {
-public:
-    FreeTypeLibrary() {
-        if (FT_Init_FreeType(&library_) != 0) throw std::runtime_error("FreeType initialization failed");
-    }
-    ~FreeTypeLibrary() { FT_Done_FreeType(library_); }
-    FreeTypeLibrary(const FreeTypeLibrary&) = delete;
-    FreeTypeLibrary& operator=(const FreeTypeLibrary&) = delete;
-    [[nodiscard]] FT_Library get() const noexcept { return library_; }
-
-private:
-    FT_Library library_{};
-};
-
-class FreeTypeFace final {
-public:
-    FreeTypeFace(FT_Library library, std::span<const std::byte> bytes, FT_Long index) {
-        status_ = FT_New_Memory_Face(library, reinterpret_cast<const FT_Byte*>(bytes.data()),
-                                     static_cast<FT_Long>(bytes.size()), index, &face_);
-    }
-    ~FreeTypeFace() {
-        if (status_ == 0) FT_Done_Face(face_);
-    }
-    FreeTypeFace(const FreeTypeFace&) = delete;
-    FreeTypeFace& operator=(const FreeTypeFace&) = delete;
-    // Nullptr when the bytes are not a font or the index is out of range.
-    [[nodiscard]] FT_Face get() const noexcept { return status_ == 0 ? face_ : nullptr; }
-
-private:
-    FT_Face face_{};
-    FT_Error status_{};
-};
-
-[[nodiscard]] int face_weight(FT_Face face) {
-    const TT_OS2* const os2 = static_cast<const TT_OS2*>(FT_Get_Sfnt_Table(face, FT_SFNT_OS2));
-    if (os2 != nullptr && (*os2).usWeightClass != 0U) return static_cast<int>((*os2).usWeightClass);
-    const int weight = ((*face).style_flags & FT_STYLE_FLAG_BOLD) != 0 ? bold_weight : regular_weight;
+// A face's weight: OS/2's usWeightClass, or, when the face has no OS/2 (or
+// gives 0), bold or regular by fsSelection's bold bit (FreeType's style flag
+// read from OS/2; a face with no OS/2 counts as regular).
+[[nodiscard]] int face_weight(const stxlib::glyphs::Font& font) noexcept {
+    const bool has_os2 = font.os2_version != 0xFFFFU;
+    if (has_os2 && font.weight_class != 0U) return static_cast<int>(font.weight_class);
+    const bool bold = has_os2 && (font.selection & 0x20U) != 0U;
+    const int weight = bold ? bold_weight : regular_weight;
     return weight;
 }
 
-[[nodiscard]] FaceMetrics face_metrics(FT_Face face) noexcept {
+[[nodiscard]] FaceMetrics face_metrics(const stxlib::glyphs::Font& font) noexcept {
     FaceMetrics result{};
-    const double units = (*face).units_per_EM == 0U ? 1000.0 : static_cast<double>((*face).units_per_EM);
-    result.ascent = static_cast<double>((*face).ascender) / units;
-    result.descent = -static_cast<double>((*face).descender) / units;
-    const double height = static_cast<double>((*face).height) / units;
+    const double units = font.units_per_em == 0U ? 1000.0 : static_cast<double>(font.units_per_em);
+    result.ascent = static_cast<double>(font.ascender) / units;
+    result.descent = -static_cast<double>(font.descender) / units;
+    const double height = static_cast<double>(font.height) / units;
     result.line_gap = std::max(0.0, height - result.ascent - result.descent);
     return result;
+}
+
+// The face's family name by FreeType 2.14.2's rule (stxlib::glyphs::family_name),
+// lower-cased for comparison; empty when it has none.
+[[nodiscard]] std::string lower_family_name(const stxlib::glyphs::Font& font) {
+    stxlib::Vector<char> text{};
+    const stxlib::Status read = stxlib::glyphs::family_name(font, text);
+    if (read.failed()) throw std::bad_alloc();
+    std::string name{};
+    name.reserve(static_cast<std::size_t>(text.count()));
+    for (stxlib::usize index = 0; index < text.count(); ++index) name.push_back(text[index]);
+    const std::string lowered = ascii_lower(name);
+    return lowered;
 }
 
 // Device clip for text: the command clip snapped to whole pixels as Skia's
@@ -1090,7 +1076,6 @@ constexpr std::uint32_t no_clip_flag = UINT32_C(0x4000);
 
 class SkiaExecutor::Impl final {
 public:
-    FreeTypeLibrary library;
     // The families of the font family registry
     // (gui_forms/typography/font_families/font_families.hpp), one slot per
     // registry entry in its order, so a registry family has one identity
@@ -1154,20 +1139,18 @@ public:
         const std::string requested_family = ascii_lower(family);
         std::optional<FaceRecord> best;
         int best_score = std::numeric_limits<int>::min();
-        const FreeTypeFace collection(library.get(), bytes, -1);
-        if (collection.get() == nullptr) return best;
-        const FT_Long count = std::min<FT_Long>((*collection.get()).num_faces, 64);
-        for (FT_Long index = 0; index < count; ++index) {
-            const FreeTypeFace candidate(library.get(), bytes, index);
-            const FT_Face face = candidate.get();
-            if (face == nullptr || !FT_IS_SCALABLE(face)) continue;
-            const bool exact_family = (*face).family_name != nullptr &&
-                ascii_lower((*face).family_name) == requested_family;
-            const int weight_distance = std::abs(face_weight(face) - requested_weight);
+        const stxlib::View<stxlib::u8> encoded(reinterpret_cast<const stxlib::u8*>(bytes.data()), bytes.size());
+        const stxlib::u32 count = std::min<stxlib::u32>(stxlib::glyphs::face_count(encoded), 64U);
+        for (stxlib::u32 index = 0; index < count; ++index) {
+            stxlib::glyphs::Font font{};
+            const stxlib::Status opened = stxlib::glyphs::open_font(encoded, index, font);
+            if (opened.failed() || font.outlines == stxlib::glyphs::OutlineKind::none) continue;
+            const bool exact_family = lower_family_name(font) == requested_family;
+            const int weight_distance = std::abs(face_weight(font) - requested_weight);
             const int score = (exact_family ? 100000 : 0) - weight_distance;
             if (score > best_score) {
                 best_score = score;
-                best = FaceRecord{bytes, owner, static_cast<std::uint32_t>(index), face_metrics(face)};
+                best = FaceRecord{bytes, owner, static_cast<std::uint32_t>(index), face_metrics(font)};
             }
             if (exact_family && weight_distance == 0) break;
         }
