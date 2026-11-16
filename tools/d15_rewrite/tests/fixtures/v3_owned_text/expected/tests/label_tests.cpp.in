@@ -1,0 +1,15 @@
+#include <gui_forms/label.hpp>
+
+#include <stxlib/fail_fast.hpp>
+#include <stxlib/text.hpp>
+#include <string>
+#include "../src/platform/stxlib_bridge.hpp"
+
+int main() {
+    gui_forms::Label label;
+    stxlib::check_or_fail_fast(label.text.assign("gauge"));
+    const std::string copy = gui_forms::platform::standard_text_copy(label.text.view());
+    const bool same = label.text.equals("gauge");
+    const std::size_t length = label.text.count();
+    return same && length == copy.size() ? 0 : 1;
+}

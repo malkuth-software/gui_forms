@@ -1,0 +1,26 @@
+#pragma once
+
+#include <optional>
+#include <string>
+
+#include <stxlib/optional.hpp>
+
+namespace gui_forms {
+
+struct Named final {
+    std::optional<std::string> label;
+};
+
+class Dial final {
+public:
+    void set_turns(stxlib::Optional<int> turns) noexcept;
+    [[deprecated("D15: pass stxlib::Optional")]] void set_turns(std::optional<int> turns) noexcept;
+    void set_turns(int turns) = delete;
+};
+
+template <typename Value>
+struct Boxed final {
+    std::optional<Value> held;
+};
+
+} // namespace gui_forms

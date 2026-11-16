@@ -1,0 +1,27 @@
+#pragma once
+
+#include <cstddef>
+#include <optional>
+
+namespace gui_forms {
+
+struct Color final {
+    unsigned value{0U};
+    bool operator==(const Color& other) const noexcept { return value == other.value; }
+};
+
+struct Style final {
+    std::optional<Color> fill;
+    std::optional<std::size_t> index = std::nullopt;
+};
+
+class Box final {
+public:
+    [[nodiscard]] std::optional<Color> fill() const noexcept;
+    void set_fill(std::optional<Color> fill) noexcept;
+
+private:
+    std::optional<Color> fill_;
+};
+
+} // namespace gui_forms

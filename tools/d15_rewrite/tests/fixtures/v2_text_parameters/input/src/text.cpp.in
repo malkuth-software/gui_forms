@@ -1,0 +1,30 @@
+#include <gui_forms/text.hpp>
+
+#include <cstddef>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+namespace {
+
+[[nodiscard]] std::size_t count_spaces(const std::string_view text) noexcept {
+    std::size_t spaces = 0U;
+    for (const char character : text) {
+        if (character == ' ') ++spaces;
+    }
+    return spaces;
+}
+
+} // namespace
+
+std::size_t measure(const std::string_view text) noexcept {
+    if (text.empty()) return 0U;
+    return text.size() + count_spaces(text);
+}
+
+bool same_name(const std::string& name) noexcept {
+    return name == "gauge";
+}
+
+} // namespace gui_forms

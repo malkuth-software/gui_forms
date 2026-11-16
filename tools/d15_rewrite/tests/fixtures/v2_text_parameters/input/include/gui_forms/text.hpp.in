@@ -1,0 +1,12 @@
+#pragma once
+
+#include <cstddef>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+[[nodiscard]] std::size_t measure(std::string_view text) noexcept;
+[[nodiscard]] bool same_name(const std::string& name) noexcept;
+
+} // namespace gui_forms

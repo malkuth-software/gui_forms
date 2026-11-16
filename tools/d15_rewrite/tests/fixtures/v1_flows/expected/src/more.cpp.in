@@ -1,0 +1,27 @@
+#include <gui_forms/more.hpp>
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+namespace gui_forms {
+
+Source::~Source() noexcept {
+}
+
+Holder::Holder() noexcept : limit_(stxlib::Optional<int>::none()) {
+}
+
+Holder::Holder(const int start) noexcept : limit_(stxlib::Optional<int>::of(start)) {
+}
+
+void Holder::set_limit(const stxlib::Optional<int> limit) noexcept {
+    limit_ = limit;
+    if (limit_ < 3) limit_.set(3);
+}
+
+stxlib::Optional<int> pick(const bool first) noexcept {
+    if (first) return stxlib::Optional<int>::of(1);
+    return first ? stxlib::Optional<int>::of(2) : stxlib::Optional<int>::none();
+}
+
+} // namespace gui_forms

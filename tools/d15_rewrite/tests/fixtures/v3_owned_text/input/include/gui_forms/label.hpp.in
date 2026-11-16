@@ -1,0 +1,13 @@
+#pragma once
+
+#include <cstddef>
+#include <string>
+
+namespace gui_forms {
+
+struct Label final {
+    std::string text;
+    std::size_t limit{0U};
+};
+
+} // namespace gui_forms

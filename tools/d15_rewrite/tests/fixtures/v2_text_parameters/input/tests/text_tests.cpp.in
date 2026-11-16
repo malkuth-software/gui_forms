@@ -1,0 +1,11 @@
+#include <gui_forms/text.hpp>
+
+#include <string>
+
+int main() {
+    const std::string owned = "dial";
+    const std::size_t first = gui_forms::measure("knob");
+    const std::size_t second = gui_forms::measure(owned);
+    const bool named = gui_forms::same_name(owned);
+    return first + second == 0U && named ? 1 : 0;
+}

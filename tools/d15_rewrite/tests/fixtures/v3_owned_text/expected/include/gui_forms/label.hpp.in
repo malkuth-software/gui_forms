@@ -1,0 +1,14 @@
+#pragma once
+
+#include <stxlib/text.hpp>
+#include <cstddef>
+#include <string>
+
+namespace gui_forms {
+
+struct Label final {
+    stxlib::Utf8String text;
+    std::size_t limit{0U};
+};
+
+} // namespace gui_forms
