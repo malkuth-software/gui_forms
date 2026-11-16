@@ -497,7 +497,9 @@ public:
     // reads up it as TextOrientation::bottom_to_top does, -90 down it). The
     // run is shaped as draw_text_utf8 shapes it, in the same face, and its
     // glyph runs are rasterized under the turn (no picture of the
-    // horizontal run is turned). Its ink lies inside rotated_text_bounds of
+    // horizontal run is turned): the Skia painter draws them as STXlib's
+    // turned text, whose turn (exact at quarter turns) rotated_text_bounds
+    // and rotated_text_anchor also use. Its ink lies inside rotated_text_bounds of
     // its measured extent, which is what a control keeps inside the area it
     // damages. 0 draws as draw_text_utf8, the same pixels; a non-finite
     // angle draws nothing. The base implementation, a minimal painter's

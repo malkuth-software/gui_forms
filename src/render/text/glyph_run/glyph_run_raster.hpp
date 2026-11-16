@@ -115,8 +115,10 @@ public:
                                              std::optional<GlyphRunWindow> window = std::nullopt);
 
     // General affine placement: the run origin maps to (device_x, device_y)
-    // and glyph positions through transform. Hinting is off (it assumes
-    // axis alignment; Fit::none). A transform entry of 32768 or more in
+    // and glyph positions through transform. A transform that is an even
+    // scale and a turn (xx = yy and xy = -yx, without synthetic oblique) is
+    // drawn as rasterize_turned draws it, its turn rounded to 16.16 entries.
+    // Any other is the unhinted outline (Fit::none) through the matrix. A transform entry of 32768 or more in
     // magnitude, beyond a 16.16 matrix, is refused with invalid_argument. Coverage is relative to (floor(device_x),
     // floor(device_y)), returned in origin.
     [[nodiscard]] GlyphRunCoverage rasterize_transformed(const ShapedText& shaped, FontSpec font,
@@ -124,6 +126,26 @@ public:
                                                          double device_y, GlyphRunSynthesis synthesis,
                                                          GlyphRunOrigin& origin,
                                                          std::optional<GlyphRunWindow> window = std::nullopt);
+
+    // Turned text as STXlib draws it: the run turned anticlockwise as seen
+    // (on the y-down surface) by `degrees` about its origin, which lands at
+    // (device_x, device_y), at `scale` device pixels per logical unit. The
+    // turn is STXlib's turn_matrix of the angle in 16.16
+    // (detail::text_turn_entries, the turn rotated_text_bounds uses). The
+    // glyphs are fitted (Fit::light): at a quarter turn each is the upright
+    // mask turned pixel for pixel; at other angles, up to STXlib's lattice
+    // size (20 pixels), the upright mask read through its CONV surface; above
+    // it, the fitted outline turned. STXlib turns the places too
+    // (DrawStyle::turn_places), each rounded once to a 64th of a pixel.
+    // Synthetic oblique is not a turn and is drawn by the outline as
+    // rasterize_transformed draws it. Not used at 0 degrees, where callers
+    // draw upright text with rasterize. Coverage is relative to
+    // (floor(device_x), floor(device_y)), returned in origin;
+    // invalid_argument for a non-finite angle, scale or origin.
+    [[nodiscard]] GlyphRunCoverage rasterize_turned(const ShapedText& shaped, FontSpec font, double degrees,
+                                                    double scale, double device_x, double device_y,
+                                                    GlyphRunSynthesis synthesis, GlyphRunOrigin& origin,
+                                                    std::optional<GlyphRunWindow> window = std::nullopt);
 
     class Impl;
 

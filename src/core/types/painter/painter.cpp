@@ -4,6 +4,7 @@
 #include "gui_forms/prepared_text/types/prepared_text_types.hpp"
 #include "../../theme/theme/material_layers.hpp"
 #include "painter_support.hpp"
+#include "text_turn.hpp"
 
 #include <algorithm>
 #include <array>
@@ -285,8 +286,10 @@ struct TextTurn final {
     double across_y{};
 };
 
+// STXlib's turn (detail::text_turn_entries), the one turned text is drawn
+// through, so the bounds and anchor agree with the drawn run.
 [[nodiscard]] TextTurn text_turn(const double degrees) noexcept {
-    const EngineSineCosine angle = engine_sine_cosine_degrees(degrees);
+    const detail::TextTurnEntries angle = detail::text_turn_entries(degrees);
     const double cosine = angle.cosine;
     const double sine = angle.sine;
     const TextTurn turn{cosine, -sine, sine, cosine};

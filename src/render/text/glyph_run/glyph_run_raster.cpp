@@ -1,6 +1,7 @@
 #include "glyph_run_raster.hpp"
 
 #include "../../../core/resources/fonts/program_typefaces.hpp"
+#include "../../../core/types/painter/text_turn.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 
 #include <stxlib/result.hpp>
@@ -221,6 +222,49 @@ void set_matrix(stxlib::glyphs::DrawStyle& style, const GlyphRunTransform& matri
     style.yy = *yy;
 }
 
+// The placement of a run drawn as STXlib's turned text: turned by `turn`
+// (16.16, y up, a turn and nothing else) about its origin at (device_x,
+// device_y), at `scale` device pixels per logical unit. The scale goes into
+// the size and the style is fitted (Fit::light), so STXlib draws a quarter
+// turn by quarters and other turns by the mask's surface (or, above its
+// lattice size, by the fitted outline turned). The glyphs' places are given
+// as laid out upright, scaled, and STXlib turns them (turn_places); the
+// origin's part of a pixel, which STXlib would turn with them, is given
+// turned back by the inverse turn (the transpose), so that it lands where it
+// is, within a 64th of a pixel. invalid_argument for a size beyond 26.6.
+RunPlacement turned_placement(const stxlib::glyphs::TextMatrix& turn, const double logical_size, const double scale,
+                              const double device_x, const double device_y, const GlyphRunSynthesis synthesis,
+                              const std::optional<GlyphRunWindow>& window, GlyphRunOrigin& origin) {
+    const double device_size = logical_size * scale;
+    const double size_26_6 = device_size * 64.0;
+    if (!std::isfinite(size_26_6) || size_26_6 > maximum_size_26_6) throw std::invalid_argument("Invalid glyph run placement");
+    const double pixel_x = std::floor(device_x);
+    const double pixel_y = std::floor(device_y);
+    origin.pixel_x = static_cast<std::int64_t>(pixel_x);
+    origin.pixel_y = static_cast<std::int64_t>(pixel_y);
+    origin.phase_x = 0;
+    stxlib::glyphs::Point part{};
+    part.x = static_cast<std::int32_t>(std::llround((device_x - pixel_x) * 64.0));
+    part.y = static_cast<std::int32_t>(std::llround((device_y - pixel_y) * 64.0));
+    stxlib::glyphs::TextMatrix inverse{};
+    inverse.xx = turn.xx;
+    inverse.xy = turn.yx;
+    inverse.yx = turn.xy;
+    inverse.yy = turn.yy;
+    const stxlib::glyphs::Point unturned = stxlib::glyphs::turn_place(inverse, part);
+    RunPlacement placement{};
+    placement.offset_x = unturned.x;
+    placement.offset_y = unturned.y;
+    placement.linear = {scale, 0.0, 0.0, scale};
+    placement.style.size = static_cast<stxlib::i64>(std::llround(size_26_6));
+    placement.style.fit = stxlib::glyphs::Fit::light;
+    stxlib::glyphs::set_matrix(placement.style, turn);
+    placement.style.turn_places = true;
+    if (synthesis.thicken) placement.style.thicken = thicken_strength(device_size);
+    set_window(placement.style, window);
+    return placement;
+}
+
 } // namespace
 
 class GlyphRunRasterizer::Impl::Runner final {
@@ -399,6 +443,26 @@ GlyphRunCoverage GlyphRunRasterizer::rasterize_transformed(const ShapedText& sha
         throw std::invalid_argument("Invalid glyph run transform");
     }
     const double logical_size = std::clamp(font.size, 1.0, 4096.0);
+    // An even scale and a turn (xx = yy, xy = -yx; on the y-down surface
+    // the turn anticlockwise as seen with cosine xx / s and sine xy / s, s
+    // the scale) is drawn as STXlib's turned text, its turn rounded to
+    // 16.16 entries ([c -s; s c] on the outline's y-up axes).
+    const bool even_turn = !synthesis.oblique && transform.xx == transform.yy && transform.xy == -transform.yx;
+    if (even_turn) {
+        const double scale = std::sqrt(transform.xx * transform.xx + transform.xy * transform.xy);
+        const std::optional<std::int32_t> cosine = fixed_16_16(transform.xx / scale);
+        const std::optional<std::int32_t> sine = fixed_16_16(transform.xy / scale);
+        if (!cosine || !sine) throw std::invalid_argument("Invalid glyph run transform");
+        stxlib::glyphs::TextMatrix turn{};
+        turn.xx = *cosine;
+        turn.xy = -*sine;
+        turn.yx = *sine;
+        turn.yy = *cosine;
+        const RunPlacement turned =
+            turned_placement(turn, logical_size, scale, device_x, device_y, synthesis, window, origin);
+        GlyphRunCoverage result = Impl::Runner::run(*impl_, shaped, turned);
+        return result;
+    }
     // Logical (y down) to device (y down), expressed in the outline's y-up
     // space: [xx -xy; -yx yy].
     GlyphRunTransform outline_matrix{transform.xx, -transform.xy, -transform.yx, transform.yy};
@@ -418,6 +482,32 @@ GlyphRunCoverage GlyphRunRasterizer::rasterize_transformed(const ShapedText& sha
     placement.style.size = static_cast<stxlib::i64>(std::llround(logical_size * 64.0));
     if (synthesis.thicken) placement.style.thicken = thicken_strength(logical_size * std::sqrt(std::abs(determinant)));
     set_window(placement.style, window);
+    GlyphRunCoverage result = Impl::Runner::run(*impl_, shaped, placement);
+    return result;
+}
+
+GlyphRunCoverage GlyphRunRasterizer::rasterize_turned(const ShapedText& shaped, const FontSpec font, const double degrees,
+                                                      const double scale, const double device_x, const double device_y,
+                                                      const GlyphRunSynthesis synthesis, GlyphRunOrigin& origin,
+                                                      const std::optional<GlyphRunWindow> window) {
+    if (!std::isfinite(degrees) || !std::isfinite(scale) || scale <= 0.0 || !std::isfinite(font.size) ||
+        !std::isfinite(device_x) || !std::isfinite(device_y) || std::abs(device_x) > 16'000'000.0 ||
+        std::abs(device_y) > 16'000'000.0) {
+        throw std::invalid_argument("Invalid glyph run turn");
+    }
+    const double logical_size = std::clamp(font.size, 1.0, 4096.0);
+    const stxlib::glyphs::TextMatrix turn = stxlib::glyphs::turn_matrix(gui_forms::detail::text_turn_degrees_16_16(degrees));
+    if (synthesis.oblique) {
+        // An oblique turned run is not a turn: the outline, as rasterize_transformed draws any matrix.
+        const double cosine = static_cast<double>(turn.xx) / 65536.0;
+        const double sine = static_cast<double>(turn.yx) / 65536.0;
+        const GlyphRunTransform transform{scale * cosine, scale * sine, -scale * sine, scale * cosine};
+        GlyphRunCoverage sheared_result =
+            rasterize_transformed(shaped, font, transform, device_x, device_y, synthesis, origin, window);
+        return sheared_result;
+    }
+    const RunPlacement placement =
+        turned_placement(turn, logical_size, scale, device_x, device_y, synthesis, window, origin);
     GlyphRunCoverage result = Impl::Runner::run(*impl_, shaped, placement);
     return result;
 }

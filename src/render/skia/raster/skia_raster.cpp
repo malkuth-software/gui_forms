@@ -25,6 +25,7 @@
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 #include "../../../core/theme/theme/material_layers.hpp"
 #include "../../../core/interpolation/interpolation.hpp"
+#include "../../../core/types/painter/text_turn.hpp"
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkBlurTypes.h"
@@ -2119,8 +2120,11 @@ void SkiaRaster::Impl::draw_rotated_run(SkCanvas& target, const text::ShapedText
     const SkMatrix matrix = target.getTotalMatrix();
     if (matrix.hasPerspective()) return;
     if (!glyph_runs) glyph_runs = std::make_unique<text::GlyphRunRasterizer>(text_engine);
-    // The engine's deterministic sine and cosine, exact at quarter turns.
-    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    // STXlib's turn (exact at quarter turns), the one rotated_text_bounds
+    // and rotated_text_anchor use: under a canvas that only scales evenly
+    // and translates, the run is drawn as STXlib's turned text
+    // (rasterize_transformed) with exactly this turn.
+    const gui_forms::detail::TextTurnEntries turn = gui_forms::detail::text_turn_entries(degrees);
     const double cosine = turn.cosine;
     const double sine = turn.sine;
     // The turn in logical units, x' = cos x + sin y and y' = -sin x + cos y
@@ -2138,9 +2142,14 @@ void SkiaRaster::Impl::draw_rotated_run(SkCanvas& target, const text::ShapedText
     const text::GlyphRunWindow window =
         run_window(target, static_cast<std::int64_t>(std::floor(static_cast<double>(device.x()))),
                    static_cast<std::int64_t>(std::floor(static_cast<double>(device.y()))));
-    const text::GlyphRunCoverage coverage =
-        (*glyph_runs).rasterize_transformed(shaped, font_spec, transform, static_cast<double>(device.x()),
-                                            static_cast<double>(device.y()), {}, placement, window);
+    text::GlyphRunCoverage coverage{};
+    if (matrix.isScaleTranslate() && matrix.getScaleX() > 0.0F && matrix.getScaleX() == matrix.getScaleY()) {
+        coverage = (*glyph_runs).rasterize_turned(shaped, font_spec, degrees, scale_x, static_cast<double>(device.x()),
+                                                  static_cast<double>(device.y()), {}, placement, window);
+    } else {
+        coverage = (*glyph_runs).rasterize_transformed(shaped, font_spec, transform, static_cast<double>(device.x()),
+                                                       static_cast<double>(device.y()), {}, placement, window);
+    }
     note_coverage(coverage);
     if (coverage.pixels.empty()) return;
     const detail::TextCoverage placed{.pixels = coverage.pixels, .width = coverage.width, .height = coverage.height,
