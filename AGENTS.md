@@ -191,6 +191,19 @@ directory.
   CPU-composed surface with WebGL2, uploading its pixels to one texture and
   drawing it as a quad. WebGL2 is only that host's present backend; nothing
   renders with it, and no other target may use it.
+  A second exception (owner, 2026-11-16: "you mean we we enumerate host
+  capabilities. yes"): the presentation shim's buffer routes
+  (`docs/user/presentation.md`) may use a platform graphics API for
+  buffer acquisition and presentation only: CAMetalLayer drawables (Metal)
+  in `src/host/macos/`, DRI3 pixmaps and linux-dmabuf buffers over GBM in
+  `src/host/linux/`, and DXGI flip or DirectComposition in
+  `src/host/windows/` when the Windows side adds it. Each route lives
+  inside its host adapter, behind its own build option, is reported by its
+  own host capability bit, and falls back to the copy path with identical
+  pixels on any refusal or loss. No drawing, shaders, command encoding
+  beyond the present itself, rendering contexts, or other GPU work, and
+  nothing of a route in the portable contract, public headers or C ABI
+  beyond its capability bit.
 - Skia may be used only through a private CPU renderer adapter. No Skia type may
   appear in public headers, DML, demo-facing control APIs, C ABI, or tests of the
   renderer-neutral core.
