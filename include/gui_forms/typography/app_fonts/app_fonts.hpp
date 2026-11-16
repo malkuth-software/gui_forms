@@ -261,9 +261,10 @@ struct GUI_FORMS_API AppFontFaceSource final {
 
 // The context a font is drawn in (admit_font).
 enum class FontContext : std::uint8_t {
-    // A stock control or GUI.Forms' own interface: bundled families only. (Not
-    // spelled `interface`: Windows' rpc.h defines that word as a macro.)
-    toolkit,
+    // The factory bundle only: GUI.Forms' bundled, validated fonts, used by stock
+    // controls and GUI.Forms' own interface. Named specifically, because Windows
+    // headers define generic words such as `interface` as macros.
+    factory_bundle,
     // A composite control's look, parts and children.
     composite,
     // A sub-surface's controls: the program's own content.

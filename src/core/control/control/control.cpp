@@ -1516,7 +1516,7 @@ FontContext font_context_of(const Control& control) noexcept {
     if (control.look_rules() != nullptr) return FontContext::composite;
     const SurfaceRoot* const root = control.attached_surface_root();
     if (root != nullptr && (*root).presenting_window() == nullptr) return FontContext::content;
-    return FontContext::toolkit;
+    return FontContext::factory_bundle;
 }
 
 } // namespace

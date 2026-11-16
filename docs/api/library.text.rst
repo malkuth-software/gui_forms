@@ -3166,7 +3166,7 @@ Enumerations
 
    ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
 
-   .. cpp:enumerator:: toolkit
+   .. cpp:enumerator:: factory_bundle
 
    .. cpp:enumerator:: composite
 
