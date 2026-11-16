@@ -146,14 +146,14 @@ void test_pointer_keyboard_and_disabled_policy() {
     window.perform_layout();
 
     click_row(window, *list, 0U);
-    require((*list).selected_index() == 0U && !(*list).item_checked(0U),
+    require((*list).selected_index() == stxlib::Optional<std::size_t>::of(0U) && !(*list).item_checked(0U),
             "default first click must select without changing check state");
     click_row(window, *list, 0U);
     require((*list).item_checked(0U),
             "default second click on the selected item must toggle its check");
     (*list).check_on_click = true;
     click_row(window, *list, 1U);
-    require((*list).selected_index() == 1U && (*list).item_checked(1U),
+    require((*list).selected_index() == stxlib::Optional<std::size_t>::of(1U) && (*list).item_checked(1U),
             "CheckOnClick must select and toggle on the first click");
 
     KeyEvent space{KeyAction::down, PhysicalKey::space};
@@ -198,7 +198,7 @@ void test_paint_and_semantic_actions() {
             "checked rows must publish stable checkable virtual semantics");
     require(window.perform_semantic_action("checks.semantic.item.2",
                                            SemanticAction::press) &&
-                (*list).item_checked(2U) && (*list).selected_index() == 2U,
+                (*list).item_checked(2U) && (*list).selected_index() == stxlib::Optional<std::size_t>::of(2U),
             "semantic press must select and toggle through public behavior");
 }
 

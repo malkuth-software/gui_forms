@@ -731,7 +731,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `selected_index_changed` | `std::optional<std::size_t>` |
+| `selected_index_changed` | `stxlib::Optional<std::size_t>` |
 | `selection_changed` | `ListSelectionChange` |
 | `item_activated` | `std::size_t` |
 
@@ -775,7 +775,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `selected_index_changed` | `std::optional<std::size_t>` |
+| `selected_index_changed` | `stxlib::Optional<std::size_t>` |
 | `selection_changed` | `ListSelectionChange` |
 | `item_activated` | `std::size_t` |
 | `item_checking` | `ItemCheckEvent`, by reference |
@@ -812,7 +812,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `selected_index_changed` | `std::optional<std::size_t>` |
+| `selected_index_changed` | `stxlib::Optional<std::size_t>` |
 | `drop_down_changed` | `bool` |
 | `items_changed` | none |
 | `text_changed` | `std::string` |
@@ -3913,7 +3913,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `selected_index_changed` | `std::optional<std::size_t>` |
+| `selected_index_changed` | `stxlib::Optional<std::size_t>` |
 
 ## `up_down_base` (UpDownBase, control)
 

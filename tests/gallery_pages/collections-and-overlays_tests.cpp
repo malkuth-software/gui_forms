@@ -28,7 +28,7 @@ void test_collections_and_overlays(gui_forms::Window& window) {
     const Point choice{bounds.x + 20.0, bounds.y + 2.0 + 2.0 * 26.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, choice}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, choice}) &&
-                (*combo).selected_index.read() == 2U && !(*combo).dropped_down.read() &&
+                (*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && !(*combo).dropped_down.read() &&
                 window.focus_scope_depth() == 0U,
             "gallery ComboBox overlay must commit and restore focus without residue");
     require((*status).text.read().find("Density overlay: CLOSED") == 0U,
@@ -52,7 +52,7 @@ void test_collections_and_overlays(gui_forms::Window& window) {
             "typing in the station field filters its list by substring");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::down}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
-                !(*search).dropped_down.read() && (*search).selected_index.read() == 5U &&
+                !(*search).dropped_down.read() && (*search).selected_index.read() == stxlib::Optional<std::size_t>::of(5U) &&
                 (*search).text.read() == "Frankfurt (Main) Hbf",
             "the first filtered row is chosen by its item index");
 }

@@ -217,22 +217,22 @@ void test_selection_and_identities_follow_edits() {
         test_support::IncrementCounter<std::size_t, const ListSelectionChange&>(changes));
 
     (*list).items.erase(1U, 1U);
-    require((*list).selected_index() == std::optional<std::size_t>{4U} && changes == 1U,
+    require((*list).selected_index() == stxlib::Optional<std::size_t>::of(4U) && changes == 1U,
             "an erasure above the selection moves it");
     require((*list).item_stable_id(4U) == "f" && (*list).item_stable_id(0U) == "a",
             "an erasure keeps the remaining identities aligned");
     (*list).items.replace(4U, "Renamed");
-    require((*list).selected_index() == std::optional<std::size_t>{4U} && changes == 1U &&
+    require((*list).selected_index() == stxlib::Optional<std::size_t>::of(4U) && changes == 1U &&
                 (*list).item_stable_id(4U) == "f",
             "a replacement keeps the selection and the identity");
     (*list).items.insert(0U, "First");
-    require((*list).selected_index() == std::optional<std::size_t>{5U} && changes == 2U,
+    require((*list).selected_index() == stxlib::Optional<std::size_t>::of(5U) && changes == 2U,
             "an insertion above the selection moves it");
     (*list).items.append("Last");
-    require((*list).selected_index() == std::optional<std::size_t>{5U} && changes == 2U,
+    require((*list).selected_index() == stxlib::Optional<std::size_t>::of(5U) && changes == 2U,
             "an append keeps the selection");
     (*list).items.erase(5U, 1U);
-    require(!(*list).selected_index() && changes == 3U, "erasing the selected item clears the selection");
+    require((*list).selected_index().absent() && changes == 3U, "erasing the selected item clears the selection");
     (*list).items.clear();
     require((*list).items.read().empty() && (*list).top_index.read() == 0U, "clear empties the list");
     require(changed.connected(), "the subscription stays connected");
@@ -487,10 +487,10 @@ void test_grid_rows_refuse_and_keep_identity() {
 void test_choice_items_follow_edits() {
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("collection.combo"));
     (*combo).items = {"Alpha", "Bravo", "Charlie"};
-    (*combo).selected_index = 1U;
+    (*combo).selected_index = stxlib::Optional<std::size_t>::of(1U);
     std::vector<std::string_view> raised;
     SubscriptionToken index_changed = (*combo).selected_index_changed().subscribe(
-        test_support::PushConstant<std::vector<std::string_view>, std::string_view, std::optional<std::size_t>>(
+        test_support::PushConstant<std::vector<std::string_view>, std::string_view, stxlib::Optional<std::size_t>>(
             raised, "index"));
     SubscriptionToken text_changed = (*combo).text_changed().subscribe(
         test_support::PushConstant<std::vector<std::string_view>, std::string_view, const std::string&>(raised,
@@ -498,17 +498,17 @@ void test_choice_items_follow_edits() {
     SubscriptionToken items_changed = (*combo).items_changed().subscribe(
         test_support::PushConstant<std::vector<std::string_view>, std::string_view>(raised, "items"));
     (*combo).items.insert(0U, "Zero");
-    require((*combo).selected_index.read() == std::optional<std::size_t>{2U} && (*combo).selected_text() == "Bravo" &&
+    require((*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && (*combo).selected_text() == "Bravo" &&
                 raised == std::vector<std::string_view>{"index", "items"},
             "an insertion before the selection moves it to its item");
     raised.clear();
     (*combo).items.replace(2U, "Beta");
-    require((*combo).selected_index.read() == std::optional<std::size_t>{2U} &&
+    require((*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) &&
                 raised == std::vector<std::string_view>{"text", "items"},
             "replacing the selected item keeps the index and changes the text");
     raised.clear();
     (*combo).items.erase(2U, 1U);
-    require(!(*combo).selected_index.read() && raised == std::vector<std::string_view>{"index", "text", "items"},
+    require((*combo).selected_index.read().absent() && raised == std::vector<std::string_view>{"index", "text", "items"},
             "erasing the selected item clears the selection");
     raised.clear();
     bool refused = false;

@@ -1655,9 +1655,8 @@ private:
             return;
         }
         if (event.physical_key == PhysicalKey::tab) {
-            if (const std::optional<std::size_t> selected = (*completions_).selected_index()) {
-                accept_completion(*selected);
-            }
+            const stxlib::Optional<std::size_t> selected = (*completions_).selected_index();
+            if (selected.present()) accept_completion(*selected.value());
             event.handled = true;
             return;
         }

@@ -3414,7 +3414,7 @@
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
-        {"name": "selected_index_changed", "payload": "std::optional<std::size_t>", "mutable_payload": false},
+        {"name": "selected_index_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false},
         {"name": "selection_changed", "payload": "ListSelectionChange", "mutable_payload": false},
         {"name": "item_activated", "payload": "std::size_t", "mutable_payload": false}
       ]
@@ -3545,7 +3545,7 @@
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
-        {"name": "selected_index_changed", "payload": "std::optional<std::size_t>", "mutable_payload": false},
+        {"name": "selected_index_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false},
         {"name": "selection_changed", "payload": "ListSelectionChange", "mutable_payload": false},
         {"name": "item_activated", "payload": "std::size_t", "mutable_payload": false},
         {"name": "item_checking", "payload": "ItemCheckEvent", "mutable_payload": true},
@@ -3672,7 +3672,7 @@
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
-        {"name": "selected_index_changed", "payload": "std::optional<std::size_t>", "mutable_payload": false},
+        {"name": "selected_index_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false},
         {"name": "drop_down_changed", "payload": "bool", "mutable_payload": false},
         {"name": "items_changed", "payload": "", "mutable_payload": false},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
@@ -14429,7 +14429,7 @@
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
-        {"name": "selected_index_changed", "payload": "std::optional<std::size_t>", "mutable_payload": false}
+        {"name": "selected_index_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false}
       ]
     },
     {

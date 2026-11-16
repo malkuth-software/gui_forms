@@ -13,7 +13,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -136,7 +135,7 @@ private:
     // Recomputes the open list's rows after the items or the typed text
     // changed; closes the list when nothing matches.
     void refresh_open_rows(std::string_view pattern);
-    [[nodiscard]] std::optional<std::size_t> row_of_item(std::optional<std::size_t> item) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> row_of_item(stxlib::Optional<std::size_t> item) const noexcept;
     [[nodiscard]] double drop_down_height(std::size_t rows) const;
     // Up or Down through the open list's rows; from no selection, either
     // goes to the first row.
@@ -169,9 +168,9 @@ private:
 
     // An edit's selection and selected text before the store, taken by
     // prepare_edit for written.
-    std::optional<std::size_t> edit_selection_{};
+    stxlib::Optional<std::size_t> edit_selection_{};
     std::string edit_former_text_;
-    std::optional<std::size_t> selected_index_;
+    stxlib::Optional<std::size_t> selected_index_;
     bool dropped_down_{};
     bool focused_{};
     std::shared_ptr<Panel> overlay_layer_;
@@ -235,8 +234,8 @@ private:
     friend struct ComboBoxAutoCompleteSourceCapability<ComboBox>;
     friend struct ComboBoxAutoCompleteCustomSourceCapability<ComboBox>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
-    void write_view(const decltype(selected_index)& cell, std::optional<std::size_t> incoming);
-    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_index)& cell) const;
+    void write_view(const decltype(selected_index)& cell, stxlib::Optional<std::size_t> incoming);
+    [[nodiscard]] stxlib::Optional<std::size_t> read_view(const decltype(selected_index)& cell) const;
     void write_view(const decltype(text)& cell, std::string incoming);
     [[nodiscard]] std::string read_view(const decltype(text)& cell) const;
     void prepare_write(const decltype(placeholder_text)& cell, std::string& incoming);

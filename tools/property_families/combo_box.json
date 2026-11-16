@@ -18,7 +18,7 @@
     {
       "name": "selected_index",
       "capability": "ComboBoxSelectedIndex",
-      "value": "std::optional<std::size_t>",
+      "value": "stxlib::Optional<std::size_t>",
       "initial": null,
       "comment": "The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.",
       "getter": "selected_index",

@@ -1134,7 +1134,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:member:: std::optional<std::size_t> selected_index
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_index
 
       The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.
 
@@ -1293,11 +1293,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ComboBoxSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(ComboBoxSelectedIndexCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const ComboBoxSelectedIndexCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const ComboBoxSelectedIndexCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, ComboBoxSelectedIndexCapability<Declaring>> selected_index
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, ComboBoxSelectedIndexCapability<Declaring>> selected_index
 
 .. cpp:namespace:: gui_forms
 

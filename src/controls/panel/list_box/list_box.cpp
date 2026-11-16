@@ -45,9 +45,9 @@ constexpr double focus_ring_inset = 1.0;
 
 // ListControl's selected index for a selection kept sorted: its first item,
 // or none.
-std::optional<std::size_t> first_selected(const std::vector<std::size_t>& selection) noexcept {
-    if (selection.empty()) return std::nullopt;
-    const std::optional<std::size_t> first(selection.front());
+stxlib::Optional<std::size_t> first_selected(const std::vector<std::size_t>& selection) noexcept {
+    if (selection.empty()) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> first = stxlib::Optional<std::size_t>::of(selection.front());
     return first;
 }
 
@@ -567,8 +567,9 @@ SemanticDescriptor ListBox::semantic_descriptor() const {
     }
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    if (const std::optional<std::size_t> selected = selected_index()) {
-        descriptor.value = items.read()[*selected];
+    const stxlib::Optional<std::size_t> selected = selected_index();
+    if (selected.present()) {
+        descriptor.value = items.read()[*selected.value()];
     } else if (!selected_.empty()) {
         descriptor.value = std::to_string(selected_.size()) + " items selected";
     }

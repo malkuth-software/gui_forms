@@ -364,7 +364,7 @@ int main()
            "retained rows page selects before row interaction");
     const std::shared_ptr<gui_forms::ListBox> collection = std::dynamic_pointer_cast<gui_forms::ListBox>(
         (*window).find("gallery.collection"));
-    expect(collection != nullptr && (*collection).selected_index() == std::optional<std::size_t>{0U} &&
+    expect(collection != nullptr && (*collection).selected_index() == stxlib::Optional<std::size_t>::of(0U) &&
                (*collection).item_stable_id(2U) == "gallery.collection.gamma",
            "the collection begins on its alpha row and names its rows by stable ID");
     // The third row (gamma), below the list's 2-pixel frame.
@@ -375,7 +375,7 @@ int main()
                                     gui_forms::PointerButton::primary, gamma_point});
     (void)(*window).dispatch_pointer({gui_forms::PointerAction::up,
                                     gui_forms::PointerButton::primary, gamma_point});
-    expect((*collection).selected_index() == std::optional<std::size_t>{2U} &&
+    expect((*collection).selected_index() == stxlib::Optional<std::size_t>::of(2U) &&
                (*collection).selected_indices().size() == 1U,
            "retained list row selection is exclusive");
 

@@ -679,7 +679,7 @@ void example() {
         gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
     (*density).items = {"Compact", "Comfortable", "Spacious"};
     (*density).placeholder_text = "Choose a density";
-    (*density).selected_index = 1U;
+    (*density).selected_index = stxlib::Optional<std::size_t>::of(1U);
     // (*density).selected_text() is now "Comfortable"
 }
 }  // namespace doc_example_ComboBox_1
@@ -694,15 +694,15 @@ struct DensityField final : gf::Component {
         (*combo).items = {"Compact", "Comfortable", "Spacious"};
         gf::on((*combo).selected_index_changed(), *this, &DensityField::on_density);
     }
-    void on_density(std::optional<std::size_t> index) {
-        density = index ? std::string((*combo).selected_text()) : std::string();
+    void on_density(stxlib::Optional<std::size_t> index) {
+        density = index.present() ? std::string((*combo).selected_text()) : std::string();
     }
 };
 
 void example() {
     DensityField field;
-    (*field.combo).selected_index = 2U;                 // field.density is "Spacious"
-    (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
+    (*field.combo).selected_index = stxlib::Optional<std::size_t>::of(2U);   // field.density is "Spacious"
+    (*field.combo).items = {"Compact", "Comfortable"};   // and now ""
 }
 }  // namespace doc_example_ComboBox_2
 
@@ -2688,7 +2688,7 @@ void example() {
     FileSheet file;
     std::shared_ptr<gf::ComboBox> opens =
         std::dynamic_pointer_cast<gf::ComboBox>((*file.sheet).editor("file.opens"));
-    if (opens) (*opens).selected_index = std::size_t{1U};   // opens_with is "Image Laboratory"
+    if (opens) (*opens).selected_index = stxlib::Optional<std::size_t>::of(1U);   // opens_with is "Image Laboratory"
 }
 }  // namespace doc_example_PropertyList_2
 

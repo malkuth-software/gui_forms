@@ -297,7 +297,7 @@ void check_provider_selection(Checks& checks, Window& window, ProviderFixture& f
     expect(checks, has_action(second, SemanticAction::select), "a list item publishes select");
     expect(checks,
            perform_on_child(window, *fixture.list, second.stable_id, SemanticAction::select) &&
-               (*fixture.list).selected_index() == 1U,
+               (*fixture.list).selected_index() == stxlib::Optional<std::size_t>::of(1U),
            "select selects the item");
     const std::optional<SemanticNode> after = read_node(window, "uia.list");
     if (!after) return;

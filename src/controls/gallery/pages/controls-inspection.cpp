@@ -10,7 +10,6 @@
 #include "gui_forms/controls/track_bar.hpp"
 
 #include <cstddef>
-#include <optional>
 #include <string>
 #include <string_view>
 
@@ -149,7 +148,7 @@ void add_text_boxes(Surface& page, const InspectionRow& row) {
 std::shared_ptr<ComboBox> combo_box(const InspectionRow& row, std::string_view state) {
     const std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId(inspection_id(row, state, "")));
     (*combo).items = {std::string("First"), std::string("Second")};
-    (*combo).selected_index = std::optional<std::size_t>(0U);
+    (*combo).selected_index = stxlib::Optional<std::size_t>::of(0U);
     (*combo).accessible_name = std::string(state);
     return combo;
 }

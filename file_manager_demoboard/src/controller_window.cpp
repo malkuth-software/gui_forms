@@ -23,13 +23,14 @@ static constexpr std::array<double, 5> text_scales{
 struct SurfaceSelectionHandler final {
     gui_forms::Window* product{};
 
-    void operator()(std::optional<std::size_t> index) const {
-        if (!index) return;
-        if (*index == 0U) static_cast<void>(set_product_surface(*product, "folder"));
-        else if (*index == 1U) static_cast<void>(set_product_surface(*product, "search"));
-        else if (*index == 2U) static_cast<void>(set_product_surface(*product, "criteria"));
-        else if (*index == 3U) static_cast<void>(set_product_surface(*product, "palettes"));
-        else if (*index == 6U) static_cast<void>(set_product_surface(*product, "dna"));
+    void operator()(stxlib::Optional<std::size_t> index) const {
+        if (index.absent()) return;
+        const std::size_t chosen = *index.value();
+        if (chosen == 0U) static_cast<void>(set_product_surface(*product, "folder"));
+        else if (chosen == 1U) static_cast<void>(set_product_surface(*product, "search"));
+        else if (chosen == 2U) static_cast<void>(set_product_surface(*product, "criteria"));
+        else if (chosen == 3U) static_cast<void>(set_product_surface(*product, "palettes"));
+        else if (chosen == 6U) static_cast<void>(set_product_surface(*product, "dna"));
     }
 };
 
@@ -37,14 +38,15 @@ struct TextScaleHandler final {
     gui_forms::Window* product{};
     std::weak_ptr<gui_forms::Label> density;
 
-    void operator()(std::optional<std::size_t> index) const {
-        if (!index || *index >= text_scales.size()) return;
-        (*product).set_text_scale(text_scales[*index]);
+    void operator()(stxlib::Optional<std::size_t> index) const {
+        if (index.absent() || *index.value() >= text_scales.size()) return;
+        const std::size_t chosen = *index.value();
+        (*product).set_text_scale(text_scales[chosen]);
         const std::shared_ptr<gui_forms::Label> status = density.lock();
         if (status) {
             (*status).text =
                 "Display scale: host-derived · text scale: " +
-                std::to_string(static_cast<int>(text_scales[*index] * 100.0)) + "%";
+                std::to_string(static_cast<int>(text_scales[chosen] * 100.0)) + "%";
         }
     }
 };
@@ -61,9 +63,9 @@ struct ResetHandler final {
         (*product).set_presentation_settings({});
         static_cast<void>(set_product_surface(*product, "folder"));
         const std::shared_ptr<gui_forms::ComboBox> surface_choice = surface.lock();
-        if (surface_choice) (*surface_choice).selected_index = 0U;
+        if (surface_choice) (*surface_choice).selected_index = stxlib::Optional<std::size_t>::of(0U);
         const std::shared_ptr<gui_forms::ComboBox> scale_choice = text_scale.lock();
-        if (scale_choice) (*scale_choice).selected_index = 0U;
+        if (scale_choice) (*scale_choice).selected_index = stxlib::Optional<std::size_t>::of(0U);
         const std::shared_ptr<gui_forms::Label> status = density.lock();
         if (status) {
             (*status).text = "Display scale: host-derived · text scale: 100%";
@@ -113,14 +115,14 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
     std::shared_ptr<gui_forms::ComboBox> surface = std::make_shared<ComboBox>(StableId("demo.surface.choice"));
     (*surface).set_requested_bounds({0,0,430,30});
     (*surface).items = {"Folder", "Search", "Criteria", "Palettes", "Icons", "Styles", "DNA"};
-    (*surface).selected_index = 0;
+    (*surface).selected_index = stxlib::Optional<std::size_t>::of(0U);
     (*root).add_child(surface);
 
     std::shared_ptr<gui_forms::ComboBox> condition = std::make_shared<ComboBox>(StableId("demo.fixture.condition"));
     (*condition).set_requested_bounds({0,0,430,30});
     (*condition).items = {"Normal", "Offline volume", "Stale index", "Preview unavailable",
                           "Transfer running", "Conflict", "Empty folder", "Million items"};
-    (*condition).selected_index = 0;
+    (*condition).selected_index = stxlib::Optional<std::size_t>::of(0U);
     (*root).add_child(condition);
 
     std::shared_ptr<gui_forms::Label> accommodation = std::make_shared<Label>(
@@ -139,7 +141,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
         "changing the host display scale";
     (*text_scale).items = {"100% text", "125% text", "150% text",
                            "200% text", "225% text"};
-    (*text_scale).selected_index = 0;
+    (*text_scale).selected_index = stxlib::Optional<std::size_t>::of(0U);
     (*root).add_child(text_scale);
 
     std::shared_ptr<gui_forms::Label> density = std::make_shared<Label>(

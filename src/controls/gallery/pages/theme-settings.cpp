@@ -348,9 +348,9 @@ void ThemeSettingsPage::show_window_theme(Window& window, std::shared_ptr<const 
 
 void ThemeSettingsPage::on_theme_selected(const ListSelectionChange& change) {
     static_cast<void>(change);
-    const std::optional<std::size_t> index = (*document_.gallery_theme_settings_themes).selected_index();
-    if (!index || *index >= theme_choice_count) return;
-    selected_ = static_cast<ThemeChoice>(*index);
+    const stxlib::Optional<std::size_t> index = (*document_.gallery_theme_settings_themes).selected_index();
+    if (index.absent() || *index.value() >= theme_choice_count) return;
+    selected_ = static_cast<ThemeChoice>(*index.value());
     apply_theme();
 }
 

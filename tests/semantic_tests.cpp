@@ -187,7 +187,7 @@ void test_semantic_actions_use_control_behavior() {
     const bool chosen = window.perform_semantic_action("actions.combo.overlay.list.item.1", SemanticAction::press);
     const SemanticSnapshot closed = window.semantic_snapshot();
     require(chosen &&
-                (*combo).selected_index.read() == 1U && !(*combo).dropped_down.read() &&
+                (*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(1U) && !(*combo).dropped_down.read() &&
                 window.focus_scope_depth() == 0U &&
                 !find_node(closed.roots,
                            "actions.combo.overlay.list"),
@@ -231,7 +231,7 @@ void test_virtual_list_items_are_selectable() {
             "painted ListBox rows must publish selectable virtual semantic children");
     require(window.perform_semantic_action("virtual.list.item.1",
                                             SemanticAction::select) &&
-                (*list).selected_index() == 1U && window.focused_control() == list,
+                (*list).selected_index() == stxlib::Optional<std::size_t>::of(1U) && window.focused_control() == list,
             "virtual list-item selection must route through retained ListBox behavior");
     const SemanticSnapshot after = window.semantic_snapshot();
     const SemanticNode* selected = find_node(after.roots, "virtual.list.item.1");
@@ -243,7 +243,7 @@ void test_virtual_list_items_are_selectable() {
         test_support::RecordValue<std::size_t>(activated));
     require(window.perform_semantic_action("virtual.list.item.2",
                                             SemanticAction::press) &&
-                (*list).selected_index() == 2U && activated == 2U,
+                (*list).selected_index() == stxlib::Optional<std::size_t>::of(2U) && activated == 2U,
             "virtual list-item press must complete selection then activation");
 }
 

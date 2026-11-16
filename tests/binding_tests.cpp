@@ -296,7 +296,7 @@ public:
     void operator()(BindingCompleteEvent& event) const {
         if (event.context == BindingCompleteContext::control_update &&
             event.state == BindingCompleteState::success) {
-            observed_ = (*combo_).selected_index.read() == 2U;
+            observed_ = (*combo_).selected_index.read() == stxlib::Optional<std::size_t>::of(2U);
         }
     }
 
@@ -316,7 +316,7 @@ public:
         if (event.binding == binding_.get() &&
             event.context == BindingCompleteContext::control_update &&
             event.state == BindingCompleteState::success) {
-            observed_ = (*combo_).selected_index.read() == 2U;
+            observed_ = (*combo_).selected_index.read() == stxlib::Optional<std::size_t>::of(2U);
         }
     }
 
@@ -1048,7 +1048,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
         "SelectedIndex", source, "choice", formatted_immediate);
     const std::shared_ptr<Binding> amount = (*numeric).data_bindings().add(
         "Value", source, "amount", formatted_immediate);
-    require((*combo).selected_index.read() == 1U && (*numeric).value.read() == 42.0,
+    require((*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(1U) && (*numeric).value.read() == 42.0,
             "ComboBox.SelectedIndex and NumericUpDown.Value must be stock bindable properties");
 
     bool binding_saw_committed_control = false;

@@ -373,7 +373,7 @@ void test_list_box_selection_navigation_and_mutation() {
 
     (*list).select_index(1U);
     KeyEvent down{KeyAction::down, PhysicalKey::down};
-    require(window.dispatch_key(down) && (*list).selected_index() == 2U &&
+    require(window.dispatch_key(down) && (*list).selected_index() == stxlib::Optional<std::size_t>::of(2U) &&
                 changes == 2U,
             "ListBox Down must select the next item exactly once");
     KeyEvent enter{KeyAction::down, PhysicalKey::enter};
@@ -426,7 +426,7 @@ void test_combo_box_scrollbar_reaches_last_item() {
     const Point last{bounds.x + 15, bounds.y + 2 + (23 - (*list).top_index.read()) * 26.0 + 13};
     window.dispatch_pointer({PointerAction::down, PointerButton::primary, last});
     window.dispatch_pointer({PointerAction::up, PointerButton::primary, last});
-    require((*combo).selected_index.read() == 23 && !(*combo).dropped_down.read(),
+    require((*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(23U) && !(*combo).dropped_down.read(),
             "the last language is reachable without a mouse wheel");
 }
 
@@ -470,7 +470,7 @@ void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
     require(window.request_focus(combo), "ComboBox must accept retained focus");
     std::string order;
     SubscriptionToken selection = (*combo).selected_index_changed().subscribe(
-        test_support::AppendLiteral<std::optional<std::size_t>>(
+        test_support::AppendLiteral<stxlib::Optional<std::size_t>>(
             order, "selection\n"));
     SubscriptionToken dropdown = (*combo).drop_down_changed().subscribe(
         AppendDropDownState(order));
@@ -491,7 +491,7 @@ void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
     const Point third{bounds.x + 20.0, bounds.y + 2.0 + 2.0 * 26.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, third}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, third}) &&
-                (*combo).selected_index.read() == 2U && !(*combo).dropped_down.read() &&
+                (*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && !(*combo).dropped_down.read() &&
                 window.focus_scope_depth() == 0U &&
                 !window.find("combo.field.overlay.layer") &&
                 order == "open\nselection\nclose\n",
@@ -599,7 +599,7 @@ void test_list_box_model_stable_item_ids() {
                 children[2].stable_id == "completion.print" &&
                 window.perform_semantic_action("completion.north",
                                                SemanticAction::select) &&
-                (*list).selected_index() == 1U,
+                (*list).selected_index() == stxlib::Optional<std::size_t>::of(1U),
             "model-backed ListBox rows must retain exact semantic identities");
     bool duplicate_rejected{};
     try {
@@ -638,7 +638,7 @@ void test_list_box_publishes_a_window() {
                 shown.front().position_in_set == stxlib::Optional<std::size_t>::of(1U),
             "each published row carries its place in the whole set");
     require(window.perform_semantic_action("window.row.250", SemanticAction::select) &&
-                (*list).selected_index() == 250U,
+                (*list).selected_index() == stxlib::Optional<std::size_t>::of(250U),
             "an action reaches a row that is not published");
     const std::vector<SemanticNode> after_select = (*list).semantic_virtual_children();
     bool active_published = false;
@@ -648,7 +648,7 @@ void test_list_box_publishes_a_window() {
     require(active_published, "the active row is published wherever the list is scrolled");
     (*list).items.erase(0U, 1U);
     require(window.perform_semantic_action("window.row.300", SemanticAction::select) &&
-                (*list).selected_index() == 299U,
+                (*list).selected_index() == stxlib::Optional<std::size_t>::of(299U),
             "after an erase the ID index finds each row at its new position");
     require(!window.perform_semantic_action("window.row.0", SemanticAction::select),
             "an erased row's ID reaches nothing");
@@ -933,28 +933,28 @@ void test_combo_box_property_capabilities() {
     (*combo).items = {"Compact", "Comfortable", "Spacious"};
     std::string order;
     const SubscriptionToken index_token = (*combo).selected_index_changed().subscribe(
-        test_support::AppendLiteral<std::optional<std::size_t>>(order, "index\n"));
+        test_support::AppendLiteral<stxlib::Optional<std::size_t>>(order, "index\n"));
     const SubscriptionToken text_token = (*combo).text_changed().subscribe(
         test_support::AppendLiteral<const std::string&>(order, "text\n"));
-    (*combo).selected_index = 1U;
+    (*combo).selected_index = stxlib::Optional<std::size_t>::of(1U);
     require(order == "index\ntext\n" && (*combo).text.read() == "Comfortable",
             "a selected_index write raises selected_index_changed, then text_changed");
-    (*combo).selected_index = 1U;
+    (*combo).selected_index = stxlib::Optional<std::size_t>::of(1U);
     require(order == "index\ntext\n", "writing the current index raises nothing");
     bool refused = false;
     try {
-        (*combo).selected_index = 3U;
+        (*combo).selected_index = stxlib::Optional<std::size_t>::of(3U);
     } catch (const std::out_of_range&) {
         refused = true;
     }
-    require(refused && (*combo).selected_index.read() == 1U, "an index past the end is refused");
+    require(refused && (*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(1U), "an index past the end is refused");
     (*combo).text = "Spacious";
-    require((*combo).selected_index.read() == 2U, "a text write selects the equal item");
+    require((*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(2U), "a text write selects the equal item");
     require((*combo).should_serialize_property("text") && (*combo).reset_property("text") &&
-                !(*combo).selected_index.read() && !(*combo).should_serialize_property("text"),
+                (*combo).selected_index.read().absent() && !(*combo).should_serialize_property("text"),
             "the table reset clears the selection; should_serialize follows it");
     (*combo).set_property_value("text", BindingValue{std::string("Compact")});
-    require((*combo).selected_index.read() == 0U, "a table text write runs the same hooks");
+    require((*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(0U), "a table text write runs the same hooks");
 
     (*combo).placeholder_text = "Choose";
     (*combo).drop_down_style = ComboBoxStyle::drop_down;
@@ -1027,11 +1027,11 @@ void test_list_box_long_list_damage_and_window() {
                 children[0].stable_id == "long.item-0",
             "only the shown window is described, sized by the whole list");
     require(window.perform_semantic_action("long.item-900", SemanticAction::select) &&
-                (*list).selected_index() == 900U,
+                (*list).selected_index() == stxlib::Optional<std::size_t>::of(900U),
             "an item outside the window is found by its stable ID");
     (*list).set_item_stable_ids(std::vector<std::string>(ids.rbegin(), ids.rend()));
     require(window.perform_semantic_action("long.item-900", SemanticAction::select) &&
-                (*list).selected_index() == 99U,
+                (*list).selected_index() == stxlib::Optional<std::size_t>::of(99U),
             "the stable ID lookup follows new IDs");
 }
 
@@ -1179,18 +1179,18 @@ void test_control_bases_share_behaviour() {
     SubscriptionToken selection = (*list).selection_changed().subscribe(
         test_support::AppendLiteral<const ListSelectionChange&>(order, "selection\n"));
     SubscriptionToken index = list_base.selected_index_changed().subscribe(
-        test_support::AppendLiteral<std::optional<std::size_t>>(order, "index\n"));
-    require(!list_base.selected_index().has_value(), "ListControl must start with no selected index");
+        test_support::AppendLiteral<stxlib::Optional<std::size_t>>(order, "index\n"));
+    require(!list_base.selected_index().present(), "ListControl must start with no selected index");
     (*list).select_index(1U);
-    require(list_base.selected_index() == std::optional<std::size_t>{1U} && order == "selection\nindex\n",
+    require(list_base.selected_index() == stxlib::Optional<std::size_t>::of(1U) && order == "selection\nindex\n",
             "ListBox must raise selected_index_changed after selection_changed");
     order.clear();
     (*list).select_index(3U, true);
-    require(list_base.selected_index() == std::optional<std::size_t>{1U} && order == "selection\n",
+    require(list_base.selected_index() == stxlib::Optional<std::size_t>::of(1U) && order == "selection\n",
             "an extended selection keeping the first item must not raise selected_index_changed");
     order.clear();
     (*list).clear_selection();
-    require(!list_base.selected_index().has_value() && order == "selection\nindex\n",
+    require(!list_base.selected_index().present() && order == "selection\nindex\n",
             "clearing ListBox's selection must clear ListControl's selected index");
 
     const std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("input.shared.combo"));
@@ -1198,10 +1198,10 @@ void test_control_bases_share_behaviour() {
     ListControl& combo_base = *combo;
     std::size_t combo_changes{};
     SubscriptionToken combo_index = combo_base.selected_index_changed().subscribe(
-        test_support::IncrementCounter<std::size_t, std::optional<std::size_t>>(combo_changes));
-    (*combo).selected_index = std::optional<std::size_t>{1U};
-    require(combo_base.selected_index() == std::optional<std::size_t>{1U} &&
-                (*combo).selected_index.read() == std::optional<std::size_t>{1U} && combo_changes == 1U,
+        test_support::IncrementCounter<std::size_t, stxlib::Optional<std::size_t>>(combo_changes));
+    (*combo).selected_index = stxlib::Optional<std::size_t>::of(1U);
+    require(combo_base.selected_index() == stxlib::Optional<std::size_t>::of(1U) &&
+                (*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(1U) && combo_changes == 1U,
             "ListControl's selected index must follow ComboBox's selected_index cell");
 }
 

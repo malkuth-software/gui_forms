@@ -68,7 +68,7 @@ Fixture make_fixture() {
     (*fixture.combo).drop_down_style = ComboBoxStyle::drop_down_list;
     (*fixture.combo).items = {"Blackman-Harris 4", "Hann"};
     (*fixture.combo).placeholder_text = "Choose";
-    (*fixture.combo).selected_index = 0U;
+    (*fixture.combo).selected_index = stxlib::Optional<std::size_t>::of(0U);
     (*fixture.root).add_child(fixture.combo);
     fixture.window = std::make_unique<Window>(fixture.root, Size{240.0, 60.0});
     (*fixture.window).perform_layout();
@@ -111,10 +111,10 @@ void placeholder_and_disabled_keep_the_theme() {
     const Color parent_ink = Color::rgba(250, 250, 250);
     (*fixture.root).fore_color = stxlib::Optional<Color>::of(parent_ink);
 
-    combo.selected_index = std::nullopt;
+    combo.selected_index = stxlib::Optional<std::size_t>::none();
     require(field_ink(combo, "Choose") != parent_ink, "the placeholder keeps the theme's muted text");
 
-    combo.selected_index = 1U;
+    combo.selected_index = stxlib::Optional<std::size_t>::of(1U);
     combo.enabled = false;
     require(field_ink(combo, "Hann") != parent_ink, "a disabled combo box keeps the theme's disabled text");
 }

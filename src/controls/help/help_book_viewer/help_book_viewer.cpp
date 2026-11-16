@@ -673,9 +673,9 @@ bool HelpBookViewer::add_bookmark() {
 
 bool HelpBookViewer::remove_selected_bookmark() {
     require_mutable();
-    const std::optional<std::size_t> selected = (*bookmarks_list_).selected_index();
-    if (!selected.has_value() || *selected >= bookmarks_.size()) return false;
-    bookmarks_.erase(bookmarks_.begin() + static_cast<std::ptrdiff_t>(*selected));
+    const stxlib::Optional<std::size_t> selected = (*bookmarks_list_).selected_index();
+    if (selected.absent() || *selected.value() >= bookmarks_.size()) return false;
+    bookmarks_.erase(bookmarks_.begin() + static_cast<std::ptrdiff_t>(*selected.value()));
     refresh_bookmark_list();
     refresh_buttons();
     publish_bookmarks();
