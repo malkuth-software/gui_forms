@@ -335,6 +335,17 @@ the change that needs it.
   ([code statistics](../user/code-statistics.md)).
   `python3 -B tools/code_statistics.py ../stx ../stxlib`
 
+`tools/integrity_counts.py`
+: Counts audit findings found, fixed and declined, by source and severity,
+  for the high-integrity report (owner, 2026-11-16). It reads only records:
+  the audit folders' findings and decline sections, the queue entries, and
+  the commit messages of the named histories, and resolves the coders' short
+  forms (`02-F7`, `F1 to F5`) against the last full finding ID in the same
+  record. Each finding is traceable to its IDs, commits and queue entries;
+  `--markdown` and `--json` write the other forms. The audit folders live
+  outside the repository, so every path is an argument.
+  `python3 -B tools/integrity_counts.py --audit <audit folder> --queue <queue> --repo gui_forms=.@HEAD --repo stx=../stx@<pin>`
+
 `tools/png_admission_probe/`
 : A standalone consumer of an installed SDK that times `validate_png` and
   `ImageRegistry::load_png` separately on generated uncompressed PNGs and
