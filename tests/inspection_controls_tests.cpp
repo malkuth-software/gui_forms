@@ -1314,6 +1314,44 @@ std::optional<PropertyEditorBinding> create_failing_editor(const PropertyEditorR
 // A-gf-controls-09-F1: an edit_failed handler that rebuilds the grid, raised
 // by a row commit whose text does not convert and by a failing custom editor
 // factory, leaves the grid working; nothing reads the maps it cleared.
+// A setter that moves another notifying property: raising a NumericUpDown's
+// minimum above its value clamps the value inside the commit, and the value's
+// row and event must follow after the committed property
+// (A-gf-controls-09-F2).
+void test_commit_refreshes_properties_its_setter_moved() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("inspection.clamp.root"));
+    std::shared_ptr<gui_forms::NumericUpDown> target =
+        make_control<NumericUpDown>(StableId("inspection.clamp.target"));
+    (*target).value = 5.0;
+    std::shared_ptr<gui_forms::PropertyGrid> grid = make_control<PropertyGrid>(StableId("inspection.clamp.grid"));
+    (*grid).set_requested_bounds({0.0, 0.0, 420.0, 400.0});
+    (*root).add_child(target);
+    (*root).add_child(grid);
+    (*grid).set_selected_object(target);
+    Window window(root, {420.0, 420.0});
+    window.perform_layout();
+    std::vector<PropertyGridValueChange> changes;
+    SubscriptionToken changed = (*grid).property_value_changed().subscribe(
+        callbacks::PushBack<std::vector<PropertyGridValueChange>,
+                            const PropertyGridValueChange&>(changes));
+    const std::optional<std::string> value_before =
+        (*(*grid).property_list()).value("inspection.clamp.grid.property.value");
+    require(value_before.has_value(), "the value has a row");
+    require((*grid).try_set_property_value("minimum", BindingValue{10.0}) &&
+                (*target).value.read() == 10.0,
+            "the minimum commits and its setter clamps the value");
+    const std::optional<std::string> value_after =
+        (*(*grid).property_list()).value("inspection.clamp.grid.property.value");
+    require(value_after.has_value() && *value_after != *value_before,
+            "the clamped value's row shows the new value");
+    bool value_reported = false;
+    for (const PropertyGridValueChange& change : changes) {
+        if (change.property_name == "value" && std::get<double>(change.current_value) == 10.0) value_reported = true;
+    }
+    require(changes.size() >= 2U && changes.front().property_name == "minimum" && value_reported,
+            "the committed property is reported first, then the value its setter moved");
+}
+
 void test_edit_failed_handler_rebuilds_the_grid() {
     {
         std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("inspection.rebuild.root"));
@@ -1374,6 +1412,7 @@ int main() {
         test_flags_editor_form_properties();
         test_group_expansion();
         test_edit_failed_handler_rebuilds_the_grid();
+        test_commit_refreshes_properties_its_setter_moved();
         std::cout << "gui_forms_inspection_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
