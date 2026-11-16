@@ -47,7 +47,8 @@ std::wstring wide_from_utf8(std::string_view value) {
 }
 
 std::string utf8_from_wide(std::wstring_view value) {
-    if (value.empty()) return {};
+    // WideCharToMultiByte takes an int count, as wide_from_utf8's does.
+    if (value.empty() || value.size() > static_cast<std::size_t>(INT_MAX)) return {};
     const int size = WideCharToMultiByte(
         CP_UTF8, 0, value.data(), static_cast<int>(value.size()),
         nullptr, 0, nullptr, nullptr);

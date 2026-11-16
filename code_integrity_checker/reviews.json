@@ -107,6 +107,14 @@
     {
       "path": "src/host/linux/services/linux_services.cpp",
       "rule": "I05",
+      "evidence": "mask.mask_len = static_cast<int>(bits.size());",
+      "decision": "false_shape",
+      "reason": "bits is a std::array of XIMaskLen(XI_LASTEVENT) bytes, a compile-time size of a few bytes",
+      "reviewed": "2026-11-15"
+    },
+    {
+      "path": "src/host/linux/services/linux_services.cpp",
+      "rule": "I05",
       "evidence": "static_cast<int>(targets.size()));",
       "decision": "false_shape",
       "reason": "targets holds three atoms, built in the lines above",
