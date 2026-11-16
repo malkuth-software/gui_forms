@@ -78,6 +78,9 @@ def load_std_rules() -> ModuleType:
     if specification is None or specification.loader is None:
         raise RuntimeError(f"cannot load {path}")
     module: ModuleType = importlib.util.module_from_spec(specification)
+    # Registered before it runs: its dataclasses look their module up in
+    # sys.modules (Python 3.14 fails on a module that is not there).
+    sys.modules[specification.name] = module
     specification.loader.exec_module(module)
     return module
 

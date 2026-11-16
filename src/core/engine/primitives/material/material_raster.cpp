@@ -29,8 +29,8 @@ std::uint32_t raster_side(double logical, double scale) noexcept {
 void record_material_interior(PartRaster& raster, const SurfaceMaterial& material, const Size logical_size,
                               const double scale, const double outset) noexcept {
     double radius = std::max(0.0, material.corner_radius);
-    if (material.corner_radii) {
-        const MaterialCornerRadii& radii = *material.corner_radii;
+    if (material.corner_radii.present()) {
+        const MaterialCornerRadii& radii = *material.corner_radii.value();
         radius = std::max({radius, radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left});
     }
     const double left = std::ceil((outset + radius) * scale);
