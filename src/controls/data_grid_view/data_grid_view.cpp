@@ -744,7 +744,7 @@ stxlib::Optional<std::size_t> DataGridView::find_row(std::string_view row_id) co
     if (position >= data_row_count()) return stxlib::Optional<std::size_t>::none();
     const DataGridViewRowPosition row{position};
     if (row_id_text(row) != row_id) return stxlib::Optional<std::size_t>::none();
-    return position;
+    return stxlib::Optional<std::size_t>::of(position);
 }
 
 DataGridViewRowPosition DataGridView::event_position(std::string_view row_id) const {
