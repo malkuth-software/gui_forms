@@ -130,7 +130,8 @@ DialogResult OpenFileDialog::show_dialog(Window& owner) {
         if (presence.expired() || !is_alive()) return DialogResult::cancel;
         if (!ok.cancel) {
             file_names_ = (*paths).paths;
-            if ((*paths).chosen_filter) filter_index = *(*paths).chosen_filter;
+            const std::size_t* const chosen_filter = (*paths).chosen_filter.value();
+            if (chosen_filter != nullptr) filter_index = *chosen_filter;
             return DialogResult::ok;
         }
         // A cancelled file_ok shows the dialog again, while its window lives.

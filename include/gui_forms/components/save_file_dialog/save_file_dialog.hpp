@@ -17,6 +17,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class Window;
@@ -79,7 +81,7 @@ private:
     struct Presence final {};
 
     [[nodiscard]] HostSaveFileDialogRequest request() const;
-    [[nodiscard]] std::string_view added_extension(std::optional<std::size_t> chosen_filter) const noexcept;
+    [[nodiscard]] std::string_view added_extension(const stxlib::Optional<std::size_t>& chosen_filter) const noexcept;
 
     std::vector<HostFileDialogFilter> filters_{};
     std::vector<std::string> file_names_{};

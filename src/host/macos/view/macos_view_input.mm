@@ -341,7 +341,7 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
                 static_cast<void>((*_hostServices).warp_pointer(kept));
             }
         }
-        motion.position = kept;
+        motion.position.set(kept);
     }
     static_cast<void>([self dispatchHostPayload:std::move(motion)
                                timestampNanoseconds:host_event_nanoseconds(event)]);

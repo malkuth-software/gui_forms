@@ -51,7 +51,7 @@ struct Driver final {
     void motion(Point delta, Point position) {
         HostRelativeMotionEvent event{};
         event.delta = delta;
-        event.position = position;
+        event.position.set(position);
         event.unaccelerated = true;
         static_cast<void>(host.dispatch(event, step()));
     }

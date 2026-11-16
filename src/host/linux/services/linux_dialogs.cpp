@@ -305,7 +305,7 @@ struct DialogState final {
         filter ? (*filter).selected_index.read() : stxlib::Optional<std::size_t>::none();
     if (!folder && chosen_filter.present() &&
         *chosen_filter.value() < filters.size())
-      accepted.chosen_filter = *chosen_filter.value();
+      accepted.chosen_filter.set(*chosen_filter.value());
     result.payload = std::move(accepted);
     done = true;
   }

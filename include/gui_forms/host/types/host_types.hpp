@@ -23,6 +23,8 @@
 #include <variant>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class Window;
@@ -408,7 +410,7 @@ struct GUI_FORMS_API HostPathDialogResult final {
     // user accepted, an index into its `filters`; none when the request had
     // no filters, the user chose a filter the host added (such as "All
     // files"), or the host cannot tell.
-    std::optional<std::size_t> chosen_filter{};
+    stxlib::Optional<std::size_t> chosen_filter{};
 };
 
 struct GUI_FORMS_API HostColorDialogResult final {
@@ -669,7 +671,7 @@ struct GUI_FORMS_API HostWindowStateEvent final {
 struct GUI_FORMS_API HostRelativeMotionEvent final {
     Point delta{};
     bool unaccelerated{};
-    std::optional<Point> position{};
+    stxlib::Optional<Point> position{};
     Modifier modifiers{Modifier::none};
     std::uint64_t timestamp_nanoseconds{};
 };

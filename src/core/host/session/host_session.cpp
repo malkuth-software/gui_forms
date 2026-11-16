@@ -170,8 +170,8 @@ bool valid_pointer_report(const HostEventPayload& payload) noexcept {
     }
     if (const HostRelativeMotionEvent* motion = std::get_if<HostRelativeMotionEvent>(&payload)) {
         const bool delta = std::isfinite((*motion).delta.x) && std::isfinite((*motion).delta.y);
-        const bool position = !(*motion).position.has_value() ||
-                              (std::isfinite((*(*motion).position).x) && std::isfinite((*(*motion).position).y));
+        const Point* const at = (*motion).position.value();
+        const bool position = at == nullptr || (std::isfinite((*at).x) && std::isfinite((*at).y));
         return delta && position;
     }
     return true;
