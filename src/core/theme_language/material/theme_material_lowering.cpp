@@ -40,7 +40,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 92> material_properties{{
+constexpr std::array<NamedMaterialProperty, 94> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -76,6 +76,7 @@ constexpr std::array<NamedMaterialProperty, 92> material_properties{{
     {.name = "border-top-width", .property = MaterialProperty::border_top_width},
     {.name = "border-width", .property = MaterialProperty::border_width},
     {.name = "box-shadow", .property = MaterialProperty::box_shadow},
+    {.name = "clip-path", .property = MaterialProperty::clip_path},
     {.name = "color", .property = MaterialProperty::color},
     {.name = "corner-radius", .property = MaterialProperty::corner_radius},
     {.name = "default-outline", .property = MaterialProperty::default_outline},
@@ -133,6 +134,7 @@ constexpr std::array<NamedMaterialProperty, 92> material_properties{{
     {.name = "surface-finish", .property = MaterialProperty::surface_finish},
     {.name = "taper", .property = MaterialProperty::taper},
     {.name = "text-shadow", .property = MaterialProperty::text_shadow},
+    {.name = "transform", .property = MaterialProperty::transform},
 }};
 
 // The recipe's longhands (P6f), each the one recipe field it sets.
@@ -275,6 +277,281 @@ constexpr std::array<NamedFinish, 13> finish_names{{
 }};
 
 constexpr std::string_view finish_function_name = "finish";
+
+// The material shape functions (owner 2026-11-16): `transform` takes
+// rotate() and scale(), `clip-path` polygon() and path().
+constexpr std::string_view rotate_function_name = "rotate";
+constexpr std::string_view scale_function_name = "scale";
+constexpr std::string_view polygon_function_name = "polygon";
+constexpr std::string_view path_function_name = "path";
+
+// The linear map rotate(degrees) names: clockwise on screen (y down), as
+// CSS turns. A multiple of 90 degrees is exact.
+[[nodiscard]] MaterialTransform rotation_transform(double degrees) noexcept {
+    double cosine = 0.0;
+    double sine = 0.0;
+    const double quarter_turns = degrees / 90.0;
+    if (quarter_turns == std::floor(quarter_turns) && std::abs(quarter_turns) < 1.0e9) {
+        const std::int64_t whole = static_cast<std::int64_t>(quarter_turns);
+        const std::int64_t quarter = ((whole % 4) + 4) % 4;
+        const std::array<double, 4> cosines{1.0, 0.0, -1.0, 0.0};
+        const std::array<double, 4> sines{0.0, 1.0, 0.0, -1.0};
+        cosine = cosines[static_cast<std::size_t>(quarter)];
+        sine = sines[static_cast<std::size_t>(quarter)];
+    } else {
+        const double radians = degrees * 0.017453292519943295769;
+        cosine = std::cos(radians);
+        sine = std::sin(radians);
+    }
+    MaterialTransform turned{};
+    turned.xx = cosine;
+    turned.yx = sine;
+    turned.xy = -sine;
+    turned.yy = cosine;
+    return turned;
+}
+
+// `first` applied after `second`: the CSS transform list applies its last
+// function to a point first.
+[[nodiscard]] MaterialTransform composed_transform(const MaterialTransform& first,
+                                                   const MaterialTransform& second) noexcept {
+    MaterialTransform product{};
+    product.xx = first.xx * second.xx + first.xy * second.yx;
+    product.yx = first.yx * second.xx + first.yy * second.yx;
+    product.xy = first.xx * second.xy + first.xy * second.yy;
+    product.yy = first.yx * second.xy + first.yy * second.yy;
+    return product;
+}
+
+// -- SVG path data for clip-path: path() ------------------------------------------
+
+// Why a path() string did not read.
+enum class SvgPathProblem : std::uint8_t {
+    none,
+    // Not SVG path data: a missing number, a stray character, or a path
+    // that does not start with a move.
+    syntax,
+    // S, T or A (a smooth curve or an arc), which the clip path leaves out.
+    command_not_admitted,
+    // More than MaterialClipPath::maximum_points points, or a coordinate
+    // beyond MaterialClipPath::maximum_units.
+    too_large
+};
+
+// Reads SVG path data (M, L, H, V, C, Q, Z, each absolute or relative, a
+// command repeating over further coordinates, a move's further pairs as
+// lines) into a clip path's verbs and points, in px from the box's
+// top-left. Numbers are read exactly as decimals: at most 15 significant
+// digits and an exponent of at most 20 in size, so each is one correctly
+// rounded division or multiplication by an exact power of ten.
+class SvgPathReader final {
+public:
+    explicit SvgPathReader(std::string_view text) noexcept : text_(text) {}
+
+    [[nodiscard]] SvgPathProblem read(MaterialClipPath& clip);
+
+private:
+    void skip_separators() noexcept;
+    [[nodiscard]] bool at_number() const noexcept;
+    [[nodiscard]] bool read_number(double& value) noexcept;
+    [[nodiscard]] bool read_pair(Point& point) noexcept;
+    [[nodiscard]] SvgPathProblem push(MaterialClipVerb verb, std::span<const Point> points, MaterialClipPath& clip);
+
+    std::string_view text_;
+    std::size_t at_{};
+    Point current_{};
+    Point start_{};
+};
+
+void SvgPathReader::skip_separators() noexcept {
+    while (at_ < text_.size()) {
+        const char character = text_[at_];
+        const bool separator = character == ' ' || character == '\t' || character == '\n' || character == '\r' ||
+                               character == '\f' || character == ',';
+        if (!separator) return;
+        at_ = at_ + 1U;
+    }
+}
+
+bool SvgPathReader::at_number() const noexcept {
+    if (at_ >= text_.size()) return false;
+    const char character = text_[at_];
+    const bool starts = (character >= '0' && character <= '9') || character == '.' || character == '-' ||
+                        character == '+';
+    return starts;
+}
+
+bool SvgPathReader::read_number(double& value) noexcept {
+    skip_separators();
+    bool negative = false;
+    if (at_ < text_.size() && (text_[at_] == '-' || text_[at_] == '+')) {
+        negative = text_[at_] == '-';
+        at_ = at_ + 1U;
+    }
+    std::int64_t mantissa = 0;
+    int significant = 0;
+    int scale = 0;
+    bool digits = false;
+    bool point = false;
+    while (at_ < text_.size()) {
+        const char character = text_[at_];
+        if (character == '.' && !point) {
+            point = true;
+            at_ = at_ + 1U;
+            continue;
+        }
+        if (character < '0' || character > '9') break;
+        digits = true;
+        const std::int64_t digit = static_cast<std::int64_t>(character - '0');
+        if (significant > 0 || digit != 0) {
+            if (significant >= 15) return false;
+            significant = significant + 1;
+        }
+        mantissa = mantissa * 10 + digit;
+        if (point) scale = scale - 1;
+        at_ = at_ + 1U;
+    }
+    if (!digits) return false;
+    if (at_ < text_.size() && (text_[at_] == 'e' || text_[at_] == 'E')) {
+        at_ = at_ + 1U;
+        bool exponent_negative = false;
+        if (at_ < text_.size() && (text_[at_] == '-' || text_[at_] == '+')) {
+            exponent_negative = text_[at_] == '-';
+            at_ = at_ + 1U;
+        }
+        int exponent = 0;
+        bool exponent_digits = false;
+        while (at_ < text_.size() && text_[at_] >= '0' && text_[at_] <= '9') {
+            exponent = exponent * 10 + (text_[at_] - '0');
+            if (exponent > 20) return false;
+            exponent_digits = true;
+            at_ = at_ + 1U;
+        }
+        if (!exponent_digits) return false;
+        scale = exponent_negative ? scale - exponent : scale + exponent;
+    }
+    if (scale < -22 || scale > 22) return false;
+    double power = 1.0;
+    for (int step = 0; step < std::abs(scale); ++step) power = power * 10.0;
+    const double magnitude = static_cast<double>(mantissa);
+    const double read = scale < 0 ? magnitude / power : magnitude * power;
+    value = negative ? -read : read;
+    return true;
+}
+
+bool SvgPathReader::read_pair(Point& point) noexcept {
+    double x = 0.0;
+    double y = 0.0;
+    if (!read_number(x) || !read_number(y)) return false;
+    point = Point{x, y};
+    return true;
+}
+
+SvgPathProblem SvgPathReader::push(MaterialClipVerb verb, std::span<const Point> points, MaterialClipPath& clip) {
+    if (clip.points.size() + points.size() > MaterialClipPath::maximum_points) return SvgPathProblem::too_large;
+    for (const Point point : points) {
+        const bool bounded = std::abs(point.x) <= MaterialClipPath::maximum_units &&
+                             std::abs(point.y) <= MaterialClipPath::maximum_units;
+        if (!bounded) return SvgPathProblem::too_large;
+        MaterialClipPoint written{};
+        written.x_units = point.x;
+        written.y_units = point.y;
+        clip.points.push_back(written);
+    }
+    clip.verbs.push_back(verb);
+    return SvgPathProblem::none;
+}
+
+SvgPathProblem SvgPathReader::read(MaterialClipPath& clip) {
+    clip.verbs.clear();
+    clip.points.clear();
+    char command = '\0';
+    skip_separators();
+    while (at_ < text_.size()) {
+        const char character = text_[at_];
+        const bool letter = (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z');
+        if (letter) {
+            command = character;
+            at_ = at_ + 1U;
+        } else if (command == '\0' || !at_number()) {
+            return SvgPathProblem::syntax;
+        } else if (command == 'Z' || command == 'z') {
+            // Coordinates after a close need a command of their own.
+            return SvgPathProblem::syntax;
+        }
+        const bool relative = command >= 'a' && command <= 'z';
+        const char upper = relative ? static_cast<char>(command - 'a' + 'A') : command;
+        const Point origin = relative ? current_ : Point{0.0, 0.0};
+        if (clip.verbs.empty() && upper != 'M') return SvgPathProblem::syntax;
+        std::array<Point, 3> points{};
+        SvgPathProblem problem = SvgPathProblem::none;
+        switch (upper) {
+        case 'M': {
+            if (!read_pair(points[0])) return SvgPathProblem::syntax;
+            points[0] = Point{origin.x + points[0].x, origin.y + points[0].y};
+            problem = push(MaterialClipVerb::move, std::span<const Point>(points.data(), 1U), clip);
+            current_ = points[0];
+            start_ = points[0];
+            // Further pairs after a move are lines.
+            command = relative ? 'l' : 'L';
+            break;
+        }
+        case 'L': {
+            if (!read_pair(points[0])) return SvgPathProblem::syntax;
+            points[0] = Point{origin.x + points[0].x, origin.y + points[0].y};
+            problem = push(MaterialClipVerb::line, std::span<const Point>(points.data(), 1U), clip);
+            current_ = points[0];
+            break;
+        }
+        case 'H': {
+            double x = 0.0;
+            if (!read_number(x)) return SvgPathProblem::syntax;
+            points[0] = Point{origin.x + x, current_.y};
+            problem = push(MaterialClipVerb::line, std::span<const Point>(points.data(), 1U), clip);
+            current_ = points[0];
+            break;
+        }
+        case 'V': {
+            double y = 0.0;
+            if (!read_number(y)) return SvgPathProblem::syntax;
+            points[0] = Point{current_.x, origin.y + y};
+            problem = push(MaterialClipVerb::line, std::span<const Point>(points.data(), 1U), clip);
+            current_ = points[0];
+            break;
+        }
+        case 'Q': {
+            for (std::size_t index = 0U; index < 2U; ++index) {
+                if (!read_pair(points[index])) return SvgPathProblem::syntax;
+                points[index] = Point{origin.x + points[index].x, origin.y + points[index].y};
+            }
+            problem = push(MaterialClipVerb::quadratic, std::span<const Point>(points.data(), 2U), clip);
+            current_ = points[1];
+            break;
+        }
+        case 'C': {
+            for (std::size_t index = 0U; index < 3U; ++index) {
+                if (!read_pair(points[index])) return SvgPathProblem::syntax;
+                points[index] = Point{origin.x + points[index].x, origin.y + points[index].y};
+            }
+            problem = push(MaterialClipVerb::cubic, std::span<const Point>(points.data(), 3U), clip);
+            current_ = points[2];
+            break;
+        }
+        case 'Z':
+            problem = push(MaterialClipVerb::close, std::span<const Point>(), clip);
+            current_ = start_;
+            break;
+        case 'S':
+        case 'T':
+        case 'A': return SvgPathProblem::command_not_admitted;
+        default: return SvgPathProblem::syntax;
+        }
+        if (problem != SvgPathProblem::none) return problem;
+        skip_separators();
+    }
+    if (clip.verbs.empty()) return SvgPathProblem::syntax;
+    return SvgPathProblem::none;
+}
 
 // The largest seed `finish()` admits: the finish's seed is a 32-bit signed
 // integer, written non-negative.
@@ -560,6 +837,12 @@ private:
     bool lower_finish();
     bool lower_seat();
     bool lower_gradient_dither();
+    bool lower_transform();
+    bool lower_clip_path();
+    bool read_scale_factor(ComponentRange part, double& factor);
+    bool read_clip_rule(ComponentRange part, bool& read, MaterialClipRule& rule);
+    bool read_polygon(std::size_t function, MaterialClipPath& clip);
+    bool read_svg_path(std::size_t function, MaterialClipPath& clip);
     bool lower_glows();
     bool lower_glow_placements();
     bool lower_mask();
@@ -625,6 +908,12 @@ bool MaterialReader::drop_unknown_functions(MaterialProperty property) {
         if (equals_ascii_folded(component.text, pattern_function_name)) continue;
         if (equals_ascii_folded(component.text, finish_function_name)) continue;
         if (textured && equals_ascii_folded(component.text, procedural_function_name)) continue;
+        const bool transform_function = equals_ascii_folded(component.text, rotate_function_name) ||
+                                        equals_ascii_folded(component.text, scale_function_name);
+        if (property == MaterialProperty::transform && transform_function) continue;
+        const bool clip_function = equals_ascii_folded(component.text, polygon_function_name) ||
+                                   equals_ascii_folded(component.text, path_function_name);
+        if (property == MaterialProperty::clip_path && clip_function) continue;
         return fail(DiagnosticCode::unknown_function, component.token, clipped_theme_detail(component.text));
     }
     return true;
@@ -2081,6 +2370,194 @@ bool MaterialReader::lower_gradient_dither() {
     return true;
 }
 
+// `transform: none | <function>+` (owner 2026-11-16), on a material: the
+// functions rotate(<angle>) and scale(<number> [, <number>]) (a number or
+// a percentage; one value scales both axes), composed as CSS composes a
+// transform list, about the box's centre (MaterialTransform).
+bool MaterialReader::lower_transform() {
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::transform;
+    const ComponentRange whole{0U, value_.components.size()};
+    if (count(whole) == 1U && keyword(0U, "none")) {
+        lowering_.declarations.push_back(std::move(declaration));
+        return true;
+    }
+    MaterialTransform composed{};
+    std::vector<ComponentRange> parts;
+    for (std::size_t index = 0U; index < whole.end; index = next(index)) {
+        const ValueComponent& component = value_.components[index];
+        const bool function = component.kind == ValueComponentKind::function;
+        const bool rotate = function && equals_ascii_folded(component.text, rotate_function_name);
+        const bool scale = function && equals_ascii_folded(component.text, scale_function_name);
+        if (!rotate && !scale) return fail(DiagnosticCode::value_wrong_kind, component.token, "rotate() or scale()");
+        split(ComponentRange{index + 1U, next(index)}, parts);
+        MaterialTransform step{};
+        if (rotate) {
+            if (parts.size() != 1U || count(parts[0]) != 1U) {
+                return fail(DiagnosticCode::value_syntax, component.token, "one angle");
+            }
+            double degrees = 0.0;
+            if (!read_angle(parts[0].first, degrees)) return false;
+            step = rotation_transform(degrees);
+        } else {
+            if (parts.size() != 1U && parts.size() != 2U) {
+                return fail(DiagnosticCode::value_syntax, component.token, "one or two factors");
+            }
+            double across = 1.0;
+            if (!read_scale_factor(parts[0], across)) return false;
+            double down = across;
+            if (parts.size() == 2U && !read_scale_factor(parts[1], down)) return false;
+            step.xx = across;
+            step.yy = down;
+        }
+        composed = composed_transform(composed, step);
+    }
+    SurfaceMaterial checked{};
+    checked.transform = composed;
+    if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a transform");
+    declaration.transform = composed;
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// One scale() factor: a number, or a percentage of 1.
+bool MaterialReader::read_scale_factor(ComponentRange part, double& factor) {
+    if (count(part) != 1U) {
+        const std::uint32_t token =
+            part.first < value_.components.size() ? value_.components[part.first].token : start_;
+        return fail(DiagnosticCode::value_syntax, token, "one factor");
+    }
+    const ValueComponent& component = value_.components[part.first];
+    const bool number = component.kind == ValueComponentKind::number;
+    const bool plain = number && component.unit == ValueUnit::none;
+    const bool percent = number && component.unit == ValueUnit::percent;
+    if (!plain && !percent) return fail(DiagnosticCode::value_wrong_kind, component.token, "a number or a percentage");
+    factor = percent ? component.number / 100.0 : component.number;
+    return true;
+}
+
+// A clip path's leading fill rule, `nonzero` or `evenodd`, when `part` is
+// one such keyword; `read` says whether it was.
+bool MaterialReader::read_clip_rule(ComponentRange part, bool& read, MaterialClipRule& rule) {
+    read = false;
+    if (count(part) != 1U || value_.components[part.first].kind != ValueComponentKind::keyword) return true;
+    if (keyword(part.first, "nonzero")) {
+        rule = MaterialClipRule::nonzero;
+    } else if (keyword(part.first, "evenodd")) {
+        rule = MaterialClipRule::even_odd;
+    } else {
+        const ValueComponent& component = value_.components[part.first];
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    read = true;
+    return true;
+}
+
+// polygon([<fill-rule>,] <x> <y>, <x> <y>, ...): at least three vertices,
+// each a length (px) or a percentage of the box; em is not admitted, so the
+// outline never depends on the part's font.
+bool MaterialReader::read_polygon(std::size_t function, MaterialClipPath& clip) {
+    const ValueComponent& written = value_.components[function];
+    std::vector<ComponentRange> parts;
+    split(ComponentRange{function + 1U, next(function)}, parts);
+    bool ruled = false;
+    if (!read_clip_rule(parts[0], ruled, clip.rule)) return false;
+    const std::size_t first_vertex = ruled ? 1U : 0U;
+    const std::size_t vertices = parts.size() - first_vertex;
+    if (vertices < 3U) return fail(DiagnosticCode::value_syntax, written.token, "at least three vertices");
+    if (vertices > MaterialClipPath::maximum_points) {
+        return fail(DiagnosticCode::value_out_of_range, written.token, "at most 256 vertices");
+    }
+    for (std::size_t vertex = first_vertex; vertex < parts.size(); ++vertex) {
+        const ComponentRange part = parts[vertex];
+        if (count(part) != 2U) return fail(DiagnosticCode::value_syntax, written.token, "a vertex of two lengths");
+        const std::size_t across_index = part.first;
+        const std::size_t down_index = next(part.first);
+        const std::array<std::size_t, 2> indices{across_index, down_index};
+        for (const std::size_t index : indices) {
+            const ValueComponent& component = value_.components[index];
+            if (component.kind == ValueComponentKind::number && component.unit == ValueUnit::em) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token, "an em length in a clip path");
+            }
+        }
+        BoxLength across{};
+        BoxLength down{};
+        if (!read_length(across_index, true, true, across)) return false;
+        if (!read_length(down_index, true, true, down)) return false;
+        MaterialClipPoint point{};
+        point.x_units = across.units;
+        point.x_fraction = across.fraction;
+        point.y_units = down.units;
+        point.y_fraction = down.fraction;
+        clip.points.push_back(point);
+        const MaterialClipVerb verb = vertex == first_vertex ? MaterialClipVerb::move : MaterialClipVerb::line;
+        clip.verbs.push_back(verb);
+    }
+    clip.verbs.push_back(MaterialClipVerb::close);
+    return true;
+}
+
+// path([<fill-rule>,] "<SVG path data>"): coordinates in px from the box's
+// top-left (SvgPathReader).
+bool MaterialReader::read_svg_path(std::size_t function, MaterialClipPath& clip) {
+    const ValueComponent& written = value_.components[function];
+    std::vector<ComponentRange> parts;
+    split(ComponentRange{function + 1U, next(function)}, parts);
+    bool ruled = false;
+    if (!read_clip_rule(parts[0], ruled, clip.rule)) return false;
+    const std::size_t data_part = ruled ? 1U : 0U;
+    if (parts.size() != data_part + 1U || count(parts[data_part]) != 1U) {
+        return fail(DiagnosticCode::value_syntax, written.token, "one string of path data");
+    }
+    const ValueComponent& data = value_.components[parts[data_part].first];
+    if (data.kind != ValueComponentKind::string) {
+        return fail(DiagnosticCode::value_wrong_kind, data.token, "a string of path data");
+    }
+    SvgPathReader reader(data.text);
+    const SvgPathProblem problem = reader.read(clip);
+    switch (problem) {
+    case SvgPathProblem::none: return true;
+    case SvgPathProblem::command_not_admitted:
+        return fail(DiagnosticCode::value_form_not_admitted, data.token, "S, T and A path commands");
+    case SvgPathProblem::too_large:
+        return fail(DiagnosticCode::value_out_of_range, data.token, "at most 256 points within 100000px");
+    case SvgPathProblem::syntax:
+    default: break;
+    }
+    return fail(DiagnosticCode::value_syntax, data.token, "SVG path data");
+}
+
+// `clip-path: none | polygon() | path()` (owner 2026-11-16), on a
+// material (MaterialClipPath). Reference boxes, basic shapes other than
+// polygon() and url() references are not admitted.
+bool MaterialReader::lower_clip_path() {
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::clip_path;
+    const ComponentRange whole{0U, value_.components.size()};
+    if (count(whole) == 1U && keyword(0U, "none")) {
+        lowering_.declarations.push_back(std::move(declaration));
+        return true;
+    }
+    if (count(whole) != 1U) return fail(DiagnosticCode::value_syntax, after_first_token(), "one shape");
+    const ValueComponent& component = value_.components[0];
+    const bool function = component.kind == ValueComponentKind::function;
+    const bool polygon = function && equals_ascii_folded(component.text, polygon_function_name);
+    const bool path = function && equals_ascii_folded(component.text, path_function_name);
+    if (component.kind == ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_form_not_admitted, component.token, "a reference box");
+    }
+    if (!polygon && !path) return fail(DiagnosticCode::value_wrong_kind, component.token, "polygon() or path()");
+    MaterialClipPath clip{};
+    const bool read = polygon ? read_polygon(0U, clip) : read_svg_path(0U, clip);
+    if (!read) return false;
+    SurfaceMaterial checked{};
+    checked.clip_path = clip;
+    if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a clip path");
+    declaration.clip_path = std::move(clip);
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
 // One glow: a colour and one or two lengths, its blur and its spread.
 bool MaterialReader::read_glow(ComponentRange range, MaterialGlow& glow) {
     glow = MaterialGlow{};
@@ -3504,6 +3981,8 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
     case MaterialProperty::seat: static_cast<void>(lower_seat()); return;
     case MaterialProperty::gradient_dither: static_cast<void>(lower_gradient_dither()); return;
+    case MaterialProperty::transform: static_cast<void>(lower_transform()); return;
+    case MaterialProperty::clip_path: static_cast<void>(lower_clip_path()); return;
     case MaterialProperty::keylines: static_cast<void>(lower_keylines()); return;
     case MaterialProperty::muted_color: static_cast<void>(lower_recipe_colour(RecipeField::muted_text)); return;
     case MaterialProperty::glyph_color: static_cast<void>(lower_recipe_colour(RecipeField::glyph)); return;
@@ -3691,6 +4170,8 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
     case MaterialProperty::seat: fields.push_back(MaterialField::seat); return;
     case MaterialProperty::gradient_dither: fields.push_back(MaterialField::gradient_dither); return;
+    case MaterialProperty::transform: fields.push_back(MaterialField::transform); return;
+    case MaterialProperty::clip_path: fields.push_back(MaterialField::clip_path); return;
     case MaterialProperty::keylines: fields.push_back(MaterialField::keylines); return;
     case MaterialProperty::muted_color:
     case MaterialProperty::glyph_color:

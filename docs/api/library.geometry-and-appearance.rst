@@ -264,6 +264,10 @@ Types
      - MaterialBorder pairs an authored color and logical stroke width.
    * - :cpp:class:`MaterialBorderEdges <gui_forms::MaterialBorderEdges>`
      - Single edges (CSS border-color with differing sides).
+   * - :cpp:class:`MaterialClipPath <gui_forms::MaterialClipPath>`
+     - A material's clip path (theme ``clip-path: polygon() | path()``, owner 2026-11-16): only the inside of this outline, filled by ``rule``, is drawn: the face, its shadows, glows, filters and reflection alike.
+   * - :cpp:class:`MaterialClipPoint <gui_forms::MaterialClipPoint>`
+     - A clip path point in the box: x = box.x + x_units + x_fraction * box.width, and y likewise (a CSS length or percentage of the box).
    * - :cpp:class:`MaterialColourFilter <gui_forms::MaterialColourFilter>`
      - A material's colour filter: none, or one matrix held out of line.
    * - :cpp:class:`MaterialColourMatrix <gui_forms::MaterialColourMatrix>`
@@ -288,6 +292,8 @@ Types
      - A reflection (stage T5, C7; owner T5-Q14, T5-Q15): ``source`` within the part's box, mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end.
    * - :cpp:class:`MaterialShadow <gui_forms::MaterialShadow>`
      - MaterialShadow specifies offset, blur, spread, and color for one bounded surface shadow.
+   * - :cpp:class:`MaterialTransform <gui_forms::MaterialTransform>`
+     - A material's own linear transform (theme ``transform: rotate() | scale()``, owner 2026-11-16) about its box's centre: a point p of the face is drawn at c + L (p - c), where c is the centre and L maps (x, y) to (xx x + xy y, yx x + yy y).
    * - :cpp:class:`MediaCondition <gui_forms::MediaCondition>`
      - A rule's media condition (EC3): every feature it names must hold for the window, and an unnamed feature always holds, so the default condition holds everywhere.
    * - :cpp:class:`MediaFacts <gui_forms::MediaFacts>`
@@ -3727,6 +3733,50 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: MaterialClipPath final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   A material's clip path (theme ``clip-path: polygon() | path()``, owner 2026-11-16): only the inside of this outline, filled by ``rule``, is drawn: the face, its shadows, glows, filters and reflection alike. It lies in the box's coordinates and turns with the material's transform. Both paths draw it through Painter::clip_path, so a raster composite under it takes its coverage mask. Valid when the first verb is a move, the verbs take exactly ``points``, there are at most maximum_points points, and every coordinate is finite with units at most maximum_units and fractions at most maximum_fraction in size.
+
+   .. cpp:member:: constexpr std::size_t maximum_points
+
+      Default: ``256U``.
+
+   .. cpp:member:: constexpr double maximum_units
+
+      Default: ``100000.0``.
+
+   .. cpp:member:: constexpr double maximum_fraction
+
+      Default: ``100.0``.
+
+   .. cpp:member:: std::vector<MaterialClipVerb> verbs
+
+   .. cpp:member:: std::vector<MaterialClipPoint> points
+
+   .. cpp:member:: MaterialClipRule rule
+
+      Default: ``{MaterialClipRule::nonzero}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialClipPoint final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   A clip path point in the box: x = box.x + x_units + x_fraction * box.width, and y likewise (a CSS length or percentage of the box).
+
+   .. cpp:member:: double x_units
+
+   .. cpp:member:: double x_fraction
+
+   .. cpp:member:: double y_units
+
+   .. cpp:member:: double y_fraction
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: MaterialColourFilter final
 
    ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
@@ -3827,7 +3877,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``). ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
+   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``); - transform: ``transform`` (MaterialTransform), the identity for none; - clip_path: ``clip_path`` (MaterialClipPath), empty for none. ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
 
    .. cpp:member:: MaterialField field
 
@@ -3880,6 +3930,10 @@ Types
    .. cpp:member:: MaterialDither dither
 
       Default: ``{MaterialDither::none}``.
+
+   .. cpp:member:: MaterialTransform transform
+
+   .. cpp:member:: std::optional<MaterialClipPath> clip_path
 
    .. cpp:member:: ColourOrigin origin
 
@@ -4185,6 +4239,39 @@ Types
       Default: ``{Color::rgba(20, 30, 42, 72)}``.
 
    .. cpp:member:: bool inset
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialTransform final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   A material's own linear transform (theme ``transform: rotate() | scale()``, owner 2026-11-16) about its box's centre: a point p of the face is drawn at c + L (p - c), where c is the centre and L maps (x, y) to (xx x + xy y, yx x + yy y). The identity by default. Both paths draw it as a transform group (Painter::begin_transform) cut to the box grown by its visual outsets, so the turned or scaled face never paints outside what the part already damages. Valid when every entry is finite and at most maximum_entry in size, and the determinant is at least minimum_paint_transform_determinant in size.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool identity() const noexcept
+
+   .. cpp:member:: constexpr double maximum_entry
+
+      Default: ``64.0``.
+
+   .. cpp:member:: double xx
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double yx
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double xy
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double yy
+
+      Default: ``{1.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -6278,6 +6365,14 @@ Types
 
       The final quantization (MaterialDither); none by default. Default: ``{MaterialDither::none}``.
 
+   .. cpp:member:: MaterialTransform transform
+
+      The material's own transform (MaterialTransform); the identity by default.
+
+   .. cpp:member:: std::optional<MaterialClipPath> clip_path
+
+      The material's clip path (MaterialClipPath); none by default.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: TextRun final
@@ -8062,6 +8157,32 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: MaterialClipRule
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: nonzero
+
+   .. cpp:enumerator:: even_odd
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialClipVerb
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: move
+
+   .. cpp:enumerator:: line
+
+   .. cpp:enumerator:: quadratic
+
+   .. cpp:enumerator:: cubic
+
+   .. cpp:enumerator:: close
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: MaterialCoordinateSpace
 
    ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
@@ -8185,6 +8306,10 @@ Enumerations
    .. cpp:enumerator:: seat
 
    .. cpp:enumerator:: gradient_dither
+
+   .. cpp:enumerator:: transform
+
+   .. cpp:enumerator:: clip_path
 
    .. cpp:enumerator:: count
 
@@ -10354,6 +10479,24 @@ Functions, constants and aliases
 .. cpp:function:: Insets box_shadow_visual_outsets(std::span<const MaterialShadow> shadows) noexcept
 
    How far the outer (not inset) shadows among ``shadows`` reach outside the rect that casts them: three blur radii plus any positive spread, shifted by each offset.
+
+.. cpp:function:: bool surface_material_shaped(const SurfaceMaterial& material) noexcept
+
+   Whether ``material`` is drawn through a shape: a transform that is not the identity (MaterialTransform) or a clip path (MaterialClipPath).
+
+.. cpp:function:: void resolve_material_clip_path(const MaterialClipPath& clip, Rect bounds, PaintPath& path)
+
+   Writes ``clip`` placed in a box at ``bounds`` into ``path`` (cleared first). ``clip`` must be valid, as valid_surface_material holds it.
+
+.. cpp:function:: PolygonFillRule material_clip_fill_rule(MaterialClipRule rule) noexcept
+
+   The fill rule a clip path's rule names.
+
+.. cpp:function:: void begin_surface_material_shape(Painter& painter, Rect bounds, const SurfaceMaterial& material, PaintPath& scratch)
+
+   Begins drawing a material of ``bounds`` through its shape, when it has one (surface_material_shaped); otherwise does nothing. In order: a save, a clip to ``bounds`` grown by the material's visual outsets, the transform group of its transform about the box's centre (bounded by the same grown rectangle), then a save and the clip path resolved into ``scratch`` inside the group. end_surface_material_shape, given the same material, undoes them in reverse order; draw the material between the two. The painter's state is as it was once both have run. ``scratch`` is storage the caller reuses; it is only read while the clip is set.
+
+.. cpp:function:: void end_surface_material_shape(Painter& painter, const SurfaceMaterial& material)
 
 .. cpp:namespace:: gui_forms
 

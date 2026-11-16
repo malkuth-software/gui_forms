@@ -77,6 +77,12 @@ enum class MaterialProperty : std::uint8_t {
     // The final quantization's dither (MaterialDither): `none`, `ordered`
     // or `blue-noise`.
     gradient_dither,
+    // The material's own transform (MaterialTransform): `transform: none |
+    // rotate() | scale()`, owner 2026-11-16.
+    transform,
+    // The material's clip path (MaterialClipPath): `clip-path: none |
+    // polygon() | path()`, owner 2026-11-16.
+    clip_path,
     // The four inner lines one unit inside the border (T4 floor sheet,
     // owner option 1): `keylines: <top> <right> <bottom> <left>`.
     keylines,

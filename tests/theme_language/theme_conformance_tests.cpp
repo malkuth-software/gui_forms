@@ -350,6 +350,16 @@ std::string material_text(const MaterialDeclaration& declaration) {
     if (declaration.dither != MaterialDither::none) {
         text += " dither=" + std::to_string(static_cast<unsigned int>(declaration.dither));
     }
+    if (!declaration.transform.identity()) {
+        const std::array<double, 4> entries{declaration.transform.xx, declaration.transform.yx,
+                                            declaration.transform.xy, declaration.transform.yy};
+        text += " transform=" + numbers_text(entries);
+    }
+    if (declaration.clip_path) {
+        const MaterialClipPath& clip = *declaration.clip_path;
+        text += " clip-path verbs=" + std::to_string(clip.verbs.size()) + " points=" +
+                std::to_string(clip.points.size()) + " rule=" + std::to_string(static_cast<unsigned int>(clip.rule));
+    }
     if (declaration.number != 0.0) text += " number=" + number_text(declaration.number);
     if (declaration.relative) text += " relative";
     std::vector<double> lengths{};

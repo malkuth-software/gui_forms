@@ -825,6 +825,10 @@ enum class MaterialField : std::uint8_t {
     // shadows, appended to the shadows when the material is assembled.
     seat,
     gradient_dither,
+    // The material's own transform (`transform: rotate() | scale()`).
+    transform,
+    // The material's clip path (`clip-path: polygon() | path()`).
+    clip_path,
     count,
 };
 
@@ -870,7 +874,9 @@ inline constexpr std::size_t material_field_count = static_cast<std::size_t>(Mat
 //   (negative: sunk into it), or, with `relative`, a fraction of the box's
 //   shorter side, and `colour`, its shadow's; 0 for none. Resolved when
 //   the material is assembled (seat_shadows).
-// - gradient_dither: `dither` (MaterialDither, `gradient-dither`).
+// - gradient_dither: `dither` (MaterialDither, `gradient-dither`);
+// - transform: `transform` (MaterialTransform), the identity for none;
+// - clip_path: `clip_path` (MaterialClipPath), empty for none.
 // `initial`, set, is CSS's `initial`: the field keeps the floor's value,
 // and the declaration still wins over those beneath it; its value members
 // are not read.
@@ -898,6 +904,8 @@ struct GUI_FORMS_API MaterialDeclaration final {
     std::optional<MaterialFillLayer> mask{};
     std::optional<MaterialReflection> reflection{};
     MaterialDither dither{MaterialDither::none};
+    MaterialTransform transform{};
+    std::optional<MaterialClipPath> clip_path{};
     // Where the declaration's colours came from (EC4).
     ColourOrigin origin{};
     // Its lengths in em (T3 P8c, owner decision D4): empty, or one
@@ -922,6 +930,7 @@ struct GUI_FORMS_API MaterialDeclaration final {
                left.number == right.number && left.relative == right.relative &&
                left.colour_filter == right.colour_filter && left.drop_shadow == right.drop_shadow &&
                left.mask == right.mask && left.reflection == right.reflection && left.dither == right.dither &&
+               left.transform == right.transform && left.clip_path == right.clip_path &&
                left.origin == right.origin &&
                left.em_lengths == right.em_lengths &&
                left.current_colours == right.current_colours;

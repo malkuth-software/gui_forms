@@ -267,6 +267,7 @@ only material fields selects the `material` primitive.
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `seat`, `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
 | presentation | `opacity`, `scale`, `translate` |
+| shape | `transform` (`rotate()`, `scale()`) and `clip-path` (`polygon()`, `path()`), on a material |
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; a user theme the process is started with (`--theme`, `GUI_FORMS_THEME_SHEET`) is checked against the process's installed registry (`install_built_in_effect_registry()`, called by a program using the stock controls while it sets up) and refused the same way, the program's own theme staying; with none installed the names' form only is checked and the request's report says so; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
 | text | `color`, `muted-color`, `glyph-color` and `fill-text-color` (the recipe's secondary text and glyph colours, and its text's colour where it lies over a fill such as a value bar's, on a control or a named part, such as `group-box::part(caption)`; not on a role), `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
 | dials and overlays | `stroke-width` (0 to 32px: an `arc` part's thickness and a `needle` part's width at its hub), `needle-shape` (`line`, `tapered`, `dot`), `scrim-color` (the colour, with its alpha as the opacity, a `scrim` part dims what lies behind with); each on a control or a named part, such as `radial-gauge::part(value-arc)`; not on a role |
@@ -323,6 +324,34 @@ seam: `reflecting-linear-gradient(90deg, #303030, #a0a0a0 8px)` is a
 brushed bar of soft ridges. A reflecting conic gradient whose periods do
 not divide the turn into an even count meets unmirrored at its `from`
 angle. A reflecting radial gradient takes at most 15 colour stops.
+
+A material's `transform` (`none`, or a list of `rotate(<angle>)` and
+`scale(<number> [, <number>])`, a scale factor a number or a percentage)
+turns and scales the whole material, shadows and glows included, about
+the centre of its box. The list composes as CSS composes it, the last
+function first: `transform: rotate(90deg) scale(2)` doubles the face, then
+turns it a quarter clockwise. The turned face is cut to the box and the
+reach of its shadows and glows, so it never paints outside what the part
+already repaints: a face scaled up loses its edges, and a box turned
+whole needs room around it. A transform's entries are limited to 64 in
+size and it must not flatten the face (`scale(0)` refuses the theme).
+There is no `transform-origin`: the centre is the only origin.
+
+A material's `clip-path` (`none`, `polygon()` or `path()`) draws only the
+inside of an outline: the face, its shadows, glows, filters and
+reflection alike. `polygon([nonzero | evenodd,] <x> <y>, ...)` takes three
+to 256 vertices, each a length or a percentage of the box (an em length
+refuses the theme, so the outline never follows the font).
+`path([nonzero | evenodd,] "<SVG path data>")` takes the commands `M`,
+`L`, `H`, `V`, `C`, `Q` and `Z`, absolute or relative, in pixels from the
+box's top-left corner, up to 256 points; `S`, `T` and `A` refuse the
+theme. The outline lies in the box's own coordinates, so a `transform`
+turns it with the face. The reference box is always the part's box: a
+box keyword, another basic shape or a `url()` refuses the theme. Both
+are drawn by a transform group and a path clip around however the part
+is drawn, so a baked face composites under the path's coverage mask, the
+same on every host. For example, a tab's slanted face:
+`clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%)`.
 
 An image layer's `background-repeat` may also be `mirror` or `extend`
 (GUI.Forms additions, not CSS), written once or twice: `mirror` tiles the
@@ -485,7 +514,7 @@ programs and textures on the band are planned after 0.5 (owner ruling,
 2026-11-08). The band never takes a resize-edge role: a frameless window
 stays frameless.
 
-`clip-path`, `rotate`, `transform`, text
+`rotate`, `transform-origin` and the other `transform-` longhands, text
 decoration and spacing, and layout properties (`width`, `margin`, ...) are
 warnings: geometry and layout belong to the engine and to forms.
 

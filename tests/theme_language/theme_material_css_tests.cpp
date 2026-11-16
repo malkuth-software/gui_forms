@@ -774,6 +774,105 @@ void test_reflection_lowering() {
     require(cleared != nullptr && !(*cleared).reflection, "reflection: none clears it");
 }
 
+// transform and clip-path on a material (owner 2026-11-16): rotate() and
+// scale() compose as a CSS transform list into the linear map about the
+// box's centre; polygon() and path() lower to the clip path's verbs and
+// points, with their fill rule; `none` clears each; malformed values are
+// refused at their place.
+void test_shape_lowering() {
+    struct Turned final {
+        std::string_view sheet;
+        MaterialTransform transform;
+    };
+    const std::array<Turned, 5> turned{{
+        {"#pad::part(face) { transform: rotate(90deg) }", MaterialTransform{0.0, 1.0, -1.0, 0.0}},
+        {"#pad::part(face) { transform: scale(2, 50%) }", MaterialTransform{2.0, 0.0, 0.0, 0.5}},
+        {"#pad::part(face) { transform: scale(1.5) }", MaterialTransform{1.5, 0.0, 0.0, 1.5}},
+        // The last function applies first: scale, then the quarter turn.
+        {"#pad::part(face) { transform: rotate(90deg) scale(2) }", MaterialTransform{0.0, 2.0, -2.0, 0.0}},
+        {"#pad::part(face) { transform: none }", MaterialTransform{}},
+    }};
+    for (const Turned& entry : turned) {
+        const Compilation compiled = compile(entry.sheet);
+        const MaterialDeclaration* const declaration =
+            field_of(only_rule(compiled, entry.sheet), MaterialField::transform);
+        require(declaration != nullptr && (*declaration).transform == entry.transform,
+                std::string("the transform lowers: ") + std::string(entry.sheet));
+    }
+
+    const std::string_view polygon_sheet = "#pad::part(face) { clip-path: polygon(50% 0, 100% 100%, 0 10px) }";
+    const Compilation polygon = compile(polygon_sheet);
+    const MaterialDeclaration* const outlined = field_of(only_rule(polygon, polygon_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> closed_triangle{MaterialClipVerb::move, MaterialClipVerb::line,
+                                                        MaterialClipVerb::line, MaterialClipVerb::close};
+    const std::vector<MaterialClipPoint> polygon_points{MaterialClipPoint{0.0, 0.5, 0.0, 0.0},
+                                                        MaterialClipPoint{0.0, 1.0, 0.0, 1.0},
+                                                        MaterialClipPoint{0.0, 0.0, 10.0, 0.0}};
+    require(outlined != nullptr && (*outlined).clip_path && (*(*outlined).clip_path).verbs == closed_triangle &&
+                (*(*outlined).clip_path).points == polygon_points &&
+                (*(*outlined).clip_path).rule == MaterialClipRule::nonzero,
+            "polygon() lowers its vertices, lengths and percentages of the box, and closes");
+
+    const std::string_view ruled_sheet = "#pad::part(face) { clip-path: polygon(evenodd, 0 0, 10px 0, 0 10px) }";
+    const Compilation ruled = compile(ruled_sheet);
+    const MaterialDeclaration* const even = field_of(only_rule(ruled, ruled_sheet), MaterialField::clip_path);
+    require(even != nullptr && (*even).clip_path && (*(*even).clip_path).rule == MaterialClipRule::even_odd,
+            "polygon() takes a leading fill rule");
+
+    // Relative and absolute commands, H and V, a move's further pair as a
+    // line, curves, and decimals without a leading digit or with an
+    // exponent.
+    const std::string_view path_sheet =
+        "#pad::part(face) { clip-path: path(evenodd, \"M1e1,0 h 10 V.5e1 l-5 5 Q 0 10 0 5 c 0 -1 1 -2 2 -2 z\") }";
+    const Compilation traced = compile(path_sheet);
+    const MaterialDeclaration* const path = field_of(only_rule(traced, path_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> path_verbs{MaterialClipVerb::move,      MaterialClipVerb::line,
+                                                   MaterialClipVerb::line,      MaterialClipVerb::line,
+                                                   MaterialClipVerb::quadratic, MaterialClipVerb::cubic,
+                                                   MaterialClipVerb::close};
+    const std::vector<MaterialClipPoint> path_points{
+        MaterialClipPoint{10.0, 0.0, 0.0, 0.0}, MaterialClipPoint{20.0, 0.0, 0.0, 0.0},
+        MaterialClipPoint{20.0, 0.0, 5.0, 0.0}, MaterialClipPoint{15.0, 0.0, 10.0, 0.0},
+        MaterialClipPoint{0.0, 0.0, 10.0, 0.0}, MaterialClipPoint{0.0, 0.0, 5.0, 0.0},
+        MaterialClipPoint{0.0, 0.0, 4.0, 0.0},  MaterialClipPoint{1.0, 0.0, 3.0, 0.0},
+        MaterialClipPoint{2.0, 0.0, 3.0, 0.0}};
+    require(path != nullptr && (*path).clip_path && (*(*path).clip_path).verbs == path_verbs &&
+                (*(*path).clip_path).points == path_points &&
+                (*(*path).clip_path).rule == MaterialClipRule::even_odd,
+            "path() reads SVG path data in px from the box's corner");
+
+    const std::string_view none_sheet = "#pad::part(face) { clip-path: none }";
+    const Compilation none = compile(none_sheet);
+    const MaterialDeclaration* const cleared = field_of(only_rule(none, none_sheet), MaterialField::clip_path);
+    require(cleared != nullptr && !(*cleared).clip_path, "clip-path: none clears it");
+
+    const std::array<Refusal, 14> refusals{{
+        {"#a { transform: rotate(1px) }", DiagnosticCode::value_wrong_kind},
+        {"#a { transform: rotate(10deg, 20deg) }", DiagnosticCode::value_syntax},
+        {"#a { transform: scale(1, 2, 3) }", DiagnosticCode::value_syntax},
+        {"#a { transform: scale(0) }", DiagnosticCode::value_out_of_range},
+        {"#a { transform: scale(100) }", DiagnosticCode::value_out_of_range},
+        {"#a { transform: red }", DiagnosticCode::value_wrong_kind},
+        {"#a { clip-path: border-box }", DiagnosticCode::value_form_not_admitted},
+        {"#a { clip-path: polygon(0 0, 1px 1px) }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: polygon(0 0, 1em 0, 0 1px) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { clip-path: polygon(sideways, 0 0, 1px 0, 0 1px) }", DiagnosticCode::keyword_unknown},
+        {"#a { clip-path: path(\"M 0 0 A 1 1 0 0 1 2 2\") }", DiagnosticCode::value_form_not_admitted},
+        {"#a { clip-path: path(\"L 0 0\") }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: path(\"M 0 0 L\") }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: path(10px) }", DiagnosticCode::value_wrong_kind},
+    }};
+    for (const Refusal& refusal : refusals) {
+        const Compilation compiled = compile(refusal.sheet);
+        const bool refused = compiled.outcome == CompileOutcome::refused && !compiled.diagnostics.empty() &&
+                             compiled.diagnostics.back().code == refusal.code;
+        if (!refused && !compiled.diagnostics.empty()) {
+            std::cerr << "  got " << diagnostic_code_name(compiled.diagnostics.back().code) << '\n';
+        }
+        require(refused, std::string("refused: ") + std::string(refusal.sheet));
+    }
+}
+
 // The seat (skeudoindustrial surfaces): `seat` lowers to its height, as a
 // length or a share of the shorter side, and its colour; the material is
 // assembled with a raised part's contact shadow and crevice, or a sunk
@@ -1396,6 +1495,7 @@ int main() {
     test_filter_lowering();
     test_image_lowering();
     test_reflection_lowering();
+    test_shape_lowering();
     test_seat();
     test_refusals();
     test_gate();

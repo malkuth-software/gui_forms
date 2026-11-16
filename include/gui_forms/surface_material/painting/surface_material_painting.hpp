@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/types/paint_path/paint_path.hpp"
 
 #include <optional>
 #include <span>
@@ -42,5 +43,26 @@ GUI_FORMS_API void paint_surface_material(Painter& painter, Rect bounds,
 // by each offset.
 [[nodiscard]] GUI_FORMS_API Insets box_shadow_visual_outsets(
     std::span<const MaterialShadow> shadows) noexcept;
+// Whether `material` is drawn through a shape: a transform that is not the
+// identity (MaterialTransform) or a clip path (MaterialClipPath).
+[[nodiscard]] GUI_FORMS_API bool surface_material_shaped(
+    const SurfaceMaterial& material) noexcept;
+// Writes `clip` placed in a box at `bounds` into `path` (cleared first).
+// `clip` must be valid, as valid_surface_material holds it.
+GUI_FORMS_API void resolve_material_clip_path(const MaterialClipPath& clip, Rect bounds, PaintPath& path);
+// The fill rule a clip path's rule names.
+[[nodiscard]] GUI_FORMS_API PolygonFillRule material_clip_fill_rule(MaterialClipRule rule) noexcept;
+// Begins drawing a material of `bounds` through its shape, when it has one
+// (surface_material_shaped); otherwise does nothing. In order: a save, a
+// clip to `bounds` grown by the material's visual outsets, the transform
+// group of its transform about the box's centre (bounded by the same grown
+// rectangle), then a save and the clip path resolved into `scratch`
+// inside the group. end_surface_material_shape, given the same material,
+// undoes them in reverse order; draw the material between the two. The
+// painter's state is as it was once both have run. `scratch` is storage
+// the caller reuses; it is only read while the clip is set.
+GUI_FORMS_API void begin_surface_material_shape(Painter& painter, Rect bounds, const SurfaceMaterial& material,
+                                                PaintPath& scratch);
+GUI_FORMS_API void end_surface_material_shape(Painter& painter, const SurfaceMaterial& material);
 
 } // namespace gui_forms

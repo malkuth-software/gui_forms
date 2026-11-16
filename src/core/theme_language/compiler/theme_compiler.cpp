@@ -26,13 +26,14 @@ namespace {
 
 // Known CSS properties the language leaves out (W107): layout belongs to
 // forms and stage L, the rest of typography to the text stage, and
-// geometry to the engine. The font longhands T4 admits (font-family,
+// geometry to the engine (but for a material's `transform` and
+// `clip-path`, owner 2026-11-16). The font longhands T4 admits (font-family,
 // font-size, font-style, font-weight, letter-spacing) are material
 // properties, found before these. Sorted, for binary_search. A property in one of the families
 // below is left out too.
-constexpr std::array<std::string_view, 142> not_admitted_properties{
+constexpr std::array<std::string_view, 140> not_admitted_properties{
     "accent-color", "align-content", "align-items", "align-self", "appearance", "aspect-ratio",
-    "backface-visibility", "block-size", "bottom", "box-sizing", "caret-color", "clear", "clip", "clip-path",
+    "backface-visibility", "block-size", "bottom", "box-sizing", "caret-color", "clear", "clip",
     "column-count", "column-fill", "column-gap", "column-rule", "column-span", "column-width", "columns", "contain",
     "content", "content-visibility", "counter-increment", "counter-reset", "cursor", "direction", "display", "flex",
     "flex-basis", "flex-direction", "flex-flow", "flex-grow", "flex-shrink", "flex-wrap", "float",
@@ -49,7 +50,7 @@ constexpr std::array<std::string_view, 142> not_admitted_properties{
     "place-items", "place-self", "pointer-events", "position", "quotes", "resize", "right", "rotate", "row-gap",
     "scroll-behavior", "tab-size", "table-layout", "text-align", "text-decoration", "text-decoration-color",
     "text-decoration-line", "text-decoration-style", "text-decoration-thickness", "text-indent", "text-overflow",
-    "text-transform", "text-underline-offset", "text-wrap", "top", "transform", "transform-box", "transform-origin",
+    "text-transform", "text-underline-offset", "text-wrap", "top", "transform-box", "transform-origin",
     "transform-style", "unicode-bidi", "user-select", "vertical-align", "visibility", "white-space", "width",
     "will-change", "word-break", "word-spacing", "word-wrap", "writing-mode", "z-index", "zoom",
 };

@@ -1278,7 +1278,145 @@ bool equal_edge_widths(const MaterialBorderEdges& edges) noexcept {
     return true;
 }
 
+// The points each clip verb takes from MaterialClipPath::points.
+[[nodiscard]] std::size_t clip_verb_points(MaterialClipVerb verb) noexcept {
+    switch (verb) {
+    case MaterialClipVerb::move:
+    case MaterialClipVerb::line: return 1U;
+    case MaterialClipVerb::quadratic: return 2U;
+    case MaterialClipVerb::cubic: return 3U;
+    case MaterialClipVerb::close:
+    default: break;
+    }
+    return 0U;
+}
+
+[[nodiscard]] bool valid_clip_coordinate(double units, double fraction) noexcept {
+    const bool valid = std::isfinite(units) && std::isfinite(fraction) &&
+                       std::abs(units) <= MaterialClipPath::maximum_units &&
+                       std::abs(fraction) <= MaterialClipPath::maximum_fraction;
+    return valid;
+}
+
+[[nodiscard]] bool valid_material_clip_path(const MaterialClipPath& clip) noexcept {
+    if (clip.verbs.empty() || clip.verbs.front() != MaterialClipVerb::move) return false;
+    if (clip.points.size() > MaterialClipPath::maximum_points) return false;
+    if (static_cast<std::uint8_t>(clip.rule) > static_cast<std::uint8_t>(MaterialClipRule::even_odd)) return false;
+    std::size_t taken = 0U;
+    for (const MaterialClipVerb verb : clip.verbs) {
+        if (static_cast<std::uint8_t>(verb) > static_cast<std::uint8_t>(MaterialClipVerb::close)) return false;
+        taken = taken + clip_verb_points(verb);
+        if (taken > clip.points.size()) return false;
+    }
+    if (taken != clip.points.size()) return false;
+    for (const MaterialClipPoint& point : clip.points) {
+        if (!valid_clip_coordinate(point.x_units, point.x_fraction)) return false;
+        if (!valid_clip_coordinate(point.y_units, point.y_fraction)) return false;
+    }
+    return true;
+}
+
+[[nodiscard]] bool valid_material_transform(const MaterialTransform& transform) noexcept {
+    const std::array<double, 4> entries{transform.xx, transform.yx, transform.xy, transform.yy};
+    for (const double entry : entries) {
+        if (!std::isfinite(entry) || std::abs(entry) > MaterialTransform::maximum_entry) return false;
+    }
+    const double determinant = transform.xx * transform.yy - transform.xy * transform.yx;
+    const bool invertible = std::abs(determinant) >= minimum_paint_transform_determinant;
+    return invertible;
+}
+
+[[nodiscard]] Point clip_point_in(const MaterialClipPoint& point, Rect bounds) noexcept {
+    const Point placed{bounds.x + point.x_units + point.x_fraction * bounds.width,
+                       bounds.y + point.y_units + point.y_fraction * bounds.height};
+    return placed;
+}
+
 } // namespace
+
+bool surface_material_shaped(const SurfaceMaterial& material) noexcept {
+    const bool shaped = !material.transform.identity() || material.clip_path.has_value();
+    return shaped;
+}
+
+PolygonFillRule material_clip_fill_rule(MaterialClipRule rule) noexcept {
+    const PolygonFillRule fill = rule == MaterialClipRule::even_odd ? PolygonFillRule::even_odd
+                                                                    : PolygonFillRule::nonzero;
+    return fill;
+}
+
+void resolve_material_clip_path(const MaterialClipPath& clip, Rect bounds, PaintPath& path) {
+    path.clear();
+    path.reserve(clip.verbs.size(), clip.points.size());
+    std::size_t next = 0U;
+    for (const MaterialClipVerb verb : clip.verbs) {
+        switch (verb) {
+        case MaterialClipVerb::move:
+            path.move_to(clip_point_in(clip.points[next], bounds));
+            next = next + 1U;
+            break;
+        case MaterialClipVerb::line:
+            path.line_to(clip_point_in(clip.points[next], bounds));
+            next = next + 1U;
+            break;
+        case MaterialClipVerb::quadratic: {
+            const Point control = clip_point_in(clip.points[next], bounds);
+            const Point end = clip_point_in(clip.points[next + 1U], bounds);
+            path.quad_to(control, end);
+            next = next + 2U;
+            break;
+        }
+        case MaterialClipVerb::cubic: {
+            const Point first = clip_point_in(clip.points[next], bounds);
+            const Point second = clip_point_in(clip.points[next + 1U], bounds);
+            const Point end = clip_point_in(clip.points[next + 2U], bounds);
+            path.cubic_to(first, second, end);
+            next = next + 3U;
+            break;
+        }
+        case MaterialClipVerb::close:
+        default:
+            path.close();
+            break;
+        }
+    }
+}
+
+void begin_surface_material_shape(Painter& painter, Rect bounds, const SurfaceMaterial& material,
+                                  PaintPath& scratch) {
+    if (!surface_material_shaped(material)) return;
+    const Insets outsets = surface_material_visual_outsets(material);
+    const Rect covered{bounds.x - outsets.left, bounds.y - outsets.top, bounds.width + outsets.left + outsets.right,
+                       bounds.height + outsets.top + outsets.bottom};
+    painter.save();
+    painter.clip_rect(covered);
+    const MaterialTransform& linear = material.transform;
+    if (!linear.identity()) {
+        // About the box's centre: p goes to c + L (p - c).
+        const Point centre{bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5};
+        PaintTransformGroup group{};
+        group.bounds = covered;
+        group.transform.xx = linear.xx;
+        group.transform.yx = linear.yx;
+        group.transform.xy = linear.xy;
+        group.transform.yy = linear.yy;
+        group.transform.dx = centre.x - (linear.xx * centre.x + linear.xy * centre.y);
+        group.transform.dy = centre.y - (linear.yx * centre.x + linear.yy * centre.y);
+        painter.begin_transform(group);
+    }
+    painter.save();
+    if (material.clip_path) {
+        resolve_material_clip_path(*material.clip_path, bounds, scratch);
+        painter.clip_path(scratch.view(), material_clip_fill_rule((*material.clip_path).rule));
+    }
+}
+
+void end_surface_material_shape(Painter& painter, const SurfaceMaterial& material) {
+    if (!surface_material_shaped(material)) return;
+    painter.restore();
+    if (!material.transform.identity()) painter.end_transform();
+    painter.restore();
+}
 
 bool valid_surface_material(const SurfaceMaterial& material) noexcept {
     if (material.fills.empty() ||
@@ -1349,6 +1487,8 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
     if (static_cast<std::uint8_t>(material.dither) > static_cast<std::uint8_t>(MaterialDither::blue_noise)) {
         return false;
     }
+    if (!valid_material_transform(material.transform)) return false;
+    if (material.clip_path && !valid_material_clip_path(*material.clip_path)) return false;
     return true;
 }
 
@@ -1362,8 +1502,16 @@ void paint_surface_material(Painter& painter, Rect bounds,
         return;
     }
     // The painter chooses how: a raster from the material kernel where it
-    // composites part rasters, else the layers below.
+    // composites part rasters, else the layers below. A transform or clip
+    // path wraps either (begin_surface_material_shape).
+    if (!surface_material_shaped(material)) {
+        painter.draw_surface_material(bounds, material);
+        return;
+    }
+    PaintPath clip;
+    begin_surface_material_shape(painter, bounds, material, clip);
     painter.draw_surface_material(bounds, material);
+    end_surface_material_shape(painter, material);
 }
 
 namespace detail {
@@ -1483,6 +1631,8 @@ Insets surface_material_visual_outsets(const SurfaceMaterial& material) noexcept
 
 bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
     if (!valid_surface_material(material) || material.finish != 0.0) return false;
+    // A transform or clip path can leave parts of the box undrawn.
+    if (surface_material_shaped(material)) return false;
     if (material.corner_radius != 0.0 || material.corner_radii) return false;
     if (!(surface_material_visual_outsets(material) == Insets{})) return false;
     if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask ||
@@ -1499,6 +1649,9 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
 
 std::optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept {
     if (!valid_surface_material(material) || material.finish != 0.0) return std::nullopt;
+    // A transform about the centre, or a clip path in fractions of the box,
+    // moves with every size change.
+    if (surface_material_shaped(material)) return std::nullopt;
     // A dithered material's pixels follow the dither's pattern all along
     // the face, not only near its edges.
     if (material.dither != MaterialDither::none) return std::nullopt;
@@ -1652,7 +1805,9 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
         case MaterialField::corner_top_left:
         case MaterialField::corner_top_right:
         case MaterialField::corner_bottom_right:
-        case MaterialField::corner_bottom_left: kept = true; break;
+        case MaterialField::corner_bottom_left:
+        case MaterialField::transform:
+        case MaterialField::clip_path: kept = true; break;
         case MaterialField::background_colour:
         case MaterialField::border_top_colour:
         case MaterialField::border_right_colour:
