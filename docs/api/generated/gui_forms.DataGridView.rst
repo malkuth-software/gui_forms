@@ -257,7 +257,7 @@ gui_forms::DataGridView
          changes, index writes, slot moves, chunk-table rebuilds, whole builds,
          window requests, IDs requested, position queries and mode switches.
 
-      **new_row_index** : ``std::optional<DataGridViewRowPosition>``, read-only
+      **new_row_index** : ``stxlib::Optional<DataGridViewRowPosition>``, read-only
          -- adding and deleting rows (owner decision B1-2) ------------------ With allow_user_to_add_rows (a capability, on by default) unbound and bound grids show a new row after the last row (Windows Forms' new row); virtual grids do not. A bound grid shows it while its source allows new records; a read-only grid or one without columns never does. The new row has a generated ID and empty values; when it becomes current, default_values_needed gives it its first values. The first value the user commits to it (an edit, a toggle or a choice) makes it a row of the grid's, or a record of the source's, with the same ID: user_added_row is raised, and a new row appears after it. Until the current cell leaves it, the added row can be discarded with cancel_row_edit (Escape when no cell is in edit). The new row's position, while it is shown.
 
       **inherited_row_header_style** : ``DataGridViewCellStyle``, read-only
@@ -1254,7 +1254,7 @@ gui_forms::DataGridView
       changes, index writes, slot moves, chunk-table rebuilds, whole builds,
       window requests, IDs requested, position queries and mode switches.
 
-   .. cpp:function:: std::optional<DataGridViewRowPosition> new_row_index() const noexcept
+   .. cpp:function:: stxlib::Optional<DataGridViewRowPosition> new_row_index() const noexcept
 
       -- adding and deleting rows (owner decision B1-2) ------------------ With allow_user_to_add_rows (a capability, on by default) unbound and bound grids show a new row after the last row (Windows Forms' new row); virtual grids do not. A bound grid shows it while its source allows new records; a read-only grid or one without columns never does. The new row has a generated ID and empty values; when it becomes current, default_values_needed gives it its first values. The first value the user commits to it (an edit, a toggle or a choice) makes it a row of the grid's, or a record of the source's, with the same ID: user_added_row is raised, and a new row appears after it. Until the current cell leaves it, the added row can be discarded with cancel_row_edit (Escape when no cell is in edit). The new row's position, while it is shown.
 
@@ -1619,7 +1619,7 @@ gui_forms::DataGridView
 
       The row at a position as a value made on demand, for any row source (Windows Forms' Rows.SharedRow): its ID and one value per column, read as cell_value reads them (a virtual row asks its provider). The grid keeps no row object for virtual or bound rows, so a million rows cost no million rows; the copy is the caller's, and editing it changes nothing (unbound rows are edited through :cpp:member:`rows <gui_forms::DataGridView::rows>`, the others through their source). Row-wide defaults, Windows Forms' RowTemplate, are the grid's row_height, minimum_row_height and rows_default_cell_style. Throws std::out_of_range past the end.
 
-   .. cpp:function:: std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const
+   .. cpp:function:: stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const
 
       The present position of the row with a stable ID, or none.
 

@@ -64,7 +64,7 @@ public:
     // the grid keeps within row_count().
     virtual void row_ids(DataGridViewRowPosition first, std::span<DataGridViewRowId> out) const = 0;
     // The position of a row in the current order, or none when it is gone.
-    [[nodiscard]] virtual std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const = 0;
+    [[nodiscard]] virtual stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const = 0;
 };
 
 // How a virtual grid holds its rows' order (owner decision W-5). edit: the

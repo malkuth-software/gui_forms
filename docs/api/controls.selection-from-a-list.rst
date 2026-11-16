@@ -3556,7 +3556,7 @@ Related types
 
       Fills ``out`` with the IDs at positions [first, first + out.size()), which the grid keeps within row_count().
 
-   .. cpp:function:: virtual std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const = 0
+   .. cpp:function:: virtual stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const = 0
 
       The position of a row in the current order, or none when it is gone.
 

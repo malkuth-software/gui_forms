@@ -28,7 +28,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -64,11 +64,11 @@ public:
             out[index].value = "w" + std::to_string(first.value + index);
         }
     }
-    [[nodiscard]] std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const override {
-        if (row.value.size() < 2U || row.value[0] != 'w') return std::nullopt;
+    [[nodiscard]] stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const override {
+        if (row.value.size() < 2U || row.value[0] != 'w') return stxlib::Optional<DataGridViewRowPosition>::none();
         const std::size_t position = static_cast<std::size_t>(std::stoull(row.value.substr(1U)));
-        if (position >= row_total) return std::nullopt;
-        return row_at(position);
+        if (position >= row_total) return stxlib::Optional<DataGridViewRowPosition>::none();
+        return stxlib::Optional<DataGridViewRowPosition>::of(row_at(position));
     }
 
     mutable std::size_t asked{};

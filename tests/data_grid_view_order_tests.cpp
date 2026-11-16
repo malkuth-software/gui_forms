@@ -93,12 +93,12 @@ public:
         ++requests;
         for (std::size_t index = 0; index < out.size(); ++index) out[index] = order[first.value + index];
     }
-    [[nodiscard]] std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const override {
+    [[nodiscard]] stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const override {
         ++position_queries;
         for (std::size_t index = 0; index < order.size(); ++index) {
-            if (order[index] == row) return row_at(index);
+            if (order[index] == row) return stxlib::Optional<DataGridViewRowPosition>::of(row_at(index));
         }
-        return std::nullopt;
+        return stxlib::Optional<DataGridViewRowPosition>::none();
     }
 
     std::vector<DataGridViewRowId> order;
@@ -119,11 +119,11 @@ public:
             out[index].value = "r" + std::to_string(first.value + index);
         }
     }
-    [[nodiscard]] std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const override {
-        if (row.value.size() < 2U || row.value[0] != 'r') return std::nullopt;
+    [[nodiscard]] stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const override {
+        if (row.value.size() < 2U || row.value[0] != 'r') return stxlib::Optional<DataGridViewRowPosition>::none();
         const std::size_t position = static_cast<std::size_t>(std::stoull(row.value.substr(1U)));
-        if (position >= rows) return std::nullopt;
-        return row_at(position);
+        if (position >= rows) return stxlib::Optional<DataGridViewRowPosition>::none();
+        return stxlib::Optional<DataGridViewRowPosition>::of(row_at(position));
     }
 
     mutable std::size_t requests{};
@@ -329,7 +329,7 @@ void window_mode_is_bounded() {
     const DataGridViewRowOrderStatistics statistics = (*grid).row_order_statistics();
     require(statistics.full_builds == 0U && statistics.index_writes == 0U,
             "window mode never builds an index of the rows");
-    require((*grid).row_position(id("r9999999")) == row_at(9999999U) && (*grid).row_id(row_at(42U)) == id("r42"),
+    require((*grid).row_position(id("r9999999")) == stxlib::Optional<DataGridViewRowPosition>::of(row_at(9999999U)) && (*grid).row_id(row_at(42U)) == id("r42"),
             "IDs outside the window are asked of the source one at a time");
     // A-gf-controls-03-F1: a position past the rows is no row's ID, and the
     // source is never asked for it.

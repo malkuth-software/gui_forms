@@ -250,9 +250,9 @@ stxlib::Optional<std::size_t> DataGridViewRowOrder::position_of(std::string_view
     if (!source_) return stxlib::Optional<std::size_t>::none();
     ++statistics_.position_queries;
     const DataGridViewRowId identity{std::string(id)};
-    const std::optional<DataGridViewRowPosition> position = (*source_).row_position(identity);
-    if (!position || (*position).value >= window_count_) return stxlib::Optional<std::size_t>::none();
-    return stxlib::Optional<std::size_t>::of((*position).value);
+    const stxlib::Optional<DataGridViewRowPosition> position = (*source_).row_position(identity);
+    if (position.absent() || (*position.value()).value >= window_count_) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of((*position.value()).value);
 }
 
 stxlib::Optional<std::size_t> DataGridViewRowOrder::held_position(std::string_view id) const {

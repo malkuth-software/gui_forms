@@ -215,11 +215,11 @@ gf_status find_row(const DataGridView& grid, gf_utf8_view row_id, SlotIdentity s
         return read;
     }
     const DataGridViewRowId identity{std::string(text)};
-    const std::optional<DataGridViewRowPosition> found = grid.row_position(identity);
-    if (!found) {
+    const stxlib::Optional<DataGridViewRowPosition> found = grid.row_position(identity);
+    if (found.absent()) {
         return fail(GF_STATUS_NOT_FOUND, slot, "no row of the grid has that row ID");
     }
-    position = *found;
+    position = *found.value();
     return GF_STATUS_OK;
 }
 
@@ -520,9 +520,9 @@ gf_status data_grid_row_count_body(gf_object grid, std::uint64_t* count, std::in
     if (entered != GF_STATUS_OK) {
         return entered;
     }
-    const std::optional<DataGridViewRowPosition> shown_new = (*typed).new_row_index();
+    const stxlib::Optional<DataGridViewRowPosition> shown_new = (*typed).new_row_index();
     *count = (*typed).row_count();
-    *new_row = shown_new ? static_cast<std::int64_t>((*shown_new).value) : -1;
+    *new_row = shown_new.present() ? static_cast<std::int64_t>((*shown_new.value()).value) : -1;
     return GF_STATUS_OK;
 }
 

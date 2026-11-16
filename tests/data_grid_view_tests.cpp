@@ -98,6 +98,12 @@ DataGridViewRowPosition row_at(std::size_t position) {
     return row;
 }
 
+// A present row position, as row_position and new_row_index report it.
+stxlib::Optional<DataGridViewRowPosition> present_row(std::size_t position) {
+    const DataGridViewRowPosition row{position};
+    return stxlib::Optional<DataGridViewRowPosition>::of(row);
+}
+
 // A present cell address, as current_cell reports it and set_current_cell
 // takes it.
 stxlib::Optional<DataGridViewCellAddress> cell_at(std::size_t row, std::size_t column) {
@@ -329,7 +335,7 @@ struct AddDuplicateRow final {
      };
      struct RemoveNewRow final {
          DataGridView* grid{};
-         void operator()() const { (*grid).rows.erase((*(*grid).new_row_index()).value, 1U); }
+         void operator()() const { (*grid).rows.erase((*grid).new_row_index().take().value, 1U); }
      };
      struct SetCount final {
          DataGridView* grid{};
@@ -364,21 +370,21 @@ struct AddDuplicateRow final {
             "cells keep their binding values");
     require((*grid).cell_text(row_at(2U), 3U) == "Tune" && (*grid).cell_value(row_at(2U), 2U) == BindingValue{},
             "short rows are padded, and an empty button cell shows its column's text");
-    require((*grid).row_position(id("bravo")) == row_at(1U) && (*grid).row_id(row_at(2U)) == id("charlie"),
+    require((*grid).row_position(id("bravo")) == present_row(1U) && (*grid).row_id(row_at(2U)) == id("charlie"),
             "rows keep their stable IDs");
     (*grid).rows.append(DataGridViewRow{});
     const DataGridViewRowPosition generated{(*grid).rows.read().size() - 1U};
     require((*grid).row_id(generated).value.rfind("row.", 0U) == 0U, "an empty row ID is generated");
     (*grid).rows.insert(0U, {.stable_id = {"zulu"}});
-    require((*grid).row_position(id("alpha")) == row_at(1U), "inserting moves later rows");
+    require((*grid).row_position(id("alpha")) == present_row(1U), "inserting moves later rows");
     (*grid).rows.erase(0U, 1U);
-    require((*grid).row_position(id("alpha")) == row_at(0U) && (*grid).row_count() == 4U,
+    require((*grid).row_position(id("alpha")) == present_row(0U) && (*grid).row_count() == 4U,
             "removing moves them back");
-    require(!(*grid).row_position(id("zulu")), "a removed row's ID is gone");
+    require((*grid).row_position(id("zulu")).absent(), "a removed row's ID is gone");
     (*grid).set_row_count(6U);
     require((*grid).row_count() == 6U, "an unbound row count grows with generated rows");
     (*grid).set_row_count(3U);
-    require((*grid).row_count() == 3U && (*grid).row_position(id("charlie")) == row_at(2U),
+    require((*grid).row_count() == 3U && (*grid).row_position(id("charlie")) == present_row(2U),
             "and is cut from the end");
     std::shared_ptr<DataGridView> fresh = make_control<DataGridView>(StableId("grid.model.fresh"));
     (*fresh).set_columns(sample_columns());
@@ -715,8 +721,8 @@ void virtual_rows() {
     (*grid).on_paint(later, (*grid).client_rectangle());
     bool scrolled_only = !(*provider).asked_ids.empty();
     for (const std::string& asked : (*provider).asked_ids) {
-        const std::optional<DataGridViewRowPosition> position = (*grid).row_position(id(asked));
-        if (!position || (*position).value < 500000U || (*position).value >= 500000U + shown) scrolled_only = false;
+        const stxlib::Optional<DataGridViewRowPosition> position = (*grid).row_position(id(asked));
+        if (position.absent() || (*position.value()).value < 500000U || (*position.value()).value >= 500000U + shown) scrolled_only = false;
     }
     require(scrolled_only, "scrolled rows are asked for where they are, and no others");
     require((*grid).realized_rows()[0].stable_id == "v500000", "the realized window follows the scroll");
@@ -800,22 +806,22 @@ void virtual_row_identity() {
     // Sort: the application reverses its order.
     const std::vector<DataGridViewRowId> reversed(removed.rbegin(), removed.rend());
     (*grid).set_virtual_row_order(reversed);
-    const std::optional<DataGridViewRowPosition> v3 = (*grid).row_position(id("v3"));
-    require(v3 && (*grid).current_cell() == stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{*v3, 0U}) && (*grid).is_cell_selected(*v3, 0U) &&
+    const stxlib::Optional<DataGridViewRowPosition> v3 = (*grid).row_position(id("v3"));
+    require(v3.present() && (*grid).current_cell() == stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{*v3.value(), 0U}) && (*grid).is_cell_selected(*v3.value(), 0U) &&
                 (*grid).selected_cells().size() == 1U && currents.empty(),
             "a sort keeps the current cell and the selection on their IDs");
 
     // Full-row selection is kept by ID too.
     (*grid).selection_mode = DataGridViewSelectionMode::full_row_select;
-    (*grid).set_row_selected(*(*grid).row_position(id("v10")), true);
+    (*grid).set_row_selected((*grid).row_position(id("v10")).take(), true);
     (*grid).set_virtual_row_order(removed);
-    require((*grid).is_row_selected(*(*grid).row_position(id("v10"))) &&
-                (*grid).is_row_selected(*(*grid).row_position(id("v3"))) && (*grid).selected_rows().size() == 2U,
+    require((*grid).is_row_selected((*grid).row_position(id("v10")).take()) &&
+                (*grid).is_row_selected((*grid).row_position(id("v3")).take()) && (*grid).selected_rows().size() == 2U,
             "selected rows stay selected through a sort");
     (*grid).selection_mode = DataGridViewSelectionMode::cell_select;
 
     // An edit in progress stays on its row through a reorder and commits to it.
-    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{*(*grid).row_position(id("v3")), 0U})) &&
+    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{(*grid).row_position(id("v3")).take(), 0U})) &&
                 (*grid).begin_edit(),
             "an edit begins on v3");
     (*(*grid).editing_control()).text = "edited";
@@ -856,7 +862,7 @@ void virtual_row_identity() {
     std::vector<DataGridViewRowId> above{id("n7"), id("n8"), id("n9")};
     above.insert(above.end(), without.begin(), without.end());
     (*grid).set_virtual_row_order(above);
-    require((*grid).first_displayed_row() == *(*grid).row_position(top), "the first displayed row follows its ID");
+    require((*grid).first_displayed_row() == (*grid).row_position(top).take(), "the first displayed row follows its ID");
 
     // Refusals leave the grid unchanged.
     const std::size_t count = (*grid).row_count();
@@ -922,7 +928,7 @@ void sorting_headers_and_resizing() {
             "rows are ordered by the column's text");
     require((*grid).current_cell() == cell_at(1U, 0U) && (*grid).current_row_id() == id("alpha") &&
                 (*grid).is_cell_selected(row_at(1U), 0U) && (*grid).is_cell_selected(row_at(2U), 0U) &&
-                (*grid).row_position(id("charlie")) == row_at(0U),
+                (*grid).row_position(id("charlie")) == present_row(0U),
             "the current cell and selection stay on their rows");
     window.perform_layout();
     columns = (*grid).realized_columns();
@@ -992,10 +998,10 @@ void bound_rows() {
                 (*grid).is_cell_selected(row_at(3U), 0U) && (*source).position() == 1,
             "an inserted record keeps the current cell and the selection on their records");
     // Audit N47: the row index is updated from the change's position.
-    require((*grid).row_position(id("person.0")) == row_at(0U) && (*grid).row_position(id("person.1")) == row_at(1U) &&
-                (*grid).row_position(id("person.3")) == row_at(3U),
+    require((*grid).row_position(id("person.0")) == present_row(0U) && (*grid).row_position(id("person.1")) == present_row(1U) &&
+                (*grid).row_position(id("person.3")) == present_row(3U),
             "an insert reindexes the rows from its position on");
-    require((*source).remove_at(1U) && (*grid).row_count() == 3U && (*grid).row_position(id("person.1")) == std::nullopt,
+    require((*source).remove_at(1U) && (*grid).row_count() == 3U && (*grid).row_position(id("person.1")).absent(),
             "a removed record leaves the grid");
     // As for unbound rows: the record that took the removed record's place
     // is current (the source's position agrees), and the selection keeps
@@ -1005,8 +1011,8 @@ void bound_rows() {
             "the record that takes the removed current record's place becomes current");
     require((*grid).is_cell_selected(row_at(2U), 0U) && (*grid).selected_cells().size() == 1U,
             "the removed record leaves the selection and person.3 stays selected");
-    require((*grid).row_position(id("person.0")) == row_at(0U) && (*grid).row_position(id("person.2")) == row_at(1U) &&
-                (*grid).row_position(id("person.3")) == row_at(2U),
+    require((*grid).row_position(id("person.0")) == present_row(0U) && (*grid).row_position(id("person.2")) == present_row(1U) &&
+                (*grid).row_position(id("person.3")) == present_row(2U),
             "a removal reindexes the rows after it");
     // Audit N47: appends, inserts and removals keep the row index without
     // a rebuild; every record is still found at its position.
@@ -1022,7 +1028,7 @@ void bound_rows() {
     bool indexed = (*grid).row_count() == (*source).count();
     for (std::size_t position = 0; indexed && position < (*source).count(); ++position) {
         const DataGridViewRowId row = id((*source).stable_id(position));
-        indexed = (*grid).row_position(row) == row_at(position);
+        indexed = (*grid).row_position(row) == present_row(position);
     }
     require(indexed, "the row index follows appends, inserts and removals");
     (*grid).data_source = nullptr;
@@ -1407,7 +1413,7 @@ void link_cells() {
     require(!(*grid).link_visited(row_at(1U), 1U), "set_link_visited clears a visit");
     (*grid).set_link_visited(row_at(1U), 1U, true);
     require((*grid).sort(0U, DataGridViewSortDirection::descending) && (*grid).link_visited(row_at(0U), 1U) &&
-                (*grid).link_visited(row_at(1U), 1U) && (*grid).row_position(id("bravo")) == row_at(0U),
+                (*grid).link_visited(row_at(1U), 1U) && (*grid).row_position(id("bravo")) == present_row(0U),
             "visits stay on their rows when rows move");
     (*grid).rows.erase(0U, 1U);
     (*grid).rows.append({.stable_id = {"bravo"}});
@@ -1724,12 +1730,12 @@ void new_row_unbound() {
     require((*fresh).allow_user_to_add_rows.read() && (*fresh).allow_user_to_delete_rows.read(),
             "adding and deleting rows are on by default, as in Windows Forms");
     (*fresh).set_columns(sample_columns());
-    require((*fresh).row_count() == 1U && (*fresh).new_row_index() == row_at(0U),
+    require((*fresh).row_count() == 1U && (*fresh).new_row_index() == present_row(0U),
             "a fresh grid with columns shows only the new row");
-    require(!(*grid).new_row_index() && (*grid).row_count() == 3U, "no new row once turned off");
+    require((*grid).new_row_index().absent() && (*grid).row_count() == 3U, "no new row once turned off");
     (*grid).allow_user_to_add_rows = true;
     window.perform_layout();
-    require((*grid).new_row_index() == row_at(3U) && (*grid).row_count() == 4U,
+    require((*grid).new_row_index() == present_row(3U) && (*grid).row_count() == 4U,
             "the new row follows the last row");
     const DataGridViewRowId placeholder = (*grid).row_id(row_at(3U));
     const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
@@ -1748,14 +1754,14 @@ void new_row_unbound() {
     require(window.dispatch_text({"Delta"}) && (*grid).is_current_row_dirty(), "typing into the new row");
     require(key(window, PhysicalKey::tab), "Tab commits");
     require(added.size() == 1U && added[0].row_id == placeholder && (*grid).row_count() == 5U &&
-                (*grid).new_row_index() == row_at(4U) && (*grid).cell_text(row_at(3U), 0U) == "Delta" &&
+                (*grid).new_row_index() == present_row(4U) && (*grid).cell_text(row_at(3U), 0U) == "Delta" &&
                 (*grid).cell_text(row_at(3U), 2U) == "USB" && (*grid).row_id(row_at(3U)) == placeholder,
             "the commit adds the row with the new row's ID and its defaults; a new row follows");
     require((*grid).current_cell() == cell_at(3U, 1U) && (*grid).is_current_row_dirty(),
             "the added row stays current and dirty");
     require(key(window, PhysicalKey::escape) && cancelled.size() == 1U && (*grid).row_count() == 4U &&
-                !(*grid).row_position(placeholder) && (*grid).current_cell() == cell_at(3U, 1U) &&
-                (*grid).new_row_index() == row_at(3U),
+                (*grid).row_position(placeholder).absent() && (*grid).current_cell() == cell_at(3U, 1U) &&
+                (*grid).new_row_index() == present_row(3U),
             "Escape discards the added row; the new row takes its place");
     // Adding and leaving keeps the row.
     require((*grid).set_current_cell(cell_at(3U, 1U)), "the new row's check box");
@@ -1765,7 +1771,7 @@ void new_row_unbound() {
             "once left, the added row is kept");
     require(throws<std::out_of_range>(RemoveNewRow{grid.get()}), "the new row is not removed");
     (*grid).allow_user_to_add_rows = false;
-    require((*grid).row_count() == 4U && !(*grid).new_row_index(), "turning it off hides the new row");
+    require((*grid).row_count() == 4U && (*grid).new_row_index().absent(), "turning it off hides the new row");
 }
 
 void new_row_bound() {
@@ -1778,7 +1784,7 @@ void new_row_bound() {
     (*grid).data_source = source;
     (*grid).allow_user_to_add_rows = true;
     window.perform_layout();
-    require((*grid).row_count() == 2U && (*grid).new_row_index() == row_at(1U), "a bound grid shows the new row");
+    require((*grid).row_count() == 2U && (*grid).new_row_index() == present_row(1U), "a bound grid shows the new row");
     const DataGridViewRowId placeholder = (*grid).row_id(row_at(1U));
     require((*grid).set_current_cell(cell_at(1U, 1U)) && (*grid).begin_edit(), "edit the new row");
     (*(*grid).editing_control()).text = "Paris";
@@ -1787,7 +1793,7 @@ void new_row_bound() {
             "the commit adds a record with the new row's ID and the value");
     (*source).set_allow_new(false);
     window.perform_layout();
-    require((*grid).row_count() == 2U && !(*grid).new_row_index(), "a source without additions has no new row");
+    require((*grid).row_count() == 2U && (*grid).new_row_index().absent(), "a source without additions has no new row");
 }
 
 void deleting_rows() {
@@ -1808,7 +1814,7 @@ void deleting_rows() {
     (*grid).set_row_selected(row_at(2U), true);
     require(key(window, PhysicalKey::delete_forward) && asked == 2 && deleted.size() == 1U &&
                 deleted[0].row_id == id("bravo") && deleted[0].row == row_at(1U) && (*grid).row_count() == 2U &&
-                (*grid).row_position(id("charlie")) == row_at(1U),
+                (*grid).row_position(id("charlie")) == present_row(1U),
             "Delete removes the selected rows a handler does not keep");
 
     std::shared_ptr<DataGridView> bound = make_control<DataGridView>(StableId("grid.delete-bound"));
@@ -1975,7 +1981,7 @@ void cell_styles() {
 
     // Styles are kept by row ID: they follow their rows and end with them.
     require((*grid).sort(0U, DataGridViewSortDirection::descending) &&
-                (*grid).row_position(id("charlie")) == row_at(0U) &&
+                (*grid).row_position(id("charlie")) == present_row(0U) &&
                 (*grid).cell_style(row_at(0U), 0U).padding && (*grid).row_default_cell_style(row_at(0U)).alignment,
             "sorting moves a row's and a cell's styles with the row");
     (*grid).rows.erase(0U, 1U);
@@ -3330,7 +3336,7 @@ void virtual_new_row() {
     // added row's (position 3), and Enter then steps down to the new row
     // that follows (position 4). A current cell left on the retired
     // placeholder ID would be lost and Enter would not move it.
-    require((*grid).current_cell() == cell_at(4U, 0U) && (*grid).new_row_index() == row_at(4U),
+    require((*grid).current_cell() == cell_at(4U, 0U) && (*grid).new_row_index() == present_row(4U),
             "the current cell follows the added row's ID, and Enter moves it to the new row");
 }
 
@@ -3466,8 +3472,8 @@ void require_index_agrees(const DataGridView& grid, const BindingSource& source,
     const std::size_t count = source.count();
     for (std::size_t position = 0U; position < count; ++position) {
         const DataGridViewRowId identity{source.stable_id(position)};
-        const std::optional<DataGridViewRowPosition> found = grid.row_position(identity);
-        if (!found || (*found).value != position) {
+        const stxlib::Optional<DataGridViewRowPosition> found = grid.row_position(identity);
+        if (found.absent() || (*found.value()).value != position) {
             throw std::runtime_error("the bound identity index disagrees with the source at step " +
                                      std::to_string(step));
         }
@@ -3555,7 +3561,7 @@ void bound_identity_follows_list_changes() {
     }
     // A removal of the current row moves the current cell to the row now at
     // its position.
-    const std::size_t shown = (*(*grid).row_position(DataGridViewRowId{current})).value;
+    const std::size_t shown = (*grid).row_position(DataGridViewRowId{current}).take().value;
     static_cast<void>(table.remove(*table.find(current), 1U));
     const stxlib::Optional<DataGridViewCellAddress> after = (*grid).current_cell();
     require(after.present() && (*after.value()).row.value == std::min(shown, (*source).count() - 1U),

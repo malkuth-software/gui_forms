@@ -449,7 +449,7 @@ void test_grid_rows_refuse_and_keep_identity() {
     require(refused && (*grid).rows.read().size() == 2U, "a duplicate ID is refused before the edit");
     (*grid).rows.append(std::vector<DataGridViewRow>{{}, {.stable_id = {"charlie"}}, {}});
     require((*grid).rows.read().size() == 5U && (*grid).row_position(DataGridViewRowId{"charlie"}) ==
-                std::optional<DataGridViewRowPosition>{DataGridViewRowPosition{3U}},
+                stxlib::Optional<DataGridViewRowPosition>::of(DataGridViewRowPosition{3U}),
             "an appended range is indexed at its positions");
     require(!(*grid).rows[2U].stable_id.value.empty() && (*grid).rows[2U].stable_id != (*grid).rows[4U].stable_id,
             "rows appended without IDs get distinct generated ones");
@@ -457,7 +457,7 @@ void test_grid_rows_refuse_and_keep_identity() {
     require((*grid).rows.read().size() == 7U && (*grid).rows[1U].stable_id.value == "delta" &&
                 (*grid).rows[2U].stable_id.value == "echo" &&
                 (*grid).row_position(DataGridViewRowId{"charlie"}) ==
-                    std::optional<DataGridViewRowPosition>{DataGridViewRowPosition{5U}},
+                    stxlib::Optional<DataGridViewRowPosition>::of(DataGridViewRowPosition{5U}),
             "an inserted range takes its positions and moves the later rows");
     bool range_refused = false;
     try {
@@ -465,17 +465,17 @@ void test_grid_rows_refuse_and_keep_identity() {
     } catch (const std::invalid_argument&) {
         range_refused = true;
     }
-    require(range_refused && (*grid).rows.read().size() == 7U && !(*grid).row_position(DataGridViewRowId{"foxtrot"}),
+    require(range_refused && (*grid).rows.read().size() == 7U && (*grid).row_position(DataGridViewRowId{"foxtrot"}).absent(),
             "a range with a present ID is refused whole");
     (*grid).rows.erase(1U, 2U);
     (*grid).rows.replace(0U, {.stable_id = {"zulu"}});
-    require(!(*grid).row_position(DataGridViewRowId{"alpha"}) &&
+    require((*grid).row_position(DataGridViewRowId{"alpha"}).absent() &&
                 (*grid).row_position(DataGridViewRowId{"zulu"}) ==
-                    std::optional<DataGridViewRowPosition>{DataGridViewRowPosition{0U}},
+                    stxlib::Optional<DataGridViewRowPosition>::of(DataGridViewRowPosition{0U}),
             "a replacement naming another ID rekeys the row");
     (*grid).rows.erase(0U, 2U);
     require((*grid).row_position(DataGridViewRowId{"charlie"}) ==
-                std::optional<DataGridViewRowPosition>{DataGridViewRowPosition{1U}},
+                stxlib::Optional<DataGridViewRowPosition>::of(DataGridViewRowPosition{1U}),
             "an erasure moves the later rows' positions");
 }
 

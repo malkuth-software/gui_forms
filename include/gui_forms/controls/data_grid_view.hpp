@@ -614,7 +614,7 @@ public:
     // Throws std::out_of_range past the end.
     [[nodiscard]] DataGridViewRow shared_row(DataGridViewRowPosition position) const;
     // The position of the row with an ID, or none.
-    [[nodiscard]] std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const;
+    [[nodiscard]] stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const;
     // Throws std::out_of_range for a cell past the rows or columns.
     [[nodiscard]] BindingValue cell_value(DataGridViewRowPosition row, std::size_t column) const;
     // The text a cell shows (Windows Forms' FormattedValue): its value
@@ -765,7 +765,7 @@ public:
     // current cell leaves it, the added row can be discarded with
     // cancel_row_edit (Escape when no cell is in edit).
     // The new row's position, while it is shown.
-    [[nodiscard]] std::optional<DataGridViewRowPosition> new_row_index() const noexcept;
+    [[nodiscard]] stxlib::Optional<DataGridViewRowPosition> new_row_index() const noexcept;
     // Discards the row the user added, while it is the current row and the
     // current cell has not left it since; any edit is discarded first.
     // Raises row_edit_cancelled. Returns false when there is no such row.

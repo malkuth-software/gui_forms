@@ -416,11 +416,11 @@ DataGridViewRowId DataGridView::row_id(DataGridViewRowPosition position) const {
     return identity;
 }
 
-std::optional<DataGridViewRowPosition> DataGridView::row_position(const DataGridViewRowId& row) const {
+stxlib::Optional<DataGridViewRowPosition> DataGridView::row_position(const DataGridViewRowId& row) const {
     const stxlib::Optional<std::size_t> found = find_row(row.value);
-    if (found.absent()) return std::nullopt;
+    if (found.absent()) return stxlib::Optional<DataGridViewRowPosition>::none();
     const DataGridViewRowPosition position{*found.value()};
-    return position;
+    return stxlib::Optional<DataGridViewRowPosition>::of(position);
 }
 
 BindingValue DataGridView::cell_value(DataGridViewRowPosition row, std::size_t column) const {
@@ -3562,10 +3562,10 @@ bool DataGridView::activate_current() {
 
 // -- adding and deleting rows ----------------------------------------------------
 
-std::optional<DataGridViewRowPosition> DataGridView::new_row_index() const noexcept {
-    if (!new_row_shown()) return std::nullopt;
+stxlib::Optional<DataGridViewRowPosition> DataGridView::new_row_index() const noexcept {
+    if (!new_row_shown()) return stxlib::Optional<DataGridViewRowPosition>::none();
     const DataGridViewRowPosition position{data_row_count()};
-    return position;
+    return stxlib::Optional<DataGridViewRowPosition>::of(position);
 }
 
 bool DataGridView::read_view(const decltype(allow_user_to_add_rows)&) const {
