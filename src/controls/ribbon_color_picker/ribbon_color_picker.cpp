@@ -6,9 +6,11 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -95,7 +97,7 @@ void RibbonColorPicker::on_dispose() noexcept {
 
 // -- model ---------------------------------------------------------------------
 
-void RibbonColorPicker::CommandValueChanged::operator()(const std::optional<Color>& value) const {
+void RibbonColorPicker::CommandValueChanged::operator()(const stxlib::Optional<Color>& value) const {
     if (picker == nullptr || !(*picker).is_alive()) return;
     (*picker).invalidate(Dirty::paint | Dirty::semantics);
     if ((*picker).palette_overlay_) (*(*picker).palette_overlay_).invalidate(Dirty::arrange | Dirty::paint);
@@ -127,14 +129,14 @@ void RibbonColorPicker::written(const decltype(command)&) {
 
 // value is a view: the command's value when there is one, else the
 // picker's own.
-std::optional<Color> RibbonColorPicker::read_view(const decltype(value)&) const {
+stxlib::Optional<Color> RibbonColorPicker::read_view(const decltype(value)&) const {
     const std::shared_ptr<ColorCommand>& bound = command.read();
     if (bound) return (*bound).value();
     return own_value_;
 }
 
 
-void RibbonColorPicker::write_view(const decltype(value)&, std::optional<Color> incoming) {
+void RibbonColorPicker::write_view(const decltype(value)&, stxlib::Optional<Color> incoming) {
     require_mutable();
     const std::shared_ptr<ColorCommand> bound = command.read();
     if (bound) {
@@ -177,7 +179,7 @@ bool RibbonColorPicker::enabled_to_use() const {
 
 // The user chose a colour (or Automatic): it commits to the command, or
 // becomes the picker's value; the palette closes.
-void RibbonColorPicker::commit(std::optional<Color> color) {
+void RibbonColorPicker::commit(stxlib::Optional<Color> color) {
     if (!enabled_to_use()) return;
     const Control::Ptr lifetime = shared_from_this();
     close_palette();
@@ -254,10 +256,10 @@ RibbonColorPicker::Parts RibbonColorPicker::own_parts() const {
     record.color_bar = PartGeometry::from_bounds(placed.bar);
     // The current colour (none for Automatic), painted by role as a fill
     // with a content colour (owner decision W-7).
-    const std::optional<Color> shown = value.read();
-    if (shown) {
+    const stxlib::Optional<Color> shown = value.read();
+    if (shown.present()) {
         record.color_sample = PartGeometry::from_bounds(placed.sample);
-        record.color_sample.content_color = shown;
+        record.color_sample.content_color = platform::standard_optional(shown);
     }
     record.arrow = PartGeometry::from_bounds(placed.arrow);
     record.arrow.states = arrow;
@@ -279,18 +281,18 @@ std::vector<RibbonColorPicker::Cell> RibbonColorPicker::cells() const {
     std::span<const Color> recent{};
     if (command.read()) recent = (*command.read()).recent_colors();
     all.reserve(1U + palette_.size() + recent.size());
-    all.push_back(Cell{RibbonPaletteEntryKind::automatic, std::nullopt, {margin, margin, width, automatic_extent * scale}});
+    all.push_back(Cell{RibbonPaletteEntryKind::automatic, stxlib::Optional<Color>::none(), {margin, margin, width, automatic_extent * scale}});
     const double grid_top = margin + automatic_extent * scale + section_gap * scale * 0.5;
     for (std::size_t index = 0; index < palette_.size(); ++index) {
         const double column = static_cast<double>(index % palette_columns);
         const double row = static_cast<double>(index / palette_columns);
-        all.push_back(Cell{RibbonPaletteEntryKind::palette, palette_[index],
+        all.push_back(Cell{RibbonPaletteEntryKind::palette, stxlib::Optional<Color>::of(palette_[index]),
                            {margin + column * (cell + gap), grid_top + row * (cell + gap), cell, cell}});
     }
     const std::size_t rows = (palette_.size() + palette_columns - 1U) / palette_columns;
     const double recent_top = grid_top + static_cast<double>(rows) * (cell + gap) - gap + section_gap * scale;
     for (std::size_t index = 0; index < recent.size(); ++index) {
-        all.push_back(Cell{RibbonPaletteEntryKind::recent, recent[index],
+        all.push_back(Cell{RibbonPaletteEntryKind::recent, stxlib::Optional<Color>::of(recent[index]),
                            {margin + static_cast<double>(index) * (cell + gap), recent_top, cell, cell}});
     }
     return all;
@@ -313,8 +315,8 @@ Size RibbonColorPicker::palette_size() const {
 // palette or recent entry of that colour, or none when the colour is not
 // offered.
 std::optional<std::size_t> RibbonColorPicker::current_entry(const std::vector<Cell>& all) const {
-    const std::optional<Color> shown = value.read();
-    if (!shown) return 0U;
+    const stxlib::Optional<Color> shown = value.read();
+    if (shown.absent()) return 0U;
     for (std::size_t entry = 1; entry < all.size(); ++entry) {
         if (all[entry].color == shown) return entry;
     }
@@ -339,9 +341,9 @@ RibbonColorPicker::PaletteEntryParts RibbonColorPicker::entry_parts(const std::v
             {cell.bounds.x + inset, cell.bounds.y + inset, cell.bounds.width - inset * 2.0, cell.bounds.height - inset * 2.0});
     }
     // Automatic shows an empty well; a colour shows its sample inside it.
-    if (cell.color) {
+    if (cell.color.present()) {
         parts.entry_sample = PartGeometry::from_bounds(inset_by(parts.entry_well.bounds, sample_frame * scale));
-        parts.entry_sample.content_color = cell.color;
+        parts.entry_sample.content_color = platform::standard_optional(cell.color);
     }
     parts.entry_focus = parts.entry_face;
     const AnatomyStateSet states = entry_states(all, entry);
@@ -749,8 +751,8 @@ SemanticDescriptor RibbonColorPicker::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::split_button;
     descriptor.name = accessible_name.read().empty() ? parse_mnemonic_text(text.read()).display_text : accessible_name.read();
-    const std::optional<Color> shown = value.read();
-    descriptor.value = shown ? color_name(*shown) : std::string("Automatic");
+    const stxlib::Optional<Color> shown = value.read();
+    descriptor.value = shown.present() ? color_name(*shown.value()) : std::string("Automatic");
     descriptor.description = accessible_description.read();
     descriptor.has_popup = true;
     if (palette_open_) descriptor.states |= SemanticState::expanded;
@@ -790,7 +792,7 @@ std::vector<SemanticNode> RibbonColorPicker::palette_semantic_children() const {
         SemanticNode node{};
         node.stable_id = prefix + ".entry." + std::to_string(entry);
         node.role = SemanticRole::button;
-        node.name = all[entry].color ? color_name(*all[entry].color) : std::string("Automatic");
+        node.name = all[entry].color.present() ? color_name(*all[entry].color.value()) : std::string("Automatic");
         if (all[entry].kind == RibbonPaletteEntryKind::recent) node.description = "Recent colour";
         node.position_in_set.set(entry + 1U);
         node.set_size.set(all.size());
@@ -879,7 +881,7 @@ constexpr ControlAnatomy picker_anatomy{
 
 // The events RibbonColorPicker adds to those of Control, in declaration order.
 constexpr std::array<InteractionDeclaration, 2> picker_interactions{{
-    {.name = "value_changed", .payload = "std::optional<Color>", .mutable_payload = false},
+    {.name = "value_changed", .payload = "stxlib::Optional<Color>", .mutable_payload = false},
     {.name = "palette_open_changed", .payload = "bool", .mutable_payload = false},
 }};
 

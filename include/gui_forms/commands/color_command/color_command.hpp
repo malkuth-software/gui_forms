@@ -7,7 +7,7 @@
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstddef>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -36,12 +36,12 @@ public:
     [[nodiscard]] const CommandState& state() const noexcept { return (*command_).state(); }
 
     // The colour, or none for Automatic.
-    [[nodiscard]] const std::optional<Color>& value() const noexcept { return value_; }
-    void set_value(std::optional<Color> value);
+    [[nodiscard]] const stxlib::Optional<Color>& value() const noexcept { return value_; }
+    void set_value(stxlib::Optional<Color> value);
     // The user chose a colour (or Automatic): sets the value (value_changed
     // when it differs), records a colour as the most recent, then executes
     // the Command. Returns false, changing nothing, while it is disabled.
-    bool commit(std::optional<Color> value, std::string_view source_id);
+    bool commit(stxlib::Optional<Color> value, std::string_view source_id);
 
     // Recently committed colours, most recent first, without repeats.
     [[nodiscard]] std::span<const Color> recent_colors() const& noexcept {
@@ -50,7 +50,7 @@ public:
     std::span<const Color> recent_colors() const&& = delete;
     void clear_recent_colors() noexcept { recent_.clear(); }
 
-    [[nodiscard]] Event<const std::optional<Color>&>& value_changed() noexcept { return value_changed_; }
+    [[nodiscard]] Event<const stxlib::Optional<Color>&>& value_changed() noexcept { return value_changed_; }
 
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
@@ -58,9 +58,9 @@ protected:
 
 private:
     std::shared_ptr<Command> command_;
-    std::optional<Color> value_{};
+    stxlib::Optional<Color> value_{};
     std::vector<Color> recent_{};
-    Event<const std::optional<Color>&> value_changed_{};
+    Event<const stxlib::Optional<Color>&> value_changed_{};
 };
 
 } // namespace gui_forms

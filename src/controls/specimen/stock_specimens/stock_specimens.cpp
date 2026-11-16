@@ -1518,7 +1518,7 @@ StockSpecimenInstance make_ribbon_color_picker(const StockSpecimen&, StableId id
     const std::shared_ptr<RibbonColorPicker> control = make_control<RibbonColorPicker>(std::move(id));
     (*control).set_palette(sample_palette());
     // A chosen colour, so the face's colour bar shows it (Automatic shows none).
-    (*control).value = std::optional<Color>(Color::rgba(196, 60, 52));
+    (*control).value = stxlib::Optional<Color>::of(Color::rgba(196, 60, 52));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }

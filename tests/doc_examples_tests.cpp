@@ -608,7 +608,7 @@ namespace doc_example_ColorCommand_1 {
 void example() {
     std::shared_ptr<gf::Command> colour = std::make_shared<gf::Command>("doc.colour", "Font colour");
     std::shared_ptr<gf::ColorCommand> command = std::make_shared<gf::ColorCommand>(colour);
-    (*command).commit(gf::Color::rgba(192, 0, 0), "doc.picker");   // dark red, now the first recent colour
+    (*command).commit(stxlib::Optional<gf::Color>::of(gf::Color::rgba(192, 0, 0)), "doc.picker");   // dark red, now the first recent colour
 }
 }  // namespace doc_example_ColorCommand_1
 

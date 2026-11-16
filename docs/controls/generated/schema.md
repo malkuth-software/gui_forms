@@ -2833,7 +2833,7 @@ Properties beyond every control's: none.
 
 | Interaction | Payload |
 |---|---|
-| `value_changed` | `std::optional<Color>` |
+| `value_changed` | `stxlib::Optional<Color>` |
 | `palette_open_changed` | `bool` |
 
 ## `backstage_view` (BackstageView, control)
@@ -3176,7 +3176,7 @@ Properties beyond every control's: none.
 
 | Interaction | Payload |
 |---|---|
-| `value_changed` | `std::optional<Color>` |
+| `value_changed` | `stxlib::Optional<Color>` |
 
 ## `gallery_command` (GalleryCommand, component)
 

@@ -40,6 +40,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace {
@@ -90,8 +91,8 @@ struct RecordFont final {
 };
 
 struct RecordColor final {
-    std::vector<std::optional<Color>>* seen{};
-    void operator()(const std::optional<Color>& value) const { (*seen).push_back(value); }
+    std::vector<stxlib::Optional<Color>>* seen{};
+    void operator()(const stxlib::Optional<Color>& value) const { (*seen).push_back(value); }
 };
 
 struct RecordRecent final {
@@ -163,21 +164,21 @@ void value_commands() {
     int color_runs = 0;
     SubscriptionToken color_counted = (*color).invoked().subscribe(CountInvocation{&color_runs});
     for (std::uint8_t index = 0; index < 12U; ++index) {
-        static_cast<void>(color_command.commit(Color::rgba(index, 0, 0), "test"));
+        static_cast<void>(color_command.commit(stxlib::Optional<Color>::of(Color::rgba(index, 0, 0)), "test"));
     }
     require(color_runs == 12 && color_command.recent_colors().size() == ColorCommand::maximum_recent_colors &&
                 color_command.recent_colors()[0] == Color::rgba(11, 0, 0) &&
                 color_command.recent_colors()[9] == Color::rgba(2, 0, 0),
             "committed colours are recent, most recent first, the oldest falling off past ten");
-    static_cast<void>(color_command.commit(Color::rgba(5, 0, 0), "test"));
+    static_cast<void>(color_command.commit(stxlib::Optional<Color>::of(Color::rgba(5, 0, 0)), "test"));
     require(color_command.recent_colors()[0] == Color::rgba(5, 0, 0) && color_command.recent_colors().size() == 10U &&
                 color_command.recent_colors()[1] == Color::rgba(11, 0, 0),
             "a recommitted colour moves to the front without repeating");
-    static_cast<void>(color_command.commit(std::nullopt, "test"));
-    require(!color_command.value() && color_command.recent_colors()[0] == Color::rgba(5, 0, 0),
+    static_cast<void>(color_command.commit(stxlib::Optional<Color>::none(), "test"));
+    require(color_command.value().absent() && color_command.recent_colors()[0] == Color::rgba(5, 0, 0),
             "Automatic is a value but not a recent colour");
-    color_command.set_value(Color::rgba(1, 2, 3));
-    require(color_runs == 14 && color_command.value() == Color::rgba(1, 2, 3), "set_value runs nothing");
+    color_command.set_value(stxlib::Optional<Color>::of(Color::rgba(1, 2, 3)));
+    require(color_runs == 14 && color_command.value() == stxlib::Optional<Color>::of(Color::rgba(1, 2, 3)), "set_value runs nothing");
 }
 
 void font_control() {
@@ -242,7 +243,7 @@ void color_picker() {
     std::vector<RibbonColorPicker::PaletteEntry> entries = (*picker).realized_entries();
     require(entries.size() == 11U && entries[0].kind == RibbonPaletteEntryKind::automatic &&
                 entries[0].parts.entry_label.present && entries[0].states.selected &&
-                entries[3].color == Color::rgba(255, 192, 0),
+                entries[3].color == stxlib::Optional<Color>::of(Color::rgba(255, 192, 0)),
             "the palette holds Automatic (selected while no colour is set) and the ten standard colours");
     require(entries[0].parts.entry_well.present && !entries[0].parts.entry_sample.present &&
                 entries[3].parts.entry_well.present &&
@@ -254,7 +255,7 @@ void color_picker() {
             "the recording painter sees each swatch's content colour");
     const Control::Ptr overlay = (*picker).palette_overlay();
     click(window, centre(to_window(*overlay, entries[2].parts.entry_face.bounds)));
-    require(!(*picker).palette_open() && runs == 1 && (*command).value() == Color::rgba(255, 0, 0) &&
+    require(!(*picker).palette_open() && runs == 1 && (*command).value() == stxlib::Optional<Color>::of(Color::rgba(255, 0, 0)) &&
                 (*command).recent_colors().size() == 1U,
             "a click on a colour commits it and closes the palette");
     // Owner decision W-7: the samples are fills carrying content colours,
@@ -268,7 +269,7 @@ void color_picker() {
     require(filled(bar, own.color_sample.bounds, Color::rgba(255, 0, 0)),
             "the recording painter sees the colour bar's content colour");
     click(window, centre((*picker).parts().face.bounds));
-    require(runs == 2 && (*command).value() == Color::rgba(255, 0, 0), "the face applies the current colour again");
+    require(runs == 2 && (*command).value() == stxlib::Optional<Color>::of(Color::rgba(255, 0, 0)), "the face applies the current colour again");
     require(window.request_focus(picker), "the picker takes focus");
     press_key(window, PhysicalKey::down);
     require((*picker).palette_open(), "Down opens the palette");
@@ -286,7 +287,7 @@ void color_picker() {
     press_key(window, PhysicalKey::home);
     for (int step = 0; step < 3; ++step) press_key(window, PhysicalKey::right);
     press_key(window, PhysicalKey::enter);
-    require(!(*picker).palette_open() && (*command).value() == Color::rgba(255, 192, 0) && runs == 3,
+    require(!(*picker).palette_open() && (*command).value() == stxlib::Optional<Color>::of(Color::rgba(255, 192, 0)) && runs == 3,
             "the arrows move through the palette and Enter commits");
     press_key(window, PhysicalKey::down);
     press_key(window, PhysicalKey::escape);
@@ -545,8 +546,8 @@ void backstage() {
 // entry that remains.
 void color_palette_shrinks_while_open() {
     std::shared_ptr<ColorCommand> command = std::make_shared<ColorCommand>(std::make_shared<Command>("ink", "Ink"));
-    static_cast<void>((*command).commit(Color::rgba(1, 2, 3), "test"));
-    static_cast<void>((*command).commit(Color::rgba(4, 5, 6), "test"));
+    static_cast<void>((*command).commit(stxlib::Optional<Color>::of(Color::rgba(1, 2, 3)), "test"));
+    static_cast<void>((*command).commit(stxlib::Optional<Color>::of(Color::rgba(4, 5, 6)), "test"));
     std::shared_ptr<RibbonColorPicker> picker = make_control<RibbonColorPicker>(StableId("shrinking"));
     (*picker).command = command;
     Window window(picker, {300.0, 300.0});

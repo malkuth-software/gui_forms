@@ -200,7 +200,6 @@ inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
     {"plots::Plot3DCamera", "elevation: number, azimuth: number, roll: number, zoom: number, target: number[3], projection: enumeration, focal_length: number"},
     {"plots::Plot3DHit", "kind: enumeration, item: unsigned_integer, index: unsigned_integer, data_point: number[3], surface_parameter: number[2], depth: number"},
     {"std::int64_t", "value: signed_integer"},
-    {"std::optional<Color>", "value: color optional"},
     {"std::optional<DataGridViewCellAddress>", "row: unsigned_integer optional, column: unsigned_integer optional"},
     {"std::optional<std::size_t>", "value: unsigned_integer optional"},
     {"std::optional<std::string>", "value: text optional"},
@@ -211,6 +210,7 @@ inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
     {"std::uint32_t", "value: unsigned_integer"},
     {"std::uint64_t", "value: unsigned_integer"},
     {"std::vector<std::string>", "value: collection"},
+    {"stxlib::Optional<Color>", "value: color optional"},
     {"stxlib::Optional<TokenId>", "value: unsigned_integer optional"},
     {"stxlib::Optional<bool>", "value: boolean optional"},
 }};
