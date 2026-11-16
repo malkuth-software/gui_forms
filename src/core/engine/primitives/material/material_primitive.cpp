@@ -11,6 +11,7 @@
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/part_shape/part_shape.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
@@ -32,7 +33,10 @@
 #include <vector>
 
 // Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
@@ -1070,9 +1074,12 @@ double spread_position(double t, GradientSpreadMode spread) noexcept {
 
 // The gradient's colour at `t` in [0, 1], premultiplied and scaled by
 // `coverage`; the stops are valid (valid_gradient_stops: at least two, from
-// 0 to 1, increasing). The stops are interpolated premultiplied, as CSS
-// gradients and the Skia painter's are: a stop fading to transparent black
-// fades the other stop's colour, never towards grey.
+// 0 to 1, increasing). The two neighbouring stops are interpolated
+// premultiplied in linear light (owner, 2026-11-16;
+// gui_forms/types/linear_light/linear_light.hpp), as the Skia painter's
+// gradients are: the colour is exact to the sRGB byte, by the engine's
+// integer tables, and a stop fading to transparent fades the other stop's
+// colour, never towards black.
 Unit stop_colour(std::span<const GradientStop> stops, double t, double coverage) noexcept {
     std::size_t next = 1U;
     while (next + 1U < stops.size() && t > stops[next].offset) next = next + 1U;
@@ -1080,10 +1087,8 @@ Unit stop_colour(std::span<const GradientStop> stops, double t, double coverage)
     const GradientStop& high = stops[next];
     const double span = high.offset - low.offset;
     const double f = std::clamp((t - low.offset) / span, 0.0, 1.0);
-    const Unit a = premultiply(low.color, coverage);
-    const Unit b = premultiply(high.color, coverage);
-    const Unit colour{a.red + (b.red - a.red) * f, a.green + (b.green - a.green) * f,
-                      a.blue + (b.blue - a.blue) * f, a.alpha + (b.alpha - a.alpha) * f};
+    const Color mixed = interpolate_linear_light(low.color, high.color, linear_light_weight(f));
+    const Unit colour = premultiply(mixed, coverage);
     return colour;
 }
 

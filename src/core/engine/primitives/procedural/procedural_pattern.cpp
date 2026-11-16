@@ -12,7 +12,10 @@
 
 // Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
 // The pixel loops are integer; the few doubles are read before them.
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 

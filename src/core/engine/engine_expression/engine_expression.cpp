@@ -7,6 +7,8 @@
 
 // Identical bits on every host need the same operations in the same order:
 // no fused multiply-add for this translation unit (T2 plan, "Numerics").
+// Off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC says
+// (CMakeLists.txt, "Floating-point contraction").
 #if defined(__clang__)
 #pragma clang fp contract(off)
 #endif

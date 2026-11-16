@@ -1,4 +1,5 @@
 #include "gui_forms/surface_material/presets/material_presets.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -22,9 +23,9 @@ double interpolated(std::uint8_t low, std::uint8_t high, double f) noexcept {
     return value;
 }
 
-// The colour of valid gradient stops at `t` in [0, 1], interpolated in
-// straight alpha between the stops on either side, as the engine's bake
-// interpolates them.
+// The colour of valid gradient stops at `t` in [0, 1], interpolated
+// premultiplied in linear light between the stops on either side, as the
+// engine's bake interpolates them (gui_forms/types/linear_light/linear_light.hpp).
 Color stop_colour_at(std::span<const GradientStop> stops, double t) noexcept {
     std::size_t next = 1U;
     while (next + 1U < stops.size() && t > stops[next].offset) next = next + 1U;
@@ -32,10 +33,7 @@ Color stop_colour_at(std::span<const GradientStop> stops, double t) noexcept {
     const GradientStop& high = stops[next];
     const double span = high.offset - low.offset;
     const double f = span > 0.0 ? std::clamp((t - low.offset) / span, 0.0, 1.0) : 1.0;
-    const Color colour = Color::rgba(channel_of(interpolated(low.color.red, high.color.red, f)),
-                                     channel_of(interpolated(low.color.green, high.color.green, f)),
-                                     channel_of(interpolated(low.color.blue, high.color.blue, f)),
-                                     channel_of(interpolated(low.color.alpha, high.color.alpha, f)));
+    const Color colour = interpolate_linear_light(low.color, high.color, linear_light_weight(f));
     return colour;
 }
 

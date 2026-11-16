@@ -188,9 +188,11 @@ void repeating_radial() {
     // The pixel at (43, 28) is 15.5 to the right of the centre (28, 28): t
     // is about 1.55.
     require(pad.channel(43U, 28U, 0U) == 0U, "padded, the last stop holds");
-    require(repeat.channel(43U, 28U, 0U) > 100U && repeat.channel(43U, 28U, 0U) < 125U,
+    // Red in linear light (the gradient interpolates there): 165 to 190 is
+    // the old sRGB window of 100 to 125 decoded, as 187 to 205 is 130 to 150.
+    require(repeat.channel(43U, 28U, 0U) > 165U && repeat.channel(43U, 28U, 0U) < 190U,
             "repeated, the stops begin again");
-    require(reflect.channel(43U, 28U, 0U) > 130U && reflect.channel(43U, 28U, 0U) < 150U,
+    require(reflect.channel(43U, 28U, 0U) > 187U && reflect.channel(43U, 28U, 0U) < 205U,
             "reflected, the stops run back");
     require(repeat.channel(28U, 28U, 0U) > 230U && pad.channel(28U, 28U, 0U) == repeat.channel(28U, 28U, 0U),
             "within the radii every spread is the same");
@@ -207,16 +209,18 @@ void conic() {
             "a conic gradient sweeps one turn");
     const TestRaster swept = draw(filled_with(turn), logical, 1.0);
     // Just right of up from the centre (28, 28) the sweep begins; just left
-    // of it, it ends.
-    require(swept.channel(28U, 10U, 0U) > 250U && swept.channel(28U, 10U, 2U) < 5U, "the sweep begins at up");
-    require(swept.channel(27U, 10U, 0U) < 5U && swept.channel(27U, 10U, 2U) > 250U, "and ends there");
-    // Right of the centre, a quarter of the way round.
-    require(swept.channel(45U, 28U, 0U) > 180U && swept.channel(45U, 28U, 0U) < 200U,
+    // of it, it ends. The pixel centres lie 1.6 degrees from up, t = 0.0045
+    // from either end, which linear light encodes to about 14.
+    require(swept.channel(28U, 10U, 0U) > 250U && swept.channel(28U, 10U, 2U) < 25U, "the sweep begins at up");
+    require(swept.channel(27U, 10U, 0U) < 25U && swept.channel(27U, 10U, 2U) > 250U, "and ends there");
+    // Right of the centre, a quarter of the way round: t = 0.255, red about
+    // 224 in linear light.
+    require(swept.channel(45U, 28U, 0U) > 215U && swept.channel(45U, 28U, 0U) < 235U,
             "a quarter turn is a quarter of the way");
     // From 90 degrees, right of the centre is where it begins.
     const TestRaster turned = draw(filled_with(MaterialFillLayer::conic(Point{0.5, 0.5}, 90.0, red_to_blue)),
                                    logical, 1.0);
-    require(turned.channel(45U, 27U, 0U) < 10U && turned.channel(45U, 28U, 0U) > 245U,
+    require(turned.channel(45U, 27U, 0U) < 25U && turned.channel(45U, 28U, 0U) > 245U,
             "the from-angle turns the sweep");
     // Repeating every 90 degrees: a quarter turn begins again.
     const MaterialFillLayer quarters =
@@ -225,7 +229,8 @@ void conic() {
             "a repeating conic gradient repeats its period");
     const TestRaster repeated = draw(filled_with(quarters), logical, 1.0);
     require(repeated.channel(45U, 28U, 0U) > 240U, "each quarter begins again");
-    require(repeated.channel(44U, 27U, 0U) < 30U, "and ends before the next");
+    // t = 0.981 of its quarter: red about 38 in linear light.
+    require(repeated.channel(44U, 27U, 0U) < 50U, "and ends before the next");
     const bool first = next_matches(swept, "conic_1");
     const bool second = next_matches(draw(filled_with(quarters), logical, 2.0), "repeating_conic_2");
     require(first && second, "the conic gradients match their references");

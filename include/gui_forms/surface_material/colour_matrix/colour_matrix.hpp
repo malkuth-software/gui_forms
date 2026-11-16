@@ -144,9 +144,10 @@ struct GUI_FORMS_API MaterialColourTable final {
                                                       const MaterialTransferFunction& green,
                                                       const MaterialTransferFunction& blue,
                                                       const MaterialTransferFunction& alpha);
-    // Tritone's table (after MaterialColourMatrix::luminance()): each colour
-    // channel a table of the shadow's, the midtone's and the highlight's
-    // value; alpha kept.
+    // Tritone's table (after MaterialColourMatrix::luminance()): levels 0 to
+    // 127 from the shadow to the midtone, 128 to 255 from the midtone to the
+    // highlight, interpolated in linear light as every gradient is
+    // (gui_forms/types/linear_light/linear_light.hpp); alpha kept.
     [[nodiscard]] static MaterialColourTable tritone(Color shadow, Color midtone, Color highlight);
     // This table, then `after`: one table applying both.
     [[nodiscard]] MaterialColourTable then(const MaterialColourTable& after) const noexcept;

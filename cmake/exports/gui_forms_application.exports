@@ -713,6 +713,7 @@ __ZGVZN9gui_forms16ItemContentPaint*
 __ZGVZN9gui_forms16LayoutConstraint*
 __ZGVZN9gui_forms16LayoutDiagnostic*
 __ZGVZN9gui_forms16LengthPercentage*
+__ZGVZN9gui_forms16LinearLightLevel*
 __ZGVZN9gui_forms16LivePacingResult*
 __ZGVZN9gui_forms16LiveSurfaceFrame*
 __ZGVZN9gui_forms16LiveSurfacePacer*
@@ -2393,6 +2394,7 @@ __ZGVZNK9gui_forms16ItemContentPaint*
 __ZGVZNK9gui_forms16LayoutConstraint*
 __ZGVZNK9gui_forms16LayoutDiagnostic*
 __ZGVZNK9gui_forms16LengthPercentage*
+__ZGVZNK9gui_forms16LinearLightLevel*
 __ZGVZNK9gui_forms16LivePacingResult*
 __ZGVZNK9gui_forms16LiveSurfaceFrame*
 __ZGVZNK9gui_forms16LiveSurfacePacer*
@@ -4321,6 +4323,7 @@ __ZN9gui_forms16ItemContentPaint*
 __ZN9gui_forms16LayoutConstraint*
 __ZN9gui_forms16LayoutDiagnostic*
 __ZN9gui_forms16LengthPercentage*
+__ZN9gui_forms16LinearLightLevel*
 __ZN9gui_forms16LivePacingResult*
 __ZN9gui_forms16LiveSurfaceFrame*
 __ZN9gui_forms16LiveSurfacePacer*
@@ -5884,6 +5887,8 @@ __ZN9gui_forms25encode_window_capture_pngB*
 __ZN9gui_forms25encode_window_capture_pngE*
 __ZN9gui_forms25estimate_text_layout_utf8B*
 __ZN9gui_forms25estimate_text_layout_utf8E*
+__ZN9gui_forms25expand_linear_light_stopsB*
+__ZN9gui_forms25expand_linear_light_stopsE*
 __ZN9gui_forms25expression_operation_nameB*
 __ZN9gui_forms25expression_operation_nameE*
 __ZN9gui_forms25finished_surface_materialB*
@@ -7447,6 +7452,7 @@ __ZNK[RO]9gui_forms16ItemContentPaint*
 __ZNK[RO]9gui_forms16LayoutConstraint*
 __ZNK[RO]9gui_forms16LayoutDiagnostic*
 __ZNK[RO]9gui_forms16LengthPercentage*
+__ZNK[RO]9gui_forms16LinearLightLevel*
 __ZNK[RO]9gui_forms16LivePacingResult*
 __ZNK[RO]9gui_forms16LiveSurfaceFrame*
 __ZNK[RO]9gui_forms16LiveSurfacePacer*
@@ -9127,6 +9133,7 @@ __ZN[KRO]9gui_forms16ItemContentPaint*
 __ZN[KRO]9gui_forms16LayoutConstraint*
 __ZN[KRO]9gui_forms16LayoutDiagnostic*
 __ZN[KRO]9gui_forms16LengthPercentage*
+__ZN[KRO]9gui_forms16LinearLightLevel*
 __ZN[KRO]9gui_forms16LivePacingResult*
 __ZN[KRO]9gui_forms16LiveSurfaceFrame*
 __ZN[KRO]9gui_forms16LiveSurfacePacer*
@@ -10807,6 +10814,7 @@ __ZT[VIST]N9gui_forms16ItemContentPaint*E
 __ZT[VIST]N9gui_forms16LayoutConstraint*E
 __ZT[VIST]N9gui_forms16LayoutDiagnostic*E
 __ZT[VIST]N9gui_forms16LengthPercentage*E
+__ZT[VIST]N9gui_forms16LinearLightLevel*E
 __ZT[VIST]N9gui_forms16LivePacingResult*E
 __ZT[VIST]N9gui_forms16LiveSurfaceFrame*E
 __ZT[VIST]N9gui_forms16LiveSurfacePacer*E
@@ -12487,6 +12495,7 @@ __ZT[hvc]*9gui_forms16ItemContentPaint*
 __ZT[hvc]*9gui_forms16LayoutConstraint*
 __ZT[hvc]*9gui_forms16LayoutDiagnostic*
 __ZT[hvc]*9gui_forms16LengthPercentage*
+__ZT[hvc]*9gui_forms16LinearLightLevel*
 __ZT[hvc]*9gui_forms16LivePacingResult*
 __ZT[hvc]*9gui_forms16LiveSurfaceFrame*
 __ZT[hvc]*9gui_forms16LiveSurfacePacer*
@@ -14167,6 +14176,7 @@ __ZZN9gui_forms16ItemContentPaint*
 __ZZN9gui_forms16LayoutConstraint*
 __ZZN9gui_forms16LayoutDiagnostic*
 __ZZN9gui_forms16LengthPercentage*
+__ZZN9gui_forms16LinearLightLevel*
 __ZZN9gui_forms16LivePacingResult*
 __ZZN9gui_forms16LiveSurfaceFrame*
 __ZZN9gui_forms16LiveSurfacePacer*
@@ -15847,6 +15857,7 @@ __ZZNK9gui_forms16ItemContentPaint*
 __ZZNK9gui_forms16LayoutConstraint*
 __ZZNK9gui_forms16LayoutDiagnostic*
 __ZZNK9gui_forms16LengthPercentage*
+__ZZNK9gui_forms16LinearLightLevel*
 __ZZNK9gui_forms16LivePacingResult*
 __ZZNK9gui_forms16LiveSurfaceFrame*
 __ZZNK9gui_forms16LiveSurfacePacer*

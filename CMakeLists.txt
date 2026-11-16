@@ -80,6 +80,17 @@ option(GUI_FORMS_INSTALL_GALLERY_MODEL "Install the Gallery model as the Gallery
 # types, so the whole program, consumers included, is built one way: the
 # definition is public on gui_forms_core and every target here sees it.
 option(GUI_FORMS_CHECKED_BORROWS "Check borrowed views against their owners (the sanitizer tree)" OFF)
+# The reference arithmetic (owner, 2026-11-16): ON compiles every first-party
+# target with -ffp-contract=off and defines GUI_FORMS_REFERENCE_ARITHMETIC, so
+# the raster, engine, material, theme-kernel and effect paths fuse no
+# multiply-add and every CPU gives the same bytes. The reference and
+# conformance builds turn it on: tools/ci_build.py and every build that runs
+# the suite (tools/toolkit_configure.py with tests), the engine gate, the
+# pixel-hash tests and the cross-host comparisons. Deployment builds (the
+# SDK, the release packages, profiling) leave it OFF, so the compiler
+# contracts as it would by default. See "Floating-point contraction" below.
+option(GUI_FORMS_REFERENCE_ARITHMETIC
+    "Reference arithmetic: no floating-point contraction in first-party code (reference and conformance builds)" OFF)
 if(GUI_FORMS_CHECKED_BORROWS)
     add_compile_definitions(GUI_FORMS_CHECKED_BORROWS=1)
 endif()
@@ -554,6 +565,7 @@ add_library(gui_forms_core STATIC
     src/core/scene/scene_view/scene_view.cpp
     src/core/types/paint_recipes/paint_recipes.cpp
     src/core/types/rect/rect.cpp
+    src/core/types/linear_light/linear_light.cpp
     src/core/theme/theme/theme.cpp
     src/core/theme/contrast/theme_contrast.cpp
     src/core/theme/dark_variant/dark_variant.cpp
@@ -4047,6 +4059,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_motion_clock_tests tests/motion_clock_tests.cpp)
     target_link_libraries(gui_forms_motion_clock_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_motion_clock_tests COMMAND gui_forms_motion_clock_tests)
+    add_executable(gui_forms_linear_light_tests tests/linear_light_tests.cpp)
+    target_link_libraries(gui_forms_linear_light_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_linear_light_tests COMMAND gui_forms_linear_light_tests)
     add_executable(gui_forms_engine_math_tests tests/engine_math_tests.cpp)
     target_link_libraries(gui_forms_engine_math_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_engine_math_tests COMMAND gui_forms_engine_math_tests)
@@ -7305,17 +7320,35 @@ if(GUI_FORMS_BUILD_FOCUS_LABS)
     endif()
 endif()
 
-# No floating-point contraction in first-party code (owner, 2026-11-01): Clang's default
-# fuses a * b + c within an expression where the target has a fused multiply-add, which
-# arm64 always has and the x86-64 baseline never does, so the same source gave different
-# bits on the two. Every target this directory defines gets -ffp-contract=off; the
-# stx libraries (stx_zlib, stx_png, stx_conv, stx_rtf2md, stx_vorbis) set it on their own
-# targets in their own build. A kernel that wants fusion spells it std::fma, so the choice is
-# visible and gives the same bits everywhere. Third-party code (FreeType)
-# keeps its own flags in the stx package (cmake/stx_package/);
-# miniaudio is compiled inside src/audio/audio.cpp and so takes the flag with it. stx_skia sets -ffp-contract=off on its
-# library itself; its raster pipeline's explicit fused stages (the FMA entries in the FMA
-# log) are a separate matter.
+# Floating-point contraction. Clang's default fuses a * b + c within an
+# expression where the target has a fused multiply-add, which arm64 always has
+# and the x86-64 baseline never does, so the same source gives different bits
+# on the two. The owner's ruling of 2026-11-01 turned contraction off in every
+# first-party target; the ruling of 2026-11-16 keeps that for referencing only
+# ("turn it off for referencing, and leave it on for actual deployment"):
+# - GUI_FORMS_REFERENCE_ARITHMETIC ON (reference and conformance builds):
+#   every target this directory defines gets -ffp-contract=off and the
+#   definition GUI_FORMS_REFERENCE_ARITHMETIC, which the raster, engine,
+#   material, theme-kernel and effect sources test to add
+#   `#pragma clang fp contract(off)` as well;
+# - OFF (deployment): neither, so those paths contract as the compiler
+#   chooses, and their bytes may differ between CPUs by a step where a
+#   fused multiply-add rounds differently.
+# Gradient colours are the same either way: they interpolate in linear light
+# in integers (gui_forms/types/linear_light/linear_light.hpp).
+# A few sources keep contraction off in every build, listed with their reasons
+# after the loop below: engine_math, whose stated error bounds assume unfused
+# operations, and the value paths, whose results are numbers (parsed text,
+# layout lengths, theme values, motion samples), not pixels.
+# A kernel that wants fusion spells it std::fma, so the choice is visible and
+# gives the same bits everywhere. The stx libraries (stx_zlib, stx_png,
+# stx_conv, stx_rtf2md, stx_vorbis) set -ffp-contract=off on their own targets
+# in their own build, and stx_skia on its library, in every build: the stx
+# package is built apart (cmake/stx_package/) and does not read this option;
+# its raster pipeline's explicit fused stages are the FMA log's entries.
+# Third-party code (FreeType) keeps its own flags in the stx package;
+# miniaudio is compiled inside
+# src/audio/audio.cpp and so follows the option with it.
 # One static test runtime for the test programs that use only the toolkit's
 # own libraries, before the options below read their links
 # (cmake/TestRuntime.cmake).
@@ -7329,8 +7362,12 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     foreach(gui_forms_first_party_target IN LISTS gui_forms_first_party_targets)
         get_target_property(gui_forms_target_type ${gui_forms_first_party_target} TYPE)
         if(gui_forms_target_type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
-            target_compile_options(${gui_forms_first_party_target} PRIVATE
-                $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-ffp-contract=off>)
+            if(GUI_FORMS_REFERENCE_ARITHMETIC)
+                target_compile_options(${gui_forms_first_party_target} PRIVATE
+                    $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-ffp-contract=off>)
+                target_compile_definitions(${gui_forms_first_party_target} PRIVATE
+                    GUI_FORMS_REFERENCE_ARITHMETIC=1)
+            endif()
             # Hardening and the warning level (cmake/Hardening.cmake, D11).
             gui_forms_harden_target(${gui_forms_first_party_target} ${gui_forms_target_type})
             # A view (std::string_view, std::span) bound or assigned to a
@@ -7349,6 +7386,33 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
             endif()
         endif()
     endforeach()
+    # Contraction off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC
+    # says (each source also carries the Clang pragma; GCC reads only the flag):
+    # - engine_math: its stated error bounds (engine_math.hpp) assume each
+    #   operation rounds on its own;
+    # - engine_expression and theme_value: theme values and expressions, the
+    #   same text giving the same number on every host;
+    # - value_text: a ValueBar's typed value, parsed as the expression engine
+    #   computes;
+    # - scrub_gesture: a pointer script's scrubbed values;
+    # - layout_style_reader: layout lengths, which place edges and hit tests;
+    # - theme_motion_lowering and motion_value: motion parameters and samples,
+    #   whose settling decides when an animation ends.
+    set_source_files_properties(
+        src/core/engine/engine_math/engine_math.cpp
+        src/core/engine/engine_expression/engine_expression.cpp
+        src/core/theme_language/value/theme_value.cpp
+        src/controls/range_control/value_bar/value_text.cpp
+        src/core/drag_engine/scrub_gesture.cpp
+        src/core/layout/style_reader/layout_style_reader.cpp
+        src/core/theme_language/motion/theme_motion_lowering.cpp
+        src/core/engine/motion_value/motion_value.cpp
+        PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+endif()
+if(GUI_FORMS_BUILD_TESTS AND NOT GUI_FORMS_REFERENCE_ARITHMETIC)
+    message(WARNING "GUI_FORMS_BUILD_TESTS is ON without GUI_FORMS_REFERENCE_ARITHMETIC: the pixel-hash tests "
+                    "pin the reference arithmetic's bytes and may fail where the compiler fuses multiply-adds "
+                    "(arm64). tools/ci_build.py configures with -DGUI_FORMS_REFERENCE_ARITHMETIC=ON.")
 endif()
 
 # One precompiled header per group of test programs, after every option is set

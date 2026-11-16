@@ -11,6 +11,8 @@
 
 // The scrub's arithmetic is computed without fused multiply-add, so the
 // same pointer script gives the same values on every host.
+// Off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC says
+// (CMakeLists.txt, "Floating-point contraction").
 #if defined(__clang__)
 #pragma clang fp contract(off)
 #endif

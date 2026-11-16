@@ -1,6 +1,7 @@
 #include "relief_primitives.hpp"
 
 #include "../kernel/pixel_kernel.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 
 #include <algorithm>
 #include <array>
@@ -11,29 +12,21 @@
 #include <string_view>
 
 // Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
 namespace gui_forms::engine_primitives {
 namespace {
 
-// The colour a vertical gradient from `top` to `bottom` has at `t` in
-// [0, 1], each straight channel interpolated.
+// The colour a vertical gradient from `top` to `bottom` has at `t` (clamped
+// to [0, 1]), interpolated premultiplied in linear light, as every gradient
+// is (gui_forms/types/linear_light/linear_light.hpp).
 Color gradient_at(Color top, Color bottom, double t) noexcept {
-    const double clamped = std::clamp(t, 0.0, 1.0);
-    const double red = static_cast<double>(top.red) +
-                       (static_cast<double>(bottom.red) - static_cast<double>(top.red)) * clamped;
-    const double green = static_cast<double>(top.green) +
-                         (static_cast<double>(bottom.green) - static_cast<double>(top.green)) * clamped;
-    const double blue = static_cast<double>(top.blue) +
-                        (static_cast<double>(bottom.blue) - static_cast<double>(top.blue)) * clamped;
-    const double alpha = static_cast<double>(top.alpha) +
-                         (static_cast<double>(bottom.alpha) - static_cast<double>(top.alpha)) * clamped;
-    const Color colour{static_cast<std::uint8_t>(std::floor(red + 0.5)),
-                       static_cast<std::uint8_t>(std::floor(green + 0.5)),
-                       static_cast<std::uint8_t>(std::floor(blue + 0.5)),
-                       static_cast<std::uint8_t>(std::floor(alpha + 0.5))};
+    const Color colour = interpolate_linear_light(top, bottom, linear_light_weight(t));
     return colour;
 }
 

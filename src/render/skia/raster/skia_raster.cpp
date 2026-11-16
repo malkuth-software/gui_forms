@@ -1,6 +1,7 @@
 #include "skia_raster.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 
 #include "gui_forms/live_surface.hpp"
@@ -153,22 +154,29 @@ SkRRect to_sk_rrect_corners(Rect rect, PaintCornerRadii radii) noexcept {
 }
 
 // A gradient's stops in Skia's form, on the stack: capacity
-// maximum_gradient_stops, live length `count` (audit P10: no allocation
+// maximum_linear_light_stops, live length `count` (audit P10: no allocation
 // per fill).
 struct SkGradientData final {
-    std::array<SkColor4f, maximum_gradient_stops> colors{};
-    std::array<float, maximum_gradient_stops> positions{};
+    std::array<SkColor4f, maximum_linear_light_stops> colors{};
+    std::array<float, maximum_linear_light_stops> positions{};
     std::size_t count{};
 };
 
 // `stops` passed valid_gradient_stops, so it holds at most
-// maximum_gradient_stops.
+// maximum_gradient_stops. Gradients interpolate in linear light (owner,
+// 2026-11-16; gui_forms/types/linear_light/linear_light.hpp): Skia is set to
+// interpolate premultiplied sRGB (make_sk_gradient), so the stops are first
+// expanded with the linear-light colours between them, computed by the
+// engine's integer tables; Skia's own colour-space conversion is not used,
+// so the stop colours are the same on every host.
 SkGradientData to_sk_gradient(std::span<const GradientStop> stops) {
+    std::array<GradientStop, maximum_linear_light_stops> expanded{};
+    const std::size_t count = expand_linear_light_stops(stops, expanded);
     SkGradientData result{};
-    result.count = std::min(stops.size(), maximum_gradient_stops);
-    for (std::size_t index = 0U; index < result.count; ++index) {
-        result.colors[index] = SkColor4f::FromColor(to_sk_color(stops[index].color));
-        result.positions[index] = static_cast<float>(stops[index].offset);
+    result.count = count;
+    for (std::size_t index = 0U; index < count; ++index) {
+        result.colors[index] = SkColor4f::FromColor(to_sk_color(expanded[index].color));
+        result.positions[index] = static_cast<float>(expanded[index].offset);
     }
     return result;
 }
@@ -189,6 +197,8 @@ SkGradient make_sk_gradient(
         SkSpan<const SkColor4f>(data.colors.data(), data.count),
         SkSpan<const float>(data.positions.data(), data.count),
         to_sk_tile_mode(spread), SkColorSpace::MakeSRGB());
+    // Premultiplied sRGB between the expanded stops (to_sk_gradient), which
+    // follow the linear-light interpolation within about a step.
     SkGradient::Interpolation interpolation;
     interpolation.fInPremul = SkGradient::Interpolation::InPremul::kYes;
     interpolation.fColorSpace = SkGradient::Interpolation::ColorSpace::kSRGB;

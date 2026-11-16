@@ -369,7 +369,8 @@ jobs:
             -DGUI_FORMS_ENABLE_WINDOWS_HOST=$([ "${{ matrix.host }}" = WINDOWS ] && echo ON || echo OFF) \
             -DGUI_FORMS_ENABLE_LINUX_HOST=$([ "${{ matrix.host }}" = LINUX ] && echo ON || echo OFF) \
             $renderer \
-            -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_BUILD_AUDIO=ON -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
+            -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_REFERENCE_ARITHMETIC=ON \
+            -DGUI_FORMS_BUILD_AUDIO=ON -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
             -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD=ON \
             -DGUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package"
       # A pull request builds only what the tests it runs need: the tests its

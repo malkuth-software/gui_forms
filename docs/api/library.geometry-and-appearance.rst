@@ -254,6 +254,8 @@ Types
      - A rectangle of device pixels the planes are stretched over.
    * - :cpp:class:`LightPlanes <gui_forms::engine_light::LightPlanes>`
      - One bake's planes, ``width`` × ``height`` pixels: - ``room``: the room's light, three floats a pixel (red, green, blue), premultiplied by coverage; - ``lamps``: ``lamp_count`` planes of the same shape, one after another, each lamp alone at unit white power; - ``coverage``: one float a pixel in [0, 1], the share of the pixel the key covers.
+   * - :cpp:class:`LinearLightLevel <gui_forms::LinearLightLevel>`
+     - Linear light in 16-bit fixed point: 0 black, 65535 full intensity.
    * - :cpp:class:`LitKeyBake <gui_forms::engine_light::LitKeyBake>`
      - -- the lit keys' bake ------------------------------------------------------------------ One lit key's bake parameters, and the values the study baked its dialog keys with (lamp_keys.cpp, the dialog family): - height above the panel as a share of the key's short side: 0.57 there, an early test value.
    * - :cpp:class:`MarkerStyle <gui_forms::MarkerStyle>`
@@ -3663,6 +3665,16 @@ Types
 
    .. cpp:member:: std::vector<float> coverage
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LinearLightLevel final
+
+   ``#include <gui_forms/types/linear_light/linear_light.hpp>``
+
+   Linear light in 16-bit fixed point: 0 black, 65535 full intensity. A type of its own so that it is never mistaken for an sRGB byte.
+
+   .. cpp:member:: std::uint16_t value
+
 .. cpp:namespace:: gui_forms::engine_light
 
 .. cpp:struct:: LitKeyBake final
@@ -3957,7 +3969,7 @@ Types
 
    .. cpp:function:: static MaterialColourTable tritone(Color shadow, Color midtone, Color highlight)
 
-      Tritone's table (after MaterialColourMatrix::luminance()): each colour channel a table of the shadow's, the midtone's and the highlight's value; alpha kept.
+      Tritone's table (after MaterialColourMatrix::luminance()): levels 0 to 127 from the shadow to the midtone, 128 to 255 from the midtone to the highlight, interpolated in linear light as every gradient is (gui_forms/types/linear_light/linear_light.hpp); alpha kept.
 
    .. cpp:function:: MaterialColourTable then(const MaterialColourTable& after) const noexcept
 
@@ -11405,6 +11417,38 @@ Functions, constants and aliases
 .. cpp:function:: DamageRegion damage_after_scroll_copy(const DamageRegion& damage, Rect clip, Point offset)
 
    The damage ``damage`` becomes once a scroll copy moved the pixels inside ``clip`` by ``offset`` (window coordinates): a rectangle's share inside the clip moves with its pixels and is cut to the clip; its share outside the clip stays where it was. The pixels the copy exposed are not included.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/types/linear_light/linear_light.hpp>``
+
+.. cpp:function:: constexpr LinearLightLevel linear_light_of_srgb(std::uint8_t encoded) noexcept
+
+   An sRGB byte's linear light (the table's entry, exact to half a step).
+
+.. cpp:function:: constexpr std::uint8_t srgb_of_linear_light(LinearLightLevel linear) noexcept
+
+   The sRGB byte nearest ``linear`` on the encoded scale, halves up: the number of encoding thresholds at or below it. Every byte survives the round trip: srgb_of_linear_light(linear_light_of_srgb(v)) is v.
+
+.. cpp:function:: constexpr std::uint32_t linear_light_weight(double fraction) noexcept
+
+   ``fraction`` of the way as a weight, rounded to the nearest 1/65536 (halves up); clamped to [0, 1], NaN taken as 0. Scaling by 65536 is exact, so the weight is the same with or without fused multiply-add.
+
+.. cpp:function:: constexpr Color interpolate_linear_light(Color from, Color to, std::uint32_t weight) noexcept
+
+   The colour ``weight`` of the way from ``from`` to ``to`` (straight alpha in, straight alpha out), interpolated premultiplied in linear light: a stop fading to transparent fades the other stop's colour, never towards black. A weight of 0 is ``from`` and one of linear_light_weight_one or more ``to``, exactly; equal colours give that colour. A result whose alpha is zero is transparent black. Alpha is rounded to the nearest byte, halves up.
+
+.. cpp:function:: std::size_t expand_linear_light_stops(std::span<const GradientStop> stops, std::span<GradientStop> expanded) noexcept
+
+   For a renderer that interpolates its stops in sRGB-encoded space (Skia's gradient shaders, set to premultiplied sRGB interpolation): writes into ``expanded`` the stops of ``stops`` with stops added between each two of different colour, so that interpolating the expanded stops in sRGB follows interpolating ``stops`` in linear light. Returns the number written. Between two stops, the span is halved where its middle colour (exact, by interpolate_linear_light) differs from the premultiplied sRGB chord of its ends by more than half a step in any colour channel, at most eight times deep; added stops lie strictly between the two and keep their order, so hard stops (two at one offset), solid spans and the spread outside [0, 1] are kept. A black-to-white span takes 17 stops, red to blue 29; sampled at 1001 points the expanded gradient stays within 1.3 steps of the exact colour (half a step of which is the exact colour's own rounding). Stops are added only while ``expanded`` keeps room for every remaining original stop, from the first span on; with maximum_linear_light_stops of room only gradients of very many contrasting stops reach that bound, and their later spans then follow less closely. Writes nothing and returns 0 when ``stops`` is empty or ``expanded`` is shorter than ``stops``. ``stops`` and ``expanded`` must not overlap.
+
+.. cpp:var:: constexpr std::uint32_t linear_light_weight_one
+
+   The interpolation weight of the second colour, in 1/65536: 0 the first colour, linear_light_weight_one the second. Value: ``65536U``.
+
+.. cpp:var:: constexpr std::size_t maximum_linear_light_stops
+
+   The capacity expand_linear_light_stops needs for any valid stops (valid_gradient_stops: at most maximum_gradient_stops): the stops themselves and the stops added between them. Value: ``256U``.
 
 .. cpp:namespace:: gui_forms
 

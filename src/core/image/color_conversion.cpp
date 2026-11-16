@@ -9,7 +9,12 @@
 
 // Clang contracts a*b + c into a fused multiply-add by default on arm64 and
 // not on baseline x86-64; every host must compute the same bits.
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
+#endif
 
 namespace gui_forms::image {
 namespace {

@@ -12,6 +12,8 @@
 // The folded power and the scale factors are computed without fused
 // multiply-add, as the expression engine computes: the same text gives the
 // same value on every host.
+// Off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC says
+// (CMakeLists.txt, "Floating-point contraction").
 #if defined(__clang__)
 #pragma clang fp contract(off)
 #endif

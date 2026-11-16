@@ -239,7 +239,9 @@ void test_focal_radial_bakes() {
     const std::size_t at_focus = (origin + 16U) * row_bytes + (origin + 8U) * 4U;
     const std::size_t nearer = (origin + 16U) * row_bytes + (origin + 2U) * 4U;
     const std::size_t farther = (origin + 16U) * row_bytes + (origin + 14U) * 4U;
-    require(pixels[at_focus + 2U] > 220U && pixels[at_focus] < 40U, "the focus takes the first stop");
+    // The focus pixel's centre lies a little past t = 0 (about 0.04), where
+    // linear light gives blue about 56.
+    require(pixels[at_focus + 2U] > 220U && pixels[at_focus] < 75U, "the focus takes the first stop");
     require(static_cast<int>(pixels[nearer]) > static_cast<int>(pixels[farther]) + 40,
             "the rings crowd towards the edge nearer the focus");
 }

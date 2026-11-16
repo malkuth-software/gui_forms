@@ -25,7 +25,10 @@
 // A filter's blur and a drop shadow's colour are part of the material the
 // engine bakes, so they are computed without fused multiply-add: the same
 // sheet gives the same material on every host.
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 

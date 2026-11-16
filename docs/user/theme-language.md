@@ -275,6 +275,18 @@ only material fields selects the `material` primitive.
 | node canvas | on a named part of `node-canvas` (part fields; refused on a control): `fill-color` and `stroke-color` (an area's fill and its line), `stroke-width` (0 to 32px), `stroke-dash` (`none`, or a dash and a gap, each up to 64px; a dash of 0 is refused, a gap of 0 is solid), `halo` (`none`, or a width of 0 to 16px and a colour in either order: a wider stroke drawn under a link), `corner-radius` (0 to 64px), `grid-spacing` (the minor grid's spacing in world units at zoom 1, 2px to 512px; default 16px), `grid-band` (the smallest minor spacing on screen, 2px to 128px; the band runs to 4 times it, default 6px, so minor lines show fully at zoom 1), `background-texture` (`none`, or one to three comma-separated layers, bottom first, each `procedural(<kind>, <seed>, <tile>, <strength>) multiply <percentage>` or `finish(...) multiply <percentage>`: a baked surface, never an image, under the grid, anchored to the canvas's world coordinates; a procedural kind is `felt`, `wood-grain`, `paper-fibre`, `pinstripe`, `brushed-metal`, `checker` or a hatch (`hatch-horizontal`, `hatch-vertical`, `hatch-forward-diagonal`, `hatch-backward-diagonal`, `hatch-cross`, `hatch-diagonal-cross`, whose seed is not read), its seed a whole number from 0 to 4294967295, its tile 2px to 96px, its strength 0 to 1, and the canvas chooses its colours; a finish is written as in a fill (`finish(orange-peel, #ffffff, #c8c8c8, 5)`), any finish but a glint, in the colours written, evaluated at the canvas's world coordinates so it is continuous everywhere and pans and zooms with the canvas; the contrast is 0% to 3%; anything outside refuses the theme), `flow` (`none`, `dots`, `dashes`: marks moving along a link at rest), `flow-speed` (0 to 512 world units a second; default 48), `flow-spacing` (4px to 128px; default 16px); the parts are listed under "The node canvas" below |
 | fonts | `font-family` (bundled families, `Portsmouth Rapids`, `Carlito`, `Cousine`, `Selawik`, in a list ended by `control`, `content` or `monospace`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
 
+Gradients interpolate in linear light, not on the sRGB-encoded values CSS
+uses by default. Between two colour stops, both are decoded from sRGB to
+linear light, mixed premultiplied there, and the mixture encoded back to an
+sRGB colour: a gradient from red to blue passes through a brighter purple
+(188, 0, 188 at the middle) than CSS draws (128, 0, 128), and a black to
+white gradient is 188 grey at its middle. Alpha mixes as it is, and a stop
+fading to transparent fades the other stop's colour. The conversions are
+tables in integers, so a gradient has the same bytes on every host. This
+holds for every gradient the engine makes: material layers, the painter's
+gradient fills, GUI.Drawing brushes and `tritone()`'s table. Hard stops,
+solid fills and `color-mix(in srgb, ...)` are unchanged.
+
 `gradient-dither: none | ordered | blue-noise` sets how the engine's
 material kernel quantizes a part's finished pixels to 8 bits. `none`
 rounds, as before. `ordered` adds an 8 x 8 Bayer threshold and `blue-noise`
@@ -371,7 +383,9 @@ pixel's luminance L = 0.2126 R + 0.7152 G + 0.0722 B (on the sRGB-encoded
 values) to dark + L (light - dark), keeping its alpha; the colours' own
 alpha is not read. `tritone(<shadow>, <midtone>, <highlight>)` maps
 luminance through the three colours, shadow at 0, midtone at one half and
-highlight at 1, straight lines between. `fill()` and `duotone()` are colour
+highlight at 1, mixed in linear light between them as a gradient is.
+`duotone()` stays a straight line on the sRGB-encoded values: it is a
+matrix, which cannot mix in linear light. `fill()` and `duotone()` are colour
 matrices, composed with the CSS colour functions in order. `tritone()` is
 the luminance matrix followed by a colour table: each straight channel,
 rounded to 8 bits once, looked up in a table of 256 levels made when the

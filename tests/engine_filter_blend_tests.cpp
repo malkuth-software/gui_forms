@@ -252,14 +252,15 @@ void colour_stages() {
     toned.colour_filter = MaterialColourMatrix::duotone(Color{20, 40, 60, 255}, Color{220, 240, 255, 255});
     require(draw(toned, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{120U, 140U, 158U, 255U}),
             "duotone maps luminance between its colours");
-    // Grey's luminance is level 128, 0.00392 past the midtone: red rises
-    // to 1, green falls to 254, blue stays 0.
+    // Grey's luminance is level 128, 257/65536 past the midtone, mixed in
+    // linear light: red rises to 13 (linear 257 of 65535), green stays 255
+    // (65278 still encodes to 255), blue stays 0.
     SurfaceMaterial tritoned = filled_with(grey);
     tritoned.colour_filter =
         MaterialColourFilter(MaterialColourMatrix::luminance(),
                              MaterialColourTable::tritone(Color{0, 0, 255, 255}, Color{0, 255, 0, 255},
                                                           Color{255, 0, 0, 255}));
-    require(draw(tritoned, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{1U, 254U, 0U, 255U}),
+    require(draw(tritoned, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{13U, 255U, 0U, 255U}),
             "tritone maps luminance through its three colours");
 
     MaterialTransferFunction peak{};

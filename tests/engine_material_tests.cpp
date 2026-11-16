@@ -334,8 +334,14 @@ void gradients() {
     const GradientStop stops[] = {GradientStop{0.0, red}, GradientStop{1.0, blue}};
     material.fills.push_back(MaterialFillLayer::linear(Point{0.0, 0.5}, Point{1.0, 0.5}, stops, 2U));
     const TestRaster linear = draw(material, Size{20.0, 10.0}, 1.0);
-    require(channel(linear, 8U, 13U, 0U) > 240 && channel(linear, 8U, 13U, 2U) < 15, "the start is the first stop");
-    require(channel(linear, 27U, 13U, 2U) > 240 && channel(linear, 27U, 13U, 0U) < 15, "the end is the last");
+    // The end pixels' centres lie at t = 0.025 and 0.975: in linear light the
+    // far stop's channel encodes to about 44 there.
+    require(channel(linear, 8U, 13U, 0U) > 240 && channel(linear, 8U, 13U, 2U) < 60, "the start is the first stop");
+    require(channel(linear, 27U, 13U, 2U) > 240 && channel(linear, 27U, 13U, 0U) < 60, "the end is the last");
+    // The middle (t = 0.475 and 0.525 either side of it) is the bright
+    // purple of linear light, not sRGB's 128.
+    require(channel(linear, 17U, 13U, 0U) > 180 && channel(linear, 18U, 13U, 2U) > 180,
+            "the middle is interpolated in linear light");
 
     SurfaceMaterial angled{};
     angled.fills.clear();
@@ -356,8 +362,8 @@ void gradients() {
     const TestRaster stripes = draw(repeated, Size{20.0, 10.0}, 1.0);
     require(channel(stripes, 8U, 13U, 0U) == channel(stripes, 18U, 13U, 0U), "a repeat starts again each period");
 
-    // Stops are interpolated premultiplied, as CSS and the Skia painter
-    // interpolate them: white fading to transparent black stays white at
+    // Stops are interpolated premultiplied (in linear light), as the Skia
+    // painter interpolates them: white fading to transparent black stays white at
     // every coverage, its premultiplied channels equal to its alpha. In
     // straight alpha the run would pass through grey, the channels half
     // the alpha at the middle.
@@ -1604,15 +1610,16 @@ void surface_finish() {
                 half_finished.fills.front().stops[2].color == Color::rgba(111, 148, 185),
             "a half finish has half the shine and half the darkening");
 
-    // A gradient face is sampled at 0, 0.5 and 1: black to white has 128
-    // at its middle.
+    // A gradient face is sampled at 0, 0.5 and 1: black to white has 188
+    // at its middle, mixed in linear light (lifted by a quarter, 205;
+    // darkened by 0.15, 160).
     SurfaceMaterial graded = material;
     graded.fills = {MaterialFillLayer::linear(Point{0.0, 0.0}, Point{1.0, 0.0},
                                               std::vector<GradientStop>{{0.0, black}, {1.0, Color::rgba(255, 255, 255)}})};
     const SurfaceMaterial graded_finished = finished_surface_material(graded);
     const std::vector<GradientStop>& graded_stops = graded_finished.fills.front().stops;
-    require(graded_stops[0].color == Color::rgba(64, 64, 64) && graded_stops[1].color == Color::rgba(160, 160, 160) &&
-                graded_stops[2].color == Color::rgba(109, 109, 109) &&
+    require(graded_stops[0].color == Color::rgba(64, 64, 64) && graded_stops[1].color == Color::rgba(205, 205, 205) &&
+                graded_stops[2].color == Color::rgba(160, 160, 160) &&
                 graded_stops[3].color == Color::rgba(255, 255, 255),
             "a gradient face's colours at 0, 0.5 and 1 are its finish's");
 

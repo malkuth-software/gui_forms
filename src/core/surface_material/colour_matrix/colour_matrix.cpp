@@ -1,6 +1,7 @@
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
 
 #include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -9,7 +10,10 @@
 #include <utility>
 
 // The same matrices on every host: no fused multiply-add.
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
@@ -269,16 +273,28 @@ MaterialColourTable MaterialColourTable::transfer(const MaterialTransferFunction
 }
 
 MaterialColourTable MaterialColourTable::tritone(Color shadow, Color midtone, Color highlight) {
-    const std::array<Color, 3> colours{shadow, midtone, highlight};
-    std::array<MaterialTransferFunction, 3> functions{};
-    for (std::size_t channel = 0U; channel < functions.size(); ++channel) {
-        functions[channel].kind = MaterialTransferKind::table;
-        for (const Color colour : colours) {
-            const std::array<std::uint8_t, 3> bytes{colour.red, colour.green, colour.blue};
-            functions[channel].values.push_back(static_cast<double>(bytes[channel]) / 255.0);
-        }
+    // Levels 0 to 127 run from the shadow to the midtone, 128 to 255 from
+    // the midtone to the highlight (the three-value table's two segments,
+    // split at 0.5), interpolated in linear light as every gradient is
+    // (gui_forms/types/linear_light/linear_light.hpp). The colours' own
+    // alpha takes no part: the table keeps alpha.
+    const Color low{shadow.red, shadow.green, shadow.blue, 255U};
+    const Color middle{midtone.red, midtone.green, midtone.blue, 255U};
+    const Color high{highlight.red, highlight.green, highlight.blue, 255U};
+    MaterialColourTable table{};
+    for (std::size_t level = 0U; level < levels; ++level) {
+        const bool lower = level < 128U;
+        // The segment's position in 1/65536, rounded: 2 × level / 255 in
+        // the lower segment, (2 × level − 255) / 255 in the upper.
+        const std::uint64_t doubled = 2U * static_cast<std::uint64_t>(level);
+        const std::uint64_t along = lower ? doubled : doubled - 255U;
+        const std::uint32_t weight = static_cast<std::uint32_t>((along * linear_light_weight_one + 127U) / 255U);
+        const Color mixed = lower ? interpolate_linear_light(low, middle, weight)
+                                  : interpolate_linear_light(middle, high, weight);
+        table.entries[level] = mixed.red;
+        table.entries[levels + level] = mixed.green;
+        table.entries[2U * levels + level] = mixed.blue;
     }
-    const MaterialColourTable table = transfer(functions[0], functions[1], functions[2], MaterialTransferFunction{});
     return table;
 }
 
