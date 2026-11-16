@@ -2878,8 +2878,8 @@ void example() {
     (*inspector).dock = gf::DockStyle::fill;
     (*shell).add_child(content);
     (*shell).add_child(inspector);
-    (*shell).child_track[*content] = 0U;
-    (*shell).child_track[*inspector] = 1U;
+    (*shell).child_track[*content] = stxlib::Optional<std::uint32_t>::of(0U);
+    (*shell).child_track[*inspector] = stxlib::Optional<std::uint32_t>::of(1U);
 
     gf::Window window(shell, {240.0, 100.0});
     window.perform_layout();      // both tracks fit side by side
