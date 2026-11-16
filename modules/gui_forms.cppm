@@ -2380,7 +2380,6 @@ using gui_forms::build_help_page;
 using gui_forms::build_static_tree;
 using gui_forms::built_in_theme_name;
 using gui_forms::bundled_font_faces;
-using gui_forms::bundled_font_families;
 using gui_forms::busy_segment_share;
 using gui_forms::canonical_binding_name;
 using gui_forms::canvas_focus_gap;

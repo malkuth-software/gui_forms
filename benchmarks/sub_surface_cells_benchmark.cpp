@@ -284,7 +284,7 @@ private:
         rows.push_back(std::move(added));
     }
     (*grid).rows = std::move(rows);
-    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).allow_user_to_add_rows = false;
     return grid;
 }
 
