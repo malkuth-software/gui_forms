@@ -621,7 +621,9 @@ void test_hatch() {
 
 void test_focal_radial() {
     // Red at the focus, 8 units left of the centre, to blue on a circle of
-    // 16 units: the stops crowd towards the near edge.
+    // 16 units: the stops crowd towards the near edge. Its rectangle starts
+    // at x 16: padded, it paints blue beyond the circle too, and the 8 by 8
+    // corner is kept for the refused focus below.
     SkiaRaster raster;
     require(raster.resize(scene_size, 1.0) || raster.pixel_width() != 0U, "the raster must have a surface");
     DamageRegion damage;
@@ -629,8 +631,9 @@ void test_focal_radial() {
     raster.begin_frame(damage);
     raster.fill_rect(Rect{0.0, 0.0, scene_size.width, scene_size.height}, white);
     const std::array<GradientStop, 2> stops{{GradientStop{0.0, red}, GradientStop{1.0, blue}}};
-    raster.fill_focal_radial_gradient(Rect{0.0, 0.0, scene_size.width, scene_size.height}, Point{48.5, 32.5},
-                                      Size{16.0, 16.0}, Point{40.5, 32.5}, stops, GradientSpreadMode::pad);
+    const Rect focal_area{16.0, 0.0, scene_size.width - 16.0, scene_size.height};
+    raster.fill_focal_radial_gradient(focal_area, Point{48.5, 32.5}, Size{16.0, 16.0}, Point{40.5, 32.5}, stops,
+                                      GradientSpreadMode::pad);
     raster.fill_focal_radial_gradient(Rect{0.0, 0.0, 8.0, 8.0}, Point{4.0, 4.0}, Size{2.0, 2.0}, Point{7.0, 4.0},
                                       stops, GradientSpreadMode::pad);
     raster.end_frame();
