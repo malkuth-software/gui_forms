@@ -30,10 +30,23 @@ struct TextCompositeTarget final {
     bool opaque{};
 };
 
+// A path clip's coverage mask (clip_mask.hpp), borrowed for the call: one
+// entry per device pixel, 0..256 (an entry above 256 is read as 256),
+// row-major with stride width, its top-left pixel at (left, top). A pixel
+// outside it has coverage 0.
+struct TextClipMask final {
+    std::span<const std::uint16_t> coverage{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::int64_t left{};
+    std::int64_t top{};
+};
+
 // Clip in device pixels. Edges at fractional positions give partial coverage
 // equal to the covered area of the pixel; a rounded clip's corners give
 // coverage from the pixel centre's signed distance to the arc. All coverage
-// is computed in 1/256-pixel fixed point.
+// is computed in 1/256-pixel fixed point. A masked clip multiplies that
+// coverage c by the mask's m at the pixel, (c * m + 128) / 256.
 struct TextCompositeClip final {
     Rect rect{};
     bool rounded{};
@@ -46,6 +59,11 @@ struct TextCompositeClip final {
     bool outer_rounded{};
     Rect outer_rounded_rect{};
     double outer_radius{};
+    // A clip_path in force (TextClipMask): it must hold at least width *
+    // height entries and lie within the coordinate limit, or the composite
+    // is refused as invalid geometry.
+    bool masked{};
+    TextClipMask mask{};
 };
 
 // Grayscale coverage, 0..255, row-major with stride == width, placed with its

@@ -122,6 +122,8 @@ struct PreparedClip final {
     bool outer_rounded{};
     FixedRect outer_rounded_rect{};
     std::int64_t outer_radius{};
+    bool masked{};
+    TextClipMask mask{};
 };
 
 // A rounded clip's radius in fixed point, held to half its shorter side.
@@ -147,18 +149,80 @@ PreparedClip prepare_clip(const TextCompositeClip clip) noexcept {
         result.outer_rounded_rect = fixed_rect(clip.outer_rounded_rect);
         result.outer_radius = prepared_radius(result.outer_rounded_rect, clip.outer_radius);
     }
+    result.masked = clip.masked;
+    if (clip.masked) result.mask = clip.mask;
     return result;
 }
 
+// The mask's entry at device pixel (x, y), held to a whole unit; 0 outside it.
+std::int64_t mask_coverage(const TextClipMask& mask, const std::int64_t x, const std::int64_t y) noexcept {
+    const std::int64_t column = x - mask.left;
+    const std::int64_t row = y - mask.top;
+    if (column < 0 || row < 0 || column >= static_cast<std::int64_t>(mask.width) ||
+        row >= static_cast<std::int64_t>(mask.height)) {
+        return 0;
+    }
+    const std::size_t index = static_cast<std::size_t>(row) * mask.width + static_cast<std::size_t>(column);
+    const std::int64_t entry = mask.coverage[index];
+    return std::min(entry, unit);
+}
+
+// The rectangle's, rounded clips' and mask's coverages of pixel (x, y),
+// joined in that order, each product rounded once.
 std::int64_t prepared_clip_coverage(const PreparedClip& clip, const std::int64_t x, const std::int64_t y) noexcept {
-    const std::int64_t rectangular = area_coverage(clip.rect, x, y);
-    if (!clip.rounded || rectangular == 0) return rectangular;
-    const std::int64_t rounded = rounded_coverage(clip.rounded_rect, clip.radius, x, y);
-    const std::int64_t combined = (rectangular * rounded + half_unit) / unit;
-    if (!clip.outer_rounded || combined == 0) return combined;
-    const std::int64_t outer = rounded_coverage(clip.outer_rounded_rect, clip.outer_radius, x, y);
-    const std::int64_t nested = (combined * outer + half_unit) / unit;
-    return nested;
+    std::int64_t combined = area_coverage(clip.rect, x, y);
+    if (combined != 0 && clip.rounded) {
+        const std::int64_t rounded = rounded_coverage(clip.rounded_rect, clip.radius, x, y);
+        combined = (combined * rounded + half_unit) / unit;
+        if (combined != 0 && clip.outer_rounded) {
+            const std::int64_t outer = rounded_coverage(clip.outer_rounded_rect, clip.outer_radius, x, y);
+            combined = (combined * outer + half_unit) / unit;
+        }
+    }
+    if (combined != 0 && clip.masked) {
+        const std::int64_t masked = mask_coverage(clip.mask, x, y);
+        combined = (combined * masked + half_unit) / unit;
+    }
+    return combined;
+}
+
+// The fixed-point rectangle no pixel outside of has clip coverage: the clip
+// rectangle within every rounded rectangle and the mask's pixels.
+FixedRect clip_limit(const PreparedClip& prepared) noexcept {
+    FixedRect limit = prepared.rect;
+    if (prepared.rounded) {
+        limit.left = std::max(limit.left, prepared.rounded_rect.left);
+        limit.top = std::max(limit.top, prepared.rounded_rect.top);
+        limit.right = std::min(limit.right, prepared.rounded_rect.right);
+        limit.bottom = std::min(limit.bottom, prepared.rounded_rect.bottom);
+    }
+    if (prepared.outer_rounded) {
+        limit.left = std::max(limit.left, prepared.outer_rounded_rect.left);
+        limit.top = std::max(limit.top, prepared.outer_rounded_rect.top);
+        limit.right = std::min(limit.right, prepared.outer_rounded_rect.right);
+        limit.bottom = std::min(limit.bottom, prepared.outer_rounded_rect.bottom);
+    }
+    if (prepared.masked) {
+        const std::int64_t mask_left = prepared.mask.left * unit;
+        const std::int64_t mask_top = prepared.mask.top * unit;
+        limit.left = std::max(limit.left, mask_left);
+        limit.top = std::max(limit.top, mask_top);
+        limit.right = std::min(limit.right, mask_left + static_cast<std::int64_t>(prepared.mask.width) * unit);
+        limit.bottom = std::min(limit.bottom, mask_top + static_cast<std::int64_t>(prepared.mask.height) * unit);
+    }
+    return limit;
+}
+
+// Whether a clip's mask fits its entries and the coordinate limit; true for
+// an unmasked clip.
+bool valid_mask(const TextCompositeClip& clip) noexcept {
+    if (!clip.masked) return true;
+    const TextClipMask& mask = clip.mask;
+    const std::uint64_t area = static_cast<std::uint64_t>(mask.width) * static_cast<std::uint64_t>(mask.height);
+    const std::int64_t limit = static_cast<std::int64_t>(coordinate_limit);
+    const bool valid = area <= mask.coverage.size() && std::abs(mask.left) <= limit && std::abs(mask.top) <= limit &&
+                       mask.width <= static_cast<std::uint32_t>(limit) && mask.height <= static_cast<std::uint32_t>(limit);
+    return valid;
 }
 
 std::int64_t floor_pixel(const std::int64_t fixed) noexcept {
@@ -262,6 +326,21 @@ InteriorSpan interior_span(const ClipInterior& interior, const std::int64_t y) n
     span.from = whole_row ? interior.inner_left : interior.band_left;
     span.to = whole_row ? interior.inner_right : interior.band_right;
     return span;
+}
+
+// The first run of columns within [from, to) of row y whose mask entries
+// are a whole unit, which a masked clip's interior pixels need besides the
+// rectangle and corners (clip_interior); an empty run at `to` when there is
+// none.
+InteriorSpan full_mask_run(const TextClipMask& mask, const std::int64_t y, const std::int64_t from,
+                           const std::int64_t to) noexcept {
+    InteriorSpan run{to, to};
+    std::int64_t x = from;
+    while (x < to && mask_coverage(mask, x, y) != unit) ++x;
+    run.from = x;
+    while (x < to && mask_coverage(mask, x, y) == unit) ++x;
+    run.to = x;
+    return run;
 }
 
 // -- the interior's block kernels ---------------------------------------------------
@@ -496,7 +575,8 @@ void composite_text_interior_span(const TextCoverage& coverage, const TextCompos
 std::uint32_t text_clip_coverage(const TextCompositeClip clip, const std::int64_t x, const std::int64_t y) noexcept {
     if (!valid_rect(clip.rect) || (clip.rounded && (!valid_rect(clip.rounded_rect) || !valid_coordinate(clip.radius))) ||
         (clip.rounded && clip.outer_rounded &&
-         (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius)))) {
+         (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius))) ||
+        !valid_mask(clip)) {
         return 0U;
     }
     const PreparedClip prepared = prepare_clip(clip);
@@ -512,6 +592,7 @@ TextCompositeStatus composite_text_coverage(const TextCoverage coverage, const T
         (clip.rounded && (!valid_rect(clip.rounded_rect) || !valid_coordinate(clip.radius) || clip.radius < 0.0)) ||
         (clip.rounded && clip.outer_rounded &&
          (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius) || clip.outer_radius < 0.0)) ||
+        !valid_mask(clip) ||
         std::abs(coverage.left) > static_cast<std::int64_t>(coordinate_limit) ||
         std::abs(coverage.top) > static_cast<std::int64_t>(coordinate_limit)) {
         return TextCompositeStatus::invalid_geometry;
@@ -520,19 +601,7 @@ TextCompositeStatus composite_text_coverage(const TextCoverage coverage, const T
     if (coverage.width == 0 || coverage.height == 0 || (color.alpha == 0 && !source)) return TextCompositeStatus::success;
     if (coverage.height > coverage.pixels.size() / coverage.width) return TextCompositeStatus::invalid_geometry;
     const PreparedClip prepared = prepare_clip(clip);
-    FixedRect limit = prepared.rect;
-    if (prepared.rounded) {
-        limit.left = std::max(limit.left, prepared.rounded_rect.left);
-        limit.top = std::max(limit.top, prepared.rounded_rect.top);
-        limit.right = std::min(limit.right, prepared.rounded_rect.right);
-        limit.bottom = std::min(limit.bottom, prepared.rounded_rect.bottom);
-    }
-    if (prepared.outer_rounded) {
-        limit.left = std::max(limit.left, prepared.outer_rounded_rect.left);
-        limit.top = std::max(limit.top, prepared.outer_rounded_rect.top);
-        limit.right = std::min(limit.right, prepared.outer_rounded_rect.right);
-        limit.bottom = std::min(limit.bottom, prepared.outer_rounded_rect.bottom);
-    }
+    const FixedRect limit = clip_limit(prepared);
     const std::int64_t left = std::max<std::int64_t>({0, floor_pixel(limit.left), coverage.left});
     const std::int64_t top = std::max<std::int64_t>({0, floor_pixel(limit.top), coverage.top});
     const std::int64_t right = std::min<std::int64_t>({static_cast<std::int64_t>(target.width), ceil_pixel(limit.right),
@@ -573,7 +642,19 @@ TextCompositeStatus composite_text_coverage(const TextCoverage coverage, const T
             continue;
         }
         composite_text_edge_span(coverage, target, prepared, blend, colour_alpha, y, left, span.from);
-        composite_text_interior_span(coverage, target, interior_alpha, y, span, scratch);
+        if (!prepared.masked) {
+            composite_text_interior_span(coverage, target, interior_alpha, y, span, scratch);
+        } else {
+            // Under a mask the interior is the runs of whole mask entries;
+            // the pixels between them take the per-pixel path.
+            std::int64_t cursor = span.from;
+            while (cursor < span.to) {
+                const InteriorSpan run = full_mask_run(prepared.mask, y, cursor, span.to);
+                composite_text_edge_span(coverage, target, prepared, blend, colour_alpha, y, cursor, run.from);
+                if (run.from < run.to) composite_text_interior_span(coverage, target, interior_alpha, y, run, scratch);
+                cursor = run.to;
+            }
+        }
         composite_text_edge_span(coverage, target, prepared, blend, colour_alpha, y, span.to, right);
     }
     return TextCompositeStatus::success;
@@ -1021,6 +1102,7 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
         (clip.rounded && (!valid_rect(clip.rounded_rect) || !valid_coordinate(clip.radius) || clip.radius < 0.0)) ||
         (clip.rounded && clip.outer_rounded &&
          (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius) || clip.outer_radius < 0.0)) ||
+        !valid_mask(clip) ||
         std::abs(source.left) > static_cast<std::int64_t>(coordinate_limit) ||
         std::abs(source.top) > static_cast<std::int64_t>(coordinate_limit) ||
         static_cast<double>(source.shown_width) > coordinate_limit ||
@@ -1031,19 +1113,7 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
     if (!part_source_fits(source)) return TextCompositeStatus::invalid_geometry;
     if (opacity == 0U) return TextCompositeStatus::success;
     const PreparedClip prepared = prepare_clip(clip);
-    FixedRect limit = prepared.rect;
-    if (prepared.rounded) {
-        limit.left = std::max(limit.left, prepared.rounded_rect.left);
-        limit.top = std::max(limit.top, prepared.rounded_rect.top);
-        limit.right = std::min(limit.right, prepared.rounded_rect.right);
-        limit.bottom = std::min(limit.bottom, prepared.rounded_rect.bottom);
-    }
-    if (prepared.outer_rounded) {
-        limit.left = std::max(limit.left, prepared.outer_rounded_rect.left);
-        limit.top = std::max(limit.top, prepared.outer_rounded_rect.top);
-        limit.right = std::min(limit.right, prepared.outer_rounded_rect.right);
-        limit.bottom = std::min(limit.bottom, prepared.outer_rounded_rect.bottom);
-    }
+    const FixedRect limit = clip_limit(prepared);
     const bool scaled = (source.shown_width != 0U && source.shown_width != source.width) ||
                         (source.shown_height != 0U && source.shown_height != source.height);
     const std::uint32_t shown_width = source.shown_width != 0U ? source.shown_width : source.width;
@@ -1072,20 +1142,31 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
                 continue;
             }
             composite_part_edge_span(source, target, prepared, y, left, span.from, opacity_weight);
-            if (over) {
-                composite_over_span(source, target, y, span, opacity, copy_rows, scratch);
-            } else {
-                composite_part_blend_span(source, target, y, span.from, span.to, opacity_weight);
+            // Under a mask the interior is the runs of whole mask entries,
+            // and the pixels between them take the per-pixel path; without
+            // one the run is the whole span.
+            std::int64_t cursor = span.from;
+            while (cursor < span.to) {
+                InteriorSpan run = span;
+                if (prepared.masked) run = full_mask_run(prepared.mask, y, cursor, span.to);
+                composite_part_edge_span(source, target, prepared, y, cursor, run.from, opacity_weight);
+                if (run.from < run.to && over) {
+                    composite_over_span(source, target, y, run, opacity, copy_rows, scratch);
+                } else if (run.from < run.to) {
+                    composite_part_blend_span(source, target, y, run.from, run.to, opacity_weight);
+                }
+                cursor = run.to;
             }
             composite_part_edge_span(source, target, prepared, y, span.to, right, opacity_weight);
         }
         return TextCompositeStatus::success;
     }
     // Scaled: each device pixel samples its four texels bilinearly. Under
-    // source-over the interior whose samples lie wholly inside the source
-    // takes the block kernels; every other pixel, and every pixel of the
-    // other blends, the per-pixel path.
-    if (source.blend == PartCompositeBlend::source_over) {
+    // source-over without a mask the interior whose samples lie wholly
+    // inside the source takes the block kernels; every other pixel, and
+    // every pixel of the other blends or under a mask, the per-pixel path.
+    // Under a mask too: its entries are read pixel by pixel.
+    if (source.blend == PartCompositeBlend::source_over && !prepared.masked) {
         keep_whole_samples(interior, source, shown_width, shown_height);
     } else {
         interior = ClipInterior{};

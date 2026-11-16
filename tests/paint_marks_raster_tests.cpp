@@ -5,7 +5,8 @@
 // fill rules, strokes, and a frame repainted tile by tile drawing the bytes
 // of one whole paint), and the replay of a recording drawing the same bytes
 // as drawing directly; then the path clip (exact pixels on either side of
-// its edges, the fill rules, a refused clip, a part raster drawn under it),
+// its edges, the fill rules, a refused clip, a part raster composited
+// through its coverage mask, byte for byte as under the same rectangle),
 // the radial gradient's spreads and the image pattern's wraps (exact
 // pixels where a tile's texels land on device pixel centres).
 #include "gui_forms/control/control/control.hpp"
@@ -413,7 +414,7 @@ void test_path_clip() {
 void test_part_raster_under_path_clip() {
     // A 16-pixel opaque red raster at (40, 4) under a triangle whose
     // hypotenuse runs from (56, 4) to (40, 20): the raster's own composite
-    // follows rectangles only, so under the path it draws through Skia.
+    // follows the path through its coverage mask.
     const std::shared_ptr<PartRaster> raster = PartRaster::create(DeviceExtent{16U, 16U}, DeviceScale{1.0});
     require(static_cast<bool>(raster), "the part raster must be made");
     const PartRasterView view = (*raster).view();
@@ -445,6 +446,77 @@ void test_part_raster_under_path_clip() {
             "a part raster under a path clip must draw inside the path");
     require(is_exactly(pixel_at(target, 54U, 18U), white) && is_exactly(pixel_at(target, 50U, 14U), white),
             "a part raster under a path clip must not draw in its box outside the path");
+}
+
+// An opaque red raster composited under `clip`, drawn into `target` over
+// white: the path clip's coverage mask and a clip rectangle reach the same
+// shared composite.
+std::shared_ptr<const PartRaster> red_raster(const std::uint32_t side) {
+    const std::shared_ptr<PartRaster> raster = PartRaster::create(DeviceExtent{side, side}, DeviceScale{1.0});
+    require(static_cast<bool>(raster), "the part raster must be made");
+    const PartRasterView view = (*raster).view();
+    for (std::size_t at = 0U; at + 3U < view.pixels.size(); at = at + 4U) {
+        view.pixels[at] = 0U;
+        view.pixels[at + 1U] = 0U;
+        view.pixels[at + 2U] = 255U;
+        view.pixels[at + 3U] = 255U;
+    }
+    (*raster).record_opacity();
+    return raster;
+}
+
+enum class ClipKind : std::uint8_t { rectangle, path };
+
+void composite_under(SkiaRaster& target, const ClipKind kind, const Rect clip) {
+    require(target.resize(scene_size, 1.0) || target.pixel_width() != 0U, "the raster must have a surface");
+    DamageRegion damage;
+    damage.add(Rect{0.0, 0.0, scene_size.width, scene_size.height});
+    target.begin_frame(damage);
+    target.fill_rect(Rect{0.0, 0.0, scene_size.width, scene_size.height}, white);
+    target.save();
+    if (kind == ClipKind::path) {
+        PaintPath box;
+        box.move_to(Point{clip.x, clip.y});
+        box.line_to(Point{clip.x + clip.width, clip.y});
+        box.line_to(Point{clip.x + clip.width, clip.y + clip.height});
+        box.line_to(Point{clip.x, clip.y + clip.height});
+        box.close();
+        target.clip_path(box.view(), PolygonFillRule::nonzero);
+    } else {
+        target.clip_rect(clip);
+    }
+    target.draw_part_raster(red_raster(32U), Point{8.0, 6.0}, 1.0);
+    target.restore();
+    target.end_frame();
+}
+
+void test_path_clip_mask_matches_rectangle() {
+    // Edges across at quarters and down at halves of a pixel: the mask's
+    // horizontal coverage is exact, and a half lies on its 1/16 rows, so
+    // the mask gives each pixel the rectangle's exact area coverage and the
+    // composite the same bytes.
+    const Rect clip{10.25, 8.5, 20.5, 12.0};
+    SkiaRaster by_rectangle;
+    composite_under(by_rectangle, ClipKind::rectangle, clip);
+    SkiaRaster by_path;
+    composite_under(by_path, ClipKind::path, clip);
+    const std::size_t width = static_cast<std::size_t>(scene_size.width);
+    const std::size_t height = static_cast<std::size_t>(scene_size.height);
+    for (std::size_t y = 0U; y < height; ++y) {
+        for (std::size_t x = 0U; x < width; ++x) {
+            const Pixel expected = pixel_at(by_rectangle, x, y);
+            const Pixel drawn = pixel_at(by_path, x, y);
+            require(expected.red == drawn.red && expected.green == drawn.green && expected.blue == drawn.blue &&
+                        expected.alpha == drawn.alpha,
+                    "a part raster under a rectangular path clip must composite the clip rectangle's bytes");
+        }
+    }
+    const Pixel corner = pixel_at(by_path, 10U, 8U);
+    require(corner.red == 255U && corner.green > 0U && corner.green < 255U,
+            "the clip's corner pixel must be blended by its partial coverage");
+    require(is_exactly(pixel_at(by_path, 20U, 14U), red) && is_white(pixel_at(by_path, 9U, 14U)) &&
+                is_white(pixel_at(by_path, 20U, 21U)),
+            "the path clip must keep the raster inside it and the ground outside");
 }
 
 // Red at the centre to blue at 8 units, centred on a device pixel's
@@ -654,6 +726,7 @@ int main() {
         test_path_damage_invariance(2.0);
         test_path_clip();
         test_part_raster_under_path_clip();
+        test_path_clip_mask_matches_rectangle();
         test_radial_spreads();
         test_image_pattern_wraps();
         test_hatch();

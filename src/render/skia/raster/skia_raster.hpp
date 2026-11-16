@@ -112,12 +112,17 @@ public:
     void clip_rect(Rect rect) override;
     void clip_rounded_rect(Rect rect, double radius) override;
     void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) override;
-    // An antialiased Skia path clip. Under it the raster's own composites
-    // (text coverage, part rasters), which follow rectangular and rounded
-    // clips only, give way to Skia draws that follow the path: text draws
-    // its coverage mask through Skia, a part raster draws as a Skia image
-    // (source-over at its opacity), and a paint group that would isolate
-    // draws directly, counted as a refusal (group_refusals).
+    // An antialiased Skia path clip for Skia's own draws, and for the
+    // raster's own composites (text coverage, part rasters, isolated paint
+    // groups) a coverage mask in device pixels (clip_mask.hpp, 1/256-pixel
+    // fixed point) that the shared integer blend multiplies into its clip.
+    // Nested path clips multiply their masks. Where no mask can describe the
+    // clip (a perspective matrix, a turning transform group, a path too long
+    // to flatten or beyond the mask's coordinate range) the composites give
+    // way to Skia draws that follow the path: text draws its coverage mask
+    // through Skia, a part raster draws as a Skia image (source-over at its
+    // opacity), and a paint group that would isolate draws directly, counted
+    // as a refusal (group_refusals).
     void clip_path(PaintPathView path, PolygonFillRule rule) override;
     void fill_rect(Rect rect, Color color) override;
     void fill_rounded_rect(Rect rect, double radius, Color color) override;

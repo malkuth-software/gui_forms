@@ -13,6 +13,7 @@
 #include "../../text/harfbuzz/reusable_shape_workspace.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../../core/text/composite/text_composite.hpp"
+#include "../../../core/text/composite/clip_mask.hpp"
 #include "../../../core/image/resource_pixels.hpp"
 #include "../../../core/image/png_writer.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
@@ -49,7 +50,9 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -645,6 +648,15 @@ public:
     // naming glyphs outside the view.
     bool fill_glyph_line(const GlyphRunsView& view);
 
+    // A clip_path's coverage in device pixels (clip_mask.hpp): the mask the
+    // shared composites multiply into their clip. Made once per clip_path
+    // into storage from clip_mask_pool and shared, unchanged, by the save
+    // levels that copy the clip state; reused once no level holds it.
+    struct ClipMaskStore final {
+        std::vector<std::uint16_t> coverage;
+        detail::ClipMaskBounds bounds{};
+    };
+
     // ADR-004 text clipping: the device clip that text compositing honours,
     // one entry per canvas save level from text_clip_base upward. Skia cannot
     // report a clip's fractional edges, so SkiaRaster records them itself.
@@ -670,8 +682,14 @@ public:
         // Disjoint device rectangles of the frame damage and clip_damage.
         bool region_limited{};
         SkRegion region;
-        // A clip_path is in force: `rect` holds its device bounds, and the
-        // raster's own composites, which cannot follow a path, give way to
+        // The clip_paths in force as one coverage mask (their product), which
+        // the shared composites follow; null when none is, or when one could
+        // not be made (path_clipped).
+        std::shared_ptr<const ClipMaskStore> mask{};
+        // A clip_path is in force that no mask describes (a perspective
+        // matrix, a path too long to flatten, coordinates beyond the mask's
+        // range, or one inside a transform group that turns): `rect` holds
+        // its device bounds, and the raster's own composites give way to
         // Skia draws (shared_composite refuses).
         bool path_clipped{};
         // A transform group that does more than translate is in force: the
@@ -682,6 +700,20 @@ public:
     };
     std::vector<TextClipState> text_clips;
     int text_clip_base{};
+    // The masks' storage, the rasterizer's workspace and the flattened
+    // path, all reused from clip_path to clip_path and grown, never shrunk.
+    std::vector<std::shared_ptr<ClipMaskStore>> clip_mask_pool;
+    detail::ClipMaskWorkspace clip_mask_workspace;
+    std::vector<Point> clip_path_points;
+    std::vector<FlattenedContour> clip_path_contours;
+    // A pooled mask store no save level holds, or a new one.
+    [[nodiscard]] std::shared_ptr<ClipMaskStore> acquire_clip_mask();
+    // Makes `state`'s mask the product of its mask (if any) and `path`
+    // under the canvas's matrix, within the state's rectangle and the path's
+    // device bounds `path_device`. False, with `state` unchanged, when no
+    // mask can describe the clip (TextClipState::path_clipped).
+    bool make_clip_mask(const SkCanvas& target, PaintPathView path, PolygonFillRule rule, const SkRect& path_device,
+                        TextClipState& state);
     std::unique_ptr<text::GlyphRunRasterizer> glyph_runs;
     // Text runs whose visible coverage was too large to produce
     // (GlyphRunCoverage::oversized); each drew nothing and painting went on.
@@ -757,7 +789,8 @@ public:
     [[nodiscard]] bool composites_refused(const SkCanvas& target) noexcept;
     // A part raster drawn as a Skia image over its logical `destination`,
     // source-over at `opacity`, sampled linearly: how a part raster draws
-    // under a path clip, which composite_part cannot follow.
+    // under a path clip no mask describes, which composite_part cannot
+    // follow.
     static void draw_part_image(SkCanvas& target, const PartRaster& raster, Rect destination, double opacity);
     bool composite_part_scaled(SkCanvas& target, const PartRaster& raster, Rect destination, double opacity);
     // The shared step alone: premultiplied pixels placed in the canvas's
@@ -2250,6 +2283,16 @@ std::optional<SkiaRaster::Impl::SharedComposite> SkiaRaster::Impl::shared_compos
             clip.outer_radius = (*state).outer_radius;
         }
     }
+    if ((*state).mask) {
+        // Borrowed for the composite: the state holds the store meanwhile.
+        const ClipMaskStore& mask = *(*state).mask;
+        const std::size_t entries =
+            static_cast<std::size_t>(mask.bounds.width) * static_cast<std::size_t>(mask.bounds.height);
+        clip.masked = true;
+        clip.mask = detail::TextClipMask{.coverage = std::span<const std::uint16_t>(mask.coverage.data(), entries),
+                                         .width = mask.bounds.width, .height = mask.bounds.height,
+                                         .left = mask.bounds.left, .top = mask.bounds.top};
+    }
     const SharedComposite shared{state, composite_target, clip};
     return shared;
 }
@@ -2525,8 +2568,9 @@ void SkiaRaster::begin_group(const PaintGroup& group) {
     // or an isolation surface that cannot be allocated, draws the group
     // directly, without its opacity or composite: counted as a refusal
     // (audit P9), as a group past the depth bound is.
-    // Under a path clip or a turning transform group the composite could not
-    // follow: the group draws directly too.
+    // Under a path clip no mask describes, or a turning transform group,
+    // the composite could not follow: the group draws directly too. Under a
+    // mask the group's image is composited through it.
     const Impl::TextClipState* const state = impl.current_text_clip(*parent);
     if (state == nullptr || (*state).path_clipped || (*state).transformed) {
         impl.group_refusals = impl.group_refusals + 1U;
@@ -2540,6 +2584,12 @@ void SkiaRaster::begin_group(const PaintGroup& group) {
     const SkPixmap& parent_pixels = *parent_view;
     SkIRect device = (*state).rect.roundOut();
     if (!device.intersect(SkIRect::MakeWH(parent_pixels.width(), parent_pixels.height()))) return;
+    if ((*state).mask) {
+        const detail::ClipMaskBounds& reach = (*(*state).mask).bounds;
+        const SkIRect masked = SkIRect::MakeXYWH(static_cast<int>(reach.left), static_cast<int>(reach.top),
+                                                 static_cast<int>(reach.width), static_cast<int>(reach.height));
+        if (!device.intersect(masked)) return;
+    }
     const int width = device.width();
     const int height = device.height();
     if (!level.surface || (*level.surface).width() < width || (*level.surface).height() < height) {
@@ -2773,9 +2823,10 @@ Rect SkiaRaster::opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& s
         return nothing;
     }
     // Rectangle clips are hard-edged (clip_rect); a rounded clip blends its
-    // edge pixels with what lies beneath. Untracked clips are refused too.
+    // edge pixels with what lies beneath, and a path clip hides some of the
+    // rectangle. Untracked clips are refused too.
     const Impl::TextClipState* const clip = (*impl_).current_text_clip(*canvas);
-    if (clip == nullptr || (*clip).rounded) return nothing;
+    if (clip == nullptr || (*clip).rounded || (*clip).mask || (*clip).path_clipped) return nothing;
     const SkMatrix matrix = (*canvas).getTotalMatrix();
     if (!matrix.isScaleTranslate() || !(matrix.getScaleX() > 0.0F) || !(matrix.getScaleY() > 0.0F)) {
         return nothing;
@@ -3263,11 +3314,108 @@ void SkiaRaster::clip_path(PaintPathView path, PolygonFillRule rule) {
     const SkPathFillType fill = rule == PolygonFillRule::even_odd ? SkPathFillType::kEvenOdd : SkPathFillType::kWinding;
     const SkPath built = built_paint_path(path, fill);
     (*canvas).clipPath(built, SkClipOp::kIntersect, true);
-    if (Impl::TextClipState* const state = (*impl_).current_text_clip(*canvas)) {
-        const SkRect device = (*canvas).getTotalMatrix().mapRect(built.getBounds());
-        if (!(*state).rect.intersect(device)) (*state).rect.setEmpty();
-        (*state).path_clipped = true;
+    Impl::TextClipState* const state = (*impl_).current_text_clip(*canvas);
+    if (state == nullptr) return;
+    const SkRect device = (*canvas).getTotalMatrix().mapRect(built.getBounds());
+    // The shared composites follow the path through its mask, whose bounds
+    // limit them; the rectangle keeps only the clip_rect edges, so that its
+    // fractional coverage is not applied twice.
+    const bool followable = !(*state).path_clipped && !(*state).transformed;
+    if (followable && (*impl_).make_clip_mask(*canvas, path, rule, device, *state)) return;
+    if (!(*state).rect.intersect(device)) (*state).rect.setEmpty();
+    (*state).path_clipped = true;
+}
+
+std::shared_ptr<SkiaRaster::Impl::ClipMaskStore> SkiaRaster::Impl::acquire_clip_mask() {
+    for (const std::shared_ptr<ClipMaskStore>& store : clip_mask_pool) {
+        // Only the pool holds it: no save level reads it any longer.
+        if (store.use_count() == 1) return store;
     }
+    clip_mask_pool.push_back(std::make_shared<ClipMaskStore>());
+    return clip_mask_pool.back();
+}
+
+namespace {
+
+// The farthest a flattened chord of a clip path may lie from the curve, in
+// device pixels: well inside the mask's 1/16-pixel rows.
+constexpr double clip_mask_device_tolerance = 0.0625;
+// The flattened storage a clip path starts with and the most it may grow to;
+// a longer path is followed by Skia draws alone (path_clipped).
+constexpr std::size_t initial_clip_path_points = 1024U;
+constexpr std::size_t initial_clip_path_contours = 32U;
+constexpr std::size_t maximum_clip_path_points = 1U << 22U;
+
+} // namespace
+
+bool SkiaRaster::Impl::make_clip_mask(const SkCanvas& target, const PaintPathView path, const PolygonFillRule rule,
+                                      const SkRect& path_device, TextClipState& state) {
+    const SkMatrix matrix = target.getTotalMatrix();
+    if (matrix.hasPerspective()) return false;
+    // x' = sx x + kx y + tx, y' = ky x + sy y + ty.
+    const double sx = matrix.getScaleX();
+    const double kx = matrix.getSkewX();
+    const double tx = matrix.getTranslateX();
+    const double ky = matrix.getSkewY();
+    const double sy = matrix.getScaleY();
+    const double ty = matrix.getTranslateY();
+    // The longest a unit of content becomes on the device bounds the chord
+    // error the device sees.
+    const double stretch = std::max(std::hypot(sx, ky), std::hypot(kx, sy));
+    if (!(stretch > 0.0) || !std::isfinite(stretch)) return false;
+    const double tolerance = clip_mask_device_tolerance / stretch;
+    if (clip_path_points.size() < initial_clip_path_points) clip_path_points.resize(initial_clip_path_points);
+    if (clip_path_contours.size() < initial_clip_path_contours) clip_path_contours.resize(initial_clip_path_contours);
+    FlattenedPath flattened = flatten_paint_path(path, tolerance, clip_path_points, clip_path_contours);
+    while (flattened.truncated && clip_path_points.size() < maximum_clip_path_points) {
+        clip_path_points.resize(clip_path_points.size() * 2U);
+        clip_path_contours.resize(clip_path_contours.size() * 2U);
+        flattened = flatten_paint_path(path, tolerance, clip_path_points, clip_path_contours);
+    }
+    if (flattened.truncated || flattened.point_count == 0U) return false;
+    for (std::size_t index = 0U; index < flattened.point_count; ++index) {
+        const Point content = clip_path_points[index];
+        const double device_x = sx * content.x + kx * content.y + tx;
+        const double device_y = ky * content.x + sy * content.y + ty;
+        clip_path_points[index] = Point{device_x, device_y};
+    }
+    // The mask's pixels: the recorded rectangle's, the path's and the
+    // enclosing mask's, on the canvas.
+    SkIRect reach = state.rect.roundOut();
+    const bool within_path = reach.intersect(path_device.roundOut());
+    const bool on_canvas = within_path && reach.intersect(SkIRect::MakeWH(target.imageInfo().width(),
+                                                                          target.imageInfo().height()));
+    bool within_mask = on_canvas;
+    if (on_canvas && state.mask) {
+        const detail::ClipMaskBounds& outer = (*state.mask).bounds;
+        within_mask = reach.intersect(SkIRect::MakeXYWH(static_cast<int>(outer.left), static_cast<int>(outer.top),
+                                                        static_cast<int>(outer.width), static_cast<int>(outer.height)));
+    }
+    detail::ClipMaskBounds bounds{};
+    if (within_mask) {
+        bounds = detail::ClipMaskBounds{.left = reach.left(), .top = reach.top(),
+                                        .width = static_cast<std::uint32_t>(reach.width()),
+                                        .height = static_cast<std::uint32_t>(reach.height())};
+    }
+    const std::shared_ptr<ClipMaskStore> store = acquire_clip_mask();
+    const std::size_t entries = static_cast<std::size_t>(bounds.width) * static_cast<std::size_t>(bounds.height);
+    if ((*store).coverage.size() < entries) (*store).coverage.resize(entries);
+    const std::span<std::uint16_t> coverage((*store).coverage.data(), entries);
+    const std::span<const Point> points(clip_path_points.data(), flattened.point_count);
+    const std::span<const FlattenedContour> contours(clip_path_contours.data(), flattened.contour_count);
+    const detail::ClipMaskStatus status =
+        detail::rasterize_clip_mask(points, contours, rule, bounds, clip_mask_workspace, coverage);
+    if (status != detail::ClipMaskStatus::success) return false;
+    if (state.mask) {
+        const ClipMaskStore& outer = *state.mask;
+        const std::size_t outer_entries =
+            static_cast<std::size_t>(outer.bounds.width) * static_cast<std::size_t>(outer.bounds.height);
+        const std::span<const std::uint16_t> enclosing(outer.coverage.data(), outer_entries);
+        if (!detail::intersect_clip_mask(outer.bounds, enclosing, bounds, coverage)) return false;
+    }
+    (*store).bounds = bounds;
+    state.mask = store;
+    return true;
 }
 
 void SkiaRaster::stroke_path(PaintPathView path, const StrokeStyle& style) {

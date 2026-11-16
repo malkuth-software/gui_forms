@@ -605,6 +605,7 @@ add_library(gui_forms_core STATIC
     src/core/text/text_store/text_store.cpp
     src/core/text/prepared/prepared_storage.cpp
     src/core/text/composite/text_composite.cpp
+    src/core/text/composite/clip_mask.cpp
     src/core/text/localizable/localizable.cpp
     src/core/text/locale_file/locale_file.cpp
     src/core/text/paragraph_layout/paragraph_layout.cpp
