@@ -178,7 +178,7 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     // content surface (a menu panel, a list, a tooltip bubble) draws every
     // surface itself, so the backplane under its shadow stays clear.
     if (opening.content_surface) static_cast<void>((*model).declare_content_surface());
-    if (opening.backdrop.has_value()) {
+    if (opening.backdrop.present()) {
         (*model).set_backdrop_chain(opening.backdrop);
     } else {
         static_cast<void>((*model).request_backdrop(WindowBackdropRequest::preferring(WindowBackdrop::transparent)));

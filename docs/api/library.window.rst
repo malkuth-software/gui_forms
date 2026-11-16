@@ -1259,7 +1259,7 @@ Related types
 
       Declared per popup; there is no global rule (owner, 2026-11-04). Default: ``{HostPopupFocus::passive}``.
 
-   .. cpp:member:: std::optional<BackdropChain> backdrop
+   .. cpp:member:: stxlib::Optional<BackdropChain> backdrop
 
       The popup window's backdrop chain (Window::set_backdrop_chain): a blur is the system material granted to the popup window, and GUI.Forms paints only the tint. None by default.
 

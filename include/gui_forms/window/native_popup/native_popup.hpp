@@ -7,7 +7,8 @@
 
 #include <cstdint>
 #include <memory>
-#include <optional>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -58,7 +59,7 @@ struct GUI_FORMS_API NativePopupOptions final {
     // The popup window's backdrop chain (Window::set_backdrop_chain): a blur
     // is the system material granted to the popup window, and GUI.Forms
     // paints only the tint. None by default.
-    std::optional<BackdropChain> backdrop{};
+    stxlib::Optional<BackdropChain> backdrop{};
     NativePopupFallback fallback{NativePopupFallback::overlay};
 };
 

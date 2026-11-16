@@ -159,10 +159,10 @@ gui_forms::SurfaceRoot
 
       **backdrop_grant** : ``WindowBackdropGrant``, read-only
 
-      **backdrop_chain** : ``std::optional<BackdropChain>``
+      **backdrop_chain** : ``stxlib::Optional<BackdropChain>``
 
-      **backdrop_chain_resolution** : ``std::optional<BackdropChainResolution>``, read-only
-         How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
+      **backdrop_chain_resolution** : ``stxlib::Optional<BackdropChainResolution>``, read-only
+         How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; none without a chain.
 
       **backplane_material** : ``SurfaceMaterial``, read-only
          The window's backplane as the theme shown would draw it now, for the window's activation, colour scheme and contrast (exhibit gap E4): backplane_material() is the material (backplane_base: the window recipe's, the theme's base for a non-opaque grant, or a backdrop chain's tint; no fill when a declared content surface draws everything over a clear grant); backplane_colour() is its one colour (a solid fill's colour, a gradient's first stop, a procedural fill's ground, a finish's paint, else the layer's colour; transparent with no fill), what a consumer compositing a snapshot taken without the backplane lays under it. A copy; UI thread.
@@ -874,15 +874,19 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: const WindowBackdropGrant& backdrop_grant() const noexcept
 
-   .. cpp:function:: const std::optional<BackdropChain>& backdrop_chain() const noexcept
+   .. cpp:function:: const stxlib::Optional<BackdropChain>& backdrop_chain() const noexcept
+
+   .. cpp:function:: void set_backdrop_chain(stxlib::Optional<BackdropChain> chain)
+
+      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; none removes it. A chain with a blur asks for the system material (implied_backdrop_request); GUI.Forms paints only the chain's tint, as the window's base. A change repaints the window. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread. Until the application sets one, the window follows its theme's (Theme::window_backdrop_chain), lowered again when the theme shown, the presentation settings or the scale change; from the first call on, the application's holds.
 
    .. cpp:function:: void set_backdrop_chain(std::optional<BackdropChain> chain)
 
-      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; nullopt removes it. A chain with a blur asks for the system material (implied_backdrop_request); GUI.Forms paints only the chain's tint, as the window's base. A change repaints the window. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread. Until the application sets one, the window follows its theme's (Theme::window_backdrop_chain), lowered again when the theme shown, the presentation settings or the scale change; from the first call on, the application's holds.
+      The standard form, kept for one stage (D15 Q3).
 
-   .. cpp:function:: std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept
+   .. cpp:function:: stxlib::Optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept
 
-      How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
+      How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; none without a chain.
 
    .. cpp:function:: SurfaceMaterial backplane_material() const
 

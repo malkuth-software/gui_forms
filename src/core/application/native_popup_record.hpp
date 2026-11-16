@@ -80,7 +80,7 @@ struct NativePopupOpening final {
     HostTransientKind kind{HostTransientKind::popup};
     // A warm transient window (TransientWindow) opens hidden.
     bool initially_visible{true};
-    std::optional<BackdropChain> backdrop{};
+    stxlib::Optional<BackdropChain> backdrop{};
     // The content draws every surface the window shows: the popup model's
     // backplane is clear over its transparent grant
     // (SurfaceRoot::declare_content_surface). Warm transient windows set it.

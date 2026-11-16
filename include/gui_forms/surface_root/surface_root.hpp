@@ -885,7 +885,7 @@ public:
     // The window's backdrop chain (owner, 2026-11-05;
     // gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme
     // engine from the theme's `backdrop:` property, or by the application;
-    // nullopt removes it. A chain with a blur asks for the system material
+    // none removes it. A chain with a blur asks for the system material
     // (implied_backdrop_request); GUI.Forms paints only the chain's tint,
     // as the window's base. A change repaints the window.
     // std::invalid_argument, changing nothing, for a chain
@@ -893,12 +893,22 @@ public:
     // one, the window follows its theme's (Theme::window_backdrop_chain),
     // lowered again when the theme shown, the presentation settings or the
     // scale change; from the first call on, the application's holds.
-    void set_backdrop_chain(std::optional<BackdropChain> chain);
-    [[nodiscard]] const std::optional<BackdropChain>& backdrop_chain() const noexcept { return backdrop_chain_; }
+    void set_backdrop_chain(stxlib::Optional<BackdropChain> chain);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<BackdropChain>")]]
+    void set_backdrop_chain(std::optional<BackdropChain> chain) {
+        stxlib::Optional<BackdropChain> owned{};
+        if (chain.has_value()) owned.set(*chain);
+        set_backdrop_chain(owned);
+    }
+    // A plain chain is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<BackdropChain>::of(chain).
+    void set_backdrop_chain(BackdropChain chain) = delete;
+    [[nodiscard]] const stxlib::Optional<BackdropChain>& backdrop_chain() const noexcept { return backdrop_chain_; }
     // How the chain is carried under the grant in force: what the material
-    // gives, what is dropped and how the tint is drawn; nullopt without a
+    // gives, what is dropped and how the tint is drawn; none without a
     // chain.
-    [[nodiscard]] std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept;
+    [[nodiscard]] stxlib::Optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept;
     // The window's backplane as the theme shown would draw it now, for the
     // window's activation, colour scheme and contrast (exhibit gap E4):
     // backplane_material() is the material (backplane_base: the window
@@ -3132,7 +3142,7 @@ private:
     WindowBackdropGrant backdrop_grant_{};
     Event<const WindowBackdropGrant&> backdrop_changed_;
     // The chain in force (set_backdrop_chain); none by default.
-    std::optional<BackdropChain> backdrop_chain_{};
+    stxlib::Optional<BackdropChain> backdrop_chain_{};
     // This window's state in its application run, while it is a ready
     // window of one (detail::attach_application_window); observed, never
     // owned. Empty for a window outside a run.
@@ -3142,7 +3152,7 @@ private:
     bool application_backdrop_chain_{};
     // Puts `chain`, valid or none, in force: the implied request, the
     // backplane and the repaint (set_backdrop_chain's effects).
-    void apply_backdrop_chain(const std::optional<BackdropChain>& chain);
+    void apply_backdrop_chain(const stxlib::Optional<BackdropChain>& chain);
     // The theme's chain for this window (Theme::window_backdrop_chain), put
     // in force unless the application set its own.
     void lower_theme_backdrop_chain();

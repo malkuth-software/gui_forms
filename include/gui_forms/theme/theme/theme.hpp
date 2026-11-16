@@ -143,7 +143,7 @@ public:
     // matching rules give it under the window's scheme. Nullopt where no rule
     // declares one or the winner is `none`. `popup` rules are not read here:
     // they wait for native popup windows (stage T5).
-    [[nodiscard]] std::optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept;
+    [[nodiscard]] stxlib::Optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept;
     // The band the rules selecting `window` declare (`window { band-width:
     // ...; band-color: ...; band-lit-color: ...; band-effect: ... }`; owner,
     // 2026-11-08): each field from the last matching rule that sets it,

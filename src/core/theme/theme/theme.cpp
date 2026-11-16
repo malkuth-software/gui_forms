@@ -2527,7 +2527,7 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own, std::stri
     return themed;
 }
 
-std::optional<BackdropChain> Theme::window_backdrop_chain(const Window& window) const noexcept {
+stxlib::Optional<BackdropChain> Theme::window_backdrop_chain(const Window& window) const noexcept {
     const Control::Ptr root = window.root();
     CompiledThemeRules::PartFacts facts{};
     facts.surface = SurfaceKind::window;
@@ -2536,7 +2536,7 @@ std::optional<BackdropChain> Theme::window_backdrop_chain(const Window& window) 
     facts.media = window_media_facts(window);
     facts.user_rules = window.user_theme_rules();
     const BackdropDeclaration* const declared = engine_.rules().resolve_backdrop(facts);
-    if (declared == nullptr || (*declared).length == 0U) return std::nullopt;
+    if (declared == nullptr || (*declared).length == 0U) return stxlib::Optional<BackdropChain>::none();
     // The compiler and add_backdrop admitted the declaration, and the two
     // chains share their capacity and ranges, so every operation appends.
     static_assert(BackdropDeclaration::maximum_steps == BackdropChain::maximum_operations);
@@ -2548,8 +2548,9 @@ std::optional<BackdropChain> Theme::window_backdrop_chain(const Window& window) 
         if (step.kind == BackdropStepKind::saturate) operation = BackdropOperation::saturate(step.amount);
         static_cast<void>(chain.append(operation));
     }
-    if (!backdrop_chain_valid(chain)) return std::nullopt;
-    return chain;
+    if (!backdrop_chain_valid(chain)) return stxlib::Optional<BackdropChain>::none();
+    const stxlib::Optional<BackdropChain> result = stxlib::Optional<BackdropChain>::of(chain);
+    return result;
 }
 
 BandDeclaration Theme::window_band(const Window& window) const noexcept {

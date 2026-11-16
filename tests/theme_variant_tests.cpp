@@ -578,16 +578,16 @@ void test_window_backdrop() {
 
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
     Window window(root, Size{200.0, 100.0});
-    require(!window.backdrop_chain(), "a theme without window rules gives no chain");
+    require(window.backdrop_chain().absent(), "a theme without window rules gives no chain");
     window.set_theme(theme);
-    require(window.backdrop_chain() && *window.backdrop_chain() == light,
+    require(window.backdrop_chain() == stxlib::Optional<BackdropChain>::of(light),
             "the window rule's chain, its role tint in the light scheme");
     set_scheme(window, ColourScheme::dark);
-    require(window.backdrop_chain() && *window.backdrop_chain() == dark, "the dark scheme's rule wins in dark");
+    require(window.backdrop_chain() == stxlib::Optional<BackdropChain>::of(dark), "the dark scheme's rule wins in dark");
     set_scheme(window, ColourScheme::light);
-    require(window.backdrop_chain() && *window.backdrop_chain() == light, "and light again");
+    require(window.backdrop_chain() == stxlib::Optional<BackdropChain>::of(light), "and light again");
     window.set_theme(gui_forms_theme());
-    require(!window.backdrop_chain(), "another theme without window rules removes it");
+    require(window.backdrop_chain().absent(), "another theme without window rules removes it");
 
     // A root with the class: `backdrop: none` wins, and no chain is set.
     const std::shared_ptr<Panel> plain_root = make_control<Panel>(StableId("plain-root"));
@@ -596,18 +596,18 @@ void test_window_backdrop() {
     (*plain_root).classes = std::move(classes);
     Window plain(plain_root, Size{200.0, 100.0});
     plain.set_theme(theme);
-    require(!plain.backdrop_chain(), "backdrop: none on the root's class removes the chain");
+    require(plain.backdrop_chain().absent(), "backdrop: none on the root's class removes the chain");
 
     // The application's chain holds against the scheme and the theme.
     const BackdropChain own = chain_of({BackdropOperation::tint(Color::rgba(10, 20, 30, 40))});
     window.set_theme(theme);
-    window.set_backdrop_chain(own);
+    window.set_backdrop_chain(stxlib::Optional<BackdropChain>::of(own));
     set_scheme(window, ColourScheme::dark);
     window.set_theme(gui_forms_theme());
-    require(window.backdrop_chain() && *window.backdrop_chain() == own, "the application's chain holds");
-    window.set_backdrop_chain(std::nullopt);
+    require(window.backdrop_chain() == stxlib::Optional<BackdropChain>::of(own), "the application's chain holds");
+    window.set_backdrop_chain(stxlib::Optional<BackdropChain>::none());
     window.set_theme(theme);
-    require(!window.backdrop_chain(), "an application's removal holds too");
+    require(window.backdrop_chain().absent(), "an application's removal holds too");
 }
 
 } // namespace

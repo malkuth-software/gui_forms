@@ -270,7 +270,7 @@ void the_popup_backplane_is_clear_round_the_panel() {
     // (no theme window material) and the theme's window backdrop chain does
     // not reach it, so only the panel and its shadow show.
     require((*popup).content_surface_declared(), "the Popup window is a content surface");
-    require(!(*popup).backdrop_chain().has_value(), "the theme's window backdrop chain does not reach it");
+    require((*popup).backdrop_chain().absent(), "the theme's window backdrop chain does not reach it");
     require((*popup).backdrop_grant().granted == WindowBackdrop::transparent, "the transparent backdrop is granted");
     require(!(*popup).declare_content_surface(), "a bound window cannot be declared a content surface again");
     (*desk.strip).close();
