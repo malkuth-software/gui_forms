@@ -1065,6 +1065,18 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
         // A raster recorded wholly opaque is, at full opacity, its own
         // source-over result.
         const bool copy_rows = over && source.opaque && opacity == 255U;
+        // A source not wholly opaque may carry a proved opaque interior
+        // (blend study, 2026-11-16): in its rows the span splits into a
+        // blended part, a copied part and a blended part. The rows and
+        // columns are target coordinates, decided once here.
+        const bool copy_interior = over && !copy_rows && opacity == 255U &&
+                                   source.opaque_left < source.opaque_right &&
+                                   source.opaque_top < source.opaque_bottom &&
+                                   source.opaque_right <= source.width && source.opaque_bottom <= source.height;
+        const std::int64_t opaque_top = source.top + static_cast<std::int64_t>(source.opaque_top);
+        const std::int64_t opaque_bottom = source.top + static_cast<std::int64_t>(source.opaque_bottom);
+        const std::int64_t opaque_left = source.left + static_cast<std::int64_t>(source.opaque_left);
+        const std::int64_t opaque_right = source.left + static_cast<std::int64_t>(source.opaque_right);
         for (std::int64_t y = top; y < bottom; ++y) {
             const InteriorSpan span = interior_span(interior, y);
             if (span.from >= span.to) {
@@ -1072,7 +1084,17 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
                 continue;
             }
             composite_part_edge_span(source, target, prepared, y, left, span.from, opacity_weight);
-            if (over) {
+            const bool interior_row = copy_interior && y >= opaque_top && y < opaque_bottom;
+            if (interior_row) {
+                const std::int64_t copy_from = std::clamp(opaque_left, span.from, span.to);
+                const std::int64_t copy_to = std::clamp(opaque_right, copy_from, span.to);
+                const InteriorSpan before{span.from, copy_from};
+                const InteriorSpan copied{copy_from, copy_to};
+                const InteriorSpan after{copy_to, span.to};
+                if (before.from < before.to) composite_over_span(source, target, y, before, opacity, false, scratch);
+                if (copied.from < copied.to) composite_over_span(source, target, y, copied, opacity, true, scratch);
+                if (after.from < after.to) composite_over_span(source, target, y, after, opacity, false, scratch);
+            } else if (over) {
                 composite_over_span(source, target, y, span, opacity, copy_rows, scratch);
             } else {
                 composite_part_blend_span(source, target, y, span.from, span.to, opacity_weight);

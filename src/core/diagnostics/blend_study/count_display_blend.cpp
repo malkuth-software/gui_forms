@@ -250,8 +250,23 @@ private:
         if (!command.part_raster) return;
         // One raster pixel per device pixel, placed on the nearest device
         // pixel; an opaque raster at full opacity is copied exactly.
-        if ((*command.part_raster).opaque() && opacity >= 1.0) {
-            charge_copy(device_nearest(placed(command.rect), scale_));
+        const PartRaster& raster = *command.part_raster;
+        const DevicePixelRect placed_device = device_nearest(placed(command.rect), scale_);
+        if (raster.opaque() && opacity >= 1.0) {
+            charge_copy(placed_device);
+            return;
+        }
+        // A proved opaque interior (PartRaster::opaque_interior) is copied,
+        // the rest of the raster blended.
+        const PartRasterInterior interior = raster.opaque_interior();
+        const bool has_interior = interior.left < interior.right && interior.top < interior.bottom;
+        if (has_interior && opacity >= 1.0) {
+            DevicePixelRect proven{};
+            proven.left = placed_device.left + static_cast<std::int32_t>(interior.left);
+            proven.top = placed_device.top + static_cast<std::int32_t>(interior.top);
+            proven.right = placed_device.left + static_cast<std::int32_t>(interior.right);
+            proven.bottom = placed_device.top + static_cast<std::int32_t>(interior.bottom);
+            charge_ring(placed_device, proven);
             return;
         }
         charge_layer(command.rect, BlendWrite::blended);

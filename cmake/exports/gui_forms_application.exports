@@ -939,6 +939,7 @@ __ZGVZN9gui_forms18PageSelectingEvent*
 __ZGVZN9gui_forms18PaintLeaseSnapshot*
 __ZGVZN9gui_forms18ParagraphGlyphRuns*
 __ZGVZN9gui_forms18PartGeometryBuffer*
+__ZGVZN9gui_forms18PartRasterInterior*
 __ZGVZN9gui_forms18PlotAnnotationItem*
 __ZGVZN9gui_forms18PreparedFontSource*
 __ZGVZN9gui_forms18PreparedTextLayout*
@@ -2602,6 +2603,7 @@ __ZGVZNK9gui_forms18PageSelectingEvent*
 __ZGVZNK9gui_forms18PaintLeaseSnapshot*
 __ZGVZNK9gui_forms18ParagraphGlyphRuns*
 __ZGVZNK9gui_forms18PartGeometryBuffer*
+__ZGVZNK9gui_forms18PartRasterInterior*
 __ZGVZNK9gui_forms18PlotAnnotationItem*
 __ZGVZNK9gui_forms18PreparedFontSource*
 __ZGVZNK9gui_forms18PreparedTextLayout*
@@ -4663,6 +4665,7 @@ __ZN9gui_forms18PageSelectingEvent*
 __ZN9gui_forms18PaintLeaseSnapshot*
 __ZN9gui_forms18ParagraphGlyphRuns*
 __ZN9gui_forms18PartGeometryBuffer*
+__ZN9gui_forms18PartRasterInterior*
 __ZN9gui_forms18PlotAnnotationItem*
 __ZN9gui_forms18PreparedFontSource*
 __ZN9gui_forms18PreparedTextLayout*
@@ -7566,6 +7569,7 @@ __ZNK[RO]9gui_forms18PageSelectingEvent*
 __ZNK[RO]9gui_forms18PaintLeaseSnapshot*
 __ZNK[RO]9gui_forms18ParagraphGlyphRuns*
 __ZNK[RO]9gui_forms18PartGeometryBuffer*
+__ZNK[RO]9gui_forms18PartRasterInterior*
 __ZNK[RO]9gui_forms18PlotAnnotationItem*
 __ZNK[RO]9gui_forms18PreparedFontSource*
 __ZNK[RO]9gui_forms18PreparedTextLayout*
@@ -9229,6 +9233,7 @@ __ZN[KRO]9gui_forms18PageSelectingEvent*
 __ZN[KRO]9gui_forms18PaintLeaseSnapshot*
 __ZN[KRO]9gui_forms18ParagraphGlyphRuns*
 __ZN[KRO]9gui_forms18PartGeometryBuffer*
+__ZN[KRO]9gui_forms18PartRasterInterior*
 __ZN[KRO]9gui_forms18PlotAnnotationItem*
 __ZN[KRO]9gui_forms18PreparedFontSource*
 __ZN[KRO]9gui_forms18PreparedTextLayout*
@@ -10892,6 +10897,7 @@ __ZT[VIST]N9gui_forms18PageSelectingEvent*E
 __ZT[VIST]N9gui_forms18PaintLeaseSnapshot*E
 __ZT[VIST]N9gui_forms18ParagraphGlyphRuns*E
 __ZT[VIST]N9gui_forms18PartGeometryBuffer*E
+__ZT[VIST]N9gui_forms18PartRasterInterior*E
 __ZT[VIST]N9gui_forms18PlotAnnotationItem*E
 __ZT[VIST]N9gui_forms18PreparedFontSource*E
 __ZT[VIST]N9gui_forms18PreparedTextLayout*E
@@ -12555,6 +12561,7 @@ __ZT[hvc]*9gui_forms18PageSelectingEvent*
 __ZT[hvc]*9gui_forms18PaintLeaseSnapshot*
 __ZT[hvc]*9gui_forms18ParagraphGlyphRuns*
 __ZT[hvc]*9gui_forms18PartGeometryBuffer*
+__ZT[hvc]*9gui_forms18PartRasterInterior*
 __ZT[hvc]*9gui_forms18PlotAnnotationItem*
 __ZT[hvc]*9gui_forms18PreparedFontSource*
 __ZT[hvc]*9gui_forms18PreparedTextLayout*
@@ -14218,6 +14225,7 @@ __ZZN9gui_forms18PageSelectingEvent*
 __ZZN9gui_forms18PaintLeaseSnapshot*
 __ZZN9gui_forms18ParagraphGlyphRuns*
 __ZZN9gui_forms18PartGeometryBuffer*
+__ZZN9gui_forms18PartRasterInterior*
 __ZZN9gui_forms18PlotAnnotationItem*
 __ZZN9gui_forms18PreparedFontSource*
 __ZZN9gui_forms18PreparedTextLayout*
@@ -15881,6 +15889,7 @@ __ZZNK9gui_forms18PageSelectingEvent*
 __ZZNK9gui_forms18PaintLeaseSnapshot*
 __ZZNK9gui_forms18ParagraphGlyphRuns*
 __ZZNK9gui_forms18PartGeometryBuffer*
+__ZZNK9gui_forms18PartRasterInterior*
 __ZZNK9gui_forms18PlotAnnotationItem*
 __ZZNK9gui_forms18PreparedFontSource*
 __ZZNK9gui_forms18PreparedTextLayout*

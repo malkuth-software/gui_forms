@@ -2283,11 +2283,17 @@ bool SkiaRaster::Impl::composite_part(SkCanvas& target, const PartRaster& raster
     // The raster's first pixel goes on the device pixel nearest its origin.
     const SkPoint device = matrix.mapPoint(SkPoint::Make(static_cast<SkScalar>(origin.x), static_cast<SkScalar>(origin.y)));
     const DeviceExtent extent = raster.extent();
+    // A proved opaque interior is copied at full opacity (blend study).
+    const PartRasterInterior interior = raster.opaque_interior();
     const detail::PartRasterSource source{.pixels = raster.pixels(), .width = extent.width, .height = extent.height,
                                           .row_bytes = raster.row_bytes(),
                                           .left = std::llround(static_cast<double>(device.x())),
                                           .top = std::llround(static_cast<double>(device.y())),
-                                          .opaque = raster.opaque()};
+                                          .opaque = raster.opaque(),
+                                          .opaque_left = interior.left,
+                                          .opaque_top = interior.top,
+                                          .opaque_right = interior.right,
+                                          .opaque_bottom = interior.bottom};
     const bool composited = composite_source(target, source, opacity);
     return composited;
 }

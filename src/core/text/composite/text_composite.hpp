@@ -122,6 +122,16 @@ struct PartRasterSource final {
     // unscaled interior's rows. A source not wholly opaque must leave it
     // false: its rows would be copied, not blended.
     bool opaque{};
+    // Source pixels, [opaque_left, opaque_right) by [opaque_top,
+    // opaque_bottom), whose alpha its maker proved 255
+    // (PartRaster::opaque_interior); empty when right <= left. Unscaled
+    // source-over at full opacity copies them where the clip covers them
+    // whole, as it copies a wholly opaque source. Anything not proved opaque
+    // must stay outside: it would be copied, not blended.
+    std::uint32_t opaque_left{};
+    std::uint32_t opaque_top{};
+    std::uint32_t opaque_right{};
+    std::uint32_t opaque_bottom{};
 };
 
 // A part opacity in [0, 1] as the byte the blend reads: floor(o * 255 + 0.5),

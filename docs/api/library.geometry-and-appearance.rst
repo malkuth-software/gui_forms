@@ -338,6 +338,8 @@ Types
      - A part's profile beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units.
    * - :cpp:class:`PartRaster <gui_forms::PartRaster>`
      - One part's pixels as the engine keeps them (T2 plan, PartRaster): premultiplied BGRA8 in device pixels, in PartRasterView's layout, made for one display scale.
+   * - :cpp:class:`PartRasterInterior <gui_forms::PartRasterInterior>`
+     - A rectangle of a part raster's pixels, [left, right) by [top, bottom); empty when right <= left or bottom <= top.
    * - :cpp:class:`PartRasterRequest <gui_forms::PartRasterRequest>`
      - What a part needs drawn: the primitive a rule selected, its parameters, the part's target, and the destination extent in device pixels (normally the logical size grown by the primitive's outsets, times the scale, rounded up).
    * - :cpp:class:`PartRasterResult <gui_forms::PartRasterResult>`
@@ -5037,6 +5039,10 @@ Types
 
       Whether record_opacity found every pixel opaque since the last view().
 
+   .. cpp:function:: PartRasterInterior opaque_interior() const noexcept
+
+      What record_opaque_interior recorded since the last view(), or empty.
+
    .. cpp:function:: BorrowedSpan<std::uint8_t> pixels() const& noexcept
 
       Borrowed from the raster: the sanitizer tree reports a use after the raster died (the last shared owner let it go).
@@ -5056,11 +5062,31 @@ Types
 
    .. cpp:function:: PartRasterView view() noexcept
 
-      The raster as a destination for a primitive: valid while the raster lives and is not shared read-only. Clears the recorded opacity, since the pixels may change through the view.
+      The raster as a destination for a primitive: valid while the raster lives and is not shared read-only. Clears the recorded opacity, since the pixels may change through the view, and the opaque interior.
 
    .. cpp:function:: void record_opacity() noexcept
 
       Records whether every pixel's alpha is 255. The maker calls it after its last write through view(), before sharing the raster; the composite then copies the raster's rows rather than blending them.
+
+   .. cpp:function:: void record_opaque_interior(PartRasterInterior interior) noexcept
+
+      Records ``interior`` as the raster's opaque interior when it lies inside the raster and every pixel in it has alpha 255 (checked here, one pass that stops at the first row that is not), else records none. The maker calls it after its last write through view(), with the rectangle its geometry promises (a material's box less its corners); the composite then copies those pixels' rows at full opacity instead of blending them, which writes the same bytes (blend study, 2026-11-16).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PartRasterInterior final
+
+   ``#include <gui_forms/engine/part_raster/part_raster.hpp>``
+
+   A rectangle of a part raster's pixels, [left, right) by [top, bottom); empty when right <= left or bottom <= top.
+
+   .. cpp:member:: std::uint32_t left
+
+   .. cpp:member:: std::uint32_t top
+
+   .. cpp:member:: std::uint32_t right
+
+   .. cpp:member:: std::uint32_t bottom
 
 .. cpp:namespace:: gui_forms
 
