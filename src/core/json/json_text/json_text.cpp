@@ -9,56 +9,35 @@
 #include <cmath>
 #include <cstddef>
 #include <ios>
-#include <iterator>
 #include <locale>
 #include <system_error>
 
 namespace gui_forms::detail {
 namespace {
 
-// The classic locale's numeric output, except doubles: the shortest
-// round-trip text (std::to_chars, never locale-dependent), or null. The
-// stream's width, fill and precision are not used; no writer here sets
-// them for a number.
-class JsonNumberPut final : public std::num_put<char> {
-public:
-    JsonNumberPut() : std::num_put<char>(0U) {}
-
-protected:
-    iter_type do_put(iter_type out, std::ios_base& format, char fill, double value) const override {
-        static_cast<void>(format);
-        static_cast<void>(fill);
-        // 32 characters hold the longest shortest form of a double
-        // ("-2.2250738585072014e-308" is 24).
-        std::array<char, 32> text{};
-        std::size_t length = 0U;
-        if (std::isfinite(value)) {
-            const std::to_chars_result written = std::to_chars(text.data(), text.data() + text.size(), value);
-            if (written.ec == std::errc{}) length = static_cast<std::size_t>(written.ptr - text.data());
-        }
-        const std::string_view number = length != 0U ? std::string_view(text.data(), length) : std::string_view("null");
-        for (const char character : number) {
-            *out = character;
-            ++out;
-        }
-        return out;
-    }
-
-    iter_type do_put(iter_type out, std::ios_base& format, char fill, long double value) const override {
-        const iter_type written = do_put(out, format, fill, static_cast<double>(value));
-        return written;
-    }
-};
-
 constexpr std::string_view hex_digits = "0123456789abcdef";
 
 } // namespace
 
-void imbue_json_numbers(std::ostream& stream) {
-    // std::locale takes ownership of a facet made with reference count 0
-    // and deletes it with the last locale holding it.
-    const std::locale json_locale(std::locale::classic(), new JsonNumberPut());
-    static_cast<void>(stream.imbue(json_locale));
+void prepare_json_stream(std::ostream& stream) {
+    static_cast<void>(stream.imbue(std::locale::classic()));
+}
+
+std::ostream& operator<<(std::ostream& stream, JsonNumber number) {
+    // 32 characters hold the longest shortest form of a double
+    // ("-2.2250738585072014e-308" is 24).
+    std::array<char, 32> text{};
+    if (!std::isfinite(number.value)) {
+        stream << "null";
+        return stream;
+    }
+    const std::to_chars_result written = std::to_chars(text.data(), text.data() + text.size(), number.value);
+    if (written.ec != std::errc{}) {
+        stream << "null";
+        return stream;
+    }
+    stream.write(text.data(), static_cast<std::streamsize>(written.ptr - text.data()));
+    return stream;
 }
 
 void append_json_string(std::ostream& stream, std::string_view value) {

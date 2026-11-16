@@ -89,8 +89,9 @@ std::string HostCapabilities::to_json() const {
         {HostCapability::linux_dmabuf, "linux_dmabuf"},
     }};
     std::ostringstream output;
-    // JSON numbers whatever the global locale (the pattern of A-gf-core-11-F1).
-    detail::imbue_json_numbers(output);
+    // Numbers in the classic locale whatever the global one (the pattern of
+    // A-gf-core-11-F1).
+    detail::prepare_json_stream(output);
     output << "{\"protocol_version\":" << protocol_version
            << ",\"platform\":\"" << json_escape(platform)
            << "\",\"available_bits\":"

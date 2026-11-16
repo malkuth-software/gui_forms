@@ -173,8 +173,9 @@ const char* host_window_kind_name(HostWindowKind kind) noexcept {
 
 std::string HostWindowingSnapshot::to_json() const {
     std::ostringstream output;
-    // JSON numbers whatever the global locale (the pattern of A-gf-core-11-F1).
-    detail::imbue_json_numbers(output);
+    // Numbers in the classic locale whatever the global one (the pattern of
+    // A-gf-core-11-F1).
+    detail::prepare_json_stream(output);
     output << "{\"capabilities\":" << capabilities.to_json()
            << ",\"live_windows\":" << live_windows
            << ",\"admitted\":" << admitted

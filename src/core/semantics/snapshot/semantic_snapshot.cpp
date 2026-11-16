@@ -26,7 +26,7 @@ void append_count(std::ostringstream& stream, const char* name, const stxlib::Op
 void append_number(std::ostringstream& stream, const char* name, const stxlib::Optional<double>& value) {
     stream << ",\"" << name << "\":";
     const double* const number = value.value();
-    if (number != nullptr) stream << *number;
+    if (number != nullptr) stream << detail::JsonNumber{*number};
     else stream << "null";
 }
 
@@ -45,13 +45,13 @@ void append_node(std::ostringstream& stream, const SemanticNode& node) {
     stream << ",\"description\":";
     append_json_string(stream, node.description);
     stream << ",\"numeric_value\":";
-    if (node.numeric_value.present()) stream << *node.numeric_value.value();
+    if (node.numeric_value.present()) stream << detail::JsonNumber{*node.numeric_value.value()};
     else stream << "null";
     stream << ",\"minimum_value\":";
-    if (node.minimum_value.present()) stream << *node.minimum_value.value();
+    if (node.minimum_value.present()) stream << detail::JsonNumber{*node.minimum_value.value()};
     else stream << "null";
     stream << ",\"maximum_value\":";
-    if (node.maximum_value.present()) stream << *node.maximum_value.value();
+    if (node.maximum_value.present()) stream << detail::JsonNumber{*node.maximum_value.value()};
     else stream << "null";
     stream << ",\"position_in_set\":";
     if (node.position_in_set.present()) stream << *node.position_in_set.value();
@@ -86,8 +86,9 @@ void append_node(std::ostringstream& stream, const SemanticNode& node) {
     stream << ",\"tool_tip\":";
     append_json_string(stream, node.tool_tip);
     stream << ",\"announces_on_appearance\":" << (node.announces_on_appearance ? "true" : "false");
-    stream << ",\"bounds\":[" << node.bounds.x << ',' << node.bounds.y << ','
-           << node.bounds.width << ',' << node.bounds.height << "],\"states\":"
+    stream << ",\"bounds\":[" << detail::JsonNumber{node.bounds.x} << ',' << detail::JsonNumber{node.bounds.y}
+           << ',' << detail::JsonNumber{node.bounds.width} << ',' << detail::JsonNumber{node.bounds.height}
+           << "],\"states\":"
            << static_cast<std::uint32_t>(node.states) << ",\"actions\":[";
     for (std::size_t index = 0; index < node.actions.size(); ++index) {
         if (index != 0U) stream << ',';
@@ -306,9 +307,9 @@ std::span<const char* const> semantic_field_names() noexcept {
 
 std::string SemanticSnapshot::to_json() const {
     std::ostringstream stream;
-    // Numbers in the classic locale whatever the program's global one,
-    // doubles round-trip, and non-finite ones null (A-gf-core-11-F1).
-    detail::imbue_json_numbers(stream);
+    // Numbers in the classic locale whatever the program's global one; each
+    // double is written as a JsonNumber, round-trip or null (A-gf-core-11-F1).
+    detail::prepare_json_stream(stream);
     stream << "{\"generation\":" << generation << ",\"node_count\":"
            << node_count << ",\"roots\":[";
     for (std::size_t index = 0; index < roots.size(); ++index) {

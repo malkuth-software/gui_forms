@@ -10,8 +10,9 @@ namespace gui_forms {
 
 std::string HostServicesSnapshot::to_json() const {
     std::ostringstream output;
-    // JSON numbers whatever the global locale (the pattern of A-gf-core-11-F1).
-    detail::imbue_json_numbers(output);
+    // Numbers in the classic locale whatever the global one (the pattern of
+    // A-gf-core-11-F1).
+    detail::prepare_json_stream(output);
     output << "{\"capabilities\":" << capabilities.to_json()
            << ",\"cursor\":\"" << cursor_kind_name(cursor) << '"'
            << ",\"pointer_captured\":" << (pointer_captured ? "true" : "false")

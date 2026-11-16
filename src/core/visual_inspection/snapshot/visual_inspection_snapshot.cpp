@@ -3,6 +3,7 @@
 
 #include "../../json/json_text/json_text.hpp"
 
+#include <iomanip>
 #include <sstream>
 #include <type_traits>
 
@@ -12,21 +13,21 @@ namespace {
 using detail::append_json_string;
 
 void append_point(std::ostringstream& output, Point value) {
-    output << '[' << value.x << ',' << value.y << ']';
+    output << '[' << detail::JsonNumber{value.x} << ',' << detail::JsonNumber{value.y} << ']';
 }
 
 void append_size(std::ostringstream& output, Size value) {
-    output << '[' << value.width << ',' << value.height << ']';
+    output << '[' << detail::JsonNumber{value.width} << ',' << detail::JsonNumber{value.height} << ']';
 }
 
 void append_rect(std::ostringstream& output, Rect value) {
-    output << '[' << value.x << ',' << value.y << ',' << value.width << ','
-           << value.height << ']';
+    output << '[' << detail::JsonNumber{value.x} << ',' << detail::JsonNumber{value.y} << ',' << detail::JsonNumber{value.width} << ','
+           << detail::JsonNumber{value.height} << ']';
 }
 
 void append_insets(std::ostringstream& output, Insets value) {
-    output << '[' << value.left << ',' << value.top << ',' << value.right << ','
-           << value.bottom << ']';
+    output << '[' << detail::JsonNumber{value.left} << ',' << detail::JsonNumber{value.top} << ',' << detail::JsonNumber{value.right} << ','
+           << detail::JsonNumber{value.bottom} << ']';
 }
 
 void append_color(std::ostringstream& output, Color value) {
@@ -39,9 +40,9 @@ void append_color(std::ostringstream& output, Color value) {
 void append_font(std::ostringstream& output, FontSpec value) {
     output << "{\"role\":";
     append_json_string(output, font_role_name(value.role));
-    output << ",\"size\":" << value.size << ",\"weight\":" << value.weight
+    output << ",\"size\":" << detail::JsonNumber{value.size} << ",\"weight\":" << value.weight
            << ",\"italic\":" << (value.italic ? "true" : "false")
-           << ",\"letter_spacing\":" << value.letter_spacing << '}';
+           << ",\"letter_spacing\":" << detail::JsonNumber{value.letter_spacing} << '}';
 }
 
 void append_resolved_text(
@@ -288,7 +289,7 @@ void append_colour_filter(std::ostringstream& output,
     output << '[';
     for (std::size_t index = 0U; index < matrix.values.size(); ++index) {
         if (index != 0U) output << ',';
-        output << matrix.values[index];
+        output << detail::JsonNumber{matrix.values[index]};
     }
     output << ']';
 }
@@ -515,9 +516,9 @@ void append_operation(std::ostringstream& output,
     output << ",\"resolved_text\":";
     append_resolved_text(output, operation.resolved_text);
     output << ",\"image_id\":" << operation.image.value
-           << ",\"scalar\":" << operation.scalar
-           << ",\"secondary_scalar\":" << operation.secondary_scalar
-           << ",\"tertiary_scalar\":" << operation.tertiary_scalar
+           << ",\"scalar\":" << detail::JsonNumber{operation.scalar}
+           << ",\"secondary_scalar\":" << detail::JsonNumber{operation.secondary_scalar}
+           << ",\"tertiary_scalar\":" << detail::JsonNumber{operation.tertiary_scalar}
            << ",\"gradient_stops\":";
     append_gradient_stops(output, operation.gradient_stops);
     output << ",\"gradient_spread\":";
@@ -533,7 +534,7 @@ void append_operation(std::ostringstream& output,
     output << ",\"text_orientation\":";
     append_json_string(output, text_orientation_name(operation.text_orientation));
     // Written only for a rotated run, so other snapshots keep their bytes.
-    if (operation.text_degrees != 0.0) output << ",\"text_degrees\":" << operation.text_degrees;
+    if (operation.text_degrees != 0.0) output << ",\"text_degrees\":" << detail::JsonNumber{operation.text_degrees};
     if (operation.element_count != 0U) output << ",\"element_count\":" << operation.element_count;
     // Written only for a group with an effect, so other snapshots keep
     // their bytes.
@@ -769,16 +770,17 @@ const VisualControlInspection* VisualInspectionSnapshot::find(
 
 std::string VisualInspectionSnapshot::to_json() const {
     std::ostringstream output;
-    // Numbers in the classic locale whatever the program's global one,
-    // doubles as their shortest round-trip text, and non-finite ones null
-    // (A-gf-core-16-F2; the facet replaces the former 17-digit precision).
-    detail::imbue_json_numbers(output);
-    output << "{\"content_revision\":" << content_revision
+    // Numbers in the classic locale whatever the program's global one
+    // (A-gf-core-16-F2). The geometry, font, scale, operation scalar and
+    // colour matrix numbers are written as JsonNumber (round-trip, or null
+    // when not finite); any other double keeps 17 digits.
+    detail::prepare_json_stream(output);
+    output << std::setprecision(17) << "{\"content_revision\":" << content_revision
            << ",\"display_generation\":" << display_generation
            << ",\"client_size\":";
     append_size(output, client_size);
-    output << ",\"device_scale\":" << device_scale
-           << ",\"text_scale\":" << text_scale
+    output << ",\"device_scale\":" << detail::JsonNumber{device_scale}
+           << ",\"text_scale\":" << detail::JsonNumber{text_scale}
            << ",\"high_contrast\":" << (high_contrast ? "true" : "false")
            << ",\"reduced_motion\":" << (reduced_motion ? "true" : "false")
            << ",\"sound_enabled\":" << (sound_enabled ? "true" : "false")

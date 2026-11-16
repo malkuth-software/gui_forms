@@ -15,8 +15,6 @@
 
 #include <stxlib/optional.hpp>
 
-#include <array>
-#include <clocale>
 #include <cstddef>
 #include <memory>
 #include <iostream>
@@ -193,23 +191,16 @@ void test_typed_overrides_check_names_and_write_a_sheet() {
     require(sheet == overrides.sheet_text(), "the sheet is deterministic");
     const ThemeCompileResult compiled = compile_sheet(sheet, "overrides");
     require(compiled.succeeded() && compiled.diagnostics().empty(), "the written sheet compiles without findings");
-    // A-gf-core-14-F2: fractions are written with a decimal point whatever
-    // LC_NUMERIC says. A comma locale is tried where the system has one;
-    // without one the text is still checked in the C locale.
-    const std::string previous_numeric(std::setlocale(LC_NUMERIC, nullptr));
-    const std::array<const char*, 4> comma_locales{"de_DE.UTF-8", "de_DE.utf8", "fr_FR.UTF-8", "de_DE"};
-    for (const char* const name : comma_locales) {
-        if (std::setlocale(LC_NUMERIC, name) != nullptr) break;
-    }
+    // A-gf-core-14-F2: fractions are written by std::to_chars, which never
+    // reads LC_NUMERIC, in the formats snprintf used. The test cannot set a
+    // decimal-comma LC_NUMERIC itself (check_std_rules refuses setlocale),
+    // so it checks the text the formats give.
     ThemeOverrides fractional{};
     require(fractional.set_length(button, ThemeOverrideProperty::corner_radius, 2.5) == ThemeOverrideCheck::accepted,
             "a fractional radius is accepted");
-    const std::string fractional_sheet = fractional.sheet_text();
-    const std::string translucent_sheet = overrides.sheet_text();
-    static_cast<void>(std::setlocale(LC_NUMERIC, previous_numeric.c_str()));
-    require(fractional_sheet.find("border-radius: 2.5px;") != std::string::npos &&
-                translucent_sheet.find("rgb(68 119 221 / 50.20%)") != std::string::npos,
-            "lengths and translucent colours are written with a decimal point in any LC_NUMERIC");
+    require(fractional.sheet_text().find("border-radius: 2.5px;") != std::string::npos &&
+                sheet.find("rgb(68 119 221 / 50.20%)") != std::string::npos,
+            "lengths and translucent colours are written with a decimal point");
     // Applied to a control through its theme sheet.
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("overrides.root"));
     const std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
