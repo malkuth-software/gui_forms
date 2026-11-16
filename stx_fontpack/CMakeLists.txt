@@ -87,6 +87,10 @@ if(STX_FONTPACK_TESTS)
     add_test(NAME stx_fontpack_tests COMMAND stx_fontpack_tests)
     if(STX_FONTPACK_TEST_FONT_DIR)
         add_test(NAME stx_fontpack_font_tests COMMAND stx_fontpack_tests "${STX_FONTPACK_TEST_FONT_DIR}")
+        # It packs and round-trips every bundled face, the CJK fallback among
+        # them: about 100 s on a CI runner, which ctest's 120 s default (the
+        # CI build's --timeout) leaves no room for.
+        set_tests_properties(stx_fontpack_font_tests PROPERTIES TIMEOUT 600)
     endif()
 endif()
 
