@@ -391,7 +391,11 @@ public:
     // order. Throws std::invalid_argument, too, for a tab naming an
     // undeclared set, a set without tabs, tabs out of that order, a set ID
     // that is not unique in the ribbon's ID namespace, or zero modes. Sets
-    // keep their availability across a set_tabs by ID.
+    // keep their availability across a set_tabs by ID. A disposed gallery,
+    // font control, colour picker or tab panel is refused the same way. If
+    // adding a hosted control fails after validation (a call from inside a
+    // lifecycle notification), the exception reaches the caller and the
+    // ribbon is left with no tabs.
     void set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetSpec> sets = {});
     [[nodiscard]] std::span<const RibbonTabSetSpec> tab_sets() const& noexcept {
         return std::span<const RibbonTabSetSpec>(tab_sets_.data(), tab_sets_.size());
@@ -935,6 +939,7 @@ private:
         const std::vector<RibbonTabSetSpec>& sets, const std::vector<stxlib::Optional<std::size_t>>& tab_set_of) const;
     void rebuild_records(HostedCarryOver& carried);
     void release_carried(const HostedCarryOver& carried);
+    void abandon_definition(HostedCarryOver& carried) noexcept;
 
     // A realized item located: a tab, a group or a command of the selected
     // tab, or nothing past the end.
