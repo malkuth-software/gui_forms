@@ -9,6 +9,7 @@
 
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/surface_material.hpp"
 #include "gui_forms/visual_inspection.hpp"
 #include "gui_forms/window.hpp"
@@ -322,6 +323,30 @@ void content_effect_wraps_the_subtree() {
 
     (*holder).set_content_effect(nullptr);
     require(!(*holder).shown_content_effect(), "a null effect clears it");
+
+    // A rule with no part writing `filter` (here the control's inline
+    // style) is its theme content effect, resolved where its paint damage
+    // is owed (owner 2026-11-16).
+    const InlineStyleResult styled = (*holder).set_inline_style("filter: grayscale(1) blur(1px)");
+    require(styled.succeeded(), "a control's filter compiles as its content effect");
+    ListingPainter themed{};
+    static_cast<void>(window.paint(themed));
+    const std::shared_ptr<const PaintGroupEffect> from_theme = (*holder).shown_content_effect();
+    require(from_theme && !(*holder).content_effect() && (*from_theme).colour_filter.has_value() &&
+                (*from_theme).blur == 2.0 && (*from_theme).masks.empty(),
+            "the theme's content effect is shown: grayscale and blur(1px), 2 in filter_blur's units");
+    bool themed_group = false;
+    for (const std::shared_ptr<const PaintGroupEffect>& carried : themed.effects) {
+        if (carried == from_theme) themed_group = true;
+    }
+    require(themed_group, "the replay groups the subtree with the theme's effect");
+    (*holder).set_content_effect(effect);
+    require((*holder).shown_content_effect() == effect, "an effect set in code wins over the theme's");
+    (*holder).set_content_effect(nullptr);
+    require(styled.succeeded() && (*holder).set_inline_style("").succeeded(), "the style clears");
+    ListingPainter cleared{};
+    static_cast<void>(window.paint(cleared));
+    require(!(*holder).shown_content_effect(), "without the rule the control shows no content effect");
 }
 
 void refused_past_the_depth() {

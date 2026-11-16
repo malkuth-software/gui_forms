@@ -22,6 +22,7 @@
 namespace gui_forms {
 
 class Control;
+struct PaintGroupEffect;
 namespace detail { class ThemeImageLease; struct ThemeAccess; struct ThemeSourceRecord; }
 
 // An application colour role's colours where some media facts hold
@@ -148,6 +149,14 @@ public:
     // among the theme's and the user theme's rules, matched as
     // window_backdrop_chain matches. Empty where no rule sets one.
     [[nodiscard]] BandDeclaration window_band(const Window& window) const noexcept;
+    // The content effect the rules give `control` (a rule with no part
+    // writing `filter` or `mask-*`; owner 2026-11-16), among the theme's,
+    // the window's user theme's, the control's inline style's and its
+    // look's rules (CompiledThemeRules::resolve_content_effect), with its
+    // gradient masks resolved for the control's arranged size. Null where
+    // no rule sets one, where the fields give no filter, blur or mask, or
+    // where the result is not a valid group effect. Allocates the effect.
+    [[nodiscard]] std::shared_ptr<const PaintGroupEffect> control_content_effect(const Control& control) const;
     [[nodiscard]] const ThemeDefinition& definition() const noexcept {
         return definition_;
     }

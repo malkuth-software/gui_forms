@@ -537,6 +537,16 @@ private:
     // Reports material_lowering_'s problem; true where the declaration is
     // only dropped.
     [[nodiscard]] bool report_material_problem();
+    // A control rule's `filter` or `mask-*` (owner 2026-11-16): moves
+    // material_lowering_'s declarations of the content effect's fields
+    // into content_effect_. A drop shadow, an image mask layer, an em
+    // length or currentcolor is refused (value_form_not_admitted, naming
+    // ::part(face), where the material's own filter and mask are written).
+    [[nodiscard]] bool lower_content_effect(std::uint32_t value_token, bool relative);
+    void add_content_effect(MaterialDeclaration declaration);
+    // Whether the rule selects controls themselves: no selector names a
+    // part, a role or an item (a surface rule takes no control property).
+    [[nodiscard]] bool rule_selects_controls() const noexcept;
     // The em coefficients (P8c, D4) of the declarations material_lowering_
     // holds, lowered at an em of 0 and the current colour black, where the
     // value has an em length at `em_token`, and their current colours
@@ -661,6 +671,10 @@ private:
     std::optional<ColourRoleSide> bare_side_{};
     // The backdrop the rule being lowered declares, or none.
     std::optional<BackdropDeclaration> backdrop_{};
+    // The content effect the rule being lowered declares (ThemeRule::
+    // content_effect), at most one declaration per field; cleared with
+    // materials_ for each level of the rule.
+    std::vector<MaterialDeclaration> content_effect_{};
     // The sheet's `@filter` rules, in order, collected before its style
     // rules so that a filter may be named before it is declared.
     std::vector<NamedThemeFilter> filters_{};
@@ -2215,6 +2229,7 @@ bool CompilePass::lower_declarations(std::size_t rule_index, bool important, con
     const std::size_t end = tree_.nodes[rule_index].subtree_end.value;
     declarations_.clear();
     materials_.clear();
+    content_effect_.clear();
     recipe_fields_.clear();
     backdrop_.reset();
     band_.reset();
@@ -3025,6 +3040,15 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_);
         return true;
     }
+    // A control's content effect has no image layer, so the mask's image
+    // placement is a part's alone (owner 2026-11-16).
+    const bool mask_placement = property == MaterialProperty::mask_position ||
+                                property == MaterialProperty::mask_size || property == MaterialProperty::mask_repeat;
+    if (mask_placement && rule_selects_controls()) {
+        report(DiagnosticCode::property_not_admitted, node.tokens.first.value,
+               property_ + " on a control; write it on ::part(face)");
+        return true;
+    }
     const bool part_geometry = property == MaterialProperty::stroke_width ||
                                property == MaterialProperty::needle_shape ||
                                property == MaterialProperty::scrim_color;
@@ -3117,6 +3141,15 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
     }
     material_lowering_.warnings.clear();
     const bool reads_current = material_lowering_.read_current_colour;
+    // `filter` and `mask-*` on a control rule are the control's content
+    // effect, as CSS's filter and mask are the element's with its
+    // descendants (owner 2026-11-16).
+    const bool content_property = property == MaterialProperty::filter || property == MaterialProperty::mask_image ||
+                                  property == MaterialProperty::mask_mode ||
+                                  property == MaterialProperty::mask_composite;
+    if (content_property && rule_selects_controls()) {
+        return lower_content_effect(value_.components[0].token, em_token.has_value() || reads_current);
+    }
     if ((em_token || reads_current) &&
         !lower_relative(property, node.content.first.value, em_token, reads_current)) {
         return material_lowering_.outcome == MaterialLoweringOutcome::dropped;
@@ -3144,6 +3177,46 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         report(DiagnosticCode::literal_colour_unremappable, literal, clipped_theme_detail(token_text(literal)));
     }
     return true;
+}
+
+bool CompilePass::lower_content_effect(std::uint32_t value_token, bool relative) {
+    if (relative) {
+        report(DiagnosticCode::value_form_not_admitted, value_token,
+               "an em length or currentcolor in a control's content effect");
+        return false;
+    }
+    // Checked whole before any is kept.
+    for (const MaterialDeclaration& declaration : material_lowering_.declarations) {
+        if (declaration.field == MaterialField::drop_shadow && declaration.drop_shadow) {
+            report(DiagnosticCode::value_form_not_admitted, value_token,
+                   "drop-shadow() on a control's content effect; write it on ::part(face)");
+            return false;
+        }
+        if (declaration.field != MaterialField::mask) continue;
+        for (const MaterialFillLayer& layer : declaration.masks) {
+            if (layer.kind != MaterialFillKind::image) continue;
+            report(DiagnosticCode::value_form_not_admitted, value_token,
+                   "an image mask on a control's content effect; write it on ::part(face)");
+            return false;
+        }
+    }
+    // `filter: none` and a filter without a drop shadow clear the drop
+    // shadow, which the effect does not have: that declaration is left.
+    for (MaterialDeclaration& declaration : material_lowering_.declarations) {
+        if (!content_effect_field(declaration.field)) continue;
+        add_content_effect(std::move(declaration));
+    }
+    return true;
+}
+
+void CompilePass::add_content_effect(MaterialDeclaration declaration) {
+    // As add_material: the later declaration of a field wins.
+    for (std::size_t index = 0U; index < content_effect_.size(); ++index) {
+        if (content_effect_[index].field != declaration.field) continue;
+        content_effect_.erase(content_effect_.begin() + static_cast<std::ptrdiff_t>(index));
+        break;
+    }
+    content_effect_.push_back(std::move(declaration));
 }
 
 bool CompilePass::report_material_problem() {
@@ -3778,6 +3851,16 @@ bool CompilePass::rule_selects_part() const noexcept {
     return false;
 }
 
+bool CompilePass::rule_selects_controls() const noexcept {
+    if (lowered_selectors_.empty()) return false;
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        const RuleSelector& selector = lowered.selector;
+        if (!selector.part.empty() || selector.role.has_value()) return false;
+        if (!selector.item_id.empty() || !selector.item_classes.empty()) return false;
+    }
+    return true;
+}
+
 // Whether every selector of the rule names a part (not a role alone).
 bool CompilePass::rule_names_parts_only() const noexcept {
     if (lowered_selectors_.empty()) return false;
@@ -3869,6 +3952,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     lowered.recipe_fields = recipe_fields_;
     lowered.backdrop = backdrop_;
     lowered.band = band_;
+    lowered.content_effect = content_effect_;
     lowered.scoped_conditions = variations_.copy_conditions;
     // An inline style's own rules (P12b: alone, or lowered after a theme)
     // are not the theme's readers.
@@ -3879,12 +3963,14 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     // A borrowed selection alone declares nothing of the rule's own.
     const std::size_t owned = emitted.borrowed ? selections : 0U;
     if (lowered.declarations.size() == owned && lowered.transitions.empty() && lowered.materials.empty() &&
-        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop && !lowered.band) {
+        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop && !lowered.band &&
+        lowered.content_effect.empty()) {
         return true;
     }
     std::size_t bytes = lowered_record_bytes + lowered.label.size();
     for (const RuleDeclaration& declaration : lowered.declarations) bytes += declaration_bytes(declaration);
     for (const MaterialDeclaration& declaration : lowered.materials) bytes += material_bytes(declaration);
+    for (const MaterialDeclaration& declaration : lowered.content_effect) bytes += material_bytes(declaration);
     for (const PropertyTransition& transition : lowered.transitions) bytes += transition_bytes(transition);
     bytes += lowered.recipe_fields.size() * lowered_record_bytes;
     if (lowered.backdrop) bytes += lowered_record_bytes;

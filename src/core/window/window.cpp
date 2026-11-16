@@ -3819,7 +3819,10 @@ void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
         // Audit B5: no fallback to requested_bounds_ (parent-relative, not a
         // window rectangle). Empty bounds are a control that paints nothing
         // or is not arranged; the arrange that places it damages where it
-        // lands.
+        // lands. The theme's content effect is resolved first, so the
+        // damage spreads by its reach (the walk is pre-order: an ancestor's
+        // is already current).
+        control.refresh_theme_content_effect();
         const Rect bounds = paint_damage_bounds_of(control);
         // Structural invalidation recomposes every plane so vacated pixels
         // cannot survive beneath a transparent or detached control.
@@ -4426,6 +4429,7 @@ PaintLeaseState SurfaceRoot::paint_lease_state() const noexcept {
 
 void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
     const DamageCauseScope cause(*this, InvalidationCause::control, control.get());
+    (*control).refresh_theme_content_effect();
     const Rect covered = paint_damage_bounds_of(*control);
     add_damage_all_planes(covered);
     const Rect placed = absolute_bounds_of(*control);
@@ -4488,7 +4492,8 @@ void SurfaceRoot::settle_touch(Control& control, detail::PendingTouch owed) {
     }
     if (owed.damages_bounds) {
         // Audit B5: as in mark_subtree's paint, no requested_bounds_
-        // fallback.
+        // fallback. The theme's content effect first, as there.
+        control.refresh_theme_content_effect();
         const Rect bounds = paint_damage_bounds_of(control);
         const DamageCauseScope cause(*this, InvalidationCause::control, &control);
         add_damage(bounds, control.paint_plane_);

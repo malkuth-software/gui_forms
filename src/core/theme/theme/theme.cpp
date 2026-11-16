@@ -5,6 +5,7 @@
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 
 #include "ancestor_facts.hpp"
 #include "floor_sheet.hpp"
@@ -2556,6 +2557,43 @@ BandDeclaration Theme::window_band(const Window& window) const noexcept {
     facts.user_rules = window.user_theme_rules();
     const BandDeclaration declared = engine_.rules().resolve_band(facts);
     return declared;
+}
+
+std::shared_ptr<const PaintGroupEffect> Theme::control_content_effect(const Control& control) const {
+    CompiledThemeRules::PartFacts facts{};
+    facts.control_type = control.anatomy().control_id;
+    facts.stable_id = control.stable_id().value();
+    facts.classes = control.classes.read();
+    facts.inline_rules = control.inline_style_rules();
+    facts.look_rules = control.look_rules();
+    facts.states = control.anatomy_states();
+    const SurfaceRoot* const window = control.attached_surface_root();
+    if (window != nullptr) facts.media = window_media_facts(*window);
+    if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    const CompiledThemeRules& rules = engine_.rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, rules, ancestors, facts);
+    std::array<const MaterialDeclaration*, material_field_count> fields{};
+    rules.resolve_content_effect(facts, fields);
+    bool declared = false;
+    for (const MaterialDeclaration* const field : fields) {
+        if (field != nullptr && !(*field).initial) declared = true;
+    }
+    if (!declared) return nullptr;
+    // The masks' gradients are resolved for the control's size, the
+    // group's box in its usual case (a subtree overflowing the control
+    // widens the group, not the gradients).
+    const Rect bounds = control.committed_arranged_bounds();
+    SurfaceMaterial material{};
+    assemble_material(SurfaceMaterial{}, fields, Size{bounds.width, bounds.height}, material);
+    PaintGroupEffect effect{};
+    effect.colour_filter = material.colour_filter;
+    effect.blur = material.filter_blur;
+    effect.masks = material.masks;
+    const bool empty = !effect.colour_filter && !(effect.blur > 0.0) && effect.masks.empty();
+    if (empty || !valid_paint_group_effect(effect)) return nullptr;
+    const std::shared_ptr<const PaintGroupEffect> shared = std::make_shared<const PaintGroupEffect>(std::move(effect));
+    return shared;
 }
 
 bool Theme::declares_clarity(const Control& control) const noexcept {

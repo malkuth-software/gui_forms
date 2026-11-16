@@ -316,7 +316,7 @@ void test_current_colour_records() {
     require(written != nullptr && (*written).shadows.size() == 2U &&
                 (*written).current_colours == std::vector<std::uint16_t>{position},
             "a written currentcolor, and not a written colour");
-    const ThemeRule glow = only_rule("#a { glow: 2px; filter: drop-shadow(1px 1px) }");
+    const ThemeRule glow = only_rule("#a::part(face) { glow: 2px; filter: drop-shadow(1px 1px) }");
     const MaterialDeclaration* glows = material_of(glow, MaterialField::glows);
     const MaterialDeclaration* drop = material_of(glow, MaterialField::drop_shadow);
     require(glows != nullptr && (*glows).current_colours == std::vector<std::uint16_t>{1U},

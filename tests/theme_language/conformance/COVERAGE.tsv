@@ -155,6 +155,8 @@ property.box-shadow	shadows-opacity-filters
 property.box-shadow-inset	shadows-opacity-filters
 property.clip-path	material-shape
 property.color	transforms-text
+property.content-effect	content-effect
+property.content-effect-image-mask	content-effect-image-mask
 property.conic-gradient	fills
 property.default-outline	recipe-colours
 property.effect	effects

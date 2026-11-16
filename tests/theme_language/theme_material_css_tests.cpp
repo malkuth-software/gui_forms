@@ -1099,7 +1099,7 @@ void test_theme_filters() {
 }
 
 void test_refusals() {
-    const std::array<Refusal, 95> refusals{{
+    const std::array<Refusal, 98> refusals{{
         {"#a { reflection: below backplane 1px }", DiagnosticCode::value_syntax},
         {"#a { reflection: below 1px mirror }", DiagnosticCode::keyword_unknown},
         {"#a { reflection: below 4px 6px }", DiagnosticCode::value_out_of_range},
@@ -1184,6 +1184,9 @@ void test_refusals() {
         {"#a { mask-image: linear-gradient(black, white), linear-gradient(black, white) }",
          DiagnosticCode::too_many_layers},
         {"#a { mask-image: url(\"resource:icon.check\") }", DiagnosticCode::value_wrong_kind},
+        {"#a { mask-image: url(\"resource:tile.quadrant\") }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: drop-shadow(1px 1px red) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { mask-image: linear-gradient(currentcolor, transparent) }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-size: 10px 20px }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-size: 0px }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-size: -1px }", DiagnosticCode::value_out_of_range},
@@ -1232,6 +1235,47 @@ void test_refusals() {
                 unknown_filter.diagnostics.size() == 1U &&
                 unknown_filter.diagnostics[0].code == DiagnosticCode::unknown_function,
             "an unknown filter function drops the declaration with a warning");
+}
+
+// A rule with no part, role or item writing `filter` or `mask-*` is the
+// control's content effect (owner 2026-11-16): its declarations go to the
+// rule's content_effect, not its materials, and select no primitive. A
+// part keeps the material's own filter and mask, an image mask among them;
+// on a control, the mask's image placement is not admitted.
+void test_content_effect_lowering() {
+    const std::string_view sheet =
+        "#a { filter: grayscale(1) blur(1px); mask-image: linear-gradient(black, transparent); mask-mode: luminance }";
+    const Compilation compiled = compile(sheet);
+    const ThemeRule& rule = only_rule(compiled, sheet);
+    bool filter = false;
+    bool blur = false;
+    bool mask = false;
+    bool modes = false;
+    bool shadow = false;
+    for (const MaterialDeclaration& declaration : rule.content_effect) {
+        if (declaration.field == MaterialField::colour_filter) filter = declaration.colour_filter.has_value();
+        if (declaration.field == MaterialField::filter_blur) blur = declaration.number == 2.0;
+        if (declaration.field == MaterialField::mask) mask = declaration.masks.size() == 1U;
+        if (declaration.field == MaterialField::mask_modes) modes = declaration.mask_modes.size() == 1U;
+        if (declaration.field == MaterialField::drop_shadow) shadow = true;
+    }
+    require(rule.materials.empty() && rule.declarations.empty() && rule.content_effect.size() == 4U && filter &&
+                blur && mask && modes && !shadow,
+            "a control's filter and mask are its content effect, with no drop shadow and no primitive");
+    const std::string_view on_part = "#a::part(face) { mask-image: url(\"resource:tile.quadrant\") }";
+    const Compilation part = compile(on_part);
+    const ThemeRule& part_rule = only_rule(part, on_part);
+    require(part_rule.content_effect.empty() && field_of(part_rule, MaterialField::mask) != nullptr,
+            "a part's mask is the material's own, an image allowed");
+    const Compilation placed = compile("#a { mask-size: 8px }");
+    require(placed.outcome == CompileOutcome::compiled && !placed.diagnostics.empty() &&
+                placed.diagnostics.back().code == DiagnosticCode::property_not_admitted,
+            "a control's mask has no image placement");
+    const std::string_view cleared_sheet = "#a { filter: none }";
+    const Compilation cleared = compile(cleared_sheet);
+    const ThemeRule& cleared_rule = only_rule(cleared, cleared_sheet);
+    require(cleared_rule.content_effect.size() == 2U && cleared_rule.materials.empty(),
+            "filter: none clears the effect's colour filter and blur");
 }
 
 // A-gf-core-15-F1: a "one value" problem whose value has no second
@@ -1711,6 +1755,7 @@ int main() {
     test_shape_lowering();
     test_seat();
     test_theme_filters();
+    test_content_effect_lowering();
     test_refusals();
     test_gate();
     if (failures != 0) {

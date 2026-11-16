@@ -9,6 +9,7 @@
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1813,6 +1814,8 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         add_recipe_fields(result.diagnostics_, index, rule, compiled);
         add_backdrop(result.diagnostics_, index, rule, compiled);
         add_band(result.diagnostics_, index, rule, compiled);
+        add_content_effect(result.diagnostics_, index, rule, compiled);
+        if (!compiled.content_effect.empty()) result.uses_content_effects_ = true;
         if (!add_scoped(result.diagnostics_, index, rule, result, compiled)) continue;
         if (!add_reads(result.diagnostics_, index, rule, result, compiled)) continue;
         const bool declares = compiled.selects || !compiled.parameters.empty() || !compiled.transitions.empty() ||
@@ -1821,7 +1824,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
                               compiled.effect_secondary.has_value() ||
                               !compiled.materials.empty() || !compiled.recipe_fields.empty() ||
                               !compiled.scoped_definitions.empty() || compiled.backdrop.has_value() ||
-                              compiled.band.has_value();
+                              compiled.band.has_value() || !compiled.content_effect.empty();
         // A rule of definitions no condition reads declares nothing the
         // cascade uses, and is dropped without a diagnostic.
         if (!declares && !rule.scoped_definitions.empty()) continue;
@@ -2290,6 +2293,57 @@ bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept {
     return one_blur;
 }
 
+bool content_effect_field(MaterialField field) noexcept {
+    switch (field) {
+    case MaterialField::colour_filter:
+    case MaterialField::filter_blur:
+    case MaterialField::mask:
+    case MaterialField::mask_modes:
+    case MaterialField::mask_composites: return true;
+    default: return false;
+    }
+}
+
+void CompiledThemeRules::add_content_effect(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
+                                            const ThemeRule& rule, CompiledRule& compiled) {
+    if (rule.content_effect.empty()) return;
+    const RuleSelector& selector = rule.selector;
+    const bool on_control = selector.part.empty() && !selector.role.has_value() &&
+                            selector.surface == SurfaceKind::none && selector.item_id.empty() &&
+                            selector.item_classes.empty();
+    // The fields alone, each once, assembled over an empty material to
+    // check them as the group effect the theme would give.
+    std::array<const MaterialDeclaration*, material_field_count> fields{};
+    bool admitted = on_control;
+    for (const MaterialDeclaration& declaration : rule.content_effect) {
+        const std::size_t position = static_cast<std::size_t>(declaration.field);
+        if (!admitted) break;
+        if (position >= material_field_count || !content_effect_field(declaration.field) ||
+            fields[position] != nullptr) {
+            admitted = false;
+            break;
+        }
+        fields[position] = &declaration;
+    }
+    if (admitted) {
+        SurfaceMaterial material{};
+        assemble_material(SurfaceMaterial{}, fields, Size{1.0, 1.0}, material);
+        PaintGroupEffect effect{};
+        effect.colour_filter = material.colour_filter;
+        effect.blur = material.filter_blur;
+        effect.masks = material.masks;
+        for (const MaterialMaskLayer& layer : effect.masks) {
+            if (layer.source.kind == MaterialFillKind::image) admitted = false;
+        }
+        admitted = admitted && valid_paint_group_effect(effect);
+    }
+    if (!admitted) {
+        diagnostics.push_back(diagnostic(RuleDiagnosticKind::material_field_invalid, index, rule, "content effect"));
+        return;
+    }
+    compiled.content_effect = rule.content_effect;
+}
+
 void CompiledThemeRules::add_backdrop(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
                                       const ThemeRule& rule, CompiledRule& compiled) {
     if (!rule.backdrop) return;
@@ -2539,6 +2593,7 @@ CompiledThemeRules::CompiledThemeRules(const CompiledThemeRules& other)
       user_theme_(other.user_theme_),
       look_(other.look_),
       uses_ancestors_(other.uses_ancestors_),
+      uses_content_effects_(other.uses_content_effects_),
       scoped_names_(other.scoped_names_),
       read_names_(other.read_names_),
       theme_serial_(other.theme_serial_),
@@ -2557,6 +2612,7 @@ CompiledThemeRules& CompiledThemeRules::operator=(const CompiledThemeRules& othe
     user_theme_ = other.user_theme_;
     look_ = other.look_;
     uses_ancestors_ = other.uses_ancestors_;
+    uses_content_effects_ = other.uses_content_effects_;
     scoped_names_ = other.scoped_names_;
     read_names_ = other.read_names_;
     theme_serial_ = other.theme_serial_;
@@ -3239,6 +3295,29 @@ BandDeclaration CompiledThemeRules::resolve_band(const PartFacts& facts) const n
         if (band.effect) merged.effect = band.effect;
     }
     return merged;
+}
+
+void CompiledThemeRules::resolve_content_effect(
+    const PartFacts& facts, std::array<const MaterialDeclaration*, material_field_count>& fields) const noexcept {
+    fields.fill(nullptr);
+    const bool user = facts.user_rules != nullptr && (*facts.user_rules).uses_content_effects_;
+    const bool owned = facts.inline_rules != nullptr && (*facts.inline_rules).uses_content_effects_;
+    const bool look = facts.look_rules != nullptr && (*facts.look_rules).uses_content_effects_;
+    if (!uses_content_effects_ && !user && !owned && !look) return;
+    if (facts.surface != SurfaceKind::none || !facts.part.empty()) return;
+    // Only a control rule holds a content effect (add_content_effect).
+    // Rules are walked in ascending precedence, so each field's last
+    // setter wins.
+    ScopedWinners winners{};
+    resolve_scoped(facts, winners);
+    RuleWalk walk(*this, facts, false, &winners);
+    for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
+        const CompiledRule& rule = *next;
+        if (rule.content_effect.empty() || !matches(rule, facts)) continue;
+        for (const MaterialDeclaration& declaration : rule.content_effect) {
+            fields[static_cast<std::size_t>(declaration.field)] = &declaration;
+        }
+    }
 }
 
 void CompiledThemeRules::resolve_primitive(const PartFacts& facts, const ScopedWinners& winners,

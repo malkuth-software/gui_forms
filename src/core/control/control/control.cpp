@@ -4248,6 +4248,13 @@ void Control::set_content_effect(std::shared_ptr<const PaintGroupEffect> effect)
     redraw_all(invalidation::paint_only);
 }
 
+void Control::refresh_theme_content_effect() {
+    std::shared_ptr<const PaintGroupEffect> resolved = effective_theme().control_content_effect(*this);
+    const bool same = resolved && theme_content_effect_ && *resolved == *theme_content_effect_;
+    if (same || (!resolved && !theme_content_effect_)) return;
+    theme_content_effect_ = std::move(resolved);
+}
+
 std::optional<DisplayChunkInfo> Control::display_chunk_info() const noexcept {
     return display_chunk_ ? std::optional((*display_chunk_).info()) : std::nullopt;
 }

@@ -464,6 +464,11 @@ std::string rule_text(std::size_t index, const ThemeRule& rule) {
     for (const MaterialDeclaration& declaration : rule.materials) text += material_text(declaration);
     for (const RecipeDeclaration& declaration : rule.recipe_fields) text += recipe_text(declaration);
     if (rule.backdrop) text += backdrop_text(*rule.backdrop);
+    // A control's content effect: its declarations as material_text
+    // prints them, after "content".
+    for (const MaterialDeclaration& declaration : rule.content_effect) {
+        text += "  content" + material_text(declaration).substr(1U);
+    }
     for (const ScopedDefinition& definition : rule.scoped_definitions) {
         text += "  defines " + definition.name + " #" + std::to_string(definition.definition) + "\n";
     }

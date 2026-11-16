@@ -1083,6 +1083,12 @@ GUI_FORMS_API void assemble_material(const SurfaceMaterial& floor,
                        const std::array<const MaterialDeclaration*, material_field_count>& fields, Size box,
                        SurfaceMaterial& material);
 
+// Whether `field` is one a control's content effect takes
+// (ThemeRule::content_effect): the colour filter, the filter blur, the
+// mask's layers and their modes and composites. A drop shadow and the
+// image placement longhands are not.
+[[nodiscard]] GUI_FORMS_API bool content_effect_field(MaterialField field) noexcept;
+
 // Whether assembling `fields` reads the part's em: a declaration with em
 // lengths.
 [[nodiscard]] GUI_FORMS_API bool material_fields_read_em(
@@ -1606,6 +1612,13 @@ struct GUI_FORMS_API ThemeRule final {
     std::optional<BackdropDeclaration> backdrop{};
     // A window rule's band (`band-*`), or none.
     std::optional<BandDeclaration> band{};
+    // A control rule's content effect (owner 2026-11-16): what a rule with
+    // no part, role or surface writes as `filter` and `mask-*`, a filter
+    // and mask on the control and its descendants together
+    // (Control::set_content_effect). Material declarations of the content
+    // effect's fields only (content_effect_field), at most one per field;
+    // empty for none.
+    std::vector<MaterialDeclaration> content_effect{};
     // Where the rule was written. Not compared: two rules that cascade
     // alike are equal wherever they were written.
     RuleProvenance provenance{};
@@ -1619,7 +1632,7 @@ struct GUI_FORMS_API ThemeRule final {
                left.scoped_definitions == right.scoped_definitions &&
                left.scoped_conditions == right.scoped_conditions && left.reads == right.reads &&
                left.source_position == right.source_position && left.backdrop == right.backdrop &&
-               left.band == right.band;
+               left.band == right.band && left.content_effect == right.content_effect;
     }
 };
 
@@ -2108,6 +2121,17 @@ public:
     // Empty where none does, and for any surface but a window. Linear in
     // the number of rules.
     [[nodiscard]] BandDeclaration resolve_band(const PartFacts& facts) const noexcept;
+    // The content effect of the control `facts` name (no part, no
+    // surface): each content-effect field (content_effect_field) from the
+    // last matching rule that sets it, among the compiled rules and the
+    // user theme's, written into `fields` at the field's position; every
+    // other position, and every field no rule sets, is null. Linear in the
+    // number of rules; returns at once where no rule has a content effect
+    // (has_content_effects).
+    void resolve_content_effect(const PartFacts& facts,
+                                std::array<const MaterialDeclaration*, material_field_count>& fields) const noexcept;
+    // Whether any rule, or the user theme's, has a content effect.
+    [[nodiscard]] bool has_content_effects() const noexcept { return uses_content_effects_; }
 
     // The cascade for one part: the winning primitive declaration, then
     // each of that primitive's parameters from the winning declaration of
@@ -2196,6 +2220,8 @@ private:
         std::optional<BackdropDeclaration> backdrop{};
         // A window rule's checked band.
         std::optional<BandDeclaration> band{};
+        // A control rule's checked content effect.
+        std::vector<MaterialDeclaration> content_effect{};
         // Scoped custom properties (P12), by position in scoped_names_.
         std::vector<CompiledScoped> scoped_definitions{};
         std::vector<CompiledScoped> scoped_conditions{};
@@ -2279,6 +2305,14 @@ private:
     // invalid one, is dropped with a diagnostic.
     static void add_band(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                          CompiledRule& compiled);
+    // A rule's content effect, checked whole: one on a rule naming a part,
+    // a role or a surface, a field content_effect_field refuses, a field
+    // twice, an image mask layer, more than SurfaceMaterial::
+    // maximum_mask_layers layers, or a colour filter, blur or mask a group
+    // effect does not admit (valid_paint_group_effect), is dropped with
+    // material_field_invalid.
+    static void add_content_effect(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
+                                   const ThemeRule& rule, CompiledRule& compiled);
 
     [[nodiscard]] static bool matches(const CompiledRule& rule, const PartFacts& facts) noexcept;
     // Whether one `:not()` argument matches the part: every field it names
@@ -2309,6 +2343,8 @@ private:
     // Whether the rules are a composite control's look.
     bool look_{};
     bool uses_ancestors_{};
+    // Whether a compiled rule has a content effect (resolve_content_effect).
+    bool uses_content_effects_{};
     // The scoped custom property names the rules' conditions read (P12),
     // at most maximum_scoped_custom_properties.
     std::vector<std::string> scoped_names_{};

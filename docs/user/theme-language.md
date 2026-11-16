@@ -427,6 +427,41 @@ shorthand, `mask-clip`, `mask-origin` and `mask-type` are not built. For
 example, a face that fades from the top except under a hole:
 `mask-image: linear-gradient(black, transparent), radial-gradient(circle 6px, black, transparent); mask-composite: subtract`.
 
+On a rule that names no part, role or item, `filter` and `mask-*` are the
+control's content effect, as CSS's `filter` and `mask` apply to an
+element with its descendants (owner decision 2026-11-16): the control and
+everything drawn inside it, its children included, are drawn into one
+group, and the group's image passes the filter's colour stages, then its
+blur, then the mask, before it is shown. `button { filter: grayscale(1)
+blur(1px); mask-image: linear-gradient(black, transparent) }` greys,
+softens and fades a button with its label and glyph together, where
+`button::part(face) { ... }` does it to the face alone. The effect takes
+the colour functions, `url(#<id>)` and `blur()`; its blur is in logical
+units read as `filter_blur` is (the standard deviation is half of it),
+at most 16, a named limit (`maximum_paint_group_effect_blur`). Its mask
+takes up to 4 gradient layers with `mask-mode` and `mask-composite`. Not
+admitted on a control, each naming `::part(face)` in its detail:
+`drop-shadow()` and an image mask layer refuse the theme (`E405`); an em
+length or `currentcolor` in the effect refuses it too; `mask-size`,
+`mask-position` and `mask-repeat`, which place only an image, are warnings
+that drop the declaration (`W107`). A damage inside the control spreads by
+the effect's reach (1.5 times the blur, rounded up, plus 3 units). Code
+sets the same effect with `Control::set_content_effect` (C:
+`gf_controls_table.set_content_effect`), which wins over the theme's.
+
+Migrating a theme written before 2026-11-16, where a rule without a part
+gave `filter` and `mask-*` to the control's own material:
+- To keep the old look, add the part: `track-bar { mask-image: ... }`
+  becomes `track-bar::part(track) { mask-image: ... }`, and `button {
+  filter: ... }` becomes `button::part(face) { filter: ... }` (each control
+  type's part that its material paints: `face` for a button, `track` for a
+  track bar).
+- A `drop-shadow()`, an image mask, or `mask-size`, `mask-position` or
+  `mask-repeat` on a rule without a part must move to a part; the theme is
+  refused (or the declaration dropped) until it does.
+- A rule without a part that keeps `filter` or `mask-*` now affects the
+  control's children as well: a panel's filter greys everything in it.
+
 An image layer's `background-repeat` may also be `mirror` or `extend`
 (GUI.Forms additions, not CSS), written once or twice: `mirror` tiles the
 image with every other tile reflected, so its neighbours join without a
@@ -886,12 +921,3 @@ rewrite it. A program that parses its own arguments passes them over with
   primitive, is refused (`E405`).
 - Procedural backgrounds (`felt()` and the rest) are warnings until the
   engine registers them.
-- A control's content effect, a filter and mask on the control and its
-  descendants together (C++ `Control::set_content_effect`, C
-  `gf_controls_table.set_content_effect`), has no theme spelling yet: a
-  rule without `::part` already gives `filter` and `mask-*` to the
-  control's own material. The effect's colour stages are the material
-  filter's; its blur is in logical units, read as `filter_blur` is (the
-  standard deviation is half of it), from 0 to 16, a named limit
-  (`maximum_paint_group_effect_blur`, `GF_CONTENT_EFFECT_MAXIMUM_BLUR`);
-  it holds up to 4 mask layers, solid or gradient, no image.

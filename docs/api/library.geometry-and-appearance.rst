@@ -1233,6 +1233,10 @@ Types
 
       How many inputs the sheet's expressions are evaluated with: the engine inputs and the sheet's published values.
 
+   .. cpp:function:: bool has_content_effects() const noexcept
+
+      Whether any rule, or the user theme's, has a content effect.
+
    .. cpp:function:: std::uint64_t serial() const noexcept
 
       This compilation's serial number, unique among the compilations of the process: a cache keyed by the addresses of the rules' declarations (an assembled material, EC1) compares it first. A copy takes a new one, since its declarations lie elsewhere; a move keeps it with the declarations.
@@ -1279,6 +1283,10 @@ Types
    .. cpp:function:: BandDeclaration resolve_band(const PartFacts& facts) const noexcept
 
       The band of the window ``facts`` name (PartFacts::surface window, its root control's classes and ID): each field from the last matching rule that sets it, among the compiled rules and the user theme's. Empty where none does, and for any surface but a window. Linear in the number of rules.
+
+   .. cpp:function:: void resolve_content_effect(const PartFacts& facts, std::array<const MaterialDeclaration*, material_field_count>& fields) const noexcept
+
+      The content effect of the control ``facts`` name (no part, no surface): each content-effect field (content_effect_field) from the last matching rule that sets it, among the compiled rules and the user theme's, written into ``fields`` at the field's position; every other position, and every field no rule sets, is null. Linear in the number of rules; returns at once where no rule has a content effect (has_content_effects).
 
    .. cpp:function:: Resolution resolve(const PartFacts& facts) const noexcept
 
@@ -6641,6 +6649,10 @@ Types
 
       The band the rules selecting ``window`` declare (``window { band-width: ...; band-color: ...; band-lit-color: ...; band-effect: ... }``; owner, 2026-11-08): each field from the last matching rule that sets it, among the theme's and the user theme's rules, matched as window_backdrop_chain matches. Empty where no rule sets one.
 
+   .. cpp:function:: std::shared_ptr<const PaintGroupEffect> control_content_effect(const Control& control) const
+
+      The content effect the rules give ``control`` (a rule with no part writing ``filter`` or ``mask-*``; owner 2026-11-16), among the theme's, the window's user theme's, the control's inline style's and its look's rules (CompiledThemeRules::resolve_content_effect), with its gradient masks resolved for the control's arranged size. Null where no rule sets one, where the fields give no filter, blur or mask, or where the result is not a valid group effect. Allocates the effect.
+
    .. cpp:function:: bool supports(ColourScheme scheme) const noexcept
 
       Whether the theme has a variant for ``scheme`` (T4 theme variants): its colour_schemes, which its sheet's ``color-scheme`` sets.
@@ -7198,6 +7210,10 @@ Types
    .. cpp:member:: std::optional<BandDeclaration> band
 
       A window rule's band (``band-*``), or none.
+
+   .. cpp:member:: std::vector<MaterialDeclaration> content_effect
+
+      A control rule's content effect (owner 2026-11-16): what a rule with no part, role or surface writes as ``filter`` and ``mask-*``, a filter and mask on the control and its descendants together (Control::set_content_effect). Material declarations of the content effect's fields only (content_effect_field), at most one per field; empty for none.
 
    .. cpp:member:: RuleProvenance provenance
 
@@ -10331,6 +10347,10 @@ Functions, constants and aliases
    With ``context``, each declaration's em lengths are first added at the part's em (add_material_em) and its current colours set (set_material_current_colour); the overload without it assembles at an em of 0, its current colours as written.
 
 .. cpp:function:: void assemble_material(const SurfaceMaterial& floor, const std::array<const MaterialDeclaration*, material_field_count>& fields, Size box, SurfaceMaterial& material)
+
+.. cpp:function:: bool content_effect_field(MaterialField field) noexcept
+
+   Whether ``field`` is one a control's content effect takes (ThemeRule::content_effect): the colour filter, the filter blur, the mask's layers and their modes and composites. A drop shadow and the image placement longhands are not.
 
 .. cpp:function:: bool material_fields_read_em(const std::array<const MaterialDeclaration*, material_field_count>& fields) noexcept
 

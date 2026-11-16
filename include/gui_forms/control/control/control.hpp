@@ -1747,6 +1747,12 @@ private:
     // primary font, and returns Dirty::layout where it resolves differently
     // now (a font is a layout input), else Dirty::none.
     [[nodiscard]] Dirty refresh_text_font() noexcept;
+    // Resolves the theme's content effect for the control again
+    // (Theme::control_content_effect) into theme_content_effect_, keeping
+    // the shared effect where the new one is equal. Called by the window
+    // where the control's paint damage is owed, before the damage is
+    // measured, so the damage spreads by the new reach.
+    void refresh_theme_content_effect();
     // Whether the control's theme or its window's user theme has rules with
     // ancestor compounds (CompiledThemeRules::uses_ancestors).
     [[nodiscard]] bool reads_ancestors() const noexcept;
@@ -2177,7 +2183,8 @@ private:
     std::shared_ptr<const detail::DisplayChunk> display_chunk_;
     Insets last_painted_visual_outsets_{};
     // The content effects (set_content_effect): the one set in code, the
-    // theme's (set by the theme engine at the control's theme resolution),
+    // theme's (refresh_theme_content_effect, where the control's paint
+    // damage is owed),
     // and the reach of the one last painted, so that a smaller or removed
     // effect still damages what the larger one spread over.
     std::shared_ptr<const PaintGroupEffect> content_effect_{};
