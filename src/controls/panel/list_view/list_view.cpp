@@ -19,6 +19,7 @@
 #include <cmath>
 #include <cstdint>
 #include <numeric>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>

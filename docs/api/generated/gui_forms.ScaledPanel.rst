@@ -135,7 +135,7 @@ gui_forms::ScaledPanel
       nonnegative. A null child or invalid bounds throw
       ``std::invalid_argument``.
 
-   .. cpp:function:: std::optional<Rect> design_bounds(const Control& child) const
+   .. cpp:function:: stxlib::Optional<Rect> design_bounds(const Control& child) const
 
       The design rectangle of ``child``, or no value if it has none. The
       rectangles of removed children are discarded at the next layout.

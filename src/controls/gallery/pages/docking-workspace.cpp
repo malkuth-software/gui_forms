@@ -8,6 +8,7 @@
 #include "gui_forms/docking/types/dock_types.hpp"
 
 #include "docking-workspace_form.hpp"
+#include <optional>
 
 namespace gui_forms::gallery::pages {
 

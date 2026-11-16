@@ -45,7 +45,7 @@ gui_forms::Splitter
          The least extent left for the rest of the dock area, the fill. Refused as
          :cpp:member:`min_size <gui_forms::Splitter::min_size>` is.
 
-      **split_position** : ``std::optional<double>``
+      **split_position** : ``stxlib::Optional<double>``
          The target's width or height, or none when the splitter has no target
          (Windows Forms reports -1). Setting it resizes the target within the
          limits; without a target it does nothing.
@@ -150,7 +150,7 @@ gui_forms::Splitter
       The least extent left for the rest of the dock area, the fill. Refused as
       :cpp:member:`min_size <gui_forms::Splitter::min_size>` is.
 
-   .. cpp:function:: std::optional<double> split_position() const
+   .. cpp:function:: stxlib::Optional<double> split_position() const
 
       The target's width or height, or none when the splitter has no target
       (Windows Forms reports -1). Setting it resizes the target within the

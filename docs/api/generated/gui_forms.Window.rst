@@ -110,7 +110,7 @@ gui_forms::Window
       **popup_windows_translucent** : ``bool``, read-only
          Whether this window's popup windows are translucent now: false on a run whose host draws them opaque (X11 without a compositing manager), where content shown in them casts no shadow and does not fade. The answer follows what this run's popup windows were really granted once one has opened: open the slot first (prepare_popup_window) so that content sized for its shadow fits the window that shows it.
 
-      **host_close_reason** : ``std::optional<HostCloseReason>``, read-only
+      **host_close_reason** : ``stxlib::Optional<HostCloseReason>``, read-only
          Why the host closed this window (the accepted HostClosedEvent's reason: the user, the program, the session ending, a quit), once it has; empty until then. Readable from the window's closed callback (ApplicationWindowOptions::closed). Set only by HostSession.
 
       **application** : ``Application*``, read-only
@@ -443,7 +443,7 @@ gui_forms::Window
 
       Whether this window's popup windows are translucent now: false on a run whose host draws them opaque (X11 without a compositing manager), where content shown in them casts no shadow and does not fade. The answer follows what this run's popup windows were really granted once one has opened: open the slot first (prepare_popup_window) so that content sized for its shadow fits the window that shows it.
 
-   .. cpp:function:: std::optional<HostCloseReason> host_close_reason() const noexcept
+   .. cpp:function:: stxlib::Optional<HostCloseReason> host_close_reason() const noexcept
 
       Why the host closed this window (the accepted HostClosedEvent's reason: the user, the program, the session ending, a quit), once it has; empty until then. Readable from the window's closed callback (ApplicationWindowOptions::closed). Set only by HostSession.
 
@@ -556,11 +556,13 @@ gui_forms::Window
 
    .. cpp:function:: Window* popup_window_model(std::size_t slot) const noexcept
 
-   .. cpp:function:: void forward_input_to_popup_window(std::optional<std::size_t> slot)
+   .. cpp:function:: void forward_input_to_popup_window(stxlib::Optional<std::size_t> slot)
 
       While ``slot`` is set, every key and text event this window receives is offered first to ``popup_window_model(*slot)``, and routed here only when that leaves it unhandled; none ends the forwarding. The control whose Popup has the keyboard sets it (PopupLift does) and clears it when the Popup hides. std::out_of_range for a slot out of range. UI thread.
 
-   .. cpp:function:: std::optional<Rect> popup_work_area(Point client_point)
+   .. cpp:function:: void forward_input_to_popup_window(std::optional<std::size_t> slot)
+
+   .. cpp:function:: stxlib::Optional<Rect> popup_work_area(Point client_point)
 
       The work area of the monitor under ``client_point`` (this window's client coordinates), in client coordinates: the region a Popup window may cover, which reaches past the client area onto the desktop. None when the run cannot say (no run, no frame, no monitors). Reads the monitor table into storage the window keeps. UI thread.
 

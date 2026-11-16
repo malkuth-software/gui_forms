@@ -9,6 +9,7 @@
 #include "gui_forms/docking/types/dock_types.hpp"
 
 #include "containers-and-focus_form.hpp"
+#include <optional>
 
 namespace gui_forms::gallery::pages {
 

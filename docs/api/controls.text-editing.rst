@@ -2021,11 +2021,11 @@ Functions, constants and aliases
 
 ``#include <gui_forms/controls/auto_complete.hpp>``
 
-.. cpp:function:: std::optional<HostAutoCompleteSource> host_auto_complete_source(AutoCompleteSource source) noexcept
+.. cpp:function:: stxlib::Optional<HostAutoCompleteSource> host_auto_complete_source(AutoCompleteSource source) noexcept
 
    The host source an AutoCompleteSource names, or none for a source the control owns (none, custom_source, list_items).
 
-.. cpp:function:: std::optional<std::size_t> find_text_match(std::string_view candidate, std::string_view pattern, TextMatchMode mode, bool case_sensitive) noexcept
+.. cpp:function:: stxlib::Optional<std::size_t> find_text_match(std::string_view candidate, std::string_view pattern, TextMatchMode mode, bool case_sensitive) noexcept
 
    The byte offset in ``candidate`` of the first match of ``pattern``, or none. Bytes compare exactly, except that ASCII letters compare without case unless ``case_sensitive``; other characters (accented and non-Latin letters among them) compare exactly. Valid UTF-8 inputs therefore match at a scalar boundary and the match is pattern.size() bytes long. An empty pattern matches nothing.
 

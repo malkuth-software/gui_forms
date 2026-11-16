@@ -156,7 +156,7 @@ gui_forms::TextBox
          typed text, in source order, each text once, at most 256. Empty while
          the list is closed.
 
-      **auto_complete_highlighted** : ``std::optional<std::size_t>``, read-only
+      **auto_complete_highlighted** : ``stxlib::Optional<std::size_t>``, read-only
          The highlighted suggestion's index, or none.
 
       **decorations** : ``TextDecorations``
@@ -550,7 +550,7 @@ gui_forms::TextBox
       typed text, in source order, each text once, at most 256. Empty while
       the list is closed.
 
-   .. cpp:function:: std::optional<std::size_t> auto_complete_highlighted() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> auto_complete_highlighted() const noexcept
 
       The highlighted suggestion's index, or none.
 

@@ -880,7 +880,7 @@ Types
 
    .. cpp:member:: std::uint64_t image_revision
 
-   .. cpp:member:: std::optional<std::uint64_t> awaited_patterns
+   .. cpp:member:: stxlib::Optional<std::uint64_t> awaited_patterns
 
       Set when ``raster`` drew a procedural fill's ground because its pattern was not ready (E10): the table's pattern generation then. Such a raster is current only until the table makes another pattern.
 
@@ -2655,7 +2655,7 @@ Types
 
    .. cpp:member:: AnatomyStateSet face_states
 
-   .. cpp:member:: std::optional<AnatomyStateSet> keyframe_states
+   .. cpp:member:: stxlib::Optional<AnatomyStateSet> keyframe_states
 
       The states whose keyframes were last queued for idle frames (E7r): queued again when the part's states change.
 
@@ -5585,7 +5585,7 @@ Types
 
    .. cpp:member:: std::size_t machine
 
-   .. cpp:member:: std::optional<std::size_t> state
+   .. cpp:member:: stxlib::Optional<std::size_t> state
 
    .. cpp:member:: std::optional<MotionValue> value
 
@@ -7460,7 +7460,7 @@ Types
 
    .. cpp:member:: AssembledPartMaterial assembled
 
-   .. cpp:member:: std::optional<ControlVisualRole> darkened
+   .. cpp:member:: stxlib::Optional<ControlVisualRole> darkened
 
    .. cpp:member:: bool filled
 

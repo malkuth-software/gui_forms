@@ -10,6 +10,7 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string_view>

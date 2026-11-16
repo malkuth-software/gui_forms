@@ -32,7 +32,7 @@ gui_forms::ModalLayer
       **content** : ``Control::Ptr``, read-only
          The content while shown, else empty.
 
-      **result** : ``std::optional<DialogResult>``, read-only
+      **result** : ``stxlib::Optional<DialogResult>``, read-only
          The result of the last closing, or none before the first.
 
       **parts** : ``Parts``, read-only
@@ -85,7 +85,7 @@ gui_forms::ModalLayer
 
       The content while shown, else empty.
 
-   .. cpp:function:: std::optional<DialogResult> result() const noexcept
+   .. cpp:function:: stxlib::Optional<DialogResult> result() const noexcept
 
       The result of the last closing, or none before the first.
 

@@ -1336,7 +1336,7 @@ Related types
 
    .. cpp:member:: std::vector<std::string> paths
 
-   .. cpp:member:: std::optional<std::size_t> chosen_filter
+   .. cpp:member:: stxlib::Optional<std::size_t> chosen_filter
 
       For an accepted file dialog, the request's filter selected when the user accepted, an index into its ``filters``; none when the request had no filters, the user chose a filter the host added (such as "All files"), or the host cannot tell.
 
@@ -1384,7 +1384,7 @@ Related types
 
    .. cpp:member:: bool unaccelerated
 
-   .. cpp:member:: std::optional<Point> position
+   .. cpp:member:: stxlib::Optional<Point> position
 
    .. cpp:member:: Modifier modifiers
 
@@ -2394,15 +2394,15 @@ Related types
 
       Runs the platform's event loop nested inside the caller until ``window`` closes, as Form.ShowDialog does: meanwhile the run's other windows that ``window`` does not own refuse user input (the adapter disables them), while posted work, timers, wakes and repaint continue in every window. Returns once ``window`` is no longer live, after its closed callback; the adapter releases the native window after the outer loop turn, never inside this call. When the run is told to quit during the nested loop (the primary window closed, a quit message), the nested loop ends at once and the quit reaches the outer loop, so this may return while ``window`` is still live (the run is ending). Needs runtime_windows and supports_modal_windows() (else unsupported); ``window`` must be live and owned and must not be a popup or floating window (invalid_argument); at most maximum_modal_depth calls nest (modal_limit). A callback inside the loop may call it again for another window.
 
-   .. cpp:function:: std::optional<HostWindowId> find(std::string_view stable_id) const noexcept
+   .. cpp:function:: stxlib::Optional<HostWindowId> find(std::string_view stable_id) const noexcept
 
       Table queries (no capability needed).
 
    .. cpp:function:: bool live(HostWindowId window) const noexcept
 
-   .. cpp:function:: std::optional<HostWindowKind> kind(HostWindowId window) const noexcept
+   .. cpp:function:: stxlib::Optional<HostWindowKind> kind(HostWindowId window) const noexcept
 
-   .. cpp:function:: std::optional<HostWindowId> owner(HostWindowId window) const noexcept
+   .. cpp:function:: stxlib::Optional<HostWindowId> owner(HostWindowId window) const noexcept
 
       The owner, or an invalid identity for a window without one. Empty for an unknown window.
 

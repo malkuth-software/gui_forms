@@ -7,6 +7,7 @@
 #include "gui_forms/controls/tree_view.hpp"
 #include "gui_forms/controls/virtual_rows_view.hpp"
 #include "gui_forms_lab/correspondence_view.hpp"
+#include <optional>
 
 namespace gallery_pages_tests {
 namespace {
