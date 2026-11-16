@@ -154,7 +154,8 @@ public:
         const std::size_t end = std::min(shown.size(), first_ + visible);
         for (std::size_t position = first_; position < end; ++position) {
             const double y = header_height + row_height * static_cast<double>(position - first_);
-            const bool highlighted = owner_.highlighted_ && *owner_.highlighted_ == position;
+            const std::size_t* const highlighted_position = owner_.highlighted_.value();
+            const bool highlighted = highlighted_position != nullptr && *highlighted_position == position;
             AnatomyStateSet row_states = states;
             if (highlighted) row_states.insert(AnatomyState::selected);
             if (highlighted) {
@@ -255,21 +256,22 @@ void LookupComboBox::set_rows(std::vector<LookupRow> rows) {
     keys.clear();
     rows_ = std::move(rows);
     refilter();
-    if (!selected_key.read().empty() && !row_of(selected_key.read())) selected_key = std::string{};
+    if (!selected_key.read().empty() && row_of(selected_key.read()).absent()) selected_key = std::string{};
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-std::optional<std::size_t> LookupComboBox::row_of(std::string_view key) const noexcept {
+stxlib::Optional<std::size_t> LookupComboBox::row_of(std::string_view key) const noexcept {
     for (std::size_t index = 0U; index < rows_.size(); ++index) {
-        if (rows_[index].key == key) return index;
+        if (rows_[index].key == key) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 std::string LookupComboBox::shown_text() const {
     if (dropped_down_ && !filter_.empty()) return filter_;
-    const std::optional<std::size_t> row = row_of(selected_key.read());
-    if (!row) return {};
+    const stxlib::Optional<std::size_t> found = row_of(selected_key.read());
+    const std::size_t* const row = found.value();
+    if (row == nullptr) return {};
     const std::vector<std::string>& cells = rows_[*row].cells;
     const std::size_t column = display_column.read();
     if (column >= cells.size()) return {};
@@ -288,13 +290,15 @@ void LookupComboBox::refilter() {
         if (matched) filtered_.push_back(index);
     }
     highlighted_.reset();
-    const std::optional<std::size_t> chosen = row_of(selected_key.read());
+    const stxlib::Optional<std::size_t> found = row_of(selected_key.read());
+    const std::size_t* const chosen = found.value();
     for (std::size_t position = 0U; position < filtered_.size(); ++position) {
-        if (chosen && filtered_[position] == *chosen) highlighted_ = position;
+        if (chosen != nullptr && filtered_[position] == *chosen) highlighted_.set(position);
     }
-    if (!highlighted_ && !filtered_.empty() && !filter_.empty()) highlighted_ = 0U;
+    if (highlighted_.absent() && !filtered_.empty() && !filter_.empty()) highlighted_.set(0U);
     if (list_) {
-        if (highlighted_) (*list_).reveal(*highlighted_);
+        const std::size_t* const highlighted = highlighted_.value();
+        if (highlighted != nullptr) (*list_).reveal(*highlighted);
         (*list_).invalidate(Dirty::paint);
     }
 }
@@ -395,23 +399,26 @@ void LookupComboBox::move_highlight(std::ptrdiff_t delta, bool to_edge) {
     if (filtered_.empty()) return;
     const std::ptrdiff_t last = static_cast<std::ptrdiff_t>(filtered_.size()) - 1;
     std::ptrdiff_t next = 0;
+    const std::size_t* const highlighted = highlighted_.value();
     if (to_edge) {
         next = delta < 0 ? 0 : last;
-    } else if (highlighted_) {
-        next = std::clamp(static_cast<std::ptrdiff_t>(*highlighted_) + delta, std::ptrdiff_t{0}, last);
+    } else if (highlighted != nullptr) {
+        next = std::clamp(static_cast<std::ptrdiff_t>(*highlighted) + delta, std::ptrdiff_t{0}, last);
     } else {
         next = delta < 0 ? last : 0;
     }
-    highlighted_ = static_cast<std::size_t>(next);
-    if (list_) (*list_).reveal(*highlighted_);
+    const std::size_t moved = static_cast<std::size_t>(next);
+    highlighted_.set(moved);
+    if (list_) (*list_).reveal(moved);
 }
 
 void LookupComboBox::step_selection(std::ptrdiff_t delta) {
     if (rows_.empty()) return;
-    const std::optional<std::size_t> chosen = row_of(selected_key.read());
+    const stxlib::Optional<std::size_t> found = row_of(selected_key.read());
+    const std::size_t* const chosen = found.value();
     const std::ptrdiff_t last = static_cast<std::ptrdiff_t>(rows_.size()) - 1;
     std::ptrdiff_t next = 0;
-    if (chosen) next = std::clamp(static_cast<std::ptrdiff_t>(*chosen) + delta, std::ptrdiff_t{0}, last);
+    if (chosen != nullptr) next = std::clamp(static_cast<std::ptrdiff_t>(*chosen) + delta, std::ptrdiff_t{0}, last);
     choose_row(static_cast<std::size_t>(next));
 }
 
@@ -434,7 +441,8 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
             open_drop_down();
             return;
         }
-        if (key == PhysicalKey::up && highlighted_) choose_row(filtered_[*highlighted_]);
+        const std::size_t* const highlighted = highlighted_.value();
+        if (key == PhysicalKey::up && highlighted != nullptr) choose_row(filtered_[*highlighted]);
         if (!is_alive()) return;
         close_drop_down();
         return;
@@ -468,14 +476,16 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
     case PhysicalKey::page_down: move_highlight(page, false); break;
     case PhysicalKey::home: move_highlight(-1, true); break;
     case PhysicalKey::end: move_highlight(1, true); break;
-    case PhysicalKey::enter:
-        if (highlighted_) choose_row(filtered_[*highlighted_]);
+    case PhysicalKey::enter: {
+        const std::size_t* const highlighted = highlighted_.value();
+        if (highlighted != nullptr) choose_row(filtered_[*highlighted]);
         if (!is_alive()) {
             arguments.handled = true;
             return;
         }
         close_drop_down();
         break;
+    }
     case PhysicalKey::escape: close_drop_down(); break;
     case PhysicalKey::backspace:
         if (!filter_.empty()) {
@@ -539,7 +549,8 @@ void LookupComboBox::open_drop_down() {
             *this, Delegate<>::bind<LookupComboBox, &LookupComboBox::on_overlay_revoked>(*this));
     }
     dropped_down_ = true;
-    if (highlighted_) (*list_).reveal(*highlighted_);
+    const std::size_t* const highlighted = highlighted_.value();
+    if (highlighted != nullptr) (*list_).reveal(*highlighted);
     invalidate(Dirty::paint | Dirty::semantics);
     drop_down_changed_.emit(true);
 }
@@ -654,7 +665,7 @@ void LookupComboBox::on_dispose() noexcept {
 
 void LookupComboBox::prepare_write(const decltype(selected_key)&, std::string& incoming) {
     require_mutable();
-    if (!incoming.empty() && !row_of(incoming)) {
+    if (!incoming.empty() && row_of(incoming).absent()) {
         throw std::invalid_argument("LookupComboBox selected key names no row");
     }
 }

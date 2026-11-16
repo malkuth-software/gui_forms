@@ -11,6 +11,7 @@
 #include <cmath>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -207,8 +208,9 @@ AnimationTickResult Button::advance_danger_glow(FrameTime now) {
         invalidate(Dirty::paint);
         return AnimationTickResult::damaged;
     }
-    if (!danger_since_) danger_since_ = now;
-    const FrameInterval since = std::chrono::duration_cast<FrameInterval>(now - *danger_since_);
+    if (danger_since_.absent()) danger_since_.set(now);
+    const FrameTime started = danger_since_.value_or(now);
+    const FrameInterval since = std::chrono::duration_cast<FrameInterval>(now - started);
     const double level = danger_glow_level(since);
     if (level == danger_level_) return AnimationTickResult::unchanged;
     danger_level_ = level;

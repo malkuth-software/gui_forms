@@ -9,9 +9,10 @@
 
 #include <chrono>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string_view>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -72,7 +73,7 @@ public:
     // The content while shown, else empty.
     [[nodiscard]] Control::Ptr content() const noexcept { return content_; }
     // The result of the last closing, or none before the first.
-    [[nodiscard]] std::optional<DialogResult> result() const noexcept { return result_; }
+    [[nodiscard]] stxlib::Optional<DialogResult> result() const noexcept { return result_; }
 
     [[nodiscard]] Event<ModalLayerClosingEvent&>& closing() noexcept { return closing_; }
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
@@ -125,7 +126,7 @@ private:
     OverlayToken overlay_{};
     SubscriptionToken overlay_revoked_{};
     FocusScopeId scope_{};
-    std::optional<DialogResult> result_{};
+    stxlib::Optional<DialogResult> result_{};
     bool shown_{false};
     double scrim_opacity_{1.0};
     AnimationTimeline scrim_fade_{};

@@ -171,7 +171,7 @@ void paper_pane() {
     // Links: Tab moves through the stops; Enter follows.
     std::vector<std::string> followed;
     SubscriptionToken following = (*book).link_activated().subscribe(RecordLink{&followed});
-    require((*book).move_focus(true) && (*book).focused_stop().has_value(), "Tab reaches the first link");
+    require((*book).move_focus(true) && (*book).focused_stop().present(), "Tab reaches the first link");
     require((*book).activate_link(0U) && followed.size() == 1U && followed[0] == "app.tools.pen",
             "activating a link raises it");
 }

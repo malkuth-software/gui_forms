@@ -15,6 +15,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -347,8 +348,9 @@ void IndicatorLamp::begin_change() {
 }
 
 AnimationTickResult IndicatorLamp::advance(FrameTime now) {
-    if (!changed_at_) changed_at_ = now;
-    const double seconds = std::chrono::duration<double>(now - *changed_at_).count();
+    if (changed_at_.absent()) changed_at_.set(now);
+    const FrameTime started = changed_at_.value_or(now);
+    const double seconds = std::chrono::duration<double>(now - started).count();
     const bool reduced = reduced_motion();
     const bool on = lit(state.read());
     power_ = on ? engine_light::lamp_power(true, seconds, reduced)

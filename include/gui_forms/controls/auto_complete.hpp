@@ -7,11 +7,12 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -42,7 +43,7 @@ enum class AutoCompleteSource : std::uint8_t {
 
 // The host source an AutoCompleteSource names, or none for a source the
 // control owns (none, custom_source, list_items).
-[[nodiscard]] GUI_FORMS_API std::optional<HostAutoCompleteSource> host_auto_complete_source(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<HostAutoCompleteSource> host_auto_complete_source(
     AutoCompleteSource source) noexcept;
 
 // The most candidates a suggestion list shows; later matches are dropped.
@@ -68,7 +69,7 @@ struct GUI_FORMS_API TextMatchRange final {
 // among them) compare exactly. Valid UTF-8 inputs therefore match at a scalar
 // boundary and the match is pattern.size() bytes long. An empty pattern
 // matches nothing.
-[[nodiscard]] GUI_FORMS_API std::optional<std::size_t> find_text_match(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<std::size_t> find_text_match(
     std::string_view candidate, std::string_view pattern, TextMatchMode mode,
     bool case_sensitive) noexcept;
 
@@ -92,7 +93,7 @@ public:
     [[nodiscard]] const std::string& at(std::size_t index) const;
     [[nodiscard]] bool contains(std::string_view value) const noexcept;
     // The first index holding `value`, or none.
-    [[nodiscard]] std::optional<std::size_t> index_of(std::string_view value) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> index_of(std::string_view value) const noexcept;
 
     // Each mutator validates before changing anything: text that is not
     // valid UTF-8 throws std::invalid_argument and an index past the end

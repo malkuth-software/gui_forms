@@ -9,11 +9,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -80,7 +81,7 @@ public:
     [[nodiscard]] BorrowedSpan<LookupRow> rows() const& noexcept { return detail::lend_view(rows_); }
     BorrowedSpan<LookupRow> rows() const&& = delete;
     // The row with `key`, if any.
-    [[nodiscard]] std::optional<std::size_t> row_of(std::string_view key) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> row_of(std::string_view key) const noexcept;
     // The text the field shows: the filter while open and typed into, else
     // the chosen row's display cell.
     [[nodiscard]] std::string shown_text() const;
@@ -95,7 +96,7 @@ public:
     [[nodiscard]] BorrowedSpan<std::size_t> filtered_rows() const& noexcept { return detail::lend_view(filtered_); }
     BorrowedSpan<std::size_t> filtered_rows() const&& = delete;
     // The highlighted position in filtered_rows(), if any.
-    [[nodiscard]] std::optional<std::size_t> highlighted() const noexcept { return highlighted_; }
+    [[nodiscard]] stxlib::Optional<std::size_t> highlighted() const noexcept { return highlighted_; }
 
     [[nodiscard]] Event<const std::string&>& selected_key_changed() noexcept { return selected_key_changed_; }
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
@@ -154,7 +155,7 @@ private:
     detail::LendingVector<LookupColumn> columns_{};
     detail::LendingVector<LookupRow> rows_{};
     detail::LendingVector<std::size_t> filtered_{};
-    std::optional<std::size_t> highlighted_{};
+    stxlib::Optional<std::size_t> highlighted_{};
     std::string filter_{};
     std::shared_ptr<AnchoredOverlayLayer> layer_{};
     std::shared_ptr<List> list_{};

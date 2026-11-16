@@ -260,7 +260,7 @@ void ModalLayer::finish(DialogResult result) {
     if (content) static_cast<void>(remove_child((*content).runtime_id()));
     // Closing the overlay detaches the layer; the caller keeps it.
     overlay_.disconnect();
-    result_ = result;
+    result_.set(result);
     closed_.emit(result);
 }
 

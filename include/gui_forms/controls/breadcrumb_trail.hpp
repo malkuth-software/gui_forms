@@ -7,11 +7,12 @@
 
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -143,9 +144,11 @@ private:
     void editor_cancelled();
     void rebuild_layout(double width, double height);
     [[nodiscard]] double natural_width(const BreadcrumbSegment& segment) const;
-    [[nodiscard]] std::optional<std::size_t> segment_index(
+    [[nodiscard]] stxlib::Optional<std::size_t> segment_index(
         std::string_view stable_id) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> visible_index_at(Point absolute) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> visible_index_at(Point absolute) const noexcept;
+    // Whether `held` (the hovered or pressed visible item) holds `index`.
+    [[nodiscard]] static bool holds(const stxlib::Optional<std::size_t>& held, std::size_t index) noexcept;
     [[nodiscard]] std::string_view visible_stable_id(const VisibleItem& item) const noexcept;
     void activate_visible(std::size_t index);
     void normalize_active();
@@ -163,8 +166,8 @@ private:
     std::shared_ptr<TextBox> editor_{};
     SubscriptionToken editor_commit_{};
     SubscriptionToken editor_cancel_{};
-    std::optional<std::size_t> hovered_visible_{};
-    std::optional<std::size_t> pressed_visible_{};
+    stxlib::Optional<std::size_t> hovered_visible_{};
+    stxlib::Optional<std::size_t> pressed_visible_{};
     bool focused_{};
     Event<const std::string&> segment_activated_{};
     Event<> overflow_activated_{};
