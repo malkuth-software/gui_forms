@@ -181,6 +181,12 @@ gui_forms::Toast
 
       *Protected.*
 
+   .. cpp:function:: void on_mouse_capture_changed() override
+
+      *Protected.*
+
+      A press on the close mark whose capture is taken away is forgotten.
+
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*

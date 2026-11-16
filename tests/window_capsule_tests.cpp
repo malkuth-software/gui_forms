@@ -410,6 +410,22 @@ void test_control_requests() {
                 "and ends floating: a program chooses any snap itself");
     }
     require(capsule.look().arm == WindowCapsuleArm::idle, "a move arms nothing");
+
+    // A move whose capture is taken away is cancelled, and later moves
+    // raise nothing (A-gf-controls-14-F4).
+    recorder.requests.clear();
+    send(*made.window, PointerAction::down, Point{70.0, 18.0});
+    send(*made.window, PointerAction::move, Point{110.0, 60.0});
+    capsule.set_pointer_capture(false);
+    const std::size_t after_cancel = recorder.requests.size();
+    require(after_cancel == 2U && recorder.requests[1].command == WindowCapsuleCommand::cancel_move,
+            "a move that loses its capture is reported cancelled");
+    PointerEvent hover{};
+    hover.action = PointerAction::move;
+    hover.button = PointerButton::none;
+    hover.position = Point{120.0, 70.0};
+    static_cast<void>((*made.window).dispatch_pointer(hover));
+    require(recorder.requests.size() == after_cancel, "after the cancel a plain move raises no request");
 }
 
 void test_non_interactive_control() {

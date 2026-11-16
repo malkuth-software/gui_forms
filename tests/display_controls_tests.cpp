@@ -651,6 +651,19 @@ void test_window_toasts() {
     gui_forms::detail::ControlInputAccess::on_pointer(*marked, release);
     require(release.handled && !window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::closed,
             "releasing over the close mark dismisses the toast");
+    // A press on the close mark whose capture is taken away is forgotten
+    // (A-gf-controls-14-F4).
+    static_cast<void>(window.show_toast(owner, marked, std::chrono::milliseconds{0}));
+    window.perform_layout();
+    PointerEvent second_press = press;
+    second_press.handled = false;
+    gui_forms::detail::ControlInputAccess::on_pointer(*marked, second_press);
+    (*marked).set_pointer_capture(false);
+    PointerEvent late_release = release;
+    late_release.handled = false;
+    gui_forms::detail::ControlInputAccess::on_pointer(*marked, late_release);
+    require(window.toast_visible(), "a release after the press lost its capture does not dismiss the toast");
+    window.hide_toast();
 
     const std::shared_ptr<Toast> timed = make_toast("display.toasts.timed", "", true);
     static_cast<void>(window.show_toast(owner, timed, std::chrono::milliseconds{50}));
