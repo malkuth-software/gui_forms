@@ -1976,6 +1976,12 @@ Related types
 
       The replaced positions below the watermark, appended to ``replaced``, and the watermark (CollectionDirty::take). For the declaring class's flush.
 
+   .. cpp:function:: static std::uint64_t items_revision(const TextItemsCapability& capability) noexcept
+
+      *Protected.*
+
+      How many edits and owner stores the items have seen: a declaring class that raises a handler compares it before and after, to act only on the items the handler saw (CollectionCell::revision).
+
    .. cpp:function:: template <typename Order> static void sort_items(TextItemsCapability& capability, Order order)
 
       *Protected.*

@@ -3186,7 +3186,7 @@ Related types
 
    .. cpp:function:: std::string id_at(std::size_t position) const
 
-      The ID at a position below count(), by value. In window mode a position outside the window is asked of the source.
+      The ID at a position, by value; empty (no row's ID) for a position at or past count(). In window mode a position outside the window is asked of the source.
 
    .. cpp:function:: std::optional<std::size_t> position_of(std::string_view id) const
 
