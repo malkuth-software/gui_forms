@@ -4,11 +4,12 @@
 # Every tree with tests (an ordinary one with GUI_FORMS_BUILD_TESTS, a
 # high-integrity one with GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS) runs:
 #   - gui_forms_build_profile_tests: build_profile() reports the tree's
-#     profile and allowances; in high integrity, motion completes at once;
+#     profile and allowances;
 #   - gui_forms_high_integrity_refuses_*: a configure of this source with
 #     GUI_FORMS_HIGH_INTEGRITY and a contradicting setting, or an allowance
 #     without the option, stops before anything is built, naming the setting.
-# A high-integrity tree also runs gui_forms_high_integrity_surface (below).
+# A high-integrity tree also runs gui_forms_high_integrity_damaged_pack_fails_fast
+# and gui_forms_high_integrity_surface (below).
 
 if(NOT GUI_FORMS_BUILD_TESTS AND NOT GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS)
     return()
@@ -60,6 +61,18 @@ endforeach()
 if(NOT GUI_FORMS_HIGH_INTEGRITY)
     return()
 endif()
+
+# A font pack that does not open fails fast (record_pack_refusal in
+# src/core/resources/fonts/bundled_font_set.cpp); the test reaches the set's
+# private header. The abort is a signal on POSIX, so the mode runs through
+# cmake/expect_fail_fast.cmake.
+target_include_directories(gui_forms_build_profile_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/resources/fonts)
+add_test(NAME gui_forms_high_integrity_damaged_pack_fails_fast
+    COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_build_profile_tests> -DMODE=damaged_pack
+            "-DEXPECTED=fonts\\.bundled_pack"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
+set_tests_properties(gui_forms_high_integrity_damaged_pack_fails_fast PROPERTIES LABELS high_integrity)
 
 # The object surface (gui_forms_high_integrity_surface): no first-party
 # archive of the configuration, nor the C ABI's objects, defines or imports a

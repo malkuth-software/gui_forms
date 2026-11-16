@@ -3,6 +3,10 @@
 #include "gui_forms/threading.hpp"
 #include "stx_fontpack/loader.hpp"
 
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../../failure/fail_fast.hpp"
+#endif
+
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -97,8 +101,14 @@ std::string& font_pack_refusal() {
 }
 
 // Records a pack refusal (bundled_font_pack_refusal); the process's first is also written to
-// stderr.
+// stderr. In a high-integrity build (cmake/HighIntegrity.cmake) a refused pack ends the process
+// instead: a pack that does not open, or a group whose bytes fail their CRC-32 or do not decode,
+// means the program's own bytes are not the ones it was built with, and it must not draw with
+// missing faces. The set decodes every group when it is made there, so this happens at start.
 void record_pack_refusal(const std::string& text) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    detail::fail_fast("fonts.bundled_pack", text);
+#endif
     const std::uint64_t before = font_pack_refusals.fetch_add(1U, std::memory_order_relaxed);
     if (before == 0U) std::fprintf(stderr, "%s\n", text.c_str());
     const std::lock_guard<std::mutex> lock(font_refusal_mutex());
@@ -586,6 +596,15 @@ BundledFontSet::BundledFontSet(std::span<const std::byte> pack, std::span<const 
             break;
         }
     }
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The start-up check: every group is decoded now, so each face's CRC-32 is checked before
+    // the first window draws, and a refusal fails fast (record_pack_refusal). The decoded faces
+    // are kept, as a later request would keep them.
+    for (std::uint32_t group = 0U; group < (*index_).group_count; ++group) {
+        if (group_decoded_[group] == 0U) decode_group(group);
+    }
+    eager_decoded_ = true;
+#endif
 }
 
 // Out of line: the pack index is complete only here.
