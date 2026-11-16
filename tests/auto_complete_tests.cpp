@@ -125,8 +125,8 @@ void collection_contract() {
     collection.insert(0U, "Tromsø");
     collection.set(2U, "Stavanger");
     require(collection.size() == 3U && collection.at(0U) == "Tromsø" && collection.at(2U) == "Stavanger" &&
-                collection.contains("Oslo") && collection.index_of("Oslo") == 1U &&
-                !collection.index_of("Bergen") && changes == 4U,
+                collection.contains("Oslo") && collection.index_of("Oslo") == stxlib::Optional<std::size_t>::of(1U) &&
+                collection.index_of("Bergen").absent() && changes == 4U,
             "insert and set place items and raise changed");
     bool threw = false;
     try {
@@ -159,18 +159,18 @@ void collection_contract() {
 }
 
 void text_matching() {
-    require(find_text_match("California", "cal", TextMatchMode::prefix, false) == 0U,
+    require(find_text_match("California", "cal", TextMatchMode::prefix, false) == stxlib::Optional<std::size_t>::of(0U),
             "a prefix matches ignoring ASCII case");
-    require(!find_text_match("California", "cal", TextMatchMode::prefix, true),
+    require(find_text_match("California", "cal", TextMatchMode::prefix, true).absent(),
             "a case-sensitive prefix compares case");
-    require(!find_text_match("Cal", "Calgary", TextMatchMode::prefix, false),
+    require(find_text_match("Cal", "Calgary", TextMatchMode::prefix, false).absent(),
             "a pattern longer than the candidate does not match");
-    require(find_text_match("New Calgary", "CALG", TextMatchMode::substring, false) == 4U,
+    require(find_text_match("New Calgary", "CALG", TextMatchMode::substring, false) == stxlib::Optional<std::size_t>::of(4U),
             "a substring match reports where it starts");
-    require(!find_text_match("Calgary", "", TextMatchMode::substring, false),
+    require(find_text_match("Calgary", "", TextMatchMode::substring, false).absent(),
             "an empty pattern matches nothing");
-    require(!find_text_match("Évora", "é", TextMatchMode::prefix, false) &&
-                find_text_match("Évora", "É", TextMatchMode::prefix, false) == 0U,
+    require(find_text_match("Évora", "é", TextMatchMode::prefix, false).absent() &&
+                find_text_match("Évora", "É", TextMatchMode::prefix, false) == stxlib::Optional<std::size_t>::of(0U),
             "letters outside ASCII compare exactly");
 }
 

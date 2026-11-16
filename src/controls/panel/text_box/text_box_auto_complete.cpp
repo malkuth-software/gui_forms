@@ -39,9 +39,9 @@ bool appends(AutoCompleteMode mode) noexcept {
 void add_match(std::string_view candidate, std::string_view typed, bool case_sensitive,
                std::vector<std::string>& matches) {
     if (matches.size() >= maximum_auto_complete_suggestions) return;
-    const std::optional<std::size_t> found =
+    const stxlib::Optional<std::size_t> found =
         find_text_match(candidate, typed, TextMatchMode::prefix, case_sensitive);
-    if (!found) return;
+    if (found.absent()) return;
     const std::vector<std::string>::const_iterator existing =
         std::find(matches.cbegin(), matches.cend(), candidate);
     if (existing != matches.cend()) return;
@@ -146,9 +146,10 @@ void TextBox::written(const decltype(auto_complete_case_sensitive)&) {
 
 HostServiceStatus TextBox::auto_complete_source_status() {
     HostServiceStatus status;
-    const std::optional<HostAutoCompleteSource> host_source =
+    const stxlib::Optional<HostAutoCompleteSource> held_source =
         host_auto_complete_source(auto_complete_source.read());
-    if (!host_source) return status;
+    const HostAutoCompleteSource* const host_source = held_source.value();
+    if (host_source == nullptr) return status;
     Window* const host = window();
     HostServices* const services = host != nullptr ? (*host).host_services() : nullptr;
     if (services == nullptr) {
@@ -211,9 +212,10 @@ void TextBox::collect_auto_complete_candidates(std::string_view typed,
         }
         return;
     }
-    const std::optional<HostAutoCompleteSource> host_source =
+    const stxlib::Optional<HostAutoCompleteSource> held_source =
         host_auto_complete_source(auto_complete_source.read());
-    if (!host_source) return;
+    const HostAutoCompleteSource* const host_source = held_source.value();
+    if (host_source == nullptr) return;
     Window* const host = window();
     HostServices* const services = host != nullptr ? (*host).host_services() : nullptr;
     if (services == nullptr) return;

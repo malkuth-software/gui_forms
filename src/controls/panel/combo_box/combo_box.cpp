@@ -250,8 +250,9 @@ void ComboBox::compute_rows(std::string_view pattern) {
         ? TextMatchMode::prefix : TextMatchMode::substring;
     row_matches_.reserve(items.read().size());
     for (std::size_t index = 0U; index < items.read().size(); ++index) {
-        const std::optional<std::size_t> found = find_text_match(items[index], pattern, mode, false);
-        if (!found) continue;
+        const stxlib::Optional<std::size_t> match = find_text_match(items[index], pattern, mode, false);
+        const std::size_t* const found = match.value();
+        if (found == nullptr) continue;
         rows_.push_back(index);
         row_matches_.push_back(TextMatchRange{.offset = *found, .length = pattern.size()});
     }
@@ -398,7 +399,7 @@ void ComboBox::match_editor_text() {
     for (std::size_t index = 0U; index < items.read().size(); ++index) {
         // Equal ignoring ASCII case: as long as the text, and a prefix match.
         const bool same_length = items[index].size() == typed.size();
-        if (same_length && find_text_match(items[index], typed, TextMatchMode::prefix, false)) {
+        if (same_length && find_text_match(items[index], typed, TextMatchMode::prefix, false).present()) {
             found.set(index);
             break;
         }
