@@ -73,17 +73,17 @@ constexpr std::uint32_t maximum_semantic_snapshot_passes = 4;
 // (audit B11: its own bound, no longer the semantic snapshot's).
 constexpr std::uint32_t maximum_hit_test_passes = 4;
 
-[[nodiscard]] std::optional<char32_t> physical_mnemonic(
+[[nodiscard]] stxlib::Optional<char32_t> physical_mnemonic(
     std::uint32_t physical_key) noexcept {
     // USB HID keyboard usages are contiguous for A-Z and for 1-9,0.
     if (physical_key >= 0x04U && physical_key <= 0x1DU) {
-        return U'a' + static_cast<char32_t>(physical_key - 0x04U);
+        return stxlib::Optional<char32_t>::of(U'a' + static_cast<char32_t>(physical_key - 0x04U));
     }
     if (physical_key >= 0x1EU && physical_key <= 0x26U) {
-        return U'1' + static_cast<char32_t>(physical_key - 0x1EU);
+        return stxlib::Optional<char32_t>::of(U'1' + static_cast<char32_t>(physical_key - 0x1EU));
     }
-    if (physical_key == 0x27U) return U'0';
-    return std::nullopt;
+    if (physical_key == 0x27U) return stxlib::Optional<char32_t>::of(U'0');
+    return stxlib::Optional<char32_t>::none();
 }
 
 // The position after `visited` (found at `position`) in `parent`'s child
@@ -1265,9 +1265,9 @@ bool SurfaceRoot::dispatch_dialog_key(const KeyEvent& event) {
     const bool control = has_modifier(event.modifiers, Modifier::control);
     const bool meta = has_modifier(event.modifiers, Modifier::meta);
     if (alt && !control && !meta) {
-        const std::optional<char32_t> character =
+        const stxlib::Optional<char32_t> character =
             physical_mnemonic(event.physical_key);
-        if (character) return dispatch_mnemonic(*character);
+        if (character.present()) return dispatch_mnemonic(*character.value());
     }
     if (!alt && !control && !meta) {
         if (event.physical_key == PhysicalKey::enter) {

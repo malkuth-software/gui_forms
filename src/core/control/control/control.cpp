@@ -632,7 +632,7 @@ MnemonicText parse_mnemonic_text(std::string_view text) {
         const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
         const std::size_t length = decoded.length;
         const char32_t scalar = decoded.scalar;
-        if (!result.mnemonic) result.mnemonic = scalar;
+        if (result.mnemonic.absent()) result.mnemonic.set(scalar);
         result.display_text.append(text.substr(offset, length));
         offset += length;
     }
@@ -684,11 +684,11 @@ bool is_mnemonic(char32_t character, std::string_view text) noexcept {
 
 bool is_first_letter(char32_t character, std::string_view text) noexcept {
     if (character == U'&' || text.empty()) return false;
-    std::optional<char32_t> first{};
+    stxlib::Optional<char32_t> first{};
     for (std::size_t offset = 0U; offset < text.size();) {
         if (text[offset] == '&') {
             if (offset + 1U < text.size() && text[offset + 1U] == '&') {
-                if (!first) first = U'&';
+                if (first.absent()) first.set(U'&');
                 offset += 2U;
                 continue;
             }
@@ -698,10 +698,10 @@ bool is_first_letter(char32_t character, std::string_view text) noexcept {
             continue;
         }
         const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
-        if (!first) first = decoded.scalar;
+        if (first.absent()) first.set(decoded.scalar);
         offset += std::max<std::size_t>(decoded.length, 1U);
     }
-    const bool matches = first.has_value() && fold_mnemonic(*first) == fold_mnemonic(character);
+    const bool matches = first.present() && fold_mnemonic(*first.value()) == fold_mnemonic(character);
     return matches;
 }
 

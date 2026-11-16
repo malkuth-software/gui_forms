@@ -44,11 +44,11 @@ namespace {
 
 // The one character a text event types, or none when it types several, is
 // malformed or is still composing.
-[[nodiscard]] std::optional<char32_t> typed_character(
+[[nodiscard]] stxlib::Optional<char32_t> typed_character(
     const TextInputEvent& event) noexcept {
-    if (event.composing || event.text_utf8.empty()) return std::nullopt;
+    if (event.composing || event.text_utf8.empty()) return stxlib::Optional<char32_t>::none();
     const Utf8ValidationResult validation = validate_utf8(event.text_utf8);
-    if (!validation.valid() || validation.scalar_count != 1U) return std::nullopt;
+    if (!validation.valid() || validation.scalar_count != 1U) return stxlib::Optional<char32_t>::none();
     const std::string_view text = event.text_utf8;
     const char32_t lead = static_cast<unsigned char>(text[0]);
     char32_t scalar = lead;
@@ -59,7 +59,7 @@ namespace {
         scalar = (scalar << 6U) |
                  (static_cast<char32_t>(static_cast<unsigned char>(text[offset])) & 0x3FU);
     }
-    return scalar;
+    return stxlib::Optional<char32_t>::of(scalar);
 }
 
 } // namespace
@@ -282,8 +282,8 @@ struct ContextMenu::Impl final {
         // A plain letter in an open menu acts as that item's mnemonic, as in
         // a native Windows menu; Alt is not needed.
         void on_text_input(TextInputEvent& event) override {
-            const std::optional<char32_t> character = typed_character(event);
-            if (character && impl_.type_mnemonic(depth_, std::nullopt, *character)) {
+            const stxlib::Optional<char32_t> character = typed_character(event);
+            if (character.present() && impl_.type_mnemonic(depth_, std::nullopt, *character.value())) {
                 event.handled = true;
             }
         }
@@ -620,8 +620,8 @@ struct ContextMenu::Impl final {
 
         void on_text_input(TextInputEvent& event) override {
             if (!focused_) return;
-            const std::optional<char32_t> character = typed_character(event);
-            if (character && impl_.type_mnemonic(depth_, index_, *character)) {
+            const stxlib::Optional<char32_t> character = typed_character(event);
+            if (character.present() && impl_.type_mnemonic(depth_, index_, *character.value())) {
                 event.handled = true;
             }
         }

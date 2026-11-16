@@ -2657,7 +2657,7 @@ Related types
 
    .. cpp:member:: std::string display_text
 
-   .. cpp:member:: std::optional<char32_t> mnemonic
+   .. cpp:member:: stxlib::Optional<char32_t> mnemonic
 
 .. cpp:namespace:: gui_forms
 

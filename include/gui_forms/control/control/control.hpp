@@ -269,7 +269,7 @@ struct GUI_FORMS_API LayoutTransactionState final {
 // locale-dependent platform text API into the core.
 struct GUI_FORMS_API MnemonicText final {
     std::string display_text;
-    std::optional<char32_t> mnemonic;
+    stxlib::Optional<char32_t> mnemonic;
 };
 
 [[nodiscard]] GUI_FORMS_API MnemonicText parse_mnemonic_text(std::string_view text);

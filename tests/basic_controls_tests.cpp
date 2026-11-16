@@ -675,7 +675,7 @@ void test_control_back_color_paints_background_once() {
 void test_mnemonics_and_dialog_buttons_are_retained_commands() {
     const MnemonicText escaped = parse_mnemonic_text("Save && E&xit");
     require(escaped.display_text == "Save & Exit" &&
-                escaped.mnemonic == U'x' && is_mnemonic(U'X', "E&xit") &&
+                escaped.mnemonic == stxlib::Optional<char32_t>::of(U'x') && is_mnemonic(U'X', "E&xit") &&
                 is_mnemonic(U'a', "&Save &As") &&
                 !is_mnemonic(U'&', "&&&") &&
                 !is_mnemonic(U'e', "Save && Exit"),

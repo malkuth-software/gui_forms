@@ -230,10 +230,10 @@ void test_strict_mnemonics() {
     const Utf8ScalarDecode truncated = decode_utf8_scalar("\xE2\x82", Utf8Offset(0U));
     require(!truncated.valid && truncated.length == 1U, "a truncated sequence is refused");
     const MnemonicText parsed = parse_mnemonic_text("&\xC3\xA9t\xC3\xA9");
-    require(parsed.mnemonic == std::optional<char32_t>{U'é'} && parsed.display_text == "\xC3\xA9t\xC3\xA9",
+    require(parsed.mnemonic == stxlib::Optional<char32_t>::of(U'é') && parsed.display_text == "\xC3\xA9t\xC3\xA9",
             "a multi-byte mnemonic is its scalar");
     const MnemonicText malformed = parse_mnemonic_text("&\xC0\xAF");
-    require(malformed.mnemonic == std::optional<char32_t>{U'�'} && malformed.display_text == "\xC0\xAF",
+    require(malformed.mnemonic == stxlib::Optional<char32_t>::of(U'�') && malformed.display_text == "\xC0\xAF",
             "a malformed mnemonic is U+FFFD and its bytes are kept");
 }
 
