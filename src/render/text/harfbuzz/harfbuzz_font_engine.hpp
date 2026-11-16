@@ -78,14 +78,12 @@ struct ShapeStorageLimits final {
 //   rasterizer's own library (GlyphRunRasterizer).
 // - harfbuzz: HarfBuzz's hb_malloc, hb_calloc and hb_realloc calls, from any
 //   caller.
-// - sheenbidi_heap: SheenBidi allocations that reached the C heap (every one
-//   outside a reusable workspace's shaping, and those its arena had no room
-//   for); sheenbidi_arena: those a workspace's arena served.
+// The bidi analysis (stxlib::textlayout) is not here: it allocates on
+// STXlib's allocator and counts its bytes under text_layout
+// (TextAnalysis, and ReusableShapeWorkspace::analysis_bytes).
 struct NativeAllocationCounts final {
     std::uint64_t freetype{};
     std::uint64_t harfbuzz{};
-    std::uint64_t sheenbidi_heap{};
-    std::uint64_t sheenbidi_arena{};
 };
 
 struct PrimaryLineMetrics final {
@@ -190,11 +188,13 @@ public:
     // of `utf8` into `workspace`, the shaping shape() does (the same faces,
     // grapheme clusters, bidi runs and glyph positions), answered with the
     // extent resolve() reports. It allocates nothing once the workspace
-    // holds utf8.size() bytes, except what HarfBuzz, FreeType and SheenBidi
-    // do on their own (counted by thread_native_allocations: the HarfBuzz
-    // buffer and the SheenBidi arena are the workspace's, a face's font and
-    // shape plans are made at its first use) and the first loading of a
-    // lazy face. The status is invalid_request, with no shaping kept, for a
+    // holds utf8.size() bytes, except what HarfBuzz and FreeType do on their
+    // own (counted by thread_native_allocations: the HarfBuzz buffer is the
+    // workspace's, a face's font and shape plans are made at its first use),
+    // the first loading of a lazy face, and the growth of the workspace's
+    // bidi analysis to the largest paragraph it has held (counted in bytes
+    // under text_layout; it is reused, so a text it has held before, or a
+    // smaller one of the same form, grows nothing). The status is invalid_request, with no shaping kept, for a
     // workspace of another engine or too small, invalid UTF-8, an invalid
     // font, or more runs or glyphs than the workspace stages. Native
     // failures throw, as shape() does, with no shaping kept.

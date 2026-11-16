@@ -9,6 +9,8 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/window.hpp"
 #include "harfbuzz_font_engine.hpp"
+#include "../textlayout/text_analysis.hpp"
+#include "gui_forms/allocation/statistics/allocation_statistics.hpp"
 
 #include <array>
 #include <cmath>
@@ -20,6 +22,7 @@
 #include <memory>
 #include <optional>
 #include <stxlib/optional.hpp>
+#include <stxlib/text.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -153,6 +156,40 @@ void test_break_opportunities() {
             "an empty text has nothing to fill");
 }
 
+// The engine's bidi analysis (TextAnalysis over stxlib::textlayout): a
+// paragraph reordered as one line gives its runs in visual order with byte
+// offsets; analysing it again reuses the storage (no text_layout change), and
+// release gives back exactly what was counted.
+void test_bidi_analysis() {
+    using render::text::TextAnalysis;
+    const std::string_view mixed = "abc \xD7\x90\xD7\x91\xD7\x92 def";
+    const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(mixed.data(), mixed.size());
+    require(validated.succeeded(), "the mixed text is UTF-8");
+    const stxlib::TextView text = *validated.value();
+    TextAnalysis analysis{};
+    const std::size_t length = render::text::analyse_paragraph_line(text, 0U, analysis);
+    require(length == mixed.size(), "one paragraph");
+    const stxlib::View<stxlib::textlayout::BidiRun> runs = analysis.line.runs();
+    require(runs.count() == 3U, "three runs");
+    require(runs[0].offset == 0U && runs[0].length == 4U && runs[0].level == 0U, "the Latin start");
+    require(runs[1].offset == 4U && runs[1].length == 6U && runs[1].level == 1U, "the Hebrew run, right to left");
+    require(runs[2].offset == 10U && runs[2].length == 4U && runs[2].level == 0U, "the Latin end");
+    const std::size_t held = analysis.bytes_held();
+    require(held != 0U, "the analysis holds storage");
+    const AllocationScope steady{};
+    for (int repeat = 0; repeat < 8; ++repeat) {
+        static_cast<void>(render::text::analyse_paragraph_line(text, 0U, analysis));
+    }
+    const AllocationCounts again = steady.counted().of(AllocationSubsystem::text_layout);
+    require(again.allocations == 0U && again.releases == 0U && analysis.bytes_held() == held,
+            "a paragraph analysed again reuses its storage");
+    const AllocationScope released{};
+    analysis.release();
+    const AllocationCounts freed = released.counted().of(AllocationSubsystem::text_layout);
+    require(analysis.bytes_held() == 0U && freed.releases == 1U && freed.released_bytes == held,
+            "release counts back what was held");
+}
+
 FontSpec content(double size) {
     const FontSpec font{FontRole::content, size, 400, false, 0.0};
     return font;
@@ -213,6 +250,7 @@ int main(int argument_count, char** arguments) {
     try {
         require(argument_count == 2, "usage: gui_forms_text_block_engine_tests <assets/fonts>");
         test_break_opportunities();
+        test_bidi_analysis();
         test_design_metrics_and_line_boxes(std::filesystem::path(arguments[1]));
         std::cout << "text-block-engine-tests: pass\n";
         return EXIT_SUCCESS;
