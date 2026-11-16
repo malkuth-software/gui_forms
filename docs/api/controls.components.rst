@@ -448,7 +448,7 @@ Related types
 
       Whether icon alignments are mirrored. A change raises right_to_left_changed.
 
-   .. cpp:member:: std::optional<ImageId> icon
+   .. cpp:member:: stxlib::Optional<ImageId> icon
 
       The icon image, or none for the stock glyph. An image that is not live in the provider's window throws std::invalid_argument.
 
@@ -521,9 +521,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ErrorProviderIconCapability& capability, std::optional<ImageId> incoming)
+   .. cpp:function:: static void assign(ErrorProviderIconCapability& capability, stxlib::Optional<ImageId> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<ImageId>, ErrorProviderIconCapability<Declaring>> icon
+   .. cpp:member:: PropertyCell<stxlib::Optional<ImageId>, ErrorProviderIconCapability<Declaring>> icon
 
 .. cpp:namespace:: gui_forms
 

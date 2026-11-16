@@ -29,10 +29,10 @@ gui_forms::GaugeBase
       **show_value** : ``bool``
          Whether the value is shown as text beside the scale.
 
-      **low_alarm** : ``std::optional<double>``
+      **low_alarm** : ``stxlib::Optional<double>``
          The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 
-      **high_alarm** : ``std::optional<double>``
+      **high_alarm** : ``stxlib::Optional<double>``
          The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 
       **in_alarm** : ``bool``, read-only
@@ -80,11 +80,11 @@ gui_forms::GaugeBase
 
       Whether the value is shown as text beside the scale.
 
-   .. cpp:member:: std::optional<double> low_alarm
+   .. cpp:member:: stxlib::Optional<double> low_alarm
 
       The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<double> high_alarm
+   .. cpp:member:: stxlib::Optional<double> high_alarm
 
       The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 

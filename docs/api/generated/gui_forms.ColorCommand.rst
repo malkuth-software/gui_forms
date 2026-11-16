@@ -37,7 +37,7 @@ gui_forms::ColorCommand
       **state** : ``CommandState``, read-only
          The command's state.
 
-      **value** : ``std::optional<Color>``, default none
+      **value** : ``stxlib::Optional<Color>``, default none
          The colour, or none for Automatic. :cpp:func:`set_value <gui_forms::ColorCommand::set_value>` is the program's change:
          it raises :cpp:func:`value_changed <gui_forms::ColorCommand::value_changed>` when the value differs and invokes nothing.
 
@@ -47,7 +47,7 @@ gui_forms::ColorCommand
 
    :Events:
 
-      **value_changed** : ``Event<const std::optional<Color>&>``
+      **value_changed** : ``Event<const stxlib::Optional<Color>&>``
          Raised after the value changes, by :cpp:func:`set_value <gui_forms::ColorCommand::set_value>` or :cpp:func:`commit <gui_forms::ColorCommand::commit>`.
 
    :Inherited:
@@ -86,7 +86,7 @@ gui_forms::ColorCommand
 
       std::shared_ptr<gf::Command> colour = std::make_shared<gf::Command>("doc.colour", "Font colour");
       std::shared_ptr<gf::ColorCommand> command = std::make_shared<gf::ColorCommand>(colour);
-      (*command).commit(gf::Color::rgba(192, 0, 0), "doc.picker");   // dark red, now the first recent colour
+      (*command).commit(stxlib::Optional<gf::Color>::of(gf::Color::rgba(192, 0, 0)), "doc.picker");   // dark red, now the first recent colour
 
 
    .. rubric:: Construction
@@ -110,12 +110,12 @@ gui_forms::ColorCommand
 
       The command's state.
 
-   .. cpp:function:: const std::optional<Color>& value() const noexcept
+   .. cpp:function:: const stxlib::Optional<Color>& value() const noexcept
 
       The colour, or none for Automatic. :cpp:func:`set_value <gui_forms::ColorCommand::set_value>` is the program's change:
       it raises :cpp:func:`value_changed <gui_forms::ColorCommand::value_changed>` when the value differs and invokes nothing.
 
-   .. cpp:function:: void set_value(std::optional<Color> value)
+   .. cpp:function:: void set_value(stxlib::Optional<Color> value)
 
       Sets :cpp:func:`value <gui_forms::ColorCommand::value>`; see the property's description above.
 
@@ -127,14 +127,14 @@ gui_forms::ColorCommand
 
    .. rubric:: Events
 
-   .. cpp:function:: Event<const std::optional<Color>&>& value_changed() noexcept
+   .. cpp:function:: Event<const stxlib::Optional<Color>&>& value_changed() noexcept
 
       Raised after the value changes, by :cpp:func:`set_value <gui_forms::ColorCommand::set_value>` or :cpp:func:`commit <gui_forms::ColorCommand::commit>`.
 
 
    .. rubric:: Methods
 
-   .. cpp:function:: bool commit(std::optional<Color> value, std::string_view source_id)
+   .. cpp:function:: bool commit(stxlib::Optional<Color> value, std::string_view source_id)
 
       The user's choice: sets the value (raising :cpp:func:`value_changed <gui_forms::ColorCommand::value_changed>` when it
       differs), moves a colour to the front of the recent colours, then

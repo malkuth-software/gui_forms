@@ -711,13 +711,13 @@ Types
 
    .. cpp:function:: bool empty() const noexcept
 
-   .. cpp:member:: std::optional<double> width
+   .. cpp:member:: stxlib::Optional<double> width
 
-   .. cpp:member:: std::optional<Color> rest_colour
+   .. cpp:member:: stxlib::Optional<Color> rest_colour
 
-   .. cpp:member:: std::optional<Color> lit_colour
+   .. cpp:member:: stxlib::Optional<Color> lit_colour
 
-   .. cpp:member:: std::optional<BandEffect> effect
+   .. cpp:member:: stxlib::Optional<BandEffect> effect
 
 .. cpp:namespace:: gui_forms
 
@@ -3673,13 +3673,13 @@ Types
 
    .. cpp:function:: static MaterialBorderEdges from_parts(const MaterialBorder* top, const MaterialBorder* right, const MaterialBorder* bottom, const MaterialBorder* left)
 
-   .. cpp:member:: std::optional<MaterialBorder> top
+   .. cpp:member:: stxlib::Optional<MaterialBorder> top
 
-   .. cpp:member:: std::optional<MaterialBorder> right
+   .. cpp:member:: stxlib::Optional<MaterialBorder> right
 
-   .. cpp:member:: std::optional<MaterialBorder> bottom
+   .. cpp:member:: stxlib::Optional<MaterialBorder> bottom
 
-   .. cpp:member:: std::optional<MaterialBorder> left
+   .. cpp:member:: stxlib::Optional<MaterialBorder> left
 
 .. cpp:namespace:: gui_forms
 
@@ -3809,7 +3809,7 @@ Types
 
    .. cpp:member:: std::vector<MaterialGlowPlacement> glow_placements
 
-   .. cpp:member:: std::optional<MaterialBorderStyle> border_style
+   .. cpp:member:: stxlib::Optional<MaterialBorderStyle> border_style
 
    .. cpp:member:: MaterialEdgeLines edge_lines
 
@@ -3827,11 +3827,11 @@ Types
 
    .. cpp:member:: MaterialColourFilter colour_filter
 
-   .. cpp:member:: std::optional<MaterialDropShadow> drop_shadow
+   .. cpp:member:: stxlib::Optional<MaterialDropShadow> drop_shadow
 
    .. cpp:member:: std::optional<MaterialFillLayer> mask
 
-   .. cpp:member:: std::optional<MaterialReflection> reflection
+   .. cpp:member:: stxlib::Optional<MaterialReflection> reflection
 
    .. cpp:member:: MaterialDither dither
 
@@ -4142,23 +4142,23 @@ Types
 
    A rule's media condition (EC3): every feature it names must hold for the window, and an unnamed feature always holds, so the default condition holds everywhere. The resolution bounds are inclusive, in device pixels per logical unit; each is finite and above zero. A condition no window meets, such as a minimum above the maximum, is admitted: its rule never matches. The theme language's ``@media`` blocks lower to these (one rule a query of a comma list).
 
-   .. cpp:member:: std::optional<bool> dark_scheme
+   .. cpp:member:: stxlib::Optional<bool> dark_scheme
 
       ``prefers-color-scheme``: dark (true) or light (false).
 
-   .. cpp:member:: std::optional<bool> forced_colours
+   .. cpp:member:: stxlib::Optional<bool> forced_colours
 
       ``forced-colors``: active (true) or none (false).
 
-   .. cpp:member:: std::optional<bool> reduced_motion
+   .. cpp:member:: stxlib::Optional<bool> reduced_motion
 
       ``prefers-reduced-motion``: reduce (true) or no-preference (false).
 
-   .. cpp:member:: std::optional<double> minimum_resolution
+   .. cpp:member:: stxlib::Optional<double> minimum_resolution
 
       ``min-resolution`` and ``max-resolution``.
 
-   .. cpp:member:: std::optional<double> maximum_resolution
+   .. cpp:member:: stxlib::Optional<double> maximum_resolution
 
 .. cpp:namespace:: gui_forms
 
@@ -6118,7 +6118,7 @@ Types
 
    .. cpp:member:: std::vector<MaterialGlow> glows
 
-   .. cpp:member:: std::optional<MaterialBorder> border
+   .. cpp:member:: stxlib::Optional<MaterialBorder> border
 
    .. cpp:member:: MaterialBorderEdges border_edges
 
@@ -6126,7 +6126,7 @@ Types
 
    .. cpp:member:: double corner_radius
 
-   .. cpp:member:: std::optional<MaterialCornerRadii> corner_radii
+   .. cpp:member:: stxlib::Optional<MaterialCornerRadii> corner_radii
 
       Corners that differ (E9.6): when present they replace corner_radius in the engine's material primitive. The built-in path, paint_surface_material, rounds every corner by corner_radius, so a theme sets that to the radius the fallback should draw.
 
@@ -6134,7 +6134,7 @@ Types
 
       The part filters (E9.6, CSS ``filter``), applied to the baked raster in this order: the colour filter to each pixel, then the drop shadow beneath, then the blur over the whole. A theme's filter list lowers to that order. The engine's material primitive draws them; the built-in path, paint_surface_material, draws none of them, and the window's backplane image draws only the colour filter.
 
-   .. cpp:member:: std::optional<MaterialDropShadow> drop_shadow
+   .. cpp:member:: stxlib::Optional<MaterialDropShadow> drop_shadow
 
    .. cpp:member:: double filter_blur
 
@@ -6148,7 +6148,7 @@ Types
 
       An alpha mask (E9.6, CSS ``mask-image``): a solid, gradient or image fill whose alpha, times its opacity for an image, multiplies the whole finished part, its shadows and glows included; outside the box it extends at its edge value, so that a shadow fades with the face beside it. The engine's material primitive draws it; the built-in path, paint_surface_material, draws the material unmasked.
 
-   .. cpp:member:: std::optional<MaterialReflection> reflection
+   .. cpp:member:: stxlib::Optional<MaterialReflection> reflection
 
       A reflection of the finished face (MaterialReflection), drawn after the mask; none by default.
 
@@ -6776,11 +6776,11 @@ Types
 
    .. cpp:member:: RuleSelector selector
 
-   .. cpp:member:: std::optional<RuleSpecificity> specificity
+   .. cpp:member:: stxlib::Optional<RuleSpecificity> specificity
 
    .. cpp:member:: std::vector<RuleDeclaration> declarations
 
-   .. cpp:member:: std::optional<EngineVersion> requires_engine
+   .. cpp:member:: stxlib::Optional<EngineVersion> requires_engine
 
    .. cpp:member:: std::vector<PropertyTransition> transitions
 
@@ -6810,7 +6810,7 @@ Types
 
       A surface rule's backdrop (``backdrop:``), or none.
 
-   .. cpp:member:: std::optional<BandDeclaration> band
+   .. cpp:member:: stxlib::Optional<BandDeclaration> band
 
       A window rule's band (``band-*``), or none.
 

@@ -406,11 +406,11 @@ Related types
 
       The line boxes' inline alignment; start by default. justify is not admitted (std::invalid_argument).
 
-   .. cpp:member:: std::optional<LineStrut> line_strut
+   .. cpp:member:: stxlib::Optional<LineStrut> line_strut
 
       The strut every line box starts with (CSS 2.1 section 10.8.1), used as given; empty takes the font's line-height: normal line box at the effective text scale (used_line_strut). Its values must be finite and nonnegative (std::invalid_argument).
 
-   .. cpp:member:: std::optional<FontSpec> font
+   .. cpp:member:: stxlib::Optional<FontSpec> font
 
       The panel's own font for the strut; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
 
@@ -425,9 +425,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BlockPanelFontCapability& capability, std::optional<FontSpec> incoming)
+   .. cpp:function:: static void assign(BlockPanelFontCapability& capability, stxlib::Optional<FontSpec> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<FontSpec>, BlockPanelFontCapability<Declaring>> font
+   .. cpp:member:: PropertyCell<stxlib::Optional<FontSpec>, BlockPanelFontCapability<Declaring>> font
 
 .. cpp:namespace:: gui_forms
 
@@ -440,9 +440,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BlockPanelLineStrutCapability& capability, std::optional<LineStrut> incoming)
+   .. cpp:function:: static void assign(BlockPanelLineStrutCapability& capability, stxlib::Optional<LineStrut> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<LineStrut>, BlockPanelLineStrutCapability<Declaring>> line_strut
+   .. cpp:member:: PropertyCell<stxlib::Optional<LineStrut>, BlockPanelLineStrutCapability<Declaring>> line_strut
 
 .. cpp:namespace:: gui_forms
 
@@ -467,16 +467,16 @@ Related types
 
    ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
-   The track a track panel provides to its children (a child property, study sections 10 and 15.4): the authored track index, or none for the next track no child names. ``(*tracks).child_track[*child] = 2U;``
+   The track a track panel provides to its children (a child property, study sections 10 and 15.4): the authored track index, or none for the next track no child names. ``(*tracks).child_track[*child] = stxlib::Optional<std::uint32_t>::of(2U);``
 
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ChildTrackCapability& capability, const Control& child, std::optional<std::uint32_t> value)
+   .. cpp:function:: static void assign(ChildTrackCapability& capability, const Control& child, stxlib::Optional<std::uint32_t> value)
 
-   .. cpp:function:: static std::optional<std::uint32_t> read(const ChildTrackCapability& capability, const Control& child)
+   .. cpp:function:: static stxlib::Optional<std::uint32_t> read(const ChildTrackCapability& capability, const Control& child)
 
-   .. cpp:member:: ChildPropertyView<std::optional<std::uint32_t>, ChildTrackCapability<Declaring>> child_track
+   .. cpp:member:: ChildPropertyView<stxlib::Optional<std::uint32_t>, ChildTrackCapability<Declaring>> child_track
 
 .. cpp:namespace:: gui_forms
 
@@ -1782,16 +1782,16 @@ Related types
 
    ``#include <gui_forms/controls/command_overflow_panel.hpp>``
 
-   The group spec an overflow panel provides to its children (a child property, study sections 10 and 15.4): a direct child's sizing and collapse priority, or none for a non-collapsible child at its desired width. ``(*shelf).group_spec[*group] = CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};`` In a ``.form`` it is text: the three extents, then optionally ``priority`` and the priority, as in "176 176 176 priority 2".
+   The group spec an overflow panel provides to its children (a child property, study sections 10 and 15.4): a direct child's sizing and collapse priority, or none for a non-collapsible child at its desired width. ``(*shelf).group_spec[*group] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U});`` In a ``.form`` it is text: the three extents, then optionally ``priority`` and the priority, as in "176 176 176 priority 2".
 
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(GroupSpecCapability& capability, const Control& child, std::optional<CommandOverflowGroupSpec> value)
+   .. cpp:function:: static void assign(GroupSpecCapability& capability, const Control& child, stxlib::Optional<CommandOverflowGroupSpec> value)
 
-   .. cpp:function:: static std::optional<CommandOverflowGroupSpec> read(const GroupSpecCapability& capability, const Control& child)
+   .. cpp:function:: static stxlib::Optional<CommandOverflowGroupSpec> read(const GroupSpecCapability& capability, const Control& child)
 
-   .. cpp:member:: ChildPropertyView<std::optional<CommandOverflowGroupSpec>, GroupSpecCapability<Declaring>> group_spec
+   .. cpp:member:: ChildPropertyView<stxlib::Optional<CommandOverflowGroupSpec>, GroupSpecCapability<Declaring>> group_spec
 
 .. cpp:namespace:: gui_forms
 
@@ -2208,11 +2208,11 @@ Related types
 
       The least extent of the second panel (Windows Forms' Panel2MinSize, default 25). Refused as first_minimum is.
 
-   .. cpp:member:: std::optional<double> first_maximum
+   .. cpp:member:: stxlib::Optional<double> first_maximum
 
       The greatest extent of the first panel, or none for no limit. A negative, non-finite or below-minimum value throws std::invalid_argument and changes nothing.
 
-   .. cpp:member:: std::optional<double> second_maximum
+   .. cpp:member:: stxlib::Optional<double> second_maximum
 
       The greatest extent of the second panel, or none for no limit. Refused as first_maximum is.
 
@@ -2264,9 +2264,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(SplitContainerFirstMaximumCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(SplitContainerFirstMaximumCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, SplitContainerFirstMaximumCapability<Declaring>> first_maximum
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, SplitContainerFirstMaximumCapability<Declaring>> first_maximum
 
 .. cpp:namespace:: gui_forms
 
@@ -2347,9 +2347,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(SplitContainerSecondMaximumCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(SplitContainerSecondMaximumCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, SplitContainerSecondMaximumCapability<Declaring>> second_maximum
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, SplitContainerSecondMaximumCapability<Declaring>> second_maximum
 
 .. cpp:namespace:: gui_forms
 

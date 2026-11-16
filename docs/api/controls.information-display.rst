@@ -721,11 +721,11 @@ Related types
 
       Whether the value is shown as text beside the scale.
 
-   .. cpp:member:: std::optional<double> low_alarm
+   .. cpp:member:: stxlib::Optional<double> low_alarm
 
       The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<double> high_alarm
+   .. cpp:member:: stxlib::Optional<double> high_alarm
 
       The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 
@@ -757,9 +757,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(GaugeBaseHighAlarmCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(GaugeBaseHighAlarmCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, GaugeBaseHighAlarmCapability<Declaring>> high_alarm
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, GaugeBaseHighAlarmCapability<Declaring>> high_alarm
 
 .. cpp:namespace:: gui_forms
 
@@ -772,9 +772,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(GaugeBaseLowAlarmCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(GaugeBaseLowAlarmCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, GaugeBaseLowAlarmCapability<Declaring>> low_alarm
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, GaugeBaseLowAlarmCapability<Declaring>> low_alarm
 
 .. cpp:namespace:: gui_forms
 
@@ -1947,7 +1947,7 @@ Related types
 
       The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise). With the bake present the lens takes its aspect and whole look, its body included, and the bezel gives way; without it, and in forced high contrast, the theme's lens is drawn.
 
-   .. cpp:member:: std::optional<Color> lamp_color
+   .. cpp:member:: stxlib::Optional<Color> lamp_color
 
       The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).
 
@@ -1962,9 +1962,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(IndicatorLampLampColorCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(IndicatorLampLampColorCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color
 
 .. cpp:namespace:: gui_forms
 
@@ -2172,7 +2172,7 @@ Related types
 
       The text the control shows (Text).
 
-   .. cpp:member:: std::optional<FontSpec> font
+   .. cpp:member:: stxlib::Optional<FontSpec> font
 
       The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).
 
@@ -2219,9 +2219,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(LabelFontCapability& capability, std::optional<FontSpec> incoming)
+   .. cpp:function:: static void assign(LabelFontCapability& capability, stxlib::Optional<FontSpec> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<FontSpec>, LabelFontCapability<Declaring>> font
+   .. cpp:member:: PropertyCell<stxlib::Optional<FontSpec>, LabelFontCapability<Declaring>> font
 
 .. cpp:namespace:: gui_forms
 
@@ -3528,7 +3528,7 @@ Related types
 
       The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
 
-   .. cpp:member:: std::optional<std::uint64_t> effect_seed
+   .. cpp:member:: stxlib::Optional<std::uint64_t> effect_seed
 
       The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
 
@@ -3585,11 +3585,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ProgressBarEffectSeedCapability& capability, std::optional<std::uint64_t> incoming)
+   .. cpp:function:: static void assign(ProgressBarEffectSeedCapability& capability, stxlib::Optional<std::uint64_t> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<std::uint64_t>, ProgressBarEffectSeedCapability<Declaring>> effect_seed
-
-      Default: ``{std::nullopt}``.
+   .. cpp:member:: PropertyCell<stxlib::Optional<std::uint64_t>, ProgressBarEffectSeedCapability<Declaring>> effect_seed
 
 .. cpp:namespace:: gui_forms
 
@@ -4416,7 +4414,7 @@ Related types
 
       The text the control shows (Text).
 
-   .. cpp:member:: std::optional<FontSpec> font
+   .. cpp:member:: stxlib::Optional<FontSpec> font
 
       The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
 
@@ -4424,7 +4422,7 @@ Related types
 
       CSS text-align; start and end follow the effective layout direction (std::invalid_argument outside the enumeration).
 
-   .. cpp:member:: std::optional<double> line_height
+   .. cpp:member:: stxlib::Optional<double> line_height
 
       CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).
 
@@ -4439,9 +4437,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(TextBlockFontCapability& capability, std::optional<FontSpec> incoming)
+   .. cpp:function:: static void assign(TextBlockFontCapability& capability, stxlib::Optional<FontSpec> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<FontSpec>, TextBlockFontCapability<Declaring>> font
+   .. cpp:member:: PropertyCell<stxlib::Optional<FontSpec>, TextBlockFontCapability<Declaring>> font
 
 .. cpp:namespace:: gui_forms
 
@@ -4454,9 +4452,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(TextBlockLineHeightCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(TextBlockLineHeightCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, TextBlockLineHeightCapability<Declaring>> line_height
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, TextBlockLineHeightCapability<Declaring>> line_height
 
 .. cpp:namespace:: gui_forms
 

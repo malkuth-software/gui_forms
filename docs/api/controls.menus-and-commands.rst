@@ -1268,7 +1268,7 @@ Related types
 
       Default: ``{RibbonPaletteEntryKind::palette}``.
 
-   .. cpp:member:: std::optional<Color> color
+   .. cpp:member:: stxlib::Optional<Color> color
 
    .. cpp:member:: PaletteEntryParts parts
 
@@ -1348,7 +1348,7 @@ Related types
 
       The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.
 
-   .. cpp:member:: std::optional<Color> value
+   .. cpp:member:: stxlib::Optional<Color> value
 
       The colour shown, or none for Automatic: the command's, or the picker's own. A write goes to the command's set_value when there is one.
 
@@ -1401,11 +1401,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(RibbonColorPickerValueCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(RibbonColorPickerValueCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:function:: static std::optional<Color> read(const RibbonColorPickerValueCapability& capability)
+   .. cpp:function:: static stxlib::Optional<Color> read(const RibbonColorPickerValueCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<Color>, RibbonColorPickerValueCapability<Declaring>> value
+   .. cpp:member:: PropertyView<stxlib::Optional<Color>, RibbonColorPickerValueCapability<Declaring>> value
 
 .. cpp:namespace:: gui_forms
 

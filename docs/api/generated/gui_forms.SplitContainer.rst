@@ -81,11 +81,11 @@ gui_forms::SplitContainer
       **second_minimum** : ``double``, default ``25.0``
          The smallest extent of the second panel, with the same rules.
 
-      **first_maximum** : ``std::optional<double>``, default ``std::nullopt``
+      **first_maximum** : ``stxlib::Optional<double>``, default ``std::nullopt``
          The largest extent of the first panel, or no limit. It may not be below
          :cpp:member:`first_minimum <gui_forms::SplitContainer::first_minimum>`.
 
-      **second_maximum** : ``std::optional<double>``, default ``std::nullopt``
+      **second_maximum** : ``stxlib::Optional<double>``, default ``std::nullopt``
          The largest extent of the second panel, or no limit.
 
       **splitter_fixed** : ``bool``, default ``false``
@@ -384,12 +384,12 @@ gui_forms::SplitContainer
 
       The smallest extent of the second panel, with the same rules.
 
-   .. cpp:member:: std::optional<double> first_maximum
+   .. cpp:member:: stxlib::Optional<double> first_maximum
 
       The largest extent of the first panel, or no limit. It may not be below
       :cpp:member:`first_minimum <gui_forms::SplitContainer::first_minimum>`.
 
-   .. cpp:member:: std::optional<double> second_maximum
+   .. cpp:member:: stxlib::Optional<double> second_maximum
 
       The largest extent of the second panel, or no limit.
 

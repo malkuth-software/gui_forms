@@ -2072,7 +2072,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr TypeTag<BindingValue> binding_value
 
-.. cpp:var:: constexpr TypeTag<std::optional<Color>> optional_color
+.. cpp:var:: constexpr TypeTag<stxlib::Optional<Color>> optional_color
 
 .. cpp:namespace:: gui_forms
 

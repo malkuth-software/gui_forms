@@ -39,7 +39,7 @@ gui_forms::Label
          The text, including any ``&`` mnemonic marker. Setting a different value
          raises :cpp:func:`text_changed <gui_forms::Label::text_changed>`.
 
-      **font** : ``std::optional<FontSpec>``, default empty
+      **font** : ``stxlib::Optional<FontSpec>``, default empty
          The label's own font. While empty, the label uses the theme's font for
          :cpp:member:`text_style_role <gui_forms::Label::text_style_role>`; :cpp:func:`resolved_font <gui_forms::Label::resolved_font>` reports the font in use. It is scaled
          by the window's text scale. An invalid specification throws
@@ -181,7 +181,7 @@ gui_forms::Label
       The text, including any ``&`` mnemonic marker. Setting a different value
       raises :cpp:func:`text_changed <gui_forms::Label::text_changed>`.
 
-   .. cpp:member:: std::optional<FontSpec> font
+   .. cpp:member:: stxlib::Optional<FontSpec> font
 
       The label's own font. While empty, the label uses the theme's font for
       :cpp:member:`text_style_role <gui_forms::Label::text_style_role>`; :cpp:func:`resolved_font <gui_forms::Label::resolved_font>` reports the font in use. It is scaled

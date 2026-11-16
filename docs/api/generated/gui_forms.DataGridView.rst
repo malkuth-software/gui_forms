@@ -103,10 +103,10 @@ gui_forms::DataGridView
       **enable_headers_visual_styles** : ``bool``, default ``true``
          Whether the theme draws the headers, their styles' colours unused.
 
-      **grid_color** : ``std::optional<Color>``, default none
+      **grid_color** : ``stxlib::Optional<Color>``, default none
          The grid lines' colour, an authored colour (owner decision T4-1).
 
-      **background_color** : ``std::optional<Color>``, default none
+      **background_color** : ``stxlib::Optional<Color>``, default none
          The colour where no cell is; the theme's ground stays under the cells.
 
       **border_style** : ``BorderStyle``, default ``BorderStyle::line``
@@ -1048,11 +1048,11 @@ gui_forms::DataGridView
 
       Whether the theme draws the headers, their styles' colours unused.
 
-   .. cpp:member:: std::optional<Color> grid_color
+   .. cpp:member:: stxlib::Optional<Color> grid_color
 
       The grid lines' colour, an authored colour (owner decision T4-1).
 
-   .. cpp:member:: std::optional<Color> background_color
+   .. cpp:member:: stxlib::Optional<Color> background_color
 
       The colour where no cell is; the theme's ground stays under the cells.
 

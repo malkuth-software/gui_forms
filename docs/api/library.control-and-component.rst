@@ -665,9 +665,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BackColorCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(BackColorCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<Color>, BackColorCapability<Declaring>> back_color
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, BackColorCapability<Declaring>> back_color
 
 .. cpp:namespace:: gui_forms
 
@@ -1253,15 +1253,15 @@ Related types
 
       The plain tooltip text; empty never shows.
 
-   .. cpp:member:: std::optional<CursorKind> cursor
+   .. cpp:member:: stxlib::Optional<CursorKind> cursor
 
       The pointer's cursor; empty takes the parent's (Cursor).
 
-   .. cpp:member:: std::optional<Color> back_color
+   .. cpp:member:: stxlib::Optional<Color> back_color
 
       The own background colour; empty takes the parent's.
 
-   .. cpp:member:: std::optional<Color> fore_color
+   .. cpp:member:: stxlib::Optional<Color> fore_color
 
       The own text colour; empty takes the parent's.
 
@@ -1418,9 +1418,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(CursorCapability& capability, std::optional<CursorKind> incoming)
+   .. cpp:function:: static void assign(CursorCapability& capability, stxlib::Optional<CursorKind> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor
+   .. cpp:member:: PropertyCell<stxlib::Optional<CursorKind>, CursorCapability<Declaring>> cursor
 
 .. cpp:namespace:: gui_forms
 
@@ -1826,9 +1826,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ForeColorCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(ForeColorCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<Color>, ForeColorCapability<Declaring>> fore_color
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, ForeColorCapability<Declaring>> fore_color
 
 .. cpp:namespace:: gui_forms
 
@@ -4244,7 +4244,7 @@ Functions, constants and aliases
 
 ``#include <gui_forms/control/control_property_traits/control_property_traits.hpp>``
 
-.. cpp:var:: constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind
+.. cpp:var:: constexpr TypeTag<stxlib::Optional<CursorKind>> optional_cursor_kind
 
 .. cpp:namespace:: gui_forms
 

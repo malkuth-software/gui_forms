@@ -2767,15 +2767,15 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:member:: std::optional<double> soft_minimum
+   .. cpp:member:: stxlib::Optional<double> soft_minimum
 
       The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<double> soft_maximum
+   .. cpp:member:: stxlib::Optional<double> soft_maximum
 
       The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<double> snap_step
+   .. cpp:member:: stxlib::Optional<double> snap_step
 
       Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.
 
@@ -2799,7 +2799,7 @@ Related types
 
       The name shown at the bar's start, its value at the end (Blender's "Samples 64"); empty centres the value.
 
-   .. cpp:member:: std::optional<double> scrub_rate
+   .. cpp:member:: stxlib::Optional<double> scrub_rate
 
       Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.
 
@@ -2896,11 +2896,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ValueBarScrubRateCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(ValueBarScrubRateCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarScrubRateCapability<Declaring>> scrub_rate
-
-      Default: ``{std::nullopt}``.
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, ValueBarScrubRateCapability<Declaring>> scrub_rate
 
 .. cpp:namespace:: gui_forms
 
@@ -2913,11 +2911,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ValueBarSnapStepCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(ValueBarSnapStepCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarSnapStepCapability<Declaring>> snap_step
-
-      Default: ``{std::nullopt}``.
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, ValueBarSnapStepCapability<Declaring>> snap_step
 
 .. cpp:namespace:: gui_forms
 
@@ -2930,11 +2926,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ValueBarSoftMaximumCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(ValueBarSoftMaximumCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarSoftMaximumCapability<Declaring>> soft_maximum
-
-      Default: ``{std::nullopt}``.
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, ValueBarSoftMaximumCapability<Declaring>> soft_maximum
 
 .. cpp:namespace:: gui_forms
 
@@ -2947,11 +2941,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ValueBarSoftMinimumCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(ValueBarSoftMinimumCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarSoftMinimumCapability<Declaring>> soft_minimum
-
-      Default: ``{std::nullopt}``.
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, ValueBarSoftMinimumCapability<Declaring>> soft_minimum
 
 .. cpp:namespace:: gui_forms
 

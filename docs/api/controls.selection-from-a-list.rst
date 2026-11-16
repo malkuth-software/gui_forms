@@ -1732,9 +1732,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(DataGridViewBackgroundColorCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(DataGridViewBackgroundColorCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<Color>, DataGridViewBackgroundColorCapability<Declaring>> background_color
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, DataGridViewBackgroundColorCapability<Declaring>> background_color
 
 .. cpp:namespace:: gui_forms
 
@@ -1833,11 +1833,11 @@ Related types
 
       Whether headers take the theme's look over their cell styles (EnableHeadersVisualStyles).
 
-   .. cpp:member:: std::optional<Color> grid_color
+   .. cpp:member:: stxlib::Optional<Color> grid_color
 
       The authored colour of the grid lines; empty takes the theme's (GridColor).
 
-   .. cpp:member:: std::optional<Color> background_color
+   .. cpp:member:: stxlib::Optional<Color> background_color
 
       The authored colour behind the cells; empty takes the theme's (BackgroundColor).
 
@@ -2200,9 +2200,9 @@ Related types
 
    .. cpp:member:: std::string inline_style
 
-   .. cpp:member:: std::optional<Color> back_color
+   .. cpp:member:: stxlib::Optional<Color> back_color
 
-   .. cpp:member:: std::optional<Color> fore_color
+   .. cpp:member:: stxlib::Optional<Color> fore_color
 
 .. cpp:namespace:: gui_forms
 
@@ -2827,9 +2827,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(DataGridViewGridColorCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(DataGridViewGridColorCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<Color>, DataGridViewGridColorCapability<Declaring>> grid_color
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, DataGridViewGridColorCapability<Declaring>> grid_color
 
 .. cpp:namespace:: gui_forms
 
