@@ -1,0 +1,9 @@
+#include <gui_forms/ordering.hpp>
+
+namespace gui_forms {
+
+bool below(const Limit& limit) noexcept {
+    return limit.bound < 3;
+}
+
+} // namespace gui_forms

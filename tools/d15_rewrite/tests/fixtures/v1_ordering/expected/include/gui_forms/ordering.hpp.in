@@ -1,0 +1,14 @@
+#pragma once
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+namespace gui_forms {
+
+struct Limit final {
+    stxlib::Optional<int> bound;
+};
+
+[[nodiscard]] bool below(const Limit& limit) noexcept;
+
+} // namespace gui_forms
