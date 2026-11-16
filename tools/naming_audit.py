@@ -20,9 +20,13 @@ hold:
 Not this audit's business, by the owner's direction (2026-11-16):
 - collisions with platform or library macros (the consumer partition keeps
   those headers out of the consumer's reach);
-- standard-library names (`min`, `max`, `size`, `begin`, ...);
-- names the owner kept: the alignment enumerators `near` and `far`, and the
-  Ribbon's `small`.
+- standard-library names (`min`, `max`, `size`, `begin`, ...).
+
+The consumer-spellable names a platform macro breaks were renamed in the
+same cleanup by the owner's separate ruling (near/far to CSS's start/end,
+the Ribbon's small to compact, STXlib's Status and Result to
+OperationStatus and OperationResult); that list is kept in the
+coordinator's NAMING_CLEANUP.md, not computed here.
 
 A heuristic over source with comments and literals masked; every finding
 is reviewed before a rename. Usage:
@@ -126,8 +130,8 @@ STD_VOCABULARY: frozenset[str] = frozenset(
     'min max size begin end empty clear erase insert find data front back swap reset get release move '
     'count length push_back emplace_back pop_back value has_value index'.split())
 
-# Names the owner reviewed and kept (2026-11-16).
-KEPT_NAMES: frozenset[str] = frozenset({'near', 'far', 'small'})
+# Names the owner reviewed and kept as they are (none at present).
+KEPT_NAMES: frozenset[str] = frozenset()
 
 KEYWORDS: frozenset[str] = frozenset(
     'alignas alignof and asm auto bool break case catch char char8_t char16_t char32_t class co_await co_return '

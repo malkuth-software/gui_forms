@@ -129,8 +129,8 @@ class PlatformWordTests(unittest.TestCase):
         text: str = 'void apply(const WindowChrome& chrome, double metal);'
         self.assertEqual(findings_for(text), [])
 
-    def test_kept_and_std_names_are_skipped(self) -> None:
-        text: str = 'enum class Size { large, small }; struct S { double near{}; double far{}; int max{}; };'
+    def test_std_names_are_skipped(self) -> None:
+        text: str = 'struct S { int max{}; std::size_t size() const; bool empty() const; };'
         self.assertEqual(findings_for(text), [])
 
 
