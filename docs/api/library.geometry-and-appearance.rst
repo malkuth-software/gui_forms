@@ -11474,7 +11474,7 @@ Functions, constants and aliases
 
    Fills ``points`` and ``contours``, which the caller owns, with ``path`` flattened to polylines: lines as they are, curves and arcs subdivided into chords no farther than ``tolerance`` (positive, finite) from the curve. Writes nothing and returns zeros for an invalid path or a tolerance that is not positive and finite. When either array fills, the last contour is ended where the storage ran out and ``truncated`` is set. The arrays must not overlap the path's (they cannot: different types).
 
-.. cpp:function:: std::optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept
+.. cpp:function:: stxlib::Optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept
 
    The length of ``path``: each contour's segments end to end, in order, including the straight joins arc_to makes and each close's closing segment, measured on its chords (above) at ``tolerance`` (positive, finite). A chord never exceeds the curve it spans, so the result is at most the exact length. Empty for an invalid path or tolerance; 0 for a path of points only.
 

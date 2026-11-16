@@ -28,7 +28,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <sstream>
 #include <stdexcept>
@@ -887,33 +887,34 @@ PaintPathTrimResult trimmed(const PaintPath& path, double start, double end, dou
 
 void test_path_length() {
     const PaintPath square = unit_square_path();
-    const std::optional<double> perimeter = paint_path_length(square.view(), stroke_trim_tolerance);
-    require(perimeter.has_value() && *perimeter == 40.0, "a square's length is its perimeter, the close included");
+    const stxlib::Optional<double> perimeter = paint_path_length(square.view(), stroke_trim_tolerance);
+    require(perimeter == stxlib::Optional<double>::of(40.0), "a square's length is its perimeter, the close included");
     PaintPath triangle;
     triangle.move_to(Point{0.0, 0.0});
     triangle.line_to(Point{3.0, 0.0});
     triangle.line_to(Point{3.0, 4.0});
     triangle.close();
-    require(paint_path_length(triangle.view(), 0.25) == std::optional<double>(12.0), "3, 4 and the closing 5");
+    require(paint_path_length(triangle.view(), 0.25) == stxlib::Optional<double>::of(12.0), "3, 4 and the closing 5");
     PaintPath line;
     line.move_to(Point{0.0, 0.0});
     line.cubic_to(Point{10.0, 0.0}, Point{20.0, 0.0}, Point{30.0, 0.0});
-    require(paint_path_length(line.view(), 0.25) == std::optional<double>(30.0), "a straight cubic is one chord");
+    require(paint_path_length(line.view(), 0.25) == stxlib::Optional<double>::of(30.0), "a straight cubic is one chord");
     // A circle measures on its chords: within the chord bound below 2 pi r,
     // never above it, and the same bits each time.
     PaintPath circle;
     circle.arc_to(Point{0.0, 0.0}, Size{10.0, 10.0}, 0.0, 360.0);
-    const std::optional<double> round = paint_path_length(circle.view(), stroke_trim_tolerance);
-    require(round.has_value() && *round <= 20.0 * 3.14159265358979323846 && *round > 62.6,
+    const stxlib::Optional<double> measured = paint_path_length(circle.view(), stroke_trim_tolerance);
+    const double* const round = measured.value();
+    require(round != nullptr && *round <= 20.0 * 3.14159265358979323846 && *round > 62.6,
             "a circle's chords fall just short of its circumference");
-    require(paint_path_length(circle.view(), stroke_trim_tolerance) == round, "the length is deterministic");
+    require(paint_path_length(circle.view(), stroke_trim_tolerance) == measured, "the length is deterministic");
     PaintPath point;
     point.move_to(Point{1.0, 1.0});
-    require(paint_path_length(point.view(), 0.25) == std::optional<double>(0.0), "a point has length 0");
+    require(paint_path_length(point.view(), 0.25) == stxlib::Optional<double>::of(0.0), "a point has length 0");
     PaintPath broken;
     broken.line_to(Point{1.0, 1.0});
-    require(!paint_path_length(broken.view(), 0.25).has_value(), "an invalid path has no length");
-    require(!paint_path_length(square.view(), 0.0).has_value(), "a zero tolerance is refused");
+    require(paint_path_length(broken.view(), 0.25).absent(), "an invalid path has no length");
+    require(paint_path_length(square.view(), 0.0).absent(), "a zero tolerance is refused");
 }
 
 void test_trim_exact_sub_paths() {

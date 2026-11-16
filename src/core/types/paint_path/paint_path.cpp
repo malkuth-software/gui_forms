@@ -669,10 +669,11 @@ void append_range(PaintPathView path, double tolerance, KeptRange range, bool co
 
 } // namespace
 
-std::optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept {
-    if (!(tolerance > 0.0) || !std::isfinite(tolerance) || !valid_paint_path(path)) return std::nullopt;
+stxlib::Optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept {
+    if (!(tolerance > 0.0) || !std::isfinite(tolerance) || !valid_paint_path(path)) return stxlib::Optional<double>::none();
     const PathMeasure measure = measure_path(path, tolerance);
-    return measure.length;
+    const stxlib::Optional<double> result = stxlib::Optional<double>::of(measure.length);
+    return result;
 }
 
 bool valid_stroke_trim(StrokeTrim trim) noexcept {

@@ -9,6 +9,8 @@
 #include <span>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // Curved paths for the Painter vocabulary (exhibit gap E7): contours of
@@ -130,7 +132,7 @@ inline constexpr double stroke_trim_tolerance = 1.0 / 16.0;
 // finite). A chord never exceeds the curve it spans, so the result is at
 // most the exact length. Empty for an invalid path or tolerance; 0 for a
 // path of points only.
-[[nodiscard]] GUI_FORMS_API std::optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept;
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept;
 
 // The part of a path a stroke keeps (Lottie's and ThorVG's trim path):
 // `start` and `end` are fractions of the path's whole length (every
