@@ -3398,9 +3398,9 @@ void error_glyph_tool_tips() {
     window.perform_layout();
     const Point over_glyph{glyph.x + glyph.width / 2.0, glyph.y + glyph.height / 2.0};
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, over_glyph}));
-    std::optional<FrameTime> wake = window.next_wake();
-    require(wake.has_value(), "resting over the glyph schedules its tooltip");
-    static_cast<void>(window.poll_frame_schedule(*wake));
+    stxlib::Optional<FrameTime> wake = window.next_wake();
+    require(wake.present(), "resting over the glyph schedules its tooltip");
+    static_cast<void>(window.poll_frame_schedule(*wake.value()));
     require(window.tool_tip_visible() && window.tool_tip_text() == "Name is required" &&
                 window.tool_tip_item_id() == (*cell_glyph).stable_id,
             "the glyph shows its error text");
@@ -3409,7 +3409,7 @@ void error_glyph_tool_tips() {
     const Point over_cell{plain.x + plain.width / 2.0, plain.y + plain.height / 2.0};
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, over_cell}));
     wake = window.next_wake();
-    if (wake) static_cast<void>(window.poll_frame_schedule(*wake));
+    if (wake.present()) static_cast<void>(window.poll_frame_schedule(*wake.value()));
     require(window.tool_tip_visible() && window.tool_tip_text() == "Orders" && window.tool_tip_item_id().empty() &&
                 window.tool_tip_target() == grid,
             "a cell without an error shows the grid's own tooltip");

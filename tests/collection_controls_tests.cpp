@@ -5,6 +5,7 @@
 #include "support/named_callbacks.hpp"
 #include "support/professional_theme.hpp"
 #include "../src/core/control/control/control_input_access.hpp"
+#include "support/frame_wake.hpp"
 
 #include <algorithm>
 #include <array>
@@ -18,6 +19,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 
@@ -985,10 +988,10 @@ void test_correspondence_virtualization_and_anchor_stability() {
         {PointerAction::move, PointerButton::none, hover_center}));
     require((*records).hovered_id() == "correspondence.12" &&
                 !(*records).expanded("correspondence.12") &&
-                window.next_wake().has_value(),
+                window.next_wake().present(),
             "pointer arrival must schedule rather than immediately fake hover intent");
     const double before_expand = (*(*records).item_bounds("correspondence.12")).y;
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     require((*records).expanded("correspondence.12") &&
                 (*records).pinned_id.read() == "correspondence.2" &&
                 std::abs((*(*records).item_bounds("correspondence.12")).y -

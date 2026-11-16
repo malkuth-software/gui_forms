@@ -3,6 +3,7 @@
 #include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
 #include "support/named_callbacks.hpp"
+#include "support/frame_wake.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -11,6 +12,8 @@
 #include <thread>
 #include <utility>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 
@@ -336,9 +339,9 @@ void test_scrollbar_geometry_capture_repeat_and_orientation() {
                                      decrement_point}) &&
                 (*horizontal).value.read() == 48.0 &&
                 window.captured_control() == horizontal &&
-                window.next_wake().has_value(),
+                window.next_wake().present(),
             "scrollbar arrow press must step, capture, and schedule bounded repeat");
-    const FrameTime repeat_deadline = *window.next_wake();
+    const FrameTime repeat_deadline = armed_wake(window);
     static_cast<void>(window.poll_frame_schedule(repeat_deadline));
     require((*horizontal).value.read() == 46.0 && actions.size() == 2U &&
                 actions[0] == RangeAction::small_decrement &&
@@ -346,7 +349,7 @@ void test_scrollbar_geometry_capture_repeat_and_orientation() {
             "scrollbar hold deadline must repeat the declared small action");
     require(window.dispatch_pointer({PointerAction::up, PointerButton::primary,
                                      decrement_point}) &&
-                !window.captured_control() && !window.next_wake(),
+                !window.captured_control() && window.next_wake().absent(),
             "scrollbar release must cancel capture and repeat without residue");
 
     const Rect current_thumb = (*horizontal).thumb_bounds();

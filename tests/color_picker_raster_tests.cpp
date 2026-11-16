@@ -19,6 +19,7 @@
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window/window.hpp"
+#include "support/frame_wake.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -28,6 +29,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 using namespace gui_forms;
@@ -182,9 +185,9 @@ void test_content_parts() {
         grey = light.red == light.green && light.green == light.blue && dark.red == dark.green &&
                dark.green == dark.blue;
         checkered = grey && light.red >= dark.red + 20U;
-        for (int frame = 0; frame < 4 && window.next_wake(); ++frame) {
+        for (int frame = 0; frame < 4 && window.next_wake().present(); ++frame) {
             static_cast<void>(window.take_damage());
-            static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+            static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
         }
     }
     require(grey, "a transparent swatch shows grey");

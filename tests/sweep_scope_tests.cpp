@@ -13,6 +13,7 @@
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
+#include "support/frame_wake.hpp"
 
 #include <array>
 #include <chrono>
@@ -26,6 +27,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 using namespace gui_forms;
@@ -233,14 +236,14 @@ void on_the_motion_clock() {
     RecordingPainter first;
     (*scope).on_paint(first, {0.0, 0.0, 220.0, 120.0});
     require((*scope).effect_instance().entry() == &scope_sweep(), "the drawn scope hosts the sweep");
-    require(clock.control_ambient(*scope) && window.next_wake().has_value(), "the drawn scope is enlisted");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require(clock.control_ambient(*scope) && window.next_wake().present(), "the drawn scope is enlisted");
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     RecordingPainter second;
     (*scope).on_paint(second, {0.0, 0.0, 220.0, 120.0});
     require((*scope).effect_instance().counters().ticks > 0U, "a clock frame makes ticks due");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    require(!clock.control_ambient(*scope) && !window.next_wake().has_value(),
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    require(!clock.control_ambient(*scope) && window.next_wake().absent(),
             "a scope not painted between frames is dropped, and the window rests");
     RecordingPainter again;
     (*scope).on_paint(again, {0.0, 0.0, 220.0, 120.0});

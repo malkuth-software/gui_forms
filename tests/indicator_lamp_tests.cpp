@@ -150,9 +150,9 @@ std::vector<double> run_change(LampWindow& made, std::size_t limit) {
     std::vector<double> powers;
     SilentPainter painter;
     for (std::size_t tick = 0U; tick < limit && (*made.lamp).changing(); ++tick) {
-        const std::optional<FrameTime> wake = (*made.window).next_wake();
-        if (!wake) break;
-        static_cast<void>((*made.window).poll_frame_schedule(*wake));
+        const stxlib::Optional<FrameTime> wake = (*made.window).next_wake();
+        if (wake.absent()) break;
+        static_cast<void>((*made.window).poll_frame_schedule(*wake.value()));
         powers.push_back((*made.lamp).power());
         (*made.lamp).on_paint(painter, Rect{0.0, 0.0, 24.0, 24.0});
     }

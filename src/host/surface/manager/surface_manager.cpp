@@ -1174,9 +1174,10 @@ std::optional<std::chrono::steady_clock::time_point> Runtime::next_deadline(bool
     for (std::size_t index = 0U; index < windows.size(); ++index) {
         const NativeWindow& candidate = *windows[index];
         if (candidate.closed) continue;
-        const std::optional<FrameTime> wake = (*candidate.entry.model).next_wake();
-        if (!wake) continue;
-        if (!deadline.has_value() || *wake < *deadline) deadline = *wake;
+        const stxlib::Optional<FrameTime> wake = (*candidate.entry.model).next_wake();
+        if (wake.absent()) continue;
+        const FrameTime armed = *wake.value();
+        if (!deadline.has_value() || armed < *deadline) deadline = armed;
     }
     // The capsule's animation, only while it runs.
     if (capsule.animating()) {

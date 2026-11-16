@@ -755,7 +755,7 @@ void test_idle_remains_quiescent_after_compacted_damage() {
     }
     fixture.paint_pending();
     (*fixture.window).reset_activity_metrics();
-    require(!(*fixture.window).needs_frame() && !(*fixture.window).next_wake().has_value(),
+    require(!(*fixture.window).needs_frame() && (*fixture.window).next_wake().absent(),
             "painted retained damage must return to frame-and-wake quiescence");
     const MetricsSnapshot idle = (*fixture.window).metrics_snapshot();
     require(idle.measure_passes == 0 && idle.arrange_passes == 0 &&

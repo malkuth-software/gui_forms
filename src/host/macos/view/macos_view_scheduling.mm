@@ -4,6 +4,8 @@
 #include "macos_view.hpp"
 #include "../application/macos_values.hpp"
 
+#include <optional>
+
 // CADisplayLink retains its target. This proxy observes the view weakly, so a
 // paused link cannot keep an otherwise closed window's view alive.
 @interface GUIFormsDisplayTarget : NSObject {
@@ -234,8 +236,8 @@ void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sende
     if (!_model || _wakeSource == nil) {
         return;
     }
-    const std::optional<gui_forms::FrameTime> wake = (*_model).next_wake();
-    if (!wake) {
+    const stxlib::Optional<gui_forms::FrameTime> wake = (*_model).next_wake();
+    if (wake.absent()) {
         if (_causalTrace && (*_causalTrace).enabled) {
             (*_causalTrace).record_arm(gui_forms::FrameClock::now(), wake, 0);
         }
@@ -248,7 +250,7 @@ void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sende
     // Nanosecond precision, never rounded down (audit N107): a deadline
     // less than a millisecond away used to fire early and be armed again.
     // A deadline already past fires at once.
-    const std::chrono::nanoseconds remaining = std::chrono::ceil<std::chrono::nanoseconds>(*wake - now);
+    const std::chrono::nanoseconds remaining = std::chrono::ceil<std::chrono::nanoseconds>(*wake.value() - now);
     const std::chrono::nanoseconds::rep nanoseconds = std::max<std::chrono::nanoseconds::rep>(remaining.count(), 0);
     dispatch_source_set_timer(
         _wakeSource,

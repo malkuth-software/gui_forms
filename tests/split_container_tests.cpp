@@ -634,7 +634,7 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
     static_cast<void>(window.dispatch_pointer(near_event));
     require((*split).splitter_seam_snapshot().state == SplitSeamState::near &&
                 (*split).splitter_seam_snapshot().transition_active &&
-                window.focused_control() == field && window.next_wake(),
+                window.focused_control() == field && window.next_wake().present(),
             "quiet proximity must reveal near state without stealing focus and schedule only its bounded transition");
 
     PointerEvent hot_event = near_event;
@@ -748,7 +748,7 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
                 started.transition_active &&
                 near(started.transition_progress, 0.0) &&
                 near(started.actuator_bounds.width, 7.0) &&
-                window.next_wake().has_value(),
+                window.next_wake().present(),
             "hot proximity must start from the committed rest geometry and own one bounded frame lease");
 
     // The grip's paint-gated transition timer advances it: one tick, then a
@@ -775,7 +775,7 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
                 near(finished.transition_progress, 1.0) &&
                 near(finished.actuator_bounds.width, 12.0) &&
                 near(finished.actuator_bounds.height, 42.0) &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "the 90-millisecond transition must commit exact engaged geometry and revoke its final frame lease");
 
     PresentationSettings calm = window.presentation_settings();
@@ -788,7 +788,7 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
     require(!reduced.transition_active &&
                 near(reduced.actuator_bounds.width, 7.0) &&
                 near(reduced.actuator_bounds.height, 28.0) &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "reduced motion must replace interpolation with an immediate exact state change");
 
     (*split).splitter_transition_duration = 0ms;

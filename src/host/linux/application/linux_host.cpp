@@ -2380,11 +2380,11 @@ void Runtime::step(int maximum_wait) {
     // overlay was just turned off: 33 ms, as the Windows host's timer.
     if (invalidation_overlay_fading(window))
       wait = wait < 0 ? 33 : std::min(wait, 33);
-    const std::optional<FrameTime> deadline = (*window.entry.model).next_wake();
-    if (deadline) {
+    const stxlib::Optional<FrameTime> deadline = (*window.entry.model).next_wake();
+    if (deadline.present()) {
       const long long delay =
           std::chrono::duration_cast<std::chrono::milliseconds>(
-              *deadline - std::chrono::steady_clock::now())
+              *deadline.value() - std::chrono::steady_clock::now())
               .count();
       const int milliseconds = static_cast<int>(std::clamp(
           delay, 0LL, static_cast<long long>(std::numeric_limits<int>::max())));

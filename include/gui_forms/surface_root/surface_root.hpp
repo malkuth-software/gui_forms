@@ -1020,7 +1020,7 @@ public:
     // cover over the visible area (Control::report_opaque_cover).
     [[nodiscard]] bool request_content_scroll(Control& owner, Rect local_area, Point offset);
     [[nodiscard]] bool needs_frame() const noexcept;
-    [[nodiscard]] std::optional<FrameTime> next_wake() const noexcept;
+    [[nodiscard]] stxlib::Optional<FrameTime> next_wake() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
                                                    FrameTime deadline);
     [[nodiscard]] FrameRequestToken schedule_ui_timer(

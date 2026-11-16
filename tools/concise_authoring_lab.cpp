@@ -89,7 +89,7 @@ int main(const int argc, const char* const* argv) {
         start = std::chrono::steady_clock::now();
         for (int index = 0; index < 1000000; ++index) {
             const gf::FramePollResult poll = (*fixture.window).poll_frame_schedule(gf::FrameTime{});
-            if (poll.next_wake || poll.deadlines_fired != 0U || poll.ui_timer_ticks != 0U) return 4;
+            if (poll.next_wake.present() || poll.deadlines_fired != 0U || poll.ui_timer_ticks != 0U) return 4;
         }
         const std::int64_t idle_time = elapsed(start);
         std::cout << "idle_poll," << trial << ",1000000," << idle_time << ','

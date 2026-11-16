@@ -1571,7 +1571,7 @@ void SurfaceRoot::set_schedule_wake_handler(std::function<void()> wake) {
     require_root_thread("schedule wake-handler mutation");
     schedule_wake_handler_ = std::move(wake);
     schedule_wake_pending_ = false;
-    if (schedule_wake_handler_ && next_wake().has_value()) request_schedule_wake();
+    if (schedule_wake_handler_ && next_wake().present()) request_schedule_wake();
 }
 
 void SurfaceRoot::set_paint_wake_handler(std::function<void()> wake) {

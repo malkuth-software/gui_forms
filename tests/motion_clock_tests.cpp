@@ -150,7 +150,7 @@ void zero_frames_after_settling() {
     Window& window = *(*fixture).window;
     Mover& mover = *(*fixture).movers[0];
     const MetricsSnapshot before = window.metrics_snapshot();
-    require(!window.motion_clock().armed() && !window.next_wake(), "a window at rest schedules nothing");
+    require(!window.motion_clock().armed() && window.next_wake().absent(), "a window at rest schedules nothing");
     require(mover.first.animate_to(1.0) == MotionStart::started && window.motion_clock().armed() &&
                 window.motion_clock().moving_count() == 1U,
             "a move arms the clock's frame request");
@@ -166,12 +166,12 @@ void zero_frames_after_settling() {
     require(frames == 12U, "180 ms at 16 ms frames takes 12 frames: 11 in flight and the one that settles");
     require(mover.first.current() == 1.0 && mover.steps.back().settled && mover.steps.back().current == 1.0,
             "the last frame stands exactly at the target");
-    require(!window.motion_clock().armed() && !window.next_wake() && window.motion_clock().moving_count() == 0U,
+    require(!window.motion_clock().armed() && window.next_wake().absent() && window.motion_clock().moving_count() == 0U,
             "once settled the clock disconnects its request");
     const MetricsSnapshot settled = window.metrics_snapshot();
     for (int k = 0; k < 10; ++k) {
         const FramePollResult idle = frame(*fixture, milliseconds(16));
-        require(idle.motion_clock_ticks == 0U && !idle.next_wake, "a settled window polls no motion frames");
+        require(idle.motion_clock_ticks == 0U && idle.next_wake.absent(), "a settled window polls no motion frames");
     }
     const MetricsSnapshot after = window.metrics_snapshot();
     require(after.motion_clock_ticks == settled.motion_clock_ticks && after.motion_values_moving == 0U &&
@@ -275,14 +275,14 @@ void reduced_motion_jumps_to_the_end() {
         require((*mover).steps.back().cause == MotionStepCause::reduced_motion && (*mover).steps.back().settled,
                 "each listener is told why, once");
     }
-    require(!window.motion_clock().armed() && !window.next_wake(), "nothing stays scheduled");
+    require(!window.motion_clock().armed() && window.next_wake().absent(), "nothing stays scheduled");
     Mover& mover = *(*fixture).movers[0];
     mover.first.jump_to(0.0);
     require(mover.first.animate_to(1.0) == MotionStart::finished && mover.first.current() == 1.0 &&
                 !window.motion_clock().armed(),
             "under reduced motion a new move reaches its end at once");
     const FramePollResult result = frame(*fixture, milliseconds(16));
-    require(result.motion_clock_ticks == 0U && !result.next_wake, "and no frame runs");
+    require(result.motion_clock_ticks == 0U && result.next_wake.absent(), "and no frame runs");
 }
 
 void occluded_window_schedules_nothing() {
@@ -292,7 +292,7 @@ void occluded_window_schedules_nothing() {
     window.set_occluded(true, (*fixture).time.time);
     require(mover.first.animate_to(1.0) == MotionStart::finished && mover.first.current() == 1.0,
             "in an occluded window a move is at its end at once");
-    require(!window.motion_clock().armed() && !window.next_wake(), "and nothing is scheduled");
+    require(!window.motion_clock().armed() && window.next_wake().absent(), "and nothing is scheduled");
     require(frame(*fixture, milliseconds(16)).motion_clock_ticks == 0U, "no frame runs");
     window.set_occluded(false, (*fixture).time.time);
     Mover& other = *(*fixture).movers[1];

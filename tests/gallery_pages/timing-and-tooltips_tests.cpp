@@ -3,6 +3,9 @@
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/controls/track_bar.hpp"
+#include "../support/frame_wake.hpp"
+
+using gui_forms::test_support::armed_wake;
 
 namespace gallery_pages_tests {
 
@@ -12,16 +15,16 @@ void test_timing_and_tooltips(gui_forms::Window& window) {
         window.find("gallery.timing.tick.status"));
     std::shared_ptr<gui_forms::ProgressBar> progress = std::dynamic_pointer_cast<ProgressBar>(
         window.find("gallery.timing.progress"));
-    require(status && progress && window.next_wake().has_value(),
+    require(status && progress && window.next_wake().present(),
             "timing page must activate its public UI Timer without a hidden control");
     const std::string before = (*status).text.read();
-    const FrameTime timer_deadline = *window.next_wake();
+    const FrameTime timer_deadline = armed_wake(window);
     const FramePollResult timer_tick = window.poll_frame_schedule(timer_deadline);
     require(timer_tick.ui_timer_ticks == 1U && (*status).text.read() != before &&
                 (*progress).value.read() > 0.0,
             "gallery Timer tick must update retained public controls on the UI queue");
     click(window, window.find("gallery.timing.stop"));
-    require(!window.next_wake().has_value() &&
+    require(window.next_wake().absent() &&
                 (*status).text.read().find("zero idle wakeups") != std::string::npos,
             "gallery Timer stop must make the window scheduler quiescent");
 
@@ -40,7 +43,7 @@ void test_timing_and_tooltips(gui_forms::Window& window) {
             "timer buttons must bind page-owned Commands");
     (*interval).value = 400.0;
     click(window, start_button);
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 (*status).text.read().find("deadline armed") != std::string::npos,
             "the start Command must arm the UI Timer deadline");
     static_cast<void>(window.poll_frame_schedule(
@@ -48,7 +51,7 @@ void test_timing_and_tooltips(gui_forms::Window& window) {
     require((*status).text.read().find("400 ms") != std::string::npos,
             "the bound interval Value must reach the Timer before its next tick");
     click(window, stop_button);
-    require(!window.next_wake().has_value(),
+    require(window.next_wake().absent(),
             "the stop Command must make the window scheduler quiescent again");
 
     const Control::Ptr hover_target = window.find("gallery.timing.tooltip.hover");
@@ -56,9 +59,9 @@ void test_timing_and_tooltips(gui_forms::Window& window) {
     const Point hover_point{hover_bounds.x + 12.0, hover_bounds.y + 12.0};
     static_cast<void>(window.dispatch_pointer(
         {PointerAction::move, PointerButton::none, hover_point}));
-    require(window.next_wake().has_value(),
+    require(window.next_wake().present(),
             "gallery hover target must arm the public ToolTip delay");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     window.perform_layout();
     require(window.semantic_snapshot().to_json().find("\"role\":\"tool_tip\"") !=
                 std::string::npos,

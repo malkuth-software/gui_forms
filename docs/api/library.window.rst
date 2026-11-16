@@ -990,7 +990,7 @@ Related types
 
    .. cpp:member:: bool suppressed_by_occlusion
 
-   .. cpp:member:: std::optional<FrameTime> next_wake
+   .. cpp:member:: stxlib::Optional<FrameTime> next_wake
 
 .. cpp:namespace:: gui_forms
 

@@ -2660,9 +2660,9 @@ private:
             CancelWaitableTimer(scheduler_clock_);
             scheduler_clock_armed_ = false;
         }
-        const std::optional<FrameTime> wake = (*model_).next_wake();
-        if (!wake) return;
-        const FrameInterval remaining = *wake - FrameClock::now();
+        const stxlib::Optional<FrameTime> wake = (*model_).next_wake();
+        if (wake.absent()) return;
+        const FrameInterval remaining = *wake.value() - FrameClock::now();
         const bool soon = remaining < near_wake_limit;
         if (soon && scheduler_clock_ != nullptr && !in_size_move_) {
             // Relative due times are in 100 ns units, negative.

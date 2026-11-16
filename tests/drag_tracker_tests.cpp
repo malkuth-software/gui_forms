@@ -700,13 +700,13 @@ void auto_scroll_frames() {
     pointer(window, PointerAction::move, {100.0, 395.0});
     require(tracker.scroll_velocity().y > 0.0 && near(tracker.scroll_velocity().x, 0.0),
             "the bottom band asks to scroll down");
-    require(window.next_wake().has_value(), "auto-scroll schedules a frame");
+    require(window.next_wake().present(), "auto-scroll schedules a frame");
     const double frame_seconds = std::chrono::duration<double>(std::chrono::milliseconds(16)).count();
     const double longest_step = default_drag_scroll_speed * frame_seconds * 4.0 + 1e-9;
     for (int frame = 0; frame < 1000 && tracker.statistics().scroll_stops == 0U; ++frame) {
-        const std::optional<FrameTime> wake = window.next_wake();
-        if (!wake) break;
-        static_cast<void>(window.poll_frame_schedule(*wake));
+        const stxlib::Optional<FrameTime> wake = window.next_wake();
+        if (wake.absent()) break;
+        static_cast<void>(window.poll_frame_schedule(*wake.value()));
     }
     require(tracker.statistics().scroll_stops == 1U && near(canvas.offset.y, 300.0),
             "auto-scroll runs to the content's end and stops there");
@@ -718,8 +718,8 @@ void auto_scroll_frames() {
     }
     require(near(tracker.scroll_velocity().y, 0.0), "a stopped auto-scroll asks for nothing");
     const std::uint64_t ticks = tracker.statistics().scroll_ticks;
-    const std::optional<FrameTime> later = window.next_wake();
-    if (later) static_cast<void>(window.poll_frame_schedule(*later));
+    const stxlib::Optional<FrameTime> later = window.next_wake();
+    if (later.present()) static_cast<void>(window.poll_frame_schedule(*later.value()));
     require(tracker.statistics().scroll_ticks == ticks, "no frame ticks after the stop");
 
     // The plan was redone against the scrolled content: the target now
@@ -737,8 +737,8 @@ void auto_scroll_frames() {
     canvas.steps.clear();
     pointer(window, PointerAction::down, press_at);
     pointer(window, PointerAction::move, {100.0, 395.0});
-    const std::optional<FrameTime> first = window.next_wake();
-    if (first) static_cast<void>(window.poll_frame_schedule(*first));
+    const stxlib::Optional<FrameTime> first = window.next_wake();
+    if (first.present()) static_cast<void>(window.poll_frame_schedule(*first.value()));
     pointer(window, PointerAction::move, {100.0, 200.0});
     require(near(tracker.scroll_velocity().y, 0.0) && canvas.offset.y < 300.0,
             "leaving the band stops auto-scroll");

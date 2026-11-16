@@ -5,6 +5,9 @@
 #include "gui_forms/controls/sweep_scope.hpp"
 #include "gui_forms/controls/track_bar.hpp"
 #include "gui_forms/controls/v_scroll_bar.hpp"
+#include "../support/frame_wake.hpp"
+
+using gui_forms::test_support::armed_wake;
 
 namespace gallery_pages_tests {
 
@@ -117,9 +120,9 @@ void test_ranges_and_progress(gui_forms::Window& window) {
                 : transition_damage.bounds()));
         require(transition_painter.commands > 0U,
                 "slider-to-animation transition must complete a retained paint");
-        require(window.next_wake().has_value(),
+        require(window.next_wake().present(),
                 "opening Animation after a slider drag must retain a live deadline");
-        static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+        static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     }
 }
 

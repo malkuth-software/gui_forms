@@ -153,7 +153,7 @@ void exercise(Probe& probe) {
         require(probe, (*probe.child_model).occluded(), "hidden model became visible");
         require(probe, probe.timer_calls != 0, "hidden explicit UI timer did not run");
         probe.timer.disconnect();
-        const bool hidden_deadline = (*probe.child_model).next_wake().has_value();
+        const bool hidden_deadline = (*probe.child_model).next_wake().present();
         require(probe, !hidden_deadline, "initial hidden caret retained a wake deadline");
         probe.show();
     } else if (probe.stage == 1) {

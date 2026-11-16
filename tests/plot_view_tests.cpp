@@ -16,6 +16,7 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
+#include "support/frame_wake.hpp"
 
 #include <array>
 #include <chrono>
@@ -33,9 +34,12 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
 #ifdef _WIN32
 #include <malloc.h>
 #endif
+
+using gui_forms::test_support::armed_wake;
 
 // Counts allocation attempts and bytes on this thread while enabled (the
 // PageStrip probe's pattern, tests/page_strip_tests.cpp). Replacement
@@ -686,14 +690,14 @@ void test_signal_runs_on_motion_clock() {
     MotionClock& clock = window.motion_clock();
     RecordingPainter first;
     (*fixture.plot).on_paint(first, Rect{0.0, 0.0, 400.0, 300.0});
-    require(clock.control_ambient(*fixture.plot) && window.next_wake().has_value(),
+    require(clock.control_ambient(*fixture.plot) && window.next_wake().present(),
             "a plot with a signal is enlisted on the motion clock");
     const std::uint64_t before = (*fixture.series).revision();
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     RecordingPainter second;
     (*fixture.plot).on_paint(second, Rect{0.0, 0.0, 400.0, 300.0});
-    require(window.next_wake().has_value(), "the plot stays enlisted while drawn");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake() + std::chrono::milliseconds(50)));
+    require(window.next_wake().present(), "the plot stays enlisted while drawn");
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window) + std::chrono::milliseconds(50)));
     require((*fixture.plot).frames_run() >= 1U, "the plot runs frames");
     require((*fixture.series).revision() > before, "the signal writes samples into the series");
     (*fixture.series).source = std::string();
@@ -716,9 +720,9 @@ void test_unpainted_plot_leaves_motion_clock() {
     // No paint from here: after at most one frame the clock finds the plot
     // unshown and drops it (a few wakes allow for other scheduled work).
     for (std::size_t wake_index = 0U; wake_index < 4U && clock.control_ambient(*fixture.plot); ++wake_index) {
-        const std::optional<FrameTime> wake = window.next_wake();
-        if (!wake.has_value()) break;
-        static_cast<void>(window.poll_frame_schedule(*wake + std::chrono::milliseconds(50)));
+        const stxlib::Optional<FrameTime> wake = window.next_wake();
+        if (wake.absent()) break;
+        static_cast<void>(window.poll_frame_schedule(*wake.value() + std::chrono::milliseconds(50)));
     }
     const std::uint64_t frames = (*fixture.plot).frames_run();
     require(frames <= 1U, "an unpainted plot runs at most the frame after its paint");

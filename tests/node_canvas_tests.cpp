@@ -30,6 +30,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
+#include "support/frame_wake.hpp"
 
 #include <array>
 #include <cmath>
@@ -44,6 +45,8 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 using namespace gui_forms;
@@ -935,7 +938,7 @@ void flow_starts_and_stops() {
     fixture.paint();
     require(canvas.flow_running() && canvas.statistics().flow_links_painted >= 1U,
             "a shown flowing link enlists the flow and draws its marks");
-    static_cast<void>((*fixture.window).poll_frame_schedule(*(*fixture.window).next_wake()));
+    static_cast<void>((*fixture.window).poll_frame_schedule(armed_wake(*fixture.window)));
     require(canvas.statistics().flow_frames == 1U, "a clock frame advances the flow");
     fixture.paint();
     require(canvas.flow_effect().counters().ticks > 0U, "the paint after a frame runs its ticks");

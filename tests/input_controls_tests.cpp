@@ -4,6 +4,7 @@
 #include "headless_host.hpp"
 #include "support/named_callbacks.hpp"
 #include "support/professional_theme.hpp"
+#include "support/frame_wake.hpp"
 
 #include <cmath>
 #include <cstdlib>
@@ -17,6 +18,8 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 
@@ -192,11 +195,11 @@ void test_pointer_drag_paint_and_caret_deadline() {
     require(selected.saw_selection && selected.painted_text.find("abcdef") !=
                 std::string::npos,
             "focused TextBox must paint selected and unselected glyph passes");
-    require(window.next_wake().has_value(),
+    require(window.next_wake().present(),
             "focused TextBox caret must use a bounded scheduled deadline");
-    const FrameTime deadline = *window.next_wake();
+    const FrameTime deadline = armed_wake(window);
     const FramePollResult poll = window.poll_frame_schedule(deadline);
-    require(poll.ui_timer_ticks == 1U && window.next_wake().has_value(),
+    require(poll.ui_timer_ticks == 1U && window.next_wake().present(),
             "TextBox caret timer must tick and keep the next blink scheduled");
 }
 

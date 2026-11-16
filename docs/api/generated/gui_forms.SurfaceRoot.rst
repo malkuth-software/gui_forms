@@ -197,7 +197,7 @@ gui_forms::SurfaceRoot
       **needs_frame** : ``bool``, read-only
          Whether painting is pending.
 
-      **next_wake** : ``std::optional<FrameTime>``, read-only
+      **next_wake** : ``stxlib::Optional<FrameTime>``, read-only
          Returns the earliest eligible frame/timer deadline, respecting occlusion.
 
       **occluded** : ``bool``, default ``false``
@@ -929,7 +929,7 @@ gui_forms::SurfaceRoot
 
       Whether painting is pending.
 
-   .. cpp:function:: std::optional<FrameTime> next_wake() const noexcept
+   .. cpp:function:: stxlib::Optional<FrameTime> next_wake() const noexcept
 
    .. cpp:function:: bool occluded() const noexcept
 
