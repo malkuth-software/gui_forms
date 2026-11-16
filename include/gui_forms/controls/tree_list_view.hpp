@@ -19,6 +19,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class HScrollBar;
@@ -83,7 +85,7 @@ struct GUI_FORMS_API TreeListActivation final {
 // The sibling order after a header click, the semantic press on a header,
 // or set_sort().
 struct GUI_FORMS_API TreeListSortChange final {
-    std::optional<std::size_t> column{};
+    stxlib::Optional<std::size_t> column{};
     TreeListSortOrder order{TreeListSortOrder::none};
 };
 
@@ -144,18 +146,18 @@ public:
     }
     // The row showing a node, for lookups by ID outside the rows in view
     // (selected_id, ensure_visible, semantic actions); none by default.
-    [[nodiscard]] virtual std::optional<std::size_t> find_row(std::string_view node_id) const {
+    [[nodiscard]] virtual stxlib::Optional<std::size_t> find_row(std::string_view node_id) const {
         static_cast<void>(node_id);
-        return std::nullopt;
+        return stxlib::Optional<std::size_t>::none();
     }
     // Type-ahead: the first enabled row at or after `start` (wrapping) whose
     // text starts with `folded_prefix` (ASCII case folded); none by default,
     // so a virtual view has no type-ahead unless the source provides it.
-    [[nodiscard]] virtual std::optional<std::size_t> find_prefix(std::string_view folded_prefix,
+    [[nodiscard]] virtual stxlib::Optional<std::size_t> find_prefix(std::string_view folded_prefix,
                                                                  std::size_t start) const {
         static_cast<void>(folded_prefix);
         static_cast<void>(start);
-        return std::nullopt;
+        return stxlib::Optional<std::size_t>::none();
     }
 };
 
@@ -239,7 +241,7 @@ public:
     // selection and the current node stay on their IDs when those survive.
     void set_nodes(std::vector<TreeListNode> nodes);
     // The model index of the node with this ID, or none.
-    [[nodiscard]] std::optional<std::size_t> index_of(std::string_view node_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> index_of(std::string_view node_id) const;
     // Edits one cell: column 0 is the node's text. Siblings are sorted again
     // when the view is sorted by that column. Throws std::out_of_range for an
     // unknown node or a column past the end and std::invalid_argument for
@@ -280,7 +282,7 @@ public:
     // The rows: the nodes not hidden under a collapsed node, in sorted order.
     [[nodiscard]] std::size_t row_count() const noexcept;
     // The row showing a node, or none when it is hidden.
-    [[nodiscard]] std::optional<std::size_t> row_of(std::string_view node_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> row_of(std::string_view node_id) const;
     // The ID of the node a row shows. Throws std::out_of_range for a row
     // past the end. The view is borrowed until its nodes change (in virtual
     // mode, until the next call of row_node_id).
@@ -297,17 +299,24 @@ public:
     void set_horizontal_offset(double offset);
 
     // The node with the keyboard's position and the focus cue, or none.
-    [[nodiscard]] std::optional<std::string_view> current_id() const noexcept;
+    [[nodiscard]] stxlib::Optional<std::string_view> current_id() const noexcept;
 
     // -- sorting -----------------------------------------------------------------
-    [[nodiscard]] std::optional<std::size_t> sort_column() const noexcept { return sort_column_; }
+    [[nodiscard]] stxlib::Optional<std::size_t> sort_column() const noexcept { return sort_column_; }
     [[nodiscard]] TreeListSortOrder sort_order() const noexcept { return sort_order_; }
     // Orders every node's children (and the roots) by one column's text,
     // ASCII case folded, then byte order; equal texts keep the model order.
     // No column or TreeListSortOrder::none returns to the model order. The
     // header shows the order with a sort glyph. Raises sort_changed when the
     // sort changes. Throws std::out_of_range for a column past the end.
-    void set_sort(std::optional<std::size_t> column, TreeListSortOrder order);
+    void set_sort(stxlib::Optional<std::size_t> column, TreeListSortOrder order);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<std::size_t>")]]
+    void set_sort(std::optional<std::size_t> column, TreeListSortOrder order) {
+        stxlib::Optional<std::size_t> owned{};
+        if (column.has_value()) owned.set(*column);
+        set_sort(owned, order);
+    }
 
     // The node under a point in window coordinates, if any.
     [[nodiscard]] std::optional<std::string> node_id_at(Point window_point) const;
@@ -477,12 +486,12 @@ private:
     [[nodiscard]] std::size_t shown_count() const noexcept;
     [[nodiscard]] const TreeListNode& row_node(std::size_t row, TreeListNode& scratch) const;
     [[nodiscard]] bool row_can_expand(std::size_t row, const TreeListNode& node) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> selected_row() const noexcept;
-    [[nodiscard]] std::optional<std::size_t> current_row() const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> selected_row() const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> current_row() const noexcept;
     void place_selection(std::size_t row);
     void place_current(std::size_t row);
     void toggle_row(std::size_t row, bool expanded);
-    [[nodiscard]] std::optional<std::size_t> parent_row(std::size_t row) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> parent_row(std::size_t row) const;
     // Virtual mode: the row geometry from the height index (logical units
     // there, scaled here), lazy measuring, and splices.
     [[nodiscard]] double row_top(const Layout& placed, std::size_t row) const noexcept;
@@ -493,7 +502,7 @@ private:
     [[nodiscard]] std::size_t row_after_offset(double offset) const noexcept;
     void set_virtual_row_expanded(std::size_t row, bool expanded);
     void validate_splice(const TreeListRowSplice& splice) const;
-    void apply_splice(const TreeListRowSplice& splice, std::optional<std::size_t> lift_to);
+    void apply_splice(const TreeListRowSplice& splice, stxlib::Optional<std::size_t> lift_to);
 
     void rebuild_structure();
     void rebuild_order();
@@ -588,10 +597,10 @@ private:
     void end_header_press();
     // The enabled row nearest `row` going in `step` (+1 or -1), `row` itself
     // when enabled; none when there is no enabled row that way.
-    [[nodiscard]] std::optional<std::size_t> enabled_row_from(std::size_t row, std::ptrdiff_t step) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> enabled_row_from(std::size_t row, std::ptrdiff_t step) const;
     // The row Up, Down, Home, End, Page Up or Page Down moves to from
     // `from`, skipping disabled rows; none for other keys or no move.
-    [[nodiscard]] std::optional<std::size_t> navigation_target(std::uint32_t key, std::size_t from,
+    [[nodiscard]] stxlib::Optional<std::size_t> navigation_target(std::uint32_t key, std::size_t from,
                                                                const Layout& placed) const;
     // Right and Left: expand or enter, collapse or go to the parent.
     void step_into(std::size_t row);
@@ -621,8 +630,8 @@ private:
     std::vector<std::size_t> visible_{};
     std::vector<std::size_t> row_of_node_{};
     // Model indices.
-    std::optional<std::size_t> selected_node_{};
-    std::optional<std::size_t> current_node_{};
+    stxlib::Optional<std::size_t> selected_node_{};
+    stxlib::Optional<std::size_t> current_node_{};
     // Virtual mode (set_row_source). The source is shared with the
     // application. The height index is owned here; layout, a const query,
     // writes into it (lazy measuring and a new estimate are caches of the
@@ -631,22 +640,22 @@ private:
     // can lend it.
     std::shared_ptr<TreeListRowSource> row_source_{};
     std::unique_ptr<RowHeightIndex> row_heights_{};
-    std::optional<std::size_t> selected_row_{};
-    std::optional<std::size_t> current_row_{};
+    stxlib::Optional<std::size_t> selected_row_{};
+    stxlib::Optional<std::size_t> current_row_{};
     std::string current_row_id_{};
     mutable std::string row_id_scratch_{};
     // Rows and columns.
-    std::optional<std::size_t> hot_row_{};
-    std::optional<std::size_t> hot_column_{};
-    std::optional<std::size_t> pressed_column_{};
-    std::optional<std::size_t> resizing_column_{};
+    stxlib::Optional<std::size_t> hot_row_{};
+    stxlib::Optional<std::size_t> hot_column_{};
+    stxlib::Optional<std::size_t> pressed_column_{};
+    stxlib::Optional<std::size_t> resizing_column_{};
     bool dragging_column_{};
     double press_x_{};
     double resize_start_x_{};
     double resize_start_width_{};
     std::size_t top_row_{};
     double horizontal_offset_{};
-    std::optional<std::size_t> sort_column_{};
+    stxlib::Optional<std::size_t> sort_column_{};
     TreeListSortOrder sort_order_{TreeListSortOrder::none};
     bool focused_{};
     bool synchronizing_scroll_{};

@@ -284,12 +284,12 @@ void expansion_with_virtualization() {
     require((*view).top_row() == 1050U && (*view).realized_rows().front().stable_id == "r950",
             "scrolling realizes the rows at the new top only");
     (*view).ensure_visible("r500c42");
-    require((*view).is_expanded("r500") && (*view).row_of("r500c42").has_value() &&
+    require((*view).is_expanded("r500") && (*view).row_of("r500c42").present() &&
                 (*view).realized_rows().front().stable_id == "r500c42" && expansions.back() == "+r500",
             "ensure_visible expands the ancestors and scrolls the node into view");
     (*view).set_expanded("r0", false);
     (*view).set_expanded("r500", false);
-    require((*view).row_count() == 1000U && !(*view).row_of("r500c42").has_value(),
+    require((*view).row_count() == 1000U && (*view).row_of("r500c42").absent(),
             "collapsing hides the children again; their nodes stay in the model");
     (*view).expand_subtree("r7");
     require((*view).row_count() == 1100U && expansions.back() == "+r7",
@@ -304,13 +304,13 @@ void sort_within_siblings() {
     std::vector<TreeListSortChange> sorts;
     SubscriptionToken sorted = (*view).sort_changed().subscribe(RecordSort{&sorts});
     (*view).selected_id = "zeta";
-    const std::optional<std::size_t> zeta_before = (*view).row_of("zeta");
+    const stxlib::Optional<std::size_t> zeta_before = (*view).row_of("zeta");
 
-    (*view).set_sort(std::size_t{0U}, TreeListSortOrder::ascending);
+    (*view).set_sort(stxlib::Optional<std::size_t>::of(std::size_t{0U}), TreeListSortOrder::ascending);
     require(row_ids(*view) ==
                 std::vector<std::string>({"docs", "manual", "src", "lib", "eta", "zeta", "beta", "delta"}),
             "an ascending sort orders each node's children by text, folding ASCII case, and keeps the tree");
-    require(sorts.size() == 1U && sorts[0].column == 0U && sorts[0].order == TreeListSortOrder::ascending &&
+    require(sorts.size() == 1U && sorts[0].column == stxlib::Optional<std::size_t>::of(0U) && sorts[0].order == TreeListSortOrder::ascending &&
                 (*view).realized_columns()[0].states.sorted_ascending &&
                 (*view).realized_columns()[0].parts.sort_glyph.present,
             "the sort raises sort_changed and shows a glyph and a custom state on its column");
@@ -318,27 +318,27 @@ void sort_within_siblings() {
             "the selection stays on its node while its row moves");
     require((*view).nodes()[0].stable_id == "src", "sorting never reorders the model");
 
-    (*view).set_sort(std::size_t{2U}, TreeListSortOrder::descending);
+    (*view).set_sort(stxlib::Optional<std::size_t>::of(std::size_t{2U}), TreeListSortOrder::descending);
     require(row_ids(*view) ==
                 std::vector<std::string>({"src", "beta", "delta", "lib", "eta", "zeta", "docs", "manual"}),
             "a descending sort by a cell column orders siblings by that column's text");
     (*view).set_cell_text("zeta", 2U, "9");
-    require((*view).row_of("zeta") < (*view).row_of("eta"),
+    require(*(*view).row_of("zeta").value() < *(*view).row_of("eta").value(),
             "an edit to the sort column sorts the siblings again");
-    (*view).set_sort(std::nullopt, TreeListSortOrder::ascending);
+    (*view).set_sort(stxlib::Optional<std::size_t>::none(), TreeListSortOrder::ascending);
     require(row_ids(*view) ==
                 std::vector<std::string>({"src", "beta", "lib", "zeta", "eta", "delta", "docs", "manual"}) &&
-                !(*view).sort_column().has_value() && (*view).sort_order() == TreeListSortOrder::none,
+                (*view).sort_column().absent() && (*view).sort_order() == TreeListSortOrder::none,
             "no sort column returns to the model order");
 
     // The header: a click sorts ascending, a second click descending.
     std::vector<TreeListView::Column> columns = (*view).realized_columns();
     click(window, to_window(*view, centre(columns[1].parts.column_label.bounds)));
-    require((*view).sort_column() == 1U && (*view).sort_order() == TreeListSortOrder::ascending,
+    require((*view).sort_column() == stxlib::Optional<std::size_t>::of(1U) && (*view).sort_order() == TreeListSortOrder::ascending,
             "a header click sorts ascending by that column");
     columns = (*view).realized_columns();
     click(window, to_window(*view, centre(columns[1].parts.column_label.bounds)));
-    require((*view).sort_column() == 1U && (*view).sort_order() == TreeListSortOrder::descending &&
+    require((*view).sort_column() == stxlib::Optional<std::size_t>::of(1U) && (*view).sort_order() == TreeListSortOrder::descending &&
                 sorts.size() == 5U,
             "a second click on the same header sorts descending");
 }
@@ -363,7 +363,7 @@ void column_layout_resize_and_move() {
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::primary, {start.x + 30.0, start.y}}));
     require((*view).columns()[0].width == 210.0 && widths.empty(), "dragging the divider resizes live");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {start.x + 30.0, start.y}}));
-    require(widths.size() == 1U && widths[0] == 210.0 && !(*view).sort_column().has_value(),
+    require(widths.size() == 1U && widths[0] == 210.0 && (*view).sort_column().absent(),
             "releasing the divider reports the width once and does not sort");
     const std::vector<TreeListView::Row> rows = (*view).realized_rows();
     require(rows[0].parts.text.bounds.x + rows[0].parts.text.bounds.width <= 2.0 + 210.0 + 0.001,
@@ -381,7 +381,7 @@ void column_layout_resize_and_move() {
             "a header dragged past the threshold is pressed and captured");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, kind_left}));
     require((*view).column_order()[1] == 2U && (*view).column_order()[2] == 1U && moves.size() == 1U &&
-                moves[0].column == 2U && moves[0].display_position == 1U && !(*view).sort_column().has_value(),
+                moves[0].column == 2U && moves[0].display_position == 1U && (*view).sort_column().absent(),
             "dropping a dragged header moves the column, raises column_moved, and does not sort");
     columns = (*view).realized_columns();
     require(columns[1].index == 2U && columns[1].display_position == 1U &&
@@ -425,7 +425,7 @@ void keyboard_traces() {
     SubscriptionToken expanded = (*view).expansion_changed().subscribe(RecordExpansion{&expansions});
     std::vector<std::string> activations;
     SubscriptionToken activated = (*view).item_activated().subscribe(RecordActivation{&activations});
-    require(window.request_focus(view) && (*view).current_id() == std::optional<std::string_view>("src"),
+    require(window.request_focus(view) && (*view).current_id() == stxlib::Optional<std::string_view>::of("src"),
             "focus puts the current node on the first row");
 
     require(key(window, PhysicalKey::down) && key(window, PhysicalKey::down) &&
@@ -494,7 +494,7 @@ void selection_kept_by_id() {
     SubscriptionToken expanded = (*view).expansion_changed().subscribe(RecordExpansion{&expansions});
 
     (*view).selected_id = "manual";
-    require((*view).is_expanded("docs") && (*view).row_of("manual").has_value() &&
+    require((*view).is_expanded("docs") && (*view).row_of("manual").present() &&
                 expansions == std::vector<std::string>({"+docs"}) && selections == std::vector<std::string>({"manual"}),
             "selecting a hidden node expands its ancestors first, then reports the selection");
     (*view).selected_id = "zeta";
@@ -512,7 +512,7 @@ void selection_kept_by_id() {
     std::swap(reordered[1], reordered[5]);
     (*view).set_nodes(std::move(reordered));
     require((*view).selected_id.read() == std::optional<std::string_view>("delta") && selections.size() == changes &&
-                (*view).row_of("delta") == 1U,
+                (*view).row_of("delta") == stxlib::Optional<std::size_t>::of(1U),
             "set_nodes keeps the selection on its ID while its row moves, without a change report");
     (*view).set_cell_text("delta", 0U, "Delta renamed");
     require((*view).selected_id.read() == std::optional<std::string_view>("delta") &&
@@ -574,7 +574,7 @@ void semantics() {
                 activations == std::vector<std::string>({"zeta"}),
             "the press action activates");
     require((*view).on_semantic_child_action("tree.column.size", SemanticAction::press, {}) &&
-                (*view).sort_column() == 2U,
+                (*view).sort_column() == stxlib::Optional<std::size_t>::of(2U),
             "pressing a header node sorts by its column");
     children = (*view).semantic_virtual_children();
     require(children[2].value == "ascending", "a sorted header publishes its order as its value");
@@ -626,7 +626,7 @@ void refusals() {
     require(threw && !(*view).selected_id.read().has_value(), "selecting an unknown node is refused");
     threw = false;
     try {
-        (*view).set_sort(std::size_t{5U}, TreeListSortOrder::ascending);
+        (*view).set_sort(stxlib::Optional<std::size_t>::of(std::size_t{5U}), TreeListSortOrder::ascending);
     } catch (const std::out_of_range&) {
         threw = true;
     }
@@ -723,14 +723,14 @@ public:
         return estimated;
     }
 
-    [[nodiscard]] std::optional<std::size_t> find_row(std::string_view node_id) const override {
-        if (!node_id.starts_with("root-")) return std::nullopt;
+    [[nodiscard]] stxlib::Optional<std::size_t> find_row(std::string_view node_id) const override {
+        if (!node_id.starts_with("root-")) return stxlib::Optional<std::size_t>::none();
         const std::string digits(node_id.substr(5U));
         const std::size_t number = static_cast<std::size_t>(std::stoull(digits));
         for (std::size_t root = 0; root < roots_.size(); ++root) {
-            if (roots_[root].number == number) return starts_[root];
+            if (roots_[root].number == number) return stxlib::Optional<std::size_t>::of(starts_[root]);
         }
-        return std::nullopt;
+        return stxlib::Optional<std::size_t>::none();
     }
 
     // Removes `count` roots from `first`: returns the rows they held.
@@ -837,12 +837,12 @@ void virtual_million_rows() {
     (*view).splice_rows(0U, removed, 0U);
     require((*view).row_count() == 700'000U && (*view).row_node_id(0U) == "root-300" &&
                 (*view).selected_id.read() == std::optional<std::string>("root-500") &&
-                (*view).row_of("root-500") == 200'000U,
+                (*view).row_of("root-500") == stxlib::Optional<std::size_t>::of(200'000U),
             "a bulk removal shifts the selection with its row");
     const std::size_t inserted = (*source).insert_roots(0U, 250U);
     (*view).splice_rows(0U, 0U, inserted);
     require((*view).row_count() == 950'000U && (*view).row_node_id(0U) == "root-1000" &&
-                (*view).row_of("root-500") == 450'000U,
+                (*view).row_of("root-500") == stxlib::Optional<std::size_t>::of(450'000U),
             "a bulk insertion shifts the selection with its row");
     window.perform_layout();
     rows = (*view).realized_rows();
@@ -859,7 +859,7 @@ void virtual_million_rows() {
 
     // The keyboard reaches the end.
     require(window.request_focus(view) && key(window, PhysicalKey::end) &&
-                (*view).current_id() == std::optional<std::string_view>((*view).row_node_id(949'999U)),
+                (*view).current_id() == stxlib::Optional<std::string_view>::of((*view).row_node_id(949'999U)),
             "End reaches the last virtual row");
     window.perform_layout();
     rows = (*view).realized_rows();

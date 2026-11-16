@@ -5246,11 +5246,11 @@ Related types
 
       The row's height in logical units at text scale 1, asked once when the row is first shown (the height is kept until splice_rows or refresh_rows drops it). Until then the row counts as ``estimated``, the view's own row height; returning it (the default), zero or a value that is not finite keeps that.
 
-   .. cpp:function:: virtual std::optional<std::size_t> find_row(std::string_view node_id) const
+   .. cpp:function:: virtual stxlib::Optional<std::size_t> find_row(std::string_view node_id) const
 
       The row showing a node, for lookups by ID outside the rows in view (selected_id, ensure_visible, semantic actions); none by default.
 
-   .. cpp:function:: virtual std::optional<std::size_t> find_prefix(std::string_view folded_prefix, std::size_t start) const
+   .. cpp:function:: virtual stxlib::Optional<std::size_t> find_prefix(std::string_view folded_prefix, std::size_t start) const
 
       Type-ahead: the first enabled row at or after ``start`` (wrapping) whose text starts with ``folded_prefix`` (ASCII case folded); none by default, so a virtual view has no type-ahead unless the source provides it.
 
@@ -5288,7 +5288,7 @@ Related types
 
    The sibling order after a header click, the semantic press on a header, or set_sort().
 
-   .. cpp:member:: std::optional<std::size_t> column
+   .. cpp:member:: stxlib::Optional<std::size_t> column
 
    .. cpp:member:: TreeListSortOrder order
 

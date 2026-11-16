@@ -235,12 +235,12 @@ public:
         return estimated;
     }
 
-    [[nodiscard]] std::optional<std::size_t> find_row(std::string_view node_id) const override {
-        if (!node_id.starts_with("row-")) return std::nullopt;
+    [[nodiscard]] stxlib::Optional<std::size_t> find_row(std::string_view node_id) const override {
+        if (!node_id.starts_with("row-")) return stxlib::Optional<std::size_t>::none();
         const std::string digits(node_id.substr(4U));
         const std::size_t row = static_cast<std::size_t>(std::stoull(digits));
-        if (row >= count_) return std::nullopt;
-        return row;
+        if (row >= count_) return stxlib::Optional<std::size_t>::none();
+        return stxlib::Optional<std::size_t>::of(row);
     }
 
     static constexpr double tall_height = 40.0;

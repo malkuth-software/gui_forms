@@ -127,7 +127,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
                 (*tree_list).row_node_id(0U) == "root",
             "the TreeListView must show the fixture with root, src and controls expanded");
     require((*tree_list).on_semantic_child_action("gallery.tree.tree-list.column.name", SemanticAction::press, {}) &&
-                (*tree_list).sort_column() == 0U && (*tree_list).row_node_id(1U) == "assets" &&
+                (*tree_list).sort_column() == stxlib::Optional<std::size_t>::of(0U) && (*tree_list).row_node_id(1U) == "assets" &&
                 (*status).text.read().find("TreeListView siblings sorted by Name ascending") == 0U,
             "pressing a TreeListView header must sort the siblings and report it");
 

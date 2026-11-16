@@ -3793,7 +3793,7 @@ void example() {
         {.stable_id = "main", .text = "main.cpp", .cells = {"4 KB"}, .depth = 1U},
         {.stable_id = "app", .text = "app.cpp", .cells = {"9 KB"}, .depth = 1U},
     });
-    (*tree).set_sort(std::size_t{0U}, gf::TreeListSortOrder::ascending);
+    (*tree).set_sort(stxlib::Optional<std::size_t>::of(std::size_t{0U}), gf::TreeListSortOrder::ascending);
     // The rows are now src, app.cpp, main.cpp; the nodes keep their order.
 }
 }  // namespace doc_example_TreeListView_1
