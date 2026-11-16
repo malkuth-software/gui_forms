@@ -1437,6 +1437,20 @@ Types
 
    .. cpp:member:: gd_result (*raster_initialize)(void)
 
+   .. cpp:member:: gd_result (*texture_brush_create)(gd_handle bitmap, uint32_t wrap_mode, gd_handle* brush)
+
+   .. cpp:member:: gd_result (*texture_brush_set_wrap_mode)(gd_handle brush, uint32_t wrap_mode)
+
+   .. cpp:member:: gd_result (*texture_brush_set_transform)(gd_handle brush, gd_matrix transform)
+
+   .. cpp:member:: gd_result (*radial_gradient_brush_create)(gd_point center, double radius, gd_color center_color, gd_color edge_color, uint32_t wrap_mode, gd_handle* brush)
+
+   .. cpp:member:: gd_result (*radial_gradient_brush_set_interpolation)(gd_handle brush, const gd_color* colors, const double* positions, uint64_t count)
+
+   .. cpp:member:: gd_result (*radial_gradient_brush_set_focus)(gd_handle brush, gd_point focus)
+
+   .. cpp:member:: gd_result (*radial_gradient_brush_set_radii)(gd_handle brush, double radius_x, double radius_y)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary

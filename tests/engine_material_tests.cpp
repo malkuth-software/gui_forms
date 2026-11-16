@@ -530,6 +530,126 @@ void glow_painter_path() {
             "a glow is a shadow at no offset");
 }
 
+// A painter that logs how paint_surface_material wraps a shaped material:
+// v save, r restore, c clip_rect, t begin_transform, e end_transform, p
+// clip_path, f fill_rect.
+class ShapeLog final : public Painter {
+public:
+    void save() override { events.push_back('v'); }
+    void restore() override { events.push_back('r'); }
+    void translate(Point) override {}
+    void clip_rect(Rect rect) override {
+        events.push_back('c');
+        last_clip = rect;
+    }
+    void begin_transform(const PaintTransformGroup& group) override {
+        events.push_back('t');
+        last_group = group;
+    }
+    void end_transform() override { events.push_back('e'); }
+    void clip_path(PaintPathView path, PolygonFillRule rule) override {
+        events.push_back('p');
+        clip_points.assign(path.points.begin(), path.points.end());
+        clip_verbs = path.verbs.size();
+        last_rule = rule;
+    }
+    void fill_rect(Rect, Color) override { events.push_back('f'); }
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    std::string events{};
+    Rect last_clip{};
+    PaintTransformGroup last_group{};
+    std::vector<Point> clip_points{};
+    std::size_t clip_verbs{};
+    PolygonFillRule last_rule{PolygonFillRule::nonzero};
+};
+
+// transform and clip-path (owner 2026-11-16): paint_surface_material cuts a
+// shaped material to its box, draws it in a transform group about the box's
+// centre and clips it to its path inside the group; the checks refuse a
+// flattening transform and a malformed path, and a shaped material is
+// neither opaque nor size invariant.
+void material_shape_painter_path() {
+    SurfaceMaterial material = solid_material(red);
+    material.transform = MaterialTransform{0.0, 1.0, -1.0, 0.0};
+    MaterialClipPath triangle{};
+    triangle.verbs = {MaterialClipVerb::move, MaterialClipVerb::line, MaterialClipVerb::line, MaterialClipVerb::close};
+    triangle.points = {MaterialClipPoint{0.0, 0.5, 0.0, 0.0}, MaterialClipPoint{0.0, 1.0, 0.0, 1.0},
+                       MaterialClipPoint{0.0, 0.0, 0.0, 1.0}};
+    triangle.rule = MaterialClipRule::even_odd;
+    material.clip_path = triangle;
+    require(valid_surface_material(material) && surface_material_shaped(material), "a turned, clipped material");
+    require(!surface_material_opaque(material) && !surface_material_size_invariant(material),
+            "a shaped material is neither opaque nor size invariant");
+    ShapeLog log{};
+    const Rect box{10.0, 20.0, 40.0, 20.0};
+    paint_surface_material(log, box, material);
+    const std::size_t fill = log.events.find('f');
+    require(log.events.rfind("vctvp", 0U) == 0U && fill != std::string::npos &&
+                log.events.size() >= 3U && log.events.compare(log.events.size() - 3U, 3U, "rer") == 0,
+            "save, box clip, transform group, save and path clip; the material; then restore, end, restore");
+    // The clip is the transformed bound: a quarter turn of 40 x 20 about
+    // (30, 30) reaches 10 further across and 20 further down on each side
+    // (|xy| B and |yx| A of surface_material_visual_outsets); the group's
+    // own bounds stay the untransformed box.
+    require(log.last_clip == (Rect{0.0, 0.0, 60.0, 60.0}) && log.last_group.bounds == box,
+            "the clip is the transformed bound and the group is bounded by the box");
+    // About the centre (30, 30): p goes to c + L (p - c), L a quarter turn.
+    const PaintTransform expected{0.0, 1.0, -1.0, 0.0, 60.0, 0.0};
+    require(log.last_group.transform == expected, "the group turns about the box's centre");
+    require(log.clip_verbs == 4U && log.clip_points.size() == 3U && log.clip_points[0] == (Point{30.0, 20.0}) &&
+                log.clip_points[1] == (Point{50.0, 40.0}) && log.clip_points[2] == (Point{10.0, 40.0}) &&
+                log.last_rule == PolygonFillRule::even_odd,
+            "the clip path is placed in the box with its rule");
+
+    SurfaceMaterial flattened = solid_material(red);
+    flattened.transform = MaterialTransform{0.0, 0.0, 0.0, 1.0};
+    require(!valid_surface_material(flattened), "a transform that flattens the plane is refused");
+    SurfaceMaterial short_path = solid_material(red);
+    MaterialClipPath missing = triangle;
+    missing.points.pop_back();
+    short_path.clip_path = missing;
+    require(!valid_surface_material(short_path), "a clip path whose verbs take more points than it has is refused");
+    SurfaceMaterial unmoved = solid_material(red);
+    MaterialClipPath lined = triangle;
+    lined.verbs.front() = MaterialClipVerb::line;
+    unmoved.clip_path = lined;
+    require(!valid_surface_material(unmoved), "a clip path that does not start with a move is refused");
+    // Scaled to 1.5, the face's paint and damage bounds are the scaled box:
+    // 60 x 30 about the same centre, 10 and 5 beyond each side.
+    SurfaceMaterial scaled = solid_material(red);
+    scaled.transform = MaterialTransform{1.5, 0.0, 0.0, 1.5};
+    const Insets scaled_reach = surface_material_visual_outsets(scaled, Size{40.0, 20.0});
+    require(scaled_reach == (Insets{10.0, 5.0, 10.0, 5.0}), "a face scaled to 1.5 reaches its scaled bounds");
+    require(surface_material_paint_bounds(box, scaled) == (Rect{0.0, 15.0, 60.0, 30.0}),
+            "the paint bounds of a scaled face are its transformed box");
+    require(surface_material_visual_outsets(scaled) == Insets{}, "the untransformed reach is unchanged");
+    // With a shadow, the shadow's reach is scaled too.
+    SurfaceMaterial shadowed = scaled;
+    shadowed.shadows.push_back(MaterialShadow{Point{}, 0.0, 2.0, black_half, false});
+    const Insets shadowed_reach = surface_material_visual_outsets(shadowed, Size{40.0, 20.0});
+    require(shadowed_reach.left >= 13.0 && shadowed_reach.top >= 8.0,
+            "a transformed material's shadow reach is transformed with it");
+    // A larger box never gives a smaller reach, so a control may pass its
+    // own arranged box for a glyph inside it.
+    SurfaceMaterial turned = solid_material(red);
+    turned.transform = MaterialTransform{0.0, 1.0, -1.0, 0.0};
+    const Insets glyph_reach = surface_material_visual_outsets(turned, Size{10.0, 30.0});
+    const Insets control_reach = surface_material_visual_outsets(turned, Size{60.0, 40.0});
+    require(control_reach.left >= glyph_reach.left && control_reach.top >= glyph_reach.top,
+            "the reach never shrinks with a larger box");
+    ShapeLog scaled_log{};
+    paint_surface_material(scaled_log, box, scaled);
+    require(scaled_log.last_clip == (Rect{0.0, 15.0, 60.0, 30.0}), "a scaled face is clipped to its scaled box");
+
+    ShapeLog plain_log{};
+    paint_surface_material(plain_log, box, solid_material(red));
+    require(plain_log.events.find('t') == std::string::npos && plain_log.events.find('p') == std::string::npos,
+            "an unshaped material draws no group and no path clip");
+}
+
 // The placement renders, composited over a light and a dark background:
 // under at scale 1 and 2, then over at scale 1 and 2, on light then dark.
 constexpr std::uint64_t expected_placement_hashes[] = {
@@ -910,6 +1030,29 @@ void image_fills() {
             "a single image is drawn where its tile lies");
     require(single.pixel(13U, 10U)[3] == 0U && single.pixel(9U, 14U)[3] == 0U && single.pixel(8U, 8U)[3] == 0U,
             "and nothing beyond its tile");
+
+    // Mirrored (theme language `background-repeat: mirror`): the offset
+    // tile, then its reflection on either side, so the columns beside a
+    // seam repeat the seam's own column.
+    SurfaceMaterial mirror_tile = offset_tile;
+    mirror_tile.fills.back().image_mode = MaterialImageMode::mirror;
+    const TestRaster mirrored = draw(mirror_tile, Size{16.0, 16.0}, 1.0, &registry);
+    require(mirrored.pixel(9U, 10U) == offset.pixel(9U, 10U) && mirrored.pixel(12U, 13U) == offset.pixel(12U, 13U),
+            "a mirrored image's first tile is the tile");
+    require(mirrored.pixel(13U, 10U) == offset.pixel(12U, 10U) && mirrored.pixel(16U, 10U) == offset.pixel(9U, 10U) &&
+                mirrored.pixel(8U, 10U) == offset.pixel(9U, 10U) && mirrored.pixel(9U, 14U) == offset.pixel(9U, 13U),
+            "its neighbours are reflected across each seam");
+
+    // Extended (`background-repeat: extend`): the tile, its edge pixels
+    // carried to the box's edges.
+    SurfaceMaterial extend_tile = offset_tile;
+    extend_tile.fills.back().image_mode = MaterialImageMode::extend;
+    const TestRaster extended = draw(extend_tile, Size{16.0, 16.0}, 1.0, &registry);
+    require(extended.pixel(9U, 10U) == offset.pixel(9U, 10U) && extended.pixel(12U, 13U) == offset.pixel(12U, 13U),
+            "an extended image's tile is the tile");
+    require(extended.pixel(20U, 10U) == offset.pixel(12U, 10U) && extended.pixel(8U, 8U) == offset.pixel(9U, 10U) &&
+                extended.pixel(10U, 22U) == offset.pixel(10U, 13U),
+            "beyond it its edge pixels are extended");
 
     if (print_mode()) {
         for (std::size_t index = 0U; index < hashes.size(); ++index) {
@@ -1691,6 +1834,7 @@ int main(int argc, char** argv) {
     keylines_and_inset_shadow();
     glows();
     glow_painter_path();
+    material_shape_painter_path();
     glow_placements();
     gloss_preset();
     bake_spans_match_every_pixel();

@@ -729,6 +729,7 @@ ProceduralFill canvas_texture_fill(const CanvasTextureLayer& layer, CanvasTextur
     fill.seed = layer.seed;
     fill.tile = layer.tile;
     fill.strength = layer.strength;
+    fill.hatch_style = layer.hatch_style;
     fill.ground = screened ? black : white;
     fill.figure = screened ? white : black;
     fill.accent = fill.ground;

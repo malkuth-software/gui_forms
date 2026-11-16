@@ -39,6 +39,7 @@
     _ZGVZN11gui_drawing18ConicGradientBrush*;
     _ZGVZN11gui_drawing18GraphicsStateToken*;
     _ZGVZN11gui_drawing19LinearGradientBrush*;
+    _ZGVZN11gui_drawing19RadialGradientBrush*;
     _ZGVZN11gui_drawing19TextMetricsProvider*;
     _ZGVZN11gui_drawing20BitmapDamageSnapshot*;
     _ZGVZN11gui_drawing20FontFamilyResolution*;
@@ -250,6 +251,7 @@
     _ZGVZN9gui_forms12GradientStop*;
     _ZGVZN9gui_forms12GrayTextMask*;
     _ZGVZN9gui_forms12GridItemArea*;
+    _ZGVZN9gui_forms12HatchPattern*;
     _ZGVZN9gui_forms12HelpPageLink*;
     _ZGVZN9gui_forms12HelpProvider*;
     _ZGVZN9gui_forms12HostServices*;
@@ -494,6 +496,7 @@
     _ZGVZN9gui_forms14PageSetOptions*;
     _ZGVZN9gui_forms14PageTakeResult*;
     _ZGVZN9gui_forms14PaintEventArgs*;
+    _ZGVZN9gui_forms14PaintTransform*;
     _ZGVZN9gui_forms14ParagraphPaint*;
     _ZGVZN9gui_forms14ParagraphStyle*;
     _ZGVZN9gui_forms14PartRasterView*;
@@ -716,6 +719,7 @@
     _ZGVZN9gui_forms16LocaleReadResult*;
     _ZGVZN9gui_forms16MarkdownDocument*;
     _ZGVZN9gui_forms16MasterDetailView*;
+    _ZGVZN9gui_forms16MaterialClipPath*;
     _ZGVZN9gui_forms16MessageBoxClosed*;
     _ZGVZN9gui_forms16MessageBoxResult*;
     _ZGVZN9gui_forms16MotionTimeSource*;
@@ -821,8 +825,10 @@
     _ZGVZN9gui_forms17ListViewLabelEdit*;
     _ZGVZN9gui_forms17LiveDisplayTiming*;
     _ZGVZN9gui_forms17MarkdownSpanStyle*;
+    _ZGVZN9gui_forms17MaterialClipPoint*;
     _ZGVZN9gui_forms17MaterialFillLayer*;
     _ZGVZN9gui_forms17MaterialImageSize*;
+    _ZGVZN9gui_forms17MaterialTransform*;
     _ZGVZN9gui_forms17MenuStripItemSpec*;
     _ZGVZN9gui_forms17MessageBoxRefused*;
     _ZGVZN9gui_forms17MessageBoxRequest*;
@@ -1052,6 +1058,7 @@
     _ZGVZN9gui_forms19ObjectDetailsColumn*;
     _ZGVZN9gui_forms19OffscreenAttachment*;
     _ZGVZN9gui_forms19PageSelectionChange*;
+    _ZGVZN9gui_forms19PaintTransformGroup*;
     _ZGVZN9gui_forms19ParameterValidation*;
     _ZGVZN9gui_forms19PlotHistogramSeries*;
     _ZGVZN9gui_forms19PngValidationResult*;
@@ -1110,6 +1117,7 @@
     _ZGVZN9gui_forms20DockMonitorPlacement*;
     _ZGVZN9gui_forms20DockSiteRestrictions*;
     _ZGVZN9gui_forms20DragTrackerCallbacks*;
+    _ZGVZN9gui_forms20DrawingReplayOptions*;
     _ZGVZN9gui_forms20ExpressionInputIndex*;
     _ZGVZN9gui_forms20FocusedControlChange*;
     _ZGVZN9gui_forms20FontFallbackResolver*;
@@ -1703,6 +1711,7 @@
     _ZGVZNK11gui_drawing18ConicGradientBrush*;
     _ZGVZNK11gui_drawing18GraphicsStateToken*;
     _ZGVZNK11gui_drawing19LinearGradientBrush*;
+    _ZGVZNK11gui_drawing19RadialGradientBrush*;
     _ZGVZNK11gui_drawing19TextMetricsProvider*;
     _ZGVZNK11gui_drawing20BitmapDamageSnapshot*;
     _ZGVZNK11gui_drawing20FontFamilyResolution*;
@@ -1914,6 +1923,7 @@
     _ZGVZNK9gui_forms12GradientStop*;
     _ZGVZNK9gui_forms12GrayTextMask*;
     _ZGVZNK9gui_forms12GridItemArea*;
+    _ZGVZNK9gui_forms12HatchPattern*;
     _ZGVZNK9gui_forms12HelpPageLink*;
     _ZGVZNK9gui_forms12HelpProvider*;
     _ZGVZNK9gui_forms12HostServices*;
@@ -2158,6 +2168,7 @@
     _ZGVZNK9gui_forms14PageSetOptions*;
     _ZGVZNK9gui_forms14PageTakeResult*;
     _ZGVZNK9gui_forms14PaintEventArgs*;
+    _ZGVZNK9gui_forms14PaintTransform*;
     _ZGVZNK9gui_forms14ParagraphPaint*;
     _ZGVZNK9gui_forms14ParagraphStyle*;
     _ZGVZNK9gui_forms14PartRasterView*;
@@ -2380,6 +2391,7 @@
     _ZGVZNK9gui_forms16LocaleReadResult*;
     _ZGVZNK9gui_forms16MarkdownDocument*;
     _ZGVZNK9gui_forms16MasterDetailView*;
+    _ZGVZNK9gui_forms16MaterialClipPath*;
     _ZGVZNK9gui_forms16MessageBoxClosed*;
     _ZGVZNK9gui_forms16MessageBoxResult*;
     _ZGVZNK9gui_forms16MotionTimeSource*;
@@ -2485,8 +2497,10 @@
     _ZGVZNK9gui_forms17ListViewLabelEdit*;
     _ZGVZNK9gui_forms17LiveDisplayTiming*;
     _ZGVZNK9gui_forms17MarkdownSpanStyle*;
+    _ZGVZNK9gui_forms17MaterialClipPoint*;
     _ZGVZNK9gui_forms17MaterialFillLayer*;
     _ZGVZNK9gui_forms17MaterialImageSize*;
+    _ZGVZNK9gui_forms17MaterialTransform*;
     _ZGVZNK9gui_forms17MenuStripItemSpec*;
     _ZGVZNK9gui_forms17MessageBoxRefused*;
     _ZGVZNK9gui_forms17MessageBoxRequest*;
@@ -2716,6 +2730,7 @@
     _ZGVZNK9gui_forms19ObjectDetailsColumn*;
     _ZGVZNK9gui_forms19OffscreenAttachment*;
     _ZGVZNK9gui_forms19PageSelectionChange*;
+    _ZGVZNK9gui_forms19PaintTransformGroup*;
     _ZGVZNK9gui_forms19ParameterValidation*;
     _ZGVZNK9gui_forms19PlotHistogramSeries*;
     _ZGVZNK9gui_forms19PngValidationResult*;
@@ -2774,6 +2789,7 @@
     _ZGVZNK9gui_forms20DockMonitorPlacement*;
     _ZGVZNK9gui_forms20DockSiteRestrictions*;
     _ZGVZNK9gui_forms20DragTrackerCallbacks*;
+    _ZGVZNK9gui_forms20DrawingReplayOptions*;
     _ZGVZNK9gui_forms20ExpressionInputIndex*;
     _ZGVZNK9gui_forms20FocusedControlChange*;
     _ZGVZNK9gui_forms20FontFallbackResolver*;
@@ -3391,6 +3407,7 @@
     _ZN11gui_drawing18font_substitutionsB*;
     _ZN11gui_drawing18font_substitutionsE*;
     _ZN11gui_drawing19LinearGradientBrush*;
+    _ZN11gui_drawing19RadialGradientBrush*;
     _ZN11gui_drawing19TextMetricsProvider*;
     _ZN11gui_drawing19content_font_familyB*;
     _ZN11gui_drawing19content_font_familyE*;
@@ -3658,6 +3675,7 @@
     _ZN9gui_forms12GradientStop*;
     _ZN9gui_forms12GrayTextMask*;
     _ZN9gui_forms12GridItemArea*;
+    _ZN9gui_forms12HatchPattern*;
     _ZN9gui_forms12HelpPageLink*;
     _ZN9gui_forms12HelpProvider*;
     _ZN9gui_forms12HostServices*;
@@ -3966,6 +3984,7 @@
     _ZN9gui_forms14PageSetOptions*;
     _ZN9gui_forms14PageTakeResult*;
     _ZN9gui_forms14PaintEventArgs*;
+    _ZN9gui_forms14PaintTransform*;
     _ZN9gui_forms14ParagraphPaint*;
     _ZN9gui_forms14ParagraphStyle*;
     _ZN9gui_forms14PartRasterView*;
@@ -4009,6 +4028,8 @@
     _ZN9gui_forms14dock_drop_editE*;
     _ZN9gui_forms14em_lengths_fitB*;
     _ZN9gui_forms14em_lengths_fitE*;
+    _ZN9gui_forms14engine_tangentB*;
+    _ZN9gui_forms14engine_tangentE*;
     _ZN9gui_forms14familiar_themeB*;
     _ZN9gui_forms14familiar_themeE*;
     _ZN9gui_forms14find_item_partB*;
@@ -4286,6 +4307,7 @@
     _ZN9gui_forms16LocaleReadResult*;
     _ZN9gui_forms16MarkdownDocument*;
     _ZN9gui_forms16MasterDetailView*;
+    _ZN9gui_forms16MaterialClipPath*;
     _ZN9gui_forms16MessageBoxClosed*;
     _ZN9gui_forms16MessageBoxResult*;
     _ZN9gui_forms16MotionTimeSource*;
@@ -4467,8 +4489,10 @@
     _ZN9gui_forms17ListViewLabelEdit*;
     _ZN9gui_forms17LiveDisplayTiming*;
     _ZN9gui_forms17MarkdownSpanStyle*;
+    _ZN9gui_forms17MaterialClipPoint*;
     _ZN9gui_forms17MaterialFillLayer*;
     _ZN9gui_forms17MaterialImageSize*;
+    _ZN9gui_forms17MaterialTransform*;
     _ZN9gui_forms17MenuStripItemSpec*;
     _ZN9gui_forms17MessageBoxRefused*;
     _ZN9gui_forms17MessageBoxRequest*;
@@ -4527,6 +4551,8 @@
     _ZN9gui_forms17effect_name_validE*;
     _ZN9gui_forms17encode_hosted_keyB*;
     _ZN9gui_forms17encode_hosted_keyE*;
+    _ZN9gui_forms17engine_hypotenuseB*;
+    _ZN9gui_forms17engine_hypotenuseE*;
     _ZN9gui_forms17engine_input_nameB*;
     _ZN9gui_forms17engine_input_nameE*;
     _ZN9gui_forms17familiar_theme_idB*;
@@ -4890,6 +4916,7 @@
     _ZN9gui_forms19ObjectDetailsColumn*;
     _ZN9gui_forms19OffscreenAttachment*;
     _ZN9gui_forms19PageSelectionChange*;
+    _ZN9gui_forms19PaintTransformGroup*;
     _ZN9gui_forms19ParameterValidation*;
     _ZN9gui_forms19PlotHistogramSeries*;
     _ZN9gui_forms19PngValidationResult*;
@@ -4977,6 +5004,8 @@
     _ZN9gui_forms19find_stock_specimenE*;
     _ZN9gui_forms19flatten_scene_cubicB*;
     _ZN9gui_forms19flatten_scene_cubicE*;
+    _ZN9gui_forms19hatch_square_markedB*;
+    _ZN9gui_forms19hatch_square_markedE*;
     _ZN9gui_forms19help_heading_anchorB*;
     _ZN9gui_forms19help_heading_anchorE*;
     _ZN9gui_forms19help_link_kind_nameB*;
@@ -5049,6 +5078,8 @@
     _ZN9gui_forms19tool_tip_text_showsE*;
     _ZN9gui_forms19valid_colour_matrixB*;
     _ZN9gui_forms19valid_colour_matrixE*;
+    _ZN9gui_forms19valid_hatch_patternB*;
+    _ZN9gui_forms19valid_hatch_patternE*;
     _ZN9gui_forms19valid_radial_layoutB*;
     _ZN9gui_forms19valid_radial_layoutE*;
     _ZN9gui_forms19validate_host_imageB*;
@@ -5082,6 +5113,7 @@
     _ZN9gui_forms20DockMonitorPlacement*;
     _ZN9gui_forms20DockSiteRestrictions*;
     _ZN9gui_forms20DragTrackerCallbacks*;
+    _ZN9gui_forms20DrawingReplayOptions*;
     _ZN9gui_forms20ExpressionInputIndex*;
     _ZN9gui_forms20FocusedControlChange*;
     _ZN9gui_forms20FontFallbackResolver*;
@@ -5157,6 +5189,8 @@
     _ZN9gui_forms20familiar_theme_buildE*;
     _ZN9gui_forms20familiar_theme_namedB*;
     _ZN9gui_forms20familiar_theme_namedE*;
+    _ZN9gui_forms20focus_inside_ellipseB*;
+    _ZN9gui_forms20focus_inside_ellipseE*;
     _ZN9gui_forms20font_family_drawableB*;
     _ZN9gui_forms20font_family_drawableE*;
     _ZN9gui_forms20high_contrast_colourB*;
@@ -5175,6 +5209,8 @@
     _ZN9gui_forms20paint_canvas_marqueeE*;
     _ZN9gui_forms20paint_direction_ringB*;
     _ZN9gui_forms20paint_direction_ringE*;
+    _ZN9gui_forms20paint_rotation_aboutB*;
+    _ZN9gui_forms20paint_rotation_aboutE*;
     _ZN9gui_forms20paint_text_over_fillB*;
     _ZN9gui_forms20paint_text_over_fillE*;
     _ZN9gui_forms20portable_host_localeB*;
@@ -5380,6 +5416,10 @@
     _ZN9gui_forms21seven_segment_patternE*;
     _ZN9gui_forms21shape_signed_distanceB*;
     _ZN9gui_forms21shape_signed_distanceE*;
+    _ZN9gui_forms21transform_paint_pointB*;
+    _ZN9gui_forms21transform_paint_pointE*;
+    _ZN9gui_forms21valid_paint_transformB*;
+    _ZN9gui_forms21valid_paint_transformE*;
     _ZN9gui_forms21validate_interactionsB*;
     _ZN9gui_forms21validate_interactionsE*;
     _ZN9gui_forms22ActiveBorderConditions*;
@@ -5627,6 +5667,8 @@
     _ZN9gui_forms23locale_rescue_requestedE*;
     _ZN9gui_forms23locale_template_recordsB*;
     _ZN9gui_forms23locale_template_recordsE*;
+    _ZN9gui_forms23material_clip_fill_ruleB*;
+    _ZN9gui_forms23material_clip_fill_ruleE*;
     _ZN9gui_forms23material_fields_read_emB*;
     _ZN9gui_forms23material_fields_read_emE*;
     _ZN9gui_forms23nearest_logical_monitorB*;
@@ -5665,6 +5707,8 @@
     _ZN9gui_forms23stock_control_anatomiesE*;
     _ZN9gui_forms23surface_material_opaqueB*;
     _ZN9gui_forms23surface_material_opaqueE*;
+    _ZN9gui_forms23surface_material_shapedB*;
+    _ZN9gui_forms23surface_material_shapedE*;
     _ZN9gui_forms23valid_authored_gradientB*;
     _ZN9gui_forms23valid_authored_gradientE*;
     _ZN9gui_forms23valid_font_family_stackB*;
@@ -5749,6 +5793,8 @@
     _ZN9gui_forms24resolve_anchored_overlayE*;
     _ZN9gui_forms24rule_condition_kind_nameB*;
     _ZN9gui_forms24rule_condition_kind_nameE*;
+    _ZN9gui_forms24transformed_paint_boundsB*;
+    _ZN9gui_forms24transformed_paint_boundsE*;
     _ZN9gui_forms24validate_control_anatomyB*;
     _ZN9gui_forms24validate_control_anatomyE*;
     _ZN9gui_forms24validate_shaping_requestB*;
@@ -5881,6 +5927,10 @@
     _ZN9gui_forms26content_layout_result_nameE*;
     _ZN9gui_forms26copy_failure_shadow_framesB*;
     _ZN9gui_forms26copy_failure_shadow_framesE*;
+    _ZN9gui_forms26end_surface_material_shapeB*;
+    _ZN9gui_forms26end_surface_material_shapeE*;
+    _ZN9gui_forms26engine_sine_cosine_degreesB*;
+    _ZN9gui_forms26engine_sine_cosine_degreesE*;
     _ZN9gui_forms26familiar_theme_floor_sheetB*;
     _ZN9gui_forms26familiar_theme_floor_sheetE*;
     _ZN9gui_forms26file_dialog_filter_matchesB*;
@@ -5913,6 +5963,8 @@
     _ZN9gui_forms26register_link_flow_effectsE*;
     _ZN9gui_forms26reset_child_property_entryB*;
     _ZN9gui_forms26reset_child_property_entryE*;
+    _ZN9gui_forms26resolve_material_clip_pathB*;
+    _ZN9gui_forms26resolve_material_clip_pathE*;
     _ZN9gui_forms26scene_distance_to_polylineB*;
     _ZN9gui_forms26scene_distance_to_polylineE*;
     _ZN9gui_forms26show_specimen_custom_stateB*;
@@ -5981,6 +6033,8 @@
     _ZN9gui_forms28NavigationPaneOptionsRequest*;
     _ZN9gui_forms28VisualPaintOperationSnapshot*;
     _ZN9gui_forms28WindowChromeRegionValidation*;
+    _ZN9gui_forms28begin_surface_material_shapeB*;
+    _ZN9gui_forms28begin_surface_material_shapeE*;
     _ZN9gui_forms28derive_high_contrast_recipesB*;
     _ZN9gui_forms28derive_high_contrast_recipesE*;
     _ZN9gui_forms28effect_selection_source_nameB*;
@@ -6029,6 +6083,8 @@
     _ZN9gui_forms29register_progress_bar_effectsE*;
     _ZN9gui_forms29stock_specimen_dominant_shareB*;
     _ZN9gui_forms29stock_specimen_dominant_shareE*;
+    _ZN9gui_forms29surface_material_paint_boundsB*;
+    _ZN9gui_forms29surface_material_paint_boundsE*;
     _ZN9gui_forms29valid_scene_detail_thresholdsB*;
     _ZN9gui_forms29valid_scene_detail_thresholdsE*;
     _ZN9gui_forms29window_backdrop_request_validB*;
@@ -6052,6 +6108,8 @@
     _ZN9gui_forms30is_virtual_semantic_runtime_idE*;
     _ZN9gui_forms30material_field_colour_positionB*;
     _ZN9gui_forms30material_field_colour_positionE*;
+    _ZN9gui_forms30paint_transform_is_translationB*;
+    _ZN9gui_forms30paint_transform_is_translationE*;
     _ZN9gui_forms30scene_polyline_crosses_segmentB*;
     _ZN9gui_forms30scene_polyline_crosses_segmentE*;
     _ZN9gui_forms30set_recipe_declaration_lengthsB*;
@@ -6669,6 +6727,7 @@
     _ZNK[RO]11gui_drawing18ConicGradientBrush*;
     _ZNK[RO]11gui_drawing18GraphicsStateToken*;
     _ZNK[RO]11gui_drawing19LinearGradientBrush*;
+    _ZNK[RO]11gui_drawing19RadialGradientBrush*;
     _ZNK[RO]11gui_drawing19TextMetricsProvider*;
     _ZNK[RO]11gui_drawing20BitmapDamageSnapshot*;
     _ZNK[RO]11gui_drawing20FontFamilyResolution*;
@@ -6880,6 +6939,7 @@
     _ZNK[RO]9gui_forms12GradientStop*;
     _ZNK[RO]9gui_forms12GrayTextMask*;
     _ZNK[RO]9gui_forms12GridItemArea*;
+    _ZNK[RO]9gui_forms12HatchPattern*;
     _ZNK[RO]9gui_forms12HelpPageLink*;
     _ZNK[RO]9gui_forms12HelpProvider*;
     _ZNK[RO]9gui_forms12HostServices*;
@@ -7124,6 +7184,7 @@
     _ZNK[RO]9gui_forms14PageSetOptions*;
     _ZNK[RO]9gui_forms14PageTakeResult*;
     _ZNK[RO]9gui_forms14PaintEventArgs*;
+    _ZNK[RO]9gui_forms14PaintTransform*;
     _ZNK[RO]9gui_forms14ParagraphPaint*;
     _ZNK[RO]9gui_forms14ParagraphStyle*;
     _ZNK[RO]9gui_forms14PartRasterView*;
@@ -7346,6 +7407,7 @@
     _ZNK[RO]9gui_forms16LocaleReadResult*;
     _ZNK[RO]9gui_forms16MarkdownDocument*;
     _ZNK[RO]9gui_forms16MasterDetailView*;
+    _ZNK[RO]9gui_forms16MaterialClipPath*;
     _ZNK[RO]9gui_forms16MessageBoxClosed*;
     _ZNK[RO]9gui_forms16MessageBoxResult*;
     _ZNK[RO]9gui_forms16MotionTimeSource*;
@@ -7451,8 +7513,10 @@
     _ZNK[RO]9gui_forms17ListViewLabelEdit*;
     _ZNK[RO]9gui_forms17LiveDisplayTiming*;
     _ZNK[RO]9gui_forms17MarkdownSpanStyle*;
+    _ZNK[RO]9gui_forms17MaterialClipPoint*;
     _ZNK[RO]9gui_forms17MaterialFillLayer*;
     _ZNK[RO]9gui_forms17MaterialImageSize*;
+    _ZNK[RO]9gui_forms17MaterialTransform*;
     _ZNK[RO]9gui_forms17MenuStripItemSpec*;
     _ZNK[RO]9gui_forms17MessageBoxRefused*;
     _ZNK[RO]9gui_forms17MessageBoxRequest*;
@@ -7682,6 +7746,7 @@
     _ZNK[RO]9gui_forms19ObjectDetailsColumn*;
     _ZNK[RO]9gui_forms19OffscreenAttachment*;
     _ZNK[RO]9gui_forms19PageSelectionChange*;
+    _ZNK[RO]9gui_forms19PaintTransformGroup*;
     _ZNK[RO]9gui_forms19ParameterValidation*;
     _ZNK[RO]9gui_forms19PlotHistogramSeries*;
     _ZNK[RO]9gui_forms19PngValidationResult*;
@@ -7740,6 +7805,7 @@
     _ZNK[RO]9gui_forms20DockMonitorPlacement*;
     _ZNK[RO]9gui_forms20DockSiteRestrictions*;
     _ZNK[RO]9gui_forms20DragTrackerCallbacks*;
+    _ZNK[RO]9gui_forms20DrawingReplayOptions*;
     _ZNK[RO]9gui_forms20ExpressionInputIndex*;
     _ZNK[RO]9gui_forms20FocusedControlChange*;
     _ZNK[RO]9gui_forms20FontFallbackResolver*;
@@ -8333,6 +8399,7 @@
     _ZN[KRO]11gui_drawing18ConicGradientBrush*;
     _ZN[KRO]11gui_drawing18GraphicsStateToken*;
     _ZN[KRO]11gui_drawing19LinearGradientBrush*;
+    _ZN[KRO]11gui_drawing19RadialGradientBrush*;
     _ZN[KRO]11gui_drawing19TextMetricsProvider*;
     _ZN[KRO]11gui_drawing20BitmapDamageSnapshot*;
     _ZN[KRO]11gui_drawing20FontFamilyResolution*;
@@ -8544,6 +8611,7 @@
     _ZN[KRO]9gui_forms12GradientStop*;
     _ZN[KRO]9gui_forms12GrayTextMask*;
     _ZN[KRO]9gui_forms12GridItemArea*;
+    _ZN[KRO]9gui_forms12HatchPattern*;
     _ZN[KRO]9gui_forms12HelpPageLink*;
     _ZN[KRO]9gui_forms12HelpProvider*;
     _ZN[KRO]9gui_forms12HostServices*;
@@ -8788,6 +8856,7 @@
     _ZN[KRO]9gui_forms14PageSetOptions*;
     _ZN[KRO]9gui_forms14PageTakeResult*;
     _ZN[KRO]9gui_forms14PaintEventArgs*;
+    _ZN[KRO]9gui_forms14PaintTransform*;
     _ZN[KRO]9gui_forms14ParagraphPaint*;
     _ZN[KRO]9gui_forms14ParagraphStyle*;
     _ZN[KRO]9gui_forms14PartRasterView*;
@@ -9010,6 +9079,7 @@
     _ZN[KRO]9gui_forms16LocaleReadResult*;
     _ZN[KRO]9gui_forms16MarkdownDocument*;
     _ZN[KRO]9gui_forms16MasterDetailView*;
+    _ZN[KRO]9gui_forms16MaterialClipPath*;
     _ZN[KRO]9gui_forms16MessageBoxClosed*;
     _ZN[KRO]9gui_forms16MessageBoxResult*;
     _ZN[KRO]9gui_forms16MotionTimeSource*;
@@ -9115,8 +9185,10 @@
     _ZN[KRO]9gui_forms17ListViewLabelEdit*;
     _ZN[KRO]9gui_forms17LiveDisplayTiming*;
     _ZN[KRO]9gui_forms17MarkdownSpanStyle*;
+    _ZN[KRO]9gui_forms17MaterialClipPoint*;
     _ZN[KRO]9gui_forms17MaterialFillLayer*;
     _ZN[KRO]9gui_forms17MaterialImageSize*;
+    _ZN[KRO]9gui_forms17MaterialTransform*;
     _ZN[KRO]9gui_forms17MenuStripItemSpec*;
     _ZN[KRO]9gui_forms17MessageBoxRefused*;
     _ZN[KRO]9gui_forms17MessageBoxRequest*;
@@ -9346,6 +9418,7 @@
     _ZN[KRO]9gui_forms19ObjectDetailsColumn*;
     _ZN[KRO]9gui_forms19OffscreenAttachment*;
     _ZN[KRO]9gui_forms19PageSelectionChange*;
+    _ZN[KRO]9gui_forms19PaintTransformGroup*;
     _ZN[KRO]9gui_forms19ParameterValidation*;
     _ZN[KRO]9gui_forms19PlotHistogramSeries*;
     _ZN[KRO]9gui_forms19PngValidationResult*;
@@ -9404,6 +9477,7 @@
     _ZN[KRO]9gui_forms20DockMonitorPlacement*;
     _ZN[KRO]9gui_forms20DockSiteRestrictions*;
     _ZN[KRO]9gui_forms20DragTrackerCallbacks*;
+    _ZN[KRO]9gui_forms20DrawingReplayOptions*;
     _ZN[KRO]9gui_forms20ExpressionInputIndex*;
     _ZN[KRO]9gui_forms20FocusedControlChange*;
     _ZN[KRO]9gui_forms20FontFallbackResolver*;
@@ -9997,6 +10071,7 @@
     _ZT[VIST]N11gui_drawing18ConicGradientBrush*E;
     _ZT[VIST]N11gui_drawing18GraphicsStateToken*E;
     _ZT[VIST]N11gui_drawing19LinearGradientBrush*E;
+    _ZT[VIST]N11gui_drawing19RadialGradientBrush*E;
     _ZT[VIST]N11gui_drawing19TextMetricsProvider*E;
     _ZT[VIST]N11gui_drawing20BitmapDamageSnapshot*E;
     _ZT[VIST]N11gui_drawing20FontFamilyResolution*E;
@@ -10208,6 +10283,7 @@
     _ZT[VIST]N9gui_forms12GradientStop*E;
     _ZT[VIST]N9gui_forms12GrayTextMask*E;
     _ZT[VIST]N9gui_forms12GridItemArea*E;
+    _ZT[VIST]N9gui_forms12HatchPattern*E;
     _ZT[VIST]N9gui_forms12HelpPageLink*E;
     _ZT[VIST]N9gui_forms12HelpProvider*E;
     _ZT[VIST]N9gui_forms12HostServices*E;
@@ -10452,6 +10528,7 @@
     _ZT[VIST]N9gui_forms14PageSetOptions*E;
     _ZT[VIST]N9gui_forms14PageTakeResult*E;
     _ZT[VIST]N9gui_forms14PaintEventArgs*E;
+    _ZT[VIST]N9gui_forms14PaintTransform*E;
     _ZT[VIST]N9gui_forms14ParagraphPaint*E;
     _ZT[VIST]N9gui_forms14ParagraphStyle*E;
     _ZT[VIST]N9gui_forms14PartRasterView*E;
@@ -10674,6 +10751,7 @@
     _ZT[VIST]N9gui_forms16LocaleReadResult*E;
     _ZT[VIST]N9gui_forms16MarkdownDocument*E;
     _ZT[VIST]N9gui_forms16MasterDetailView*E;
+    _ZT[VIST]N9gui_forms16MaterialClipPath*E;
     _ZT[VIST]N9gui_forms16MessageBoxClosed*E;
     _ZT[VIST]N9gui_forms16MessageBoxResult*E;
     _ZT[VIST]N9gui_forms16MotionTimeSource*E;
@@ -10779,8 +10857,10 @@
     _ZT[VIST]N9gui_forms17ListViewLabelEdit*E;
     _ZT[VIST]N9gui_forms17LiveDisplayTiming*E;
     _ZT[VIST]N9gui_forms17MarkdownSpanStyle*E;
+    _ZT[VIST]N9gui_forms17MaterialClipPoint*E;
     _ZT[VIST]N9gui_forms17MaterialFillLayer*E;
     _ZT[VIST]N9gui_forms17MaterialImageSize*E;
+    _ZT[VIST]N9gui_forms17MaterialTransform*E;
     _ZT[VIST]N9gui_forms17MenuStripItemSpec*E;
     _ZT[VIST]N9gui_forms17MessageBoxRefused*E;
     _ZT[VIST]N9gui_forms17MessageBoxRequest*E;
@@ -11010,6 +11090,7 @@
     _ZT[VIST]N9gui_forms19ObjectDetailsColumn*E;
     _ZT[VIST]N9gui_forms19OffscreenAttachment*E;
     _ZT[VIST]N9gui_forms19PageSelectionChange*E;
+    _ZT[VIST]N9gui_forms19PaintTransformGroup*E;
     _ZT[VIST]N9gui_forms19ParameterValidation*E;
     _ZT[VIST]N9gui_forms19PlotHistogramSeries*E;
     _ZT[VIST]N9gui_forms19PngValidationResult*E;
@@ -11068,6 +11149,7 @@
     _ZT[VIST]N9gui_forms20DockMonitorPlacement*E;
     _ZT[VIST]N9gui_forms20DockSiteRestrictions*E;
     _ZT[VIST]N9gui_forms20DragTrackerCallbacks*E;
+    _ZT[VIST]N9gui_forms20DrawingReplayOptions*E;
     _ZT[VIST]N9gui_forms20ExpressionInputIndex*E;
     _ZT[VIST]N9gui_forms20FocusedControlChange*E;
     _ZT[VIST]N9gui_forms20FontFallbackResolver*E;
@@ -11661,6 +11743,7 @@
     _ZT[hvc]*11gui_drawing18ConicGradientBrush*;
     _ZT[hvc]*11gui_drawing18GraphicsStateToken*;
     _ZT[hvc]*11gui_drawing19LinearGradientBrush*;
+    _ZT[hvc]*11gui_drawing19RadialGradientBrush*;
     _ZT[hvc]*11gui_drawing19TextMetricsProvider*;
     _ZT[hvc]*11gui_drawing20BitmapDamageSnapshot*;
     _ZT[hvc]*11gui_drawing20FontFamilyResolution*;
@@ -11872,6 +11955,7 @@
     _ZT[hvc]*9gui_forms12GradientStop*;
     _ZT[hvc]*9gui_forms12GrayTextMask*;
     _ZT[hvc]*9gui_forms12GridItemArea*;
+    _ZT[hvc]*9gui_forms12HatchPattern*;
     _ZT[hvc]*9gui_forms12HelpPageLink*;
     _ZT[hvc]*9gui_forms12HelpProvider*;
     _ZT[hvc]*9gui_forms12HostServices*;
@@ -12116,6 +12200,7 @@
     _ZT[hvc]*9gui_forms14PageSetOptions*;
     _ZT[hvc]*9gui_forms14PageTakeResult*;
     _ZT[hvc]*9gui_forms14PaintEventArgs*;
+    _ZT[hvc]*9gui_forms14PaintTransform*;
     _ZT[hvc]*9gui_forms14ParagraphPaint*;
     _ZT[hvc]*9gui_forms14ParagraphStyle*;
     _ZT[hvc]*9gui_forms14PartRasterView*;
@@ -12338,6 +12423,7 @@
     _ZT[hvc]*9gui_forms16LocaleReadResult*;
     _ZT[hvc]*9gui_forms16MarkdownDocument*;
     _ZT[hvc]*9gui_forms16MasterDetailView*;
+    _ZT[hvc]*9gui_forms16MaterialClipPath*;
     _ZT[hvc]*9gui_forms16MessageBoxClosed*;
     _ZT[hvc]*9gui_forms16MessageBoxResult*;
     _ZT[hvc]*9gui_forms16MotionTimeSource*;
@@ -12443,8 +12529,10 @@
     _ZT[hvc]*9gui_forms17ListViewLabelEdit*;
     _ZT[hvc]*9gui_forms17LiveDisplayTiming*;
     _ZT[hvc]*9gui_forms17MarkdownSpanStyle*;
+    _ZT[hvc]*9gui_forms17MaterialClipPoint*;
     _ZT[hvc]*9gui_forms17MaterialFillLayer*;
     _ZT[hvc]*9gui_forms17MaterialImageSize*;
+    _ZT[hvc]*9gui_forms17MaterialTransform*;
     _ZT[hvc]*9gui_forms17MenuStripItemSpec*;
     _ZT[hvc]*9gui_forms17MessageBoxRefused*;
     _ZT[hvc]*9gui_forms17MessageBoxRequest*;
@@ -12674,6 +12762,7 @@
     _ZT[hvc]*9gui_forms19ObjectDetailsColumn*;
     _ZT[hvc]*9gui_forms19OffscreenAttachment*;
     _ZT[hvc]*9gui_forms19PageSelectionChange*;
+    _ZT[hvc]*9gui_forms19PaintTransformGroup*;
     _ZT[hvc]*9gui_forms19ParameterValidation*;
     _ZT[hvc]*9gui_forms19PlotHistogramSeries*;
     _ZT[hvc]*9gui_forms19PngValidationResult*;
@@ -12732,6 +12821,7 @@
     _ZT[hvc]*9gui_forms20DockMonitorPlacement*;
     _ZT[hvc]*9gui_forms20DockSiteRestrictions*;
     _ZT[hvc]*9gui_forms20DragTrackerCallbacks*;
+    _ZT[hvc]*9gui_forms20DrawingReplayOptions*;
     _ZT[hvc]*9gui_forms20ExpressionInputIndex*;
     _ZT[hvc]*9gui_forms20FocusedControlChange*;
     _ZT[hvc]*9gui_forms20FontFallbackResolver*;
@@ -13325,6 +13415,7 @@
     _ZZN11gui_drawing18ConicGradientBrush*;
     _ZZN11gui_drawing18GraphicsStateToken*;
     _ZZN11gui_drawing19LinearGradientBrush*;
+    _ZZN11gui_drawing19RadialGradientBrush*;
     _ZZN11gui_drawing19TextMetricsProvider*;
     _ZZN11gui_drawing20BitmapDamageSnapshot*;
     _ZZN11gui_drawing20FontFamilyResolution*;
@@ -13536,6 +13627,7 @@
     _ZZN9gui_forms12GradientStop*;
     _ZZN9gui_forms12GrayTextMask*;
     _ZZN9gui_forms12GridItemArea*;
+    _ZZN9gui_forms12HatchPattern*;
     _ZZN9gui_forms12HelpPageLink*;
     _ZZN9gui_forms12HelpProvider*;
     _ZZN9gui_forms12HostServices*;
@@ -13780,6 +13872,7 @@
     _ZZN9gui_forms14PageSetOptions*;
     _ZZN9gui_forms14PageTakeResult*;
     _ZZN9gui_forms14PaintEventArgs*;
+    _ZZN9gui_forms14PaintTransform*;
     _ZZN9gui_forms14ParagraphPaint*;
     _ZZN9gui_forms14ParagraphStyle*;
     _ZZN9gui_forms14PartRasterView*;
@@ -14002,6 +14095,7 @@
     _ZZN9gui_forms16LocaleReadResult*;
     _ZZN9gui_forms16MarkdownDocument*;
     _ZZN9gui_forms16MasterDetailView*;
+    _ZZN9gui_forms16MaterialClipPath*;
     _ZZN9gui_forms16MessageBoxClosed*;
     _ZZN9gui_forms16MessageBoxResult*;
     _ZZN9gui_forms16MotionTimeSource*;
@@ -14107,8 +14201,10 @@
     _ZZN9gui_forms17ListViewLabelEdit*;
     _ZZN9gui_forms17LiveDisplayTiming*;
     _ZZN9gui_forms17MarkdownSpanStyle*;
+    _ZZN9gui_forms17MaterialClipPoint*;
     _ZZN9gui_forms17MaterialFillLayer*;
     _ZZN9gui_forms17MaterialImageSize*;
+    _ZZN9gui_forms17MaterialTransform*;
     _ZZN9gui_forms17MenuStripItemSpec*;
     _ZZN9gui_forms17MessageBoxRefused*;
     _ZZN9gui_forms17MessageBoxRequest*;
@@ -14338,6 +14434,7 @@
     _ZZN9gui_forms19ObjectDetailsColumn*;
     _ZZN9gui_forms19OffscreenAttachment*;
     _ZZN9gui_forms19PageSelectionChange*;
+    _ZZN9gui_forms19PaintTransformGroup*;
     _ZZN9gui_forms19ParameterValidation*;
     _ZZN9gui_forms19PlotHistogramSeries*;
     _ZZN9gui_forms19PngValidationResult*;
@@ -14396,6 +14493,7 @@
     _ZZN9gui_forms20DockMonitorPlacement*;
     _ZZN9gui_forms20DockSiteRestrictions*;
     _ZZN9gui_forms20DragTrackerCallbacks*;
+    _ZZN9gui_forms20DrawingReplayOptions*;
     _ZZN9gui_forms20ExpressionInputIndex*;
     _ZZN9gui_forms20FocusedControlChange*;
     _ZZN9gui_forms20FontFallbackResolver*;
@@ -14989,6 +15087,7 @@
     _ZZNK11gui_drawing18ConicGradientBrush*;
     _ZZNK11gui_drawing18GraphicsStateToken*;
     _ZZNK11gui_drawing19LinearGradientBrush*;
+    _ZZNK11gui_drawing19RadialGradientBrush*;
     _ZZNK11gui_drawing19TextMetricsProvider*;
     _ZZNK11gui_drawing20BitmapDamageSnapshot*;
     _ZZNK11gui_drawing20FontFamilyResolution*;
@@ -15200,6 +15299,7 @@
     _ZZNK9gui_forms12GradientStop*;
     _ZZNK9gui_forms12GrayTextMask*;
     _ZZNK9gui_forms12GridItemArea*;
+    _ZZNK9gui_forms12HatchPattern*;
     _ZZNK9gui_forms12HelpPageLink*;
     _ZZNK9gui_forms12HelpProvider*;
     _ZZNK9gui_forms12HostServices*;
@@ -15444,6 +15544,7 @@
     _ZZNK9gui_forms14PageSetOptions*;
     _ZZNK9gui_forms14PageTakeResult*;
     _ZZNK9gui_forms14PaintEventArgs*;
+    _ZZNK9gui_forms14PaintTransform*;
     _ZZNK9gui_forms14ParagraphPaint*;
     _ZZNK9gui_forms14ParagraphStyle*;
     _ZZNK9gui_forms14PartRasterView*;
@@ -15666,6 +15767,7 @@
     _ZZNK9gui_forms16LocaleReadResult*;
     _ZZNK9gui_forms16MarkdownDocument*;
     _ZZNK9gui_forms16MasterDetailView*;
+    _ZZNK9gui_forms16MaterialClipPath*;
     _ZZNK9gui_forms16MessageBoxClosed*;
     _ZZNK9gui_forms16MessageBoxResult*;
     _ZZNK9gui_forms16MotionTimeSource*;
@@ -15771,8 +15873,10 @@
     _ZZNK9gui_forms17ListViewLabelEdit*;
     _ZZNK9gui_forms17LiveDisplayTiming*;
     _ZZNK9gui_forms17MarkdownSpanStyle*;
+    _ZZNK9gui_forms17MaterialClipPoint*;
     _ZZNK9gui_forms17MaterialFillLayer*;
     _ZZNK9gui_forms17MaterialImageSize*;
+    _ZZNK9gui_forms17MaterialTransform*;
     _ZZNK9gui_forms17MenuStripItemSpec*;
     _ZZNK9gui_forms17MessageBoxRefused*;
     _ZZNK9gui_forms17MessageBoxRequest*;
@@ -16002,6 +16106,7 @@
     _ZZNK9gui_forms19ObjectDetailsColumn*;
     _ZZNK9gui_forms19OffscreenAttachment*;
     _ZZNK9gui_forms19PageSelectionChange*;
+    _ZZNK9gui_forms19PaintTransformGroup*;
     _ZZNK9gui_forms19ParameterValidation*;
     _ZZNK9gui_forms19PlotHistogramSeries*;
     _ZZNK9gui_forms19PngValidationResult*;
@@ -16060,6 +16165,7 @@
     _ZZNK9gui_forms20DockMonitorPlacement*;
     _ZZNK9gui_forms20DockSiteRestrictions*;
     _ZZNK9gui_forms20DragTrackerCallbacks*;
+    _ZZNK9gui_forms20DrawingReplayOptions*;
     _ZZNK9gui_forms20ExpressionInputIndex*;
     _ZZNK9gui_forms20FocusedControlChange*;
     _ZZNK9gui_forms20FontFallbackResolver*;

@@ -35,7 +35,12 @@ void replay_marks(const DisplayCommand& command, Painter& painter) {
         painter.stroke_rounded_rect_corners(command.rect, recorded_radii(command), command.color, command.scalar);
         return;
     }
-    if (!command.marks) return;
+    if (!command.marks) {
+        // A clip without its path clips everything away, as a refused path
+        // does, so it never shows what it was to hide.
+        if (command.operation == DisplayOperation::clip_path) painter.clip_rect(Rect{});
+        return;
+    }
     const DisplayMarks& marks = *command.marks;
     switch (command.operation) {
     case DisplayOperation::stroke_polyline: painter.stroke_polyline(marks.points, marks.stroke); return;
@@ -49,6 +54,8 @@ void replay_marks(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::fill_grid_pattern: painter.fill_grid_pattern(command.rect, marks.grid); return;
     case DisplayOperation::fill_path: painter.fill_path(marks.path(), command.color, marks.fill_rule); return;
     case DisplayOperation::stroke_path: painter.stroke_path(marks.path(), marks.stroke); return;
+    case DisplayOperation::clip_path: painter.clip_path(marks.path(), marks.fill_rule); return;
+    case DisplayOperation::fill_hatch: painter.fill_hatch(command.rect, marks.hatch); return;
     default:
         // Not a batched operation: replay_command handles it.
         return;
@@ -94,6 +101,8 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::stroke_rounded_rect_corners:
     case DisplayOperation::fill_path:
     case DisplayOperation::stroke_path:
+    case DisplayOperation::clip_path:
+    case DisplayOperation::fill_hatch:
         replay_marks(command, painter);
         return;
     case DisplayOperation::fill_rect:
@@ -125,6 +134,15 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
         painter.fill_radial_gradient(
             command.rect, command.first,
             {command.second.x, command.second.y}, command.gradient_stops);
+        return;
+    case DisplayOperation::fill_radial_gradient_spread:
+        painter.fill_radial_gradient_spread(command.rect, command.first, Size{command.second.x, command.second.y},
+                                            command.gradient_stops, command.gradient_spread);
+        return;
+    case DisplayOperation::fill_focal_radial_gradient:
+        painter.fill_focal_radial_gradient(command.rect, command.first, Size{command.second.x, command.second.y},
+                                           Point{command.scalar, command.secondary_scalar}, command.gradient_stops,
+                                           command.gradient_spread);
         return;
     case DisplayOperation::draw_box_shadow:
         if (command.retained_cache) {
@@ -201,6 +219,21 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::end_group:
         painter.end_group();
         return;
+    case DisplayOperation::begin_transform: {
+        PaintTransformGroup group{};
+        group.bounds = command.rect;
+        group.transform.xx = command.first.x;
+        group.transform.yx = command.first.y;
+        group.transform.xy = command.second.x;
+        group.transform.yy = command.second.y;
+        group.transform.dx = command.scalar;
+        group.transform.dy = command.secondary_scalar;
+        painter.begin_transform(group);
+        return;
+    }
+    case DisplayOperation::end_transform:
+        painter.end_transform();
+        return;
     case DisplayOperation::draw_image_region:
         painter.draw_image_region(
             command.image,
@@ -235,11 +268,17 @@ std::uint64_t replay_display_chunk(const DisplayChunk& chunk, Painter& painter) 
     return chunk.commands().size();
 }
 
+// Whether a command changes only the painter's state (what a replay of the
+// saves open at an occluder must reproduce without drawing). Paint groups
+// and transform groups are excluded: none is open at an occluder, and a
+// closed one leaves no state behind. Also the blend study's counter's
+// (count_display_blend.cpp).
 bool display_state_only(const DisplayOperation operation) noexcept {
     const bool state = operation == DisplayOperation::save || operation == DisplayOperation::restore ||
                        operation == DisplayOperation::translate || operation == DisplayOperation::clip_rect ||
                        operation == DisplayOperation::clip_rounded_rect ||
-                       operation == DisplayOperation::clip_rounded_rect_corners;
+                       operation == DisplayOperation::clip_rounded_rect_corners ||
+                       operation == DisplayOperation::clip_path;
     return state;
 }
 

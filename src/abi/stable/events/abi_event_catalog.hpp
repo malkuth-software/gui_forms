@@ -138,6 +138,7 @@
 #include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/drawing/types/drawing_types.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/key_events/key_events.hpp"
@@ -554,6 +555,19 @@ struct EnumerationChoices<GradientSpreadMode> {
 };
 
 template <>
+struct EnumerationChoices<HatchStyle> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 6> choices{{
+        {"horizontal", static_cast<std::int64_t>(HatchStyle::horizontal)},
+        {"vertical", static_cast<std::int64_t>(HatchStyle::vertical)},
+        {"forward_diagonal", static_cast<std::int64_t>(HatchStyle::forward_diagonal)},
+        {"backward_diagonal", static_cast<std::int64_t>(HatchStyle::backward_diagonal)},
+        {"cross", static_cast<std::int64_t>(HatchStyle::cross)},
+        {"diagonal_cross", static_cast<std::int64_t>(HatchStyle::diagonal_cross)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<HelpLinkKind> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 4> choices{{
@@ -653,6 +667,27 @@ struct EnumerationChoices<MaterialBorderStyle> {
 };
 
 template <>
+struct EnumerationChoices<MaterialClipRule> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"nonzero", static_cast<std::int64_t>(MaterialClipRule::nonzero)},
+        {"even_odd", static_cast<std::int64_t>(MaterialClipRule::even_odd)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<MaterialClipVerb> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 5> choices{{
+        {"move", static_cast<std::int64_t>(MaterialClipVerb::move)},
+        {"line", static_cast<std::int64_t>(MaterialClipVerb::line)},
+        {"quadratic", static_cast<std::int64_t>(MaterialClipVerb::quadratic)},
+        {"cubic", static_cast<std::int64_t>(MaterialClipVerb::cubic)},
+        {"close", static_cast<std::int64_t>(MaterialClipVerb::close)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<MaterialCoordinateSpace> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 2> choices{{
@@ -708,11 +743,13 @@ struct EnumerationChoices<MaterialGlowPlacement> {
 template <>
 struct EnumerationChoices<MaterialImageMode> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 4> choices{{
+    static constexpr std::array<EnumerationChoice, 6> choices{{
         {"stretch", static_cast<std::int64_t>(MaterialImageMode::stretch)},
         {"tile", static_cast<std::int64_t>(MaterialImageMode::tile)},
         {"nine_patch", static_cast<std::int64_t>(MaterialImageMode::nine_patch)},
         {"single", static_cast<std::int64_t>(MaterialImageMode::single)},
+        {"mirror", static_cast<std::int64_t>(MaterialImageMode::mirror)},
+        {"extend", static_cast<std::int64_t>(MaterialImageMode::extend)},
     }};
 };
 
@@ -957,7 +994,7 @@ struct EnumerationChoices<PointerButton> {
 template <>
 struct EnumerationChoices<ProceduralPattern> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 7> choices{{
+    static constexpr std::array<EnumerationChoice, 8> choices{{
         {"felt", static_cast<std::int64_t>(ProceduralPattern::felt)},
         {"wood_grain", static_cast<std::int64_t>(ProceduralPattern::wood_grain)},
         {"paper_fibre", static_cast<std::int64_t>(ProceduralPattern::paper_fibre)},
@@ -965,6 +1002,7 @@ struct EnumerationChoices<ProceduralPattern> {
         {"brushed_metal", static_cast<std::int64_t>(ProceduralPattern::brushed_metal)},
         {"fresco", static_cast<std::int64_t>(ProceduralPattern::fresco)},
         {"checker", static_cast<std::int64_t>(ProceduralPattern::checker)},
+        {"hatch", static_cast<std::int64_t>(ProceduralPattern::hatch)},
     }};
 };
 
@@ -1394,6 +1432,8 @@ void append_field(EventFields& fields, std::string_view name, const MaskValidati
 void append_field(EventFields& fields, std::string_view name, const MasterDetailPresentationChange& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialBorder& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialBorderEdges& value);
+void append_field(EventFields& fields, std::string_view name, const MaterialClipPath& value);
+void append_field(EventFields& fields, std::string_view name, const MaterialClipPoint& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialCornerRadii& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialDropShadow& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialFillLayer& value);
@@ -1401,6 +1441,7 @@ void append_field(EventFields& fields, std::string_view name, const MaterialGlow
 void append_field(EventFields& fields, std::string_view name, const MaterialKeyline& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialReflection& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialShadow& value);
+void append_field(EventFields& fields, std::string_view name, const MaterialTransform& value);
 void append_field(EventFields& fields, std::string_view name, const MenuItemInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const MenuStripInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const ModalLayerClosingEvent& value);
@@ -2659,6 +2700,23 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const MaterialClipPath& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "verbs", value.verbs);
+    append_field(fields, "points", value.points);
+    append_field(fields, "rule", value.rule);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const MaterialClipPoint& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "x_units", value.x_units);
+    append_field(fields, "x_fraction", value.x_fraction);
+    append_field(fields, "y_units", value.y_units);
+    append_field(fields, "y_fraction", value.y_fraction);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const MaterialCornerRadii& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "top_left", value.top_left);
@@ -2698,6 +2756,8 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     append_field(fields, "image_anchor", value.image_anchor);
     append_field(fields, "image_offset", value.image_offset);
     append_field(fields, "period_degrees", value.period_degrees);
+    append_field(fields, "focused", value.focused);
+    append_field(fields, "focus", value.focus);
     append_field(fields, "blend", value.blend);
     append_field(fields, "procedural", value.procedural);
     append_field(fields, "finish", value.finish);
@@ -2740,6 +2800,15 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     append_field(fields, "spread", value.spread);
     append_field(fields, "color", value.color);
     append_field(fields, "inset", value.inset);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const MaterialTransform& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "xx", value.xx);
+    append_field(fields, "yx", value.yx);
+    append_field(fields, "xy", value.xy);
+    append_field(fields, "yy", value.yy);
     fields.leave(prefix);
 }
 
@@ -3127,6 +3196,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Proce
     append_field(fields, "figure", value.figure);
     append_field(fields, "accent", value.accent);
     append_field(fields, "bloom", value.bloom);
+    append_field(fields, "hatch_style", value.hatch_style);
     fields.leave(prefix);
 }
 
@@ -3412,6 +3482,8 @@ inline void append_field(EventFields& fields, std::string_view name, const Surfa
     append_field(fields, "mask", value.mask);
     append_field(fields, "reflection", value.reflection);
     append_field(fields, "dither", value.dither);
+    append_field(fields, "transform", value.transform);
+    append_field(fields, "clip_path", value.clip_path);
     fields.leave(prefix);
 }
 

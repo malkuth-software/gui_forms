@@ -116,12 +116,54 @@ void test_sine_cosine() {
         require(std::fabs(observed.sine - std::sin(x)) <= 1e-14 && std::fabs(observed.cosine - std::cos(x)) <= 1e-14,
                 "sine and cosine within their bound up to 2^20");
     }
-    const EngineSineCosine beyond = engine_sine_cosine(2.0e6);
+    // Above 2^20 the table reduction: against the exact values (computed
+    // with 1600-bit integer arithmetic), to the whole finite range.
+    struct LargeAngle final {
+        double x{};
+        double sine{};
+        double cosine{};
+    };
+    const LargeAngle large[] = {
+        {1048576.0, 0.33049314002173469, 0.94380839390131199},
+        {1073741824.0, -0.61732641504604213, 0.78670712294118816},
+        {1e300, -0.81788191211590855, -0.57538611195754907},
+        {-1e300, 0.81788191211590855, -0.57538611195754907},
+        {std::numeric_limits<double>::max(), 0.004961954789184062, -0.99998768942655991},
+    };
+    for (const LargeAngle& angle : large) {
+        const EngineSineCosine observed = engine_sine_cosine(angle.x);
+        require(std::fabs(observed.sine - angle.sine) <= 1e-15 && std::fabs(observed.cosine - angle.cosine) <= 1e-15,
+                "2^20, 2^30, 1e300 and the largest double reduce exactly");
+    }
+    // The double nearest a multiple of π/2 (Kahan and McDonald): its cosine,
+    // −4.687e-19, needs the reduction's full precision.
+    const EngineSineCosine nearest = engine_sine_cosine(6381956970095103.0 * std::ldexp(1.0, 797));
+    require(relative_error(nearest.cosine, -4.6871659242546277e-19) <= 1e-14 && nearest.sine == 1.0,
+            "the worst case for reduction keeps its relative precision");
+    for (int step = 1; step <= 2000; ++step) {
+        const double x = std::ldexp(1.0 + static_cast<double>(step) / 2048.0, 21 + step % 1000);
+        // 2x is exact, so the double-angle identities test the reduction at
+        // two exponents without the host library.
+        const EngineSineCosine single = engine_sine_cosine(x);
+        const EngineSineCosine twice = engine_sine_cosine(2.0 * x);
+        const double double_sine = 2.0 * single.sine * single.cosine;
+        const double double_cosine = single.cosine * single.cosine - single.sine * single.sine;
+        require(std::fabs(twice.sine - double_sine) <= 8e-15 && std::fabs(twice.cosine - double_cosine) <= 8e-15,
+                "the table reduction keeps the double-angle identities up to 2^1021");
+    }
     const EngineSineCosine infinite = engine_sine_cosine(std::numeric_limits<double>::infinity());
+    const EngineSineCosine negative = engine_sine_cosine(-std::numeric_limits<double>::infinity());
     const EngineSineCosine missing = engine_sine_cosine(std::numeric_limits<double>::quiet_NaN());
-    require(std::isnan(beyond.sine) && std::isnan(beyond.cosine) && std::isnan(infinite.sine) &&
-                std::isnan(missing.cosine),
-            "beyond 2^20, infinities and NaN give NaN");
+    require(infinite.sine == 0.0 && infinite.cosine == 1.0 && negative.sine == 0.0 && negative.cosine == 1.0 &&
+                missing.sine == 0.0 && missing.cosine == 1.0,
+            "infinities and NaN give the stated sine 0 and cosine 1");
+    require(engine_tangent(std::numeric_limits<double>::infinity()) == 0.0 &&
+                engine_tangent(-std::numeric_limits<double>::infinity()) == 0.0 &&
+                engine_tangent(std::numeric_limits<double>::quiet_NaN()) == 0.0,
+            "the tangent of infinities and NaN is the stated 0");
+    const double largest_tangent = engine_tangent(std::numeric_limits<double>::max());
+    require(std::fabs(largest_tangent - 0.004961954789184062 / -0.99998768942655991) <= 4e-15,
+            "the tangent of the largest double is finite and reduced exactly");
 }
 
 void test_arctangent() {
@@ -143,6 +185,77 @@ void test_arctangent() {
                 std::fabs(engine_arctangent2(1.0, -infinite) - std::atan2(1.0, -infinite)) <= 4e-15,
             "infinite arguments follow atan2");
     require(std::isnan(engine_arctangent2(std::numeric_limits<double>::quiet_NaN(), 1.0)), "NaN gives NaN");
+}
+
+// The degree form: every quarter turn exact, other angles within 2^-49 of the
+// host's radian functions; and the tangent at the arc handle constant.
+void test_degrees_and_tangent() {
+    struct QuarterTurn final {
+        double degrees{};
+        double sine{};
+        double cosine{};
+    };
+    const QuarterTurn turns[] = {
+        {0.0, 0.0, 1.0},    {90.0, 1.0, 0.0},   {180.0, 0.0, -1.0},  {270.0, -1.0, 0.0},
+        {360.0, 0.0, 1.0},  {-90.0, -1.0, 0.0}, {-180.0, 0.0, -1.0}, {-270.0, 1.0, 0.0},
+        {450.0, 1.0, 0.0},  {-0.0, 0.0, 1.0},   {7290.0, 1.0, 0.0},  {9.0e14, 0.0, 1.0},
+    };
+    for (const QuarterTurn& turn : turns) {
+        const EngineSineCosine observed = engine_sine_cosine_degrees(turn.degrees);
+        std::uint64_t sine_bits = 0U;
+        std::uint64_t expected_sine_bits = 0U;
+        std::memcpy(&sine_bits, &observed.sine, sizeof sine_bits);
+        std::memcpy(&expected_sine_bits, &turn.sine, sizeof expected_sine_bits);
+        std::uint64_t cosine_bits = 0U;
+        std::uint64_t expected_cosine_bits = 0U;
+        std::memcpy(&cosine_bits, &observed.cosine, sizeof cosine_bits);
+        std::memcpy(&expected_cosine_bits, &turn.cosine, sizeof expected_cosine_bits);
+        require(sine_bits == expected_sine_bits && cosine_bits == expected_cosine_bits,
+                "a quarter turn in degrees is exact, zeros positive");
+    }
+    const double bound = 2e-15;
+    for (int step = -40000; step <= 40000; ++step) {
+        const double degrees = static_cast<double>(step) * 0.0917;
+        const double radians = degrees * 0.017453292519943295769;
+        const EngineSineCosine observed = engine_sine_cosine_degrees(degrees);
+        require(std::fabs(observed.sine - std::sin(radians)) <= bound &&
+                    std::fabs(observed.cosine - std::cos(radians)) <= bound,
+                "the degree form within its bound on [-3668, 3668]");
+    }
+    const EngineSineCosine half = engine_sine_cosine_degrees(45.0);
+    require(std::fabs(half.sine - std::sqrt(0.5)) <= bound && std::fabs(half.cosine - std::sqrt(0.5)) <= bound,
+            "45 degrees is sqrt(1/2) within the bound");
+    const EngineSineCosine infinite = engine_sine_cosine_degrees(std::numeric_limits<double>::infinity());
+    const EngineSineCosine missing = engine_sine_cosine_degrees(std::numeric_limits<double>::quiet_NaN());
+    require(infinite.sine == 0.0 && infinite.cosine == 1.0 && missing.sine == 0.0 && missing.cosine == 1.0,
+            "infinities and NaN give the stated sine 0 and cosine 1 in degrees");
+
+    require(engine_tangent(0.0) == 0.0, "the tangent of 0 is exact");
+    // tan(π/8) = sqrt(2) − 1, and a quarter-turn arc piece's handle is
+    // 4/3 tan(π/8) = 0.55228474983079339840 of the radius.
+    const double eighth_turn = 0.39269908169872415481;
+    const double tangent = engine_tangent(eighth_turn);
+    require(std::fabs(tangent - (std::sqrt(2.0) - 1.0)) <= 4e-15, "tan(pi/8) is sqrt(2) - 1 within 2^-48");
+    const double handle = 4.0 / 3.0 * tangent;
+    require(std::fabs(handle - 0.55228474983079339840) <= 6e-15, "the quarter arc handle constant within its bound");
+    for (int step = -1000; step <= 1000; ++step) {
+        const double x = static_cast<double>(step) * 0.000785398;
+        require(std::fabs(engine_tangent(x) - std::tan(x)) <= 4e-15, "the tangent within its bound on [-pi/4, pi/4]");
+    }
+}
+
+// The hypotenuse: exact for Pythagorean triples, near the host elsewhere.
+void test_hypotenuse() {
+    require(engine_hypotenuse(3.0, 4.0) == 5.0 && engine_hypotenuse(-5.0, 12.0) == 13.0 &&
+                engine_hypotenuse(0.0, -7.5) == 7.5 && engine_hypotenuse(0.0, 0.0) == 0.0,
+            "Pythagorean triples and axes are exact");
+    for (int step = 1; step <= 2000; ++step) {
+        const double x = static_cast<double>(step) * 0.731 - 600.0;
+        const double y = static_cast<double>(step % 37) * 19.3 - 300.0;
+        require(relative_error(engine_hypotenuse(x, y), std::hypot(x, y)) <= 4.5e-16,
+                "the hypotenuse within two roundings of the host");
+    }
+    require(std::isnan(engine_hypotenuse(std::numeric_limits<double>::quiet_NaN(), 1.0)), "NaN gives NaN");
 }
 
 // The bits of fixed tables, the same on every host. The expected values were
@@ -191,6 +304,8 @@ int main() {
     test_power();
     test_sine_cosine();
     test_arctangent();
+    test_degrees_and_tangent();
+    test_hypotenuse();
     test_identity();
     std::cout << "engine math tests passed\n";
     return 0;

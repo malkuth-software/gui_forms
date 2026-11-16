@@ -217,10 +217,12 @@ bool Panel::paint_depends_on_size() const noexcept {
 // a rule's fields select the face (G3). Assembling it allocates; a failure
 // to allocate here ends the program, as under any noexcept.
 Insets Panel::visual_outsets() const noexcept {
+    const Rect arranged = committed_arranged_bounds();
+    const Size box{arranged.width, arranged.height};
     SurfaceMaterial assembled{};
-    if (rule_face_material(assembled)) return surface_material_visual_outsets(assembled);
+    if (rule_face_material(assembled)) return surface_material_visual_outsets(assembled, box);
     return surface_material_visual_outsets(
-        effective_theme().resolve(visual_role.read(), visual_context()).material);
+        effective_theme().resolve(visual_role.read(), visual_context()).material, box);
 }
 
 void Panel::on_paint(Painter& painter, Rect) {

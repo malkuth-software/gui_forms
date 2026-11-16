@@ -127,6 +127,10 @@ jobs:
           # Property families: shared enumerations get their traits once.
           python3 -B -m unittest discover -s tools -p test_property_codemod.py
           python3 -B tools/paint_census.py check
+          # The host's sin, cos, tan, atan2 and hypot stay out of src/core, src/controls and src/render
+          # (engine_math.hpp; manifests/host_trig_allowance.json only shrinks).
+          python3 -B -m unittest discover -s tools -p test_host_trig_check.py
+          python3 -B tools/host_trig_check.py check
           # Theme variants stage B: the colour relocation instrument.
           python3 -B -m unittest discover -s tools -p test_relocate_colours.py
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py

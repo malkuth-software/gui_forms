@@ -1,0 +1,14 @@
+compiled
+rule 0 theme_sheet type=button
+  label button
+  decl primitive = name material
+  material transform transform=[0 2 -0.5 0] colours=[#000000ff]
+rule 1 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material clip_path clip-path verbs=4 points=3 rule=1 colours=[#000000ff]
+rule 2 theme_sheet type=track_bar
+  label track-bar
+  decl primitive = name material
+  material clip_path clip-path verbs=4 points=4 rule=0 colours=[#000000ff]
+  material transform colours=[#000000ff]

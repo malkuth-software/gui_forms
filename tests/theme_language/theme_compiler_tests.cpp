@@ -23,6 +23,7 @@
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/theme/canvas_look/canvas_look.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
@@ -801,6 +802,27 @@ void test_warnings() {
                 "a finish layer lowers to its finish, written as a fill writes it");
     }
     require(untextured != nullptr && (*untextured).texture.count == 0U, "none lowers to no layer");
+    // A hatch is a texture kind per style, as in pattern() (owner, 2026-11-16).
+    const Compilation hatched = compile("#a::part(face) { background-texture: procedural(hatch-diagonal-cross, 0, 8px, 1)"
+                                        " multiply 2% }");
+    const RecipeDeclaration* hatch_texture = nullptr;
+    if (hatched.outcome == CompileOutcome::compiled && hatched.sheet.rules.size() == 1U) {
+        for (const RecipeDeclaration& field : hatched.sheet.rules[0].recipe_fields) {
+            if (field.field == RecipeField::texture_layers) hatch_texture = &field;
+        }
+    }
+    require(hatch_texture != nullptr && (*hatch_texture).texture.count == 1U &&
+                (*hatch_texture).texture.items[0].pattern == ProceduralPattern::hatch &&
+                (*hatch_texture).texture.items[0].hatch_style == HatchStyle::diagonal_cross &&
+                (*hatch_texture).texture.items[0].tile == 8.0,
+            "a hatch texture lowers to the hatch pattern in its style");
+    CanvasTextureLayer hatch_layer{};
+    hatch_layer.pattern = ProceduralPattern::hatch;
+    hatch_layer.hatch_style = HatchStyle::cross;
+    hatch_layer.tile = 8.0;
+    const ProceduralFill hatch_fill = canvas_texture_fill(hatch_layer, CanvasTextureBlend::multiply);
+    require(hatch_fill.pattern == ProceduralPattern::hatch && hatch_fill.hatch_style == HatchStyle::cross,
+            "the canvas draws a hatch layer in its style");
     require(dash != nullptr && (*dash).number == 6.0 && gap != nullptr && (*gap).number == 4.0,
             "stroke-dash lowers to its dash and its gap");
     require(halo_width != nullptr && (*halo_width).number == 4.0, "a halo's width is read in either order");

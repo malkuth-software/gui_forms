@@ -1,4 +1,5 @@
 #include "gui_forms/types.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/prepared_text/types/prepared_text_types.hpp"
 #include "../../theme/theme/material_layers.hpp"
@@ -40,6 +41,14 @@ bool valid_gradient_stops(std::span<const GradientStop> stops) noexcept {
         previous = stop.offset;
     }
     return true;
+}
+
+bool focus_inside_ellipse(Point center, Size radii, Point focus) noexcept {
+    if (!(radii.width > 0.0) || !(radii.height > 0.0)) return false;
+    const double across = (focus.x - center.x) / radii.width;
+    const double down = (focus.y - center.y) / radii.height;
+    const double reach = across * across + down * down;
+    return std::isfinite(reach) && reach < 1.0;
 }
 
 void Painter::clip_rounded_rect(Rect rect, double) {
@@ -107,6 +116,45 @@ void Painter::fill_linear_gradient_spread(
     // retained display list exactly.
     static_cast<void>(spread);
     fill_linear_gradient(rect, start, end, stops);
+}
+
+void Painter::fill_radial_gradient_spread(Rect rect, Point center, Size radii,
+                                          std::span<const GradientStop> stops,
+                                          GradientSpreadMode spread) {
+    // As fill_linear_gradient_spread's: a minimal painter pads. A spread
+    // outside the enumeration draws nothing, as the production painters'.
+    const bool known_spread = spread == GradientSpreadMode::pad || spread == GradientSpreadMode::repeat ||
+                              spread == GradientSpreadMode::reflect;
+    if (!known_spread) return;
+    fill_radial_gradient(rect, center, radii, stops);
+}
+
+void Painter::fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                         std::span<const GradientStop> stops, GradientSpreadMode spread) {
+    const bool known_spread = spread == GradientSpreadMode::pad || spread == GradientSpreadMode::repeat ||
+                              spread == GradientSpreadMode::reflect;
+    if (!known_spread || rect.empty() || !(radii.width > 0.0) || !(radii.height > 0.0) ||
+        !std::isfinite(radii.width) || !std::isfinite(radii.height) || !std::isfinite(center.x) ||
+        !std::isfinite(center.y) || !valid_gradient_stops(stops) ||
+        !focus_inside_ellipse(center, radii, focus)) {
+        return;
+    }
+    // As fill_radial_gradient's rings, each on its own centre: the ring at
+    // offset t is centred t of the way from the focus to the centre. The
+    // rectangle first takes the last stop, the padded colour outside.
+    save();
+    clip_rect(rect);
+    fill_rect(rect, stops.back().color);
+    constexpr unsigned rings = 40U;
+    for (unsigned ring = rings; ring > 0U; --ring) {
+        const double amount = static_cast<double>(ring) / rings;
+        const double width = radii.width * 2.0 * amount;
+        const double height = radii.height * 2.0 * amount;
+        const Point ring_centre{focus.x + (center.x - focus.x) * amount, focus.y + (center.y - focus.y) * amount};
+        fill_rounded_rect({ring_centre.x - width * 0.5, ring_centre.y - height * 0.5, width, height},
+                          std::min(width, height) * 0.5, detail::sample_gradient(stops, amount));
+    }
+    restore();
 }
 
 void Painter::fill_radial_gradient(Rect rect, Point center, Size radii,
@@ -238,9 +286,9 @@ struct TextTurn final {
 };
 
 [[nodiscard]] TextTurn text_turn(const double degrees) noexcept {
-    const double radians = degrees * (3.14159265358979323846 / 180.0);
-    const double cosine = std::cos(radians);
-    const double sine = std::sin(radians);
+    const EngineSineCosine angle = engine_sine_cosine_degrees(degrees);
+    const double cosine = angle.cosine;
+    const double sine = angle.sine;
     const TextTurn turn{cosine, -sine, sine, cosine};
     return turn;
 }
@@ -405,6 +453,81 @@ void Painter::begin_group(const PaintGroup& group) {
     if (!(group.opacity > 0.0)) clip_rect(Rect{});
 }
 
+void Painter::begin_transform(const PaintTransformGroup& group) {
+    save();
+    if (!valid_paint_transform(group.transform) || !paint_transform_is_translation(group.transform)) {
+        // A minimal painter cannot turn or scale: the group draws nothing.
+        clip_rect(Rect{});
+        return;
+    }
+    translate(Point{group.transform.dx, group.transform.dy});
+    clip_rect(group.bounds);
+}
+
+void Painter::end_transform() {
+    restore();
+}
+
+bool valid_paint_transform(const PaintTransform& transform) noexcept {
+    const bool finite = std::isfinite(transform.xx) && std::isfinite(transform.yx) && std::isfinite(transform.xy) &&
+                        std::isfinite(transform.yy) && std::isfinite(transform.dx) && std::isfinite(transform.dy);
+    if (!finite) return false;
+    const double determinant = transform.xx * transform.yy - transform.xy * transform.yx;
+    const bool usable = std::isfinite(determinant) && std::fabs(determinant) >= minimum_paint_transform_determinant;
+    return usable;
+}
+
+bool paint_transform_is_translation(const PaintTransform& transform) noexcept {
+    const bool translation = transform.xx == 1.0 && transform.yy == 1.0 && transform.xy == 0.0 && transform.yx == 0.0;
+    return translation;
+}
+
+Point transform_paint_point(const PaintTransform& transform, const Point point) noexcept {
+    const double x = transform.xx * point.x + transform.xy * point.y + transform.dx;
+    const double y = transform.yx * point.x + transform.yy * point.y + transform.dy;
+    return Point{x, y};
+}
+
+Rect transformed_paint_bounds(const PaintTransform& transform, const Rect rect) noexcept {
+    if (!valid_paint_transform(transform) || rect.empty() || !rect.finite()) return Rect{};
+    const std::array<Point, 4> corners{{Point{rect.x, rect.y}, Point{rect.x + rect.width, rect.y},
+                                        Point{rect.x, rect.y + rect.height},
+                                        Point{rect.x + rect.width, rect.y + rect.height}}};
+    const Point first = transform_paint_point(transform, corners[0]);
+    double left = first.x;
+    double top = first.y;
+    double right = first.x;
+    double bottom = first.y;
+    for (std::size_t index = 1U; index < corners.size(); ++index) {
+        const Point mapped = transform_paint_point(transform, corners[index]);
+        left = std::min(left, mapped.x);
+        top = std::min(top, mapped.y);
+        right = std::max(right, mapped.x);
+        bottom = std::max(bottom, mapped.y);
+    }
+    const Rect bounds{left, top, right - left, bottom - top};
+    if (!bounds.finite()) return Rect{};
+    return bounds;
+}
+
+PaintTransform paint_rotation_about(const Point centre, const double degrees) noexcept {
+    if (!std::isfinite(degrees) || !std::isfinite(centre.x) || !std::isfinite(centre.y)) return PaintTransform{};
+    // The engine's deterministic sine and cosine: the same bits on every
+    // host, and quarter turns exact, so a turned rectangle keeps whole-pixel
+    // edges.
+    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    const double cosine = turn.cosine;
+    const double sine = turn.sine;
+    PaintTransform rotation{};
+    rotation.xx = cosine;
+    rotation.xy = sine;
+    rotation.yx = -sine;
+    rotation.yy = cosine;
+    rotation.dx = centre.x - (cosine * centre.x + sine * centre.y);
+    rotation.dy = centre.y - (-sine * centre.x + cosine * centre.y);
+    return rotation;
+}
+
 void Painter::end_group() {
     restore();
 }
@@ -415,10 +538,50 @@ void Painter::draw_image_region_sampled(
     draw_image_region(image, source, destination, opacity);
 }
 
+namespace {
+
+// fill_image_pattern's clamp fallback: the first tile, clipped to
+// `destination`, then its last source column stretched over the room to its
+// right, its last row over the room below, and its corner pixel over the
+// rest, each sampled nearest so the extended pixels keep the edge's
+// colours. Inputs validated by the caller.
+void fill_clamped_pattern(Painter& painter, ImageId image, Size source_pixel_size, Rect destination,
+                          Size logical_tile_size, double opacity) {
+    const double tile_width = std::min(logical_tile_size.width, destination.width);
+    const double tile_height = std::min(logical_tile_size.height, destination.height);
+    const double source_width = tile_width * source_pixel_size.width / logical_tile_size.width;
+    const double source_height = tile_height * source_pixel_size.height / logical_tile_size.height;
+    painter.draw_image_region(image, Rect{0.0, 0.0, source_width, source_height},
+                              Rect{destination.x, destination.y, tile_width, tile_height}, opacity);
+    const double right_width = destination.width - tile_width;
+    const double below_height = destination.height - tile_height;
+    const double last_column = source_pixel_size.width - 1.0;
+    const double last_row = source_pixel_size.height - 1.0;
+    if (right_width > 0.0) {
+        painter.draw_image_region_sampled(image, Rect{last_column, 0.0, 1.0, source_height},
+                                          Rect{destination.x + tile_width, destination.y, right_width, tile_height},
+                                          ImageSampling::nearest, opacity);
+    }
+    if (below_height > 0.0) {
+        painter.draw_image_region_sampled(image, Rect{0.0, last_row, source_width, 1.0},
+                                          Rect{destination.x, destination.y + tile_height, tile_width, below_height},
+                                          ImageSampling::nearest, opacity);
+    }
+    if (right_width > 0.0 && below_height > 0.0) {
+        painter.draw_image_region_sampled(image, Rect{last_column, last_row, 1.0, 1.0},
+                                          Rect{destination.x + tile_width, destination.y + tile_height, right_width,
+                                               below_height},
+                                          ImageSampling::nearest, opacity);
+    }
+}
+
+} // namespace
+
 void Painter::fill_image_pattern(ImageId image, Size source_pixel_size,
                                  Rect destination, Size logical_tile_size,
                                  ImagePatternWrap wrap, double opacity) {
-    const bool known_wrap = wrap == ImagePatternWrap::tile;
+    const bool known_wrap = wrap == ImagePatternWrap::tile || wrap == ImagePatternWrap::mirror ||
+                            wrap == ImagePatternWrap::clamp;
     if (!known_wrap || image.value == 0U || destination.empty() ||
         !destination.finite() || !std::isfinite(source_pixel_size.width) ||
         !std::isfinite(source_pixel_size.height) ||
@@ -429,6 +592,11 @@ void Painter::fill_image_pattern(ImageId image, Size source_pixel_size,
         !std::isfinite(opacity) || opacity <= 0.0) {
         return;
     }
+    if (wrap == ImagePatternWrap::clamp) {
+        fill_clamped_pattern(*this, image, source_pixel_size, destination, logical_tile_size, opacity);
+        return;
+    }
+    // `mirror` draws as `tile` here (painter.hpp): there is no flip.
     constexpr std::size_t maximum_fallback_tiles = 4096U;
     const std::size_t columns = static_cast<std::size_t>(
         std::ceil(destination.width / logical_tile_size.width));

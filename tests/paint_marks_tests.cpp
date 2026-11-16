@@ -134,6 +134,38 @@ public:
     void stroke_path(PaintPathView path, const StrokeStyle& style) override {
         out << "stroke_path " << path_text(path) << ' ' << stroke(style) << '\n';
     }
+    void clip_path(PaintPathView path, PolygonFillRule rule) override {
+        out << "clip_path " << path_text(path) << ' ' << (rule == PolygonFillRule::even_odd ? "even_odd" : "nonzero")
+            << '\n';
+    }
+    void fill_radial_gradient_spread(Rect rect, Point center, Size radii, std::span<const GradientStop> stops,
+                                     GradientSpreadMode spread) override {
+        static constexpr std::array<const char*, 3> spreads{{"pad", "repeat", "reflect"}};
+        const std::size_t index = static_cast<std::size_t>(spread);
+        out << "fill_radial_gradient_spread " << box(rect) << ' ' << point(center) << ' ' << radii.width << ','
+            << radii.height << ' ' << (index < spreads.size() ? spreads[index] : "?");
+        for (const GradientStop stop : stops) out << ' ' << stop.offset << ':' << colour(stop.color);
+        out << '\n';
+    }
+
+    void fill_hatch(Rect rect, const HatchPattern& pattern) override {
+        out << "fill_hatch " << box(rect) << " style=" << static_cast<unsigned>(pattern.style)
+            << " cell=" << pattern.cell << ' ' << colour(pattern.fore) << ' ' << colour(pattern.back)
+            << " anchor=" << point(pattern.anchor) << '\n';
+    }
+    void fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                    std::span<const GradientStop> stops, GradientSpreadMode spread) override {
+        out << "fill_focal_radial_gradient " << box(rect) << ' ' << point(center) << ' ' << radii.width << ','
+            << radii.height << " focus=" << point(focus) << " spread=" << static_cast<unsigned>(spread);
+        for (const GradientStop stop : stops) out << ' ' << stop.offset << ':' << colour(stop.color);
+        out << '\n';
+    }
+    void begin_transform(const PaintTransformGroup& group) override {
+        const PaintTransform& map = group.transform;
+        out << "begin_transform " << box(group.bounds) << ' ' << map.xx << ',' << map.yx << ',' << map.xy << ','
+            << map.yy << ',' << map.dx << ',' << map.dy << '\n';
+    }
+    void end_transform() override { out << "end_transform\n"; }
 
     std::ostringstream out;
 
@@ -885,12 +917,314 @@ void test_path_recording_and_fallbacks() {
     require(refused.fills.empty() && refused.lines.empty(), "an invalid path draws nothing");
 }
 
+// A painter that keeps every image region drawn, for the image pattern
+// fallbacks (draw_image_region_sampled's base draws through
+// draw_image_region).
+class ImageRegionPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    void draw_image_region(ImageId, Rect source, Rect destination, double) override {
+        sources.push_back(source);
+        destinations.push_back(destination);
+    }
+
+    std::vector<Rect> sources;
+    std::vector<Rect> destinations;
+};
+
+PaintPath clip_triangle() {
+    PaintPath triangle;
+    triangle.move_to(Point{0.0, 0.0});
+    triangle.line_to(Point{20.0, 0.0});
+    triangle.line_to(Point{0.0, 10.0});
+    triangle.close();
+    return triangle;
+}
+
+void test_path_clip_recording_and_fallback() {
+    const PaintPath triangle = clip_triangle();
+    const std::array<GradientStop, 2> stops{{GradientStop{0.0, ink}, GradientStop{1.0, paper}}};
+    detail::RecordingPainter recorder;
+    recorder.save();
+    recorder.clip_path(triangle.view(), PolygonFillRule::even_odd);
+    recorder.fill_radial_gradient_spread(Rect{0.0, 0.0, 20.0, 10.0}, Point{5.0, 5.0}, Size{4.0, 2.0}, stops,
+                                         GradientSpreadMode::reflect);
+    recorder.restore();
+    const std::shared_ptr<const detail::DisplayChunk> chunk =
+        recorder.finish(1U, PaintPlane::control, Rect{0.0, 0.0, 64.0, 32.0});
+    require((*chunk).commands().size() == 4U, "the clip and the gradient record one command each");
+    require((*chunk).commands()[1].rect == Rect{0.0, 0.0, 20.0, 10.0},
+            "a path clip records its bounds for the readers that follow clips as rectangles");
+    TracePainter trace;
+    require(detail::replay_display_chunk(*chunk, trace) == 4U, "every command replays");
+    const std::string expected =
+        "save\n"
+        "clip_path M0,0L20,0L0,10Z even_odd\n"
+        "fill_radial_gradient_spread 0,0,20,10 5,5 4,2 reflect 0:#10.20.30.255 1:#240.240.240.255\n"
+        "restore\n";
+    const std::string observed = trace.out.str();
+    if (observed != expected) std::cerr << "observed trace:\n" << observed;
+    require(observed == expected, "the path clip and the spread replay what was recorded");
+
+    bool refused = false;
+    try {
+        recorder.fill_radial_gradient_spread(Rect{0.0, 0.0, 4.0, 4.0}, Point{2.0, 2.0}, Size{2.0, 2.0}, stops,
+                                             static_cast<GradientSpreadMode>(9));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused, "a spread outside the enumeration is refused when recorded");
+
+    // The fallback: a minimal painter clips to the path's bounding box; a
+    // refused path or rule clips everything away.
+    MinimalPainter minimal;
+    minimal.clip_path(triangle.view(), PolygonFillRule::nonzero);
+    require(minimal.clips.size() == 1U && minimal.clips.back() == Rect{0.0, 0.0, 20.0, 10.0},
+            "a minimal painter clips to the path's bounds");
+    PaintPath broken;
+    broken.line_to(Point{1.0, 1.0});
+    minimal.clip_path(broken.view(), PolygonFillRule::nonzero);
+    minimal.clip_path(triangle.view(), static_cast<PolygonFillRule>(7));
+    require(minimal.clips.size() == 3U && minimal.clips[1] == Rect{} && minimal.clips[2] == Rect{},
+            "a refused path or rule clips to nothing");
+    // The base spread pads (through fill_radial_gradient's rings, drawn as
+    // rounded rectangles and so as fill_rect on this painter); an unknown
+    // spread draws nothing.
+    MinimalPainter padded;
+    padded.fill_radial_gradient_spread(Rect{0.0, 0.0, 20.0, 10.0}, Point{5.0, 5.0}, Size{4.0, 2.0}, stops,
+                                       GradientSpreadMode::repeat);
+    MinimalPainter unknown;
+    unknown.fill_radial_gradient_spread(Rect{0.0, 0.0, 20.0, 10.0}, Point{5.0, 5.0}, Size{4.0, 2.0}, stops,
+                                        static_cast<GradientSpreadMode>(9));
+    require(!padded.fills.empty() && unknown.fills.empty(),
+            "the base spread draws a padded gradient and refuses an unknown spread");
+}
+
+void test_image_pattern_clamp_fallback() {
+    // A 4 x 2 image in 8 x 4 tiles over 30 x 12: the tile, then its last
+    // column stretched right, its last row down, and its corner pixel over
+    // the rest.
+    ImageRegionPainter painter;
+    painter.fill_image_pattern(ImageId{7U}, Size{4.0, 2.0}, Rect{10.0, 20.0, 30.0, 12.0}, Size{8.0, 4.0},
+                               ImagePatternWrap::clamp, 1.0);
+    const std::array<Rect, 4> sources{{Rect{0.0, 0.0, 4.0, 2.0}, Rect{3.0, 0.0, 1.0, 2.0}, Rect{0.0, 1.0, 4.0, 1.0},
+                                        Rect{3.0, 1.0, 1.0, 1.0}}};
+    const std::array<Rect, 4> destinations{{Rect{10.0, 20.0, 8.0, 4.0}, Rect{18.0, 20.0, 22.0, 4.0},
+                                             Rect{10.0, 24.0, 8.0, 8.0}, Rect{18.0, 24.0, 22.0, 8.0}}};
+    require(painter.sources.size() == 4U && painter.destinations.size() == 4U,
+            "a clamped pattern draws its tile and three extensions");
+    for (std::size_t index = 0U; index < sources.size(); ++index) {
+        require(painter.sources[index] == sources[index] && painter.destinations[index] == destinations[index],
+                "each clamped region samples the tile's edge where the pattern extends it");
+    }
+    // A destination smaller than one tile draws the tile's visible part
+    // only.
+    ImageRegionPainter small;
+    small.fill_image_pattern(ImageId{7U}, Size{4.0, 2.0}, Rect{0.0, 0.0, 4.0, 4.0}, Size{8.0, 4.0},
+                             ImagePatternWrap::clamp, 1.0);
+    require(small.sources.size() == 1U && small.sources[0] == Rect{0.0, 0.0, 2.0, 2.0} &&
+                small.destinations[0] == Rect{0.0, 0.0, 4.0, 4.0},
+            "a clamped pattern inside one tile draws that tile's part");
+    // Mirror draws as tile on a minimal painter; an unknown wrap draws
+    // nothing.
+    ImageRegionPainter mirrored;
+    mirrored.fill_image_pattern(ImageId{7U}, Size{4.0, 2.0}, Rect{0.0, 0.0, 16.0, 4.0}, Size{8.0, 4.0},
+                                ImagePatternWrap::mirror, 1.0);
+    ImageRegionPainter unknown;
+    unknown.fill_image_pattern(ImageId{7U}, Size{4.0, 2.0}, Rect{0.0, 0.0, 16.0, 4.0}, Size{8.0, 4.0},
+                               static_cast<ImagePatternWrap>(9), 1.0);
+    require(mirrored.sources.size() == 2U && mirrored.sources[1] == Rect{0.0, 0.0, 4.0, 2.0} &&
+                unknown.sources.empty(),
+            "a minimal painter tiles a mirrored pattern unflipped and refuses an unknown wrap");
+}
+
+void test_hatch_squares() {
+    // Squares marked per cell in each style.
+    const std::array<HatchStyle, 6> styles{{HatchStyle::horizontal, HatchStyle::vertical,
+                                            HatchStyle::forward_diagonal, HatchStyle::backward_diagonal,
+                                            HatchStyle::cross, HatchStyle::diagonal_cross}};
+    const std::array<std::size_t, 6> counts{{8U, 8U, 8U, 8U, 15U, 16U}};
+    for (std::size_t index = 0U; index < styles.size(); ++index) {
+        std::size_t marked = 0U;
+        for (std::uint32_t row = 0U; row < hatch_cell_squares; ++row) {
+            for (std::uint32_t column = 0U; column < hatch_cell_squares; ++column) {
+                if (hatch_square_marked(styles[index], column, row)) ++marked;
+            }
+        }
+        require(marked == counts[index], "each hatch style marks its squares per cell");
+    }
+    require(hatch_square_marked(HatchStyle::horizontal, 5U, 3U) && !hatch_square_marked(HatchStyle::horizontal, 3U, 5U) &&
+                hatch_square_marked(HatchStyle::forward_diagonal, 0U, 7U) &&
+                hatch_square_marked(HatchStyle::backward_diagonal, 6U, 6U) &&
+                !hatch_square_marked(HatchStyle::horizontal, 8U, 3U) &&
+                !hatch_square_marked(static_cast<HatchStyle>(9), 3U, 3U),
+            "hatch squares follow the documented lines");
+    HatchPattern pattern{};
+    require(valid_hatch_pattern(pattern), "the default hatch is valid");
+    pattern.cell = 0.5;
+    require(!valid_hatch_pattern(pattern), "a cell under one unit is refused");
+}
+
+void test_hatch_and_focal_recording_and_fallback() {
+    HatchPattern hatch{};
+    hatch.style = HatchStyle::cross;
+    hatch.fore = ink;
+    hatch.back = paper;
+    hatch.anchor = Point{2.0, 3.0};
+    const std::array<GradientStop, 2> stops{{GradientStop{0.0, ink}, GradientStop{1.0, paper}}};
+    detail::RecordingPainter recorder;
+    recorder.fill_hatch(Rect{0.0, 0.0, 16.0, 8.0}, hatch);
+    recorder.fill_focal_radial_gradient(Rect{0.0, 0.0, 20.0, 10.0}, Point{10.0, 5.0}, Size{8.0, 4.0},
+                                        Point{8.0, 5.0}, stops, GradientSpreadMode::repeat);
+    const std::shared_ptr<const detail::DisplayChunk> chunk =
+        recorder.finish(1U, PaintPlane::control, Rect{0.0, 0.0, 64.0, 32.0});
+    TracePainter trace;
+    require(detail::replay_display_chunk(*chunk, trace) == 2U, "both commands replay");
+    const std::string expected =
+        "fill_hatch 0,0,16,8 style=4 cell=8 #10.20.30.255 #240.240.240.255 anchor=2,3\n"
+        "fill_focal_radial_gradient 0,0,20,10 10,5 8,4 focus=8,5 spread=1 0:#10.20.30.255 1:#240.240.240.255\n";
+    const std::string observed = trace.out.str();
+    if (observed != expected) std::cerr << "observed trace:\n" << observed;
+    require(observed == expected, "the hatch and the focal gradient replay what was recorded");
+
+    // The fallback hatch: the back colour, then row 3's eight unit squares.
+    MinimalPainter minimal;
+    HatchPattern rows{};
+    rows.fore = ink;
+    rows.back = paper;
+    minimal.fill_hatch(Rect{0.0, 0.0, 8.0, 8.0}, rows);
+    require(minimal.fills.size() == 9U && minimal.fills[0] == Rect{0.0, 0.0, 8.0, 8.0} &&
+                minimal.fill_colours[0] == paper && minimal.fills[1] == Rect{0.0, 3.0, 1.0, 1.0} &&
+                minimal.fills[8] == Rect{7.0, 3.0, 1.0, 1.0} && minimal.fill_colours[8] == ink,
+            "the fallback hatch fills the back colour and its marked squares");
+    MinimalPainter vast;
+    vast.fill_hatch(Rect{0.0, 0.0, 4096.0, 4096.0}, rows);
+    require(vast.fills.size() == 1U, "a hatch past the square bound fills one averaged colour");
+
+    MinimalPainter outside;
+    outside.fill_focal_radial_gradient(Rect{0.0, 0.0, 20.0, 10.0}, Point{10.0, 5.0}, Size{8.0, 4.0},
+                                       Point{18.0, 5.0}, stops, GradientSpreadMode::pad);
+    MinimalPainter inside;
+    inside.fill_focal_radial_gradient(Rect{0.0, 0.0, 20.0, 10.0}, Point{10.0, 5.0}, Size{8.0, 4.0},
+                                      Point{8.0, 5.0}, stops, GradientSpreadMode::pad);
+    require(outside.fills.empty() && !inside.fills.empty() && inside.fill_colours[0] == paper,
+            "a focus on or outside the ellipse draws nothing; inside, the fallback pads and draws rings");
+    require(focus_inside_ellipse(Point{0.0, 0.0}, Size{2.0, 1.0}, Point{1.9, 0.0}) &&
+                !focus_inside_ellipse(Point{0.0, 0.0}, Size{2.0, 1.0}, Point{0.0, 1.0}) &&
+                !focus_inside_ellipse(Point{0.0, 0.0}, Size{0.0, 1.0}, Point{0.0, 0.0}),
+            "the focus must lie strictly inside the ellipse");
+}
+
+void test_transform_group() {
+    // A quarter turn about (10, 5) is exact and takes (20, 5) to (10, -5).
+    const PaintTransform turn = paint_rotation_about(Point{10.0, 5.0}, 90.0);
+    require(turn.xx == 0.0 && turn.xy == 1.0 && turn.yx == -1.0 && turn.yy == 0.0 && turn.dx == 5.0 &&
+                turn.dy == 15.0 && transform_paint_point(turn, Point{20.0, 5.0}) == (Point{10.0, -5.0}),
+            "a quarter turn is exact and anticlockwise as seen");
+    // The other quarter turns are exact too (the engine's degree form).
+    const PaintTransform none = paint_rotation_about(Point{10.0, 5.0}, 0.0);
+    const PaintTransform half = paint_rotation_about(Point{10.0, 5.0}, 180.0);
+    const PaintTransform three = paint_rotation_about(Point{10.0, 5.0}, 270.0);
+    require(none == PaintTransform{} && half.xx == -1.0 && half.xy == 0.0 && half.yx == 0.0 && half.yy == -1.0 &&
+                half.dx == 20.0 && half.dy == 10.0 && three.xx == 0.0 && three.xy == -1.0 && three.yx == 1.0 &&
+                three.yy == 0.0 && three.dx == 15.0 && three.dy == -5.0,
+            "0, 180 and 270 degrees are exact");
+    require(transformed_paint_bounds(turn, Rect{0.0, 0.0, 20.0, 10.0}) == (Rect{5.0, -5.0, 10.0, 20.0}),
+            "the damage of a turned group bounds its four corners");
+    PaintTransform flat{};
+    flat.yy = 0.0;
+    PaintTransform wild{};
+    wild.dx = std::numeric_limits<double>::infinity();
+    require(valid_paint_transform(PaintTransform{}) && valid_paint_transform(turn) && !valid_paint_transform(flat) &&
+                !valid_paint_transform(wild) && transformed_paint_bounds(flat, Rect{0.0, 0.0, 4.0, 4.0}).empty(),
+            "a flattening or non-finite map is refused");
+    require(paint_transform_is_translation(PaintTransform{}) && !paint_transform_is_translation(turn) &&
+                paint_rotation_about(Point{}, std::numeric_limits<double>::quiet_NaN()) == PaintTransform{},
+            "translations are recognised; a non-finite turn is the identity");
+
+    detail::RecordingPainter recorder;
+    PaintTransformGroup group{};
+    group.bounds = Rect{0.0, 0.0, 20.0, 10.0};
+    group.transform = turn;
+    recorder.begin_transform(group);
+    require(recorder.origin() == (Point{5.0, 15.0}), "inside a group the origin is where content's origin lands");
+    recorder.fill_rect(Rect{1.0, 1.0, 2.0, 2.0}, ink);
+    recorder.end_transform();
+    require(recorder.origin() == Point{}, "end_transform restores the origin");
+    PaintTransformGroup refused{};
+    refused.transform = flat;
+    recorder.begin_transform(refused);
+    recorder.begin_transform(group);
+    recorder.fill_rect(Rect{1.0, 1.0, 2.0, 2.0}, ink);
+    recorder.end_transform();
+    recorder.end_transform();
+    require(recorder.transform_refusals() == 2U, "a refused group refuses the groups it holds");
+    const std::shared_ptr<const detail::DisplayChunk> chunk =
+        recorder.finish(1U, PaintPlane::control, Rect{0.0, 0.0, 64.0, 32.0});
+    TracePainter trace;
+    static_cast<void>(detail::replay_display_chunk(*chunk, trace));
+    const std::string expected =
+        "begin_transform 0,0,20,10 0,-1,1,0,5,15\n"
+        "fill_rect 1,1,2,2 #10.20.30.255\n"
+        "end_transform\n"
+        "save\nclip_rect 0,0,0,0\nsave\nclip_rect 0,0,0,0\n"
+        "fill_rect 1,1,2,2 #10.20.30.255\n"
+        "restore\nrestore\n";
+    const std::string observed = trace.out.str();
+    if (observed != expected) std::cerr << "observed trace:\n" << observed;
+    require(observed == expected, "a transform group replays as recorded; refused ones draw nothing");
+
+    // Scopes must nest: a paint group cannot end a transform group.
+    detail::RecordingPainter crossed;
+    crossed.begin_transform(group);
+    PaintGroup paint_group{};
+    paint_group.bounds = Rect{0.0, 0.0, 4.0, 4.0};
+    crossed.begin_group(paint_group);
+    bool threw = false;
+    try {
+        crossed.end_transform();
+    } catch (const std::logic_error&) {
+        threw = true;
+    }
+    require(threw, "end_transform with a paint group open inside it throws");
+
+    // The minimal fallback: a translation is drawn, a turn is not.
+    MinimalPainter minimal;
+    PaintTransformGroup moved{};
+    moved.bounds = Rect{0.0, 0.0, 8.0, 8.0};
+    moved.transform.dx = 3.0;
+    minimal.begin_transform(moved);
+    minimal.end_transform();
+    minimal.begin_transform(group);
+    minimal.end_transform();
+    require(minimal.saves == 2U && minimal.restores == 2U && minimal.clips.size() == 2U &&
+                minimal.clips[0] == moved.bounds && minimal.clips[1].empty(),
+            "the fallback translates and clips, and draws nothing for a turn");
+}
+
 void test_operation_names() {
     require(std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_polyline)) == "stroke_polyline" &&
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_grid_pattern)) ==
                     "fill_grid_pattern" &&
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_path)) == "fill_path" &&
-                std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_path)) == "stroke_path",
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_path)) == "stroke_path" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::clip_path)) == "clip_path" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_radial_gradient_spread)) ==
+                    "fill_radial_gradient_spread" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_hatch)) == "fill_hatch" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_focal_radial_gradient)) ==
+                    "fill_focal_radial_gradient" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::begin_transform)) ==
+                    "begin_transform" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::end_transform)) == "end_transform",
             "the batched operations must have inspection names");
 }
 
@@ -913,6 +1247,11 @@ int main() {
         test_joined_segments();
         test_path_values();
         test_path_recording_and_fallbacks();
+        test_path_clip_recording_and_fallback();
+        test_image_pattern_clamp_fallback();
+        test_hatch_squares();
+        test_hatch_and_focal_recording_and_fallback();
+        test_transform_group();
         test_operation_names();
         test_radial_layout_places_and_picks();
         test_direction_ring_trace();

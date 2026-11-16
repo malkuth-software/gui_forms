@@ -57,7 +57,7 @@ DEFAULT_BASELINE: Path = ROOT / "manifests" / "paint_census.json"
 # Painter members that set state or measure rather than draw.
 STATE_METHODS: frozenset[str] = frozenset({
     "save", "restore", "translate", "clip_rect", "clip_rounded_rect",
-    "begin_group", "end_group", "create_framebuffer", "measure_text_utf8",
+    "begin_group", "end_group", "begin_transform", "end_transform", "create_framebuffer", "measure_text_utf8",
 })
 # Free functions that draw a material or recipe without the engine's rules.
 RECIPE_FUNCTIONS: tuple[str, ...] = ("paint_surface_material", "paint_part_from_recipe")

@@ -1,4 +1,5 @@
 #include "gui_forms/controls/dial.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -116,8 +117,9 @@ Dial::Face Dial::face() const noexcept {
 Rect Dial::mark_at(Point centre, double radius, double at, double side) noexcept {
     // Clockwise from twelve o'clock, in y-down coordinates.
     const double angle = sweep_start + sweep * at;
-    const double x = centre.x + radius * std::sin(angle);
-    const double y = centre.y - radius * std::cos(angle);
+    const EngineSineCosine turn = engine_sine_cosine(angle);
+    const double x = centre.x + radius * turn.sine;
+    const double y = centre.y - radius * turn.cosine;
     const Rect square{x - side * 0.5, y - side * 0.5, side, side};
     return square;
 }
@@ -143,7 +145,7 @@ double Dial::value_from_window_point(Point point, double previous) const noexcep
     const double dy = point.y - (absolute.y + placed.centre.y);
     if (dx == 0.0 && dy == 0.0) return previous;
     // Clockwise from twelve o'clock, from -pi to pi.
-    const double angle = std::atan2(dx, -dy);
+    const double angle = engine_arctangent2(dx, -dy);
     double at = 0.0;
     if (angle < sweep_start || angle > sweep_start + sweep) {
         // In the gap at the bottom: stay at the end the value is nearer.

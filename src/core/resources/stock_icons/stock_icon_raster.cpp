@@ -2,6 +2,7 @@
 // a part raster (stock_icons.hpp: rasterize_stock_icon, bake_stock_icon).
 // Bake work, run once per icon, size and scale; never per frame.
 #include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "stock_icon_cache.hpp"
 
@@ -136,14 +137,14 @@ double segment_coverage(Point pixel, Point from, Point to, double half_width, bo
     const double length_squared = dx * dx + dy * dy;
     if (length_squared == 0.0) {
         if (flat_start || flat_end) return 0.0;
-        const double distance = std::hypot(pixel.x - from.x, pixel.y - from.y);
+        const double distance = engine_hypotenuse(pixel.x - from.x, pixel.y - from.y);
         return std::clamp(half_width + 0.5 - distance, 0.0, 1.0);
     }
     const double length = std::sqrt(length_squared);
     const double along = ((pixel.x - from.x) * dx + (pixel.y - from.y) * dy) / length;
     const double t = std::clamp(along / length, 0.0, 1.0);
     const Point nearest{from.x + dx * t, from.y + dy * t};
-    double coverage = std::clamp(half_width + 0.5 - std::hypot(pixel.x - nearest.x, pixel.y - nearest.y), 0.0, 1.0);
+    double coverage = std::clamp(half_width + 0.5 - engine_hypotenuse(pixel.x - nearest.x, pixel.y - nearest.y), 0.0, 1.0);
     if (flat_start) coverage *= std::clamp(along + 0.5, 0.0, 1.0);
     if (flat_end) coverage *= std::clamp(length - along + 0.5, 0.0, 1.0);
     return coverage;
@@ -167,7 +168,7 @@ void stroke_coverage(const FlattenedPath& flattened, double half_width, StrokeCa
             const bool first = index == start;
             const bool last = index + 2U == end;
             if (open && cap == StrokeCap::square) {
-                const double length = std::hypot(to.x - from.x, to.y - from.y);
+                const double length = engine_hypotenuse(to.x - from.x, to.y - from.y);
                 if (length > 0.0) {
                     const double ux = (to.x - from.x) / length * half_width;
                     const double uy = (to.y - from.y) / length * half_width;

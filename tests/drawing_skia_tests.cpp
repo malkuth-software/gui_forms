@@ -225,6 +225,51 @@ void texture_brush_tiles_and_mirrors_retained_pixels() {
     }
 }
 
+// A radial gradient brush, plain and with a focus, clamped and repeated.
+void radial_gradient_brush_rasterizes() {
+    SkiaExecutor executor;
+    GraphicsRecorder recorder;
+    RadialGradientBrush plain({16, 16}, 8.0, Color::from_name("red"), Color::from_name("blue"));
+    recorder.fill_rectangle(plain, {0, 0, 32, 32});
+    RadialGradientBrush repeated({48, 16}, 8.0, Color::from_name("red"), Color::from_name("blue"), WrapMode::tile);
+    recorder.fill_rectangle(repeated, {32, 0, 32, 32});
+    RadialGradientBrush focal({16, 48}, 8.0, Color::from_name("red"), Color::from_name("blue"));
+    focal.set_focus({12, 48});
+    recorder.fill_rectangle(focal, {0, 32, 32, 32});
+    Bitmap target(64, 64);
+    const RasterResult result = executor.execute(recorder, target);
+    CHECK(result);
+    CHECK(result.commands_executed == 3U);
+    // The centre is red; past the circle the clamp holds blue.
+    CHECK(target.get_pixel(16, 16).red() > 220U && target.get_pixel(16, 16).blue() < 35U);
+    CHECK(target.get_pixel(29, 16).blue() > 240U && target.get_pixel(29, 16).red() < 15U);
+    // Repeated, the colours start again past the circle: red-dominant
+    // just beyond the radius, where the clamp gave blue.
+    CHECK(target.get_pixel(57, 16).red() > target.get_pixel(57, 16).blue());
+    // The focus is red, and the colours crowd towards the edge nearer it.
+    CHECK(target.get_pixel(12, 48).red() > 180U && target.get_pixel(12, 48).red() > target.get_pixel(12, 48).blue());
+    CHECK(target.get_pixel(9, 48).blue() > target.get_pixel(15, 48).blue());
+}
+
+// An elliptical radial gradient brush: 16 across and 4 down, so a point 12
+// pixels right of the centre is still inside (t = 0.75) while one 6 pixels
+// below is past the edge and takes the clamped edge colour.
+void elliptical_radial_gradient_brush_rasterizes() {
+    SkiaExecutor executor;
+    GraphicsRecorder recorder;
+    RadialGradientBrush ellipse({16, 16}, 8.0, Color::from_name("red"), Color::from_name("blue"));
+    ellipse.set_radii(16.0, 4.0);
+    recorder.fill_rectangle(ellipse, {0, 0, 32, 32});
+    Bitmap target(32, 32);
+    const RasterResult result = executor.execute(recorder, target);
+    CHECK(result);
+    CHECK(target.get_pixel(16, 16).red() > 220U && target.get_pixel(16, 16).blue() < 35U);
+    CHECK(target.get_pixel(28, 16).red() > 30U && target.get_pixel(28, 16).blue() < 230U);
+    CHECK(target.get_pixel(16, 22).blue() > 240U && target.get_pixel(16, 22).red() < 15U);
+    // Mirror images across both axes give the same colour.
+    CHECK(target.get_pixel(8, 14).argb() == target.get_pixel(24, 18).argb());
+}
+
 void transparent_png_channels_are_premultiplied() {
     constexpr std::array<std::uint8_t, 70> encoded{
         0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
@@ -961,6 +1006,8 @@ int main() {
     bundled_faces_come_from_the_pack();
     image_attributes_clip_and_snapshot_execution();
     texture_brush_tiles_and_mirrors_retained_pixels();
+    radial_gradient_brush_rasterizes();
+    elliptical_radial_gradient_brush_rasterizes();
     transparent_png_channels_are_premultiplied();
     gradients_and_hatches_are_native_raster_commands();
     translucent_hatch_colours_are_premultiplied();

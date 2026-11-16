@@ -437,15 +437,20 @@ void append_element_points(const PathElement& element, std::vector<PointF>& resu
                 ? std::min(half_pi, finish - start)
                 : std::max(-half_pi, finish - start);
             const double end = start + delta;
-            const double alpha = 4.0 / 3.0 * std::tan(delta / 4.0);
+            const double alpha =
+                4.0 / 3.0 * gui_forms::engine_tangent(delta / 4.0);
             const PointF first = ellipse_point(
                 center_x, center_y, radius_x, radius_y, start);
             const PointF last = ellipse_point(
                 center_x, center_y, radius_x, radius_y, end);
-            result.push_back({first.x - alpha * radius_x * std::sin(start),
-                              first.y + alpha * radius_y * std::cos(start)});
-            result.push_back({last.x + alpha * radius_x * std::sin(end),
-                              last.y - alpha * radius_y * std::cos(end)});
+            const gui_forms::EngineSineCosine from =
+                gui_forms::engine_sine_cosine(start);
+            const gui_forms::EngineSineCosine to =
+                gui_forms::engine_sine_cosine(end);
+            result.push_back({first.x - alpha * radius_x * from.sine,
+                              first.y + alpha * radius_y * from.cosine});
+            result.push_back({last.x + alpha * radius_x * to.sine,
+                              last.y - alpha * radius_y * to.cosine});
             result.push_back(last);
             start = end;
         }

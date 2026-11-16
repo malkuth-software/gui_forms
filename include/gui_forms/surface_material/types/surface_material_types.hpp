@@ -217,6 +217,74 @@ enum class MaterialDither : std::uint8_t {
     ordered,
     blue_noise,
 };
+// A material's own linear transform (theme `transform: rotate() |
+// scale()`, owner 2026-11-16) about its box's centre: a point p of the
+// face is drawn at c + L (p - c), where c is the centre and L maps (x, y)
+// to (xx x + xy y, yx x + yy y). The identity by default. Both paths
+// draw it as a transform group (Painter::begin_transform) cut to the box
+// grown by its visual outsets, so the turned or scaled face never paints
+// outside what the part already damages. Valid when every entry is finite
+// and at most maximum_entry in size, and the determinant is at least
+// minimum_paint_transform_determinant in size.
+struct GUI_FORMS_API MaterialTransform final {
+    static constexpr double maximum_entry = 64.0;
+    double xx{1.0};
+    double yx{0.0};
+    double xy{0.0};
+    double yy{1.0};
+    [[nodiscard]] bool identity() const noexcept {
+        return xx == 1.0 && yx == 0.0 && xy == 0.0 && yy == 1.0;
+    }
+    friend constexpr bool operator==(const MaterialTransform& left, const MaterialTransform& right) noexcept {
+        return left.xx == right.xx && left.yx == right.yx && left.xy == right.xy && left.yy == right.yy;
+    }
+};
+// One verb of a material clip path, with the points it takes from
+// MaterialClipPath::points: move and line one, quadratic two (control,
+// end), cubic three (two controls, end), close none.
+enum class MaterialClipVerb : std::uint8_t {
+    move,
+    line,
+    quadratic,
+    cubic,
+    close,
+};
+// A clip path point in the box: x = box.x + x_units + x_fraction *
+// box.width, and y likewise (a CSS length or percentage of the box).
+struct GUI_FORMS_API MaterialClipPoint final {
+    double x_units{};
+    double x_fraction{};
+    double y_units{};
+    double y_fraction{};
+    friend constexpr bool operator==(const MaterialClipPoint& left, const MaterialClipPoint& right) noexcept {
+        return left.x_units == right.x_units && left.x_fraction == right.x_fraction &&
+               left.y_units == right.y_units && left.y_fraction == right.y_fraction;
+    }
+};
+enum class MaterialClipRule : std::uint8_t {
+    nonzero,
+    even_odd,
+};
+// A material's clip path (theme `clip-path: polygon() | path()`, owner
+// 2026-11-16): only the inside of this outline, filled by `rule`, is
+// drawn: the face, its shadows, glows, filters and reflection alike. It
+// lies in the box's coordinates and turns with the material's transform.
+// Both paths draw it through Painter::clip_path, so a raster composite
+// under it takes its coverage mask. Valid when the first verb is a move,
+// the verbs take exactly `points`, there are at most maximum_points points,
+// and every coordinate is finite with units at most maximum_units and
+// fractions at most maximum_fraction in size.
+struct GUI_FORMS_API MaterialClipPath final {
+    static constexpr std::size_t maximum_points = 256U;
+    static constexpr double maximum_units = 100000.0;
+    static constexpr double maximum_fraction = 100.0;
+    std::vector<MaterialClipVerb> verbs;
+    std::vector<MaterialClipPoint> points;
+    MaterialClipRule rule{MaterialClipRule::nonzero};
+    friend bool operator==(const MaterialClipPath& left, const MaterialClipPath& right) noexcept {
+        return left.verbs == right.verbs && left.points == right.points && left.rule == right.rule;
+    }
+};
 struct GUI_FORMS_API SurfaceMaterial final {
     static constexpr std::size_t maximum_fill_layers = 8U;
     static constexpr std::size_t maximum_shadows = 4U;
@@ -273,6 +341,11 @@ struct GUI_FORMS_API SurfaceMaterial final {
     std::optional<MaterialReflection> reflection;
     // The final quantization (MaterialDither); none by default.
     MaterialDither dither{MaterialDither::none};
+    // The material's own transform (MaterialTransform); the identity by
+    // default.
+    MaterialTransform transform;
+    // The material's clip path (MaterialClipPath); none by default.
+    std::optional<MaterialClipPath> clip_path;
     [[nodiscard]] static SurfaceMaterial from_parts(
         const MaterialFillLayer* fills, std::size_t fill_count,
         const MaterialShadow* shadows, std::size_t shadow_count,
@@ -300,7 +373,8 @@ struct GUI_FORMS_API SurfaceMaterial final {
         left.drop_shadow == right.drop_shadow &&
         left.filter_blur == right.filter_blur && left.finish == right.finish &&
         left.mask == right.mask && left.reflection == right.reflection &&
-        left.dither == right.dither)) {
+        left.dither == right.dither && left.transform == right.transform &&
+        left.clip_path == right.clip_path)) {
         return left.fills == right.fills && left.shadows == right.shadows &&
                left.glows == right.glows &&
                left.border == right.border &&
@@ -313,7 +387,8 @@ struct GUI_FORMS_API SurfaceMaterial final {
                left.filter_blur == right.filter_blur &&
                left.finish == right.finish && left.mask == right.mask &&
                left.reflection == right.reflection &&
-               left.dither == right.dither;
+               left.dither == right.dither && left.transform == right.transform &&
+               left.clip_path == right.clip_path;
     }
 };
 

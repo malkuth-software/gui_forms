@@ -15,11 +15,14 @@ namespace gui_forms::detail {
 namespace {
 
 // What a save or a group restores: the translation, the clip (window
-// logical units) and the opacity of what is drawn.
+// logical units), the opacity of what is drawn and whether a transform
+// group that does more than translate is in force (its part rasters
+// cannot be placed as rectangles and are skipped).
 struct CompositeState final {
     Point offset{};
     Rect clip{};
     double opacity{1.0};
+    bool transformed{};
 };
 
 // Saves and groups nest at most this deep in a backplane chunk the
@@ -111,6 +114,7 @@ std::uint64_t composite_backplane_chunk(const DisplayChunk& chunk, Point origin,
         switch (command.operation) {
         case DisplayOperation::save:
         case DisplayOperation::begin_group:
+        case DisplayOperation::begin_transform:
             if (depth == saved.size()) {
                 // Too deep to follow: what remains is skipped.
                 const std::uint64_t remaining = static_cast<std::uint64_t>(commands.size() - index);
@@ -120,9 +124,20 @@ std::uint64_t composite_backplane_chunk(const DisplayChunk& chunk, Point origin,
             saved[depth] = state;
             depth = depth + 1U;
             if (command.operation == DisplayOperation::begin_group) state.opacity = state.opacity * command.scalar;
+            if (command.operation == DisplayOperation::begin_transform) {
+                // The map's linear part in `first` and `second`.
+                const bool translation = command.first == Point{1.0, 0.0} && command.second == Point{0.0, 1.0};
+                if (!translation) {
+                    state.transformed = true;
+                } else {
+                    state.offset = Point{state.offset.x + command.scalar, state.offset.y + command.secondary_scalar};
+                    state.clip = Rect::intersection(state.clip, translated(command.rect, state.offset));
+                }
+            }
             break;
         case DisplayOperation::restore:
         case DisplayOperation::end_group:
+        case DisplayOperation::end_transform:
             if (depth > 0U) {
                 depth = depth - 1U;
                 state = saved[depth];
@@ -134,10 +149,16 @@ std::uint64_t composite_backplane_chunk(const DisplayChunk& chunk, Point origin,
         case DisplayOperation::clip_rect:
         case DisplayOperation::clip_rounded_rect:
         case DisplayOperation::clip_rounded_rect_corners:
+        case DisplayOperation::clip_path:
+            // Followed by its bounds (a path clip's `rect`).
             state.clip = Rect::intersection(state.clip, translated(command.rect, state.offset));
             break;
         case DisplayOperation::draw_part_raster: {
             if (!command.part_raster) break;
+            if (state.transformed) {
+                skipped = skipped + 1U;
+                break;
+            }
             const PartRaster& raster = *command.part_raster;
             const double scale = raster.scale().value;
             const Rect placed{command.first.x + state.offset.x, command.first.y + state.offset.y,
@@ -148,6 +169,10 @@ std::uint64_t composite_backplane_chunk(const DisplayChunk& chunk, Point origin,
         }
         case DisplayOperation::draw_part_raster_scaled:
             if (!command.part_raster) break;
+            if (state.transformed) {
+                skipped = skipped + 1U;
+                break;
+            }
             composite_raster(*command.part_raster, translated(command.rect, state.offset), state.clip,
                              state.opacity * command.scalar, region, image);
             break;

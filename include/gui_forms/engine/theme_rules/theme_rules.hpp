@@ -756,8 +756,9 @@ struct GUI_FORMS_API MaterialImagePosition final {
 };
 
 // An image layer's repetition (CSS `background-repeat`): tiled, or one
-// tile alone (MaterialImageMode::single).
-enum class MaterialImageRepeat : std::uint8_t { repeat, no_repeat };
+// tile alone (MaterialImageMode::single); or the theme language's
+// `mirror` and `extend` (MaterialImageMode::mirror and extend).
+enum class MaterialImageRepeat : std::uint8_t { repeat, no_repeat, mirror, extend };
 
 // How a drawn edge's line is made (T3 P6e, CSS `border-style`): one line
 // in its MaterialBorderStyle, or, drawn as two keylines on the edge in
@@ -824,6 +825,10 @@ enum class MaterialField : std::uint8_t {
     // shadows, appended to the shadows when the material is assembled.
     seat,
     gradient_dither,
+    // The material's own transform (`transform: rotate() | scale()`).
+    transform,
+    // The material's clip path (`clip-path: polygon() | path()`).
+    clip_path,
     count,
 };
 
@@ -869,7 +874,9 @@ inline constexpr std::size_t material_field_count = static_cast<std::size_t>(Mat
 //   (negative: sunk into it), or, with `relative`, a fraction of the box's
 //   shorter side, and `colour`, its shadow's; 0 for none. Resolved when
 //   the material is assembled (seat_shadows).
-// - gradient_dither: `dither` (MaterialDither, `gradient-dither`).
+// - gradient_dither: `dither` (MaterialDither, `gradient-dither`);
+// - transform: `transform` (MaterialTransform), the identity for none;
+// - clip_path: `clip_path` (MaterialClipPath), empty for none.
 // `initial`, set, is CSS's `initial`: the field keeps the floor's value,
 // and the declaration still wins over those beneath it; its value members
 // are not read.
@@ -897,6 +904,8 @@ struct GUI_FORMS_API MaterialDeclaration final {
     std::optional<MaterialFillLayer> mask{};
     std::optional<MaterialReflection> reflection{};
     MaterialDither dither{MaterialDither::none};
+    MaterialTransform transform{};
+    std::optional<MaterialClipPath> clip_path{};
     // Where the declaration's colours came from (EC4).
     ColourOrigin origin{};
     // Its lengths in em (T3 P8c, owner decision D4): empty, or one
@@ -921,6 +930,7 @@ struct GUI_FORMS_API MaterialDeclaration final {
                left.number == right.number && left.relative == right.relative &&
                left.colour_filter == right.colour_filter && left.drop_shadow == right.drop_shadow &&
                left.mask == right.mask && left.reflection == right.reflection && left.dither == right.dither &&
+               left.transform == right.transform && left.clip_path == right.clip_path &&
                left.origin == right.origin &&
                left.em_lengths == right.em_lengths &&
                left.current_colours == right.current_colours;
@@ -1288,8 +1298,9 @@ enum class CanvasTextureSource : std::uint8_t { procedural, finish };
 // [0, maximum_canvas_texture_contrast]:
 // - `procedural`: a built-in pattern (ProceduralFill's `pattern`, `seed`,
 //   `tile` in [minimum_procedural_tile, maximum_canvas_texture_tile]
-//   logical units and `strength` in [0, 1]); the canvas chooses its
-//   colours (resolve_canvas_look), so a theme sets its form only;
+//   logical units and `strength` in [0, 1], and for a hatch its
+//   `hatch_style`); the canvas chooses its colours (resolve_canvas_look),
+//   so a theme sets its form only;
 // - `finish`: a surface finish (`finish`, any kind but the glint, in the
 //   colours the theme writes); the pattern fields are not read.
 struct GUI_FORMS_API CanvasTextureLayer final {
@@ -1298,12 +1309,13 @@ struct GUI_FORMS_API CanvasTextureLayer final {
     std::uint32_t seed{};
     double tile{64.0};
     double strength{1.0};
+    HatchStyle hatch_style{HatchStyle::horizontal};
     FinishFill finish{};
     double contrast{};
     friend bool operator==(const CanvasTextureLayer& left, const CanvasTextureLayer& right) noexcept {
         return left.source == right.source && left.pattern == right.pattern && left.seed == right.seed &&
-               left.tile == right.tile && left.strength == right.strength && left.finish == right.finish &&
-               left.contrast == right.contrast;
+               left.tile == right.tile && left.strength == right.strength && left.hatch_style == right.hatch_style &&
+               left.finish == right.finish && left.contrast == right.contrast;
     }
 };
 

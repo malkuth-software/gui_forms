@@ -478,6 +478,22 @@ void generate_checker(const PatternInputs& inputs, const PartRasterView& destina
     }
 }
 
+// Hatch: square (column, row) of the 8 by 8 cell holds the pixels whose
+// 8x / width and 8y / height floor to it; a marked square is the figure.
+void generate_hatch(const ProceduralFill& fill, const PatternInputs& inputs, const PartRasterView& destination) {
+    const Channels line = mix_channels(inputs.ground, inputs.figure, inputs.strength);
+    for (std::uint32_t y = 0U; y < inputs.height; ++y) {
+        const std::uint32_t row = static_cast<std::uint32_t>((std::uint64_t{y} * hatch_cell_squares) / inputs.height);
+        for (std::uint32_t x = 0U; x < inputs.width; ++x) {
+            const std::uint32_t column =
+                static_cast<std::uint32_t>((std::uint64_t{x} * hatch_cell_squares) / inputs.width);
+            const bool marked = hatch_square_marked(fill.hatch_style, column, row);
+            const Channels& colour = marked ? line : inputs.ground;
+            store_channels(pixel_at(destination, x, y), colour);
+        }
+    }
+}
+
 // One fresco bloom: its centre and radii in doubled device pixels (pixel
 // centres are odd there).
 struct Bloom final {
@@ -582,6 +598,7 @@ std::uint64_t generation_weight(ProceduralPattern pattern) noexcept {
     case ProceduralPattern::brushed_metal: return weights.brushed_metal;
     case ProceduralPattern::fresco: return weights.fresco;
     case ProceduralPattern::checker: return weights.checker;
+    case ProceduralPattern::hatch: return weights.hatch;
     }
     // A pattern outside the enumeration is never accepted
     // (valid_surface_material): one pixel of it is past the budget.
@@ -648,6 +665,9 @@ void generate_procedural(const ProceduralFill& fill, double scale, const PartRas
         return;
     case ProceduralPattern::checker:
         generate_checker(inputs, destination);
+        return;
+    case ProceduralPattern::hatch:
+        generate_hatch(fill, inputs, destination);
         return;
     }
     // A pattern outside the enumeration is never accepted: the ground.

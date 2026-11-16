@@ -1,4 +1,5 @@
 #include "gui_forms/components/business_card/business_card.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "card_turn.hpp"
 
@@ -926,8 +927,9 @@ void BusinessCard::say_remark(FrameTime now) {
     for (std::uint32_t attempt = 0U; attempt < remark_placement_attempts; ++attempt) {
         const double angle = 2.0 * pi * unit_random(remark_seed_);
         const double reach = placed.card.width * (0.58 + 0.12 * unit_random(remark_seed_));
-        const Rect box{centre_x + std::cos(angle) * reach - width * 0.5,
-                       centre_y + std::sin(angle) * reach * 0.62 - height * 0.5, width, height};
+        const EngineSineCosine turn = engine_sine_cosine(angle);
+        const Rect box{centre_x + turn.cosine * reach - width * 0.5,
+                       centre_y + turn.sine * reach * 0.62 - height * 0.5, width, height};
         const bool inside = box.x >= room.x && box.y >= room.y && box.right() <= room.right() &&
                             box.bottom() <= room.bottom();
         if (!inside || overlaps(box, card)) continue;
@@ -1028,7 +1030,7 @@ void BusinessCard::on_mouse_move(MouseEventArgs& arguments) {
     const bool hand = presentation_ == BusinessCardPresentation::hand;
     if (hand && press_target_ != PressTarget::none) {
         const Point at = arguments.location;
-        const double moved = std::hypot(at.x - drag_origin_.x, at.y - drag_origin_.y);
+        const double moved = engine_hypotenuse(at.x - drag_origin_.x, at.y - drag_origin_.y);
         if (!dragging_ && moved > drag_threshold) {
             begin_turn_gesture();
             if (turn_available()) {

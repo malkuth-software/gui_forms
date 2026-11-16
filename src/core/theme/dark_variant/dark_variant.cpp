@@ -1,4 +1,5 @@
 #include "dark_variant.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "gui_forms/theme/types/theme_types.hpp"
 
@@ -101,9 +102,10 @@ struct LinearRgb final {
 };
 
 LinearRgb linear_of(const Lch& colour) noexcept {
-    const double radians = colour.hue_degrees * pi / 180.0;
-    const double a = colour.chroma * std::cos(radians);
-    const double b = colour.chroma * std::sin(radians);
+    // The engine's deterministic sine and cosine (the same bits on every host).
+    const EngineSineCosine turn = engine_sine_cosine_degrees(colour.hue_degrees);
+    const double a = colour.chroma * turn.cosine;
+    const double b = colour.chroma * turn.sine;
     const double l_root = colour.lightness + 0.3963377774 * a + 0.2158037573 * b;
     const double m_root = colour.lightness - 0.1055613458 * a - 0.0638541728 * b;
     const double s_root = colour.lightness - 0.0894841775 * a - 1.2914855480 * b;
@@ -220,8 +222,8 @@ Lch lch_of(Color colour) noexcept {
     const OklabColour lab = oklab_of(colour);
     Lch result{};
     result.lightness = lab.lightness;
-    result.chroma = std::hypot(lab.a, lab.b);
-    const double hue = std::atan2(lab.b, lab.a) * 180.0 / pi;
+    result.chroma = engine_hypotenuse(lab.a, lab.b);
+    const double hue = engine_arctangent2(lab.b, lab.a) * 180.0 / pi;
     result.hue_degrees = hue < 0.0 ? hue + 360.0 : hue;
     return result;
 }
@@ -330,14 +332,14 @@ constexpr double gold_chroma = 0.06;
 constexpr double default_face_lightness = 0.9;
 
 double hue_of(const detail::OklabColour& lab) noexcept {
-    const double hue = std::atan2(lab.b, lab.a) * 180.0 / 3.14159265358979323846;
+    const double hue = engine_arctangent2(lab.b, lab.a) * 180.0 / 3.14159265358979323846;
     const double result = hue < 0.0 ? hue + 360.0 : hue;
     return result;
 }
 
 bool gold(Color colour) noexcept {
     const detail::OklabColour lab = detail::oklab_of(colour);
-    const double chroma = std::hypot(lab.a, lab.b);
+    const double chroma = engine_hypotenuse(lab.a, lab.b);
     const double hue = hue_of(lab);
     const bool result = chroma >= gold_chroma && hue >= gold_hue_low && hue <= gold_hue_high;
     return result;

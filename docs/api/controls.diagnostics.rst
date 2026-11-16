@@ -1204,6 +1204,18 @@ Enumerations
 
    .. cpp:enumerator:: stroke_path
 
+   .. cpp:enumerator:: clip_path
+
+   .. cpp:enumerator:: fill_radial_gradient_spread
+
+   .. cpp:enumerator:: fill_hatch
+
+   .. cpp:enumerator:: fill_focal_radial_gradient
+
+   .. cpp:enumerator:: begin_transform
+
+   .. cpp:enumerator:: end_transform
+
 Functions, constants and aliases
 --------------------------------
 

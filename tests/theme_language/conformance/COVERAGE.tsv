@@ -149,7 +149,7 @@ property.border-style-keyline	borders
 property.border-width	borders
 property.box-shadow	shadows-opacity-filters
 property.box-shadow-inset	shadows-opacity-filters
-property.clip-path	not-admitted
+property.clip-path	material-shape
 property.color	transforms-text
 property.conic-gradient	fills
 property.default-outline	recipe-colours
@@ -196,7 +196,7 @@ property.sheen	sheen-pointer
 property.surface-finish	finish-light-images-masks
 property.text-decoration	not-admitted
 property.text-shadow	shadows-opacity-filters
-property.transform	not-admitted
+property.transform	material-shape
 property.translate	transforms-text
 selector.any	selectors-basic
 selector.any-implied	selectors-basic

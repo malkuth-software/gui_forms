@@ -1,4 +1,5 @@
 #include "gallery_pages.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_schema/binding_schema.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
@@ -567,7 +568,7 @@ public:
         const double cycle = static_cast<double>((*context).timer_ticks % 20U) / 19.0;
         (*(*context).timer_progress).value = cycle * 100.0;
         constexpr double travel = 98.0;
-        const double eased = 0.5 - std::cos(cycle * 6.283185307179586) * 0.5;
+        const double eased = 0.5 - engine_sine_cosine(cycle * 6.283185307179586).cosine * 0.5;
         (*(*context).timer_motion).set_design_bounds(
             *(*context).timer_motion_target, {14.0 + travel * eased, 39.0, 168.0, 34.0});
         (*(*context).timer_status).text = "Running · tick " + std::to_string((*context).timer_ticks) + " · " +

@@ -999,9 +999,11 @@ typedef uint32_t gf_window_band_appearance_flags;
 
 /* gf_window_band_texture: a texture under the band's colour, one surface
  * per strip. NONE draws none. PROCEDURAL: texture_kind is a
- * GF_PROCEDURAL_PATTERN_*, texture_seed its seed, texture_primary and
+ * GF_PROCEDURAL_PATTERN_*, texture_seed its seed (for HATCH, which has no
+ * noise, its GF_HATCH_STYLE_* instead), texture_primary and
  * texture_secondary its ground and figure colours, texture_tile its tile
- * (2 to 256 logical units) and texture_strength its strength (0 to 1).
+ * (2 to 256 logical units; a hatch's tile is one cell of 8 by 8 squares)
+ * and texture_strength its strength (0 to 1).
  * FINISH: texture_kind is a GF_FINISH_* (not the glint), texture_seed its
  * seed (as int32), texture_primary its paint and texture_secondary its
  * second colour (dust or weft), texture_tile its grain (0.5 to 4) and
@@ -1018,6 +1020,13 @@ typedef uint32_t gf_window_band_texture;
 #define GF_PROCEDURAL_PATTERN_BRUSHED_METAL 4u
 #define GF_PROCEDURAL_PATTERN_FRESCO 5u
 #define GF_PROCEDURAL_PATTERN_CHECKER 6u
+#define GF_PROCEDURAL_PATTERN_HATCH 7u
+#define GF_HATCH_STYLE_HORIZONTAL 0u
+#define GF_HATCH_STYLE_VERTICAL 1u
+#define GF_HATCH_STYLE_FORWARD_DIAGONAL 2u
+#define GF_HATCH_STYLE_BACKWARD_DIAGONAL 3u
+#define GF_HATCH_STYLE_CROSS 4u
+#define GF_HATCH_STYLE_DIAGONAL_CROSS 5u
 #define GF_FINISH_DUSTY_MATTE 0u
 #define GF_FINISH_ORANGE_PEEL 1u
 #define GF_FINISH_HAMMERTONE 2u

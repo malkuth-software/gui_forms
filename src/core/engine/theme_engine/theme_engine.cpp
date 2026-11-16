@@ -2,6 +2,7 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window/window.hpp"
@@ -1360,9 +1361,20 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
     if (run.outcome == PartPaintRun::Outcome::nothing) return;
     // N91: what the stages above resolved and baked once is drawn under
     // each clip, as a paint of the whole part per clip would draw it.
+    // A material's transform or clip path (owner 2026-11-16) wraps the
+    // part's raster in a transform group and path clip
+    // (begin_surface_material_shape). The built-in recipe draws its
+    // material through paint_surface_material, which wraps it there.
+    const bool rastered = run.outcome != PartPaintRun::Outcome::built_in;
+    const bool shape_drawn =
+        rastered && run.resolved_material != nullptr && surface_material_shaped(*run.resolved_material);
+    const SurfaceMaterial* const shaped = shape_drawn ? run.resolved_material : nullptr;
+    PaintPath shape_clip;
     if (clips.empty()) {
         if (group != nullptr) painter.begin_group(*group);
+        if (shaped != nullptr) begin_surface_material_shape(painter, part.bounds, *shaped, shape_clip);
         draw_part_paint(painter, control, part, run);
+        if (shaped != nullptr) end_surface_material_shape(painter, *shaped);
         if (group != nullptr) painter.end_group();
         return;
     }
@@ -1370,7 +1382,9 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
         painter.save();
         painter.clip_rect(clip);
         if (group != nullptr) painter.begin_group(*group);
+        if (shaped != nullptr) begin_surface_material_shape(painter, part.bounds, *shaped, shape_clip);
         draw_part_paint(painter, control, part, run);
+        if (shaped != nullptr) end_surface_material_shape(painter, *shaped);
         if (group != nullptr) painter.end_group();
         painter.restore();
     }

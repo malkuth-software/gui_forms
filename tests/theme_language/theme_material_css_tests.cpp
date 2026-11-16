@@ -218,6 +218,29 @@ void test_radial_geometry() {
                 ringed.stops == stops_of({{0.0, middle}, {0.5, blue}, {0.5 + separation, red}, {1.0, middle}}),
             "a repeating period that begins off the centre is rotated to begin there");
 
+    // Reflected off the centre: the period and its mirror image repeat as
+    // one pair of twice the radii, rotated as a repeating period is.
+    AuthoredGradient mirrored = rings;
+    mirrored.reflecting = true;
+    const MaterialFillLayer reflected = resolved(mirrored, Size{40.0, 24.0});
+    require(reflected.spread == GradientSpreadMode::repeat && reflected.radii == (Size{100.0, 100.0}) &&
+                reflected.stops ==
+                    stops_of({{0.0, middle}, {0.25, red}, {0.25 + separation, red}, {0.75, blue}, {1.0, middle}}),
+            "a reflecting period that begins off the centre repeats with its mirror image");
+    AuthoredGradient centred = rings;
+    centred.reflecting = true;
+    centred.stops = {stop_at(red, 0.0, 0.0), stop_at(blue, 0.0, 50.0)};
+    const MaterialFillLayer reflecting = resolved(centred, Size{40.0, 24.0});
+    require(reflecting.spread == GradientSpreadMode::reflect && reflecting.radii == (Size{50.0, 50.0}) &&
+                reflecting.stops == stops_of({{0.0, red}, {1.0, blue}}),
+            "a reflecting period that begins at the centre reflects");
+    AuthoredGradient unrepeated = centred;
+    unrepeated.repeating = false;
+    require(!valid_authored_gradient(unrepeated), "a reflecting gradient repeats");
+    AuthoredGradient crowded = centred;
+    crowded.stops.assign(maximum_reflecting_radial_stops + 1U, stop(red));
+    require(!valid_authored_gradient(crowded), "a reflecting radial gradient's stops fit twice over");
+
     AuthoredGradient wrong = circle;
     wrong.extent = RadialExtent::lengths;
     wrong.radius_x = BoxLength{0.5, 0.0};
@@ -689,6 +712,13 @@ void test_image_lowering() {
                 (*repeats).image_repeats[0] == MaterialImageRepeat::no_repeat &&
                 (*repeats).image_repeats[1] == MaterialImageRepeat::repeat,
             "background-repeat reads each layer's repetition");
+    const std::string_view mirror_sheet = "#pad::part(face) { background-repeat: mirror, extend extend }";
+    const Compilation mirrored = compile(mirror_sheet);
+    const MaterialDeclaration* const mirrors = field_of(only_rule(mirrored, mirror_sheet), MaterialField::fill_repeats);
+    require(mirrors != nullptr && (*mirrors).image_repeats.size() == 2U &&
+                (*mirrors).image_repeats[0] == MaterialImageRepeat::mirror &&
+                (*mirrors).image_repeats[1] == MaterialImageRepeat::extend,
+            "background-repeat reads mirror and extend");
 
     const std::string_view image_sheet = "#pad::part(face) { background-image: url(\"resource:tile.quadrant\") }";
     const Compilation imaged = compile(image_sheet);
@@ -742,6 +772,168 @@ void test_reflection_lowering() {
     const Compilation none = compile(none_sheet);
     const MaterialDeclaration* const cleared = field_of(only_rule(none, none_sheet), MaterialField::reflection);
     require(cleared != nullptr && !(*cleared).reflection, "reflection: none clears it");
+}
+
+// transform and clip-path on a material (owner 2026-11-16): rotate() and
+// scale() compose as a CSS transform list into the linear map about the
+// box's centre; polygon() and path() lower to the clip path's verbs and
+// points, with their fill rule; `none` clears each; malformed values are
+// refused at their place.
+void test_shape_lowering() {
+    struct Turned final {
+        std::string_view sheet;
+        MaterialTransform transform;
+    };
+    // Every quarter turn is exact (the engine's deterministic degree form).
+    const std::array<Turned, 9> turned{{
+        {"#pad::part(face) { transform: rotate(0deg) }", MaterialTransform{1.0, 0.0, 0.0, 1.0}},
+        {"#pad::part(face) { transform: rotate(90deg) }", MaterialTransform{0.0, 1.0, -1.0, 0.0}},
+        {"#pad::part(face) { transform: rotate(180deg) }", MaterialTransform{-1.0, 0.0, 0.0, -1.0}},
+        {"#pad::part(face) { transform: rotate(270deg) }", MaterialTransform{0.0, -1.0, 1.0, 0.0}},
+        {"#pad::part(face) { transform: rotate(-450deg) }", MaterialTransform{0.0, -1.0, 1.0, 0.0}},
+        {"#pad::part(face) { transform: scale(2, 50%) }", MaterialTransform{2.0, 0.0, 0.0, 0.5}},
+        {"#pad::part(face) { transform: scale(1.5) }", MaterialTransform{1.5, 0.0, 0.0, 1.5}},
+        // The last function applies first: scale, then the quarter turn.
+        {"#pad::part(face) { transform: rotate(90deg) scale(2) }", MaterialTransform{0.0, 2.0, -2.0, 0.0}},
+        {"#pad::part(face) { transform: none }", MaterialTransform{}},
+    }};
+    for (const Turned& entry : turned) {
+        const Compilation compiled = compile(entry.sheet);
+        const MaterialDeclaration* const declaration =
+            field_of(only_rule(compiled, entry.sheet), MaterialField::transform);
+        require(declaration != nullptr && (*declaration).transform == entry.transform,
+                std::string("the transform lowers: ") + std::string(entry.sheet));
+    }
+
+    const std::string_view polygon_sheet = "#pad::part(face) { clip-path: polygon(50% 0, 100% 100%, 0 10px) }";
+    const Compilation polygon = compile(polygon_sheet);
+    const MaterialDeclaration* const outlined = field_of(only_rule(polygon, polygon_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> closed_triangle{MaterialClipVerb::move, MaterialClipVerb::line,
+                                                        MaterialClipVerb::line, MaterialClipVerb::close};
+    const std::vector<MaterialClipPoint> polygon_points{MaterialClipPoint{0.0, 0.5, 0.0, 0.0},
+                                                        MaterialClipPoint{0.0, 1.0, 0.0, 1.0},
+                                                        MaterialClipPoint{0.0, 0.0, 10.0, 0.0}};
+    require(outlined != nullptr && (*outlined).clip_path && (*(*outlined).clip_path).verbs == closed_triangle &&
+                (*(*outlined).clip_path).points == polygon_points &&
+                (*(*outlined).clip_path).rule == MaterialClipRule::nonzero,
+            "polygon() lowers its vertices, lengths and percentages of the box, and closes");
+
+    const std::string_view ruled_sheet = "#pad::part(face) { clip-path: polygon(evenodd, 0 0, 10px 0, 0 10px) }";
+    const Compilation ruled = compile(ruled_sheet);
+    const MaterialDeclaration* const even = field_of(only_rule(ruled, ruled_sheet), MaterialField::clip_path);
+    require(even != nullptr && (*even).clip_path && (*(*even).clip_path).rule == MaterialClipRule::even_odd,
+            "polygon() takes a leading fill rule");
+
+    // Relative and absolute commands, H and V, a move's further pair as a
+    // line, curves, and decimals without a leading digit or with an
+    // exponent.
+    const std::string_view path_sheet =
+        "#pad::part(face) { clip-path: path(evenodd, \"M1e1,0 h 10 V.5e1 l-5 5 Q 0 10 0 5 c 0 -1 1 -2 2 -2 z\") }";
+    const Compilation traced = compile(path_sheet);
+    const MaterialDeclaration* const path = field_of(only_rule(traced, path_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> path_verbs{MaterialClipVerb::move,      MaterialClipVerb::line,
+                                                   MaterialClipVerb::line,      MaterialClipVerb::line,
+                                                   MaterialClipVerb::quadratic, MaterialClipVerb::cubic,
+                                                   MaterialClipVerb::close};
+    const std::vector<MaterialClipPoint> path_points{
+        MaterialClipPoint{10.0, 0.0, 0.0, 0.0}, MaterialClipPoint{20.0, 0.0, 0.0, 0.0},
+        MaterialClipPoint{20.0, 0.0, 5.0, 0.0}, MaterialClipPoint{15.0, 0.0, 10.0, 0.0},
+        MaterialClipPoint{0.0, 0.0, 10.0, 0.0}, MaterialClipPoint{0.0, 0.0, 5.0, 0.0},
+        MaterialClipPoint{0.0, 0.0, 4.0, 0.0},  MaterialClipPoint{1.0, 0.0, 3.0, 0.0},
+        MaterialClipPoint{2.0, 0.0, 3.0, 0.0}};
+    require(path != nullptr && (*path).clip_path && (*(*path).clip_path).verbs == path_verbs &&
+                (*(*path).clip_path).points == path_points &&
+                (*(*path).clip_path).rule == MaterialClipRule::even_odd,
+            "path() reads SVG path data in px from the box's corner");
+
+    const std::string_view none_sheet = "#pad::part(face) { clip-path: none }";
+    const Compilation none = compile(none_sheet);
+    const MaterialDeclaration* const cleared = field_of(only_rule(none, none_sheet), MaterialField::clip_path);
+    require(cleared != nullptr && !(*cleared).clip_path, "clip-path: none clears it");
+
+    // S and T reflect the previous curve's last control point about the
+    // current point.
+    const std::string_view smooth_sheet =
+        "#pad::part(face) { clip-path: path(\"M0 0 C 0 10 10 10 10 0 S 20 -10 20 0 Q 25 10 30 0 T 40 0 Z\") }";
+    const Compilation smooth = compile(smooth_sheet);
+    const MaterialDeclaration* const smoothed = field_of(only_rule(smooth, smooth_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> smooth_verbs{MaterialClipVerb::move,      MaterialClipVerb::cubic,
+                                                     MaterialClipVerb::cubic,     MaterialClipVerb::quadratic,
+                                                     MaterialClipVerb::quadratic, MaterialClipVerb::close};
+    const std::vector<MaterialClipPoint> smooth_points{
+        MaterialClipPoint{0.0, 0.0, 0.0, 0.0},   MaterialClipPoint{0.0, 0.0, 10.0, 0.0},
+        MaterialClipPoint{10.0, 0.0, 10.0, 0.0}, MaterialClipPoint{10.0, 0.0, 0.0, 0.0},
+        MaterialClipPoint{10.0, 0.0, -10.0, 0.0}, MaterialClipPoint{20.0, 0.0, -10.0, 0.0},
+        MaterialClipPoint{20.0, 0.0, 0.0, 0.0},  MaterialClipPoint{25.0, 0.0, 10.0, 0.0},
+        MaterialClipPoint{30.0, 0.0, 0.0, 0.0},  MaterialClipPoint{35.0, 0.0, -10.0, 0.0},
+        MaterialClipPoint{40.0, 0.0, 0.0, 0.0}};
+    require(smoothed != nullptr && (*smoothed).clip_path && (*(*smoothed).clip_path).verbs == smooth_verbs &&
+                (*(*smoothed).clip_path).points == smooth_points,
+            "S and T lower to a cubic and a quadratic with the reflected control point");
+
+    // An arc lowers to cubics by its fixed subdivision: a half turn of
+    // radius 10 from (0, 0) to (20, 0), sweeping clockwise on screen, is two
+    // quarter pieces through (10, -10), ending exactly at (20, 0). The flags
+    // may be written without separators.
+    const std::array<std::string_view, 2> arc_sheets{
+        "#pad::part(face) { clip-path: path(\"M 0 0 A 10 10 0 0 1 20 0 Z\") }",
+        "#pad::part(face) { clip-path: path(\"M0 0a10 10 0 0120 0z\") }"};
+    for (const std::string_view arc_sheet : arc_sheets) {
+        const Compilation arced = compile(arc_sheet);
+        const MaterialDeclaration* const arc = field_of(only_rule(arced, arc_sheet), MaterialField::clip_path);
+        const bool lowered = arc != nullptr && (*arc).clip_path;
+        require(lowered, std::string("the arc lowers: ") + std::string(arc_sheet));
+        if (!lowered) continue;
+        const MaterialClipPath& clip = *(*arc).clip_path;
+        const std::vector<MaterialClipVerb> arc_verbs{MaterialClipVerb::move, MaterialClipVerb::cubic,
+                                                      MaterialClipVerb::cubic, MaterialClipVerb::close};
+        require(clip.verbs == arc_verbs && clip.points.size() == 7U, "a half turn is two cubic pieces");
+        if (clip.points.size() != 7U) continue;
+        const MaterialClipPoint middle = clip.points[3];
+        const MaterialClipPoint last = clip.points[6];
+        require(std::abs(middle.x_units - 10.0) < 1e-9 && std::abs(middle.y_units + 10.0) < 1e-9,
+                "the pieces meet at the top of the half turn");
+        require(last.x_units == 20.0 && last.y_units == 0.0, "the last piece ends exactly at the arc's end");
+        // The quarter piece's handle: 4/3 tan(22.5 degrees) = 4/3 (sqrt(2) - 1)
+        // of the radius, the constant 0.55228474983079339840.
+        const double handle = 0.55228474983079339840 * 10.0;
+        require(std::abs(clip.points[1].y_units + handle) < 1e-9 && std::abs(clip.points[1].x_units) < 1e-9,
+                "the first handle leaves the start upward by the stated length");
+    }
+    // A zero radius draws a line; equal endpoints draw nothing.
+    const std::string_view flat_sheet = "#pad::part(face) { clip-path: path(\"M 0 0 A 0 5 0 0 1 10 0 A 5 5 0 0 1 10 0 L 0 10 Z\") }";
+    const Compilation flat = compile(flat_sheet);
+    const MaterialDeclaration* const flattened = field_of(only_rule(flat, flat_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> flat_verbs{MaterialClipVerb::move, MaterialClipVerb::line,
+                                                   MaterialClipVerb::line, MaterialClipVerb::close};
+    require(flattened != nullptr && (*flattened).clip_path && (*(*flattened).clip_path).verbs == flat_verbs,
+            "an arc of zero radius is a line, and one to its own start is nothing");
+
+    const std::array<Refusal, 14> refusals{{
+        {"#a { transform: rotate(1px) }", DiagnosticCode::value_wrong_kind},
+        {"#a { transform: rotate(10deg, 20deg) }", DiagnosticCode::value_syntax},
+        {"#a { transform: scale(1, 2, 3) }", DiagnosticCode::value_syntax},
+        {"#a { transform: scale(0) }", DiagnosticCode::value_out_of_range},
+        {"#a { transform: scale(100) }", DiagnosticCode::value_out_of_range},
+        {"#a { transform: red }", DiagnosticCode::value_wrong_kind},
+        {"#a { clip-path: border-box }", DiagnosticCode::value_form_not_admitted},
+        {"#a { clip-path: polygon(0 0, 1px 1px) }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: polygon(0 0, 1em 0, 0 1px) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { clip-path: polygon(sideways, 0 0, 1px 0, 0 1px) }", DiagnosticCode::keyword_unknown},
+        {"#a { clip-path: path(\"M 0 0 A 1 1 0 2 1 2 2\") }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: path(\"L 0 0\") }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: path(\"M 0 0 L\") }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: path(10px) }", DiagnosticCode::value_wrong_kind},
+    }};
+    for (const Refusal& refusal : refusals) {
+        const Compilation compiled = compile(refusal.sheet);
+        const bool refused = compiled.outcome == CompileOutcome::refused && !compiled.diagnostics.empty() &&
+                             compiled.diagnostics.back().code == refusal.code;
+        if (!refused && !compiled.diagnostics.empty()) {
+            std::cerr << "  got " << diagnostic_code_name(compiled.diagnostics.back().code) << '\n';
+        }
+        require(refused, std::string("refused: ") + std::string(refusal.sheet));
+    }
 }
 
 // The seat (skeudoindustrial surfaces): `seat` lowers to its height, as a
@@ -837,6 +1029,10 @@ void test_refusals() {
         {"#a { background-color: inherit }", DiagnosticCode::value_wrong_kind},
         {"#a { background-image: radial-gradient(circle 10%, red, blue) }", DiagnosticCode::value_wrong_kind},
         {"#a { background-image: radial-gradient(-4px 4px, red, blue) }", DiagnosticCode::value_out_of_range},
+        {"#a { background-image: reflecting-radial-gradient(red, blue, red, blue, red, blue, red, blue, red, blue, "
+         "red, blue, red, blue, red, blue) }",
+         DiagnosticCode::value_out_of_range},
+        {"#a { background-image: radial-gradient(at center focus, red, blue) }", DiagnosticCode::value_syntax},
         {"#a { background-image: linear-gradient(to center, red, blue) }", DiagnosticCode::value_syntax},
         {"#a { background-image: radial-gradient(at left 10px top, red, blue) }",
          DiagnosticCode::value_form_not_admitted},
@@ -880,6 +1076,7 @@ void test_refusals() {
         {"#a { background-size: 0px }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-size: -1px }", DiagnosticCode::value_out_of_range},
         {"#a { background-repeat: repeat-x }", DiagnosticCode::value_form_not_admitted},
+        {"#a { background-repeat: mirror repeat }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-repeat: sideways }", DiagnosticCode::keyword_unknown},
         {"#a { background-position: 150% }", DiagnosticCode::value_out_of_range},
         {"#a { background-position: left 10px top }", DiagnosticCode::value_form_not_admitted},
@@ -1085,10 +1282,39 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
                                                      MaterialCoordinateSpace::logical)}));
     rows.push_back(filled("background: repeating-radial-gradient(closest-side, red, blue 50%)",
                           {MaterialFillLayer::repeating_radial(Point{0.5, 0.5}, Size{0.25, 0.25}, red_blue)}));
+    MaterialFillLayer focused = MaterialFillLayer::radial(Point{0.5, 0.5}, Size{corner, corner}, red_blue);
+    focused.focused = true;
+    focused.focus = Point{0.25, 0.5};
+    rows.push_back(filled("background: radial-gradient(at 50% 50% focus 25% 50%, red, blue)", {focused}));
+    ProceduralFill crossed{};
+    crossed.pattern = ProceduralPattern::hatch;
+    crossed.hatch_style = HatchStyle::cross;
+    crossed.tile = 8.0;
+    crossed.strength = 1.0;
+    crossed.ground = red;
+    crossed.figure = blue;
+    crossed.accent = red;
+    rows.push_back(filled("background: pattern(hatch-cross, red, blue)",
+                          {MaterialFillLayer::procedural_pattern(crossed)}));
     rows.push_back(filled("background: conic-gradient(from 90deg, red, blue)",
                           {MaterialFillLayer::conic(Point{0.5, 0.5}, 90.0, red_blue)}));
     rows.push_back(filled("background: repeating-conic-gradient(red 0deg, blue 90deg)",
                           {MaterialFillLayer::repeating_conic(Point{0.5, 0.5}, 0.0, 90.0, red_blue)}));
+    MaterialFillLayer reflected_conic = MaterialFillLayer::repeating_conic(Point{0.5, 0.5}, 0.0, 90.0, red_blue);
+    reflected_conic.spread = GradientSpreadMode::reflect;
+    rows.push_back(filled("background: reflecting-conic-gradient(red 0deg, blue 90deg)", {reflected_conic}));
+    MaterialFillLayer reflected_linear = MaterialFillLayer::repeating_linear(Point{20.0, 24.0}, Point{20.0, 18.0},
+                                                                             red_blue, MaterialCoordinateSpace::logical);
+    reflected_linear.spread = GradientSpreadMode::reflect;
+    rows.push_back(filled("background: reflecting-linear-gradient(0deg, red 0px, blue 6px)", {reflected_linear}));
+    MaterialFillLayer reflected_rings = MaterialFillLayer::repeating_radial(Point{0.5, 0.5}, Size{0.25, 0.25}, red_blue);
+    reflected_rings.spread = GradientSpreadMode::reflect;
+    rows.push_back(filled("background: reflecting-radial-gradient(closest-side, red, blue 50%)", {reflected_rings}));
+    MaterialFillLayer focused_rings = MaterialFillLayer::repeating_radial(Point{0.5, 0.5}, Size{0.25, 0.25}, red_blue);
+    focused_rings.focused = true;
+    focused_rings.focus = Point{0.4, 0.5};
+    rows.push_back(filled("background: repeating-radial-gradient(closest-side at 50% 50% focus 40% 50%, red, blue 50%)",
+                          {focused_rings}));
     rows.push_back(filled("background: linear-gradient(red, blue) green",
                           {MaterialFillLayer::solid(green), MaterialFillLayer::linear_css_angle(180.0, red_blue)}));
     MaterialFillLayer multiplied = MaterialFillLayer::linear_css_angle(90.0, red_blue);
@@ -1213,6 +1439,15 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     rows.push_back(filled("background-image: url(\"resource:tile.quadrant\"); background-size: 50% auto; "
                           "background-repeat: no-repeat",
                           {white, half}));
+    MaterialFillLayer mirrored_tiles = tiles;
+    mirrored_tiles.image_mode = MaterialImageMode::mirror;
+    rows.push_back(filled("background: url(\"resource:tile.quadrant\") mirror", {mirrored_tiles}));
+    MaterialFillLayer extended_tile = tiles;
+    extended_tile.image_mode = MaterialImageMode::extend;
+    extended_tile.image_anchor = Point{0.5, 0.5};
+    rows.push_back(filled("background-image: url(\"resource:tile.quadrant\"); background-repeat: extend; "
+                          "background-position: center",
+                          {white, extended_tile}));
     rows.push_back(filled("background-image: url(\"resource:tile.quadrant\"); background-size: 100% 100%",
                           {white, MaterialFillLayer::stretched_image(images.quadrant, four)}));
     GateRow image_mask{};
@@ -1323,6 +1558,7 @@ int main() {
     test_filter_lowering();
     test_image_lowering();
     test_reflection_lowering();
+    test_shape_lowering();
     test_seat();
     test_refusals();
     test_gate();

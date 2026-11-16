@@ -1251,6 +1251,40 @@ gd_result create_checker_brush(double cell_size, gd_color first, gd_color second
                                                         color_from_c(first), color_from_c(second));
 }
 
+gd_result create_texture_brush(gui_drawing::Bitmap& bitmap, gui_drawing::WrapMode wrap_mode, gd_handle* output) {
+    std::unique_ptr<gui_drawing::TextureBrush> brush = std::make_unique<gui_drawing::TextureBrush>(bitmap, wrap_mode);
+    return registry().adopt(GD_OBJECT_TEXTURE_BRUSH, output, std::move(brush));
+}
+
+gd_result set_texture_brush_transform(gui_drawing::TextureBrush& brush, gd_matrix transform) {
+    brush.set_transform(matrix_from_c(transform));
+    return GD_OK;
+}
+
+gd_result create_radial_gradient_brush(gd_point center, double radius, gd_color center_color,
+                                       gd_color edge_color, gui_drawing::WrapMode wrap_mode, gd_handle* output) {
+    return registry().create<gui_drawing::RadialGradientBrush>(GD_OBJECT_RADIAL_GRADIENT_BRUSH, output,
+                                                               point_from_c(center), radius,
+                                                               color_from_c(center_color),
+                                                               color_from_c(edge_color), wrap_mode);
+}
+
+gd_result set_radial_gradient_focus(gui_drawing::RadialGradientBrush& brush, gd_point focus) {
+    brush.set_focus(point_from_c(focus));
+    return GD_OK;
+}
+
+// The two radii of an elliptical radial gradient.
+struct RadialRadii final {
+    double across{};
+    double down{};
+};
+
+gd_result set_radial_gradient_radii(gui_drawing::RadialGradientBrush& brush, RadialRadii radii) {
+    brush.set_radii(radii.across, radii.down);
+    return GD_OK;
+}
+
 gd_result read_contrast_ratio(gd_color first, gd_color second, double* ratio) {
     *ratio = gui_drawing::contrast_ratio(color_from_c(first), color_from_c(second));
     return GD_OK;
@@ -1303,6 +1337,13 @@ gd_result apply_conic_gradient_interpolation(
     return GD_OK;
 }
 
+gd_result apply_radial_gradient_interpolation(
+    gui_drawing::RadialGradientBrush& brush,
+    const gui_drawing::ColorBlend& blend) {
+    brush.set_interpolation_colors(blend);
+    return GD_OK;
+}
+
 gd_result apply_path_gradient_interpolation(
     gui_drawing::PathGradientBrush& brush,
     const gui_drawing::ColorBlend& blend) {
@@ -1328,6 +1369,10 @@ gd_result apply_gradient_interpolation(gd_handle handle,
     if (kind == GD_OBJECT_CONIC_GRADIENT_BRUSH) {
         return registry().with<gui_drawing::ConicGradientBrush>(
             handle, kind, &apply_conic_gradient_interpolation, blend);
+    }
+    if (kind == GD_OBJECT_RADIAL_GRADIENT_BRUSH) {
+        return registry().with<gui_drawing::RadialGradientBrush>(
+            handle, kind, &apply_radial_gradient_interpolation, blend);
     }
     return registry().with<gui_drawing::PathGradientBrush>(
         handle, kind, &apply_path_gradient_interpolation, blend);
@@ -3143,6 +3188,50 @@ gd_result api_recorder_paint_target(gd_handle recorder, const gf_paint_target* t
         recorder, GD_OBJECT_RECORDER, &paint_recorder_onto_target, service, frame, commands_executed);
 }
 
+// The texture and radial gradient brushes (1.1, provisional).
+gd_result api_texture_brush_create(gd_handle bitmap, std::uint32_t wrap_mode, gd_handle* output) {
+    if (output == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "texture brush creation requires an output handle");
+    if (wrap_mode > GD_WRAP_CLAMP) return fail(GD_ERROR_INVALID_ARGUMENT, "texture wrap mode is invalid");
+    const gui_drawing::WrapMode native_mode = static_cast<gui_drawing::WrapMode>(wrap_mode);
+    return registry().with<gui_drawing::Bitmap>(bitmap, GD_OBJECT_BITMAP, &create_texture_brush, native_mode,
+                                                output);
+}
+
+gd_result api_texture_brush_set_wrap_mode(gd_handle brush, std::uint32_t wrap_mode) {
+    if (wrap_mode > GD_WRAP_CLAMP) return fail(GD_ERROR_INVALID_ARGUMENT, "texture wrap mode is invalid");
+    const gui_drawing::WrapMode native_mode = static_cast<gui_drawing::WrapMode>(wrap_mode);
+    return registry().with<gui_drawing::TextureBrush>(brush, GD_OBJECT_TEXTURE_BRUSH,
+                                                      &gui_drawing::TextureBrush::set_wrap_mode, native_mode);
+}
+
+gd_result api_texture_brush_set_transform(gd_handle brush, gd_matrix transform) {
+    return registry().with<gui_drawing::TextureBrush>(brush, GD_OBJECT_TEXTURE_BRUSH, &set_texture_brush_transform,
+                                                      transform);
+}
+
+gd_result api_radial_gradient_brush_create(gd_point center, double radius, gd_color center_color,
+                                           gd_color edge_color, std::uint32_t wrap_mode, gd_handle* output) {
+    if (wrap_mode > GD_WRAP_CLAMP) return fail(GD_ERROR_INVALID_ARGUMENT, "gradient wrap mode is invalid");
+    const gui_drawing::WrapMode native_mode = static_cast<gui_drawing::WrapMode>(wrap_mode);
+    return translate(&create_radial_gradient_brush, center, radius, center_color, edge_color, native_mode, output);
+}
+
+gd_result api_radial_gradient_brush_set_interpolation(gd_handle brush, const gd_color* colors,
+                                                      const double* positions, std::uint64_t count) {
+    return set_gradient_interpolation(brush, GD_OBJECT_RADIAL_GRADIENT_BRUSH, colors, positions, count);
+}
+
+gd_result api_radial_gradient_brush_set_focus(gd_handle brush, gd_point focus) {
+    return registry().with<gui_drawing::RadialGradientBrush>(brush, GD_OBJECT_RADIAL_GRADIENT_BRUSH,
+                                                             &set_radial_gradient_focus, focus);
+}
+
+gd_result api_radial_gradient_brush_set_radii(gd_handle brush, double radius_x, double radius_y) {
+    const RadialRadii radii{radius_x, radius_y};
+    return registry().with<gui_drawing::RadialGradientBrush>(brush, GD_OBJECT_RADIAL_GRADIENT_BRUSH,
+                                                             &set_radial_gradient_radii, radii);
+}
+
 // raster_initialize (1.1, provisional): the raster objects' installer, or
 // the absent one in a build without the renderer.
 gd_result api_raster_initialize() {
@@ -3242,6 +3331,11 @@ const gd_api_v0 api_table{
     // 1.1, provisional.
     &api_graphics_path_flatten,
     &api_raster_initialize,
+    &api_texture_brush_create, &api_texture_brush_set_wrap_mode,
+    &api_texture_brush_set_transform,
+    &api_radial_gradient_brush_create, &api_radial_gradient_brush_set_interpolation,
+    &api_radial_gradient_brush_set_focus,
+    &api_radial_gradient_brush_set_radii,
 };
 
 } // namespace

@@ -611,6 +611,7 @@ add_library(gui_forms_core STATIC
     src/core/text/text_store/text_store.cpp
     src/core/text/prepared/prepared_storage.cpp
     src/core/text/composite/text_composite.cpp
+    src/core/text/composite/clip_mask.cpp
     src/core/text/localizable/localizable.cpp
     src/core/text/locale_file/locale_file.cpp
     src/core/text/paragraph_layout/paragraph_layout.cpp
@@ -1044,6 +1045,7 @@ add_library(gui_drawing_core STATIC
     src/core/drawing/brush/hatch_brush.cpp
     src/core/drawing/brush/linear_gradient_brush.cpp
     src/core/drawing/brush/path_gradient_brush.cpp
+    src/core/drawing/brush/radial_gradient_brush.cpp
     src/core/drawing/brush/solid_brush.cpp
     src/core/drawing/color/color.cpp
     src/core/drawing/font/font.cpp

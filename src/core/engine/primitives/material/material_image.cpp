@@ -188,7 +188,8 @@ ImageVariantRequest image_variant_request(const MaterialFillLayer& fill, const s
     request.scale = DeviceScale{scale};
     const ImageAxisPlacement across = image_placement_across(fill, box.x, box.width, scale, fill.image_pixel_size.width);
     const ImageAxisPlacement down = image_placement_down(fill, box.y, box.height, scale, fill.image_pixel_size.height);
-    if (fill.image_mode == MaterialImageMode::tile || fill.image_mode == MaterialImageMode::single) {
+    if (fill.image_mode == MaterialImageMode::tile || fill.image_mode == MaterialImageMode::single ||
+        fill.image_mode == MaterialImageMode::mirror || fill.image_mode == MaterialImageMode::extend) {
         request.extent = DeviceExtent{variant_length(across.tile_length), variant_length(down.tile_length)};
         return request;
     }
@@ -217,6 +218,35 @@ void map_image_variant(const ImageAxisPlacement& placement, const std::uint32_t 
             const double along = static_cast<double>(output) + 0.5 - placement.tile_origin;
             const double within = along - tile * std::floor(along / tile);
             const double index = std::clamp(std::floor(within * pixels / tile), 0.0, pixels - 1.0);
+            map[output] = static_cast<std::uint32_t>(index);
+        }
+        return;
+    }
+    if (placement.mode == MaterialImageMode::mirror) {
+        // Each centre's pixel within a pair of tiles, the second reflected:
+        // with m in [0, 2n), m itself in the first, 2n - 1 - m in the
+        // second (ImagePatternWrap::mirror).
+        const double tile = placement.tile_length;
+        if (!(tile > 0.0)) return;
+        const double pair = tile * 2.0;
+        const double last = pixels * 2.0 - 1.0;
+        for (std::uint32_t output = 0U; output < outputs; ++output) {
+            const double along = static_cast<double>(output) + 0.5 - placement.tile_origin;
+            const double within = along - pair * std::floor(along / pair);
+            double index = std::clamp(std::floor(within * pixels / tile), 0.0, last);
+            if (index >= pixels) index = last - index;
+            map[output] = static_cast<std::uint32_t>(index);
+        }
+        return;
+    }
+    if (placement.mode == MaterialImageMode::extend) {
+        // The one tile, its first pixel before it and its last after it
+        // (ImagePatternWrap::clamp).
+        const double tile = placement.tile_length;
+        if (!(tile > 0.0)) return;
+        for (std::uint32_t output = 0U; output < outputs; ++output) {
+            const double along = static_cast<double>(output) + 0.5 - placement.tile_origin;
+            const double index = std::clamp(std::floor(along * pixels / tile), 0.0, pixels - 1.0);
             map[output] = static_cast<std::uint32_t>(index);
         }
         return;

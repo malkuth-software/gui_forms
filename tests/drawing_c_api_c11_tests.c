@@ -76,6 +76,72 @@ static int check_curved_paths(const gd_api_v0* api) {
     return 0;
 }
 
+/* ABI 1.1, provisional: the texture and radial gradient brushes. Each
+   refuses before it creates or changes anything, and a brush of the wrong
+   kind is refused by its kind. */
+static int check_texture_and_radial_brushes(const gd_api_v0* api) {
+    gd_handle bitmap = {0};
+    gd_handle texture = {0};
+    gd_handle radial = {0};
+    gd_handle refused = {0};
+    gd_handle recorder = {0};
+    gd_bitmap_lock_view lock;
+    uint32_t kind = 0;
+    uint64_t count = 0;
+    const gd_color stops[3] = {{UINT32_C(0xffff0000), 0}, {UINT32_C(0xffffffff), 0}, {UINT32_C(0xff0000ff), 0}};
+    const double positions[3] = {0, 0.5, 1};
+    const gd_matrix doubled = {2, 0, 0, 2, 1, 1};
+    const gd_matrix broken = {NAN, 0, 0, 1, 0, 0};
+
+    memset(&lock, 0, sizeof(lock));
+    CHECK((*api).bitmap_create(2, 2, GD_PIXEL_BGRA32_PREMULTIPLIED, &bitmap) == GD_OK);
+    CHECK((*api).texture_brush_create(bitmap, GD_WRAP_TILE_FLIP_XY, &texture) == GD_OK);
+    CHECK((*api).object_kind(texture, &kind) == GD_OK && kind == GD_OBJECT_TEXTURE_BRUSH);
+    CHECK((*api).texture_brush_create(bitmap, 5U, &refused) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).texture_brush_create(bitmap, GD_WRAP_TILE, NULL) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).bitmap_lock(bitmap, GD_BITMAP_LOCK_READ, &lock) == GD_OK);
+    CHECK((*api).texture_brush_create(bitmap, GD_WRAP_TILE, &refused) == GD_ERROR_INVALID_STATE);
+    CHECK((*api).bitmap_unlock(bitmap, lock.token) == GD_OK);
+    CHECK((*api).texture_brush_set_wrap_mode(texture, GD_WRAP_CLAMP) == GD_OK);
+    CHECK((*api).texture_brush_set_wrap_mode(texture, 9U) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).texture_brush_set_transform(texture, doubled) == GD_OK);
+    CHECK((*api).texture_brush_set_transform(texture, broken) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).texture_brush_set_wrap_mode(bitmap, GD_WRAP_TILE) == GD_ERROR_WRONG_HANDLE_KIND);
+
+    CHECK((*api).radial_gradient_brush_create((gd_point){8, 8}, 8.0, stops[0], stops[2], GD_WRAP_TILE, &radial) ==
+          GD_OK);
+    CHECK((*api).object_kind(radial, &kind) == GD_OK && kind == GD_OBJECT_RADIAL_GRADIENT_BRUSH);
+    CHECK((*api).radial_gradient_brush_create((gd_point){8, 8}, 0.0, stops[0], stops[2], GD_WRAP_TILE, &refused) ==
+          GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).radial_gradient_brush_create((gd_point){NAN, 8}, 8.0, stops[0], stops[2], GD_WRAP_TILE,
+                                              &refused) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).radial_gradient_brush_create((gd_point){8, 8}, 8.0, stops[0], stops[2], 5U, &refused) ==
+          GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).radial_gradient_brush_set_interpolation(radial, stops, positions, 3) == GD_OK);
+    CHECK((*api).radial_gradient_brush_set_interpolation(radial, stops, positions, 1) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).radial_gradient_brush_set_interpolation(texture, stops, positions, 3) ==
+          GD_ERROR_WRONG_HANDLE_KIND);
+    CHECK((*api).radial_gradient_brush_set_focus(radial, (gd_point){4, 8}) == GD_OK);
+    CHECK((*api).radial_gradient_brush_set_focus(radial, (gd_point){16, 8}) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).radial_gradient_brush_set_focus(texture, (gd_point){8, 8}) == GD_ERROR_WRONG_HANDLE_KIND);
+    /* An ellipse 8 across and 4 down keeps the focus (4, 8) inside; one
+       2 across would put it outside and is refused. */
+    CHECK((*api).radial_gradient_brush_set_radii(radial, 8.0, 4.0) == GD_OK);
+    CHECK((*api).radial_gradient_brush_set_radii(radial, 2.0, 4.0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).radial_gradient_brush_set_radii(radial, 8.0, 0.0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).radial_gradient_brush_set_radii(texture, 8.0, 4.0) == GD_ERROR_WRONG_HANDLE_KIND);
+
+    CHECK((*api).recorder_create(&recorder) == GD_OK);
+    CHECK((*api).recorder_fill_rectangle(recorder, texture, (gd_rect){0, 0, 16, 16}) == GD_OK);
+    CHECK((*api).recorder_fill_rectangle(recorder, radial, (gd_rect){0, 0, 16, 16}) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 2U);
+    CHECK((*api).release(recorder) == GD_OK);
+    CHECK((*api).release(radial) == GD_OK);
+    CHECK((*api).release(texture) == GD_OK);
+    CHECK((*api).release(bitmap) == GD_OK);
+    return 0;
+}
+
 /* ABI 1.1, provisional: path flattening into the caller's three arrays,
    counted first; short arrays and bad tolerances leave the arrays as they
    were. The quadratic needs 5 chords at 0.25 (Wang's formula), six points;
@@ -826,8 +892,16 @@ int main(void) {
        NOT_AVAILABLE and leaves the raster entries refusing as before. */
     CHECK(offsetof(gd_api_v0, raster_initialize) ==
           offsetof(gd_api_v0, graphics_path_flatten) + sizeof(api.graphics_path_flatten));
-    CHECK(sizeof(gd_api_v0) ==
+    /* Then the texture and radial gradient brushes, six entries in fold
+       order, and the radial brush's radii; the table ends with them. */
+    CHECK(offsetof(gd_api_v0, texture_brush_create) ==
           offsetof(gd_api_v0, raster_initialize) + sizeof(api.raster_initialize));
+    CHECK((offsetof(gd_api_v0, radial_gradient_brush_set_focus) - offsetof(gd_api_v0, texture_brush_create)) /
+              sizeof(api.last_error) == 5U);
+    CHECK(offsetof(gd_api_v0, radial_gradient_brush_set_radii) ==
+          offsetof(gd_api_v0, radial_gradient_brush_set_focus) + sizeof(api.radial_gradient_brush_set_focus));
+    CHECK(sizeof(gd_api_v0) ==
+          offsetof(gd_api_v0, radial_gradient_brush_set_radii) + sizeof(api.radial_gradient_brush_set_radii));
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_1_1, &api) == GD_OK);
@@ -836,6 +910,9 @@ int main(void) {
     CHECK(api.graphics_path_flatten != NULL);
     CHECK(api.raster_initialize != NULL);
     CHECK(api.raster_initialize() == GD_ERROR_NOT_AVAILABLE);
+    CHECK(api.texture_brush_create != NULL);
+    CHECK(api.radial_gradient_brush_set_focus != NULL);
+    CHECK(api.radial_gradient_brush_set_radii != NULL);
     CHECK(gd_get_api_v0(UINT32_C(0x00010002), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     CHECK(gd_get_api_v0(UINT32_C(0x00020000), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     memset(&api, 0, sizeof(api));
@@ -1132,6 +1209,7 @@ int main(void) {
     CHECK(check_text_and_reuse(&api) == 0);
     CHECK(check_curved_paths(&api) == 0);
     CHECK(check_path_flattening(&api) == 0);
+    CHECK(check_texture_and_radial_brushes(&api) == 0);
     CHECK(check_rotated_text(&api) == 0);
     CHECK(check_seal_errors(&api) == 0);
     CHECK(check_handle_staleness(&api) == 0);

@@ -136,6 +136,41 @@ void verify_material_hierarchy(const render::SkiaRaster& raster) {
             "Studio raster must preserve its blue identity filament and warm cap-inset factual well");
 }
 
+// transform (owner rule: a transform group is damaged by its transformed
+// bounds): a red face of 40 x 20 at (30, 20) scaled to 1.5 about its centre
+// paints its full transformed box, 60 x 30 at (20, 15), not only its own
+// box, and nothing beyond it.
+void verify_scaled_face_repaints_its_transformed_bounds(render::SkiaRaster& raster) {
+    require(raster.resize({100.0, 60.0}, 1.0), "CPU raster could not allocate the scaled-face surface");
+    DamageRegion damage;
+    damage.add({0.0, 0.0, 100.0, 60.0});
+    raster.begin_frame(damage);
+    raster.fill_rect({0.0, 0.0, 100.0, 60.0}, Color::rgba(255, 255, 255));
+    SurfaceMaterial face{};
+    face.fills.clear();
+    face.fills.push_back(MaterialFillLayer::solid(Color::rgba(255, 0, 0)));
+    face.transform = MaterialTransform{1.5, 0.0, 0.0, 1.5};
+    const Rect box{30.0, 20.0, 40.0, 20.0};
+    require(surface_material_paint_bounds(box, face) == (Rect{20.0, 15.0, 60.0, 30.0}),
+            "the scaled face's paint bounds are its transformed box");
+    paint_surface_material(raster, box, face);
+    raster.end_frame();
+    const Pixel red{255, 0, 0, 255};
+    const Pixel white{255, 255, 255, 255};
+    // Inside the transformed box, beyond the face's own box, in all four
+    // corners and along the edges.
+    const std::array<std::array<int, 2>, 6> painted{{{21, 16}, {78, 16}, {21, 43}, {78, 43}, {25, 30}, {50, 17}}};
+    for (const std::array<int, 2>& point : painted) {
+        require(pixel_distance(pixel_at(raster, point[0], point[1], 1), red) == 0U,
+                "a face scaled to 1.5 repaints its full transformed bounds");
+    }
+    const std::array<std::array<int, 2>, 4> untouched{{{18, 30}, {81, 30}, {50, 13}, {50, 46}}};
+    for (const std::array<int, 2>& point : untouched) {
+        require(pixel_distance(pixel_at(raster, point[0], point[1], 1), white) == 0U,
+                "nothing is painted past the transformed bounds");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -150,6 +185,7 @@ int main() {
         gui_forms::render::SkiaRaster skia;
         render_materials(skia, images, patch.image);
         verify_material_hierarchy(skia);
+        verify_scaled_face_repaints_its_transformed_bounds(skia);
         std::cout << "gui_forms_layered_material_raster_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

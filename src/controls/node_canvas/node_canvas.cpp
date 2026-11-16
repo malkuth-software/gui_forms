@@ -5,6 +5,7 @@
 // Input is in node_canvas_input.cpp and painting in node_canvas_paint.cpp.
 
 #include "gui_forms/controls/node_canvas.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "node_canvas_detail.hpp"
 
@@ -86,7 +87,7 @@ constexpr std::array<InteractionDeclaration, 6> node_canvas_interactions{{
 }
 
 [[nodiscard]] double distance_between(Point left, Point right) noexcept {
-    const double distance = std::hypot(left.x - right.x, left.y - right.y);
+    const double distance = engine_hypotenuse(left.x - right.x, left.y - right.y);
     return distance;
 }
 

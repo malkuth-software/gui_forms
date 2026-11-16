@@ -1,4 +1,5 @@
 #include "gui_forms/theme.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
@@ -12,6 +13,7 @@
 #include "kept_resolutions.hpp"
 #include "theme_access.hpp"
 #include "../contrast/theme_contrast.hpp"
+#include "../../types/painter/painter_support.hpp"
 #include "../dark_variant/dark_variant.hpp"
 #include "../theme_compiler/theme_source_record.hpp"
 
@@ -147,7 +149,11 @@ bool valid_procedural_fill(const ProceduralFill& fill) noexcept {
     case ProceduralPattern::pinstripe:
     case ProceduralPattern::brushed_metal:
     case ProceduralPattern::fresco:
-    case ProceduralPattern::checker: {
+    case ProceduralPattern::checker:
+    case ProceduralPattern::hatch: {
+        HatchPattern style{};
+        style.style = fill.hatch_style;
+        if (fill.pattern == ProceduralPattern::hatch && !valid_hatch_pattern(style)) return false;
         const bool valid = std::isfinite(fill.tile) && fill.tile >= minimum_procedural_tile &&
                            fill.tile <= maximum_procedural_tile && std::isfinite(fill.strength) &&
                            fill.strength >= 0.0 && fill.strength <= 1.0;
@@ -298,10 +304,10 @@ std::pair<Point, Point> resolve_css_linear_gradient(
     } else if (std::abs(angle - 270.0) < epsilon) {
         direction = {-1.0, 0.0};
     } else {
-        constexpr double degrees_to_radians =
-            3.14159265358979323846264338327950288 / 180.0;
-        const double radians = angle * degrees_to_radians;
-        direction = {std::sin(radians), -std::cos(radians)};
+        // The engine's deterministic sine and cosine (the same bits on
+        // every host).
+        const EngineSineCosine turn = engine_sine_cosine_degrees(angle);
+        direction = {turn.sine, -turn.cosine};
     }
     const Point center{bounds.x + bounds.width * 0.5,
                        bounds.y + bounds.height * 0.5};
@@ -324,30 +330,78 @@ void paint_stretched_image(Painter& painter, Rect bounds,
         bounds, fill.opacity);
 }
 
+// A tiled image (`wrap` tile) or a mirrored one (`wrap` mirror), whose
+// pattern repeats every two tiles.
 void paint_tiled_image(Painter& painter, Rect bounds,
-                       const MaterialFillLayer& fill) {
+                       const MaterialFillLayer& fill, const ImagePatternWrap wrap) {
     const double tile_width = fill.image_pixel_size.width / fill.image_scale;
     const double tile_height = fill.image_pixel_size.height / fill.image_scale;
     const bool placed = fill.image_anchor != Point{} || fill.image_offset != Point{};
     if (!placed) {
         painter.fill_image_pattern(
             fill.image, fill.image_pixel_size, bounds,
-            {tile_width, tile_height}, ImagePatternWrap::tile, fill.opacity);
+            {tile_width, tile_height}, wrap, fill.opacity);
         return;
     }
     // A positioned tiling (E9.6): the pattern starts at the tile's corner
-    // moved back by whole tiles to cover the box, clipped to the box.
+    // moved back by whole periods (a tile, or a mirrored pair) to cover the
+    // box, clipped to the box.
+    const double period = wrap == ImagePatternWrap::mirror ? 2.0 : 1.0;
     const double origin_x = bounds.x + (bounds.width - tile_width) * fill.image_anchor.x + fill.image_offset.x;
     const double origin_y = bounds.y + (bounds.height - tile_height) * fill.image_anchor.y + fill.image_offset.y;
-    const double back_x = std::ceil((origin_x - bounds.x) / tile_width) * tile_width;
-    const double back_y = std::ceil((origin_y - bounds.y) / tile_height) * tile_height;
+    const double back_x = std::ceil((origin_x - bounds.x) / (tile_width * period)) * tile_width * period;
+    const double back_y = std::ceil((origin_y - bounds.y) / (tile_height * period)) * tile_height * period;
     const Rect covered{origin_x - back_x, origin_y - back_y, bounds.right() - (origin_x - back_x),
                        bounds.bottom() - (origin_y - back_y)};
     painter.save();
     painter.clip_rect(bounds);
     painter.fill_image_pattern(
         fill.image, fill.image_pixel_size, covered,
-        {tile_width, tile_height}, ImagePatternWrap::tile, fill.opacity);
+        {tile_width, tile_height}, wrap, fill.opacity);
+    painter.restore();
+}
+
+// One band of an extended image along an axis: destination [start, end)
+// showing source pixels [source_start, source_end).
+struct ExtendedBand final {
+    double start{};
+    double end{};
+    double source_start{};
+    double source_end{};
+};
+
+// An extended image (MaterialImageMode::extend): the tile placed as a tile
+// is, and beyond it its edge pixels stretched to the box's edges, as up to
+// nine image regions clipped to the box.
+void paint_extended_image(Painter& painter, Rect bounds, const MaterialFillLayer& fill) {
+    const double tile_width = fill.image_pixel_size.width / fill.image_scale;
+    const double tile_height = fill.image_pixel_size.height / fill.image_scale;
+    const double origin_x = bounds.x + (bounds.width - tile_width) * fill.image_anchor.x + fill.image_offset.x;
+    const double origin_y = bounds.y + (bounds.height - tile_height) * fill.image_anchor.y + fill.image_offset.y;
+    const double source_width = fill.image_pixel_size.width;
+    const double source_height = fill.image_pixel_size.height;
+    const std::array<ExtendedBand, 3> columns{{
+        {bounds.x, origin_x, 0.0, 1.0},
+        {origin_x, origin_x + tile_width, 0.0, source_width},
+        {origin_x + tile_width, bounds.right(), source_width - 1.0, source_width},
+    }};
+    const std::array<ExtendedBand, 3> rows{{
+        {bounds.y, origin_y, 0.0, 1.0},
+        {origin_y, origin_y + tile_height, 0.0, source_height},
+        {origin_y + tile_height, bounds.bottom(), source_height - 1.0, source_height},
+    }};
+    painter.save();
+    painter.clip_rect(bounds);
+    for (const ExtendedBand& row : rows) {
+        if (!(row.end > row.start)) continue;
+        for (const ExtendedBand& column : columns) {
+            if (!(column.end > column.start)) continue;
+            const Rect source{column.source_start, row.source_start, column.source_end - column.source_start,
+                              row.source_end - row.source_start};
+            const Rect destination{column.start, row.start, column.end - column.start, row.end - row.start};
+            painter.draw_image_region(fill.image, source, destination, fill.opacity);
+        }
+    }
     painter.restore();
 }
 
@@ -834,7 +888,13 @@ void paint_image_fill(Painter& painter, Rect bounds, const MaterialFillLayer& fi
         paint_stretched_image(painter, bounds, fill);
         return;
     case MaterialImageMode::tile:
-        paint_tiled_image(painter, bounds, fill);
+        paint_tiled_image(painter, bounds, fill, ImagePatternWrap::tile);
+        return;
+    case MaterialImageMode::mirror:
+        paint_tiled_image(painter, bounds, fill, ImagePatternWrap::mirror);
+        return;
+    case MaterialImageMode::extend:
+        paint_extended_image(painter, bounds, fill);
         return;
     case MaterialImageMode::nine_patch:
         paint_nine_patch(painter, bounds, fill);
@@ -845,6 +905,88 @@ void paint_image_fill(Painter& painter, Rect bounds, const MaterialFillLayer& fi
     }
     // A mode outside the enumeration draws no image.
     return;
+}
+
+// The stops of a conic layer over one whole turn, for
+// Painter::fill_conic_gradient, which spans a turn from offset 0 to 1:
+// `period` (valid stops) repeated `periods_per_turn` times, each period
+// after the first starting a millionth of a turn past its boundary so the
+// offsets stay strictly increasing (the hard edge between two periods then
+// spans that millionth), and the last period cut at the turn's end by the
+// colour it reaches there. Writes the stops into `expanded` and returns
+// their count, or 0 when the turn needs more than maximum_gradient_stops
+// stops or a period's second stop lies within that millionth.
+std::size_t expanded_conic_stops(std::span<const GradientStop> period, double periods_per_turn,
+                                 std::array<GradientStop, maximum_gradient_stops>& expanded) noexcept {
+    constexpr double boundary_gap = 1.0e-6;
+    constexpr double end_tolerance = 1.0e-9;
+    if (!(periods_per_turn > 0.0) || !std::isfinite(periods_per_turn) || period.size() < 2U) return 0U;
+    const double period_width = 1.0 / periods_per_turn;
+    if (period[1].offset * period_width <= boundary_gap) return 0U;
+    std::size_t count = 0U;
+    for (std::size_t repeat = 0U; repeat < maximum_gradient_stops; ++repeat) {
+        const double start = static_cast<double>(repeat) * period_width;
+        for (std::size_t index = 0U; index < period.size(); ++index) {
+            if (count == expanded.size()) return 0U;
+            double offset = start + period[index].offset * period_width;
+            if (repeat != 0U && index == 0U) offset = offset + boundary_gap;
+            if (offset > 1.0 - end_tolerance) {
+                // The turn ends here: on this stop (within the rounding of
+                // the period arithmetic), or inside the period, where the
+                // colour it reaches ends it.
+                Color last = period[index].color;
+                if (offset > 1.0 + end_tolerance) {
+                    const double reached = (1.0 - start) / period_width;
+                    last = detail::sample_gradient(period, reached);
+                }
+                expanded[count] = GradientStop{1.0, last};
+                count = count + 1U;
+                return count;
+            }
+            expanded[count] = GradientStop{offset, period[index].color};
+            count = count + 1U;
+        }
+    }
+    return 0U;
+}
+
+// A conic layer through Painter::fill_conic_gradient. The layer's angle is
+// CSS's (clockwise from up); the painter's is clockwise from +x, a quarter
+// turn earlier. A repeating layer whose turn needs more stops than a
+// gradient holds draws one colour instead: its period's colour halfway
+// through.
+void paint_conic_layer(Painter& painter, Rect bounds, const MaterialFillLayer& fill) {
+    const Point centre = resolve_point(fill.center, fill.coordinate_space, bounds);
+    const double start_degrees = fill.angle_degrees - 90.0;
+    if (fill.period_degrees == 360.0) {
+        painter.fill_conic_gradient(bounds, centre, start_degrees, fill.stops);
+        return;
+    }
+    std::array<GradientStop, maximum_gradient_stops> expanded{};
+    const std::size_t count = expanded_conic_stops(fill.stops, 360.0 / fill.period_degrees, expanded);
+    if (count == 0U) {
+        const Color middle = detail::sample_gradient(fill.stops, 0.5);
+        painter.fill_rect(bounds, middle);
+        return;
+    }
+    painter.fill_conic_gradient(bounds, centre, start_degrees,
+                                std::span<const GradientStop>(expanded.data(), count));
+}
+
+// `ground` moved `weight` (in [0, 1]) of the way to `figure`, each straight
+// channel rounded once: the procedural patterns' figure colour.
+std::uint8_t mixed_channel(std::uint8_t ground, std::uint8_t figure, double weight) noexcept {
+    const double mixed = static_cast<double>(ground) + (static_cast<double>(figure) - static_cast<double>(ground)) * weight;
+    const double rounded = std::floor(std::clamp(mixed, 0.0, 255.0) + 0.5);
+    return static_cast<std::uint8_t>(rounded);
+}
+
+Color mixed_colour(Color ground, Color figure, double weight) noexcept {
+    const Color mixed = Color::rgba(mixed_channel(ground.red, figure.red, weight),
+                                    mixed_channel(ground.green, figure.green, weight),
+                                    mixed_channel(ground.blue, figure.blue, weight),
+                                    mixed_channel(ground.alpha, figure.alpha, weight));
+    return mixed;
 }
 
 // One fill layer of a material over `bounds`; a solid fill follows the
@@ -874,30 +1016,62 @@ void paint_fill_layer(Painter& painter, Rect bounds, const MaterialFillLayer& fi
             fill.spread);
         return;
     case MaterialFillKind::radial_gradient:
-        // The Painter has no spread for a radial gradient, so a repeating
-        // radial gradient draws padded here (documented on MaterialFillKind).
-        painter.fill_radial_gradient(
+        if (fill.focused) {
+            painter.fill_focal_radial_gradient(
+                bounds, resolve_point(fill.center, fill.coordinate_space, bounds),
+                resolve_radii(fill.radii, fill.coordinate_space, bounds),
+                resolve_point(fill.focus, fill.coordinate_space, bounds), fill.stops, fill.spread);
+            return;
+        }
+        // A padded radial gradient keeps its own call, so recordings of
+        // existing materials are unchanged; a repeating or reflected one
+        // draws its spread.
+        if (fill.spread == GradientSpreadMode::pad) {
+            painter.fill_radial_gradient(
+                bounds, resolve_point(fill.center, fill.coordinate_space, bounds),
+                resolve_radii(fill.radii, fill.coordinate_space, bounds), fill.stops);
+            return;
+        }
+        painter.fill_radial_gradient_spread(
             bounds, resolve_point(fill.center, fill.coordinate_space, bounds),
-            resolve_radii(fill.radii, fill.coordinate_space, bounds), fill.stops);
+            resolve_radii(fill.radii, fill.coordinate_space, bounds), fill.stops, fill.spread);
         return;
     case MaterialFillKind::image:
         paint_image_fill(painter, bounds, fill);
         return;
     case MaterialFillKind::conic_gradient:
-        // The Painter has no conic gradient; its first stop stands in
-        // (documented on MaterialFillKind). Validation guarantees a stop.
-        if (clipped) {
-            painter.fill_rounded_rect(bounds, corner_radius, fill.stops.front().color);
-        } else {
-            painter.fill_rect(bounds, fill.stops.front().color);
-        }
+        // Under the material's rounded clip when `clipped`, as the
+        // gradients above are.
+        paint_conic_layer(painter, bounds, fill);
         return;
     case MaterialFillKind::procedural: {
         // The painter path never generates a pattern (E10): it draws the
-        // fill's ground, as the engine does until the pattern is ready.
+        // fill's ground, as the engine does until the pattern is ready. A
+        // hatch, which the painter draws itself, is drawn as fill_hatch
+        // anchored at the box, as the engine tiles it.
         Color ground = fill.procedural.ground;
         const double alpha = static_cast<double>(ground.alpha) * std::clamp(fill.opacity, 0.0, 1.0);
         ground.alpha = static_cast<std::uint8_t>(std::floor(alpha + 0.5));
+        if (fill.procedural.pattern == ProceduralPattern::hatch) {
+            HatchPattern hatch{};
+            hatch.style = fill.procedural.hatch_style;
+            hatch.cell = fill.procedural.tile;
+            hatch.back = ground;
+            hatch.fore = mixed_colour(fill.procedural.ground, fill.procedural.figure,
+                                      std::clamp(fill.procedural.strength, 0.0, 1.0));
+            hatch.fore.alpha = static_cast<std::uint8_t>(
+                std::floor(static_cast<double>(hatch.fore.alpha) * std::clamp(fill.opacity, 0.0, 1.0) + 0.5));
+            hatch.anchor = Point{bounds.x, bounds.y};
+            if (clipped) {
+                painter.save();
+                painter.clip_rounded_rect(bounds, corner_radius);
+                painter.fill_hatch(bounds, hatch);
+                painter.restore();
+            } else {
+                painter.fill_hatch(bounds, hatch);
+            }
+            return;
+        }
         if (clipped) {
             painter.fill_rounded_rect(bounds, corner_radius, ground);
         } else {
@@ -1008,6 +1182,7 @@ bool valid_fill_layer(const MaterialFillLayer& fill) noexcept {
         if (fill.radii.width > bound || fill.radii.height > bound) {
             return false;
         }
+        if (fill.focused && !focus_inside_ellipse(fill.center, fill.radii, fill.focus)) return false;
         break;
     }
     case MaterialFillKind::image:
@@ -1037,7 +1212,9 @@ bool valid_fill_layer(const MaterialFillLayer& fill) noexcept {
         if (fill.image_mode != MaterialImageMode::stretch &&
             fill.image_mode != MaterialImageMode::tile &&
             fill.image_mode != MaterialImageMode::nine_patch &&
-            fill.image_mode != MaterialImageMode::single) {
+            fill.image_mode != MaterialImageMode::single &&
+            fill.image_mode != MaterialImageMode::mirror &&
+            fill.image_mode != MaterialImageMode::extend) {
             return false;
         }
         if (fill.image_mode != MaterialImageMode::nine_patch &&
@@ -1102,7 +1279,145 @@ bool equal_edge_widths(const MaterialBorderEdges& edges) noexcept {
     return true;
 }
 
+// The points each clip verb takes from MaterialClipPath::points.
+[[nodiscard]] std::size_t clip_verb_points(MaterialClipVerb verb) noexcept {
+    switch (verb) {
+    case MaterialClipVerb::move:
+    case MaterialClipVerb::line: return 1U;
+    case MaterialClipVerb::quadratic: return 2U;
+    case MaterialClipVerb::cubic: return 3U;
+    case MaterialClipVerb::close:
+    default: break;
+    }
+    return 0U;
+}
+
+[[nodiscard]] bool valid_clip_coordinate(double units, double fraction) noexcept {
+    const bool valid = std::isfinite(units) && std::isfinite(fraction) &&
+                       std::abs(units) <= MaterialClipPath::maximum_units &&
+                       std::abs(fraction) <= MaterialClipPath::maximum_fraction;
+    return valid;
+}
+
+[[nodiscard]] bool valid_material_clip_path(const MaterialClipPath& clip) noexcept {
+    if (clip.verbs.empty() || clip.verbs.front() != MaterialClipVerb::move) return false;
+    if (clip.points.size() > MaterialClipPath::maximum_points) return false;
+    if (static_cast<std::uint8_t>(clip.rule) > static_cast<std::uint8_t>(MaterialClipRule::even_odd)) return false;
+    std::size_t taken = 0U;
+    for (const MaterialClipVerb verb : clip.verbs) {
+        if (static_cast<std::uint8_t>(verb) > static_cast<std::uint8_t>(MaterialClipVerb::close)) return false;
+        taken = taken + clip_verb_points(verb);
+        if (taken > clip.points.size()) return false;
+    }
+    if (taken != clip.points.size()) return false;
+    for (const MaterialClipPoint& point : clip.points) {
+        if (!valid_clip_coordinate(point.x_units, point.x_fraction)) return false;
+        if (!valid_clip_coordinate(point.y_units, point.y_fraction)) return false;
+    }
+    return true;
+}
+
+[[nodiscard]] bool valid_material_transform(const MaterialTransform& transform) noexcept {
+    const std::array<double, 4> entries{transform.xx, transform.yx, transform.xy, transform.yy};
+    for (const double entry : entries) {
+        if (!std::isfinite(entry) || std::abs(entry) > MaterialTransform::maximum_entry) return false;
+    }
+    const double determinant = transform.xx * transform.yy - transform.xy * transform.yx;
+    const bool invertible = std::abs(determinant) >= minimum_paint_transform_determinant;
+    return invertible;
+}
+
+[[nodiscard]] Point clip_point_in(const MaterialClipPoint& point, Rect bounds) noexcept {
+    const Point placed{bounds.x + point.x_units + point.x_fraction * bounds.width,
+                       bounds.y + point.y_units + point.y_fraction * bounds.height};
+    return placed;
+}
+
 } // namespace
+
+bool surface_material_shaped(const SurfaceMaterial& material) noexcept {
+    const bool shaped = !material.transform.identity() || material.clip_path.has_value();
+    return shaped;
+}
+
+PolygonFillRule material_clip_fill_rule(MaterialClipRule rule) noexcept {
+    const PolygonFillRule fill = rule == MaterialClipRule::even_odd ? PolygonFillRule::even_odd
+                                                                    : PolygonFillRule::nonzero;
+    return fill;
+}
+
+void resolve_material_clip_path(const MaterialClipPath& clip, Rect bounds, PaintPath& path) {
+    path.clear();
+    path.reserve(clip.verbs.size(), clip.points.size());
+    std::size_t next = 0U;
+    for (const MaterialClipVerb verb : clip.verbs) {
+        switch (verb) {
+        case MaterialClipVerb::move:
+            path.move_to(clip_point_in(clip.points[next], bounds));
+            next = next + 1U;
+            break;
+        case MaterialClipVerb::line:
+            path.line_to(clip_point_in(clip.points[next], bounds));
+            next = next + 1U;
+            break;
+        case MaterialClipVerb::quadratic: {
+            const Point control = clip_point_in(clip.points[next], bounds);
+            const Point end = clip_point_in(clip.points[next + 1U], bounds);
+            path.quad_to(control, end);
+            next = next + 2U;
+            break;
+        }
+        case MaterialClipVerb::cubic: {
+            const Point first = clip_point_in(clip.points[next], bounds);
+            const Point second = clip_point_in(clip.points[next + 1U], bounds);
+            const Point end = clip_point_in(clip.points[next + 2U], bounds);
+            path.cubic_to(first, second, end);
+            next = next + 3U;
+            break;
+        }
+        case MaterialClipVerb::close:
+        default:
+            path.close();
+            break;
+        }
+    }
+}
+
+void begin_surface_material_shape(Painter& painter, Rect bounds, const SurfaceMaterial& material,
+                                  PaintPath& scratch) {
+    if (!surface_material_shaped(material)) return;
+    const Insets outsets = surface_material_visual_outsets(material);
+    const Rect covered{bounds.x - outsets.left, bounds.y - outsets.top, bounds.width + outsets.left + outsets.right,
+                       bounds.height + outsets.top + outsets.bottom};
+    painter.save();
+    painter.clip_rect(surface_material_paint_bounds(bounds, material));
+    const MaterialTransform& linear = material.transform;
+    if (!linear.identity()) {
+        // About the box's centre: p goes to c + L (p - c).
+        const Point centre{bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5};
+        PaintTransformGroup group{};
+        group.bounds = covered;
+        group.transform.xx = linear.xx;
+        group.transform.yx = linear.yx;
+        group.transform.xy = linear.xy;
+        group.transform.yy = linear.yy;
+        group.transform.dx = centre.x - (linear.xx * centre.x + linear.xy * centre.y);
+        group.transform.dy = centre.y - (linear.yx * centre.x + linear.yy * centre.y);
+        painter.begin_transform(group);
+    }
+    painter.save();
+    if (material.clip_path) {
+        resolve_material_clip_path(*material.clip_path, bounds, scratch);
+        painter.clip_path(scratch.view(), material_clip_fill_rule((*material.clip_path).rule));
+    }
+}
+
+void end_surface_material_shape(Painter& painter, const SurfaceMaterial& material) {
+    if (!surface_material_shaped(material)) return;
+    painter.restore();
+    if (!material.transform.identity()) painter.end_transform();
+    painter.restore();
+}
 
 bool valid_surface_material(const SurfaceMaterial& material) noexcept {
     if (material.fills.empty() ||
@@ -1173,6 +1488,8 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
     if (static_cast<std::uint8_t>(material.dither) > static_cast<std::uint8_t>(MaterialDither::blue_noise)) {
         return false;
     }
+    if (!valid_material_transform(material.transform)) return false;
+    if (material.clip_path && !valid_material_clip_path(*material.clip_path)) return false;
     return true;
 }
 
@@ -1186,8 +1503,16 @@ void paint_surface_material(Painter& painter, Rect bounds,
         return;
     }
     // The painter chooses how: a raster from the material kernel where it
-    // composites part rasters, else the layers below.
+    // composites part rasters, else the layers below. A transform or clip
+    // path wraps either (begin_surface_material_shape).
+    if (!surface_material_shaped(material)) {
+        painter.draw_surface_material(bounds, material);
+        return;
+    }
+    PaintPath clip;
+    begin_surface_material_shape(painter, bounds, material, clip);
     painter.draw_surface_material(bounds, material);
+    end_surface_material_shape(painter, material);
 }
 
 namespace detail {
@@ -1305,8 +1630,39 @@ Insets surface_material_visual_outsets(const SurfaceMaterial& material) noexcept
     return result;
 }
 
+Insets surface_material_visual_outsets(const SurfaceMaterial& material, Size box) noexcept {
+    const Insets face = surface_material_visual_outsets(material);
+    const MaterialTransform& linear = material.transform;
+    if (linear.identity()) return face;
+    const double half_width = std::max(0.0, box.width) * 0.5;
+    const double half_height = std::max(0.0, box.height) * 0.5;
+    const double across = half_width + std::max(face.left, face.right);
+    const double down = half_height + std::max(face.top, face.bottom);
+    // max(|xx|, 1) and max(|yy|, 1) keep the reach from shrinking as the
+    // box grows (surface_material_painting.hpp).
+    const double horizontal =
+        std::max(std::abs(linear.xx), 1.0) * across + std::abs(linear.xy) * down - half_width;
+    const double vertical =
+        std::abs(linear.yx) * across + std::max(std::abs(linear.yy), 1.0) * down - half_height;
+    Insets result{};
+    result.left = std::max(face.left, horizontal);
+    result.right = std::max(face.right, horizontal);
+    result.top = std::max(face.top, vertical);
+    result.bottom = std::max(face.bottom, vertical);
+    return result;
+}
+
+Rect surface_material_paint_bounds(Rect box, const SurfaceMaterial& material) noexcept {
+    const Insets reach = surface_material_visual_outsets(material, Size{box.width, box.height});
+    const Rect painted{box.x - reach.left, box.y - reach.top, box.width + reach.left + reach.right,
+                       box.height + reach.top + reach.bottom};
+    return painted;
+}
+
 bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
     if (!valid_surface_material(material) || material.finish != 0.0) return false;
+    // A transform or clip path can leave parts of the box undrawn.
+    if (surface_material_shaped(material)) return false;
     if (material.corner_radius != 0.0 || material.corner_radii) return false;
     if (!(surface_material_visual_outsets(material) == Insets{})) return false;
     if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask ||
@@ -1323,6 +1679,9 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
 
 std::optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept {
     if (!valid_surface_material(material) || material.finish != 0.0) return std::nullopt;
+    // A transform about the centre, or a clip path in fractions of the box,
+    // moves with every size change.
+    if (surface_material_shaped(material)) return std::nullopt;
     // A dithered material's pixels follow the dither's pattern all along
     // the face, not only near its edges.
     if (material.dither != MaterialDither::none) return std::nullopt;
@@ -1476,7 +1835,9 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
         case MaterialField::corner_top_left:
         case MaterialField::corner_top_right:
         case MaterialField::corner_bottom_right:
-        case MaterialField::corner_bottom_left: kept = true; break;
+        case MaterialField::corner_bottom_left:
+        case MaterialField::transform:
+        case MaterialField::clip_path: kept = true; break;
         case MaterialField::background_colour:
         case MaterialField::border_top_colour:
         case MaterialField::border_right_colour:

@@ -3,6 +3,7 @@
 // and the owned builder. Renderer-neutral; the Skia painter draws the
 // verbs exactly instead of flattening them.
 #include "gui_forms/types/paint_path/paint_path.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -33,8 +34,8 @@ double held_sweep(double sweep_degrees) noexcept {
 }
 
 Point arc_point(Point center, Point radii, double degrees) noexcept {
-    const double radians = degrees * degrees_to_radians;
-    const Point point{center.x + radii.x * std::cos(radians), center.y + radii.y * std::sin(radians)};
+    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    const Point point{center.x + radii.x * turn.cosine, center.y + radii.y * turn.sine};
     return point;
 }
 

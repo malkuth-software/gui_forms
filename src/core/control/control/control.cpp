@@ -1,4 +1,5 @@
 #include "gui_forms/control.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/component/failures/component_failures.hpp"
 
@@ -32,7 +33,6 @@
 #include <functional>
 #include <limits>
 #include <new>
-#include <numbers>
 #include <stdexcept>
 
 namespace gui_forms {
@@ -64,9 +64,10 @@ Dirty fold_subtree_regions(Control& control) noexcept {
 
 [[nodiscard]] Point rotate_owner_decoration_point(
     Point point, Rect box, double degrees) noexcept {
-    const double radians = degrees * std::numbers::pi / 180.0;
-    const double cosine = std::cos(radians);
-    const double sine = std::sin(radians);
+    // The engine's deterministic sine and cosine, exact at quarter turns.
+    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    const double cosine = turn.cosine;
+    const double sine = turn.sine;
     const Point center{box.x + box.width * 0.5, box.y + box.height * 0.5};
     const double x = point.x - center.x;
     const double y = point.y - center.y;
@@ -4833,8 +4834,9 @@ void Control::paint_owned_decorations(
 Insets Control::effective_visual_outsets() const noexcept {
     Insets result = visual_outsets();
     if (authored_surface_material_) {
-        const Insets surface =
-            surface_material_visual_outsets(*authored_surface_material_);
+        const Rect arranged = committed_arranged_bounds();
+        const Insets surface = surface_material_visual_outsets(*authored_surface_material_,
+                                                               Size{arranged.width, arranged.height});
         result.left = std::max(result.left, surface.left);
         result.top = std::max(result.top, surface.top);
         result.right = std::max(result.right, surface.right);

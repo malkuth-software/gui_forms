@@ -216,11 +216,40 @@ void test_rounded_single_edges() {
     require(blue[5] < 200U, "the outer ring's top is the shadow edge");
 }
 
+// A focused radial fill (the theme language's `focus`): the kernel's first
+// stop lies at the focus, and the rings crowd towards the edge nearer it.
+void test_focal_radial_bakes() {
+    const std::vector<GradientStop> stops{{0.0, Color::rgba(255, 0, 0)}, {1.0, Color::rgba(0, 0, 255)}};
+    MaterialFillLayer focal = MaterialFillLayer::radial(Point{0.5, 0.5}, Size{0.5, 0.5}, stops);
+    focal.focused = true;
+    focal.focus = Point{0.25, 0.5};
+    SurfaceMaterial lens{};
+    lens.fills = {focal};
+    require(valid_surface_material(lens), "a focused radial fill is valid");
+    const double outset = detail::material_raster_outset(lens);
+    const std::shared_ptr<const PartRaster> raster =
+        detail::bake_material_raster(lens, Size{32.0, 32.0}, DeviceScale{1.0}, outset);
+    require(raster != nullptr, "the focused lens bakes");
+    if (raster == nullptr) return;
+    const PartRaster& baked = *raster;
+    const std::size_t origin = static_cast<std::size_t>(outset);
+    const std::size_t row_bytes = baked.row_bytes();
+    const std::span<const std::uint8_t> pixels = baked.pixels();
+    // BGRA: the blue byte first, the red third.
+    const std::size_t at_focus = (origin + 16U) * row_bytes + (origin + 8U) * 4U;
+    const std::size_t nearer = (origin + 16U) * row_bytes + (origin + 2U) * 4U;
+    const std::size_t farther = (origin + 16U) * row_bytes + (origin + 14U) * 4U;
+    require(pixels[at_focus + 2U] > 220U && pixels[at_focus] < 40U, "the focus takes the first stop");
+    require(static_cast<int>(pixels[nearer]) > static_cast<int>(pixels[farther]) + 40,
+            "the rings crowd towards the edge nearer the focus");
+}
+
 } // namespace
 
 int main() {
     test_three_paths_agree();
     test_rounded_single_edges();
+    test_focal_radial_bakes();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

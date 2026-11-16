@@ -837,6 +837,8 @@ std::string_view image_mode_name(MaterialImageMode mode) {
     case MaterialImageMode::tile: return "tile";
     case MaterialImageMode::nine_patch: return "nine_patch";
     case MaterialImageMode::single: return "single";
+    case MaterialImageMode::mirror: return "mirror";
+    case MaterialImageMode::extend: return "extend";
     }
     return {};
 }
@@ -881,6 +883,7 @@ std::string_view pattern_name(ProceduralPattern pattern) {
     case ProceduralPattern::brushed_metal: return "brushed_metal";
     case ProceduralPattern::fresco: return "fresco";
     case ProceduralPattern::checker: return "checker";
+    case ProceduralPattern::hatch: return "hatch";
     }
     return {};
 }

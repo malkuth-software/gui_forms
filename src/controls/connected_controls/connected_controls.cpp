@@ -182,10 +182,12 @@ void paint_connected_surface_material(
     }
 }
 
-Insets connected_surface_visual_outsets(
-    const SurfaceMaterial& material,
-    const std::optional<ConnectedControlTopology> topology) noexcept {
-    Insets result = surface_material_visual_outsets(material);
+namespace {
+
+// `reach` with the sides joined to a neighbour cleared: a joined edge
+// draws nothing past itself.
+[[nodiscard]] Insets joined_outsets(Insets reach, const std::optional<ConnectedControlTopology> topology) noexcept {
+    Insets result = reach;
     const ConnectedControlSegment segment = connected_control_segment(topology);
     if (segment == ConnectedControlSegment::standalone) return result;
     const bool joined_leading = segment != ConnectedControlSegment::leading;
@@ -197,6 +199,22 @@ Insets connected_surface_visual_outsets(
         if (joined_leading) result.top = 0.0;
         if (joined_trailing) result.bottom = 0.0;
     }
+    return result;
+}
+
+} // namespace
+
+Insets connected_surface_visual_outsets(
+    const SurfaceMaterial& material,
+    const std::optional<ConnectedControlTopology> topology) noexcept {
+    const Insets result = joined_outsets(surface_material_visual_outsets(material), topology);
+    return result;
+}
+
+Insets connected_surface_visual_outsets(const SurfaceMaterial& material,
+                                        const std::optional<ConnectedControlTopology> topology,
+                                        Size box) noexcept {
+    const Insets result = joined_outsets(surface_material_visual_outsets(material, box), topology);
     return result;
 }
 

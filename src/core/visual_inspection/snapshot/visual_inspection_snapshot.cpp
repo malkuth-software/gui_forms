@@ -125,6 +125,7 @@ const char* procedural_pattern_name(ProceduralPattern pattern) noexcept {
     case ProceduralPattern::brushed_metal: return "brushed_metal";
     case ProceduralPattern::fresco: return "fresco";
     case ProceduralPattern::checker: return "checker";
+    case ProceduralPattern::hatch: return "hatch";
     }
     return "unknown";
 }
@@ -174,6 +175,8 @@ const char* image_mode_name(MaterialImageMode value) noexcept {
     case MaterialImageMode::tile: return "tile";
     case MaterialImageMode::nine_patch: return "nine_patch";
     case MaterialImageMode::single: return "single";
+    case MaterialImageMode::mirror: return "mirror";
+    case MaterialImageMode::extend: return "extend";
     }
     return "unknown";
 }
@@ -181,6 +184,8 @@ const char* image_mode_name(MaterialImageMode value) noexcept {
 const char* image_pattern_wrap_name(ImagePatternWrap value) noexcept {
     switch (value) {
     case ImagePatternWrap::tile: return "tile";
+    case ImagePatternWrap::mirror: return "mirror";
+    case ImagePatternWrap::clamp: return "clamp";
     }
     return "unknown";
 }
@@ -651,6 +656,12 @@ const char* visual_paint_operation_name(VisualPaintOperation operation) noexcept
     case VisualPaintOperation::stroke_rounded_rect_corners: return "stroke_rounded_rect_corners";
     case VisualPaintOperation::fill_path: return "fill_path";
     case VisualPaintOperation::stroke_path: return "stroke_path";
+    case VisualPaintOperation::clip_path: return "clip_path";
+    case VisualPaintOperation::fill_radial_gradient_spread: return "fill_radial_gradient_spread";
+    case VisualPaintOperation::fill_hatch: return "fill_hatch";
+    case VisualPaintOperation::fill_focal_radial_gradient: return "fill_focal_radial_gradient";
+    case VisualPaintOperation::begin_transform: return "begin_transform";
+    case VisualPaintOperation::end_transform: return "end_transform";
     }
     return "unknown";
 }

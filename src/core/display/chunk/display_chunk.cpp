@@ -8,7 +8,8 @@ namespace {
 
 // One open save while searching (find_occluder): where it began, the
 // translation recorded in it, the clip it adds (in the chunk's
-// coordinates) and whether it holds a rounded clip or is a paint group.
+// coordinates) and whether it holds a rounded clip or is a paint or
+// transform group.
 struct OpenSave final {
     std::size_t start{};
     Point offset{};
@@ -28,14 +29,18 @@ std::optional<DisplayOccluder> find_occluder(const DisplayCommandList& commands)
     for (std::size_t index = 0U; index < commands.size(); ++index) {
         const DisplayCommand& command = commands[index];
         const DisplayOperation operation = command.operation;
-        if (operation == DisplayOperation::save || operation == DisplayOperation::begin_group) {
+        if (operation == DisplayOperation::save || operation == DisplayOperation::begin_group ||
+            operation == DisplayOperation::begin_transform) {
+            // Under a transform group the surface's cover is not a
+            // rectangle in the chunk's coordinates: no occluder there.
             OpenSave level{};
             level.start = index;
-            level.disqualified = operation == DisplayOperation::begin_group;
+            level.disqualified = operation != DisplayOperation::save;
             open.push_back(level);
             continue;
         }
-        if (operation == DisplayOperation::restore || operation == DisplayOperation::end_group) {
+        if (operation == DisplayOperation::restore || operation == DisplayOperation::end_group ||
+            operation == DisplayOperation::end_transform) {
             if (open.empty()) return std::nullopt;
             open.pop_back();
             continue;
@@ -46,8 +51,10 @@ std::optional<DisplayOccluder> find_occluder(const DisplayCommandList& commands)
             offset.x += level.offset.x;
             offset.y += level.offset.y;
         }
+        // A path clip is followed as a rounded one is: not a rectangle.
         const bool rounded_clip = operation == DisplayOperation::clip_rounded_rect ||
-                                  operation == DisplayOperation::clip_rounded_rect_corners;
+                                  operation == DisplayOperation::clip_rounded_rect_corners ||
+                                  operation == DisplayOperation::clip_path;
         if (open.empty() && (operation == DisplayOperation::translate || operation == DisplayOperation::clip_rect ||
                              rounded_clip)) {
             // A surface found before it still hides what came before that.

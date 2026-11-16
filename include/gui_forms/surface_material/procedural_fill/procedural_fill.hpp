@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/types/paint_marks/paint_marks.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstdint>
@@ -33,6 +34,14 @@ enum class ProceduralPattern : std::uint8_t {
     // 2-unit tile is a 50% dither of logical pixels, as a Windows scroll
     // track's pattern brush.
     checker,
+    // A hatch (owner, 2026-11-16: Painter::fill_hatch reaches the theme
+    // language): the tile is one hatch cell of 8 by 8 squares, each
+    // square the figure (mixed by strength) where hatch_square_marked
+    // marks it for `hatch_style`, else the ground. A side that is not a
+    // multiple of 8 pixels gives square x the columns c with
+    // floor(8c / side) = x. No noise. The painter path draws it with
+    // Painter::fill_hatch.
+    hatch,
 };
 
 // One procedural fill's parameters. The pattern is generated per display
@@ -60,10 +69,12 @@ struct GUI_FORMS_API ProceduralFill final {
     Color figure{Color::rgba(96, 96, 96)};
     Color accent{Color::rgba(128, 128, 128)};
     Color bloom{Color::rgba(255, 255, 255, 0)};
+    // Read only by the hatch.
+    HatchStyle hatch_style{HatchStyle::horizontal};
     friend constexpr bool operator==(const ProceduralFill& left, const ProceduralFill& right) noexcept {
         return left.pattern == right.pattern && left.seed == right.seed && left.tile == right.tile &&
                left.strength == right.strength && left.ground == right.ground && left.figure == right.figure &&
-               left.accent == right.accent && left.bloom == right.bloom;
+               left.accent == right.accent && left.bloom == right.bloom && left.hatch_style == right.hatch_style;
     }
 };
 

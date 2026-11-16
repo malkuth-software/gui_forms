@@ -127,6 +127,12 @@ struct ResolvedFill final {
     double step_y{};
     double inverse_radius_x{};
     double inverse_radius_y{};
+    // A focused radial gradient's focus in the unit circle's coordinates
+    // (offsets from the centre over the radii) and 1 / (1 − |focus|²).
+    bool focused{};
+    double focus_x{};
+    double focus_y{};
+    double focal_scale{1.0};
     // A conic gradient's centre is the origin; t is the turn clockwise from
     // up past `from_turn` (in [0, 1)), times the turns to one period.
     double from_turn{};
@@ -411,6 +417,20 @@ ResolvedFill resolve_fill(const MaterialFillLayer& layer, Rect box, double scale
         fill.origin_y = centre.y;
         if (radius_x > 0.0) fill.inverse_radius_x = 1.0 / radius_x;
         if (radius_y > 0.0) fill.inverse_radius_y = 1.0 / radius_y;
+        if (layer.focused) {
+            const Point focus = resolved_point(layer.focus, layer.coordinate_space, box, scale);
+            const double across = (focus.x - centre.x) * fill.inverse_radius_x;
+            const double down = (focus.y - centre.y) * fill.inverse_radius_y;
+            const double inside = 1.0 - (across * across + down * down);
+            // A valid layer's focus is strictly inside; a focus rounding onto
+            // the edge draws as a centred gradient.
+            if (inside > 0.0 && std::isfinite(inside)) {
+                fill.focused = true;
+                fill.focus_x = across;
+                fill.focus_y = down;
+                fill.focal_scale = 1.0 / inside;
+            }
+        }
     }
     if (layer.kind == MaterialFillKind::conic_gradient) {
         const Point centre = resolved_point(layer.center, layer.coordinate_space, box, scale);
@@ -1051,7 +1071,18 @@ Unit fill_colour(const ResolvedFill& fill, const MaterialImages& images, std::si
     case MaterialFillKind::radial_gradient: {
         const double across = (centre_x - fill.origin_x) * fill.inverse_radius_x;
         const double down = (centre_y - fill.origin_y) * fill.inverse_radius_y;
-        const double t = std::sqrt(across * across + down * down);
+        double t = std::sqrt(across * across + down * down);
+        if (fill.focused) {
+            // In the unit circle, the offset t whose circle (radius t, centre
+            // f(1 − t)) passes through u: with d = u − f, the positive root
+            // of (1 − |f|²)t² − 2(d·f)t − |d|² = 0.
+            const double from_x = across - fill.focus_x;
+            const double from_y = down - fill.focus_y;
+            const double toward = from_x * fill.focus_x + from_y * fill.focus_y;
+            const double inside = 1.0 / fill.focal_scale;
+            const double reach = toward * toward + inside * (from_x * from_x + from_y * from_y);
+            t = (toward + std::sqrt(reach)) * fill.focal_scale;
+        }
         const Unit radial = stop_colour(fill.stops, spread_position(t, fill.spread), coverage);
         return radial;
     }
