@@ -508,6 +508,7 @@ Rect SurfaceDesk::box_of(const Layer& entry, SurfaceDeskPart part) const noexcep
             return Rect{whole.x + half, whole.y, help, whole.height};
         case SurfaceDeskPart::capsule_right:
             return Rect{whole.x + half + help, whole.y, whole.right() - (whole.x + half + help), whole.height};
+        // Parts without a rectangle of their own (none, client, title_bar, ...): an empty one.
         default:
             return Rect{};
         }

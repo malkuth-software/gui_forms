@@ -497,6 +497,8 @@ bool Parser::primary(ExpressionNodeIndex& result) {
     case TokenKind::star:
     case TokenKind::slash:
     case TokenKind::invalid:
+    // A token kind this parser does not know is refused as unexpected, as invalid is.
+    default:
         read = refuse(token.offset, "unexpected '" + std::string(token.text) + "'");
         break;
     }

@@ -515,6 +515,7 @@ BindingValue Control::active_border_property_value(RegisteredProperty property) 
         return current_enum_property_value(active_border_motion_property_enum(),
                                            static_cast<std::int64_t>(border.motion));
     case RegisteredProperty::active_border_frequency: return BindingValue{border.frequency};
+    // Not a border property: the throw after the switch names the failure.
     default: break;
     }
     throw std::logic_error("GUI.Forms property is not a control border property");

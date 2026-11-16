@@ -139,6 +139,7 @@ CursorMask cursor_mask(CursorKind kind) noexcept {
     case CursorKind::resize_diagonal_up:
         return CursorMask{diagonal_mask, 5, 5, false, true};
     case CursorKind::arrow:
+    // The cursors the surface host does not draw (hand, wait, forbidden, ...) show the arrow.
     default:
         return CursorMask{arrow_mask, 0, 0, false, false};
     }

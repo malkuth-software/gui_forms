@@ -429,6 +429,7 @@ std::optional<BindingValue> CompositeInstanceAccess::property_value_of(const Com
         }
         return std::nullopt;
     }
+    // The other kinds hold no binding value; only a presentational number passes through.
     default:
         if (property.presentational && value.kind == CompositeValueKind::number) return BindingValue{value.number};
         return std::nullopt;

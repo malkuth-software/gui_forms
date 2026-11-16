@@ -214,6 +214,7 @@ CompositeValue CompositeEvaluator::evaluate(const CompositeExpression& expressio
         case ExpressionOperator::subtract: return number_value(left - right);
         case ExpressionOperator::multiply: return number_value(left * right);
         case ExpressionOperator::divide: return number_value(right == 0.0 ? 0.0 : left / right);
+        // none, logical_and and logical_or are not arithmetic: no number value.
         default: return CompositeValue{};
         }
     }

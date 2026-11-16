@@ -820,7 +820,9 @@ void ModelBuilder::read_property(const std::uint32_t index, ControlModel& scratc
         }
         case ControlPropertyKind::font:
         case ControlPropertyKind::image:
-        case ControlPropertyKind::command: valid = false; break;
+        case ControlPropertyKind::command:
+        // An out-of-range kind admits no default value, as these kinds do not.
+        default: valid = false; break;
         }
         if (!valid) {
             report(DiagnosticCode::control_value_invalid, value_offset(index, "default"), name, "default",
@@ -1892,6 +1894,8 @@ void ModelBuilder::check_drag(const ControlDrag& drag, const ControlModel& scrat
         case ControlDragKind::reorder:
             fits = kind == ControlPropertyKind::signed_integer || kind == ControlPropertyKind::unsigned_integer;
             break;
+        // An out-of-range drag kind keeps fits as set above (true): no constraint to check.
+        default: break;
         }
         if (!fits) {
             report(DiagnosticCode::control_drag_invalid, value_offset(element, "maps-to"), part_name, "maps-to",
@@ -2076,6 +2080,8 @@ void ModelBuilder::check_rules(const ControlModel& scratch) {
                         (action.target.size() > 1U && action.target.front() == '@' &&
                          child_named(scratch, std::string_view(action.target).substr(1U)) != nullptr);
                 break;
+            // An out-of-range action kind keeps known as set above (true): nothing to look up.
+            default: break;
             }
             if (!known && !action.target.empty()) {
                 report(DiagnosticCode::control_reference_unknown, value_offset(action_element, target_attribute),

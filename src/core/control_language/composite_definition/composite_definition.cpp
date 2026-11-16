@@ -242,6 +242,7 @@ BindingValue initial_value(const ControlProperty& property, const ControlPropert
         }
         return BindingValue{insets};
     }
+    // font and command store no default value: none.
     default: return BindingValue{};
     }
 }
