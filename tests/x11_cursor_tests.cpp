@@ -1,4 +1,4 @@
-#include "../src/host/linux/services/x11_cursor.hpp"
+#include "../src/surface/linux/services/x11_cursor.hpp"
 #include <X11/extensions/Xfixes.h>
 #include <iostream>
 int main() {

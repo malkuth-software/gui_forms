@@ -26,9 +26,11 @@ your C++ application         one executable: everything below is linked into it
          Controls ─┬─ Core ── Threading (static)
                    └─ Drawing
        and, privately,
-         host adapter       src/host/macos | windows | linux
+         host adapter       src/surface/macos | windows | linux
+                            (platform API calls; src/host keeps the
+                            platform-neutral host logic)
          CPU renderer       src/render/skia on every host (Windows presents its
-                            frames from DIB sections, src/host/windows/raster)
+                            frames from DIB sections, src/surface/windows/raster)
          text engine        HarfBuzz, FreeType, stxlib::textlayout
 
 renderer-free code (tests, models, automation)
@@ -78,7 +80,7 @@ build inspect symbols, imports and sources:
 - `cmake/check_drawing_boundaries.cmake`: no renderer or host dependency in
   the drawing libraries.
 
-One Apple-framework file lives outside `src/host/macos/`:
+One Apple-framework file lives outside `src/surface/macos/`:
 `src/render/skia/executor/core_text_font_bytes.cpp`, inside the private
 renderer, recovers a named face's bytes for the drawing C API so the shared
 text engine can load it. Nothing it does crosses the portable contract.

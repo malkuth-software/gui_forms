@@ -200,16 +200,16 @@ copies' clips, and the shim adds back the area of any scroll it refuses.
 
 | Path | Buffers | Refusals |
 |---|---|---|
-| macOS IOSurface (`src/host/macos/view/macos_iosurface_present.mm`) | up to three BGRA IOSurfaces, `IOSurfaceLock` for writing, set as the contents of a layer beneath the compositor's sublayers | busy while every surface is in use (`IOSurfaceIsInUse`) or shown; resources when one cannot be made; lost when one cannot be locked |
-| X11 Present (`src/host/linux/application/x11_present_direct.cpp`) | up to three MIT-SHM pixmaps, presented with `XPresentPixmap` and an update region; reused after `PresentIdleNotify` | unsupported without libXpresent, MIT-SHM pixmaps or Present, on a remote display, on a visual not in the raster's layout, and on a 32-bit window presenting opaque; busy while every pixmap is read; resources when a segment cannot be made |
-| Wayland `wl_shm` (`src/host/linux/wayland/wayland_shm_present.cpp`, built with `GUI_FORMS_ENABLE_WAYLAND_PRESENT`) | up to three memfd buffers, ARGB8888 or XRGB8888, attached with `wl_surface_damage_buffer`; reused after `wl_buffer.release` | busy while every buffer is held; resources when one cannot be made; lost when the display is in error or a flush fails |
+| macOS IOSurface (`src/surface/macos/view/macos_iosurface_present.mm`) | up to three BGRA IOSurfaces, `IOSurfaceLock` for writing, set as the contents of a layer beneath the compositor's sublayers | busy while every surface is in use (`IOSurfaceIsInUse`) or shown; resources when one cannot be made; lost when one cannot be locked |
+| X11 Present (`src/surface/linux/application/x11_present_direct.cpp`) | up to three MIT-SHM pixmaps, presented with `XPresentPixmap` and an update region; reused after `PresentIdleNotify` | unsupported without libXpresent, MIT-SHM pixmaps or Present, on a remote display, on a visual not in the raster's layout, and on a 32-bit window presenting opaque; busy while every pixmap is read; resources when a segment cannot be made |
+| Wayland `wl_shm` (`src/surface/linux/wayland/wayland_shm_present.cpp`, built with `GUI_FORMS_ENABLE_WAYLAND_PRESENT`) | up to three memfd buffers, ARGB8888 or XRGB8888, attached with `wl_surface_damage_buffer`; reused after `wl_buffer.release` | busy while every buffer is held; resources when one cannot be made; lost when the display is in error or a flush fails |
 
 ### Buffer routes
 
 | Route | Capability | Build option and policy | What the API is used for |
 |---|---|---|---|
 | macOS `CAMetalLayer` (`macos_metal_present.mm`) | `metal_drawables` | `GUI_FORMS_ENABLE_METAL_PRESENT`; `GUI_FORMS_PRESENT=direct,metal` | the system default device for the layer, `nextDrawable` (only while a drawable is free), the drawable texture's `iosurface` (locked for writing), `-[CAMetalDrawable present]`; no command buffer |
-| X11 DRI3 (`x11_dri3_present.cpp`, `src/host/linux/gbm/`) | `dri3_pixmaps` | `GUI_FORMS_ENABLE_X11_DRI3_PRESENT` (with libXpresent); `GUI_FORMS_PRESENT=direct,dri3` | `DRI3Open` for the server's device, linear GBM buffers mapped for writing (age 0) and exported, `DRI3PixmapFromBuffer`, then `XPresentPixmap` |
+| X11 DRI3 (`x11_dri3_present.cpp`, `src/surface/linux/gbm/`) | `dri3_pixmaps` | `GUI_FORMS_ENABLE_X11_DRI3_PRESENT` (with libXpresent); `GUI_FORMS_PRESENT=direct,dri3` | `DRI3Open` for the server's device, linear GBM buffers mapped for writing (age 0) and exported, `DRI3PixmapFromBuffer`, then `XPresentPixmap` |
 | Wayland linux-dmabuf (`wayland_dmabuf_present.cpp`) | `linux_dmabuf` (reserved) | `GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT`; `direct,dmabuf` for a future Wayland host | linear GBM buffers on the compositor's render node, mapped and exported, `zwp_linux_dmabuf_v1` `create_immed` |
 | Windows DXGI flip model or DirectComposition | to be added by the Windows side | the Windows side's | the Windows side's study (below) |
 

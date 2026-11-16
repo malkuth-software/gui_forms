@@ -8,8 +8,11 @@ for a new dependency or a new platform assumption is not.
 
 ## Boundaries that are not negotiable
 
-- C++20. Objective-C++ only under `src/host/macos/`. Win32, COM, WIC, MSAA
-  and UIA only under `src/host/windows/`. X11 only under `src/host/linux/`.
+- C++20. Objective-C++ only in the macOS host (`src/surface/macos/`, and the
+  macOS program entry points in `src/host/macos/`). AppKit only under
+  `src/surface/macos/`. Win32, COM, WIC, MSAA and UIA only under
+  `src/surface/windows/`. X11 and Wayland only under `src/surface/linux/`.
+  The rest of `src/host/` is platform-neutral host logic.
 - No .NET, Java, browser engine or Godot dependency in the native runtime.
 - No GPU: nothing compiles, links, probes or exposes Ganesh, Graphite, GL,
   Vulkan, Metal, Direct3D, Dawn or WebGPU.

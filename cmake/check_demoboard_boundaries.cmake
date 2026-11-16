@@ -5,7 +5,7 @@ file(GLOB_RECURSE demoboard_sources
 
 foreach(source IN LISTS demoboard_sources)
     file(READ "${source}" content)
-    if(content MATCHES "src/(core|controls|host|render)/" OR
+    if(content MATCHES "src/(core|controls|host|render|surface)/" OR
        content MATCHES "#include[ \t]*[<\"](Sk|AppKit|windows\\.h|d2d|gtk)")
         message(FATAL_ERROR "Demoboard reaches through the public GUI.Forms boundary: ${source}")
     endif()

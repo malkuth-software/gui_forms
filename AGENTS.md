@@ -195,12 +195,14 @@ directory.
 
 ## Hard boundaries
 
-- C++20 is admitted. Objective-C++ is admitted only in the macOS host adapter.
+- C++20 is admitted. Objective-C++ is admitted only in the macOS host adapter
+  (`src/surface/macos/`) and the macOS program entry points in
+  `src/host/macos/`.
 - No .NET, Java, browser engine, or Godot dependency.
 - GUI.Forms has no GPU capability. Do not compile, link, initialize, probe, or
   expose Ganesh, Graphite, GL, Vulkan, Metal, Direct3D, Dawn, or WebGPU.
   One written exception (owner, 2026-10-27, confirmed 2026-11-15): the
-  Emscripten browser host (`src/host/web/`) presents the window manager's
+  Emscripten browser host (`src/surface/web/`) presents the window manager's
   CPU-composed surface with WebGL2, uploading its pixels to one texture and
   drawing it as a quad. WebGL2 is only that host's present backend; nothing
   renders with it, and no other target may use it.
@@ -208,9 +210,9 @@ directory.
   capabilities. yes"): the presentation shim's buffer routes
   (`docs/user/presentation.md`) may use a platform graphics API for
   buffer acquisition and presentation only: CAMetalLayer drawables (Metal)
-  in `src/host/macos/`, DRI3 pixmaps and linux-dmabuf buffers over GBM in
-  `src/host/linux/`, and DXGI flip or DirectComposition in
-  `src/host/windows/` when the Windows side adds it. Each route lives
+  in `src/surface/macos/`, DRI3 pixmaps and linux-dmabuf buffers over GBM in
+  `src/surface/linux/`, and DXGI flip or DirectComposition in
+  `src/surface/windows/` when the Windows side adds it. Each route lives
   inside its host adapter, behind its own build option, is reported by its
   own host capability bit, and falls back to the copy path with identical
   pixels on any refusal or loss. No drawing, shaders, command encoding
@@ -231,8 +233,16 @@ directory.
   `src/core/image/`, for resources, the clipboard, imports, export and
   GUI.Drawing. The registry, renderers and hosts see codec-neutral types
   only. Other codecs are excluded.
-- AppKit types remain inside `src/host/macos/`.
-- Win32, COM, WIC, MSAA, and UIA types remain inside `src/host/windows/`.
+- Platform API calls (owner, 2026-11-16, host adapter consolidation) live in
+  `src/surface/<platform>/`: AppKit, CoreGraphics, CoreText, IOSurface and
+  Metal in `src/surface/macos/`; Win32, COM, WIC, MSAA, UIA and DXGI in
+  `src/surface/windows/`; Xlib, xcb, Wayland and GBM in
+  `src/surface/linux/`; POSIX memory mapping, sockets and processes in
+  `src/surface/posix/`; Emscripten in `src/surface/web/`. The rest of
+  `src/host/` is platform-neutral host logic and includes no platform
+  header. After 1.0 this folder moves into STXlib as its surface.
+- AppKit types remain inside `src/surface/macos/`.
+- Win32, COM, WIC, MSAA, and UIA types remain inside `src/surface/windows/`.
 - The core is retained; do not introduce an immediate-mode control API or a
   perpetual redraw loop.
 - ADR-013's reservation of persistent side panels to File Manager was retired
@@ -257,12 +267,17 @@ directory.
 - Renderer-neutral implementation lives under `src/core/` and
   `src/controls/`.
 - Skia implementation lives under `src/render/skia/`.
-- Native macOS code lives under `src/host/macos/`.
+- Native macOS code lives under `src/surface/macos/`; its program entry
+  points and platform-neutral rules under `src/host/macos/`.
 - GUI.Forms' own window manager for single-surface hosts lives under
   `src/host/surface/` (portable C++; owner decision, 2026-11-15).
-- Browser (Emscripten) code lives under `src/host/web/`; its page half is
-  `src/host/web/page/web_host.js` and the hosted page shell `web/paint/`.
-- Native Windows code lives under `src/host/windows/`.
+- Browser (Emscripten) code lives under `src/surface/web/` and its
+  platform-neutral rules under `src/host/web/`; its page half is
+  `src/surface/web/page/web_host.js` and the hosted page shell `web/paint/`.
+- Native Windows code lives under `src/surface/windows/`; its program entry
+  points under `src/host/windows/`.
+- Native Linux code lives under `src/surface/linux/`; its program entry
+  points and platform-neutral rules under `src/host/linux/`.
 - Demonstrations and their provisional static descriptions live under `demo/`;
   authoritative Web.Forms language work lives in the sibling `web_forms/`
   project and consumes only an explicitly negotiated public manifest.

@@ -1,4 +1,4 @@
-#include "../src/host/windows/services/windows_cursor.hpp"
+#include "../src/surface/windows/services/windows_cursor.hpp"
 #include <iostream>
 
 static bool owned_window_cursor_validation() {

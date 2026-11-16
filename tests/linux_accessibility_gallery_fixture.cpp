@@ -15,7 +15,7 @@
 // generation. Exit 0 after "quit"; 1 when the display cannot be opened;
 // 2 when standard input closes first.
 
-#include "../src/host/linux/accessibility/linux_accessibility.hpp"
+#include "../src/surface/linux/accessibility/linux_accessibility.hpp"
 #include "linux_accessibility_gallery_session.hpp"
 
 #include <X11/Xlib.h>

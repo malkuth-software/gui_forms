@@ -259,7 +259,7 @@ The conformance kit's `gf_conformance_content.c` drives every slot.
 
 ## What Windows hosted content must provide
 
-The Windows implementation replaces `src/host/windows/hosted/hosted_content_windows.cpp`
+The Windows implementation replaces `src/surface/windows/hosted/hosted_content_windows.cpp`
 and adds a Windows hosted client. It must keep the portable contract in
 `hosted_content.hpp`, `hosted_client.hpp` and `hosted_protocol.hpp`
 unchanged, and provide exactly this:

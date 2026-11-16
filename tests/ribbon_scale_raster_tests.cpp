@@ -32,9 +32,9 @@
 #include "skia_raster.hpp"
 #include "../src/core/resources/fonts/bundled_font_set.hpp"
 #if defined(_WIN32)
-#include "../src/host/windows/fonts/sealed_pages_windows.hpp"
+#include "../src/surface/windows/fonts/sealed_pages_windows.hpp"
 #else
-#include "../src/host/posix/fonts/sealed_pages_posix.hpp"
+#include "../src/surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #include <algorithm>

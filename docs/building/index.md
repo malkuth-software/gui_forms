@@ -325,7 +325,7 @@ libraries and exports exactly its allowlisted `gf_*` entry points and
 `gd_get_api_v0` (the raster is installed through the drawing table's
 `raster_initialize`), and on Windows the Win32 compatibility shim's user32
 and gdi32 names (`IsWindow`, `GetDC`, `BitBlt` and the rest of
-`src/host/windows/win32_compat_shim.def`; the import libraries leave them
+`src/surface/windows/win32_compat_shim.def`; the import libraries leave them
 out), as the `gui_forms_abi_exports_only_entry_points` and
 `gui_forms_abi_system_imports_only` tests check. A process uses one or the other,
 never both. The localizable-literal plugin is a Clang plugin loaded by the
@@ -448,8 +448,8 @@ The CI tools that do this live in template_harness, pinned by `harness.lock`
 ## Dependency boundaries
 
 The build enforces the project's boundaries as tests rather than as
-conventions: C++20 everywhere, Objective-C++ only in `src/host/macos/`, Win32
-only in `src/host/windows/`, X11 only in `src/host/linux/`, Skia only in
+conventions: C++20 everywhere, AppKit only in `src/surface/macos/`, Win32
+only in `src/surface/windows/`, X11 only in `src/surface/linux/`, Skia only in
 `src/render/skia/`, PNG as the only image decoder, and no GPU API anywhere.
 A change that violates one of these fails `ctest` before it reaches review.
 

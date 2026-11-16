@@ -12,9 +12,9 @@
 
 #include "skia_raster.hpp"
 #if defined(_WIN32)
-#include "../../host/windows/fonts/sealed_pages_windows.hpp"
+#include "../../surface/windows/fonts/sealed_pages_windows.hpp"
 #else
-#include "../../host/posix/fonts/sealed_pages_posix.hpp"
+#include "../../surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #if defined(__APPLE__)

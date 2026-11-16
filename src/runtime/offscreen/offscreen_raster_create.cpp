@@ -12,11 +12,11 @@
 #include "../../render/skia/offscreen/offscreen_raster_parts.hpp"
 
 #if defined(_WIN32)
-#include "../../host/windows/fonts/sealed_pages_windows.hpp"
+#include "../../surface/windows/fonts/sealed_pages_windows.hpp"
 #elif defined(__EMSCRIPTEN__)
 #include "../../host/web/fonts/sealed_pages_web.hpp"
 #else
-#include "../../host/posix/fonts/sealed_pages_posix.hpp"
+#include "../../surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #if defined(GUI_FORMS_APPLICATION_MACOS) || defined(GUI_FORMS_APPLICATION_WINDOWS) || \

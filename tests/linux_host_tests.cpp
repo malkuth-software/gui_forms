@@ -1,4 +1,4 @@
-#include "../src/host/linux/application/linux_host_internal.hpp"
+#include "../src/surface/linux/application/linux_host_internal.hpp"
 #include "../src/core/host/image/host_image_pixels.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/basic_controls.hpp"

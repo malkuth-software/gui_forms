@@ -3,7 +3,7 @@
 // Exercises the Windows host's raster in the same translation unit.
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/window.hpp"
-#include "../src/host/windows/application/windows_host.cpp"
+#include "../src/surface/windows/application/windows_host.cpp"
 
 #include <algorithm>
 #include <cmath>

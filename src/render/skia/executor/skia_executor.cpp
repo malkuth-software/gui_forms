@@ -33,9 +33,9 @@
 #include "gui_forms/typography/font_families/font_families.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
 #if defined(_WIN32)
-#include "../../../host/windows/fonts/sealed_pages_windows.hpp"
+#include "../../../surface/windows/fonts/sealed_pages_windows.hpp"
 #else
-#include "../../../host/posix/fonts/sealed_pages_posix.hpp"
+#include "../../../surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #include <stxlib/font_file.hpp>

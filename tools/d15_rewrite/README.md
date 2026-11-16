@@ -147,7 +147,7 @@ and `GUI_FORMS_D15_LLVM=/usr/lib/llvm22` to `run_stage.sh`).
 
 The Windows host is not compiled anywhere; after the apply, a textual scan
 names every converted member found in a scope file no unit saw (for example
-`src/host/windows`) as residue, to be fixed by hand.
+`src/surface/windows`) as residue, to be fixed by hand.
 
 ### Running a stage (several configurations)
 

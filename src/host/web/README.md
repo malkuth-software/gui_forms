@@ -11,9 +11,12 @@ The first program is Plan Paint, at malkuthsoft.com/paint.
   dialogs. The browser's main thread holds the DOM, the canvas and WebGL2. It
   never waits on the program.
 - **Two halves.** The program half (`application/`) is C++. The page half
-  (`page/web_host.js`, an Emscripten `--js-library`) is JavaScript.
+  (`src/surface/web/page/web_host.js`, an Emscripten `--js-library`) is
+  JavaScript. The Emscripten calls live in `src/surface/web/`
+  (`application/web_host.cpp` and `page/web_page_exports.cpp`); this folder
+  keeps the platform-neutral rules.
   - The page posts DOM events to the program through the `gf_web_post_*`
-    exports (`page/web_page_exports.cpp`). They become the window manager's
+    exports (`src/surface/web/page/web_page_exports.cpp`). They become the window manager's
     portable input records (`../surface/input/surface_input.hpp`).
   - The program calls `gf_web_js_*`, which Emscripten proxies to the main
     thread.
@@ -88,7 +91,7 @@ cmake --build .build/web --target gui_forms_application
 
 - The target is wasm32: no `-sMEMORY64` and no `-m64`. The host's
   present record and dialog tickets assume 32-bit addresses
-  (`web_host.cpp` asserts it). The C ABI is not built for the browser
+  (`src/surface/web/application/web_host.cpp` asserts it). The C ABI is not built for the browser
   (`cmake/CAbi.cmake`: `gf_abi.h` is a 64-bit contract).
 - The pthread pool's link flags (`PTHREAD_POOL_SIZE=8`,
   `PTHREAD_POOL_SIZE_STRICT=2`) belong to STXlib's web profile; GUI.Forms

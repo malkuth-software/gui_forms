@@ -8,7 +8,7 @@
 // icon (chrome) change.
 #include "gui_forms/control.hpp"
 #include "gui_forms/theme.hpp"
-#include "../src/host/windows/application/windows_host.cpp"
+#include "../src/surface/windows/application/windows_host.cpp"
 
 #include <array>
 #include <cstdint>
