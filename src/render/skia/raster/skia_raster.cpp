@@ -434,8 +434,11 @@ sk_sp<SkImage> resample_image_through_conv(const SkImage& source, int width, int
     // stx_skia's peekPixels returns the pixmap, empty when the pixels are
     // not readable in place.
     const std::optional<SkPixmap> peeked = source.peekPixels();
-    if (!peeked || (*peeked).colorType() != kBGRA_8888_SkColorType ||
-        (*peeked).alphaType() != kPremul_SkAlphaType) {
+    // An opaque image (kOpaque, every alpha byte 255) holds the same bytes
+    // as its premultiplied form, so it resamples the same.
+    const bool premultiplied_bytes =
+        peeked && ((*peeked).alphaType() == kPremul_SkAlphaType || (*peeked).alphaType() == kOpaque_SkAlphaType);
+    if (!peeked || (*peeked).colorType() != kBGRA_8888_SkColorType || !premultiplied_bytes) {
         return nullptr;
     }
     const SkPixmap& pixels = *peeked;
@@ -504,6 +507,12 @@ public:
         sk_sp<SkImage> device_tile;
         // Every pixel of device_tile has alpha 255.
         bool device_tile_opaque{};
+        // Every decoded pixel has alpha 255 (ResourcePixelResult::
+        // every_pixel_opaque); never set for a premultiplied BGRA image,
+        // whose pixels a patch may change. And whether `image` is an opaque
+        // image, drawn as a copy (Painter::image_draw_opacity).
+        bool pixels_opaque{};
+        bool drawn_as_copy{};
     };
 
     using ImageMap = std::unordered_map<std::uint64_t, DecodedImage>;
@@ -1365,6 +1374,7 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
         // D3: a decoded image goes straight into the storage its SkImage
         // keeps, with no intermediate vector and second copy.
         sk_sp<SkData> pixel_data;
+        bool pixels_opaque = false;
         const bool patchable =
             (*resource).encoding == ImageResourceEncoding::bgra32_premultiplied;
         if (patchable) {
@@ -1391,8 +1401,15 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
                 synchronized = false;
                 continue;
             }
+            pixels_opaque = decoded.every_pixel_opaque;
         }
-        sk_sp<SkImage> image = SkImages::RasterFromData(output_info, pixel_data, row_bytes);
+        // An image whose decoded pixels are all opaque is made an opaque
+        // image (the same bytes), so Skia draws it as an opaque source: a
+        // copy where it covers whole device pixels, rather than a blend
+        // (the blend study's opaque_images_blended).
+        const SkImageInfo image_info =
+            pixels_opaque ? output_info.makeAlphaType(kOpaque_SkAlphaType) : output_info;
+        sk_sp<SkImage> image = SkImages::RasterFromData(image_info, pixel_data, row_bytes);
         if (!image) {
             (*impl_).images.erase(id.value);
             synchronized = false;
@@ -1401,6 +1418,8 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
         Impl::DecodedImage record{};
         record.content_hash = (*resource).content_hash;
         record.image = std::move(image);
+        record.pixels_opaque = pixels_opaque;
+        record.drawn_as_copy = pixels_opaque;
         if (patchable) {
             record.pixels = std::move(pixel_data);
             record.row_bytes = row_bytes;
@@ -2268,11 +2287,17 @@ bool SkiaRaster::Impl::composite_part(SkCanvas& target, const PartRaster& raster
     // The raster's first pixel goes on the device pixel nearest its origin.
     const SkPoint device = matrix.mapPoint(SkPoint::Make(static_cast<SkScalar>(origin.x), static_cast<SkScalar>(origin.y)));
     const DeviceExtent extent = raster.extent();
+    // A proved opaque interior is copied at full opacity (blend study).
+    const PartRasterInterior interior = raster.opaque_interior();
     const detail::PartRasterSource source{.pixels = raster.pixels(), .width = extent.width, .height = extent.height,
                                           .row_bytes = raster.row_bytes(),
                                           .left = std::llround(static_cast<double>(device.x())),
                                           .top = std::llround(static_cast<double>(device.y())),
-                                          .opaque = raster.opaque()};
+                                          .opaque = raster.opaque(),
+                                          .opaque_left = interior.left,
+                                          .opaque_top = interior.top,
+                                          .opaque_right = interior.right,
+                                          .opaque_bottom = interior.bottom};
     const bool composited = composite_source(target, source, opacity);
     return composited;
 }
@@ -2639,6 +2664,15 @@ void SkiaRaster::draw_live_surface(const std::shared_ptr<LiveSurface> surface,
     if (!surface) return;
     const LiveSurfaceFrame frame = (*surface).acquire_latest();
     static_cast<void>(draw_live_surface_frame(frame, destination, opacity));
+}
+
+ImageDrawOpacity SkiaRaster::image_draw_opacity(const ImageId image) const noexcept {
+    ImageDrawOpacity known{};
+    const Impl::ImageMap::const_iterator found = (*impl_).images.find(image.value);
+    if (found == (*impl_).images.end()) return known;
+    known.pixels_opaque = (*found).second.pixels_opaque;
+    known.drawn_as_copy = (*found).second.drawn_as_copy;
+    return known;
 }
 
 Rect SkiaRaster::opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,

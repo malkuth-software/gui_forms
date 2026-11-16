@@ -235,13 +235,7 @@ std::uint64_t replay_display_chunk(const DisplayChunk& chunk, Painter& painter) 
     return chunk.commands().size();
 }
 
-namespace {
-
-// Whether a command changes only the painter's state (what a replay of the
-// saves open at an occluder must reproduce without drawing). Paint groups
-// are excluded: none is open at an occluder, and a closed one leaves no
-// state behind.
-bool state_only(const DisplayOperation operation) noexcept {
+bool display_state_only(const DisplayOperation operation) noexcept {
     const bool state = operation == DisplayOperation::save || operation == DisplayOperation::restore ||
                        operation == DisplayOperation::translate || operation == DisplayOperation::clip_rect ||
                        operation == DisplayOperation::clip_rounded_rect ||
@@ -249,16 +243,11 @@ bool state_only(const DisplayOperation operation) noexcept {
     return state;
 }
 
-} // namespace
-
-std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& painter, const Rect clip) {
+Rect display_chunk_hidden_rect(const DisplayChunk& chunk, Painter& painter, const Rect clip) {
     const std::optional<DisplayOccluder>& occluder = chunk.occluder();
-    const DisplayCommandList& commands = chunk.commands();
-    if (!occluder || (*occluder).command == 0U || clip.empty()) {
-        return replay_display_chunk(chunk, painter);
-    }
+    if (!occluder || (*occluder).command == 0U || clip.empty()) return Rect{};
     const DisplayOccluder& found = *occluder;
-    const DisplayCommand& surface = commands[found.command];
+    const DisplayCommand& surface = chunk.commands()[found.command];
     // Asked in the chunk's coordinates: the translations between differ
     // from them only by `offset`.
     const Rect destination{surface.rect.x + found.offset.x, surface.rect.y + found.offset.y, surface.rect.width,
@@ -266,16 +255,28 @@ std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& 
     Rect cover = painter.opaque_live_surface_cover(surface.live_surface, destination, surface.scalar);
     if (found.clipped) cover = Rect::intersection(cover, found.clip);
     const Rect hidden = Rect::intersection(cover, clip);
-    if (hidden.empty()) return replay_display_chunk(chunk, painter);
-    // The clip less the hidden rectangle: full-width bands above and below
-    // it, and the parts beside it between them. In each, everything before
-    // the surface is replayed, and the saves still open there are closed.
+    if (hidden.empty()) return Rect{};
+    return hidden;
+}
+
+std::array<Rect, 4> display_occlusion_bands(const Rect clip, const Rect hidden) noexcept {
     const std::array<Rect, 4> bands{{
         {clip.x, clip.y, clip.width, hidden.y - clip.y},
         {clip.x, hidden.bottom(), clip.width, clip.bottom() - hidden.bottom()},
         {clip.x, hidden.y, hidden.x - clip.x, hidden.height},
         {hidden.right(), hidden.y, clip.right() - hidden.right(), hidden.height},
     }};
+    return bands;
+}
+
+std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& painter, const Rect clip) {
+    const Rect hidden = display_chunk_hidden_rect(chunk, painter, clip);
+    if (hidden.empty()) return replay_display_chunk(chunk, painter);
+    const DisplayOccluder& found = *chunk.occluder();
+    const DisplayCommandList& commands = chunk.commands();
+    // The clip less the hidden rectangle: in each band, everything before
+    // the surface is replayed, and the saves still open there are closed.
+    const std::array<Rect, 4> bands = display_occlusion_bands(clip, hidden);
     std::uint64_t replayed = 0U;
     std::size_t index = 0U;
     for (const Rect band : bands) {
@@ -290,7 +291,7 @@ std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& 
     // The state the surface is drawn in, without drawing what it hides;
     // then the surface and everything after it.
     for (index = found.group_start; index < found.command; ++index) {
-        if (!state_only(commands[index].operation)) continue;
+        if (!display_state_only(commands[index].operation)) continue;
         replay_command(commands[index], painter);
         ++replayed;
     }

@@ -651,6 +651,8 @@
     _ZGVZN9gui_forms16BackgroundWorker*;
     _ZGVZN9gui_forms16BindingNavigator*;
     _ZGVZN9gui_forms16BindingPredicate*;
+    _ZGVZN9gui_forms16BlendHeatMapView*;
+    _ZGVZN9gui_forms16BlendStudyPlanes*;
     _ZGVZN9gui_forms16CachedPartRaster*;
     _ZGVZN9gui_forms16ColorValueEditor*;
     _ZGVZN9gui_forms16CompositeControl*;
@@ -702,6 +704,7 @@
     _ZGVZN9gui_forms16HostDisplayEvent*;
     _ZGVZN9gui_forms16HostTrayMenuItem*;
     _ZGVZN9gui_forms16ImageAtlasLayout*;
+    _ZGVZN9gui_forms16ImageDrawOpacity*;
     _ZGVZN9gui_forms16ImagePatchRegion*;
     _ZGVZN9gui_forms16ItemContentPaint*;
     _ZGVZN9gui_forms16LayoutConstraint*;
@@ -873,6 +876,8 @@
     _ZGVZN9gui_forms18ApplicationWindows*;
     _ZGVZN9gui_forms18BindingManagerBase*;
     _ZGVZN9gui_forms18BindingWriteResult*;
+    _ZGVZN9gui_forms18BlendFrameCounters*;
+    _ZGVZN9gui_forms18BlendStudySnapshot*;
     _ZGVZN9gui_forms18BlockFlowItemInput*;
     _ZGVZN9gui_forms18CalendarDimensions*;
     _ZGVZN9gui_forms18CanvasTextureLayer*;
@@ -936,6 +941,7 @@
     _ZGVZN9gui_forms18PaintLeaseSnapshot*;
     _ZGVZN9gui_forms18ParagraphGlyphRuns*;
     _ZGVZN9gui_forms18PartGeometryBuffer*;
+    _ZGVZN9gui_forms18PartRasterInterior*;
     _ZGVZN9gui_forms18PlotAnnotationItem*;
     _ZGVZN9gui_forms18PreparedFontSource*;
     _ZGVZN9gui_forms18PreparedTextLayout*;
@@ -2309,6 +2315,8 @@
     _ZGVZNK9gui_forms16BackgroundWorker*;
     _ZGVZNK9gui_forms16BindingNavigator*;
     _ZGVZNK9gui_forms16BindingPredicate*;
+    _ZGVZNK9gui_forms16BlendHeatMapView*;
+    _ZGVZNK9gui_forms16BlendStudyPlanes*;
     _ZGVZNK9gui_forms16CachedPartRaster*;
     _ZGVZNK9gui_forms16ColorValueEditor*;
     _ZGVZNK9gui_forms16CompositeControl*;
@@ -2360,6 +2368,7 @@
     _ZGVZNK9gui_forms16HostDisplayEvent*;
     _ZGVZNK9gui_forms16HostTrayMenuItem*;
     _ZGVZNK9gui_forms16ImageAtlasLayout*;
+    _ZGVZNK9gui_forms16ImageDrawOpacity*;
     _ZGVZNK9gui_forms16ImagePatchRegion*;
     _ZGVZNK9gui_forms16ItemContentPaint*;
     _ZGVZNK9gui_forms16LayoutConstraint*;
@@ -2531,6 +2540,8 @@
     _ZGVZNK9gui_forms18ApplicationWindows*;
     _ZGVZNK9gui_forms18BindingManagerBase*;
     _ZGVZNK9gui_forms18BindingWriteResult*;
+    _ZGVZNK9gui_forms18BlendFrameCounters*;
+    _ZGVZNK9gui_forms18BlendStudySnapshot*;
     _ZGVZNK9gui_forms18BlockFlowItemInput*;
     _ZGVZNK9gui_forms18CalendarDimensions*;
     _ZGVZNK9gui_forms18CanvasTextureLayer*;
@@ -2594,6 +2605,7 @@
     _ZGVZNK9gui_forms18PaintLeaseSnapshot*;
     _ZGVZNK9gui_forms18ParagraphGlyphRuns*;
     _ZGVZNK9gui_forms18PartGeometryBuffer*;
+    _ZGVZNK9gui_forms18PartRasterInterior*;
     _ZGVZNK9gui_forms18PlotAnnotationItem*;
     _ZGVZNK9gui_forms18PreparedFontSource*;
     _ZGVZNK9gui_forms18PreparedTextLayout*;
@@ -4151,6 +4163,8 @@
     _ZN9gui_forms15WindowFrameDrag*;
     _ZN9gui_forms15WindowOverrides*;
     _ZN9gui_forms15XmlWriteOptions*;
+    _ZN9gui_forms15add_blend_frameB*;
+    _ZN9gui_forms15add_blend_frameE*;
     _ZN9gui_forms15add_material_emB*;
     _ZN9gui_forms15add_material_emE*;
     _ZN9gui_forms15bake_stock_iconB*;
@@ -4207,6 +4221,8 @@
     _ZN9gui_forms16BackgroundWorker*;
     _ZN9gui_forms16BindingNavigator*;
     _ZN9gui_forms16BindingPredicate*;
+    _ZN9gui_forms16BlendHeatMapView*;
+    _ZN9gui_forms16BlendStudyPlanes*;
     _ZN9gui_forms16CachedPartRaster*;
     _ZN9gui_forms16ColorValueEditor*;
     _ZN9gui_forms16CompositeControl*;
@@ -4258,6 +4274,7 @@
     _ZN9gui_forms16HostDisplayEvent*;
     _ZN9gui_forms16HostTrayMenuItem*;
     _ZN9gui_forms16ImageAtlasLayout*;
+    _ZN9gui_forms16ImageDrawOpacity*;
     _ZN9gui_forms16ImagePatchRegion*;
     _ZN9gui_forms16ItemContentPaint*;
     _ZN9gui_forms16LayoutConstraint*;
@@ -4585,6 +4602,8 @@
     _ZN9gui_forms18ApplicationWindows*;
     _ZN9gui_forms18BindingManagerBase*;
     _ZN9gui_forms18BindingWriteResult*;
+    _ZN9gui_forms18BlendFrameCounters*;
+    _ZN9gui_forms18BlendStudySnapshot*;
     _ZN9gui_forms18BlockFlowItemInput*;
     _ZN9gui_forms18CalendarDimensions*;
     _ZN9gui_forms18CanvasTextureLayer*;
@@ -4648,6 +4667,7 @@
     _ZN9gui_forms18PaintLeaseSnapshot*;
     _ZN9gui_forms18ParagraphGlyphRuns*;
     _ZN9gui_forms18PartGeometryBuffer*;
+    _ZN9gui_forms18PartRasterInterior*;
     _ZN9gui_forms18PlotAnnotationItem*;
     _ZN9gui_forms18PreparedFontSource*;
     _ZN9gui_forms18PreparedTextLayout*;
@@ -4917,6 +4937,8 @@
     _ZN9gui_forms19apply_theme_requestE*;
     _ZN9gui_forms19backdrop_chain_blurB*;
     _ZN9gui_forms19backdrop_chain_blurE*;
+    _ZN9gui_forms19blend_study_defaultB*;
+    _ZN9gui_forms19blend_study_defaultE*;
     _ZN9gui_forms19build_help_contentsB*;
     _ZN9gui_forms19build_help_contentsE*;
     _ZN9gui_forms19bundled_font_noticeB*;
@@ -5412,6 +5434,8 @@
     _ZN9gui_forms22VirtualRowsHeaderClick*;
     _ZN9gui_forms22active_border_intervalB*;
     _ZN9gui_forms22active_border_intervalE*;
+    _ZN9gui_forms22append_blend_study_logB*;
+    _ZN9gui_forms22append_blend_study_logE*;
     _ZN9gui_forms22band_declaration_validB*;
     _ZN9gui_forms22band_declaration_validE*;
     _ZN9gui_forms22canonical_binding_nameB*;
@@ -5420,6 +5444,8 @@
     _ZN9gui_forms22check_effect_selectionE*;
     _ZN9gui_forms22compile_theme_packagesB*;
     _ZN9gui_forms22compile_theme_packagesE*;
+    _ZN9gui_forms22compose_blend_heat_mapB*;
+    _ZN9gui_forms22compose_blend_heat_mapE*;
     _ZN9gui_forms22compositor_state_validB*;
     _ZN9gui_forms22compositor_state_validE*;
     _ZN9gui_forms22connect_property_entryB*;
@@ -5633,6 +5659,8 @@
     _ZN9gui_forms23scene_detail_level_nameE*;
     _ZN9gui_forms23semantic_text_unit_nameB*;
     _ZN9gui_forms23semantic_text_unit_nameE*;
+    _ZN9gui_forms23set_blend_study_defaultB*;
+    _ZN9gui_forms23set_blend_study_defaultE*;
     _ZN9gui_forms23stock_control_anatomiesB*;
     _ZN9gui_forms23stock_control_anatomiesE*;
     _ZN9gui_forms23surface_material_opaqueB*;
@@ -5752,6 +5780,8 @@
     _ZN9gui_forms25allocation_subsystem_nameE*;
     _ZN9gui_forms25binding_value_to_unsignedB*;
     _ZN9gui_forms25binding_value_to_unsignedE*;
+    _ZN9gui_forms25blend_frame_counters_jsonB*;
+    _ZN9gui_forms25blend_frame_counters_jsonE*;
     _ZN9gui_forms25box_shadow_visual_outsetsB*;
     _ZN9gui_forms25box_shadow_visual_outsetsE*;
     _ZN9gui_forms25bundled_font_pack_refusalB*;
@@ -6082,6 +6112,8 @@
     _ZN9gui_forms35validate_window_chrome_drag_regionsB*;
     _ZN9gui_forms35validate_window_chrome_drag_regionsE*;
     _ZN9gui_forms36DataGridViewCellErrorTextNeededEvent*;
+    _ZN9gui_forms36blend_study_requested_by_environmentB*;
+    _ZN9gui_forms36blend_study_requested_by_environmentE*;
     _ZN9gui_forms37child_property_entry_should_serializeB*;
     _ZN9gui_forms37child_property_entry_should_serializeE*;
     _ZN9gui_forms37windows_professional_theme_definitionB*;
@@ -7249,6 +7281,8 @@
     _ZNK[RO]9gui_forms16BackgroundWorker*;
     _ZNK[RO]9gui_forms16BindingNavigator*;
     _ZNK[RO]9gui_forms16BindingPredicate*;
+    _ZNK[RO]9gui_forms16BlendHeatMapView*;
+    _ZNK[RO]9gui_forms16BlendStudyPlanes*;
     _ZNK[RO]9gui_forms16CachedPartRaster*;
     _ZNK[RO]9gui_forms16ColorValueEditor*;
     _ZNK[RO]9gui_forms16CompositeControl*;
@@ -7300,6 +7334,7 @@
     _ZNK[RO]9gui_forms16HostDisplayEvent*;
     _ZNK[RO]9gui_forms16HostTrayMenuItem*;
     _ZNK[RO]9gui_forms16ImageAtlasLayout*;
+    _ZNK[RO]9gui_forms16ImageDrawOpacity*;
     _ZNK[RO]9gui_forms16ImagePatchRegion*;
     _ZNK[RO]9gui_forms16ItemContentPaint*;
     _ZNK[RO]9gui_forms16LayoutConstraint*;
@@ -7471,6 +7506,8 @@
     _ZNK[RO]9gui_forms18ApplicationWindows*;
     _ZNK[RO]9gui_forms18BindingManagerBase*;
     _ZNK[RO]9gui_forms18BindingWriteResult*;
+    _ZNK[RO]9gui_forms18BlendFrameCounters*;
+    _ZNK[RO]9gui_forms18BlendStudySnapshot*;
     _ZNK[RO]9gui_forms18BlockFlowItemInput*;
     _ZNK[RO]9gui_forms18CalendarDimensions*;
     _ZNK[RO]9gui_forms18CanvasTextureLayer*;
@@ -7534,6 +7571,7 @@
     _ZNK[RO]9gui_forms18PaintLeaseSnapshot*;
     _ZNK[RO]9gui_forms18ParagraphGlyphRuns*;
     _ZNK[RO]9gui_forms18PartGeometryBuffer*;
+    _ZNK[RO]9gui_forms18PartRasterInterior*;
     _ZNK[RO]9gui_forms18PlotAnnotationItem*;
     _ZNK[RO]9gui_forms18PreparedFontSource*;
     _ZNK[RO]9gui_forms18PreparedTextLayout*;
@@ -8907,6 +8945,8 @@
     _ZN[KRO]9gui_forms16BackgroundWorker*;
     _ZN[KRO]9gui_forms16BindingNavigator*;
     _ZN[KRO]9gui_forms16BindingPredicate*;
+    _ZN[KRO]9gui_forms16BlendHeatMapView*;
+    _ZN[KRO]9gui_forms16BlendStudyPlanes*;
     _ZN[KRO]9gui_forms16CachedPartRaster*;
     _ZN[KRO]9gui_forms16ColorValueEditor*;
     _ZN[KRO]9gui_forms16CompositeControl*;
@@ -8958,6 +8998,7 @@
     _ZN[KRO]9gui_forms16HostDisplayEvent*;
     _ZN[KRO]9gui_forms16HostTrayMenuItem*;
     _ZN[KRO]9gui_forms16ImageAtlasLayout*;
+    _ZN[KRO]9gui_forms16ImageDrawOpacity*;
     _ZN[KRO]9gui_forms16ImagePatchRegion*;
     _ZN[KRO]9gui_forms16ItemContentPaint*;
     _ZN[KRO]9gui_forms16LayoutConstraint*;
@@ -9129,6 +9170,8 @@
     _ZN[KRO]9gui_forms18ApplicationWindows*;
     _ZN[KRO]9gui_forms18BindingManagerBase*;
     _ZN[KRO]9gui_forms18BindingWriteResult*;
+    _ZN[KRO]9gui_forms18BlendFrameCounters*;
+    _ZN[KRO]9gui_forms18BlendStudySnapshot*;
     _ZN[KRO]9gui_forms18BlockFlowItemInput*;
     _ZN[KRO]9gui_forms18CalendarDimensions*;
     _ZN[KRO]9gui_forms18CanvasTextureLayer*;
@@ -9192,6 +9235,7 @@
     _ZN[KRO]9gui_forms18PaintLeaseSnapshot*;
     _ZN[KRO]9gui_forms18ParagraphGlyphRuns*;
     _ZN[KRO]9gui_forms18PartGeometryBuffer*;
+    _ZN[KRO]9gui_forms18PartRasterInterior*;
     _ZN[KRO]9gui_forms18PlotAnnotationItem*;
     _ZN[KRO]9gui_forms18PreparedFontSource*;
     _ZN[KRO]9gui_forms18PreparedTextLayout*;
@@ -10565,6 +10609,8 @@
     _ZT[VIST]N9gui_forms16BackgroundWorker*E;
     _ZT[VIST]N9gui_forms16BindingNavigator*E;
     _ZT[VIST]N9gui_forms16BindingPredicate*E;
+    _ZT[VIST]N9gui_forms16BlendHeatMapView*E;
+    _ZT[VIST]N9gui_forms16BlendStudyPlanes*E;
     _ZT[VIST]N9gui_forms16CachedPartRaster*E;
     _ZT[VIST]N9gui_forms16ColorValueEditor*E;
     _ZT[VIST]N9gui_forms16CompositeControl*E;
@@ -10616,6 +10662,7 @@
     _ZT[VIST]N9gui_forms16HostDisplayEvent*E;
     _ZT[VIST]N9gui_forms16HostTrayMenuItem*E;
     _ZT[VIST]N9gui_forms16ImageAtlasLayout*E;
+    _ZT[VIST]N9gui_forms16ImageDrawOpacity*E;
     _ZT[VIST]N9gui_forms16ImagePatchRegion*E;
     _ZT[VIST]N9gui_forms16ItemContentPaint*E;
     _ZT[VIST]N9gui_forms16LayoutConstraint*E;
@@ -10787,6 +10834,8 @@
     _ZT[VIST]N9gui_forms18ApplicationWindows*E;
     _ZT[VIST]N9gui_forms18BindingManagerBase*E;
     _ZT[VIST]N9gui_forms18BindingWriteResult*E;
+    _ZT[VIST]N9gui_forms18BlendFrameCounters*E;
+    _ZT[VIST]N9gui_forms18BlendStudySnapshot*E;
     _ZT[VIST]N9gui_forms18BlockFlowItemInput*E;
     _ZT[VIST]N9gui_forms18CalendarDimensions*E;
     _ZT[VIST]N9gui_forms18CanvasTextureLayer*E;
@@ -10850,6 +10899,7 @@
     _ZT[VIST]N9gui_forms18PaintLeaseSnapshot*E;
     _ZT[VIST]N9gui_forms18ParagraphGlyphRuns*E;
     _ZT[VIST]N9gui_forms18PartGeometryBuffer*E;
+    _ZT[VIST]N9gui_forms18PartRasterInterior*E;
     _ZT[VIST]N9gui_forms18PlotAnnotationItem*E;
     _ZT[VIST]N9gui_forms18PreparedFontSource*E;
     _ZT[VIST]N9gui_forms18PreparedTextLayout*E;
@@ -12223,6 +12273,8 @@
     _ZT[hvc]*9gui_forms16BackgroundWorker*;
     _ZT[hvc]*9gui_forms16BindingNavigator*;
     _ZT[hvc]*9gui_forms16BindingPredicate*;
+    _ZT[hvc]*9gui_forms16BlendHeatMapView*;
+    _ZT[hvc]*9gui_forms16BlendStudyPlanes*;
     _ZT[hvc]*9gui_forms16CachedPartRaster*;
     _ZT[hvc]*9gui_forms16ColorValueEditor*;
     _ZT[hvc]*9gui_forms16CompositeControl*;
@@ -12274,6 +12326,7 @@
     _ZT[hvc]*9gui_forms16HostDisplayEvent*;
     _ZT[hvc]*9gui_forms16HostTrayMenuItem*;
     _ZT[hvc]*9gui_forms16ImageAtlasLayout*;
+    _ZT[hvc]*9gui_forms16ImageDrawOpacity*;
     _ZT[hvc]*9gui_forms16ImagePatchRegion*;
     _ZT[hvc]*9gui_forms16ItemContentPaint*;
     _ZT[hvc]*9gui_forms16LayoutConstraint*;
@@ -12445,6 +12498,8 @@
     _ZT[hvc]*9gui_forms18ApplicationWindows*;
     _ZT[hvc]*9gui_forms18BindingManagerBase*;
     _ZT[hvc]*9gui_forms18BindingWriteResult*;
+    _ZT[hvc]*9gui_forms18BlendFrameCounters*;
+    _ZT[hvc]*9gui_forms18BlendStudySnapshot*;
     _ZT[hvc]*9gui_forms18BlockFlowItemInput*;
     _ZT[hvc]*9gui_forms18CalendarDimensions*;
     _ZT[hvc]*9gui_forms18CanvasTextureLayer*;
@@ -12508,6 +12563,7 @@
     _ZT[hvc]*9gui_forms18PaintLeaseSnapshot*;
     _ZT[hvc]*9gui_forms18ParagraphGlyphRuns*;
     _ZT[hvc]*9gui_forms18PartGeometryBuffer*;
+    _ZT[hvc]*9gui_forms18PartRasterInterior*;
     _ZT[hvc]*9gui_forms18PlotAnnotationItem*;
     _ZT[hvc]*9gui_forms18PreparedFontSource*;
     _ZT[hvc]*9gui_forms18PreparedTextLayout*;
@@ -13881,6 +13937,8 @@
     _ZZN9gui_forms16BackgroundWorker*;
     _ZZN9gui_forms16BindingNavigator*;
     _ZZN9gui_forms16BindingPredicate*;
+    _ZZN9gui_forms16BlendHeatMapView*;
+    _ZZN9gui_forms16BlendStudyPlanes*;
     _ZZN9gui_forms16CachedPartRaster*;
     _ZZN9gui_forms16ColorValueEditor*;
     _ZZN9gui_forms16CompositeControl*;
@@ -13932,6 +13990,7 @@
     _ZZN9gui_forms16HostDisplayEvent*;
     _ZZN9gui_forms16HostTrayMenuItem*;
     _ZZN9gui_forms16ImageAtlasLayout*;
+    _ZZN9gui_forms16ImageDrawOpacity*;
     _ZZN9gui_forms16ImagePatchRegion*;
     _ZZN9gui_forms16ItemContentPaint*;
     _ZZN9gui_forms16LayoutConstraint*;
@@ -14103,6 +14162,8 @@
     _ZZN9gui_forms18ApplicationWindows*;
     _ZZN9gui_forms18BindingManagerBase*;
     _ZZN9gui_forms18BindingWriteResult*;
+    _ZZN9gui_forms18BlendFrameCounters*;
+    _ZZN9gui_forms18BlendStudySnapshot*;
     _ZZN9gui_forms18BlockFlowItemInput*;
     _ZZN9gui_forms18CalendarDimensions*;
     _ZZN9gui_forms18CanvasTextureLayer*;
@@ -14166,6 +14227,7 @@
     _ZZN9gui_forms18PaintLeaseSnapshot*;
     _ZZN9gui_forms18ParagraphGlyphRuns*;
     _ZZN9gui_forms18PartGeometryBuffer*;
+    _ZZN9gui_forms18PartRasterInterior*;
     _ZZN9gui_forms18PlotAnnotationItem*;
     _ZZN9gui_forms18PreparedFontSource*;
     _ZZN9gui_forms18PreparedTextLayout*;
@@ -15539,6 +15601,8 @@
     _ZZNK9gui_forms16BackgroundWorker*;
     _ZZNK9gui_forms16BindingNavigator*;
     _ZZNK9gui_forms16BindingPredicate*;
+    _ZZNK9gui_forms16BlendHeatMapView*;
+    _ZZNK9gui_forms16BlendStudyPlanes*;
     _ZZNK9gui_forms16CachedPartRaster*;
     _ZZNK9gui_forms16ColorValueEditor*;
     _ZZNK9gui_forms16CompositeControl*;
@@ -15590,6 +15654,7 @@
     _ZZNK9gui_forms16HostDisplayEvent*;
     _ZZNK9gui_forms16HostTrayMenuItem*;
     _ZZNK9gui_forms16ImageAtlasLayout*;
+    _ZZNK9gui_forms16ImageDrawOpacity*;
     _ZZNK9gui_forms16ImagePatchRegion*;
     _ZZNK9gui_forms16ItemContentPaint*;
     _ZZNK9gui_forms16LayoutConstraint*;
@@ -15761,6 +15826,8 @@
     _ZZNK9gui_forms18ApplicationWindows*;
     _ZZNK9gui_forms18BindingManagerBase*;
     _ZZNK9gui_forms18BindingWriteResult*;
+    _ZZNK9gui_forms18BlendFrameCounters*;
+    _ZZNK9gui_forms18BlendStudySnapshot*;
     _ZZNK9gui_forms18BlockFlowItemInput*;
     _ZZNK9gui_forms18CalendarDimensions*;
     _ZZNK9gui_forms18CanvasTextureLayer*;
@@ -15824,6 +15891,7 @@
     _ZZNK9gui_forms18PaintLeaseSnapshot*;
     _ZZNK9gui_forms18ParagraphGlyphRuns*;
     _ZZNK9gui_forms18PartGeometryBuffer*;
+    _ZZNK9gui_forms18PartRasterInterior*;
     _ZZNK9gui_forms18PlotAnnotationItem*;
     _ZZNK9gui_forms18PreparedFontSource*;
     _ZZNK9gui_forms18PreparedTextLayout*;

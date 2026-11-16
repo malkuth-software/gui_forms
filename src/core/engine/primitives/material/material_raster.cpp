@@ -21,6 +21,35 @@ std::uint32_t raster_side(double logical, double scale) noexcept {
     return side;
 }
 
+// The material's box, `outset` inside the raster, less its largest corner
+// radius on every side, in whole device pixels inward: what an opaque
+// material leaves opaque (blend study, 2026-11-16). The raster checks it
+// (PartRaster::record_opaque_interior), so a translucent material, a
+// keyline or a finish that is not opaque there simply records none.
+void record_material_interior(PartRaster& raster, const SurfaceMaterial& material, const Size logical_size,
+                              const double scale, const double outset) noexcept {
+    double radius = std::max(0.0, material.corner_radius);
+    if (material.corner_radii) {
+        const MaterialCornerRadii& radii = *material.corner_radii;
+        radius = std::max({radius, radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left});
+    }
+    const double left = std::ceil((outset + radius) * scale);
+    const double top = std::ceil((outset + radius) * scale);
+    const double right = std::floor((outset + logical_size.width - radius) * scale);
+    const double bottom = std::floor((outset + logical_size.height - radius) * scale);
+    const DeviceExtent extent = raster.extent();
+    const bool usable = std::isfinite(left) && std::isfinite(top) && std::isfinite(right) &&
+                        std::isfinite(bottom) && left >= 0.0 && top >= 0.0 && right > left && bottom > top &&
+                        right <= static_cast<double>(extent.width) && bottom <= static_cast<double>(extent.height);
+    if (!usable) return;
+    PartRasterInterior interior{};
+    interior.left = static_cast<std::uint32_t>(left);
+    interior.top = static_cast<std::uint32_t>(top);
+    interior.right = static_cast<std::uint32_t>(right);
+    interior.bottom = static_cast<std::uint32_t>(bottom);
+    raster.record_opaque_interior(interior);
+}
+
 // Whether every fill of `material` is one the kernel draws from the
 // material alone: solid and gradient fills, not images or patterns.
 bool fills_need_no_resources(const SurfaceMaterial& material) noexcept {
@@ -111,10 +140,14 @@ std::shared_ptr<const PartRaster> bake_material_raster(const SurfaceMaterial& au
     const std::shared_ptr<PartRaster> drawn = PartRaster::create(baked_extent, scale);
     if (!drawn) return nullptr;
     engine_primitives::bake_material(material, baked, (*drawn).view(), outset);
-    if (!sliced) return drawn;
+    if (!sliced) {
+        record_material_interior(*drawn, material, logical_size, value, outset);
+        return drawn;
+    }
     const std::shared_ptr<PartRaster> assembled = PartRaster::create(extent, scale);
     if (!assembled) return nullptr;
     assemble_slices(*drawn, plan, (*assembled).view());
+    record_material_interior(*assembled, material, logical_size, value, outset);
     return assembled;
 }
 

@@ -35,6 +35,11 @@ struct ResourcePixelResult final {
     ResourcePixelError error{ResourcePixelError::none};
     std::uint32_t width{};
     std::uint32_t height{};
+    // On success, whether every decoded pixel has alpha 255: from the
+    // resource's metadata when it carries no alpha (ImageAlpha::opaque),
+    // else from one pass over the decoded alpha bytes. A renderer may then
+    // draw the image as an opaque source (a copy); the pixels are the same.
+    bool every_pixel_opaque{};
 };
 
 // Owns the PNG decoder (purpose resource, limits from the admitted
@@ -53,7 +58,8 @@ public:
     // Decodes the resource's encoded bytes into caller pixels (layout as
     // valid_pixel_destination states). The resource's bytes and the pixels
     // must be disjoint. A decoded size other than the resource's metadata is
-    // decode_failed. On failure the destination may hold a partial,
+    // decode_failed. On success the result says whether every pixel is
+    // opaque (ResourcePixelResult::every_pixel_opaque). On failure the destination may hold a partial,
     // unverified prefix: discard it.
     [[nodiscard]] ResourcePixelResult decode(const ImageResourceView& resource, PixelTarget target,
                                              std::span<std::byte> pixels, std::size_t row_bytes) noexcept;

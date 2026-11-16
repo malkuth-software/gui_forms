@@ -368,6 +368,10 @@ void Painter::draw_live_surface(std::shared_ptr<LiveSurface>, Rect, double) {
     // the retained surface resource directly.
 }
 
+ImageDrawOpacity Painter::image_draw_opacity(ImageId) const noexcept {
+    return ImageDrawOpacity{};
+}
+
 Rect Painter::opaque_live_surface_cover(const std::shared_ptr<LiveSurface>&, Rect, double) {
     // A painter that draws nothing, or cannot promise opaque coverage, hides
     // nothing.

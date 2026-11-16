@@ -51,6 +51,14 @@ Related types
      - How a window carries its chain under its grant (SurfaceRoot::backdrop_chain_resolution).
    * - :cpp:class:`BackdropOperation <gui_forms::BackdropOperation>`
      -  
+   * - :cpp:class:`BlendFrameCounters <gui_forms::BlendFrameCounters>`
+     - One painted frame's counts, or a sum of frames' (add_blend_frame).
+   * - :cpp:class:`BlendHeatMapView <gui_forms::BlendHeatMapView>`
+     - A window's planes as the last counted frames left them, borrowed from the window until its next paint: ``height`` rows of ``width`` bytes each, depth (saturating at 255) and class (blend_class_* bits).
+   * - :cpp:class:`BlendStudyPlanes <gui_forms::BlendStudyPlanes>`
+     - The planes and the frame's counts (owned by the window while its study is on).
+   * - :cpp:class:`BlendStudySnapshot <gui_forms::BlendStudySnapshot>`
+     - A window's study: its mode, the frames counted since the window was made or reset_blend_study, the last of them and their sum.
    * - :cpp:class:`CaretSettings <gui_forms::CaretSettings>`
      - How a text caret blinks (audit N75): blink_milliseconds is one phase, the time the caret stays shown or hidden before it toggles; 0 means the caret never blinks and stays shown (the user turned blinking off).
    * - :cpp:class:`ColourSchemeSet <gui_forms::ColourSchemeSet>`
@@ -438,6 +446,140 @@ Related types
    .. cpp:member:: Color colour
 
       tint only (transparent black otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BlendFrameCounters final
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   One painted frame's counts, or a sum of frames' (add_blend_frame). Pixel counts are device pixels; a pixel written twice counts twice.
+
+   .. cpp:member:: std::uint64_t copied_pixels
+
+   .. cpp:member:: std::uint64_t blended_pixels
+
+   .. cpp:member:: std::uint64_t overdraw_pixels
+
+      Device pixels a copy replaced after an earlier draw of the frame had written them, and the earlier writes those copies hid.
+
+   .. cpp:member:: std::uint64_t overdraw_writes
+
+   .. cpp:member:: std::array<std::uint64_t, blend_depth_bins> depth_histogram
+
+      Over the painted rectangles at the end of the frame.
+
+   .. cpp:member:: std::uint64_t opaque_fills_blended
+
+   .. cpp:member:: std::uint64_t opaque_images_blended
+
+   .. cpp:member:: std::uint64_t draws_counted
+
+      Drawing commands charged, and text runs charged no area because their extent was unknown (prepared text).
+
+   .. cpp:member:: std::uint64_t text_runs_unmeasured
+
+   .. cpp:member:: std::uint64_t refused
+
+      Frames not counted: the window was larger than maximum_blend_study_pixels, or the planes could not be allocated.
+
+   .. cpp:member:: std::uint64_t paint_nanoseconds
+
+      The paint pass that drew the frame, counting included.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BlendHeatMapView final
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   A window's planes as the last counted frames left them, borrowed from the window until its next paint: ``height`` rows of ``width`` bytes each, depth (saturating at 255) and class (blend_class_* bits). A pixel outside every painted rectangle keeps what the frame that last painted it left.
+
+   .. cpp:member:: BlendStudyMode mode
+
+      Default: ``{BlendStudyMode::off}``.
+
+   .. cpp:member:: std::span<const std::uint8_t> depth
+
+   .. cpp:member:: std::span<const std::uint8_t> classes
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: BlendStudyPlanes final
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   The planes and the frame's counts (owned by the window while its study is on). The kernels take device rectangles already inside the planes; the window's walk of the frame's commands clips them (count_display_blend). UI thread, as the window.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool active() const noexcept
+
+   .. cpp:function:: std::uint32_t width() const noexcept
+
+   .. cpp:function:: std::uint32_t height() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool begin_frame(std::uint32_t width, std::uint32_t height, std::span<const DevicePixelRect> painted) noexcept
+
+      Starts a frame of :cpp:func:`width <gui_forms::BlendStudyPlanes::width>` by :cpp:func:`height <gui_forms::BlendStudyPlanes::height>` device pixels: sizes the planes (reset to zero when the size changes; storage only grows), clears both inside each painted rectangle and zeroes the frame's counts. False, counting nothing until the next begin_frame, when the size is zero or over maximum_blend_study_pixels or the storage cannot be had; the frame is then counted as refused.
+
+   .. cpp:function:: void replace(DevicePixelRect area) noexcept
+
+      An opaque write that hides everything beneath it in ``area``: each pixel's earlier writes count as overdraw, its depth becomes one and its class copied. ``area`` lies inside the planes (clip_to_planes).
+
+   .. cpp:function:: void layer(DevicePixelRect area, BlendWrite write) noexcept
+
+      A write over what lies beneath it in ``area``: each pixel's depth grows by one (saturating) and its class gains the write's bit.
+
+   .. cpp:function:: DevicePixelRect clip_to_planes(DevicePixelRect area) const noexcept
+
+      ``area`` within the planes, or empty.
+
+   .. cpp:function:: void note_draw() noexcept
+
+   .. cpp:function:: void note_opaque_fill_blended() noexcept
+
+   .. cpp:function:: void note_opaque_image_blended() noexcept
+
+   .. cpp:function:: void note_unmeasured_text() noexcept
+
+   .. cpp:function:: BlendFrameCounters end_frame(std::span<const DevicePixelRect> painted) noexcept
+
+      Ends the frame: fills the depth histogram over the painted rectangles and returns the frame's counts. A frame begin_frame refused returns only refused = 1.
+
+   .. cpp:function:: BlendHeatMapView heat_map(BlendStudyMode mode) const& noexcept
+
+      The planes for the heat map (BlendHeatMapView), in ``mode``.
+
+   .. cpp:function:: void release() noexcept
+
+      Frees both planes; the next begin_frame allocates again.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BlendStudySnapshot final
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   A window's study: its mode, the frames counted since the window was made or reset_blend_study, the last of them and their sum.
+
+   .. cpp:member:: BlendStudyMode mode
+
+      Default: ``{BlendStudyMode::off}``.
+
+   .. cpp:member:: std::uint64_t frames
+
+   .. cpp:member:: BlendFrameCounters last
+
+   .. cpp:member:: BlendFrameCounters totals
 
 .. cpp:namespace:: gui_forms
 
@@ -2655,6 +2797,30 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BlendStudyMode
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   .. cpp:enumerator:: off
+
+   .. cpp:enumerator:: counters
+
+   .. cpp:enumerator:: overdraw_heat_map
+
+   .. cpp:enumerator:: blend_heat_map
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BlendWrite
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   .. cpp:enumerator:: copied
+
+   .. cpp:enumerator:: blended
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ColourScheme
 
    ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
@@ -3159,6 +3325,52 @@ Functions, constants and aliases
 .. cpp:function:: std::string_view specimen_state_route_name(SpecimenStateRoute route) noexcept
 
    The route name ("value") for manifests and logs.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+.. cpp:function:: void add_blend_frame(BlendFrameCounters& totals, const BlendFrameCounters& frame) noexcept
+
+   Adds ``frame`` to ``totals``, field by field (the histogram bin by bin).
+
+.. cpp:function:: std::string blend_frame_counters_json(const BlendFrameCounters& counters)
+
+   The counters as one JSON object, field names as declared, the histogram as an array.
+
+.. cpp:function:: void append_blend_study_log(std::string_view window, std::uint64_t frame, const BlendFrameCounters& counters) noexcept
+
+   The study's log, for programs measured without code of their own (the product procedure of tools/blend_study.py): when the environment variable GUI_FORMS_BLEND_STUDY_LOG names a file, every frame any window counts is appended to it as one JSON line, {"window":<its root's stable id>, "frame":<the window's frame number>,"counters":<blend_frame_counters_json>}. The file is opened on the first counted frame (append mode) and each line is flushed; lines from windows on several threads are serialized. Unset, empty or not openable, nothing is written. Any thread.
+
+.. cpp:function:: BlendStudyMode blend_study_requested_by_environment() noexcept
+
+   GUI_FORMS_DEBUG_BLEND's request (see the top of this file).
+
+.. cpp:function:: void set_blend_study_default(BlendStudyMode mode) noexcept
+
+   The process switch every window without a setting of its own follows; on the first read it is the environment's request. Any thread.
+
+.. cpp:function:: BlendStudyMode blend_study_default() noexcept
+
+.. cpp:function:: void compose_blend_heat_map(const InvalidationOverlayTarget& target, const BlendHeatMapView& map, DevicePixelRect clip) noexcept
+
+   Tints ``target`` (a copy of the presented frame, as the invalidation overlay composites onto) with the view's heat map, half and half, inside ``clip`` and the smaller of the two sizes only; pixels written by nothing are left as they are, and every tinted pixel is opaque. A view in neither heat-map mode changes nothing.
+
+.. cpp:var:: constexpr std::size_t blend_depth_bins
+
+   The depth histogram's bins: bin d counts device pixels written d times since the last copy that hid what lay beneath; the last bin also counts every deeper pixel. Value: ``16U``.
+
+.. cpp:var:: constexpr std::uint64_t maximum_blend_study_pixels
+
+   The largest window the study counts, in device pixels (a 16384 x 16384 client): a larger one counts nothing (BlendFrameCounters::refused). Value: ``16384ULL * 16384ULL``.
+
+.. cpp:var:: constexpr std::uint8_t blend_class_copied
+
+   The class plane's bits: a pixel's last copy, and any blended write since. Value: ``1U``.
+
+.. cpp:var:: constexpr std::uint8_t blend_class_blended
+
+   Value: ``2U``.
 
 .. cpp:namespace:: gui_forms
 

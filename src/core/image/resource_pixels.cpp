@@ -16,6 +16,27 @@ ResourcePixelError png_error(PngPixelError error) noexcept {
     return ResourcePixelError::decode_failed;
 }
 
+// Whether every pixel's alpha byte (the fourth in both admitted orders) is
+// 255: the bytes of each row AND-ed with no exit inside the row, and the
+// scan stopped at the first row that is not wholly opaque. The rows lie in
+// `pixels` (the decode checked the layout).
+bool alpha_all_opaque(const std::span<const std::byte> pixels, const std::size_t row_bytes,
+                      const std::uint32_t width, const std::uint32_t height) noexcept {
+    const std::size_t row_length = static_cast<std::size_t>(width) * 4U;
+    if (row_bytes < row_length || height == 0U) return false;
+    const std::size_t needed = static_cast<std::size_t>(height - 1U) * row_bytes + row_length;
+    if (pixels.size() < needed) return false;
+    for (std::uint32_t y = 0U; y < height; ++y) {
+        const std::byte* const row = pixels.data() + static_cast<std::size_t>(y) * row_bytes;
+        unsigned all = 255U;
+        for (std::size_t offset = 3U; offset < row_length; offset += 4U) {
+            all &= std::to_integer<unsigned>(row[offset]);
+        }
+        if (all != 255U) return false;
+    }
+    return true;
+}
+
 } // namespace
 
 ResourcePixelDecoder::ResourcePixelDecoder() {}
@@ -46,6 +67,12 @@ ResourcePixelResult ResourcePixelDecoder::decode(const ImageResourceView& resour
     bool admitted_size = result.width == resource.metadata.width && result.height == resource.metadata.height;
     if (result.error == ResourcePixelError::none && !admitted_size) {
         result.error = ResourcePixelError::decode_failed;
+    }
+    if (result.error == ResourcePixelError::none) {
+        // An image whose file carries no alpha is opaque without a scan.
+        const bool declared_opaque = resource.metadata.alpha == ImageAlpha::opaque;
+        result.every_pixel_opaque =
+            declared_opaque || alpha_all_opaque(pixels, row_bytes, result.width, result.height);
     }
     return result;
 }
