@@ -417,15 +417,15 @@ gf_status fail_with_current_exception(SlotIdentity slot) noexcept;
 gf_status fail_with_current_exception(SlotIdentity slot, stxlib::ShadowReference parked) noexcept;
 
 // Adapts a slot body, which returns its gf_status (fail(...) included), to
-// the gate's Result: a status, failed or not, is a success of the gate; only
+// the gate's OperationResult: a status, failed or not, is a success of the gate; only
 // an exception is the gate's failure.
 template <typename Body, typename... Arguments>
 struct SlotCall final {
     Body& body;
 
-    stxlib::Result<gf_status> operator()(Arguments&... arguments) const {
+    stxlib::OperationResult<gf_status> operator()(Arguments&... arguments) const {
         const gf_status status = body(arguments...);
-        stxlib::Result<gf_status> result = stxlib::Result<gf_status>::success(status);
+        stxlib::OperationResult<gf_status> result = stxlib::OperationResult<gf_status>::success(status);
         return result;
     }
 };
@@ -445,7 +445,7 @@ gf_status call_slot(const SlotIdentity slot, Body& body, Arguments&... arguments
         .second = slot.slot_index,
         .kind = GF_SHADOW_FRAME_KIND_LIBRARY_CALL,
     };
-    const stxlib::Result<gf_status> outcome = stxlib::call_gate_classified(slot_classifier, frame, call, arguments...);
+    const stxlib::OperationResult<gf_status> outcome = stxlib::call_gate_classified(slot_classifier, frame, call, arguments...);
     if (outcome.succeeded()) {
         const gf_status status = *outcome.value();
         return status;

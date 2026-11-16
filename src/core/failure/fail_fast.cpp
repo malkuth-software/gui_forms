@@ -146,14 +146,14 @@ public:
     // process is ending and has nowhere else to report it).
     void write() const noexcept {
         const std::string_view view(text_.data(), size_);
-        const stxlib::Status written = stxlib::write_console_line(stxlib::ConsoleStream::error, well_formed_text(view));
+        const stxlib::OperationStatus written = stxlib::write_console_line(stxlib::ConsoleStream::error, well_formed_text(view));
         static_cast<void>(written);
     }
 
     // Writes the text without a newline.
     void write_partial() const noexcept {
         const std::string_view view(text_.data(), size_);
-        const stxlib::Status written = stxlib::write_console(stxlib::ConsoleStream::error, well_formed_text(view));
+        const stxlib::OperationStatus written = stxlib::write_console(stxlib::ConsoleStream::error, well_formed_text(view));
         static_cast<void>(written);
     }
 
@@ -182,7 +182,7 @@ void append_code_address(ReportLine& line, const void* const address, const Code
     std::array<char, symbol_name_capacity> symbol_room{};
     const stxlib::MutableView<char> image_view(image_room.data(), image_room.size());
     const stxlib::MutableView<char> symbol_view(symbol_room.data(), symbol_room.size());
-    const stxlib::Result<stxlib::AddressDescription> described =
+    const stxlib::OperationResult<stxlib::AddressDescription> described =
         stxlib::describe_address(looked_up, image_view, symbol_view);
     if (!described.succeeded()) {
         line.append_hex(static_cast<unsigned long long>(value));
@@ -304,7 +304,7 @@ void write_throw_trace(const stxlib::ErrorRecord& record) noexcept {
     std::array<stxlib::uptr, stxlib::shadow_trace_capacity> trace{};
     const stxlib::MutableView<stxlib::ShadowFrameRecord> no_frames{};
     const stxlib::MutableView<stxlib::uptr> trace_view = platform::stxlib_mutable_view(trace);
-    const stxlib::Result<stxlib::ShadowSummary> read = stxlib::read_shadow(record.shadow(), no_frames, trace_view);
+    const stxlib::OperationResult<stxlib::ShadowSummary> read = stxlib::read_shadow(record.shadow(), no_frames, trace_view);
     if (!read.succeeded()) {
         return;
     }
@@ -357,7 +357,7 @@ void report_fail_fast(void* const context, const stxlib::ErrorRecord& record) no
 // Installs the reporter; run once, by the static below.
 bool install_reporter() noexcept {
     const stxlib::FailFastReporter reporter{&report_fail_fast, nullptr};
-    const stxlib::Status installed = stxlib::install_fail_fast_reporter(reporter);
+    const stxlib::OperationStatus installed = stxlib::install_fail_fast_reporter(reporter);
     // already_exists: another reporter was installed first and stays.
     const bool ours = installed.succeeded();
     return ours;

@@ -131,7 +131,7 @@ PreparedTextStatus measure_ink(const detail::PreparedTextStorage& storage, Raste
         place_run(geometry, run, placed);
         stxlib::glyphs::RunBox box{};
         const stxlib::View<stxlib::glyphs::RunGlyph> glyphs(placed.data(), placed.size());
-        const stxlib::Status measured = faces[face_index].measure_run(glyphs, style, box);
+        const stxlib::OperationStatus measured = faces[face_index].measure_run(glyphs, style, box);
         if (measured.failed() || box.missing_glyphs != 0U) return PreparedTextStatus::native_failure;
         if (box.oversized) return PreparedTextStatus::budget_exceeded;
         if (box.right <= box.left || box.bottom <= box.top) continue;
@@ -161,7 +161,7 @@ PreparedTextStatus fill_mask(const detail::PreparedTextStorage& storage, RasterF
         const std::size_t face_index = raster_face_index(storage, run.face);
         place_run(geometry, run, placed);
         const stxlib::View<stxlib::glyphs::RunGlyph> glyphs(placed.data(), placed.size());
-        const stxlib::Status drawn = faces[face_index].draw_run(glyphs, style, coverage);
+        const stxlib::OperationStatus drawn = faces[face_index].draw_run(glyphs, style, coverage);
         if (drawn.failed() || coverage.missing_glyphs != 0U || coverage.oversized) return PreparedTextStatus::native_failure;
         if (coverage.width == 0U || coverage.height == 0U) continue;
         const std::int64_t left = static_cast<std::int64_t>(coverage.left) - mask.left;

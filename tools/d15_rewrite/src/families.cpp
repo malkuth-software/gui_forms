@@ -391,7 +391,7 @@ bool copy_is_nothrow(const clang::QualType type, clang::ASTContext& context, con
     // stxlib's vocabulary, by name (the owner's 2026-11-16 copy decision).
     if (owned_record(canonical) != nullptr) {
         const llvm::StringRef name = (*record).getName();
-        if (name == "Unique" || name == "Result" || name == "FrozenMap" || name == "FrozenTextMap") return false;
+        if (name == "Unique" || name == "OperationResult" || name == "FrozenMap" || name == "FrozenTextMap") return false;
         const clang::ClassTemplateSpecializationDecl* const owned =
             llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(record);
         if ((name == "Optional" || name == "Vector") && owned != nullptr) {

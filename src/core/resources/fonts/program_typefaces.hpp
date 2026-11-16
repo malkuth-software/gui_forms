@@ -183,9 +183,9 @@ public:
     // stxlib::glyphs::Face's measure_run and draw_run, then the counts. A
     // face not open fails as disposed; a face whose typeface was retired
     // since it opened is released and fails as revoked.
-    [[nodiscard]] stxlib::Status measure_run(stxlib::View<stxlib::glyphs::RunGlyph> glyphs,
+    [[nodiscard]] stxlib::OperationStatus measure_run(stxlib::View<stxlib::glyphs::RunGlyph> glyphs,
                                              const stxlib::glyphs::DrawStyle& style, stxlib::glyphs::RunBox& box);
-    [[nodiscard]] stxlib::Status draw_run(stxlib::View<stxlib::glyphs::RunGlyph> glyphs,
+    [[nodiscard]] stxlib::OperationStatus draw_run(stxlib::View<stxlib::glyphs::RunGlyph> glyphs,
                                           const stxlib::glyphs::DrawStyle& style,
                                           stxlib::glyphs::RunCoverage& coverage);
 
@@ -204,7 +204,7 @@ public:
 private:
     // Fails as disposed, or as revoked after releasing a retired face, or
     // succeeds.
-    [[nodiscard]] stxlib::Status admit() noexcept;
+    [[nodiscard]] stxlib::OperationStatus admit() noexcept;
     void account() noexcept;
 
     // Declared first, destroyed last: it keeps the typeface and its bytes.

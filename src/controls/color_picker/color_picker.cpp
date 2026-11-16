@@ -439,7 +439,7 @@ void ColorPicker::paint_hsv_areas(Painter& painter, const Layout& layout, const 
     // Made at the first paint; when it cannot be, neither area is drawn and
     // the well shows its transparent background until a later paint.
     if (hsv_pixels_.empty()) {
-        stxlib::Result<stxlib::Unique<HsvPixels>> made = stxlib::Unique<HsvPixels>::make();
+        stxlib::OperationResult<stxlib::Unique<HsvPixels>> made = stxlib::Unique<HsvPixels>::make();
         if (made.failed()) return;
         hsv_pixels_ = std::move(made).take_value();
     }

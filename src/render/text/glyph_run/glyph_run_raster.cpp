@@ -290,7 +290,7 @@ public:
             place_glyphs(impl, run, placement, result);
             if (impl.run_glyphs_.empty()) continue;
             const stxlib::View<stxlib::glyphs::RunGlyph> glyphs(impl.run_glyphs_.data(), impl.run_glyphs_.size());
-            const stxlib::Status drawn = (*face).draw_run(glyphs, placement.style, impl.run_coverage_);
+            const stxlib::OperationStatus drawn = (*face).draw_run(glyphs, placement.style, impl.run_coverage_);
             const FontFamilyId family = impl.face_family(run.face);
             const bool application = app_font_family_number(family);
             const stxlib::glyphs::RunCoverage& coverage = impl.run_coverage_;

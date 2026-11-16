@@ -126,7 +126,7 @@ NativeInk measure_native_ink(NativeFonts& fonts, const MaskOptions& options, con
         next = place_face_run(fonts, configuration, glyphs, next, work);
         stxlib::glyphs::RunBox box{};
         const stxlib::View<stxlib::glyphs::RunGlyph> placed(work.glyphs.data(), work.glyphs.size());
-        const stxlib::Status measured = fonts.raster_faces[face].measure_run(placed, configuration.style, box);
+        const stxlib::OperationStatus measured = fonts.raster_faces[face].measure_run(placed, configuration.style, box);
         if (measured.failed() || box.missing_glyphs != 0U) throw NativeFailure(TextMaskStatus::native_failure);
         if (box.oversized) throw MaskLimitFailure(TextMaskLimit::mask_dimension);
         if (box.right <= box.left || box.bottom <= box.top) continue;
@@ -152,7 +152,7 @@ void fill_native_mask(NativeFonts& fonts, const MaskOptions& options, const std:
         const std::uint32_t face = glyphs[next].face;
         next = place_face_run(fonts, configuration, glyphs, next, work);
         const stxlib::View<stxlib::glyphs::RunGlyph> placed(work.glyphs.data(), work.glyphs.size());
-        const stxlib::Status drawn = fonts.raster_faces[face].draw_run(placed, configuration.style, work.coverage);
+        const stxlib::OperationStatus drawn = fonts.raster_faces[face].draw_run(placed, configuration.style, work.coverage);
         const stxlib::glyphs::RunCoverage& coverage = work.coverage;
         if (drawn.failed() || coverage.missing_glyphs != 0U || coverage.oversized) {
             throw NativeFailure(TextMaskStatus::native_failure);

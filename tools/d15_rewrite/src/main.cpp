@@ -85,7 +85,7 @@ llvm::cl::opt<std::string> flow_option("flow-edges", llvm::cl::init("default"),
     llvm::cl::desc("Convert first-party declarations that exchange values with converted ones: on, off or default"),
     llvm::cl::cat(rewrite_category));
 llvm::cl::opt<std::string> returns_option("allocating-returns", llvm::cl::init("plain"),
-    llvm::cl::desc("V3: plain (Utf8String returns) or result (Q1: Result<Utf8String> returns)"),
+    llvm::cl::desc("V3: plain (Utf8String returns) or result (Q1: OperationResult<Utf8String> returns)"),
     llvm::cl::cat(rewrite_category));
 llvm::cl::opt<bool> drop_includes_option("drop-standard-includes", llvm::cl::init(false),
     llvm::cl::desc("Remove a standard header a rewritten file no longer names"), llvm::cl::cat(rewrite_category));

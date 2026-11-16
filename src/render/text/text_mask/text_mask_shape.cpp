@@ -62,14 +62,14 @@ NativeParagraph::NativeParagraph(const std::shared_ptr<MaskLedger>& ledger, Nati
     }
     if (text.empty()) return;
     clusters_.resize(edges_.size() - 1U);
-    const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(text.data(), text.size());
+    const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(text.data(), text.size());
     const stxlib::TextView* const view = validated.value();
     if (view == nullptr) throw NativeFailure(TextMaskStatus::invalid_input);
     try {
         // One analysis gives the levels and the script runs. The content
         // holds no line feed; another paragraph separator inside it ends
         // the paragraph early, which this path does not support.
-        const stxlib::Status analysed = stxlib::textlayout::analyse_paragraph(
+        const stxlib::OperationStatus analysed = stxlib::textlayout::analyse_paragraph(
             *view, 0U, stxlib::textlayout::BaseDirection::automatic_left_to_right, paragraph_);
         charge_analysis();
         if (analysed.failed()) {
@@ -161,7 +161,7 @@ void NativeParagraph::append_run(const std::size_t line_begin, const std::size_t
     // Advances and offsets in 26.6 pixels at the job's size, unhinted.
     run.size = fonts_.size_64;
     NativeFace& face = fonts_.faces[cluster.face];
-    const stxlib::Status shaped = face.shaper.shape(run, run_glyphs_);
+    const stxlib::OperationStatus shaped = face.shaper.shape(run, run_glyphs_);
     if (shaped.failed()) {
         const stxlib::ErrorRecord* const record = shaped.error();
         if (record != nullptr && (*record).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc{};
@@ -204,7 +204,7 @@ NativeShape NativeParagraph::shape(const std::size_t begin, const std::size_t en
     if (begin == end) return result;
     // The line's levels after L1 and its runs in visual order; the line
     // analysis is reused from trial to trial.
-    const stxlib::Status lined = stxlib::textlayout::analyse_line(paragraph_, begin, end - begin, line_);
+    const stxlib::OperationStatus lined = stxlib::textlayout::analyse_line(paragraph_, begin, end - begin, line_);
     charge_analysis();
     if (lined.failed()) {
         if ((*lined.error()).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc{};

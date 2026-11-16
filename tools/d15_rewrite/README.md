@@ -8,7 +8,7 @@ regex passes:
 |---|---|---|
 | V1 | `std::optional<T>` | `stxlib::Optional<T>` |
 | V2 | `std::string_view` and `const std::string&` parameters | `stxlib::TextView` |
-| V3 | `std::string` | `stxlib::Utf8String` (allocating returns optionally `Result`, Q1) |
+| V3 | `std::string` | `stxlib::Utf8String` (allocating returns optionally `OperationResult`, Q1) |
 | V4 | `std::vector<T>`, `std::span<T>` | `stxlib::Vector<T>`, `stxlib::View<T>` / `MutableView<T>` |
 | V5 | `std::shared_ptr`, `weak_ptr`, `unique_ptr`, the pointer casts | `stxlib::Shared`, `Weak`, `Unique`, `static_shared_cast`, `dynamic_shared_cast` |
 
@@ -43,7 +43,7 @@ reason.
 Eligibility, by rule (each refusal is a residue line):
 - the value type's copy must be nothrow (the STXlib types are recognised by
   name: `Utf8String`, `Vector<nothrow T>`, `Buffer`, `Path`, `PriorityQueue`
-  and `Optional<nothrow T>` copy; `Unique`, `Result` and the frozen maps do
+  and `Optional<nothrow T>` copy; `Unique`, `OperationResult` and the frozen maps do
   not), since a converted record must keep its copies;
 - vectors need the standard allocator, spans a dynamic extent, `unique_ptr`
   the default deleter and a non-array type;
@@ -55,7 +55,7 @@ Eligibility, by rule (each refusal is a residue line):
 - ordering comparisons (`<` on an optional) are reported, not guessed.
 
 Implicit copies of text and vectors need no rewriting (STXlib `claude/vocab-copy`
-6e4f66b gives them ordinary noexcept copies); only `Unique` and `Result` sites
+6e4f66b gives them ordinary noexcept copies); only `Unique` and `OperationResult` sites
 do.
 
 ## Determinism and idempotence

@@ -36,11 +36,11 @@ public:
             // UAX #14 over the whole text as one piece (stxlib::textlayout;
             // libunibreak's "-strict" until 2026-11-16, whose CJ as NS is
             // the default here).
-            const stxlib::Result<stxlib::TextView> validated = stxlib::validate_utf8(text_.data(), text_.size());
+            const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(text_.data(), text_.size());
             const stxlib::TextView* const text = validated.value();
             if (text == nullptr) throw NativeFailure(TextMaskStatus::invalid_input);
             const stxlib::MutableView<stxlib::textlayout::LineBreak> output(breaks_.data(), breaks_.size());
-            const stxlib::Status found = stxlib::textlayout::find_line_breaks(output, *text);
+            const stxlib::OperationStatus found = stxlib::textlayout::find_line_breaks(output, *text);
             if (found.failed()) throw NativeFailure(TextMaskStatus::native_failure);
         }
     }

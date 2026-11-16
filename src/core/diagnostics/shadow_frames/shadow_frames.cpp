@@ -26,7 +26,7 @@ stxlib::TextView well_formed_text(const std::string_view text) noexcept {
         const stxlib::TextView none{};
         return none;
     }
-    const stxlib::Result<stxlib::TextView> whole = platform::validated_text(text);
+    const stxlib::OperationResult<stxlib::TextView> whole = platform::validated_text(text);
     if (whole.succeeded()) {
         const stxlib::TextView valid = *whole.value();
         return valid;
@@ -39,7 +39,7 @@ stxlib::TextView well_formed_text(const std::string_view text) noexcept {
         const stxlib::TextView none{};
         return none;
     }
-    const stxlib::Result<stxlib::TextView> prefix = platform::validated_text(text.substr(0U, offset));
+    const stxlib::OperationResult<stxlib::TextView> prefix = platform::validated_text(text.substr(0U, offset));
     if (!prefix.succeeded()) {
         const stxlib::TextView none{};
         return none;
@@ -92,7 +92,7 @@ RecordFrames copy_record_frames(const stxlib::ShadowReference reference, const s
     std::array<stxlib::uptr, stxlib::shadow_trace_capacity> addresses{};
     const stxlib::MutableView<stxlib::ShadowFrameRecord> record_view = platform::stxlib_mutable_view(records);
     const stxlib::MutableView<stxlib::uptr> address_view = platform::stxlib_mutable_view(addresses);
-    const stxlib::Result<stxlib::ShadowSummary> read = stxlib::read_shadow(reference, record_view, address_view);
+    const stxlib::OperationResult<stxlib::ShadowSummary> read = stxlib::read_shadow(reference, record_view, address_view);
     if (!read.succeeded()) {
         return result;
     }

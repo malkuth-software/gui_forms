@@ -139,7 +139,7 @@ Status rasterize(const Prepared& prepared, const FontSet& pinned, PainterFaces& 
             placed.push_back(entry);
         }
         const stxlib::View<stxlib::glyphs::RunGlyph> glyphs(placed.data(), placed.size());
-        const stxlib::Status drawn = faces[index].draw_run(glyphs, style, coverage);
+        const stxlib::OperationStatus drawn = faces[index].draw_run(glyphs, style, coverage);
         if (drawn.failed() || coverage.missing_glyphs != 0U) { return Status::native_failure; }
         if (coverage.oversized) { return Status::unsupported_raster; }
         composite_run(coverage, pixels);

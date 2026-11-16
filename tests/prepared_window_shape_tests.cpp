@@ -179,7 +179,7 @@ text::PrimaryLineMetrics reference_primary_metrics(const detail::PreparedFontFac
     const std::int64_t device_size) {
     stxlib::glyphs::Font font{};
     const stxlib::View<stxlib::u8> bytes(reinterpret_cast<const stxlib::u8*>(source.bytes.get()), source.size);
-    const stxlib::Status opened = stxlib::glyphs::open_font(bytes, source.index, font);
+    const stxlib::OperationStatus opened = stxlib::glyphs::open_font(bytes, source.index, font);
     require(opened.succeeded() && font.units_per_em != 0U, "independent admitted font face");
     require(device_size > 0, "native metric size fits");
     const std::int64_t y_scale = oracle_divide(device_size, static_cast<std::int64_t>(font.units_per_em));
