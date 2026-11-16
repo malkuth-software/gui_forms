@@ -98,10 +98,23 @@ if(gallery_page_forms AND TARGET GUIForms::form_compiler)
         get_filename_component(page_stem "${page_form}" NAME_WE)
         string(MAKE_C_IDENTIFIER "${page_stem}" page_identifier)
         # Every page through the Gallery's compiler: it knows the registry's
-        # types and the lab and demonstration controls.
+        # types and the lab and demonstration controls. The composite-controls
+        # page also names the Gallery's composites, generated here as the
+        # Gallery model generates them (CMakeLists.txt, cp34).
+        set(page_composites "")
+        if(page_stem STREQUAL "composite-controls")
+            set(composite_directory "${CMAKE_CURRENT_SOURCE_DIR}/../../demo/composites")
+            gui_forms_add_control(installed_gallery_page_forms "${composite_directory}/toggle-pill.control"
+                CLASS TogglePill NAMESPACE installed_gallery_pages::composites)
+            gui_forms_add_control(installed_gallery_page_forms "${composite_directory}/card-with-action.control"
+                CLASS CardWithAction NAMESPACE installed_gallery_pages::composites)
+            set(page_composites COMPOSITES
+                "${composite_directory}/toggle-pill.control,installed_gallery_pages::composites::TogglePill,toggle_pill_control.hpp"
+                "${composite_directory}/card-with-action.control,installed_gallery_pages::composites::CardWithAction,card_with_action_control.hpp")
+        endif()
         gui_forms_add_form(installed_gallery_page_forms "${page_form}"
             CLASS ${page_identifier}_document NAMESPACE installed_gallery_pages
-            COMPILER GUIForms::form_compiler_lab)
+            COMPILER GUIForms::form_compiler_lab ${page_composites})
         string(APPEND gallery_page_includes "#include \"${page_stem}_form.hpp\"\n")
     endforeach()
     # Written only when its bytes change (file(CONFIGURE)), so a configure
