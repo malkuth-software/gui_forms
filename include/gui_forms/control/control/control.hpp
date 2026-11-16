@@ -924,7 +924,9 @@ public:
     // effect set here wins over the theme's (`filter` and `mask-*` on a
     // control rule). Null for none. Throws std::invalid_argument, changing
     // nothing, for an effect valid_paint_group_effect refuses. Shared
-    // read-only: the window's recordings keep it alive.
+    // read-only: the window's recordings keep it alive. Under forced high
+    // contrast the window paints it without its colour stages
+    // (SurfaceRoot::painted_content_effect).
     void set_content_effect(std::shared_ptr<const PaintGroupEffect> effect);
     [[nodiscard]] const std::shared_ptr<const PaintGroupEffect>& content_effect() const& noexcept {
         return content_effect_;
@@ -2189,6 +2191,11 @@ private:
     // effect still damages what the larger one spread over.
     std::shared_ptr<const PaintGroupEffect> content_effect_{};
     std::shared_ptr<const PaintGroupEffect> theme_content_effect_{};
+    // Under forced high contrast, the shown effect without its colour
+    // stages (SurfaceRoot::painted_content_effect), and the shown effect it
+    // was made from; replaced when that changes.
+    std::shared_ptr<const PaintGroupEffect> contrast_content_effect_{};
+    std::shared_ptr<const PaintGroupEffect> contrast_effect_source_{};
     double last_painted_effect_reach_{};
     bool layout_collapsed_{};
     // Whether this is its window's hovered control, the one the pointer was

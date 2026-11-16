@@ -447,7 +447,12 @@ length or `currentcolor` in the effect refuses it too; `mask-size`,
 that drop the declaration (`W107`). A damage inside the control spreads by
 the effect's reach (1.5 times the blur, rounded up, plus 3 units). Code
 sets the same effect with `Control::set_content_effect` (C:
-`gf_controls_table.set_content_effect`), which wins over the theme's.
+`gf_controls_table.set_content_effect`), which wins over the theme's. Under
+forced high contrast the effect's colour stages (the colour functions,
+`fill()`, `duotone()`, `tritone()`, the colour matrix and the tables) are
+not applied, so the user's contrast colours are not recoloured; its blur
+and mask stay, and an effect of colour stages alone draws no group. This
+holds for the theme's effect and the one set in code alike.
 
 Migrating a theme written before 2026-11-16, where a rule without a part
 gave `filter` and `mask-*` to the control's own material:

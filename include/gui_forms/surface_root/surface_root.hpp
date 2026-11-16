@@ -2266,8 +2266,11 @@ private:
     // Adds the damage of `control` and every descendant whose paint bounds
     // leave the control's (audit N80): the descendants are placed from the
     // control's origin passed down, not by walking each one's ancestors.
+    // Each descendant's damage grows by the content-effect reaches above it
+    // (effect_reach_above), accumulated down the walk in `parent_reach`,
+    // the reach above and at `parent`.
     void add_subtree_damage(const Control::Ptr& control);
-    void add_descendant_damage(const Control& parent, Point parent_origin, Rect covered);
+    void add_descendant_damage(const Control& parent, Point parent_origin, Rect covered, double parent_reach);
     void ensure_layout(bool read_barrier);
     // The bodies of the frame entries (shadow frames, ShadowFrameCall): each
     // entry opens its frame, calls its body and marks the frame returned.
@@ -2458,6 +2461,16 @@ private:
     // its last painted one's: how far a damage inside the control spreads
     // through their blurs. 0 when none has an effect.
     [[nodiscard]] static double effect_reach_above(const Control& control) noexcept;
+    // The larger of the shown and the last painted content-effect reach of
+    // `control` alone.
+    [[nodiscard]] static double own_effect_reach(const Control& control) noexcept;
+    // The content effect `control` paints with: its shown one, or, under
+    // forced high contrast (PresentationSettings::high_contrast), a copy
+    // without the colour stages, so that the user's contrast colours are
+    // not recoloured; the blur and masks stay, and an effect left with
+    // neither is null. The copy is kept on the control while the shown
+    // effect is the same.
+    [[nodiscard]] std::shared_ptr<const PaintGroupEffect> painted_content_effect(Control& control);
     [[nodiscard]] bool eligible(const Control::Ptr& control) const noexcept;
     [[nodiscard]] bool move_focus_after(const Control::Ptr& origin);
     void set_focus_cue_visible(bool visible);

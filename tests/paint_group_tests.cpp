@@ -349,6 +349,58 @@ void content_effect_wraps_the_subtree() {
     require(!(*holder).shown_content_effect(), "without the rule the control shows no content effect");
 }
 
+// A child repainting under a parent whose theme blurs it damages the
+// child's bounds grown by the parent's reach, exactly; under forced high
+// contrast a content effect paints without its colour stages, its blur and
+// masks kept, and one with only colour stages makes no group.
+void theme_effect_spreads_and_contrast_suppresses() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("contrast.root"));
+    const std::shared_ptr<Panel> holder = make_control<Panel>(StableId("contrast.holder"));
+    const std::shared_ptr<Grouper> child = make_control<Grouper>(StableId("contrast.child"));
+    (*child).script = Script::plain;
+    (*holder).set_requested_bounds(Rect{20.0, 20.0, 60.0, 40.0});
+    (*child).set_requested_bounds(Rect{20.0, 10.0, 10.0, 10.0});
+    (*holder).add_child(child);
+    (*root).add_child(holder);
+    Window window(root, Size{100.0, 80.0});
+    window.perform_layout();
+    require((*holder).set_inline_style("filter: blur(1px)").succeeded(), "the parent's theme blurs it");
+    ListingPainter first{};
+    static_cast<void>(window.paint(first));
+    // blur(1px) is 2 in filter_blur's units: the reach is ceil(1.5 × 2) + 3
+    // = 6 on every side of the child's 10 × 10.
+    const double before = window.metrics_snapshot().requested_damage_area;
+    (*child).invalidate(invalidation::paint_only);
+    ListingPainter repaint{};
+    static_cast<void>(window.paint(repaint));
+    const double requested = window.metrics_snapshot().requested_damage_area - before;
+    require(requested == 22.0 * 22.0, "the child's damage grows by the theme effect's reach, exactly");
+
+    PresentationSettings settings = window.presentation_settings();
+    settings.high_contrast = true;
+    window.set_presentation_settings(settings);
+    require((*holder).set_inline_style("").succeeded(), "the theme effect clears");
+    const std::shared_ptr<const PaintGroupEffect> effect = script_effect();
+    (*holder).set_content_effect(effect);
+    ListingPainter contrast{};
+    static_cast<void>(window.paint(contrast));
+    bool suppressed = false;
+    bool recoloured = false;
+    for (const std::shared_ptr<const PaintGroupEffect>& carried : contrast.effects) {
+        if (carried == effect) recoloured = true;
+        if (carried && !(*carried).colour_filter && (*carried).blur == 2.0 && (*carried).masks.size() == 1U) {
+            suppressed = true;
+        }
+    }
+    require(suppressed && !recoloured, "forced high contrast drops the colour stages and keeps the blur and mask");
+    PaintGroupEffect colour_only{};
+    colour_only.colour_filter = MaterialColourMatrix::fill(Color::rgba(128, 128, 128));
+    (*holder).set_content_effect(std::make_shared<const PaintGroupEffect>(colour_only));
+    ListingPainter plain{};
+    static_cast<void>(window.paint(plain));
+    require(plain.effects.empty(), "an effect of colour stages alone makes no group under forced high contrast");
+}
+
 void refused_past_the_depth() {
     Fixture fixture = make_fixture(Script::too_deep);
     ListingPainter painter{};
@@ -387,6 +439,7 @@ int main() {
     recorded_and_replayed();
     effect_recorded_and_replayed();
     content_effect_wraps_the_subtree();
+    theme_effect_spreads_and_contrast_suppresses();
     refused_past_the_depth();
     unbalanced_chunks_are_refused();
     minimal_painter_fallback();

@@ -4433,7 +4433,7 @@ void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
     const Rect covered = paint_damage_bounds_of(*control);
     add_damage_all_planes(covered);
     const Rect placed = absolute_bounds_of(*control);
-    add_descendant_damage(*control, Point{placed.x, placed.y}, covered);
+    add_descendant_damage(*control, Point{placed.x, placed.y}, covered, effect_reach_above(*control));
 }
 
 // Each descendant's paint bounds, placed from its parent's origin; a
@@ -4441,17 +4441,26 @@ void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
 // adds nothing to the damage's union, so only those leaving it are added.
 // Recurses once per control level: bounded by maximum_control_tree_depth
 // (control.hpp), within its stack budget of 4 KiB per level.
-void SurfaceRoot::add_descendant_damage(const Control& parent, Point parent_origin, Rect covered) {
+void SurfaceRoot::add_descendant_damage(const Control& parent, Point parent_origin, Rect covered,
+                                        double parent_reach) {
     for (const std::shared_ptr<gui_forms::Control>& child : parent.children_) {
         if (!child) continue;
         const Control& current = *child;
         const Rect placed{parent_origin.x + current.arranged_bounds_.x,
                           parent_origin.y + current.arranged_bounds_.y,
                           current.arranged_bounds_.width, current.arranged_bounds_.height};
-        const Rect damage = Rect::united(visual_bounds_at(placed, current.effective_visual_outsets()),
+        const Rect united = Rect::united(visual_bounds_at(placed, current.effective_visual_outsets()),
                                          visual_bounds_at(placed, current.last_painted_visual_outsets_));
+        // Spread by the effects above and at the child, as
+        // paint_damage_bounds_of spreads a damage.
+        const double reach = parent_reach + own_effect_reach(current);
+        Rect damage = united;
+        if (reach > 0.0 && !united.empty()) {
+            damage = Rect{united.x - reach, united.y - reach, united.width + 2.0 * reach,
+                          united.height + 2.0 * reach};
+        }
         if (!covered.contains(damage)) add_damage_all_planes(damage);
-        add_descendant_damage(current, Point{placed.x, placed.y}, covered);
+        add_descendant_damage(current, Point{placed.x, placed.y}, covered, reach);
     }
 }
 
@@ -5419,7 +5428,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
     // drawn, since the blur reads that far; the group composites within
     // the painter's clip, the damage itself.
     const std::shared_ptr<const PaintGroupEffect> content_effect =
-        (*control).paint_plane_ == plane ? (*control).shown_content_effect() : nullptr;
+        (*control).paint_plane_ == plane ? painted_content_effect(*control) : nullptr;
     const double effect_reach = content_effect ? paint_group_effect_reach(*content_effect) : 0.0;
     const Rect shown_damage = window_damage;
     if (effect_reach > 0.0) {
@@ -5688,11 +5697,35 @@ Rect SurfaceRoot::paint_damage_bounds_of(const Control& control) const {
 double SurfaceRoot::effect_reach_above(const Control& control) noexcept {
     double reach = 0.0;
     for (const Control* level = &control; level != nullptr; level = (*level).parent_link_) {
-        const std::shared_ptr<const PaintGroupEffect>& effect = (*level).shown_content_effect();
-        const double shown = effect ? paint_group_effect_reach(*effect) : 0.0;
-        reach = reach + std::max(shown, (*level).last_painted_effect_reach_);
+        reach = reach + own_effect_reach(*level);
     }
     return reach;
+}
+
+double SurfaceRoot::own_effect_reach(const Control& control) noexcept {
+    const std::shared_ptr<const PaintGroupEffect>& effect = control.shown_content_effect();
+    const double shown = effect ? paint_group_effect_reach(*effect) : 0.0;
+    const double reach = std::max(shown, control.last_painted_effect_reach_);
+    return reach;
+}
+
+std::shared_ptr<const PaintGroupEffect> SurfaceRoot::painted_content_effect(Control& control) {
+    const std::shared_ptr<const PaintGroupEffect>& shown = control.shown_content_effect();
+    if (!shown || !presentation_settings_.high_contrast || !(*shown).colour_filter) return shown;
+    if (control.contrast_effect_source_ != shown) {
+        // Under forced high contrast the colour stages are suppressed; the
+        // blur and masks keep their reach and shape.
+        std::shared_ptr<const PaintGroupEffect> suppressed{};
+        if ((*shown).blur > 0.0 || !(*shown).masks.empty()) {
+            PaintGroupEffect copy{};
+            copy.blur = (*shown).blur;
+            copy.masks = (*shown).masks;
+            suppressed = std::make_shared<const PaintGroupEffect>(std::move(copy));
+        }
+        control.contrast_content_effect_ = std::move(suppressed);
+        control.contrast_effect_source_ = shown;
+    }
+    return control.contrast_content_effect_;
 }
 
 bool SurfaceRoot::eligible(const Control::Ptr& control) const noexcept {
