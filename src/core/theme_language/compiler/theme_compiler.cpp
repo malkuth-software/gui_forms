@@ -69,16 +69,28 @@ constexpr std::array<std::string_view, 13> not_admitted_families{
 // and the colour and font roles): refused with not_yet_built until their
 // phases, so that no interim meaning ships. Sorted. A family's members the
 // material lowering lists (P6b, P6c) are lowered before these are consulted.
-constexpr std::array<std::string_view, 1> later_properties{
-    "backdrop-filter",
-};
+// None at present: `backdrop-filter` is the standard spelling of a
+// surface's backdrop chain (capability review, owner 2026-11-16).
+constexpr std::array<std::string_view, 0> later_properties{};
 static_assert(std::is_sorted(later_properties.begin(), later_properties.end()), "binary_search needs the table sorted");
+
+// CSS filter functions a backdrop chain does not take: refused as forms
+// not admitted rather than as values of the wrong kind. Sorted.
+constexpr std::array<std::string_view, 9> backdrop_filter_functions_not_admitted{
+    "brightness", "contrast", "drop-shadow", "grayscale", "hue-rotate", "invert", "opacity", "sepia", "url",
+};
+static_assert(std::is_sorted(backdrop_filter_functions_not_admitted.begin(),
+                             backdrop_filter_functions_not_admitted.end()),
+              "binary_search needs the table sorted");
 
 constexpr std::array<std::string_view, 5> later_families{
     "background", "border", "mask", "outline", "transition",
 };
 
-constexpr std::array<std::string_view, 3> blend_modes{"normal", "multiply", "screen"};
+// The CSS names of PartBlend, in its order.
+constexpr std::array<std::string_view, 12> blend_modes{
+    "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion",
+};
 
 // The primitive a rule of material fields selects when it names none
 // (owner C7).
@@ -98,6 +110,19 @@ constexpr std::string_view material_primitive_name = "material";
         if (prefixed) return true;
     }
     return false;
+}
+
+// Whether `component` is a CSS filter function, or a url() reference, that
+// a backdrop chain does not take (backdrop_filter_functions_not_admitted).
+[[nodiscard]] bool css_filter_function_not_backdrop(const ValueComponent& component) {
+    if (component.kind == ValueComponentKind::resource) return true;
+    if (component.kind != ValueComponentKind::function) return false;
+    std::string folded(component.text);
+    for (char& character : folded) {
+        if (character >= 'A' && character <= 'Z') character = static_cast<char>(character - 'A' + 'a');
+    }
+    const bool found = listed(backdrop_filter_functions_not_admitted, folded);
+    return found;
 }
 
 enum class PropertyClass : std::uint8_t {
@@ -146,7 +171,7 @@ enum class PropertyClass : std::uint8_t {
     if (name == font_property) return PropertyClass::font;
     if (name == effect_property) return PropertyClass::effect;
     if (name == "effect-primary" || name == "effect-secondary") return PropertyClass::effect_colour;
-    if (name == "backdrop") return PropertyClass::backdrop;
+    if (name == "backdrop" || name == "backdrop-filter") return PropertyClass::backdrop;
     if (name == "band-width" || name == "band-color" || name == "band-lit-color" || name == "band-effect") {
         return PropertyClass::band;
     }
@@ -2714,6 +2739,12 @@ bool CompilePass::lower_effect_colour(const SyntaxNode& node) {
     return true;
 }
 
+// `backdrop-filter:` (capability review, owner 2026-11-16) is the same
+// declaration in CSS's spelling, the two sharing one chain, so that the
+// later of the two in a rule wins. CSS's other filter functions
+// (brightness() to sepia(), drop-shadow(), url()) are refused with
+// value_form_not_admitted: a host material takes none of them.
+//
 // `backdrop:` (owner decision 2026-11-04): `none` (or `initial`), or an
 // ordered list of blur(<length>), saturate(<number> | <percentage>) and
 // tint(<colour> [/ <alpha>]), the chain applied in order over what lies
@@ -2752,6 +2783,10 @@ bool CompilePass::lower_backdrop(const SyntaxNode& node) {
             if (equals_ascii_folded(component.text, "blur")) kind = BackdropStepKind::blur;
             if (equals_ascii_folded(component.text, "saturate")) kind = BackdropStepKind::saturate;
             if (equals_ascii_folded(component.text, "tint")) kind = BackdropStepKind::tint;
+        }
+        if (!kind && css_filter_function_not_backdrop(component)) {
+            report(DiagnosticCode::value_form_not_admitted, component.token, clipped_theme_detail(component.text));
+            return false;
         }
         if (!kind) {
             report(DiagnosticCode::value_wrong_kind, component.token, "blur(), saturate() or tint()");

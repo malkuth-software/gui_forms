@@ -30,11 +30,28 @@ namespace gui_forms {
 // one another. paint_surface_material blends them so too where it bakes
 // through the kernel; a minimal painter's layers draw every layer
 // source-over.
+//
+// The rest of CSS's separable modes (capability review, owner 2026-11-16)
+// follow screen, each joining as multiply does with its own function of
+// the straight colours (PaintGroupComposite gives the formula), in the
+// kernel's precision.
 enum class MaterialBlendMode : std::uint8_t {
     normal,
     multiply,
     screen,
+    overlay,
+    darken,
+    lighten,
+    color_dodge,
+    color_burn,
+    hard_light,
+    soft_light,
+    difference,
+    exclusion,
 };
+
+// The last enumerator of MaterialBlendMode, for range checks.
+inline constexpr MaterialBlendMode material_blend_mode_last = MaterialBlendMode::exclusion;
 
 enum class MaterialFillKind : std::uint8_t {
     solid, linear_gradient, radial_gradient, image, conic_gradient,

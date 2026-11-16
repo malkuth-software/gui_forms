@@ -570,6 +570,24 @@ void composite_text_interior_span(const TextCoverage& coverage, const TextCompos
     text_row(run, destination, pixels, colour_alpha, target.opaque, scratch);
 }
 
+// The floor of the square root of `value`, exactly, by bit-wise
+// restoration: no floating point, the same on every host.
+std::uint64_t integer_square_root(std::uint64_t value) noexcept {
+    std::uint64_t root = 0U;
+    std::uint64_t bit = std::uint64_t{1} << 62U;
+    while (bit > value) bit >>= 2U;
+    while (bit != 0U) {
+        if (value >= root + bit) {
+            value -= root + bit;
+            root = (root >> 1U) + bit;
+        } else {
+            root >>= 1U;
+        }
+        bit >>= 2U;
+    }
+    return root;
+}
+
 } // namespace
 
 std::uint32_t text_clip_coverage(const TextCompositeClip clip, const std::int64_t x, const std::int64_t y) noexcept {
@@ -660,6 +678,30 @@ TextCompositeStatus composite_text_coverage(const TextCoverage coverage, const T
     return TextCompositeStatus::success;
 }
 
+std::uint32_t soft_light_term(const std::uint32_t backdrop, const std::uint32_t source) noexcept {
+    const std::int64_t unit = 65536;
+    const std::int64_t under = std::min<std::int64_t>(backdrop, unit);
+    const std::int64_t over = std::min<std::int64_t>(source, unit);
+    std::int64_t blended = 0;
+    if (2 * over <= unit) {
+        // b − (1 − 2s) × b × (1 − b), with b under and s over.
+        const std::int64_t spread = (under * (unit - under)) >> 16;
+        blended = under - (((unit - 2 * over) * spread) >> 16);
+    } else {
+        // b + (2s − 1) × (D(b) − b).
+        std::int64_t lifted = 0;
+        if (4 * under <= unit) {
+            const std::int64_t inner = ((16 * under - 12 * unit) * under) >> 16;
+            lifted = (((inner + 4 * unit) * under) >> 16);
+        } else {
+            lifted = static_cast<std::int64_t>(integer_square_root(static_cast<std::uint64_t>(under) << 16U));
+        }
+        blended = under + (((2 * over - unit) * (lifted - under)) >> 16);
+    }
+    const std::int64_t held = std::clamp<std::int64_t>(blended, 0, unit);
+    return static_cast<std::uint32_t>(held);
+}
+
 std::uint8_t part_composite_opacity(const double opacity) noexcept {
     if (!(opacity > 0.0)) return 0U;
     const double clamped = std::min(opacity, 1.0);
@@ -682,8 +724,75 @@ unsigned weighted_channel(const std::uint64_t channel, const std::uint64_t weigh
     return weighted;
 }
 
-// One channel by multiply or screen (PartCompositeBlend), in bytes:
+// A straight colour in 1/65536 from premultiplied `channel` under `alpha`
+// (alpha not 0), rounded and held at most 65536.
+std::uint32_t straight_fraction(const unsigned channel, const unsigned alpha) noexcept {
+    const std::uint64_t scaled = (static_cast<std::uint64_t>(channel) * 65536U + alpha / 2U) / alpha;
+    const std::uint32_t fraction = static_cast<std::uint32_t>(std::min<std::uint64_t>(scaled, 65536U));
+    return fraction;
+}
+
+// The mode's term T of one channel (see PartCompositeBlend), in units of
+// 255 × 255, for the modes past copy: `source` and `destination`
+// premultiplied bytes, `source_alpha` and `destination_alpha` their alphas.
+std::int64_t separable_term(const std::int64_t source, const std::int64_t source_alpha, const std::int64_t destination,
+                            const std::int64_t destination_alpha, const PartCompositeBlend blend) noexcept {
+    const std::int64_t source_scaled = source * destination_alpha;
+    const std::int64_t destination_scaled = destination * source_alpha;
+    const std::int64_t both = source_alpha * destination_alpha;
+    switch (blend) {
+    case PartCompositeBlend::darken: return std::min(source_scaled, destination_scaled);
+    case PartCompositeBlend::lighten: return std::max(source_scaled, destination_scaled);
+    case PartCompositeBlend::difference: {
+        const std::int64_t apart = source_scaled - destination_scaled;
+        return apart < 0 ? -apart : apart;
+    }
+    case PartCompositeBlend::exclusion: return source_scaled + destination_scaled - 2 * source * destination;
+    case PartCompositeBlend::hard_light:
+    case PartCompositeBlend::overlay: {
+        const bool hard = blend == PartCompositeBlend::hard_light;
+        const bool lower = hard ? 2 * source <= source_alpha : 2 * destination <= destination_alpha;
+        if (lower) return 2 * source * destination;
+        const std::int64_t upper = both - 2 * (destination_alpha - destination) * (source_alpha - source);
+        return upper;
+    }
+    case PartCompositeBlend::color_dodge: {
+        if (destination == 0) return 0;
+        if (source >= source_alpha) return both;
+        const std::int64_t room = source_alpha - source;
+        const std::int64_t dodged = (destination * source_alpha * source_alpha + room / 2) / room;
+        return std::min(both, dodged);
+    }
+    case PartCompositeBlend::color_burn: {
+        if (destination >= destination_alpha) return both;
+        if (source == 0) return 0;
+        const std::int64_t burned =
+            ((destination_alpha - destination) * source_alpha * source_alpha + source / 2) / source;
+        return both - std::min(both, burned);
+    }
+    case PartCompositeBlend::soft_light: {
+        if (source_alpha == 0 || destination_alpha == 0) return 0;
+        const std::uint32_t backdrop =
+            straight_fraction(static_cast<unsigned>(destination), static_cast<unsigned>(destination_alpha));
+        const std::uint32_t straight =
+            straight_fraction(static_cast<unsigned>(source), static_cast<unsigned>(source_alpha));
+        const std::int64_t blended = static_cast<std::int64_t>(soft_light_term(backdrop, straight));
+        const std::int64_t term = (both * blended + 32768) >> 16;
+        return term;
+    }
+    case PartCompositeBlend::source_over:
+    case PartCompositeBlend::plus:
+    case PartCompositeBlend::multiply:
+    case PartCompositeBlend::screen:
+    case PartCompositeBlend::copy: break;
+    }
+    // Any other mode joins as multiply.
+    return source * destination;
+}
+
+// One channel by a separable mode (PartCompositeBlend), in bytes:
 // `source` and `destination` premultiplied, with their pixels' alphas.
+// Multiply and screen keep their own forms.
 unsigned separable_channel(const unsigned source, const unsigned source_alpha, const unsigned destination,
                            const unsigned destination_alpha, const PartCompositeBlend blend) noexcept {
     const unsigned product = source * destination;
@@ -691,12 +800,25 @@ unsigned separable_channel(const unsigned source, const unsigned source_alpha, c
         const unsigned screened = source + destination - (product + 127U) / 255U;
         return std::min(255U, screened);
     }
-    const unsigned kept = source * (255U - destination_alpha) + destination * (255U - source_alpha) + product;
-    const unsigned multiplied = (kept + 127U) / 255U;
-    return std::min(255U, multiplied);
+    std::int64_t term = product;
+    if (blend != PartCompositeBlend::multiply) {
+        term = separable_term(source, source_alpha, destination, destination_alpha, blend);
+    }
+    const std::int64_t kept = static_cast<std::int64_t>(source * (255U - destination_alpha)) +
+                              static_cast<std::int64_t>(destination * (255U - source_alpha)) + term;
+    const std::int64_t joined = (std::max<std::int64_t>(kept, 0) + 127) / 255;
+    const unsigned clamped = static_cast<unsigned>(std::min<std::int64_t>(joined, 255));
+    return clamped;
 }
 
-// A target pixel joined by multiply or screen to the weighted premultiplied
+// Whether `blend` is one of the separable modes, joined per channel.
+bool separable_blend(const PartCompositeBlend blend) noexcept {
+    const bool separable =
+        blend != PartCompositeBlend::source_over && blend != PartCompositeBlend::plus && blend != PartCompositeBlend::copy;
+    return separable;
+}
+
+// A target pixel joined by a separable mode to the weighted premultiplied
 // `source` (red, green, blue, alpha).
 std::uint32_t separable_pixel(const std::uint32_t previous, const std::array<unsigned, 4>& source,
                               const ChannelShifts shifts, const bool opaque, const PartCompositeBlend blend) noexcept {
@@ -754,7 +876,7 @@ void blend_part_pixel(std::uint32_t& pixel, const std::array<std::uint64_t, 4>& 
     const unsigned green = weighted_channel(colour[1], weight);
     const unsigned blue = weighted_channel(colour[2], weight);
     const std::uint32_t previous = pixel;
-    if (blend == PartCompositeBlend::multiply || blend == PartCompositeBlend::screen) {
+    if (separable_blend(blend)) {
         const std::array<unsigned, 4> source{red, green, blue, alpha};
         pixel = separable_pixel(previous, source, shifts, opaque, blend);
         return;
@@ -1192,6 +1314,15 @@ PartCompositeBlend part_composite_blend(const PaintGroupComposite composite) noe
     case PaintGroupComposite::multiply: return PartCompositeBlend::multiply;
     case PaintGroupComposite::screen: return PartCompositeBlend::screen;
     case PaintGroupComposite::copy: return PartCompositeBlend::copy;
+    case PaintGroupComposite::overlay: return PartCompositeBlend::overlay;
+    case PaintGroupComposite::darken: return PartCompositeBlend::darken;
+    case PaintGroupComposite::lighten: return PartCompositeBlend::lighten;
+    case PaintGroupComposite::color_dodge: return PartCompositeBlend::color_dodge;
+    case PaintGroupComposite::color_burn: return PartCompositeBlend::color_burn;
+    case PaintGroupComposite::hard_light: return PartCompositeBlend::hard_light;
+    case PaintGroupComposite::soft_light: return PartCompositeBlend::soft_light;
+    case PaintGroupComposite::difference: return PartCompositeBlend::difference;
+    case PaintGroupComposite::exclusion: return PartCompositeBlend::exclusion;
     }
     return PartCompositeBlend::source_over;
 }

@@ -107,8 +107,49 @@ enum class TextCompositeMode : std::uint8_t { source_over, source };
 // weighted source, transparent source pixels included, each channel
 // (s × w + 32640) / 65280 + (d × (65280 − w) + 32640) / 65280, clamped at
 // 255, so that full weight writes the source exactly (alpha 255 on an
-// opaque target).
-enum class PartCompositeBlend : std::uint8_t { source_over, plus, multiply, screen, copy };
+// opaque target);
+// or the other separable modes (PaintGroupComposite, capability review),
+// as multiply with the mode's term T in place of s × d, all in units of
+// 255 × 255 and rounded once with the rest:
+//   (s × (255 − αd) + d × (255 − αs) + T + 127) / 255, clamped at 255,
+// where, with a = αs and b = αd:
+//   darken      T = min(s × b, d × a)
+//   lighten     T = max(s × b, d × a)
+//   difference  T = |s × b − d × a|
+//   exclusion   T = s × b + d × a − 2 × s × d
+//   hard-light  T = 2 × s × d when 2s ≤ a, else a × b − 2 × (b − d)(a − s)
+//   overlay     hard-light with the test on the destination, 2d ≤ b
+//   color-dodge T = 0 when d = 0, a × b when s = a, else
+//               min(a × b, (d × a × a + (a − s) / 2) / (a − s))
+//   color-burn  T = a × b when d = b, 0 when s = 0, else
+//               a × b − min(a × b, ((b − d) × a × a + s / 2) / s)
+//   soft-light  T = (a × b × B + 32768) >> 16, with B Compositing and
+//               Blending's soft-light of the straight colours in 1/65536
+//               (soft_light_term), its square root an integer one.
+// All are integer and deterministic.
+enum class PartCompositeBlend : std::uint8_t {
+    source_over,
+    plus,
+    multiply,
+    screen,
+    copy,
+    overlay,
+    darken,
+    lighten,
+    color_dodge,
+    color_burn,
+    hard_light,
+    soft_light,
+    difference,
+    exclusion,
+};
+
+// The soft-light function of Compositing and Blending Level 1, in integers:
+// `backdrop` and `source` are straight colours in 1/65536 (0..65536); the
+// result is B(backdrop, source) in 1/65536. D(x) is ((16x − 12)x + 4)x for
+// x ≤ 1/4 and √x beyond, the root the floor of the exact integer root of
+// x × 65536. Exposed for tests.
+[[nodiscard]] std::uint32_t soft_light_term(std::uint32_t backdrop, std::uint32_t source) noexcept;
 
 // The same blend for the theme engine's part rasters (T2 plan, "One blend";
 // GIVEN A2-2 and C1-1). A part raster is premultiplied BGRA8, memory order

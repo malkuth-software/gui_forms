@@ -345,9 +345,77 @@ void test_separable_blends() {
                 detail::part_composite_blend(PaintGroupComposite::plus) == detail::PartCompositeBlend::plus &&
                 detail::part_composite_blend(PaintGroupComposite::multiply) == detail::PartCompositeBlend::multiply &&
                 detail::part_composite_blend(PaintGroupComposite::screen) == detail::PartCompositeBlend::screen &&
-                detail::part_composite_blend(static_cast<PaintGroupComposite>(9U)) ==
+                detail::part_composite_blend(PaintGroupComposite::overlay) == detail::PartCompositeBlend::overlay &&
+                detail::part_composite_blend(PaintGroupComposite::color_dodge) ==
+                    detail::PartCompositeBlend::color_dodge &&
+                detail::part_composite_blend(PaintGroupComposite::soft_light) ==
+                    detail::PartCompositeBlend::soft_light &&
+                detail::part_composite_blend(PaintGroupComposite::exclusion) == detail::PartCompositeBlend::exclusion &&
+                detail::part_composite_blend(static_cast<PaintGroupComposite>(200U)) ==
                     detail::PartCompositeBlend::source_over,
             "each group composite has its blend; another value is source-over");
+}
+
+struct ExpectedBlend final {
+    detail::PartCompositeBlend blend{};
+    std::uint32_t pixel{};
+    const char* label{};
+};
+
+// The other separable modes (capability review, owner 2026-11-16): the
+// same half-covered source over the same translucent target, each byte
+// worked by hand from the integer formulas of PartCompositeBlend.
+void test_more_separable_blends() {
+    // Red 100, green 50, blue 0, alpha 128, as BGRA bytes.
+    const std::vector<std::uint8_t> half{0U, 50U, 100U, 128U};
+    const std::uint32_t beneath = pack(200U, 10U, 5U, 200U);
+    const std::array<ExpectedBlend, 9> expected{{
+        {detail::PartCompositeBlend::overlay, pack(222U, 20U, 2U, 228U), "overlay in bytes"},
+        {detail::PartCompositeBlend::darken, pack(200U, 21U, 2U, 228U), "darken in bytes"},
+        {detail::PartCompositeBlend::lighten, pack(222U, 55U, 5U, 228U), "lighten in bytes"},
+        {detail::PartCompositeBlend::color_dodge, pack(222U, 24U, 5U, 228U), "color-dodge in bytes"},
+        {detail::PartCompositeBlend::color_burn, pack(222U, 16U, 2U, 228U), "color-burn in bytes"},
+        {detail::PartCompositeBlend::hard_light, pack(222U, 20U, 2U, 228U), "hard-light in bytes"},
+        {detail::PartCompositeBlend::soft_light, pack(222U, 20U, 3U, 228U), "soft-light in bytes"},
+        {detail::PartCompositeBlend::difference, pack(143U, 50U, 5U, 228U), "difference in bytes"},
+        {detail::PartCompositeBlend::exclusion, pack(143U, 56U, 5U, 228U), "exclusion in bytes"},
+    }};
+    for (const ExpectedBlend& row : expected) {
+        PartRasterSource source = source_of(half, 1U, 1U, 0, 0);
+        source.blend = row.blend;
+        TestTarget target = make_target(1U, 1U, beneath, false);
+        require(detail::composite_part_raster(source, target.target, whole(1U, 1U), 255U) ==
+                    detail::TextCompositeStatus::success,
+                "a separable source composites");
+        require(target.pixels[0] == row.pixel, row.label);
+    }
+
+    // Over an opaque target that is the identity of each mode's function
+    // the source shows unchanged: darken over white, lighten over black.
+    // Red 90, green 140, blue 200, opaque, as BGRA bytes.
+    const std::vector<std::uint8_t> face{200U, 140U, 90U, 255U};
+    PartRasterSource darkened = source_of(face, 1U, 1U, 0, 0);
+    darkened.blend = detail::PartCompositeBlend::darken;
+    TestTarget white = make_target(1U, 1U, pack(255U, 255U, 255U, 255U), true);
+    static_cast<void>(detail::composite_part_raster(darkened, white.target, whole(1U, 1U), 255U));
+    require(white.pixels[0] == pack(90U, 140U, 200U, 255U), "darken over white is the source");
+    PartRasterSource lightened = source_of(face, 1U, 1U, 0, 0);
+    lightened.blend = detail::PartCompositeBlend::lighten;
+    TestTarget black = make_target(1U, 1U, pack(0U, 0U, 0U, 255U), true);
+    static_cast<void>(detail::composite_part_raster(lightened, black.target, whole(1U, 1U), 255U));
+    require(black.pixels[0] == pack(90U, 140U, 200U, 255U), "lighten over black is the source");
+    // Difference of a colour with itself is black.
+    PartRasterSource differed = source_of(face, 1U, 1U, 0, 0);
+    differed.blend = detail::PartCompositeBlend::difference;
+    TestTarget same = make_target(1U, 1U, pack(90U, 140U, 200U, 255U), true);
+    static_cast<void>(detail::composite_part_raster(differed, same.target, whole(1U, 1U), 255U));
+    require(same.pixels[0] == pack(0U, 0U, 0U, 255U), "difference with itself is black");
+
+    // soft_light_term in 1/65536: B(1/2, 1) = √(1/2), the root's floor of
+    // 2^31; B(1/4, 0) = 1/4 − 1/4 × 3/4 = 1/16; B(b, 1/2) = b.
+    require(detail::soft_light_term(32768U, 65536U) == 46340U, "soft-light's root is the exact integer root");
+    require(detail::soft_light_term(16384U, 0U) == 4096U, "soft-light darkens by b(1 − b)");
+    require(detail::soft_light_term(20000U, 32768U) == 20000U, "a half source leaves the backdrop");
 }
 
 void test_part_raster() {
@@ -562,9 +630,11 @@ void test_interior_shortcut_matches_coverage() {
         bytes.push_back(static_cast<std::uint8_t>(red));
         bytes.push_back(static_cast<std::uint8_t>(alpha));
     }
-    constexpr std::array<detail::PartCompositeBlend, 5> blends{
+    constexpr std::array<detail::PartCompositeBlend, 8> blends{
         detail::PartCompositeBlend::source_over, detail::PartCompositeBlend::plus,
-        detail::PartCompositeBlend::multiply, detail::PartCompositeBlend::screen, detail::PartCompositeBlend::copy};
+        detail::PartCompositeBlend::multiply,    detail::PartCompositeBlend::screen,
+        detail::PartCompositeBlend::copy,        detail::PartCompositeBlend::overlay,
+        detail::PartCompositeBlend::soft_light,  detail::PartCompositeBlend::color_burn};
     constexpr std::array<std::uint8_t, 2> opacities{255U, 128U};
     constexpr std::array<Rect, 3> clips{{{1.25, 0.5, 10.5, 7.75}, {0.0, 0.0, 15.0, 11.0}, {3.0, 2.0, 6.0, 4.0}}};
     for (const detail::PartCompositeBlend blend : blends) {
@@ -1052,6 +1122,7 @@ int main() {
     test_scaled_sampling();
     test_plus_blend();
     test_separable_blends();
+    test_more_separable_blends();
     test_copy_blend();
     test_interior_shortcut_matches_coverage();
     test_scaled_steps_match_the_formula();

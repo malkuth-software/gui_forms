@@ -1134,10 +1134,7 @@ bool valid_fill_layer(const MaterialFillLayer& fill) noexcept {
         fill.coordinate_space != MaterialCoordinateSpace::logical) {
         return false;
     }
-    if (fill.blend != MaterialBlendMode::normal && fill.blend != MaterialBlendMode::multiply &&
-        fill.blend != MaterialBlendMode::screen) {
-        return false;
-    }
+    if (static_cast<std::uint8_t>(fill.blend) > static_cast<std::uint8_t>(material_blend_mode_last)) return false;
     switch (fill.kind) {
     case MaterialFillKind::solid:
         if (fill.linear_geometry != MaterialLinearGeometry::endpoints ||

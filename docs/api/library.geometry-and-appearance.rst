@@ -8291,6 +8291,24 @@ Enumerations
 
    .. cpp:enumerator:: screen
 
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: darken
+
+   .. cpp:enumerator:: lighten
+
+   .. cpp:enumerator:: color_dodge
+
+   .. cpp:enumerator:: color_burn
+
+   .. cpp:enumerator:: hard_light
+
+   .. cpp:enumerator:: soft_light
+
+   .. cpp:enumerator:: difference
+
+   .. cpp:enumerator:: exclusion
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: MaterialBorderStyle
@@ -8715,6 +8733,24 @@ Enumerations
 
    .. cpp:enumerator:: copy
 
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: darken
+
+   .. cpp:enumerator:: lighten
+
+   .. cpp:enumerator:: color_dodge
+
+   .. cpp:enumerator:: color_burn
+
+   .. cpp:enumerator:: hard_light
+
+   .. cpp:enumerator:: soft_light
+
+   .. cpp:enumerator:: difference
+
+   .. cpp:enumerator:: exclusion
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: PaintPathVerb
@@ -8776,6 +8812,24 @@ Enumerations
    .. cpp:enumerator:: multiply
 
    .. cpp:enumerator:: screen
+
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: darken
+
+   .. cpp:enumerator:: lighten
+
+   .. cpp:enumerator:: color_dodge
+
+   .. cpp:enumerator:: color_burn
+
+   .. cpp:enumerator:: hard_light
+
+   .. cpp:enumerator:: soft_light
+
+   .. cpp:enumerator:: difference
+
+   .. cpp:enumerator:: exclusion
 
 .. cpp:namespace:: gui_forms
 
@@ -10206,6 +10260,10 @@ Functions, constants and aliases
 
    Whether ``band`` is one the engine admits: a width, if set, finite from 0 to maximum_theme_band_width; an effect, if set, in the enumeration.
 
+.. cpp:function:: PaintGroupComposite part_blend_composite(PartBlend blend) noexcept
+
+   The paint group composite that draws a part of ``blend``; source-over for normal.
+
 .. cpp:function:: std::string_view text_role_name(TextRole role) noexcept
 
    The role's name in a sheet: ``ui``, ``field``, ``caption``, ``heading``, ``title``, ``monospace``.
@@ -10378,7 +10436,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::string_view blend_property
 
-   The engine's blend property (E9.6): a declaration of this name, whose value is the name ``normal``, ``multiply`` or ``screen``, draws the part through a paint group of that composite (PaintGroupComposite), whatever draws it, so that it multiplies or screens what was painted beneath it. Like opacity it is no atom and no primitive parameter, and a rule that declares it needs no primitive; the last matching rule that declares it wins. The group's bounds are the part's extent (its bounds grown by its primitive's outsets and its granted overflow): nothing the part draws beyond them is shown. The forced high-contrast pass draws no blend. Value: ``"blend"``.
+   The engine's blend property (E9.6): a declaration of this name, whose value is a mode's CSS name (``normal``, ``multiply``, ``screen``, ``overlay``, ``darken``, ``lighten``, ``color-dodge``, ``color-burn``, ``hard-light``, ``soft-light``, ``difference`` or ``exclusion``), draws the part through a paint group of that composite (PaintGroupComposite), whatever draws it, so that it blends with what was painted beneath it. Like opacity it is no atom and no primitive parameter, and a rule that declares it needs no primitive; the last matching rule that declares it wins. The group's bounds are the part's extent (its bounds grown by its primitive's outsets and its granted overflow): nothing the part draws beyond them is shown. The forced high-contrast pass draws no blend. Value: ``"blend"``.
 
 .. cpp:var:: constexpr std::string_view effect_property
 
@@ -10673,6 +10731,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::int32_t maximum_finish_elevation_degrees
 
    Value: ``90``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
+
+.. cpp:var:: constexpr MaterialBlendMode material_blend_mode_last
+
+   The last enumerator of MaterialBlendMode, for range checks. Value: ``MaterialBlendMode::exclusion``.
 
 .. cpp:namespace:: gui_forms
 
@@ -11321,6 +11387,10 @@ Functions, constants and aliases
 .. cpp:function:: Point rotated_text_anchor(Point centre, const RotatedTextBox& box) noexcept
 
    The anchor that centres the turned box on ``centre`` (a label placed by its middle, such as an axis title along its edge). Non-finite input gives ``centre``.
+
+.. cpp:var:: constexpr PaintGroupComposite paint_group_composite_last
+
+   The last enumerator of PaintGroupComposite, for range checks of recorded values. Value: ``PaintGroupComposite::exclusion``.
 
 .. cpp:var:: constexpr std::size_t maximum_paint_group_depth
 

@@ -10,6 +10,7 @@
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
 
@@ -533,19 +534,40 @@ inline constexpr std::string_view translate_x_property = "translate_x";
 inline constexpr std::string_view translate_y_property = "translate_y";
 inline constexpr double maximum_presentational_translate = 32.0;
 
-// How a part joins what lies beneath it (E9.6, CSS `mix-blend-mode`).
-enum class PartBlend : std::uint8_t { normal, multiply, screen };
+// How a part joins what lies beneath it (E9.6, CSS `mix-blend-mode`); the
+// modes past screen are the rest of CSS's separable modes (capability
+// review, owner 2026-11-16).
+enum class PartBlend : std::uint8_t {
+    normal,
+    multiply,
+    screen,
+    overlay,
+    darken,
+    lighten,
+    color_dodge,
+    color_burn,
+    hard_light,
+    soft_light,
+    difference,
+    exclusion,
+};
 
 // The engine's blend property (E9.6): a declaration of this name, whose
-// value is the name `normal`, `multiply` or `screen`, draws the part
-// through a paint group of that composite (PaintGroupComposite), whatever
-// draws it, so that it multiplies or screens what was painted beneath it.
+// value is a mode's CSS name (`normal`, `multiply`, `screen`, `overlay`,
+// `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`,
+// `soft-light`, `difference` or `exclusion`), draws the part through a
+// paint group of that composite (PaintGroupComposite), whatever draws it,
+// so that it blends with what was painted beneath it.
 // Like opacity it is no atom and no primitive parameter, and a rule that
 // declares it needs no primitive; the last matching rule that declares it
 // wins. The group's bounds are the part's extent (its bounds grown by its
 // primitive's outsets and its granted overflow): nothing the part draws
 // beyond them is shown. The forced high-contrast pass draws no blend.
 inline constexpr std::string_view blend_property = "blend";
+
+// The paint group composite that draws a part of `blend`; source-over for
+// normal.
+[[nodiscard]] GUI_FORMS_API PaintGroupComposite part_blend_composite(PartBlend blend) noexcept;
 
 // The effect a part draws (effect programs, design note section 7): a
 // declaration of this property whose value is a registered effect's name

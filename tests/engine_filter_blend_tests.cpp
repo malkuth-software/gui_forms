@@ -364,6 +364,45 @@ void fill_blends() {
     require(next_matches(draw(screened, logical, 1.25), "screen_face_1_25"), "the blended face matches");
 }
 
+struct ExpectedFillBlend final {
+    MaterialBlendMode mode{};
+    std::array<double, 3> colour{};
+    const char* label{};
+};
+
+// The other separable modes (capability review, owner 2026-11-16): grey
+// over brick, both opaque, so each channel is B(brick, grey) × 255, worked
+// from Compositing and Blending's functions (within a byte: the kernel
+// rounds once at the end).
+void more_fill_blends() {
+    const Size logical{24.0, 16.0};
+    const std::array<ExpectedFillBlend, 9> expected{{
+        {MaterialBlendMode::overlay, {200.22, 100.39, 50.2}, "overlay"},
+        {MaterialBlendMode::darken, {128.0, 100.0, 50.0}, "darken keeps the lower"},
+        {MaterialBlendMode::lighten, {200.0, 128.0, 128.0}, "lighten keeps the higher"},
+        {MaterialBlendMode::color_dodge, {255.0, 200.79, 100.39}, "color-dodge"},
+        {MaterialBlendMode::color_burn, {145.43, 0.0, 0.0}, "color-burn"},
+        {MaterialBlendMode::hard_light, {200.22, 100.61, 50.8}, "hard-light"},
+        {MaterialBlendMode::soft_light, {200.1, 100.23, 50.25}, "soft-light"},
+        {MaterialBlendMode::difference, {72.0, 28.0, 78.0}, "difference"},
+        {MaterialBlendMode::exclusion, {127.22, 127.61, 127.8}, "exclusion"},
+    }};
+    for (const ExpectedFillBlend& row : expected) {
+        SurfaceMaterial blended = filled_with(brick);
+        blended.fills.push_back(MaterialFillLayer::solid(grey));
+        blended.fills[1].blend = row.mode;
+        require(valid_surface_material(blended), "a separable fill blend is valid");
+        const std::array<std::uint8_t, 4> pixel = draw(blended, logical, 1.0).pixel(20U, 16U);
+        require(near_byte(pixel[0], row.colour[0]) && near_byte(pixel[1], row.colour[1]) &&
+                    near_byte(pixel[2], row.colour[2]) && pixel[3] == 255U,
+                row.label);
+    }
+    SurfaceMaterial unknown = filled_with(brick);
+    unknown.fills.push_back(MaterialFillLayer::solid(grey));
+    unknown.fills[1].blend = static_cast<MaterialBlendMode>(static_cast<std::uint8_t>(material_blend_mode_last) + 1U);
+    require(!valid_surface_material(unknown), "a mode past the last is refused");
+}
+
 // -- glass's recipe colour filter ---------------------------------------------------
 
 void glass_recipe() {
@@ -462,8 +501,21 @@ void rule_blend() {
     other.part = "glyph";
     require(screened.resolve(other).blend == PartBlend::normal, "a part no rule matches is normal");
 
+    // The other separable modes take their CSS names, and each draws
+    // through its paint group composite.
+    sheet.rules.push_back(blend_rule("dodged", RuleDeclaration::choice_value(blend_property, "color-dodge")));
+    const CompiledThemeRules dodged = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(dodged.diagnostics().empty() && dodged.resolve(face_facts()).blend == PartBlend::color_dodge,
+            "color-dodge is a part blend");
+    require(part_blend_composite(PartBlend::normal) == PaintGroupComposite::source_over &&
+                part_blend_composite(PartBlend::multiply) == PaintGroupComposite::multiply &&
+                part_blend_composite(PartBlend::color_dodge) == PaintGroupComposite::color_dodge &&
+                part_blend_composite(PartBlend::soft_light) == PaintGroupComposite::soft_light &&
+                part_blend_composite(PartBlend::exclusion) == PaintGroupComposite::exclusion,
+            "each part blend draws through its composite");
+
     ThemeRuleSheet faulty{};
-    faulty.rules.push_back(blend_rule("unknown", RuleDeclaration::choice_value(blend_property, "overlay")));
+    faulty.rules.push_back(blend_rule("unknown", RuleDeclaration::choice_value(blend_property, "hue")));
     faulty.rules.push_back(blend_rule("number", RuleDeclaration::number_value(blend_property, 1.0)));
     ThemeRule twice = blend_rule("twice", RuleDeclaration::choice_value(blend_property, "screen"));
     twice.declarations.push_back(RuleDeclaration::choice_value(blend_property, "multiply"));
@@ -511,6 +563,7 @@ int main() {
     drop_shadows();
     blurs();
     fill_blends();
+    more_fill_blends();
     glass_recipe();
     rule_blend();
     validation();

@@ -649,10 +649,19 @@ struct EnumerationChoices<MasterDetailDisplayMode> {
 template <>
 struct EnumerationChoices<MaterialBlendMode> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 3> choices{{
+    static constexpr std::array<EnumerationChoice, 12> choices{{
         {"normal", static_cast<std::int64_t>(MaterialBlendMode::normal)},
         {"multiply", static_cast<std::int64_t>(MaterialBlendMode::multiply)},
         {"screen", static_cast<std::int64_t>(MaterialBlendMode::screen)},
+        {"overlay", static_cast<std::int64_t>(MaterialBlendMode::overlay)},
+        {"darken", static_cast<std::int64_t>(MaterialBlendMode::darken)},
+        {"lighten", static_cast<std::int64_t>(MaterialBlendMode::lighten)},
+        {"color_dodge", static_cast<std::int64_t>(MaterialBlendMode::color_dodge)},
+        {"color_burn", static_cast<std::int64_t>(MaterialBlendMode::color_burn)},
+        {"hard_light", static_cast<std::int64_t>(MaterialBlendMode::hard_light)},
+        {"soft_light", static_cast<std::int64_t>(MaterialBlendMode::soft_light)},
+        {"difference", static_cast<std::int64_t>(MaterialBlendMode::difference)},
+        {"exclusion", static_cast<std::int64_t>(MaterialBlendMode::exclusion)},
     }};
 };
 

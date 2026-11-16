@@ -276,6 +276,15 @@ const char* blend_mode_name(MaterialBlendMode value) noexcept {
     case MaterialBlendMode::normal: return "normal";
     case MaterialBlendMode::multiply: return "multiply";
     case MaterialBlendMode::screen: return "screen";
+    case MaterialBlendMode::overlay: return "overlay";
+    case MaterialBlendMode::darken: return "darken";
+    case MaterialBlendMode::lighten: return "lighten";
+    case MaterialBlendMode::color_dodge: return "color-dodge";
+    case MaterialBlendMode::color_burn: return "color-burn";
+    case MaterialBlendMode::hard_light: return "hard-light";
+    case MaterialBlendMode::soft_light: return "soft-light";
+    case MaterialBlendMode::difference: return "difference";
+    case MaterialBlendMode::exclusion: return "exclusion";
     }
     return "unknown";
 }

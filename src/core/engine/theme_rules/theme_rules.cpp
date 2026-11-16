@@ -1044,7 +1044,7 @@ bool material_declaration_admitted(const MaterialDeclaration& declaration) {
     }
     if (declaration.field == MaterialField::fill_blend_modes) {
         for (const MaterialBlendMode mode : declaration.blend_modes) {
-            if (static_cast<std::uint8_t>(mode) > static_cast<std::uint8_t>(MaterialBlendMode::screen)) return false;
+            if (static_cast<std::uint8_t>(mode) > static_cast<std::uint8_t>(material_blend_mode_last)) return false;
         }
         return true;
     }
@@ -1837,9 +1837,30 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
 
 namespace {
 
-constexpr std::array<std::string_view, 3> part_blend_names{"normal", "multiply", "screen"};
+// In PartBlend's order.
+constexpr std::array<std::string_view, 12> part_blend_names{
+    "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion",
+};
 
 } // namespace
+
+PaintGroupComposite part_blend_composite(const PartBlend blend) noexcept {
+    switch (blend) {
+    case PartBlend::normal: return PaintGroupComposite::source_over;
+    case PartBlend::multiply: return PaintGroupComposite::multiply;
+    case PartBlend::screen: return PaintGroupComposite::screen;
+    case PartBlend::overlay: return PaintGroupComposite::overlay;
+    case PartBlend::darken: return PaintGroupComposite::darken;
+    case PartBlend::lighten: return PaintGroupComposite::lighten;
+    case PartBlend::color_dodge: return PaintGroupComposite::color_dodge;
+    case PartBlend::color_burn: return PaintGroupComposite::color_burn;
+    case PartBlend::hard_light: return PaintGroupComposite::hard_light;
+    case PartBlend::soft_light: return PaintGroupComposite::soft_light;
+    case PartBlend::difference: return PaintGroupComposite::difference;
+    case PartBlend::exclusion: return PaintGroupComposite::exclusion;
+    }
+    return PaintGroupComposite::source_over;
+}
 
 void CompiledThemeRules::add_blend(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                                    const RuleDeclaration& declaration, CompiledRule& compiled) {

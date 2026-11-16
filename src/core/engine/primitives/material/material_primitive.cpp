@@ -1280,6 +1280,17 @@ void join_layer(Unit& face, Unit layer, MaterialBlendMode blend) noexcept {
     case MaterialBlendMode::screen:
         blend_screen(face, layer);
         return;
+    case MaterialBlendMode::overlay:
+    case MaterialBlendMode::darken:
+    case MaterialBlendMode::lighten:
+    case MaterialBlendMode::color_dodge:
+    case MaterialBlendMode::color_burn:
+    case MaterialBlendMode::hard_light:
+    case MaterialBlendMode::soft_light:
+    case MaterialBlendMode::difference:
+    case MaterialBlendMode::exclusion:
+        blend_separable(face, layer, blend);
+        return;
     }
     // A mode outside the enumeration is drawn source-over.
     blend_over(face, layer);

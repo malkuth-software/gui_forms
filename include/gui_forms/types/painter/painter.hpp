@@ -56,7 +56,34 @@ struct GUI_FORMS_API RetainedDrawCache final {
 //   beneath. A window granted a non-opaque backdrop paints its backplane in
 //   a copy group, so that its frame starts clear. Theme data never selects
 //   it.
-enum class PaintGroupComposite : std::uint8_t { source_over, plus, multiply, screen, copy };
+// - overlay, darken, lighten, color_dodge, color_burn, hard_light,
+//   soft_light, difference and exclusion (capability review, owner
+//   2026-11-16; CSS `mix-blend-mode`): the rest of CSS's separable blend
+//   modes, composited as multiply is: each colour channel
+//   s × (1 − αd) + d × (1 − αs) + αs × αd × B(d / αd, s / αs), with B the
+//   mode's function of the straight colours as Compositing and Blending
+//   Level 1 defines it, and alpha αs + αd − αs × αd. They are appended
+//   after copy so that recorded enumerators keep their values.
+enum class PaintGroupComposite : std::uint8_t {
+    source_over,
+    plus,
+    multiply,
+    screen,
+    copy,
+    overlay,
+    darken,
+    lighten,
+    color_dodge,
+    color_burn,
+    hard_light,
+    soft_light,
+    difference,
+    exclusion,
+};
+
+// The last enumerator of PaintGroupComposite, for range checks of recorded
+// values.
+inline constexpr PaintGroupComposite paint_group_composite_last = PaintGroupComposite::exclusion;
 
 // A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that
 // group layer may be needed for"): commands drawn as one image, then

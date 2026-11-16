@@ -209,7 +209,7 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
         // The recording painter writes the enumerator; any other value
         // replays as source-over.
         const double composite = command.secondary_scalar;
-        const bool known = composite >= 0.0 && composite <= static_cast<double>(PaintGroupComposite::copy);
+        const bool known = composite >= 0.0 && composite <= static_cast<double>(paint_group_composite_last);
         group.composite = known ? static_cast<PaintGroupComposite>(static_cast<std::uint8_t>(composite))
                                 : PaintGroupComposite::source_over;
         group.isolated = command.tertiary_scalar != 0.0;

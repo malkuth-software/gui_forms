@@ -195,9 +195,15 @@ constexpr std::array<RecipeLonghand, 41> recipe_longhands{{
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
 // Sorted.
-constexpr std::array<std::string_view, 15> blend_modes_not_admitted{
-    "color", "color-burn", "color-dodge", "darken", "difference", "exclusion", "hard-light", "hue",
-    "lighten", "luminosity", "overlay", "plus-darker", "plus-lighter", "saturation", "soft-light",
+// The non-separable modes and the plus- modes are left out; the separable
+// ones are admitted (capability review, owner 2026-11-16).
+constexpr std::array<std::string_view, 6> blend_modes_not_admitted{
+    "color", "hue", "luminosity", "plus-darker", "plus-lighter", "saturation",
+};
+
+// The CSS names of MaterialBlendMode, in its order.
+constexpr std::array<std::string_view, 12> material_blend_names{
+    "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion",
 };
 static_assert(std::is_sorted(blend_modes_not_admitted.begin(), blend_modes_not_admitted.end()),
               "binary_search needs the table sorted");
@@ -3165,12 +3171,13 @@ bool MaterialReader::lower_blend_modes() {
     for (const ComponentRange& mode : modes) {
         if (count(mode) != 1U) return fail(DiagnosticCode::value_syntax, start_, "one blend mode per layer");
         const ValueComponent& component = value_.components[mode.first];
-        if (keyword(mode.first, "normal")) {
-            declaration.blend_modes.push_back(MaterialBlendMode::normal);
-        } else if (keyword(mode.first, "multiply")) {
-            declaration.blend_modes.push_back(MaterialBlendMode::multiply);
-        } else if (keyword(mode.first, "screen")) {
-            declaration.blend_modes.push_back(MaterialBlendMode::screen);
+        std::optional<MaterialBlendMode> named{};
+        for (std::size_t position = 0U; position < material_blend_names.size(); ++position) {
+            if (!keyword(mode.first, material_blend_names[position])) continue;
+            named = static_cast<MaterialBlendMode>(static_cast<std::uint8_t>(position));
+        }
+        if (named) {
+            declaration.blend_modes.push_back(*named);
         } else if (component.kind == ValueComponentKind::keyword && css_blend_mode_not_admitted(component.text)) {
             return fail(DiagnosticCode::value_form_not_admitted, component.token, clipped_theme_detail(component.text));
         } else if (component.kind == ValueComponentKind::keyword) {

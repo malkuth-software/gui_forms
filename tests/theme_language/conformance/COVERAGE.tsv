@@ -132,7 +132,10 @@ property.backdrop	backdrop
 property.backdrop-count	backdrop-count
 property.backdrop-range	backdrop-range
 property.backdrop-second-blur	backdrop-second-blur
+property.backdrop-filter	backdrop-filter
+property.backdrop-filter-css-only	backdrop-filter-css-only
 property.background-blend-mode	fills
+property.background-blend-mode-separable	blend-modes
 property.background-color	fills
 property.background-image-url	finish-light-images-masks
 property.background-position	finish-light-images-masks
@@ -183,6 +186,7 @@ property.mask-position	material-masks
 property.mask-repeat	material-masks
 property.mask-size	material-masks
 property.mix-blend-mode	shadows-opacity-filters
+property.mix-blend-mode-separable	blend-modes
 property.muted-color	recipe-colours
 property.opacity	shadows-opacity-filters
 property.outline	borders

@@ -398,6 +398,16 @@ void test_lowering() {
                 (*modes).blend_modes == (std::vector<MaterialBlendMode>{MaterialBlendMode::multiply,
                                                                         MaterialBlendMode::screen}),
             "background-blend-mode keeps CSS's order");
+    const std::string_view separable_sheet =
+        "#pad::part(face) { background-blend-mode: overlay, color-burn, Soft-Light, exclusion }";
+    const Compilation separable = compile(separable_sheet);
+    const MaterialDeclaration* const separable_modes =
+        field_of(only_rule(separable, separable_sheet), MaterialField::fill_blend_modes);
+    require(separable_modes != nullptr &&
+                (*separable_modes).blend_modes ==
+                    (std::vector<MaterialBlendMode>{MaterialBlendMode::overlay, MaterialBlendMode::color_burn,
+                                                    MaterialBlendMode::soft_light, MaterialBlendMode::exclusion}),
+            "the separable modes take their CSS names, in any case");
 
     const std::string_view initial_sheet = "#pad::part(face) { background: initial }";
     const Compilation initial = compile(initial_sheet);
@@ -1063,7 +1073,7 @@ void test_refusals() {
         {"#a { background: red fixed }", DiagnosticCode::value_form_not_admitted},
         {"#a { background: red, linear-gradient(red, blue) }", DiagnosticCode::value_syntax},
         {"#a { background-image: none, linear-gradient(red, blue) }", DiagnosticCode::value_form_not_admitted},
-        {"#a { background-blend-mode: overlay }", DiagnosticCode::value_form_not_admitted},
+        {"#a { background-blend-mode: hue }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-blend-mode: sideways }", DiagnosticCode::keyword_unknown},
         {"#a { background-color: 3px }", DiagnosticCode::value_wrong_kind},
         {"#a { background-color: inherit }", DiagnosticCode::value_wrong_kind},

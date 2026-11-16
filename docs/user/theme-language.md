@@ -265,7 +265,7 @@ only material fields selects the `material` primitive.
 | fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` and `reflecting-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat` (`repeat`, `no-repeat`, and the GUI.Forms additions `mirror` and `extend`), `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `seat`, `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
-| filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`, and the GUI.Forms additions `fill()`, `duotone()` and `tritone()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` (up to 4 layers), `mask-mode`, `mask-composite`, `mask-size`, `mask-position`, `mask-repeat` |
+| filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`, and the GUI.Forms additions `fill()`, `duotone()` and `tritone()`), `mix-blend-mode` and `background-blend-mode` (`normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`), `isolation`, `mask-image` (up to 4 layers), `mask-mode`, `mask-composite`, `mask-size`, `mask-position`, `mask-repeat` |
 | presentation | `opacity`, `scale`, `translate` |
 | shape | `transform` (`rotate()`, `scale()`) and `clip-path` (`polygon()`, `path()`), on a material |
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; a user theme the process is started with (`--theme`, `GUI_FORMS_THEME_SHEET`) is checked against the process's installed registry (`install_built_in_effect_registry()`, called by a program using the stock controls while it sets up) and refused the same way, the program's own theme staying; with none installed the names' form only is checked and the request's report says so; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
@@ -519,6 +519,23 @@ follows the colour scheme and forced high contrast. In any other rule
 `backdrop` is warning W110 (`backdrop_not_on_window`) and is dropped; a
 second blur, an amount out of range or a ninth operation is an error. For
 example, `window { backdrop: blur(12px) saturate(140%) tint(role(ink-on-paper) / 0.6) }`.
+
+`backdrop-filter` is CSS's spelling of the same chain, with the same
+functions, rules and warning; the two set one chain, so the later of them in
+a rule wins. CSS's other filter functions (`brightness()`, `contrast()`,
+`drop-shadow()`, `grayscale()`, `hue-rotate()`, `invert()`, `opacity()`,
+`sepia()`) and `url()` are errors (`E405`): no system
+material takes them. `tint()` is a GUI.Forms addition in either spelling.
+For example, `popup { backdrop-filter: blur(8px) saturate(120%) }`.
+
+The separable blend modes (`mix-blend-mode` on a part, `background-blend-mode`
+between a material's fill layers) follow Compositing and Blending Level 1:
+each colour channel is s × (1 − αd) + d × (1 − αs) + αs × αd × B(d, s), with
+B the mode's function of the straight colours. A part's blend is drawn in
+integers on premultiplied 8-bit colour (soft-light's square root an exact
+integer one), so it gives the same bytes on every platform; a fill layer's
+blend is drawn in the material kernel's precision. `hue`, `saturation`,
+`color`, `luminosity`, `plus-lighter` and `plus-darker` are refused.
 
 The winning `window` rule's backdrop, matched against the window's media and
 its root control's classes and stable ID, becomes the window's backdrop chain
@@ -840,7 +857,6 @@ rewrite it. A program that parses its own arguments passes them over with
 
 ## Not yet built
 
-- `backdrop-filter` is refused (`E999 not_yet_built`).
 - A gradient positioned at the pointer, which the plan lowers to the `sheen`
   primitive, is refused (`E405`).
 - Procedural backgrounds (`felt()` and the rest) are warnings until the

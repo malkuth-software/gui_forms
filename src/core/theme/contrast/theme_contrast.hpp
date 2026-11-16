@@ -45,7 +45,21 @@ namespace gui_forms::detail {
 [[nodiscard]] double contrast_ratio(Color first, Color second) noexcept;
 
 // How a layer meets what is under it, as the material painter blends it.
-enum class ContrastBlend : std::uint8_t { normal, multiply, screen };
+// The modes past screen are MaterialBlendMode's other separable modes.
+enum class ContrastBlend : std::uint8_t {
+    normal,
+    multiply,
+    screen,
+    overlay,
+    darken,
+    lighten,
+    color_dodge,
+    color_burn,
+    hard_light,
+    soft_light,
+    difference,
+    exclusion,
+};
 
 // `top` drawn over the opaque `ground` in `blend`, with `top`'s straight
 // alpha as coverage; each channel rounded to the nearest 8-bit value. The
