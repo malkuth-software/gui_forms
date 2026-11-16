@@ -288,7 +288,7 @@ gui_forms::DataGridView
       **horizontal_scroll_bar** : ``std::shared_ptr<HScrollBar>``, read-only
          The child :cpp:class:`HScrollBar <gui_forms::HScrollBar>` that scrolls by logical units.
 
-      **current_cell** : ``std::optional<DataGridViewCellAddress>``
+      **current_cell** : ``stxlib::Optional<DataGridViewCellAddress>``
          The cell keyboard input acts on, at its row's present position, or none.
          :cpp:func:`set_current_cell <gui_forms::DataGridView::set_current_cell>` moves it, committing any edit first, and selects it
          alone; it returns false and changes nothing when the edit does not
@@ -345,7 +345,7 @@ gui_forms::DataGridView
       **selection_changed** : ``Event<>``
          Raised once after an operation changes which cells or rows are selected.
 
-      **current_cell_changed** : ``Event<std::optional<DataGridViewCellAddress>>``
+      **current_cell_changed** : ``Event<stxlib::Optional<DataGridViewCellAddress>>``
          Raised after the current cell moves to another cell, with the new cell or
          none; not when only its row's position changes.
 
@@ -961,7 +961,8 @@ gui_forms::DataGridView
               gf::make_control<gf::DataGridView>(gf::StableId("radio.virtual"));
           (*grid).set_columns({{.name = "name", .header_text = "Station", .width = 160.0}});
           (*grid).set_virtual_rows(std::make_shared<Stations>(), {{"a"}, {"b"}, {"c"}});
-          (*grid).set_current_cell(gf::DataGridViewCellAddress{gf::DataGridViewRowPosition{1U}, 0U});
+          (*grid).set_current_cell(stxlib::Optional<gf::DataGridViewCellAddress>::of(
+              gf::DataGridViewCellAddress{gf::DataGridViewRowPosition{1U}, 0U}));
           (*grid).set_virtual_row_order({{"c"}, {"d"}, {"b"}, {"a"}});   // the application sorted and added
           // current_row_id() is still {"b"}, now at position 2
       }
@@ -1305,12 +1306,16 @@ gui_forms::DataGridView
 
       The child :cpp:class:`HScrollBar <gui_forms::HScrollBar>` that scrolls by logical units.
 
-   .. cpp:function:: std::optional<DataGridViewCellAddress> current_cell() const
+   .. cpp:function:: stxlib::Optional<DataGridViewCellAddress> current_cell() const
 
       The cell keyboard input acts on, at its row's present position, or none.
       :cpp:func:`set_current_cell <gui_forms::DataGridView::set_current_cell>` moves it, committing any edit first, and selects it
       alone; it returns false and changes nothing when the edit does not
       commit.
+
+   .. cpp:function:: bool set_current_cell(stxlib::Optional<DataGridViewCellAddress> cell)
+
+      Sets :cpp:func:`current_cell <gui_forms::DataGridView::current_cell>`; see the property's description above.
 
    .. cpp:function:: bool set_current_cell(std::optional<DataGridViewCellAddress> cell)
 
@@ -1380,7 +1385,7 @@ gui_forms::DataGridView
 
       Raised once after an operation changes which cells or rows are selected.
 
-   .. cpp:function:: Event<std::optional<DataGridViewCellAddress>>& current_cell_changed() noexcept
+   .. cpp:function:: Event<stxlib::Optional<DataGridViewCellAddress>>& current_cell_changed() noexcept
 
       Raised after the current cell moves to another cell, with the new cell or
       none; not when only its row's position changes.

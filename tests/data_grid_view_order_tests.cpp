@@ -25,8 +25,10 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -50,6 +52,14 @@ DataGridViewRowId id(std::string_view text) {
 
 DataGridViewRowPosition row_at(std::size_t position) {
     const DataGridViewRowPosition row{position};
+    return row;
+}
+
+// The current cell's row, or a position past every row when there is none.
+DataGridViewRowPosition current_row_of(const DataGridView& grid) {
+    const stxlib::Optional<DataGridViewCellAddress> cell = grid.current_cell();
+    const DataGridViewCellAddress none{DataGridViewRowPosition{std::numeric_limits<std::size_t>::max()}, 0U};
+    const DataGridViewRowPosition row = cell.value_or(none).row;
     return row;
 }
 
@@ -353,9 +363,9 @@ void switches_keep_identity() {
             "a thousand rows stay in edit mode with a source available");
     Window window(grid, {300.0, 200.0});
     window.perform_layout();
-    require((*grid).set_current_cell(DataGridViewCellAddress{row_at(10U), 0U}), "row r10 is current");
+    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{row_at(10U), 0U})), "row r10 is current");
     (*grid).selection_mode = DataGridViewSelectionMode::full_row_select;
-    require((*grid).set_current_cell(DataGridViewCellAddress{row_at(10U), 0U}), "row r10 is current");
+    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{row_at(10U), 0U})), "row r10 is current");
     (*grid).set_row_selected(row_at(20U), true);
     (*grid).set_first_displayed_row(row_at(5U));
     window.perform_layout();
@@ -369,7 +379,7 @@ void switches_keep_identity() {
                 switches[0].reason == DataGridViewRowOrderSwitchReason::row_count && switches[0].row_count == 1600U,
             "crossing window_rows switches to window mode, reported with the count");
     window.perform_layout();
-    require((*grid).current_row_id() == id("r10") && (*(*grid).current_cell()).row == row_at(610U) &&
+    require((*grid).current_row_id() == id("r10") && current_row_of(*grid) == row_at(610U) &&
                 (*grid).is_row_selected(row_at(620U)) && (*grid).first_displayed_row() == row_at(605U),
             "the current row, the selection and the first displayed row follow their IDs into window mode");
 
@@ -380,7 +390,7 @@ void switches_keep_identity() {
     (*source).order.erase((*source).order.begin(), (*source).order.begin() + 900);
     (*grid).remove_virtual_rows(gone);
     require((*grid).row_count() == 700U && (*grid).current_row_id() == id("r910") &&
-                (*(*grid).current_cell()).row == row_at(610U),
+                current_row_of(*grid) == row_at(610U),
             "the removed current row hands over to the row now at its position");
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::window,
             "700 rows are few, but 900 changes in this pass are not quiet: still window mode");
@@ -396,7 +406,7 @@ void switches_keep_identity() {
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::edit && switches.size() == 2U &&
                 switches[1].reason == DataGridViewRowOrderSwitchReason::row_count,
             "few rows and quiet passes return to edit mode, for the reason it left");
-    require((*grid).current_row_id() == id("r910") && (*(*grid).current_cell()).row == row_at(610U) &&
+    require((*grid).current_row_id() == id("r910") && current_row_of(*grid) == row_at(610U) &&
                 (*grid).row_id(row_at(701U)) == id("late1"),
             "the current row keeps its ID back in edit mode");
 
@@ -426,7 +436,7 @@ void switches_keep_identity() {
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::edit && switches.size() == 4U &&
                 switches[3].reason == DataGridViewRowOrderSwitchReason::policy,
             "new thresholds are applied at once, reported as the policy's");
-    require((*grid).current_row_id() == id("r910") && (*(*grid).current_cell()).row == row_at(1010U),
+    require((*grid).current_row_id() == id("r910") && current_row_of(*grid) == row_at(1010U),
             "after the burst the current row is still r910, 400 rows lower");
 
     // Pinning.

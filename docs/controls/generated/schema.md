@@ -1169,7 +1169,7 @@ Properties beyond every control's: `allow_user_to_add_rows` (boolean), `multi_se
 |---|---|
 | `draw_item_content` | `ItemContentPaint`, by reference |
 | `selection_changed` | none |
-| `current_cell_changed` | `std::optional<DataGridViewCellAddress>` |
+| `current_cell_changed` | `stxlib::Optional<DataGridViewCellAddress>` |
 | `cell_begin_edit` | `DataGridViewCellCancelEvent`, by reference |
 | `cell_end_edit` | `DataGridViewCellEvent` |
 | `cell_validating` | `DataGridViewCellValidatingEvent`, by reference |

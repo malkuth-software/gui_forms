@@ -316,15 +316,15 @@ void DataGridView::values_changed() {
 // notes the cell: no layout, its rectangle damaged after the next layout
 // (gather_content_regions), and the semantics republished.
 void DataGridView::cell_changed(const CellKey& key) {
-    const std::optional<DataGridViewCellAddress> placed = address_of(key);
-    if (!placed || sized_by_cells()) {
+    const stxlib::Optional<DataGridViewCellAddress> placed = address_of(key);
+    if (placed.absent() || sized_by_cells()) {
         values_changed();
         return;
     }
     auto_size_stale_ = true;
     row_auto_size_stale_ = true;
-    const ContentItemKey cell{static_cast<std::uint64_t>((*placed).row.value),
-                              static_cast<std::uint64_t>((*placed).column)};
+    const ContentItemKey cell{static_cast<std::uint64_t>((*placed.value()).row.value),
+                              static_cast<std::uint64_t>((*placed.value()).column)};
     cells_region_.note_item(cell, Dirty::paint | Dirty::semantics);
 }
 
@@ -1160,10 +1160,10 @@ DataGridView::Parts DataGridView::grid_parts(const GridLayout& layout) const {
     record.scroll_corner = PartGeometry::from_bounds(layout.scroll_corner);
     // The editor covers the current cell inside its grid lines, at its row's
     // present position.
-    std::optional<DataGridViewCellAddress> current{};
+    stxlib::Optional<DataGridViewCellAddress> current{};
     if (editing_ && edit_kind_ == EditKind::text) current = current_cell();
-    if (current && (*current).column < columns_.size()) {
-        const Rect cell = cell_bounds((*current).row, (*current).column, layout);
+    if (current.present() && (*current.value()).column < columns_.size()) {
+        const Rect cell = cell_bounds((*current.value()).row, (*current.value()).column, layout);
         const Rect inside{cell.x, cell.y, std::max(0.0, cell.width - 1.0), std::max(0.0, cell.height - 1.0)};
         record.editor = visible_part(inside, layout.data);
     }
@@ -2490,7 +2490,7 @@ namespace {
 constexpr std::array<InteractionDeclaration, 53> data_grid_view_interactions{{
     {.name = "draw_item_content", .payload = "ItemContentPaint", .mutable_payload = true},
     {.name = "selection_changed", .payload = "", .mutable_payload = false},
-    {.name = "current_cell_changed", .payload = "std::optional<DataGridViewCellAddress>", .mutable_payload = false},
+    {.name = "current_cell_changed", .payload = "stxlib::Optional<DataGridViewCellAddress>", .mutable_payload = false},
     {.name = "cell_begin_edit", .payload = "DataGridViewCellCancelEvent", .mutable_payload = true},
     {.name = "cell_end_edit", .payload = "DataGridViewCellEvent", .mutable_payload = false},
     {.name = "cell_validating", .payload = "DataGridViewCellValidatingEvent", .mutable_payload = true},

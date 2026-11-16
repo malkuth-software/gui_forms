@@ -4530,7 +4530,7 @@
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
         {"name": "draw_item_content", "payload": "ItemContentPaint", "mutable_payload": true},
         {"name": "selection_changed", "payload": "", "mutable_payload": false},
-        {"name": "current_cell_changed", "payload": "std::optional<DataGridViewCellAddress>", "mutable_payload": false},
+        {"name": "current_cell_changed", "payload": "stxlib::Optional<DataGridViewCellAddress>", "mutable_payload": false},
         {"name": "cell_begin_edit", "payload": "DataGridViewCellCancelEvent", "mutable_payload": true},
         {"name": "cell_end_edit", "payload": "DataGridViewCellEvent", "mutable_payload": false},
         {"name": "cell_validating", "payload": "DataGridViewCellValidatingEvent", "mutable_payload": true},

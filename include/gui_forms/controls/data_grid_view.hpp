@@ -910,14 +910,25 @@ public:
 
     // The current cell at its row's present position, or none. The grid keeps
     // it by row ID, so it stays on its row when rows move.
-    [[nodiscard]] std::optional<DataGridViewCellAddress> current_cell() const;
+    [[nodiscard]] stxlib::Optional<DataGridViewCellAddress> current_cell() const;
     // The current cell's row ID, or none.
     [[nodiscard]] std::optional<DataGridViewRowId> current_row_id() const;
     // Moves the current cell, committing any edit first, and selects it alone.
     // Returns false, changing nothing, when the edit does not commit. Throws
     // std::out_of_range for a cell past the rows or columns and
     // std::logic_error for a cell in a hidden column.
-    bool set_current_cell(std::optional<DataGridViewCellAddress> cell);
+    bool set_current_cell(stxlib::Optional<DataGridViewCellAddress> cell);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<DataGridViewCellAddress>")]]
+    bool set_current_cell(std::optional<DataGridViewCellAddress> cell) {
+        stxlib::Optional<DataGridViewCellAddress> owned{};
+        if (cell.has_value()) owned.set(*cell);
+        const bool moved = set_current_cell(owned);
+        return moved;
+    }
+    // A plain address is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<DataGridViewCellAddress>::of(cell).
+    bool set_current_cell(DataGridViewCellAddress cell) = delete;
     [[nodiscard]] bool is_cell_selected(DataGridViewRowPosition row, std::size_t column) const;
     [[nodiscard]] bool is_row_selected(DataGridViewRowPosition row) const;
     // In full-row mode a cell's selection is its row's, in full-column mode
@@ -988,7 +999,7 @@ public:
     [[nodiscard]] Event<>& selection_changed() noexcept { return selection_changed_; }
     // Raised after the current cell moves to another cell, with the new cell
     // or none; not when only its row's position changes.
-    [[nodiscard]] Event<std::optional<DataGridViewCellAddress>>& current_cell_changed() noexcept {
+    [[nodiscard]] Event<stxlib::Optional<DataGridViewCellAddress>>& current_cell_changed() noexcept {
         return current_cell_changed_;
     }
     [[nodiscard]] Event<DataGridViewCellCancelEvent&>& cell_begin_edit() noexcept { return cell_begin_edit_; }
@@ -1518,7 +1529,7 @@ private:
     // cell_tool_tip_text_needed handler set valid UTF-8.
     [[nodiscard]] std::string cell_tool_tip_text(DataGridViewRowPosition row, std::size_t column) const;
     [[nodiscard]] CellKey key_of(DataGridViewCellAddress cell) const;
-    [[nodiscard]] std::optional<DataGridViewCellAddress> address_of(const CellKey& cell) const;
+    [[nodiscard]] stxlib::Optional<DataGridViewCellAddress> address_of(const CellKey& cell) const;
     [[nodiscard]] stxlib::Optional<std::size_t> current_position() const;
     [[nodiscard]] bool is_current_row(DataGridViewRowPosition row) const;
     [[nodiscard]] bool is_current_cell(DataGridViewRowPosition row, std::size_t column) const;
@@ -1893,7 +1904,7 @@ private:
     [[nodiscard]] std::string row_error_prefix() const;
     [[nodiscard]] SemanticNode error_glyph_node(std::string stable_id, const std::string& text,
                                                 const PartGeometry& glyph, const Rect& absolute) const;
-    [[nodiscard]] std::optional<DataGridViewCellAddress> cell_from_stable_id(std::string_view id) const;
+    [[nodiscard]] stxlib::Optional<DataGridViewCellAddress> cell_from_stable_id(std::string_view id) const;
 
     std::vector<DataGridViewColumn> columns_{};
     DataGridViewRowSource row_source_{DataGridViewRowSource::unbound};
@@ -2133,7 +2144,7 @@ private:
     bool resizing_headers_{};
 
     Event<> selection_changed_{};
-    Event<std::optional<DataGridViewCellAddress>> current_cell_changed_{};
+    Event<stxlib::Optional<DataGridViewCellAddress>> current_cell_changed_{};
     Event<DataGridViewCellCancelEvent&> cell_begin_edit_{};
     Event<const DataGridViewCellEvent&> cell_end_edit_{};
     Event<DataGridViewCellValidatingEvent&> cell_validating_{};

@@ -56,6 +56,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <stxlib/optional.hpp>
@@ -70,6 +71,21 @@
 namespace {
 using namespace gui_forms;
 
+// D15 Q3: set_current_cell keeps its deprecated std::optional form for one
+// stage; a plain address or {} must not reach it silently. Each plain call
+// below is refused (a deleted overload or an ambiguity), and the stxlib form
+// is accepted.
+template <typename Grid>
+concept takes_plain_current_cell =
+    requires(Grid& grid) { grid.set_current_cell(DataGridViewCellAddress{DataGridViewRowPosition{0U}, 0U}); };
+template <typename Grid>
+concept takes_empty_current_cell = requires(Grid& grid) { grid.set_current_cell({}); };
+template <typename Grid>
+concept takes_optional_current_cell =
+    requires(Grid& grid) { grid.set_current_cell(stxlib::Optional<DataGridViewCellAddress>::none()); };
+static_assert(!takes_plain_current_cell<DataGridView> && !takes_empty_current_cell<DataGridView>);
+static_assert(takes_optional_current_cell<DataGridView>);
+
 void require(bool condition, const char* message) {
     if (condition) return;
     std::cerr << message << '\n';
@@ -82,9 +98,19 @@ DataGridViewRowPosition row_at(std::size_t position) {
     return row;
 }
 
-DataGridViewCellAddress cell_at(std::size_t row, std::size_t column) {
+// A present cell address, as current_cell reports it and set_current_cell
+// takes it.
+stxlib::Optional<DataGridViewCellAddress> cell_at(std::size_t row, std::size_t column) {
     const DataGridViewCellAddress cell{DataGridViewRowPosition{row}, column};
-    return cell;
+    return stxlib::Optional<DataGridViewCellAddress>::of(cell);
+}
+
+// The current cell's row, or a position past every row when there is none.
+DataGridViewRowPosition current_row_of(const DataGridView& grid) {
+    const stxlib::Optional<DataGridViewCellAddress> cell = grid.current_cell();
+    const DataGridViewCellAddress none{DataGridViewRowPosition{std::numeric_limits<std::size_t>::max()}, 0U};
+    const DataGridViewRowPosition row = cell.value_or(none).row;
+    return row;
 }
 
 DataGridViewRowId id(std::string_view text) {
@@ -114,8 +140,8 @@ struct Counter final {
 };
 
 struct RecordCurrent final {
-    std::vector<std::optional<DataGridViewCellAddress>>* seen{};
-    void operator()(std::optional<DataGridViewCellAddress> cell) const { (*seen).push_back(cell); }
+    std::vector<stxlib::Optional<DataGridViewCellAddress>>* seen{};
+    void operator()(stxlib::Optional<DataGridViewCellAddress> cell) const { (*seen).push_back(cell); }
 };
 
 struct RecordCell final {
@@ -449,7 +475,7 @@ void selection_and_navigation() {
     Window window(grid, {360.0, 160.0});
     window.perform_layout();
     int selection_changes = 0;
-    std::vector<std::optional<DataGridViewCellAddress>> currents;
+    std::vector<stxlib::Optional<DataGridViewCellAddress>> currents;
     SubscriptionToken selection_token = (*grid).selection_changed().subscribe(Counter{&selection_changes});
     SubscriptionToken current_token = (*grid).current_cell_changed().subscribe(RecordCurrent{&currents});
     require(window.request_focus(grid), "the grid takes focus");
@@ -729,7 +755,7 @@ void virtual_row_identity() {
     require((*grid).selected_cells().size() == 2U && (*grid).current_row_id() == id("v3"),
             "v3 and v5 are selected, v3 current");
     int selection_changes = 0;
-    std::vector<std::optional<DataGridViewCellAddress>> currents;
+    std::vector<stxlib::Optional<DataGridViewCellAddress>> currents;
     SubscriptionToken selection_token = (*grid).selection_changed().subscribe(Counter{&selection_changes});
     SubscriptionToken current_token = (*grid).current_cell_changed().subscribe(RecordCurrent{&currents});
 
@@ -775,7 +801,7 @@ void virtual_row_identity() {
     const std::vector<DataGridViewRowId> reversed(removed.rbegin(), removed.rend());
     (*grid).set_virtual_row_order(reversed);
     const std::optional<DataGridViewRowPosition> v3 = (*grid).row_position(id("v3"));
-    require(v3 && (*grid).current_cell() == DataGridViewCellAddress{*v3, 0U} && (*grid).is_cell_selected(*v3, 0U) &&
+    require(v3 && (*grid).current_cell() == stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{*v3, 0U}) && (*grid).is_cell_selected(*v3, 0U) &&
                 (*grid).selected_cells().size() == 1U && currents.empty(),
             "a sort keeps the current cell and the selection on their IDs");
 
@@ -789,7 +815,7 @@ void virtual_row_identity() {
     (*grid).selection_mode = DataGridViewSelectionMode::cell_select;
 
     // An edit in progress stays on its row through a reorder and commits to it.
-    require((*grid).set_current_cell(DataGridViewCellAddress{*(*grid).row_position(id("v3")), 0U}) &&
+    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{*(*grid).row_position(id("v3")), 0U})) &&
                 (*grid).begin_edit(),
             "an edit begins on v3");
     (*(*grid).editing_control()).text = "edited";
@@ -1492,7 +1518,7 @@ struct LogValidating final {
 };
 struct LogCurrent final {
     EventLog* log{};
-    void operator()(std::optional<DataGridViewCellAddress>) const { (*log).names.emplace_back("current"); }
+    void operator()(stxlib::Optional<DataGridViewCellAddress>) const { (*log).names.emplace_back("current"); }
 };
 struct RecordDataError final {
     std::vector<DataGridViewDataErrorEvent>* seen{};
@@ -1647,7 +1673,7 @@ void enter_leave_and_validation() {
             "a cancelled row_validating keeps the current row");
     cancel_row = false;
     log.names.clear();
-    require((*grid).set_current_cell(std::nullopt) && !(*grid).current_cell(), "no current cell");
+    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::none()) && (*grid).current_cell().absent(), "no current cell");
     require(log.names == std::vector<std::string>{"row_validating", "cell_leave", "row_leave", "row_validated",
                                                   "current"},
             "clearing the current cell validates and leaves its row");
@@ -2210,7 +2236,7 @@ void sparkline_column() {
         if (text == "Alpha") painted_alpha = true;
     }
     require(!painted_value && painted_alpha, "the sparkline replaces the cell's text; other columns keep theirs");
-    require((*grid).set_current_cell(DataGridViewCellAddress{DataGridViewRowPosition{0U}, 1U}),
+    require((*grid).set_current_cell(cell_at(0U, 1U)),
             "a sparkline cell can be current");
     require(!(*grid).begin_edit(), "a sparkline cell is not edited");
 }
@@ -2584,7 +2610,7 @@ void column_visibility() {
     require((*grid).current_cell() == cell_at(0U, 0U), "past the last shown column it moves to the one before");
     (*grid).set_column_visible(0U, false);
     window.perform_layout();
-    require(!(*grid).current_cell() && (*grid).realized_columns().empty(),
+    require((*grid).current_cell().absent() && (*grid).realized_columns().empty(),
             "with no column shown there is no current cell and nothing realized");
     require(!key(window, PhysicalKey::right), "keys move nothing with no column shown");
     for (std::size_t column = 0U; column < 4U; ++column) (*grid).set_column_visible(column, true);
@@ -3002,7 +3028,7 @@ void row_heights() {
     require(cells_follow, "cells take their row's top and height");
     const Rect tall = rows[1].parts.row_header.bounds;
     click(window, {(*grid).parts().well.bounds.x + 120.0, tall.y + tall.height - 3.0});
-    require((*grid).current_cell() && (*(*grid).current_cell()).row == row_at(1U),
+    require(current_row_of(*grid) == row_at(1U),
             "a click low in a taller row hits that row");
 
     // The height stays with its row's ID.
@@ -3096,7 +3122,7 @@ void row_resizing() {
             "dragging the grip gives the row its own height");
     require(!(*grid).realized_rows()[0].states.captured && (*grid).row_height_at(row_at(1U)) == 22.0,
             "the release ends the drag, and other rows keep theirs");
-    require(!(*grid).current_cell() || (*(*grid).current_cell()).row == row_at(0U),
+    require((*grid).current_cell().absent() || current_row_of(*grid) == row_at(0U),
             "a resize selects no other row");
     const Rect lower = (*grid).realized_rows()[0].parts.row_grip.bounds;
     const Point up_start = centre(*grid, lower);
@@ -3509,9 +3535,9 @@ void bound_identity_follows_list_changes() {
             table.move(first, block, target);
         }
         require_index_agrees(*grid, *source, step);
-        const std::optional<DataGridViewCellAddress> cell = (*grid).current_cell();
+        const stxlib::Optional<DataGridViewCellAddress> cell = (*grid).current_cell();
         const std::optional<std::size_t> current_row = table.find(current);
-        require(cell && current_row && (*cell).row.value == *current_row, "the current cell stays on its row");
+        require(cell.present() && current_row && (*cell.value()).row.value == *current_row, "the current cell stays on its row");
         require((*grid).is_row_selected(row_at(*current_row)) &&
                     (*grid).is_row_selected(row_at(*table.find(first_selected))) &&
                     (*grid).is_row_selected(row_at(*table.find(second_selected))) &&
@@ -3531,8 +3557,8 @@ void bound_identity_follows_list_changes() {
     // its position.
     const std::size_t shown = (*(*grid).row_position(DataGridViewRowId{current})).value;
     static_cast<void>(table.remove(*table.find(current), 1U));
-    const std::optional<DataGridViewCellAddress> after = (*grid).current_cell();
-    require(after && (*after).row.value == std::min(shown, (*source).count() - 1U),
+    const stxlib::Optional<DataGridViewCellAddress> after = (*grid).current_cell();
+    require(after.present() && (*after.value()).row.value == std::min(shown, (*source).count() - 1U),
             "a removed current row leaves the current cell at its position");
     require_index_agrees(*grid, *source, 2000U);
 }
@@ -3605,7 +3631,7 @@ void clicks_tool_tips_and_hit_tests() {
     require(rows.size() == 3U, "the three rows are realized");
     click(window, centre(*grid, rows[2].parts.row_header.bounds));
     require(headers.size() == 1U && headers.back().row_id == id("charlie") && headers.back().row == row_at(2U) &&
-                (*grid).current_cell() && (*(*grid).current_cell()).row == row_at(2U) && clicked.size() == 2U,
+                current_row_of(*grid) == row_at(2U) && clicked.size() == 2U,
             "a row header press raises row_header_click and no cell_click");
 
     // The grid is the window's root, so its own coordinates are the window's.
@@ -4127,7 +4153,7 @@ void column_headers_height_size_mode() {
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {edge.x, edge.y + 17.0}}));
     window.perform_layout();
     require((*grid).column_headers_height.read() == 40.0, "dragging the edge sets the header height");
-    require(!(*grid).current_cell() || (*(*grid).current_cell()).row == row_at(0U), "a header resize moves no row");
+    require((*grid).current_cell().absent() || current_row_of(*grid) == row_at(0U), "a header resize moves no row");
 
     (*grid).column_headers_height_size_mode = DataGridViewColumnHeadersHeightSizeMode::disable_resizing;
     window.perform_layout();
@@ -4349,7 +4375,7 @@ struct RemoveColumnOnce final {
     DataGridView* grid{};
     std::string name;
     bool* done{};
-    void operator()(std::optional<DataGridViewCellAddress>) const {
+    void operator()(stxlib::Optional<DataGridViewCellAddress>) const {
         if (*done) return;
         *done = true;
         const stxlib::Optional<std::size_t> column = (*grid).column_index(name);
