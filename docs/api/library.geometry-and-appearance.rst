@@ -8228,6 +8228,10 @@ Enumerations
 
    .. cpp:enumerator:: single
 
+   .. cpp:enumerator:: mirror
+
+   .. cpp:enumerator:: extend
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: MaterialImageRepeat
@@ -8237,6 +8241,10 @@ Enumerations
    .. cpp:enumerator:: repeat
 
    .. cpp:enumerator:: no_repeat
+
+   .. cpp:enumerator:: mirror
+
+   .. cpp:enumerator:: extend
 
 .. cpp:namespace:: gui_forms
 

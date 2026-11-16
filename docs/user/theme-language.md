@@ -262,7 +262,7 @@ only material fields selects the `material` primitive.
 
 | Area | Properties |
 |---|---|
-| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` and `reflecting-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
+| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` and `reflecting-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat` (`repeat`, `no-repeat`, and the GUI.Forms additions `mirror` and `extend`), `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `seat`, `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
@@ -323,6 +323,13 @@ seam: `reflecting-linear-gradient(90deg, #303030, #a0a0a0 8px)` is a
 brushed bar of soft ridges. A reflecting conic gradient whose periods do
 not divide the turn into an even count meets unmirrored at its `from`
 angle. A reflecting radial gradient takes at most 15 colour stops.
+
+An image layer's `background-repeat` may also be `mirror` or `extend`
+(GUI.Forms additions, not CSS), written once or twice: `mirror` tiles the
+image with every other tile reflected, so its neighbours join without a
+seam; `extend` draws the one tile, placed as `no-repeat` places it, with its
+edge pixels carried out to the box's edges. For example,
+`background: url("resource:grain") mirror`.
 
 `finish(<name>, <paint>, <second> [, <seed> [, <grain>]])` is a surface
 finish: paint or metal lit by one light from the upper left, painted for

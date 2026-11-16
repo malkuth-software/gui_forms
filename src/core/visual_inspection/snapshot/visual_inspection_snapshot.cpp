@@ -175,6 +175,8 @@ const char* image_mode_name(MaterialImageMode value) noexcept {
     case MaterialImageMode::tile: return "tile";
     case MaterialImageMode::nine_patch: return "nine_patch";
     case MaterialImageMode::single: return "single";
+    case MaterialImageMode::mirror: return "mirror";
+    case MaterialImageMode::extend: return "extend";
     }
     return "unknown";
 }

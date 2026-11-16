@@ -712,6 +712,13 @@ void test_image_lowering() {
                 (*repeats).image_repeats[0] == MaterialImageRepeat::no_repeat &&
                 (*repeats).image_repeats[1] == MaterialImageRepeat::repeat,
             "background-repeat reads each layer's repetition");
+    const std::string_view mirror_sheet = "#pad::part(face) { background-repeat: mirror, extend extend }";
+    const Compilation mirrored = compile(mirror_sheet);
+    const MaterialDeclaration* const mirrors = field_of(only_rule(mirrored, mirror_sheet), MaterialField::fill_repeats);
+    require(mirrors != nullptr && (*mirrors).image_repeats.size() == 2U &&
+                (*mirrors).image_repeats[0] == MaterialImageRepeat::mirror &&
+                (*mirrors).image_repeats[1] == MaterialImageRepeat::extend,
+            "background-repeat reads mirror and extend");
 
     const std::string_view image_sheet = "#pad::part(face) { background-image: url(\"resource:tile.quadrant\") }";
     const Compilation imaged = compile(image_sheet);
@@ -907,6 +914,7 @@ void test_refusals() {
         {"#a { background-size: 0px }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-size: -1px }", DiagnosticCode::value_out_of_range},
         {"#a { background-repeat: repeat-x }", DiagnosticCode::value_form_not_admitted},
+        {"#a { background-repeat: mirror repeat }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-repeat: sideways }", DiagnosticCode::keyword_unknown},
         {"#a { background-position: 150% }", DiagnosticCode::value_out_of_range},
         {"#a { background-position: left 10px top }", DiagnosticCode::value_form_not_admitted},
@@ -1269,6 +1277,15 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     rows.push_back(filled("background-image: url(\"resource:tile.quadrant\"); background-size: 50% auto; "
                           "background-repeat: no-repeat",
                           {white, half}));
+    MaterialFillLayer mirrored_tiles = tiles;
+    mirrored_tiles.image_mode = MaterialImageMode::mirror;
+    rows.push_back(filled("background: url(\"resource:tile.quadrant\") mirror", {mirrored_tiles}));
+    MaterialFillLayer extended_tile = tiles;
+    extended_tile.image_mode = MaterialImageMode::extend;
+    extended_tile.image_anchor = Point{0.5, 0.5};
+    rows.push_back(filled("background-image: url(\"resource:tile.quadrant\"); background-repeat: extend; "
+                          "background-position: center",
+                          {white, extended_tile}));
     rows.push_back(filled("background-image: url(\"resource:tile.quadrant\"); background-size: 100% 100%",
                           {white, MaterialFillLayer::stretched_image(images.quadrant, four)}));
     GateRow image_mask{};

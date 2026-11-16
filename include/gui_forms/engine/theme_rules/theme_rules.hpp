@@ -756,8 +756,9 @@ struct GUI_FORMS_API MaterialImagePosition final {
 };
 
 // An image layer's repetition (CSS `background-repeat`): tiled, or one
-// tile alone (MaterialImageMode::single).
-enum class MaterialImageRepeat : std::uint8_t { repeat, no_repeat };
+// tile alone (MaterialImageMode::single); or the theme language's
+// `mirror` and `extend` (MaterialImageMode::mirror and extend).
+enum class MaterialImageRepeat : std::uint8_t { repeat, no_repeat, mirror, extend };
 
 // How a drawn edge's line is made (T3 P6e, CSS `border-style`): one line
 // in its MaterialBorderStyle, or, drawn as two keylines on the edge in

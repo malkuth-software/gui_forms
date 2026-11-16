@@ -46,11 +46,15 @@ enum class MaterialFillKind : std::uint8_t {
     finish,
 };
 // How an image fill covers its box: stretched over it; tiled from one tile
-// (image_scale, image_anchor, image_offset); as a nine-patch; or `single`,
+// (image_scale, image_anchor, image_offset); as a nine-patch; `single`,
 // that one tile alone, placed as a tile is, with nothing around it (E9.6,
-// CSS `background-repeat: no-repeat`).
+// CSS `background-repeat: no-repeat`); `mirror`, tiled with every other
+// tile reflected so neighbours join without a seam; or `extend`, the one
+// tile with its edge pixels extended to the box's edges (theme language
+// `background-repeat: mirror | extend`, owner 2026-11-16). A mirrored or
+// extended tile's source pixels map as ImagePatternWrap's mirror and clamp.
 enum class MaterialImageMode : std::uint8_t {
-    stretch, tile, nine_patch, single,
+    stretch, tile, nine_patch, single, mirror, extend,
 };
 enum class MaterialCoordinateSpace : std::uint8_t {
     normalized, logical,

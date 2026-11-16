@@ -708,11 +708,13 @@ struct EnumerationChoices<MaterialGlowPlacement> {
 template <>
 struct EnumerationChoices<MaterialImageMode> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 4> choices{{
+    static constexpr std::array<EnumerationChoice, 6> choices{{
         {"stretch", static_cast<std::int64_t>(MaterialImageMode::stretch)},
         {"tile", static_cast<std::int64_t>(MaterialImageMode::tile)},
         {"nine_patch", static_cast<std::int64_t>(MaterialImageMode::nine_patch)},
         {"single", static_cast<std::int64_t>(MaterialImageMode::single)},
+        {"mirror", static_cast<std::int64_t>(MaterialImageMode::mirror)},
+        {"extend", static_cast<std::int64_t>(MaterialImageMode::extend)},
     }};
 };
 

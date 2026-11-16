@@ -1262,12 +1262,15 @@ bool MaterialReader::read_image_size(ComponentRange range, MaterialImageSize& si
 
 bool MaterialReader::repeat_word(std::size_t index) const noexcept {
     const bool word = keyword(index, "repeat") || keyword(index, "no-repeat") || keyword(index, "repeat-x") ||
-                      keyword(index, "repeat-y") || keyword(index, "space") || keyword(index, "round");
+                      keyword(index, "repeat-y") || keyword(index, "space") || keyword(index, "round") ||
+                      keyword(index, "mirror") || keyword(index, "extend");
     return word;
 }
 
 // CSS's <repeat-style>: repeat, or no-repeat (one tile alone), on both
-// axes; repeating along one axis only, space and round are not admitted.
+// axes, or the theme language's mirror (every other tile reflected) and
+// extend (one tile, its edges extended; owner, 2026-11-16), also on both;
+// repeating along one axis only, space and round are not admitted.
 bool MaterialReader::read_image_repeat(ComponentRange range, MaterialImageRepeat& repeat) {
     const std::size_t values = count(range);
     const std::uint32_t token = range.first < range.end ? value_.components[range.first].token : start_;
@@ -1284,11 +1287,16 @@ bool MaterialReader::read_image_repeat(ComponentRange range, MaterialImageRepeat
     const std::size_t second = values == 2U ? next(first) : first;
     const bool both_repeat = keyword(first, "repeat") && keyword(second, "repeat");
     const bool both_alone = keyword(first, "no-repeat") && keyword(second, "no-repeat");
-    if (!both_repeat && !both_alone) {
+    const bool both_mirror = keyword(first, "mirror") && keyword(second, "mirror");
+    const bool both_extend = keyword(first, "extend") && keyword(second, "extend");
+    if (!both_repeat && !both_alone && !both_mirror && !both_extend) {
         return fail(DiagnosticCode::value_form_not_admitted, token,
                     clipped_theme_detail(value_.components[first].text));
     }
-    repeat = both_alone ? MaterialImageRepeat::no_repeat : MaterialImageRepeat::repeat;
+    repeat = MaterialImageRepeat::repeat;
+    if (both_alone) repeat = MaterialImageRepeat::no_repeat;
+    if (both_mirror) repeat = MaterialImageRepeat::mirror;
+    if (both_extend) repeat = MaterialImageRepeat::extend;
     return true;
 }
 

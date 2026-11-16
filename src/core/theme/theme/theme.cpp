@@ -329,30 +329,78 @@ void paint_stretched_image(Painter& painter, Rect bounds,
         bounds, fill.opacity);
 }
 
+// A tiled image (`wrap` tile) or a mirrored one (`wrap` mirror), whose
+// pattern repeats every two tiles.
 void paint_tiled_image(Painter& painter, Rect bounds,
-                       const MaterialFillLayer& fill) {
+                       const MaterialFillLayer& fill, const ImagePatternWrap wrap) {
     const double tile_width = fill.image_pixel_size.width / fill.image_scale;
     const double tile_height = fill.image_pixel_size.height / fill.image_scale;
     const bool placed = fill.image_anchor != Point{} || fill.image_offset != Point{};
     if (!placed) {
         painter.fill_image_pattern(
             fill.image, fill.image_pixel_size, bounds,
-            {tile_width, tile_height}, ImagePatternWrap::tile, fill.opacity);
+            {tile_width, tile_height}, wrap, fill.opacity);
         return;
     }
     // A positioned tiling (E9.6): the pattern starts at the tile's corner
-    // moved back by whole tiles to cover the box, clipped to the box.
+    // moved back by whole periods (a tile, or a mirrored pair) to cover the
+    // box, clipped to the box.
+    const double period = wrap == ImagePatternWrap::mirror ? 2.0 : 1.0;
     const double origin_x = bounds.x + (bounds.width - tile_width) * fill.image_anchor.x + fill.image_offset.x;
     const double origin_y = bounds.y + (bounds.height - tile_height) * fill.image_anchor.y + fill.image_offset.y;
-    const double back_x = std::ceil((origin_x - bounds.x) / tile_width) * tile_width;
-    const double back_y = std::ceil((origin_y - bounds.y) / tile_height) * tile_height;
+    const double back_x = std::ceil((origin_x - bounds.x) / (tile_width * period)) * tile_width * period;
+    const double back_y = std::ceil((origin_y - bounds.y) / (tile_height * period)) * tile_height * period;
     const Rect covered{origin_x - back_x, origin_y - back_y, bounds.right() - (origin_x - back_x),
                        bounds.bottom() - (origin_y - back_y)};
     painter.save();
     painter.clip_rect(bounds);
     painter.fill_image_pattern(
         fill.image, fill.image_pixel_size, covered,
-        {tile_width, tile_height}, ImagePatternWrap::tile, fill.opacity);
+        {tile_width, tile_height}, wrap, fill.opacity);
+    painter.restore();
+}
+
+// One band of an extended image along an axis: destination [start, end)
+// showing source pixels [source_start, source_end).
+struct ExtendedBand final {
+    double start{};
+    double end{};
+    double source_start{};
+    double source_end{};
+};
+
+// An extended image (MaterialImageMode::extend): the tile placed as a tile
+// is, and beyond it its edge pixels stretched to the box's edges, as up to
+// nine image regions clipped to the box.
+void paint_extended_image(Painter& painter, Rect bounds, const MaterialFillLayer& fill) {
+    const double tile_width = fill.image_pixel_size.width / fill.image_scale;
+    const double tile_height = fill.image_pixel_size.height / fill.image_scale;
+    const double origin_x = bounds.x + (bounds.width - tile_width) * fill.image_anchor.x + fill.image_offset.x;
+    const double origin_y = bounds.y + (bounds.height - tile_height) * fill.image_anchor.y + fill.image_offset.y;
+    const double source_width = fill.image_pixel_size.width;
+    const double source_height = fill.image_pixel_size.height;
+    const std::array<ExtendedBand, 3> columns{{
+        {bounds.x, origin_x, 0.0, 1.0},
+        {origin_x, origin_x + tile_width, 0.0, source_width},
+        {origin_x + tile_width, bounds.right(), source_width - 1.0, source_width},
+    }};
+    const std::array<ExtendedBand, 3> rows{{
+        {bounds.y, origin_y, 0.0, 1.0},
+        {origin_y, origin_y + tile_height, 0.0, source_height},
+        {origin_y + tile_height, bounds.bottom(), source_height - 1.0, source_height},
+    }};
+    painter.save();
+    painter.clip_rect(bounds);
+    for (const ExtendedBand& row : rows) {
+        if (!(row.end > row.start)) continue;
+        for (const ExtendedBand& column : columns) {
+            if (!(column.end > column.start)) continue;
+            const Rect source{column.source_start, row.source_start, column.source_end - column.source_start,
+                              row.source_end - row.source_start};
+            const Rect destination{column.start, row.start, column.end - column.start, row.end - row.start};
+            painter.draw_image_region(fill.image, source, destination, fill.opacity);
+        }
+    }
     painter.restore();
 }
 
@@ -839,7 +887,13 @@ void paint_image_fill(Painter& painter, Rect bounds, const MaterialFillLayer& fi
         paint_stretched_image(painter, bounds, fill);
         return;
     case MaterialImageMode::tile:
-        paint_tiled_image(painter, bounds, fill);
+        paint_tiled_image(painter, bounds, fill, ImagePatternWrap::tile);
+        return;
+    case MaterialImageMode::mirror:
+        paint_tiled_image(painter, bounds, fill, ImagePatternWrap::mirror);
+        return;
+    case MaterialImageMode::extend:
+        paint_extended_image(painter, bounds, fill);
         return;
     case MaterialImageMode::nine_patch:
         paint_nine_patch(painter, bounds, fill);
@@ -1157,7 +1211,9 @@ bool valid_fill_layer(const MaterialFillLayer& fill) noexcept {
         if (fill.image_mode != MaterialImageMode::stretch &&
             fill.image_mode != MaterialImageMode::tile &&
             fill.image_mode != MaterialImageMode::nine_patch &&
-            fill.image_mode != MaterialImageMode::single) {
+            fill.image_mode != MaterialImageMode::single &&
+            fill.image_mode != MaterialImageMode::mirror &&
+            fill.image_mode != MaterialImageMode::extend) {
             return false;
         }
         if (fill.image_mode != MaterialImageMode::nine_patch &&

@@ -670,6 +670,18 @@ void size_image(const MaterialImageSize& size, Size box, MaterialFillLayer& laye
     if (layer.image_mode == MaterialImageMode::stretch) layer.image_mode = MaterialImageMode::tile;
 }
 
+// The image mode a written repetition gives a tiled image.
+MaterialImageMode repeated_image_mode(const MaterialImageRepeat repeat) noexcept {
+    switch (repeat) {
+    case MaterialImageRepeat::repeat: return MaterialImageMode::tile;
+    case MaterialImageRepeat::no_repeat: return MaterialImageMode::single;
+    case MaterialImageRepeat::mirror: return MaterialImageMode::mirror;
+    case MaterialImageRepeat::extend: return MaterialImageMode::extend;
+    }
+    // A value outside the enumeration tiles, as `repeat` does.
+    return MaterialImageMode::tile;
+}
+
 // Places the image fills among `material`'s image layers, from
 // `images_first` up, by the declared sizes, repetitions and positions,
 // each list in CSS's order (the top layer's first) and repeated over the
@@ -685,11 +697,11 @@ void place_images(const MaterialDeclaration* sizes, const MaterialDeclaration* r
             const std::vector<MaterialImageSize>& written = (*sizes).image_sizes;
             size_image(written[from_top % written.size()], box, layer);
         }
-        const bool tiled = layer.image_mode == MaterialImageMode::tile || layer.image_mode == MaterialImageMode::single;
+        const bool tiled = layer.image_mode == MaterialImageMode::tile || layer.image_mode == MaterialImageMode::single ||
+                           layer.image_mode == MaterialImageMode::mirror || layer.image_mode == MaterialImageMode::extend;
         if (repeats != nullptr && !(*repeats).image_repeats.empty() && tiled) {
             const std::vector<MaterialImageRepeat>& written = (*repeats).image_repeats;
-            const bool alone = written[from_top % written.size()] == MaterialImageRepeat::no_repeat;
-            layer.image_mode = alone ? MaterialImageMode::single : MaterialImageMode::tile;
+            layer.image_mode = repeated_image_mode(written[from_top % written.size()]);
         }
         if (positions != nullptr && !(*positions).image_positions.empty()) {
             const std::vector<MaterialImagePosition>& written = (*positions).image_positions;
@@ -952,7 +964,7 @@ bool material_declaration_admitted(const MaterialDeclaration& declaration) {
     }
     if (declaration.field == MaterialField::fill_repeats) {
         for (const MaterialImageRepeat repeat : declaration.image_repeats) {
-            if (repeat != MaterialImageRepeat::repeat && repeat != MaterialImageRepeat::no_repeat) return false;
+            if (static_cast<std::uint8_t>(repeat) > static_cast<std::uint8_t>(MaterialImageRepeat::extend)) return false;
         }
         return true;
     }

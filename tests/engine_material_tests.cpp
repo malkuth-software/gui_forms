@@ -911,6 +911,29 @@ void image_fills() {
     require(single.pixel(13U, 10U)[3] == 0U && single.pixel(9U, 14U)[3] == 0U && single.pixel(8U, 8U)[3] == 0U,
             "and nothing beyond its tile");
 
+    // Mirrored (theme language `background-repeat: mirror`): the offset
+    // tile, then its reflection on either side, so the columns beside a
+    // seam repeat the seam's own column.
+    SurfaceMaterial mirror_tile = offset_tile;
+    mirror_tile.fills.back().image_mode = MaterialImageMode::mirror;
+    const TestRaster mirrored = draw(mirror_tile, Size{16.0, 16.0}, 1.0, &registry);
+    require(mirrored.pixel(9U, 10U) == offset.pixel(9U, 10U) && mirrored.pixel(12U, 13U) == offset.pixel(12U, 13U),
+            "a mirrored image's first tile is the tile");
+    require(mirrored.pixel(13U, 10U) == offset.pixel(12U, 10U) && mirrored.pixel(16U, 10U) == offset.pixel(9U, 10U) &&
+                mirrored.pixel(8U, 10U) == offset.pixel(9U, 10U) && mirrored.pixel(9U, 14U) == offset.pixel(9U, 13U),
+            "its neighbours are reflected across each seam");
+
+    // Extended (`background-repeat: extend`): the tile, its edge pixels
+    // carried to the box's edges.
+    SurfaceMaterial extend_tile = offset_tile;
+    extend_tile.fills.back().image_mode = MaterialImageMode::extend;
+    const TestRaster extended = draw(extend_tile, Size{16.0, 16.0}, 1.0, &registry);
+    require(extended.pixel(9U, 10U) == offset.pixel(9U, 10U) && extended.pixel(12U, 13U) == offset.pixel(12U, 13U),
+            "an extended image's tile is the tile");
+    require(extended.pixel(20U, 10U) == offset.pixel(12U, 10U) && extended.pixel(8U, 8U) == offset.pixel(9U, 10U) &&
+                extended.pixel(10U, 22U) == offset.pixel(10U, 13U),
+            "beyond it its edge pixels are extended");
+
     if (print_mode()) {
         for (std::size_t index = 0U; index < hashes.size(); ++index) {
             std::cout << "    {\"" << image_cases[index].name << "\", 0x" << std::hex << hashes[index] << std::dec
