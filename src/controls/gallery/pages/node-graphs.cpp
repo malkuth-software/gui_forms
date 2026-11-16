@@ -226,7 +226,7 @@ void NodeGraphsPage::show_status() {
     if (chosen > 0U) {
         append_count(status_, chosen, "node", "nodes");
         status_.append(" selected");
-    } else if (canvas.selected_link().has_value()) {
+    } else if (canvas.selected_link().present()) {
         status_.append("a link selected");
     } else {
         status_.append("nothing selected");

@@ -654,7 +654,7 @@ Related types
 
    .. cpp:member:: std::size_t nodes
 
-   .. cpp:member:: std::optional<LinkId> link
+   .. cpp:member:: stxlib::Optional<LinkId> link
 
 .. cpp:namespace:: gui_forms
 
@@ -989,7 +989,7 @@ Related types
 
    .. cpp:member:: Point local
 
-   .. cpp:member:: std::optional<PortRef> from
+   .. cpp:member:: stxlib::Optional<PortRef> from
 
 .. cpp:namespace:: gui_forms
 
