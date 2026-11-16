@@ -1558,6 +1558,8 @@ void append_field(EventFields& fields, std::string_view name, const TabSelection
 void append_field(EventFields& fields, std::string_view name, const TaskDialogButtonClick& value);
 void read_field(EventFields& fields, std::string_view name, TaskDialogButtonClick& value);
 void append_field(EventFields& fields, std::string_view name, const TaskDialogResult& value);
+void append_field(EventFields& fields, std::string_view name, const TextLanguage& value);
+void read_field(EventFields& fields, std::string_view name, TextLanguage& value);
 void append_field(EventFields& fields, std::string_view name, const TextSelection& value);
 void append_field(EventFields& fields, std::string_view name, const Token& value);
 void append_field(EventFields& fields, std::string_view name, const TokenId& value);
@@ -2384,6 +2386,7 @@ inline void append_field(EventFields& fields, std::string_view name, const FontS
     append_field(fields, "letter_spacing", value.letter_spacing);
     append_field(fields, "family", value.family);
     append_field(fields, "stack", value.stack);
+    append_field(fields, "language", value.language);
     fields.leave(prefix);
 }
 
@@ -2396,6 +2399,7 @@ inline void read_field(EventFields& fields, std::string_view name, FontSpec& val
     read_field(fields, "letter_spacing", value.letter_spacing);
     read_field(fields, "family", value.family);
     read_field(fields, "stack", value.stack);
+    read_field(fields, "language", value.language);
     fields.leave(prefix);
 }
 
@@ -3579,6 +3583,18 @@ inline void append_field(EventFields& fields, std::string_view name, const TaskD
     append_field(fields, "button_id", value.button_id);
     append_field(fields, "verification_checked", value.verification_checked);
     append_field(fields, "radio_button_id", value.radio_button_id);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const TextLanguage& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "tag", value.tag);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, TextLanguage& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "tag", value.tag);
     fields.leave(prefix);
 }
 

@@ -448,6 +448,8 @@ Types
      - The part of a path a stroke keeps (Lottie's and ThorVG's trim path): ``start`` and ``end`` are fractions of the path's whole length (every contour end to end, paint_path_length), each in [0, 1], and either may be the larger: the kept part runs from the smaller to the larger.
    * - :cpp:class:`SurfaceMaterial <gui_forms::SurfaceMaterial>`
      - SurfaceMaterial is a bounded ordered fill stack plus optional border, bounded shadow stack, and shared corner radius.
+   * - :cpp:class:`TextLanguage <gui_forms::TextLanguage>`
+     - The language text is written in, as an OpenType language system tag: four letters as one number, the first highest ('K','O','R',' ' for Korean; text_language makes one).
    * - :cpp:class:`TextRun <gui_forms::TextRun>`
      - One run of Painter::draw_text_runs: its baseline origin, its UTF-8 text (lent for the call) and its colour.
    * - :cpp:class:`Theme <gui_forms::Theme>`
@@ -3230,6 +3232,10 @@ Types
 
    .. cpp:member:: FontFamilyStackId stack
 
+   .. cpp:member:: TextLanguage language
+
+      The paragraph's language (TextLanguage): it reaches every run shaped in this font. A layout input, as letter_spacing is.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: GlossColours final
@@ -4953,7 +4959,7 @@ Types
 
    .. cpp:function:: virtual void draw_rotated_text_utf8(Point anchor, std::string_view text, FontSpec font, Color color, double degrees)
 
-      One line of text turned ``degrees`` about ``anchor`` (D5 ruling of 2026-11-13: text at any angle). ``anchor`` is the start of the baseline, as for draw_text_utf8, and stays where it is; the run turns about it, positive degrees anticlockwise as seen on the surface (90 reads up it as TextOrientation::bottom_to_top does, -90 down it). The run is shaped as draw_text_utf8 shapes it, in the same face, and its glyph runs are rasterized under the turn (no picture of the horizontal run is turned). Its ink lies inside rotated_text_bounds of its measured extent, which is what a control keeps inside the area it damages. 0 draws as draw_text_utf8, the same pixels; a non-finite angle draws nothing. The base implementation, a minimal painter's fallback, draws the run horizontally from ``anchor``, unturned; the recording and Skia painters turn it.
+      One line of text turned ``degrees`` about ``anchor`` (D5 ruling of 2026-11-13: text at any angle). ``anchor`` is the start of the baseline, as for draw_text_utf8, and stays where it is; the run turns about it, positive degrees anticlockwise as seen on the surface (90 reads up it as TextOrientation::bottom_to_top does, -90 down it). The run is shaped as draw_text_utf8 shapes it, in the same face, and its glyph runs are rasterized under the turn (no picture of the horizontal run is turned): the Skia painter draws them as STXlib's turned text, whose turn (exact at quarter turns) rotated_text_bounds and rotated_text_anchor also use. Its ink lies inside rotated_text_bounds of its measured extent, which is what a control keeps inside the area it damages. 0 draws as draw_text_utf8, the same pixels; a non-finite angle draws nothing. The base implementation, a minimal painter's fallback, draws the run horizontally from ``anchor``, unturned; the recording and Skia painters turn it.
 
    .. cpp:function:: virtual void draw_rotated_glyph_runs(Point anchor, const GlyphRunsView& view, FontSpec font, Color color, double degrees)
 
@@ -6632,6 +6638,16 @@ Types
    .. cpp:member:: std::optional<MaterialClipPath> clip_path
 
       The material's clip path (MaterialClipPath); none by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: TextLanguage
+
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+
+   The language text is written in, as an OpenType language system tag: four letters as one number, the first highest ('K','O','R',' ' for Korean; text_language makes one). Zero is none. Shaping applies the tag's language system where a face has one (Korean forms, Turkish dotted i), and fallback prefers the faces registered for the language (the Korean CJK face over the Japanese one for Han characters in Korean text); none keeps each script's default forms and the registered order.
+
+   .. cpp:member:: std::uint32_t tag
 
 .. cpp:namespace:: gui_forms
 
@@ -11563,6 +11579,8 @@ Functions, constants and aliases
 ``#include <gui_forms/types/paint_types/paint_types.hpp>``
 
 .. cpp:function:: bool valid_gradient_stops(std::span<const GradientStop> stops) noexcept
+
+.. cpp:function:: constexpr TextLanguage text_language(const char first, const char second, const char third, const char fourth) noexcept
 
 .. cpp:function:: inline bool valid_font_spec(FontSpec font) noexcept
 

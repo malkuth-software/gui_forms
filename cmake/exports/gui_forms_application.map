@@ -297,6 +297,7 @@
     _ZGVZN9gui_forms12SpatialEntry*;
     _ZGVZN9gui_forms12SpatialIndex*;
     _ZGVZN9gui_forms12Splashscreen*;
+    _ZGVZN9gui_forms12TextLanguage*;
     _ZGVZN9gui_forms12TextMaskLine*;
     _ZGVZN9gui_forms12ThemeLibrary*;
     _ZGVZN9gui_forms12ThemePackage*;
@@ -1976,6 +1977,7 @@
     _ZGVZNK9gui_forms12SpatialEntry*;
     _ZGVZNK9gui_forms12SpatialIndex*;
     _ZGVZNK9gui_forms12Splashscreen*;
+    _ZGVZNK9gui_forms12TextLanguage*;
     _ZGVZNK9gui_forms12TextMaskLine*;
     _ZGVZNK9gui_forms12ThemeLibrary*;
     _ZGVZNK9gui_forms12ThemePackage*;
@@ -3735,6 +3737,7 @@
     _ZN9gui_forms12SpatialEntry*;
     _ZN9gui_forms12SpatialIndex*;
     _ZN9gui_forms12Splashscreen*;
+    _ZN9gui_forms12TextLanguage*;
     _ZN9gui_forms12TextMaskLine*;
     _ZN9gui_forms12ThemeLibrary*;
     _ZN9gui_forms12ThemePackage*;
@@ -7028,6 +7031,7 @@
     _ZNK[RO]9gui_forms12SpatialEntry*;
     _ZNK[RO]9gui_forms12SpatialIndex*;
     _ZNK[RO]9gui_forms12Splashscreen*;
+    _ZNK[RO]9gui_forms12TextLanguage*;
     _ZNK[RO]9gui_forms12TextMaskLine*;
     _ZNK[RO]9gui_forms12ThemeLibrary*;
     _ZNK[RO]9gui_forms12ThemePackage*;
@@ -8707,6 +8711,7 @@
     _ZN[KRO]9gui_forms12SpatialEntry*;
     _ZN[KRO]9gui_forms12SpatialIndex*;
     _ZN[KRO]9gui_forms12Splashscreen*;
+    _ZN[KRO]9gui_forms12TextLanguage*;
     _ZN[KRO]9gui_forms12TextMaskLine*;
     _ZN[KRO]9gui_forms12ThemeLibrary*;
     _ZN[KRO]9gui_forms12ThemePackage*;
@@ -10386,6 +10391,7 @@
     _ZT[VIST]N9gui_forms12SpatialEntry*E;
     _ZT[VIST]N9gui_forms12SpatialIndex*E;
     _ZT[VIST]N9gui_forms12Splashscreen*E;
+    _ZT[VIST]N9gui_forms12TextLanguage*E;
     _ZT[VIST]N9gui_forms12TextMaskLine*E;
     _ZT[VIST]N9gui_forms12ThemeLibrary*E;
     _ZT[VIST]N9gui_forms12ThemePackage*E;
@@ -12065,6 +12071,7 @@
     _ZT[hvc]*9gui_forms12SpatialEntry*;
     _ZT[hvc]*9gui_forms12SpatialIndex*;
     _ZT[hvc]*9gui_forms12Splashscreen*;
+    _ZT[hvc]*9gui_forms12TextLanguage*;
     _ZT[hvc]*9gui_forms12TextMaskLine*;
     _ZT[hvc]*9gui_forms12ThemeLibrary*;
     _ZT[hvc]*9gui_forms12ThemePackage*;
@@ -13744,6 +13751,7 @@
     _ZZN9gui_forms12SpatialEntry*;
     _ZZN9gui_forms12SpatialIndex*;
     _ZZN9gui_forms12Splashscreen*;
+    _ZZN9gui_forms12TextLanguage*;
     _ZZN9gui_forms12TextMaskLine*;
     _ZZN9gui_forms12ThemeLibrary*;
     _ZZN9gui_forms12ThemePackage*;
@@ -15423,6 +15431,7 @@
     _ZZNK9gui_forms12SpatialEntry*;
     _ZZNK9gui_forms12SpatialIndex*;
     _ZZNK9gui_forms12Splashscreen*;
+    _ZZNK9gui_forms12TextLanguage*;
     _ZZNK9gui_forms12TextMaskLine*;
     _ZZNK9gui_forms12ThemeLibrary*;
     _ZZNK9gui_forms12ThemePackage*;

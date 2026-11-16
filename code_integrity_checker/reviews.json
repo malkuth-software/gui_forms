@@ -139,15 +139,6 @@
       "reviewed": "2026-10-27"
     },
     {
-      "path": "src/render/text/harfbuzz/harfbuzz_font_engine.cpp",
-      "rule": "I05",
-      "evidence": "hb_buffer_add_utf8(buffer, utf8.data(), static_cast<int>(utf8.size()),",
-      "decision": "guarded",
-      "guard": "dominating_validation",
-      "reason": "the shaping entry refuses input above limits.input_bytes or INT_MAX (line 863)",
-      "reviewed": "2026-10-27"
-    },
-    {
       "path": "stx_skia/skia/src/core/SkAlphaRuns.cpp",
       "rule": "I03",
       "evidence": "SkASSERT(width > 0);",
