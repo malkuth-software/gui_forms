@@ -47,7 +47,7 @@ public:
   bool present_alpha{};
 
 private:
-  struct Slot final {
+  struct Dri3Slot final {
     GbmBuffer buffer{};
     Pixmap pixmap{};
     // The serial of the present still read by the server; 0 for none.
@@ -60,8 +60,8 @@ private:
 
   // Checks the server, opens its device and selects idle notices once.
   bool usable();
-  bool make_slot(Slot &slot, presentation::PresentExtent extent);
-  void free_slot(Slot &slot) noexcept;
+  bool make_slot(Dri3Slot &slot, presentation::PresentExtent extent);
+  void free_slot(Dri3Slot &slot) noexcept;
   void free_slots() noexcept;
 
   Display *display_;
@@ -71,7 +71,7 @@ private:
   Check checked_{Check::unchecked};
   GbmDevice device_{};
   XID selection_{};
-  std::array<Slot, maximum_slots> slots_{};
+  std::array<Dri3Slot, maximum_slots> slots_{};
   std::size_t count_{};
   presentation::PresentExtent extent_{};
   std::size_t held_{};

@@ -17,7 +17,7 @@ constexpr std::size_t maximum_buffer_bytes = 64U * 1024U * 1024U;
 // the slot (WaylandShmPath::slots_), which outlives the buffer.
 void buffer_released(void *data, wl_buffer *buffer) {
   static_cast<void>(buffer);
-  WaylandShmPath::Slot &slot = *static_cast<WaylandShmPath::Slot *>(data);
+  WaylandShmPath::ShmSlot &slot = *static_cast<WaylandShmPath::ShmSlot *>(data);
   slot.held = false;
 }
 
@@ -30,7 +30,7 @@ WaylandShmPath::WaylandShmPath(wl_display *display, wl_shm *shm, wl_surface *sur
 
 WaylandShmPath::~WaylandShmPath() { free_slots(); }
 
-bool WaylandShmPath::make_slot(Slot &slot, presentation::PresentExtent extent) {
+bool WaylandShmPath::make_slot(ShmSlot &slot, presentation::PresentExtent extent) {
   const std::size_t row_bytes = static_cast<std::size_t>(extent.width) * 4U;
   const std::size_t bytes = row_bytes * static_cast<std::size_t>(extent.height);
   if (bytes == 0U || bytes > maximum_buffer_bytes) return false;
@@ -69,12 +69,12 @@ bool WaylandShmPath::make_slot(Slot &slot, presentation::PresentExtent extent) {
 void WaylandShmPath::free_slots() noexcept {
   writing_ = false;
   for (std::size_t index = 0U; index < count_; ++index) {
-    Slot &slot = slots_[index];
+    ShmSlot &slot = slots_[index];
     // A destroyed buffer the compositor still shows stays on screen until
     // the next attach; its memory stays mapped on the compositor's side.
     if (slot.buffer != nullptr) wl_buffer_destroy(slot.buffer);
     if (slot.pixels != nullptr) munmap(slot.pixels, slot.bytes);
-    slot = Slot{};
+    slot = ShmSlot{};
   }
   count_ = 0U;
 }
@@ -102,7 +102,7 @@ presentation::DirectAcquire WaylandShmPath::acquire(presentation::PresentExtent 
   }
   written_ = chosen;
   writing_ = true;
-  const Slot &slot = slots_[chosen];
+  const ShmSlot &slot = slots_[chosen];
   presentation::DirectBuffer buffer{};
   buffer.pixels = slot.pixels;
   buffer.row_bytes = static_cast<std::size_t>(extent.width) * 4U;
@@ -114,7 +114,7 @@ presentation::DirectAcquire WaylandShmPath::acquire(presentation::PresentExtent 
 presentation::PresentOutcome WaylandShmPath::present(std::span<const presentation::PresentRect> damage) {
   if (!writing_) return presentation::PresentOutcome::failed;
   writing_ = false;
-  Slot &slot = slots_[written_];
+  ShmSlot &slot = slots_[written_];
   wl_surface_attach(surface_, slot.buffer, 0, 0);
   for (std::size_t index = 0U; index < damage.size(); ++index) {
     const presentation::PresentRect rect = damage[index];

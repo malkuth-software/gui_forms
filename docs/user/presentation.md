@@ -33,12 +33,18 @@ buffer to write into and presents that buffer itself:
 | Windows | to be decided by the Windows side's study |
 
 A direct buffer may live in GPU memory. GUI.Forms treats it as a *blind
-interface*: it locks the buffer, writes CPU pixels, unlocks it and asks the
-window system to present it. GUI.Forms never issues a GPU command,
-compiles a shader, or creates a GPU device or context, on any path. A
-platform route that would need a GPU API symbol (Metal, Direct3D, DXGI,
-OpenGL, Vulkan) merely to obtain a buffer is not written; it is listed for
-the owner's decision instead.
+interface*: it locks or maps the buffer, writes CPU pixels, unlocks it and
+asks the window system to present it. GUI.Forms never draws on the GPU,
+compiles a shader, encodes or submits GPU work, or creates a rendering
+context, on any path.
+
+Some platforms hand out such buffers only through a graphics API. Those
+*buffer routes* are allowed as enumerated host capabilities (owner,
+2026-11-16): the API is used only to obtain, map or lock, and present the
+buffer, inside the host adapter, behind its own build option, reported by
+its own capability bit, with the copy path as the fallback on any refusal
+or loss. Nothing of them appears in the portable contract, the public
+headers or the C ABI beyond the capability bits.
 
 ## The contract
 
@@ -198,12 +204,20 @@ copies' clips, and the shim adds back the area of any scroll it refuses.
 | X11 Present (`src/host/linux/application/x11_present_direct.cpp`) | up to three MIT-SHM pixmaps, presented with `XPresentPixmap` and an update region; reused after `PresentIdleNotify` | unsupported without libXpresent, MIT-SHM pixmaps or Present, on a remote display, on a visual not in the raster's layout, and on a 32-bit window presenting opaque; busy while every pixmap is read; resources when a segment cannot be made |
 | Wayland `wl_shm` (`src/host/linux/wayland/wayland_shm_present.cpp`, built with `GUI_FORMS_ENABLE_WAYLAND_PRESENT`) | up to three memfd buffers, ARGB8888 or XRGB8888, attached with `wl_surface_damage_buffer`; reused after `wl_buffer.release` | busy while every buffer is held; resources when one cannot be made; lost when the display is in error or a flush fails |
 
-Routes that would need a GPU API symbol to obtain a buffer are not
-written, and wait for the owner's decision: `CAMetalLayer` drawables on
-macOS (Metal), DRI3 dmabuf pixmaps on X11 (GBM or libdrm),
-`linux-dmabuf` buffers on Wayland (GBM or EGL), and DXGI flip-model swap
-chains or DirectComposition on Windows (Direct3D/DXGI). IOSurface, MIT-SHM
-with Present, and `wl_shm` need none.
+### Buffer routes
+
+| Route | Capability | Build option and policy | What the API is used for |
+|---|---|---|---|
+| macOS `CAMetalLayer` (`macos_metal_present.mm`) | `metal_drawables` | `GUI_FORMS_ENABLE_METAL_PRESENT`; `GUI_FORMS_PRESENT=direct,metal` | the system default device for the layer, `nextDrawable`, the drawable texture's `iosurface` (locked for writing), `-[CAMetalDrawable present]`; no command buffer |
+| X11 DRI3 (`x11_dri3_present.cpp`, `src/host/linux/gbm/`) | `dri3_pixmaps` | `GUI_FORMS_ENABLE_X11_DRI3_PRESENT` (with libXpresent); `GUI_FORMS_PRESENT=direct,dri3` | `DRI3Open` for the server's device, linear GBM buffers mapped for writing and exported, `DRI3PixmapFromBuffer`, then `XPresentPixmap` |
+| Wayland linux-dmabuf (`wayland_dmabuf_present.cpp`) | `linux_dmabuf` (reserved) | `GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT`; `direct,dmabuf` for a future Wayland host | linear GBM buffers on the compositor's render node, mapped and exported, `zwp_linux_dmabuf_v1` `create_immed` |
+| Windows DXGI flip model or DirectComposition | to be added by the Windows side | the Windows side's | the Windows side's study (below) |
+
+Each route reports `direct_buffers` with its own bit. Where a route is not
+built, or the policy does not name it, the host uses its non-API direct
+path (IOSurface, MIT-SHM with Present, `wl_shm`) under
+`GUI_FORMS_PRESENT=direct`, or the copy path. Every refusal and loss of a
+route takes the same fallback as any direct path, with the same pixels.
 
 ## What a new platform backend provides
 
@@ -217,8 +231,24 @@ A backend, the Windows one included, supplies:
   refusal named by kind; a loss detected at present or reported between
   frames; and `release` making the copy path's pixels visible again;
 - the capability bits, only for what it implements;
-- no GPU API calls of its own, and a list for the owner of any route that
-  would need a GPU API symbol to obtain its buffer.
+- a graphics API only inside the host adapter, only to obtain, map or lock
+  and present a buffer, behind its own build option.
+
+The Windows backend (the Windows side's item 14) must report:
+
+- `direct_buffers` only while a direct path is in use for the process
+  (built, and named by `GUI_FORMS_PRESENT=direct`);
+- one new capability bit per buffer route it adds (for example DXGI flip
+  model or DirectComposition), reserved in fold order after
+  `linux_dmabuf` with its `GF_HOST_CAPABILITY_*` constant, its manifest
+  entry, its name in the capability matrix and a row here and in
+  [Hosts and capabilities](hosts-and-capabilities.md), reported only where
+  it is built and the policy names it;
+- `host_scroll` only where its copy path or direct path moves presented
+  pixels (for example `ScrollWindowEx` or `IDXGISwapChain1::Present1`'s
+  scroll rectangle);
+- its refusals by kind and its losses (device removal, occlusion, a lost
+  swap chain), so that the shim's trace matches the reference's.
 
 Until its backend lands, the Windows host keeps its existing DIB path,
-which is its copy path.
+which is its copy path, and reports none of these.

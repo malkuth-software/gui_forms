@@ -25,7 +25,7 @@ constexpr OSType bgra_pixel_format = 0x42475241U;
 } // namespace
 
 struct MacIOSurfacePath::State final {
-    struct Slot final {
+    struct SurfaceSlot final {
         IOSurfaceRef surface{};
         // The present that last showed this surface; 0 for never.
         std::uint64_t shown_at{};
@@ -37,7 +37,7 @@ struct MacIOSurfacePath::State final {
     // The layer over the view's own content, made with the first present;
     // strong (ARC).
     CALayer* layer{};
-    std::array<Slot, maximum_surfaces> slots{};
+    std::array<SurfaceSlot, maximum_surfaces> slots{};
     std::size_t count{};
     presentation::PresentExtent extent{};
     // The slot granted and not yet presented.
@@ -84,7 +84,7 @@ void free_surfaces(MacIOSurfacePath::State& state) noexcept {
     }
     for (std::size_t index = 0U; index < state.count; ++index) {
         if (state.slots[index].surface != nullptr) CFRelease(state.slots[index].surface);
-        state.slots[index] = MacIOSurfacePath::State::Slot{};
+        state.slots[index] = MacIOSurfacePath::State::SurfaceSlot{};
     }
     state.count = 0U;
     state.showing = false;
@@ -139,7 +139,7 @@ presentation::DirectAcquire MacIOSurfacePath::acquire(presentation::PresentExten
             return presentation::DirectAcquire::refused(presentation::DirectRefusal::busy);
         IOSurfaceRef made = make_surface(extent, state.color_space);
         if (made == nullptr) return presentation::DirectAcquire::refused(presentation::DirectRefusal::resources);
-        state.slots[state.count] = State::Slot{made, 0U};
+        state.slots[state.count] = State::SurfaceSlot{made, 0U};
         ++state.count;
     }
     IOSurfaceRef surface = state.slots[chosen].surface;

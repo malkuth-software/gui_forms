@@ -60,6 +60,9 @@ whole record for logs.
 | `direct_buffers` | frames written with CPU pixels into buffers the window system gives, possibly GPU-backed and treated as a blind interface, with the copy path as the fallback on any refusal or loss ([Presentation](presentation.md); C: `GF_HOST_CAPABILITY_DIRECT_BUFFERS`) | with `GUI_FORMS_PRESENT=direct` (IOSurface) | not yet | with `GUI_FORMS_PRESENT=direct` and libXpresent (Present with MIT-SHM pixmaps) |
 | `host_scroll` | a scroll copy moves the pixels already presented and only the exposed band is copied (C: `GF_HOST_CAPABILITY_HOST_SCROLL`) | no | not yet | with `GUI_FORMS_PRESENT=scroll` (`XCopyArea`, while a compositing manager runs) |
 | `reference_presentation` | the host is GUI.Forms' own window manager, the reference behaviour for the others (C: `GF_HOST_CAPABILITY_REFERENCE_PRESENTATION`) | no | no | no |
+| `metal_drawables` | the direct path's buffers are CAMetalLayer drawables, obtained and presented through Metal, written through their IOSurface ([Presentation](presentation.md); C: `GF_HOST_CAPABILITY_METAL_DRAWABLES`) | built with `GUI_FORMS_ENABLE_METAL_PRESENT`, with `GUI_FORMS_PRESENT=direct,metal` | no | no |
+| `dri3_pixmaps` | the direct path's buffers are DRI3 pixmaps over GBM dmabuf buffers (C: `GF_HOST_CAPABILITY_DRI3_PIXMAPS`) | no | no | built with `GUI_FORMS_ENABLE_X11_DRI3_PRESENT`, with `GUI_FORMS_PRESENT=direct,dri3` |
+| `linux_dmabuf` | the direct path's buffers are Wayland linux-dmabuf buffers over GBM (C: `GF_HOST_CAPABILITY_LINUX_DMABUF`) | no | no | no (reserved for a Wayland host) |
 
 The table reflects the bits each adapter currently advertises; read
 `Application::capabilities()` rather than this page in code.

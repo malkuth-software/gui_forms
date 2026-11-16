@@ -93,7 +93,7 @@ bool X11PresentPath::usable() {
   return true;
 }
 
-bool X11PresentPath::make_slot(Slot &slot, presentation::PresentExtent extent) {
+bool X11PresentPath::make_slot(PixmapSlot &slot, presentation::PresentExtent extent) {
   const std::size_t row_bytes = static_cast<std::size_t>(extent.width) * 4U;
   const std::size_t bytes = row_bytes * static_cast<std::size_t>(extent.height);
   if (bytes == 0U || bytes > maximum_pixmap_bytes) return false;
@@ -135,7 +135,7 @@ bool X11PresentPath::make_slot(Slot &slot, presentation::PresentExtent extent) {
   return true;
 }
 
-void X11PresentPath::free_slot(Slot &slot) noexcept {
+void X11PresentPath::free_slot(PixmapSlot &slot) noexcept {
   if (slot.pixmap != 0U) XFreePixmap(display_, slot.pixmap);
   if (slot.segment != nullptr) {
     XShmSegmentInfo *segment = static_cast<XShmSegmentInfo *>(slot.segment);
@@ -145,7 +145,7 @@ void X11PresentPath::free_slot(Slot &slot) noexcept {
     shmdt((*segment).shmaddr);
     delete segment;
   }
-  slot = Slot{};
+  slot = PixmapSlot{};
 }
 
 void X11PresentPath::free_slots() noexcept {
@@ -179,7 +179,7 @@ presentation::DirectAcquire X11PresentPath::acquire(presentation::PresentExtent 
   }
   held_ = chosen;
   holding_ = true;
-  const Slot &slot = slots_[chosen];
+  const PixmapSlot &slot = slots_[chosen];
   presentation::DirectBuffer buffer{};
   buffer.pixels = slot.pixels;
   buffer.row_bytes = slot.row_bytes;
@@ -191,7 +191,7 @@ presentation::DirectAcquire X11PresentPath::acquire(presentation::PresentExtent 
 presentation::PresentOutcome X11PresentPath::present(std::span<const presentation::PresentRect> damage) {
   if (!holding_) return presentation::PresentOutcome::failed;
   holding_ = false;
-  Slot &slot = slots_[held_];
+  PixmapSlot &slot = slots_[held_];
   // The update region: the damage, which the shim clipped to the extent.
   rectangles_.clear();
   for (std::size_t index = 0U; index < damage.size(); ++index) {
@@ -223,7 +223,7 @@ void X11PresentPath::release() noexcept { free_slots(); }
 
 void X11PresentPath::idle(Pixmap pixmap, std::uint32_t serial) noexcept {
   for (std::size_t index = 0U; index < count_; ++index) {
-    Slot &slot = slots_[index];
+    PixmapSlot &slot = slots_[index];
     if (slot.pixmap != pixmap) continue;
     // An older present's notice for a pixmap presented again is not this
     // one's.
@@ -247,9 +247,9 @@ X11PresentPath::~X11PresentPath() {}
 
 bool X11PresentPath::usable() { return false; }
 
-bool X11PresentPath::make_slot(Slot &, presentation::PresentExtent) { return false; }
+bool X11PresentPath::make_slot(PixmapSlot &, presentation::PresentExtent) { return false; }
 
-void X11PresentPath::free_slot(Slot &slot) noexcept { slot = Slot{}; }
+void X11PresentPath::free_slot(PixmapSlot &slot) noexcept { slot = PixmapSlot{}; }
 
 void X11PresentPath::free_slots() noexcept {}
 

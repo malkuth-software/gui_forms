@@ -52,7 +52,7 @@ public:
   // present; a change remakes the buffers).
   bool translucent{};
 
-  struct Slot final {
+  struct ShmSlot final {
     wl_buffer *buffer{};
     std::byte *pixels{};
     std::size_t bytes{};
@@ -66,7 +66,7 @@ public:
 private:
   static constexpr std::size_t maximum_slots = 3U;
 
-  bool make_slot(Slot &slot, presentation::PresentExtent extent);
+  bool make_slot(ShmSlot &slot, presentation::PresentExtent extent);
   void free_slots() noexcept;
 
   wl_display *display_;
@@ -74,7 +74,7 @@ private:
   wl_surface *surface_;
   // The slots' addresses are the release listener's data: the array is
   // never moved while a buffer exists.
-  std::array<Slot, maximum_slots> slots_{};
+  std::array<ShmSlot, maximum_slots> slots_{};
   std::size_t count_{};
   presentation::PresentExtent extent_{};
   bool made_translucent_{};

@@ -72,7 +72,7 @@ public:
   bool present_alpha{};
 
 private:
-  struct Slot final {
+  struct PixmapSlot final {
     // An XShmSegmentInfo (XShm.h), opaque here; owned by the slot.
     void *segment{};
     std::byte *pixels{};
@@ -87,8 +87,8 @@ private:
 
   // Checks the server and the visual once; false refuses as unsupported.
   bool usable();
-  bool make_slot(Slot &slot, presentation::PresentExtent extent);
-  void free_slot(Slot &slot) noexcept;
+  bool make_slot(PixmapSlot &slot, presentation::PresentExtent extent);
+  void free_slot(PixmapSlot &slot) noexcept;
   void free_slots() noexcept;
 
   Display *display_;
@@ -99,7 +99,7 @@ private:
   Check checked_{Check::unchecked};
   // The event selection made at the first acquire; 0 before.
   XID selection_{};
-  std::array<Slot, maximum_slots> slots_{};
+  std::array<PixmapSlot, maximum_slots> slots_{};
   std::size_t count_{};
   presentation::PresentExtent extent_{};
   std::size_t held_{};

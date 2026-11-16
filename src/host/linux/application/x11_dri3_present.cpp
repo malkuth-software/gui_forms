@@ -61,7 +61,7 @@ bool X11Dri3Path::usable() {
   return true;
 }
 
-bool X11Dri3Path::make_slot(Slot &slot, presentation::PresentExtent extent) {
+bool X11Dri3Path::make_slot(Dri3Slot &slot, presentation::PresentExtent extent) {
   const std::size_t bytes = static_cast<std::size_t>(extent.width) * 4U * static_cast<std::size_t>(extent.height);
   if (bytes == 0U || bytes > maximum_buffer_bytes) return false;
   // DRI3PixmapFromBuffer carries 16-bit sizes and stride.
@@ -99,11 +99,11 @@ bool X11Dri3Path::make_slot(Slot &slot, presentation::PresentExtent extent) {
   return true;
 }
 
-void X11Dri3Path::free_slot(Slot &slot) noexcept {
+void X11Dri3Path::free_slot(Dri3Slot &slot) noexcept {
   if (slot.pixmap != 0U) XFreePixmap(display_, slot.pixmap);
   // The server keeps its own reference to the dmabuf while it reads it.
   gbm_buffer_free(slot.buffer);
-  slot = Slot{};
+  slot = Dri3Slot{};
 }
 
 void X11Dri3Path::free_slots() noexcept {
@@ -136,7 +136,7 @@ presentation::DirectAcquire X11Dri3Path::acquire(presentation::PresentExtent ext
       return presentation::DirectAcquire::refused(presentation::DirectRefusal::resources);
     ++count_;
   }
-  Slot &slot = slots_[chosen];
+  Dri3Slot &slot = slots_[chosen];
   if (!gbm_buffer_map(slot.buffer, extent))
     return presentation::DirectAcquire::refused(presentation::DirectRefusal::lost);
   held_ = chosen;
@@ -152,7 +152,7 @@ presentation::DirectAcquire X11Dri3Path::acquire(presentation::PresentExtent ext
 presentation::PresentOutcome X11Dri3Path::present(std::span<const presentation::PresentRect> damage) {
   if (!holding_) return presentation::PresentOutcome::failed;
   holding_ = false;
-  Slot &slot = slots_[held_];
+  Dri3Slot &slot = slots_[held_];
   gbm_buffer_unmap(slot.buffer);
   rectangles_.clear();
   for (std::size_t index = 0U; index < damage.size(); ++index) {
@@ -183,7 +183,7 @@ void X11Dri3Path::release() noexcept { free_slots(); }
 
 void X11Dri3Path::idle(Pixmap pixmap, std::uint32_t serial) noexcept {
   for (std::size_t index = 0U; index < count_; ++index) {
-    Slot &slot = slots_[index];
+    Dri3Slot &slot = slots_[index];
     if (slot.pixmap != pixmap) continue;
     if (slot.reading == serial) slot.reading = 0U;
     return;

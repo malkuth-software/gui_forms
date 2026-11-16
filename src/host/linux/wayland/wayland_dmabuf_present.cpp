@@ -17,7 +17,7 @@ constexpr std::size_t maximum_buffer_bytes = 64U * 1024U * 1024U;
 // the slot (WaylandDmabufPath::slots_), which outlives the buffer.
 void dmabuf_released(void *data, wl_buffer *buffer) {
   static_cast<void>(buffer);
-  WaylandDmabufPath::Slot &slot = *static_cast<WaylandDmabufPath::Slot *>(data);
+  WaylandDmabufPath::DmabufSlot &slot = *static_cast<WaylandDmabufPath::DmabufSlot *>(data);
   slot.held = false;
 }
 
@@ -37,7 +37,7 @@ WaylandDmabufPath::~WaylandDmabufPath() {
   render_node_ = -1;
 }
 
-bool WaylandDmabufPath::make_slot(Slot &slot, presentation::PresentExtent extent) {
+bool WaylandDmabufPath::make_slot(DmabufSlot &slot, presentation::PresentExtent extent) {
   const std::size_t bytes = static_cast<std::size_t>(extent.width) * 4U * static_cast<std::size_t>(extent.height);
   if (bytes == 0U || bytes > maximum_buffer_bytes) return false;
   linux_detail::GbmBuffer buffer{};
@@ -72,11 +72,11 @@ bool WaylandDmabufPath::make_slot(Slot &slot, presentation::PresentExtent extent
 void WaylandDmabufPath::free_slots() noexcept {
   writing_ = false;
   for (std::size_t index = 0U; index < count_; ++index) {
-    Slot &slot = slots_[index];
+    DmabufSlot &slot = slots_[index];
     if (slot.shared != nullptr) wl_buffer_destroy(slot.shared);
     // The compositor keeps its own reference to the dmabuf it shows.
     linux_detail::gbm_buffer_free(slot.buffer);
-    slot = Slot{};
+    slot = DmabufSlot{};
   }
   count_ = 0U;
 }
@@ -110,7 +110,7 @@ presentation::DirectAcquire WaylandDmabufPath::acquire(presentation::PresentExte
       return presentation::DirectAcquire::refused(presentation::DirectRefusal::resources);
     ++count_;
   }
-  Slot &slot = slots_[chosen];
+  DmabufSlot &slot = slots_[chosen];
   if (!linux_detail::gbm_buffer_map(slot.buffer, extent))
     return presentation::DirectAcquire::refused(presentation::DirectRefusal::lost);
   written_ = chosen;
@@ -126,7 +126,7 @@ presentation::DirectAcquire WaylandDmabufPath::acquire(presentation::PresentExte
 presentation::PresentOutcome WaylandDmabufPath::present(std::span<const presentation::PresentRect> damage) {
   if (!writing_) return presentation::PresentOutcome::failed;
   writing_ = false;
-  Slot &slot = slots_[written_];
+  DmabufSlot &slot = slots_[written_];
   linux_detail::gbm_buffer_unmap(slot.buffer);
   wl_surface_attach(surface_, slot.shared, 0, 0);
   for (std::size_t index = 0U; index < damage.size(); ++index) {

@@ -49,7 +49,7 @@ public:
   // present; a change remakes the buffers).
   bool translucent{};
 
-  struct Slot final {
+  struct DmabufSlot final {
     linux_detail::GbmBuffer buffer{};
     wl_buffer *shared{};
     // The compositor holds the buffer (committed, no release yet).
@@ -62,7 +62,7 @@ private:
   static constexpr std::size_t maximum_slots = 3U;
   enum class Check : std::uint8_t { unchecked, usable, unsupported };
 
-  bool make_slot(Slot &slot, presentation::PresentExtent extent);
+  bool make_slot(DmabufSlot &slot, presentation::PresentExtent extent);
   void free_slots() noexcept;
 
   wl_display *display_;
@@ -73,7 +73,7 @@ private:
   linux_detail::GbmDevice device_{};
   // The slots' addresses are the release listener's data: the array is
   // never moved while a buffer exists.
-  std::array<Slot, maximum_slots> slots_{};
+  std::array<DmabufSlot, maximum_slots> slots_{};
   std::size_t count_{};
   presentation::PresentExtent extent_{};
   bool made_translucent_{};
