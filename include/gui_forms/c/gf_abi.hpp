@@ -6,7 +6,7 @@
 // the library did not serve. The wrappers add no second contract: statuses,
 // ownership and threading are gf_abi.h's.
 #pragma once
-#include "gui_forms/gf_shield_begin.h"
+#include "gui_forms/c/gf_c_shield_begin.h"
 
 #include "gui_forms/c/gf_abi.h"
 
@@ -3953,4 +3953,4 @@ private:
 };
 
 } // namespace gui_forms::abi
-#include "gui_forms/gf_shield_end.h"
+#include "gui_forms/c/gf_c_shield_end.h"

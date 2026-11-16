@@ -1593,6 +1593,9 @@ install(DIRECTORY include/gui_forms
         PATTERN "text_mask.hpp" EXCLUDE
         PATTERN "text_mask" EXCLUDE
         PATTERN "loop_transport" EXCLUDE)
+# The full consumer-macro shield, generated into the build tree and installed
+# beside these headers (cmake/ConsumerShield.cmake).
+include(cmake/ConsumerShield.cmake)
 # The hosted program's end (macOS and Linux): installed in GUIFormsTargets as
 # GUIForms::HostedClient, the library a program started by
 # make_hosted_content links (tests/hosted_client_consumer).

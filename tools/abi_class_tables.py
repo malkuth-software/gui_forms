@@ -699,10 +699,10 @@ HEADER_PREAMBLE: str = """/*
 
 
 def render_header(model: Model) -> str:
-    # The consumer-macro shield (tools/consumer_shield.py): its opening half
+    # The C consumer-macro shield (tools/consumer_shield.py): its opening half
     # inside the include guard, its closing half before the #endif.
     lines: list[str] = [GENERATED_C, "", "#ifndef GUI_FORMS_C_GF_ABI_CLASSES_H", "#define GUI_FORMS_C_GF_ABI_CLASSES_H",
-                        "#include \"gui_forms/gf_shield_begin.h\"", "", HEADER_PREAMBLE.rstrip("\n"), ""]
+                        "#include \"gui_forms/c/gf_c_shield_begin.h\"", "", HEADER_PREAMBLE.rstrip("\n"), ""]
     lines.append("/* gf_class_id: a class that has a segment or a class table. */")
     lines.append("typedef uint32_t gf_class_id;")
     entry: dict
@@ -796,7 +796,7 @@ def render_header(model: Model) -> str:
         "    gf_status (GF_CALL* base_raiser)(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser);",
         "} gf_classes_table;",
         "",
-        "#include \"gui_forms/gf_shield_end.h\"",
+        "#include \"gui_forms/c/gf_c_shield_end.h\"",
         "#endif",
         "",
     ]

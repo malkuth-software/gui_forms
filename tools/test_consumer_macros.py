@@ -2,14 +2,16 @@
 
 consumer_macros (the lexer, the header scan, the closure and the
 classification), generate_hostile_macros (the conformance header and its
-seeds), consumer_shield (the shield's name set, its handshake run through a
+seeds), consumer_shield (both shields' name sets, the handshake run through a
 small preprocessor in nested, repeated and mixed include orders, and the
-placement of its include lines) and module_exports (the declarations the
+placement of its include lines, the install check) and module_exports (the declarations the
 gui_forms module exports). They read and write only temporary
 files; nothing is compiled.
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import tempfile
 import unittest
 from pathlib import Path
@@ -225,22 +227,28 @@ class Preprocessor:
 
 
 class ShieldTests(unittest.TestCase):
-    NAMES: list[str] = ['near', 'far', 'Button']
+    C_NAMES: list[str] = ['near', 'far', 'Button']
+    # The full shield's names: a superset of the C shield's.
+    FULL_NAMES: list[str] = ['Button', 'far', 'near', 'wide']
 
     def files(self) -> dict[str, str]:
-        begin: str = consumer_shield.render_begin(self.NAMES)
-        end: str = consumer_shield.render_end(self.NAMES)
+        c_shield: consumer_shield.Shield = consumer_shield.C_SHIELD
+        full_shield: consumer_shield.Shield = consumer_shield.FULL_SHIELD
         outer: str = consumer_shield.insert_handshake(
             '#pragma once\n#pragma probe near\n#include "inner.hpp"\n#pragma probe far\n')
         inner: str = consumer_shield.insert_handshake('#pragma once\n#pragma probe Button\n')
         guarded: str = consumer_shield.insert_handshake(
             '#ifndef GF_C_H\n#define GF_C_H\n#include "inner.hpp"\n#pragma probe near\n#endif\n')
-        return {'gui_forms/gf_shield_begin.h': begin, 'gui_forms/gf_shield_end.h': end,
-                'outer.hpp': outer, 'inner.hpp': inner, 'c.h': guarded}
+        return {c_shield.begin: consumer_shield.render_begin(c_shield, self.C_NAMES),
+                c_shield.end: consumer_shield.render_end(c_shield, self.C_NAMES),
+                full_shield.begin: consumer_shield.render_begin(full_shield, self.FULL_NAMES),
+                full_shield.end: consumer_shield.render_end(full_shield, self.FULL_NAMES),
+                'outer.hpp': outer, 'inner.hpp': inner, 'c.h': guarded,
+                'wide.hpp': '#pragma once\n#pragma probe wide\n'}
 
     def consumer(self, body: str) -> Preprocessor:
         files: dict[str, str] = self.files()
-        files['unit.cpp'] = '#define near 1\n#define Button 3\n' + body
+        files['unit.cpp'] = '#define near 1\n#define Button 3\n#define wide 4\n' + body
         preprocessor: Preprocessor = Preprocessor(files)
         preprocessor.run('unit.cpp')
         return preprocessor
@@ -248,6 +256,7 @@ class ShieldTests(unittest.TestCase):
     def assert_restored(self, preprocessor: Preprocessor) -> None:
         self.assertEqual(preprocessor.macros.get('near'), '1')
         self.assertEqual(preprocessor.macros.get('Button'), '3')
+        self.assertEqual(preprocessor.macros.get('wide'), '4')
         self.assertNotIn('far', preprocessor.macros)
         self.assertNotIn('GF_SHIELD_ACTIVE', preprocessor.macros)
         self.assertNotIn('GF_SHIELD_OPENER', preprocessor.macros)
@@ -272,18 +281,28 @@ class ShieldTests(unittest.TestCase):
         self.assert_restored(preprocessor)
 
     def test_consumer_wrapped_block(self) -> None:
+        # The full shield around C-shield headers: theirs do nothing inside it,
+        # and the names only the full shield holds stay removed throughout.
         preprocessor: Preprocessor = self.consumer(
             '#include "gui_forms/gf_shield_begin.h"\n#pragma probe near\n#include "c.h"\n#include "outer.hpp"\n'
-            '#pragma probe Button\n#include "gui_forms/gf_shield_end.h"\n#pragma probe Button\n')
+            '#include "wide.hpp"\n#pragma probe Button\n#include "gui_forms/gf_shield_end.h"\n'
+            '#pragma probe Button\n#pragma probe wide\n')
         self.assertEqual(preprocessor.probes, [
             ('near', None), ('Button', None), ('near', None), ('near', None), ('far', None),
-            ('Button', None), ('Button', '3')])
+            ('wide', None), ('Button', None), ('Button', '3'), ('wide', '4')])
+        self.assert_restored(preprocessor)
+
+    def test_c_shield_leaves_other_names_alone(self) -> None:
+        # A C-shield header alone touches only the C shield's names.
+        preprocessor: Preprocessor = self.consumer('#include "c.h"\n#include "wide.hpp"\n')
+        self.assertEqual(preprocessor.probes, [('Button', None), ('near', None), ('wide', '4')])
         self.assert_restored(preprocessor)
 
     def test_handshake_placement_and_idempotence(self) -> None:
         once: str = consumer_shield.insert_handshake('// x\n#pragma once\nint a;\n')
         self.assertEqual(once, '// x\n#pragma once\n' + consumer_shield.BEGIN_LINE + '\nint a;\n'
                          + consumer_shield.END_LINE + '\n')
+        self.assertEqual(consumer_shield.BEGIN_LINE, '#include "gui_forms/c/gf_c_shield_begin.h"')
         self.assertEqual(consumer_shield.insert_handshake(once), once)
         self.assertTrue(consumer_shield.has_handshake(once))
         self.assertFalse(consumer_shield.has_handshake('#pragma once\nint a;\n'))
@@ -293,7 +312,7 @@ class ShieldTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             consumer_shield.insert_handshake('int a;\n')
 
-    def test_shield_names_cover_the_surface_and_skip_the_shield(self) -> None:
+    def test_shield_names_cover_the_surface_and_skip_the_shields(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root: Path = Path(directory)
             write(root, 'include/gui_forms/a.hpp', '#pragma once\n#include "gui_forms/gf_shield_begin.h"\n'
@@ -302,8 +321,36 @@ class ShieldTests(unittest.TestCase):
             write(root, 'include/gui_forms/b.hpp', '#pragma once\n#define GF_B 1\n#ifdef CONFIGURED\n#endif\n'
                   'namespace gui_forms { int far = GF_B; int CONFIGURED; std::size_t s; }\n')
             write(root, 'include/gui_forms/gf_shield_begin.h', '#undef stale\n')
+            write(root, 'include/gui_forms/c/gf_c_shield_begin.h', '#undef stale_c\n')
             names: list[str] = consumer_shield.shield_names(root, [], STANDARD | {'size_t'})
             self.assertEqual(names, ['A', 'far', 'near', 's'])
+
+    def test_c_shield_names_are_the_handshake_headers_with_surface_exclusions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root: Path = Path(directory)
+            # SHAPE is a first-party macro of another header: excluded here too.
+            write(root, 'include/gui_forms/c/gf_abi.h', '#ifndef GF_ABI_H\n#define GF_ABI_H\n'
+                  '#include "gui_forms/c/gf_c_shield_begin.h"\ntypedef int Status;\nint SHAPE;\n'
+                  '#include "gui_forms/c/gf_c_shield_end.h"\n#endif\n')
+            write(root, 'include/gui_forms/c/gf_c_shield_begin.h', '#undef stale\n')
+            write(root, 'include/gui_forms/button.hpp', '#pragma once\n#define SHAPE 1\nint Button;\n')
+            names: list[str] = consumer_shield.c_shield_names(root, [], STANDARD)
+            self.assertEqual(names, ['Status'])
+            self.assertEqual(consumer_shield.shield_names(root, [], STANDARD), ['Button', 'Status'])
+
+    def test_full_check_fails_on_a_missing_or_stale_install(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root: Path = Path(directory)
+            write(root, 'include/gui_forms/button.hpp', '#pragma once\nint Button;\n')
+            write(root, 'names.txt', 'int\n')
+            common: list[str] = ['--root', str(root), '--standard-names', str(root / 'names.txt'),
+                                 '--output-dir', str(root / 'installed/gui_forms')]
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(consumer_shield.main(['full', '--check'] + common), 1)
+                self.assertEqual(consumer_shield.main(['full'] + common), 0)
+                self.assertEqual(consumer_shield.main(['full', '--check'] + common), 0)
+                write(root, 'include/gui_forms/label.hpp', '#pragma once\nint Label;\n')
+                self.assertEqual(consumer_shield.main(['full', '--check'] + common), 1)
 
 
 class ModuleExportsTests(unittest.TestCase):

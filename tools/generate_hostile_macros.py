@@ -13,7 +13,7 @@ own code, is covered by construction. A test translation unit includes the
 generated header and then the consumer headers, and must compile.
 
 The translation unit names the generated header in its first first-party
-include; the includes after it are the seeds (the shield's two headers are
+include; the includes after it are the seeds (the shields' headers are
 not scanned). A unit of the module path imports gui_forms after the header
 instead: its seeds are then the module's umbrellas, given with --seed. The standard headers the
 closure includes are included first, before any definition, since the

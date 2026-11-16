@@ -262,6 +262,12 @@ includes in the shield's two headers:
 headers use, and `gf_shield_end.h` restores them exactly. Nested and repeated
 includes are handled: only the outermost begin and end act.
 
+The two shield headers are generated when the SDK is built, from the headers
+it installs, and installed with them; installing fails if they are out of
+date. The C ABI headers carry a smaller shield of their own
+(`gui_forms/c/gf_c_shield_begin.h`), covering only the names they use; inside
+your shield it does nothing.
+
 ## Checked builds
 
 An SDK built with checked borrowed views (`GUI_FORMS_CHECKED_BORROWS`, the

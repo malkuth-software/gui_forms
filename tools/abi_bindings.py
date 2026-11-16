@@ -282,7 +282,7 @@ CPP_PREAMBLE = """// Generated from manifests/abi/gf_abi.json by `python3 tools/
 // the library did not serve. The wrappers add no second contract: statuses,
 // ownership and threading are gf_abi.h's.
 #pragma once
-#include "gui_forms/gf_shield_begin.h"
+#include "gui_forms/c/gf_c_shield_begin.h"
 
 #include "gui_forms/c/gf_abi.h"
 
@@ -391,9 +391,9 @@ def render_cpp(manifest: dict) -> str:
     for struct_name, constant in table_ids(manifest):
         lines += cpp_table_class(table_struct(manifest, struct_name), constant)
     lines.append(CPP_OWNERS.read_text(encoding="utf-8"))
-    # The consumer-macro shield's closing half (tools/consumer_shield.py);
+    # The C consumer-macro shield's closing half (tools/consumer_shield.py);
     # the opening half follows #pragma once in CPP_PREAMBLE.
-    lines += ["} // namespace gui_forms::abi", "#include \"gui_forms/gf_shield_end.h\"", ""]
+    lines += ["} // namespace gui_forms::abi", "#include \"gui_forms/c/gf_c_shield_end.h\"", ""]
     return "\n".join(lines)
 
 

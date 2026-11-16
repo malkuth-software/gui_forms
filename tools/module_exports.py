@@ -29,7 +29,7 @@ umbrellas reach, except:
 Types reached through exported declarations stay usable (their members can be
 named through them); only their own names stay unexported. Macros are not
 exported: a consumer who needs a GF_ macro includes the C ABI header, which
-carries the shield.
+carries the C shield.
 
     python3 -B tools/module_exports.py generate --root .
     python3 -B tools/module_exports.py check --root .

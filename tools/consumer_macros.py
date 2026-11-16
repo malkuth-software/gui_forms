@@ -27,9 +27,10 @@ define them regardless; libc++ and the Microsoft STL defend min and max the
 same way.
 
 Two tools use this module: generate_hostile_macros.py writes the hostile
-conformance header, and consumer_shield.py writes the consumer-macro shield
-(gf_shield_begin.h and gf_shield_end.h), which saves, removes and restores
-every open name around the outermost GUI.Forms header of a translation unit.
+conformance header, and consumer_shield.py writes the consumer-macro shields
+(the C shield, gf_c_shield_begin.h and gf_c_shield_end.h, and the full one,
+gf_shield_begin.h and gf_shield_end.h), which save, remove and restore every
+open name around the outermost GUI.Forms header of a translation unit.
 
 The lexer follows translation phases 1 to 3 closely enough for these
 headers: line continuations, comments, string and character literals with
@@ -50,7 +51,7 @@ import dataclasses
 import os
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 CXX_KEYWORDS: frozenset[str] = frozenset((
     'alignas alignof asm auto bool break case catch char char8_t char16_t char32_t class concept '
@@ -345,10 +346,12 @@ def resolve_include(include: Include, including: Path, roots: list[Path]) -> Pat
     return None
 
 
-# The consumer-macro shield's own headers (tools/consumer_shield.py): included
-# by every public header, made of push_macro, #undef and pop_macro lines for
-# every open name. They are resolved but never scanned.
-SHIELD_HEADERS: frozenset[str] = frozenset(('gf_shield_begin.h', 'gf_shield_end.h'))
+# The consumer-macro shields' own headers (tools/consumer_shield.py): made of
+# push_macro, #undef and pop_macro lines for every open name. They are never
+# scanned, and never recorded as system headers: the full shield lives in the
+# build tree, where no root may find it.
+SHIELD_HEADERS: frozenset[str] = frozenset(
+    ('gf_c_shield_begin.h', 'gf_c_shield_end.h', 'gf_shield_begin.h', 'gf_shield_end.h'))
 
 
 @dataclasses.dataclass
@@ -369,12 +372,14 @@ def compute_closure(seeds: list[Include], roots: list[Path], seed_directory: Pat
     pending: list[tuple[Include, Path]] = [(seed, seed_directory / 'seed') for seed in reversed(seeds)]
     while pending:
         include, including = pending.pop()
+        if PurePosixPath(include.spelling).name in SHIELD_HEADERS:
+            continue
         resolved: Path | None = resolve_include(include, including, roots)
         if resolved is None:
             if include.spelling not in closure.system_includes:
                 closure.system_includes.append(include.spelling)
             continue
-        if resolved in closure.headers or resolved.name in SHIELD_HEADERS:
+        if resolved in closure.headers:
             continue
         scan: HeaderScan = scan_header(read_source(resolved))
         closure.headers[resolved] = scan

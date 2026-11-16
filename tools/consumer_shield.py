@@ -1,18 +1,30 @@
-"""consumer_shield writes the consumer-macro shield and checks its handshake.
+"""consumer_shield writes the consumer-macro shields and checks their handshake.
 
-The shield is the fallback for consumers who cannot `import gui_forms;`: C
-programs of the C ABI, and C++ programs built without modules. It is two
-generated headers:
+A shield is the fallback for consumers who cannot `import gui_forms;`: C
+programs of the C ABI, and C++ programs built without modules. Each is two
+generated headers: begin saves (push_macro) and removes (#undef) every
+identifier of its headers that a consumer may define
+(tools/consumer_macros.py says which: the open names), and end restores each
+one (pop_macro). There are two:
 
-- gui_forms/gf_shield_begin.h saves (push_macro) and removes (#undef) every
-  identifier the consumer surface uses that a consumer may define
-  (tools/consumer_macros.py says which: the open names);
-- gui_forms/gf_shield_end.h restores each one (pop_macro).
+- the C shield, gui_forms/c/gf_c_shield_begin.h and gf_c_shield_end.h,
+  checked in: the open names of the C ABI headers (gf_abi.h,
+  gf_abi_classes.h, drawing_c_api.h) and of the C++ binding over them
+  (gf_abi.hpp), which carry it themselves;
+- the full shield, gui_forms/gf_shield_begin.h and gf_shield_end.h, the open
+  names of every header under include/gui_forms, generated at build time
+  into the build tree and installed from there (cmake/ConsumerShield.cmake).
+  A C++ consumer without modules wraps its GUI.Forms includes in it
+  (docs/user/consume-the-sdk.md).
 
-Both act only at the outermost level. A header that carries the handshake
-includes begin after its #pragma once (or inside its include guard) and end
-at its bottom. Begin opens the shield only when none is open, and end closes
-it only at the level that opened it. The level is kept on the
+The C shield's names are a subset of the full shield's: both classify with
+the whole surface's first-party macros and configuration names.
+
+Both act only at the outermost level and share one handshake, so either may
+enclose the other. A header that carries the handshake includes the C
+shield's begin after its #pragma once (or inside its include guard) and its
+end at its bottom. Begin opens the shield only when none is open, and end
+closes it only at the level that opened it. The level is kept on the
 preprocessor's own macro stack, so no counter and no per-header name is
 needed:
 
@@ -29,64 +41,98 @@ needed:
             #endif
             #pragma pop_macro("GF_SHIELD_OPENER")    the enclosing level's flag
 
-A consumer may also put begin and end around its own block of includes; its
-begin then opens the shield, and every header inside finds it open.
+Inside an open full shield a C-shield header's begin and end do nothing; a
+C shield opened by such a header closes before the header ends.
 
-The handshake is carried by the C ABI headers (gf_abi.h, gf_abi_classes.h,
-drawing_c_api.h and the generated gf_abi.hpp). C++ consumers without modules
-wrap their includes in begin and end themselves (docs/user/consume-the-sdk.md).
-
-    python3 -B tools/consumer_shield.py generate --root . \\
+    python3 -B tools/consumer_shield.py c --root . [--check] \\
         [--include-root DIR ...] [--include-directories-file FILE]
-    python3 -B tools/consumer_shield.py check --root . [...]
+    python3 -B tools/consumer_shield.py full --root . --output-dir DIR [--check] [...]
 
-generate rewrites the two headers from every header under
-include/gui_forms. check fails when they are stale, or when a handshake
-header lacks its two include lines.
+c rewrites the C shield in include/gui_forms/c; with --check it fails when
+the C shield is stale or a handshake header lacks its two include lines.
+full writes the full shield into DIR (the gui_forms directory of a build or
+install tree); with --check it fails when the files in DIR are missing or
+stale, which is how an install of a stale shield fails.
 """
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import re
 import sys
 from pathlib import Path
 
 import consumer_macros
 
-BEGIN_NAME: str = 'gf_shield_begin.h'
-END_NAME: str = 'gf_shield_end.h'
-BEGIN_LINE: str = '#include "gui_forms/gf_shield_begin.h"'
-END_LINE: str = '#include "gui_forms/gf_shield_end.h"'
 
-# The headers that carry the handshake, relative to include/. The generated
-# ones (gf_abi_classes.h, gf_abi.hpp) get it from their generators.
+@dataclasses.dataclass(frozen=True)
+class Shield:
+    """One shield's two headers, as include spellings, and its name source."""
+    begin: str
+    end: str
+    source: str
+
+
+C_SHIELD: Shield = Shield('gui_forms/c/gf_c_shield_begin.h', 'gui_forms/c/gf_c_shield_end.h',
+                          'the C ABI headers and gf_abi.hpp')
+FULL_SHIELD: Shield = Shield('gui_forms/gf_shield_begin.h', 'gui_forms/gf_shield_end.h',
+                             'every header under include/gui_forms')
+
+# The handshake: the C shield's two include lines.
+BEGIN_LINE: str = f'#include "{C_SHIELD.begin}"'
+END_LINE: str = f'#include "{C_SHIELD.end}"'
+
+# The headers that carry the handshake, relative to include/, and the seeds
+# of the C shield's names. The generated ones (gf_abi_classes.h, gf_abi.hpp)
+# get it from their generators.
 HANDSHAKE_HEADERS: tuple[str, ...] = (
     'gui_forms/c/gf_abi.h', 'gui_forms/c/gf_abi_classes.h', 'gui_forms/c/gf_abi.hpp', 'gui_forms/drawing_c_api.h')
-
-GENERATED_NOTE: str = 'Generated by tools/consumer_shield.py from every header under include/gui_forms; do not edit.'
 
 PRAGMA_ONCE = re.compile(r'^[ \t]*#[ \t]*pragma[ \t]+once\b[^\n]*\n?', re.MULTILINE)
 DIRECTIVE = re.compile(r'^[ \t]*#[ \t]*(\w+)[ \t]*(\w*)', re.MULTILINE)
 
 
+def surface_closure(include: Path, roots: list[Path]) -> consumer_macros.Closure:
+    seeds: list[consumer_macros.Include] = consumer_macros.surface_seeds(include / 'gui_forms', include)
+    return consumer_macros.compute_closure(seeds, roots, include)
+
+
 def shield_names(root: Path, extra_roots: list[Path], standard_names: frozenset[str]) -> list[str]:
-    """Every open identifier of the consumer surface, sorted."""
+    """The full shield's names: every open identifier of the consumer surface, sorted."""
     include: Path = root / 'include'
     roots: list[Path] = [include.resolve()] + extra_roots
-    seeds: list[consumer_macros.Include] = consumer_macros.surface_seeds(include / 'gui_forms', include)
-    closure: consumer_macros.Closure = consumer_macros.compute_closure(seeds, roots, include)
+    closure: consumer_macros.Closure = surface_closure(include, roots)
     classification: consumer_macros.Classification = consumer_macros.classify(closure.headers, standard_names)
     return sorted(classification.hostile)
 
 
-def render_begin(names: list[str]) -> str:
+def c_shield_names(root: Path, extra_roots: list[Path], standard_names: frozenset[str]) -> list[str]:
+    """The C shield's names: the open identifiers the handshake headers reach, sorted.
+
+    Classified with the whole surface's first-party macros and configuration
+    names, so that they are a subset of shield_names and the same names the
+    hostile-macro units of the C ABI and the binding define.
+    """
+    include: Path = root / 'include'
+    roots: list[Path] = [include.resolve()] + extra_roots
+    defined, conditions = consumer_macros.surface_exclusions(surface_closure(include, roots))
+    seeds: list[consumer_macros.Include] = []
+    for relative in HANDSHAKE_HEADERS:
+        seeds.append(consumer_macros.Include(relative, False, 1))
+    closure: consumer_macros.Closure = consumer_macros.compute_closure(seeds, roots, include)
+    classification: consumer_macros.Classification = consumer_macros.classify(
+        closure.headers, standard_names, first_party_macros=defined, configuration=conditions)
+    return sorted(classification.hostile)
+
+
+def render_begin(shield: Shield, names: list[str]) -> str:
     lines: list[str] = [
-        f'/* {GENERATED_NOTE}',
+        f'/* Generated by tools/consumer_shield.py from {shield.source}; do not edit.',
         '   The consumer-macro shield, opening half: saves and removes every macro a',
-        f'   consumer may have defined for one of the {len(names)} open names the',
-        '   consumer surface uses, at the outermost GUI.Forms header only',
+        f'   consumer may have defined for one of the {len(names)} open names of',
+        f'   {shield.source}, at the outermost level only',
         '   (tools/consumer_shield.py explains the handshake). No include guard:',
-        '   it is included at the top of every header that carries the handshake. */',
+        '   it acts at every inclusion. */',
         '#pragma push_macro("GF_SHIELD_OPENER")',
         '#undef GF_SHIELD_OPENER',
         '#ifndef GF_SHIELD_ACTIVE',
@@ -100,11 +146,12 @@ def render_begin(names: list[str]) -> str:
     return '\n'.join(lines) + '\n'
 
 
-def render_end(names: list[str]) -> str:
+def render_end(shield: Shield, names: list[str]) -> str:
+    begin_name: str = Path(shield.begin).name
     lines: list[str] = [
-        f'/* {GENERATED_NOTE}',
+        f'/* Generated by tools/consumer_shield.py from {shield.source}; do not edit.',
         '   The consumer-macro shield, closing half: restores the consumer\'s macros',
-        '   at the level that opened the shield (gf_shield_begin.h). No include guard. */',
+        f'   at the level that opened the shield ({begin_name}). No include guard. */',
         '#ifdef GF_SHIELD_OPENER',
     ]
     for name in reversed(names):
@@ -214,10 +261,33 @@ def read_roots(arguments: argparse.Namespace) -> list[Path]:
     return roots
 
 
+def compare(expected: dict[Path, str], write: bool, touch: bool, regenerate: str) -> int:
+    """Writes each changed file, or reports it stale; 1 when one was stale.
+
+    touch writes unchanged files too, so a build rule's outputs are never
+    older than its inputs.
+    """
+    failed: int = 0
+    for path, text in expected.items():
+        current: str | None = path.read_text(encoding='utf-8') if path.is_file() else None
+        if current == text and not (write and touch):
+            continue
+        if write:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding='utf-8', newline='\n')
+        else:
+            state: str = 'stale' if current is not None else 'missing'
+            print(f'consumer_shield: {path} is {state}; {regenerate}', file=sys.stderr)
+            failed = 1
+    return failed
+
+
 def main(argument_list: list[str]) -> int:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    parser.add_argument('command', choices=('generate', 'check'))
+    parser.add_argument('command', choices=('c', 'full'))
     parser.add_argument('--root', type=Path, required=True, help='the GUI.Forms checkout')
+    parser.add_argument('--output-dir', type=Path, help='full: the gui_forms directory to write or check')
+    parser.add_argument('--check', action='store_true', help='report stale files instead of writing them')
     parser.add_argument('--include-root', action='append', default=[])
     parser.add_argument('--include-directories-file', type=Path)
     parser.add_argument('--standard-names', type=Path)
@@ -226,22 +296,25 @@ def main(argument_list: list[str]) -> int:
     root: Path = arguments.root.resolve()
     names_file: Path = arguments.standard_names or root / 'tests/hostile_macros/standard_library_names.txt'
     standard_names: frozenset[str] = consumer_macros.load_standard_names(names_file)
-    names: list[str] = shield_names(root, read_roots(arguments), standard_names)
-    expected: dict[Path, str] = {
-        root / 'include/gui_forms' / BEGIN_NAME: render_begin(names),
-        root / 'include/gui_forms' / END_NAME: render_end(names),
+    roots: list[Path] = read_roots(arguments)
+    if arguments.command == 'full':
+        if arguments.output_dir is None:
+            parser.error('full needs --output-dir')
+        names: list[str] = shield_names(root, roots, standard_names)
+        directory: Path = arguments.output_dir
+        expected: dict[Path, str] = {
+            directory / Path(FULL_SHIELD.begin).name: render_begin(FULL_SHIELD, names),
+            directory / Path(FULL_SHIELD.end).name: render_end(FULL_SHIELD, names),
+        }
+        return compare(expected, not arguments.check, True,
+                       'rebuild the consumer shield (target gui_forms_consumer_shield) and install again')
+    names = c_shield_names(root, roots, standard_names)
+    expected = {
+        root / 'include' / C_SHIELD.begin: render_begin(C_SHIELD, names),
+        root / 'include' / C_SHIELD.end: render_end(C_SHIELD, names),
     }
-    failed: int = 0
-    for path, text in expected.items():
-        current: str | None = path.read_text(encoding='utf-8') if path.is_file() else None
-        if current == text:
-            continue
-        if arguments.command == 'generate':
-            path.write_text(text, encoding='utf-8', newline='\n')
-        else:
-            print(f'consumer_shield: {path.name} is stale; run `python3 -B tools/consumer_shield.py generate`',
-                  file=sys.stderr)
-            failed = 1
+    failed: int = compare(expected, not arguments.check, False,
+                          'run `python3 -B tools/consumer_shield.py c --root .`')
     for relative in HANDSHAKE_HEADERS:
         header: Path = root / 'include' / relative
         if not has_handshake(header.read_text(encoding='utf-8')):
