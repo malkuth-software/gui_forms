@@ -8,7 +8,10 @@
 
 // The same inputs give the same distances and coverage on every host: no
 // fused multiply-add (T2 plan, "Numerics"); sqrt is exact in IEEE 754.
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 

@@ -16,6 +16,8 @@
 
 // A spring's overshoot is part of the curve the engine runs, so it is
 // computed without fused multiply-add.
+// Off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC says
+// (CMakeLists.txt, "Floating-point contraction").
 #if defined(__clang__)
 #pragma clang fp contract(off)
 #endif

@@ -139,8 +139,9 @@ void test_placement() {
 
     linear.stops = {stop_at(red, -0.5), stop_at(blue, 1.5)};
     const MaterialFillLayer clipped = resolved(linear, Size{});
-    require(clipped.stops.size() == 2U && clipped.stops[0].color == Color::rgba(191, 0, 64) &&
-                clipped.stops[1].color == Color::rgba(64, 0, 191),
+    // A quarter and three quarters of the way, mixed in linear light.
+    require(clipped.stops.size() == 2U && clipped.stops[0].color == Color::rgba(225, 0, 137) &&
+                clipped.stops[1].color == Color::rgba(137, 0, 225),
             "stops past the ends are clipped to the colours at the ends");
 
     linear.stops = {stop(red)};
@@ -178,8 +179,9 @@ void test_linear_geometry() {
                                                         GradientSpreadMode::repeat),
             "a repeating gradient over the whole line keeps its CSS angle");
     repeating.stops = {stop_at(red, 0.5), stop_at(blue, 0.5)};
-    require(resolved(repeating, Size{40.0, 24.0}) == MaterialFillLayer::solid(Color::rgba(128, 0, 128)),
-            "a repeating gradient of no length is CSS's average colour");
+    // The average in linear light, as the gradient interpolates.
+    require(resolved(repeating, Size{40.0, 24.0}) == MaterialFillLayer::solid(Color::rgba(188, 0, 188)),
+            "a repeating gradient of no length is the gradient's average colour");
 }
 
 void test_radial_geometry() {
@@ -213,7 +215,8 @@ void test_radial_geometry() {
     rings.extent = RadialExtent::lengths;
     rings.radius_x = BoxLength{0.0, 100.0};
     const MaterialFillLayer ringed = resolved(rings, Size{40.0, 24.0});
-    const Color middle = Color::rgba(128, 0, 128);
+    // Red and blue mixed half and half in linear light.
+    const Color middle = Color::rgba(188, 0, 188);
     require(ringed.spread == GradientSpreadMode::repeat && ringed.radii == (Size{50.0, 50.0}) &&
                 ringed.stops == stops_of({{0.0, middle}, {0.5, blue}, {0.5 + separation, red}, {1.0, middle}}),
             "a repeating period that begins off the centre is rotated to begin there");
@@ -1160,6 +1163,9 @@ void test_refusals() {
         {"#a { filter: tritone(black, grey, white) tritone(black, grey, white) }",
          DiagnosticCode::value_form_not_admitted},
         {"#a { filter: drop-shadow(1px 1px red) tritone(black, grey, white) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: drop-shadow(1px 1px red) duotone(black, white) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: duotone(black, white) tritone(black, grey, white) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: duotone(black, white) saturate(2) }", DiagnosticCode::value_form_not_admitted},
         {"#a { filter: duotone(black) }", DiagnosticCode::value_syntax},
         {"#a { filter: fill(1px) }", DiagnosticCode::value_wrong_kind},
         {"#a { filter: tritone(black grey white) }", DiagnosticCode::value_syntax},
@@ -1530,8 +1536,11 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     GateRow duotoned{};
     duotoned.declarations = "background: red; filter: duotone(#000000, #ffffff)";
     duotoned.material.fills = {MaterialFillLayer::solid(red)};
+    // duotone() is the luminance matrix and a two-colour table, mixed in
+    // linear light as tritone()'s is.
     duotoned.material.colour_filter =
-        MaterialColourMatrix::duotone(Color::rgba(0, 0, 0), Color::rgba(255, 255, 255));
+        MaterialColourFilter(MaterialColourMatrix::luminance(),
+                             MaterialColourTable::duotone(Color::rgba(0, 0, 0), Color::rgba(255, 255, 255)));
     rows.push_back(duotoned);
     GateRow tritoned{};
     tritoned.declarations = "background: red; filter: tritone(blue, lime, red) brightness(0.5)";

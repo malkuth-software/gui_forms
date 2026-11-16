@@ -1,13 +1,16 @@
 // ColorPicker's colour areas drawn through theme parts (design language
 // 8.5, owner decision W-7; the paint census admits no content exemption):
 // the field, hue track, alpha track and swatch are well parts carrying
-// content colours, and the content rules the default and familiar themes
-// compile (content_parts_sheet) draw them as gradients over a
-// checkerboard, with currentcolor naming each part's content colour. Drawn
-// through the offscreen raster: the field runs white to the hue across and
-// to black down and follows a new hue, the spectrum runs red to cyan at its
-// middle, an opaque swatch shows the value and a transparent one the
-// checkerboard. In forced high contrast (ruling 9) the content keeps its
+// content colours. The content rules the default and familiar themes
+// compile (content_parts_sheet) draw the alpha track and the swatch as
+// gradients over a checkerboard, with currentcolor naming each part's
+// content colour; the field and the hue track are the picker's own pixels,
+// drawn from HSV through image parts under transparent wells, so each pixel
+// is exactly the colour picked there (linear-light gradients would not be).
+// Drawn through the offscreen raster: the field runs white to the hue across
+// and to black down, exactly as color_of gives, and follows a new hue, the
+// spectrum runs red to cyan at its middle, an opaque swatch shows the value
+// and a transparent one the checkerboard. In forced high contrast (ruling 9) the content keeps its
 // colours inside high contrast's frame.
 
 #include "../src/core/theme/theme_compiler/content_parts_sheet.hpp"
@@ -21,6 +24,7 @@
 #include "gui_forms/window/window.hpp"
 #include "support/frame_wake.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -151,6 +155,31 @@ void test_content_parts() {
     require(high(hue_top.red) && low(hue_top.green) && low(hue_top.blue), "the spectrum starts red");
     const Pixel hue_middle = pixel_at(*red, hue.x + hue.width * 0.5, hue.y + hue.height * 0.5);
     require(low(hue_middle.red) && high(hue_middle.green) && high(hue_middle.blue), "the spectrum's middle is cyan");
+    // Inside the field, away from its edges and the thumb, each pixel is
+    // color_of at its centre: the raster's first pixel lies on the device
+    // pixel nearest the field's corner, one pixel per unit at scale 1.
+    const double field_left = std::floor(field.x + 0.5);
+    const double field_top = std::floor(field.y + 0.5);
+    const double field_columns = std::ceil(field.width);
+    const double field_rows = std::ceil(field.height);
+    const double inside_column = std::floor(field_columns * 0.3);
+    const double inside_row = std::floor(field_rows * 0.6);
+    const Pixel field_inside = pixel_at(*red, field_left + inside_column, field_top + inside_row);
+    const Color expected_inside = ColorPicker::color_of(
+        ColorPickerHsv{0.0, (inside_column + 0.5) / field_columns, 1.0 - (inside_row + 0.5) / field_rows}, 255U);
+    require(field_inside.red == expected_inside.red && field_inside.green == expected_inside.green &&
+                field_inside.blue == expected_inside.blue,
+            "the field's pixel is exactly the HSV colour picked there");
+    const double strip_left = std::floor(hue.x + 0.5);
+    const double strip_top = std::floor(hue.y + 0.5);
+    const double strip_rows = std::ceil(hue.height);
+    const double strip_row = std::floor(strip_rows * 0.4);
+    const Pixel strip_inside = pixel_at(*red, strip_left + std::floor(std::ceil(hue.width) * 0.5), strip_top + strip_row);
+    const Color expected_strip =
+        ColorPicker::color_of(ColorPickerHsv{(strip_row + 0.5) / strip_rows * 360.0, 1.0, 1.0}, 255U);
+    require(strip_inside.red == expected_strip.red && strip_inside.green == expected_strip.green &&
+                strip_inside.blue == expected_strip.blue,
+            "the hue strip's pixel is exactly the HSV colour picked there");
     const Pixel swatch_red = pixel_at(*red, swatch.x + swatch.width * 0.5, swatch.y + swatch.height * 0.5);
     require(high(swatch_red.red) && low(swatch_red.green) && low(swatch_red.blue), "an opaque swatch shows the value");
 

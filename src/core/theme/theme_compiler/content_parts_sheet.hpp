@@ -12,15 +12,19 @@ namespace gui_forms::detail {
 // PartPaint::content_color, which the rules' currentcolor names: the
 // field's pure hue, the alpha ramp's colour made opaque and the swatch's
 // value. The checkerboard behind a translucent colour has 5-unit squares.
+// The field and the hue strip are drawn by the picker itself, pixel by pixel
+// from HSV (ColorPicker::paint_hsv_areas): a picker shows the exact colour
+// under the pointer, which a gradient mixing in linear light would not. Their
+// rules leave the background transparent, so the well's frame and edges draw
+// over those pixels.
 inline constexpr std::string_view content_parts_sheet = R"css(
-/* ColorPicker's content (W-7). The saturation-brightness field: white to
-   the hue across, then transparent to black down. */
+/* ColorPicker's content (W-7). The saturation-brightness field and the hue
+   spectrum are the picker's own pixels, drawn from HSV under the well. */
 color-picker::part(field) {
-  background: linear-gradient(to bottom, transparent, black), linear-gradient(to right, white, currentcolor);
+  background: transparent;
 }
-/* The hue spectrum: 0 degrees at the top, 360 at the bottom. */
 color-picker::part(hue-track) {
-  background: linear-gradient(to bottom, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+  background: transparent;
 }
 /* The alpha ramp: the colour, opaque at the top, over the checkerboard. */
 color-picker::part(alpha-track) {

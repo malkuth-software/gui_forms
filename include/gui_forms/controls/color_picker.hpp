@@ -8,6 +8,8 @@
 #include <span>
 #include <vector>
 
+#include <stxlib/unique.hpp>
+
 namespace gui_forms {
 
 // The parts of a ColorPicker a pointer press or the keyboard edits.
@@ -139,12 +141,20 @@ private:
     void pick(ColorPickerPart part, Point local);
     // Moves the thumbs to `next` with `alpha` and writes the value.
     void apply(ColorPickerHsv next, std::uint8_t alpha);
+    // The field's and the hue strip's pixels, from HSV (see on_paint).
+    void paint_hsv_areas(Painter& painter, const Layout& layout, const AnatomyStateSet& states);
 
     ColorPickerHsv hsv_{};
     ColorPickerPart dragged_{ColorPickerPart::none};
     bool focused_{};
     // Set while apply writes the value, so written keeps the HSV position.
     bool picking_{};
+    // The saturation-brightness field's and the hue strip's pixels, at the
+    // display scale they were drawn for (defined in color_picker.cpp, since
+    // the rasters are shared with the paint recordings that show them).
+    // Empty until the first paint makes it.
+    struct HsvPixels;
+    stxlib::Unique<HsvPixels> hsv_pixels_;
     Event<Color> value_changed_;
     Event<Color> value_committed_;
     // property_codemod begin ColorPicker (tools/property_families/color_picker.json; generated, do not edit)

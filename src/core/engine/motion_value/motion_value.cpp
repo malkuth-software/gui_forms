@@ -15,6 +15,8 @@
 // The same sampling times give the same values on every host: the closed
 // forms use only + − × ÷, sqrt and the engine's own exponential, logarithm,
 // sine and cosine, without fused multiply-add (T2 plan, "Numerics").
+// Off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC says
+// (CMakeLists.txt, "Floating-point contraction").
 #if defined(__clang__)
 #pragma clang fp contract(off)
 #endif

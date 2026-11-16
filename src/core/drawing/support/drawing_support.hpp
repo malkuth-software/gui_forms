@@ -2,6 +2,7 @@
 
 #include "gui_forms/drawing.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 
 #include <algorithm>
 #include <array>
@@ -309,20 +310,19 @@ void require_blend_positions(std::span<const double> positions,
     }
 }
 
-[[nodiscard]] std::uint8_t interpolate_channel(
-    std::uint8_t left, std::uint8_t right, double amount) noexcept {
-    return static_cast<std::uint8_t>(std::lround(
-        static_cast<double>(left) +
-        (static_cast<double>(right) - left) * amount));
-}
-
+// A gradient blend's colour `amount` of the way from `first` to `second`
+// (LinearGradientBrush::set_blend), interpolated in linear light as every
+// gradient is (owner, 2026-11-16; gui_forms/types/linear_light/linear_light.hpp).
+// An empty colour is taken as transparent black.
 [[nodiscard]] Color interpolate_color(Color first, Color second,
                                       double amount) noexcept {
-    return Color::from_argb(
-        interpolate_channel(first.alpha(), second.alpha(), amount),
-        interpolate_channel(first.red(), second.red(), amount),
-        interpolate_channel(first.green(), second.green(), amount),
-        interpolate_channel(first.blue(), second.blue(), amount));
+    const gui_forms::Color from = first.is_empty() ? gui_forms::Color{0U, 0U, 0U, 0U}
+        : gui_forms::Color{first.red(), first.green(), first.blue(), first.alpha()};
+    const gui_forms::Color to = second.is_empty() ? gui_forms::Color{0U, 0U, 0U, 0U}
+        : gui_forms::Color{second.red(), second.green(), second.blue(), second.alpha()};
+    const gui_forms::Color mixed =
+        gui_forms::interpolate_linear_light(from, to, gui_forms::linear_light_weight(amount));
+    return Color::from_argb(mixed.alpha, mixed.red, mixed.green, mixed.blue);
 }
 
 [[nodiscard]] std::uint8_t premultiply(std::uint8_t channel,

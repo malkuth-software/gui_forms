@@ -79,11 +79,18 @@ def toolkit_options(source: Path, prefix: Path, gallery: bool, tests: bool) -> l
     prefix as the install prefix; gallery and tests switch the demonstration
     programs and the test suite. tools/build_sdk.py configures with these
     too (gallery and tests off), so the SDK a consumer builds is this build.
+
+    A build with tests is a reference and conformance build: it compiles with
+    the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, no floating-
+    point contraction; owner, 2026-11-16), which the engine gate, the
+    pixel-hash tests and the cross-host comparisons pin. A build without
+    tests (the SDK, profiling) is a deployment build and leaves contraction
+    on.
     """
     gallery_option: str = 'ON' if gallery else 'OFF'
     tests_option: str = 'ON' if tests else 'OFF'
     return ['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_INSTALL_LIBDIR=lib',
             '-DCMAKE_TOOLCHAIN_FILE=' + str(source / 'cmake/llvm22.cmake'),
             '-DCMAKE_POSITION_INDEPENDENT_CODE=ON', f'-DGUI_FORMS_BUILD_GALLERY={gallery_option}',
-            f'-DGUI_FORMS_BUILD_TESTS={tests_option}', '-DGUI_FORMS_BUILD_AUDIO=ON',
-            '-DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx', f'-DCMAKE_INSTALL_PREFIX={prefix}']
+            f'-DGUI_FORMS_BUILD_TESTS={tests_option}', f'-DGUI_FORMS_REFERENCE_ARITHMETIC={tests_option}',
+            '-DGUI_FORMS_BUILD_AUDIO=ON', '-DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx', f'-DCMAKE_INSTALL_PREFIX={prefix}']

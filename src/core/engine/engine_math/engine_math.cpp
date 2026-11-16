@@ -10,6 +10,8 @@
 // Identical bits on every host need the same operations in the same order.
 // Clang contracts a·b + c into a fused multiply-add by default on arm64 and
 // not on baseline x86-64, so contraction is off for this translation unit.
+// Off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC says
+// (CMakeLists.txt, "Floating-point contraction").
 #if defined(__clang__)
 #pragma clang fp contract(off)
 #endif

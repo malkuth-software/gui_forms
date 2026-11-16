@@ -17,6 +17,8 @@ premultiplied by `stx_png`), the PNG encoder's input option, and the
 clipboard.
 
 **Space.** Blending happens on the encoded sRGB values, not in linear light.
+Gradients are the exception the owner chose on 2026-11-16 ("im okay with
+linear"): their stops interpolate in linear light (section 3).
 Every source is sRGB: the Skia surface, images and gradients are tagged
 `SkColorSpace::MakeSRGB()`, so Skia converts nothing. PNG decode converts
 gAMA/cHRM/cICP content to sRGB once, at decode (`src/core/image/png_color`).
@@ -33,7 +35,8 @@ That is computation of a colour, not blending of two layers.
 | Text coverage (`composite_text_coverage`, ADR-004) | integer, premultiplied, each channel rounded once: `(s·a + d·(255−a) + 127) / 255` | yes |
 | Part rasters, baked materials, isolated paint groups (`composite_part_raster`) | integer: weight `w` = opacity·clip coverage, `s' = (s·w + 32640) / 65280`, then source-over; plus, multiply, screen and copy as `text_composite.hpp` states; an opaque raster at full weight is copied exactly | yes |
 | Rectangle fills, rounded rectangles, paths, strokes, shadows, gradients, images, patterns (Skia CPU raster pipeline) | Skia's: float (highp) or 16-bit fixed (lowp) stages, chosen per draw; source-over unless a copy | no: see section 2 |
-| Gradients (Skia) | interpolated premultiplied, in sRGB-encoded space (`fInPremul = kYes`, `ColorSpace::kSRGB`) | no |
+| Gradients (Skia: Painter's linear, radial, focal, conic and spread fills; the executor's GUI.Drawing brushes) | the stops expanded first (`expand_linear_light_stops`, `gui_forms/types/linear_light`): colours added between stops wherever the linear-light interpolation leaves Skia's premultiplied sRGB chord by more than half a step, computed in integers; Skia then interpolates the expanded stops premultiplied in sRGB (`fInPremul = kYes`, `ColorSpace::kSRGB`), within 1.3 steps of the exact colour | stop colours yes; Skia's per-pixel interpolation no |
+| Gradients (engine: material kernel, presets, relief faces, authored gradients' clipped stops and averages, duotone and tritone tables, GUI.Drawing blend factors; not the colour picker, section 5) | premultiplied in linear light by `interpolate_linear_light`: integer tables both ways, no libm | yes |
 | Opaque live surfaces, opaque device tiles | row copies (`writePixels`, `copy_opaque_tile`) | yes |
 | Theme engine colour computation | float in linear light, tables both ways; the authored gradient avoids fused multiply-add on purpose | yes, where FMA is kept out |
 
@@ -54,10 +57,21 @@ the bytes as they are (not checked for the Linux host's other paths).
    Skia-drawn content are per-architecture today.
 2. **Fused multiply-add.** Skia's float stages use `mad`, which is a fused
    operation on arm64 and on x86 only where the build enables FMA, so float
-   results differ between architectures. Our own float code admits the same
-   difference wherever the compiler contracts (`-ffp-contract` is not
-   pinned in our flags). Before 1.0 these differences are logged, not
-   fixed (owner direction on FMA determinism).
+   results differ between architectures. Our own float code follows the
+   build (owner, 2026-11-16: "turn it off for referencing, and leave it on
+   for actual deployment"): with `GUI_FORMS_REFERENCE_ARITHMETIC=ON` (the
+   reference and conformance builds: `tools/ci_build.py`'s native and
+   sanitizer trees, the engine gate, the pixel-hash tests and the
+   cross-host comparisons) every first-party target compiles with
+   `-ffp-contract=off` and the raster, engine, material, theme-kernel and
+   effect sources add the pragma; with it OFF (deployment: the SDK, the
+   release packages' consumers, profiling) the compiler contracts as it
+   chooses (the SDK, profiling, and the release programs job that builds
+   what ships, section 5, item 5). `engine_math` (its error bounds) and the
+   value paths (parsed text, layout lengths, theme values, motion) stay
+   unfused in every build (section 5, item 4);
+   stx_skia sets its own `-ffp-contract=off`. Skia's explicit fused stages
+   are logged, not fixed, before 1.0.
 3. **Text where pixels cannot be addressed.** Where the canvas pixels are
    not addressable, Skia blends text coverage as a mask instead of
    `composite_text_coverage` (`skia_raster.hpp`). The window raster is
@@ -79,13 +93,15 @@ the bytes as they are (not checked for the Linux host's other paths).
 > `s' = (s·w + 32640) / 65280`, then `out = s' + (d·(255 − α') + 127) / 255`.
 > A source whose every pixel the writer has proved opaque, at full weight
 > and full coverage, is a copy, and must produce the same bytes as the
-> blend would. Colour is computed (lighting, gradients' stops, colour
-> profiles) in linear light where a stage says so, and stored back as sRGB
-> bytes before it is composited. Our engine's output is the reference;
+> blend would. Colour is computed (lighting, gradients, colour profiles) in
+> linear light where a stage says so, and stored back as sRGB bytes before
+> it is composited; every gradient interpolates its stops premultiplied in
+> linear light, by integer tables. Our engine's output is the reference;
 > Skia's, a host's and a GPU's are compared against it, never the other
-> way round. Floating-point differences between architectures (fused
-> multiply-add, SIMD width) are logged against the reference before 1.0,
-> not fixed.**
+> way round. The reference is computed with the reference arithmetic (no
+> floating-point contraction); deployment builds may fuse. Remaining
+> floating-point differences between architectures (Skia's fused stages,
+> SIMD width) are logged against the reference before 1.0, not fixed.**
 
 What follows from it, for the raster coder and the apply step:
 
@@ -98,10 +114,16 @@ What follows from it, for the raster coder and the apply step:
   never one the compositor guesses per pixel. Proving it lets the
   compositor choose the copy kernel before the loop (house style §8), and
   the copy is exact by the rule above, so it moves no bytes.
-- Gradients interpolate premultiplied in sRGB-encoded space (as Skia is
-  configured today), so moving a gradient from Skia to our engine keeps its
-  look; interpolation in linear light would be a visible change and an
-  owner decision.
+- Gradients interpolate premultiplied in linear light (owner, 2026-11-16):
+  each pair of neighbouring stops is decoded from sRGB to 16-bit linear
+  light by table, mixed premultiplied, and encoded back to the nearest sRGB
+  byte by binary search over 255 exact thresholds
+  (`tools/linear_light_tables.py`, rational arithmetic, no libm). A kernel
+  that draws a gradient itself calls `interpolate_linear_light`; one that
+  hands stops to a renderer interpolating in sRGB hands it
+  `expand_linear_light_stops`'s stops. Moving a gradient from Skia to our
+  engine keeps its look within the expansion's 1.3 steps. Gradient pixels
+  moved once with this change.
 - Hosts present our bytes. Colour management for the display is the host's
   business and outside the pixel contract; tests hash bytes, not screens.
 
@@ -115,9 +137,34 @@ opaque images drawn blended (which the decode flag removes). The numbers
 come from `tools/blend_study.py` on the M4; this note is updated with them
 once the integrator has run it.
 
-## 5. Open points for the owner
+## 5. Owner decisions (2026-11-16)
 
-1. Whether gradients should ever interpolate in linear light (a visible
-   change; today they interpolate in sRGB-encoded space).
-2. Whether to pin `-ffp-contract=off` for our own float code now, ahead of
-   the post-1.0 FMA work, so only Skia's differences remain to be logged.
+1. Linear light: "im okay with linear." Every gradient interpolates in
+   linear light (section 3); gradient pixels moved once.
+2. Contraction: "turn it off for referencing, and leave it on for actual
+   deployment." `GUI_FORMS_REFERENCE_ARITHMETIC` (default OFF) compiles the
+   reference and conformance builds without contraction; deployment builds
+   contract (section 2, item 2; CMakeLists.txt, "Floating-point
+   contraction").
+
+Follow-ups (coordinator, 2026-11-16):
+
+3. `duotone()` lowers as the luminance matrix and a two-colour table
+   (`MaterialColourTable::duotone`), as `tritone()` does, so it mixes in
+   linear light too. The `MaterialColourMatrix::duotone` matrix remains for
+   C++ callers, as a straight line on sRGB-encoded values.
+4. The value paths stay unfused in every build, accepted: `engine_math`
+   (its stated error bounds) and `engine_expression`, `theme_value`,
+   `value_text`, `scrub_gesture`, `layout_style_reader`,
+   `theme_motion_lowering` and `motion_value`, which produce numbers
+   (parsed text, theme values, layout lengths, motion samples), not
+   pixels, so a deployment build computes the same values as a reference
+   one.
+5. Shipped programs are deployment builds: the release programs job
+   configures `GUI_FORMS_REFERENCE_ARITHMETIC=OFF` and runs every test but
+   those labelled `reference_arithmetic` (pinned pixel hashes, cross-host
+   comparisons), which the native, sanitizer and engine-gate jobs run in
+   reference builds.
+6. The colour picker is exempt from linear light: a picker must show the
+   exact colour under the pointer, so its saturation/value field and hue
+   strip are drawn per pixel from HSV, not as gradients.

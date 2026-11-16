@@ -28,6 +28,8 @@
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
+#include "gui_forms/types/linear_light/linear_light_stops.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
 #if defined(_WIN32)
@@ -82,6 +84,14 @@ namespace {
 [[nodiscard]] SkColor to_sk_color(Color color) noexcept {
     return color.is_empty() ? SK_ColorTRANSPARENT :
         SkColorSetARGB(color.alpha(), color.red(), color.green(), color.blue());
+}
+
+// The colour as a gradient stop's, an empty colour as transparent (as
+// to_sk_color draws it).
+[[nodiscard]] gui_forms::Color forms_color_of(Color color) noexcept {
+    if (color.is_empty()) return gui_forms::Color{0U, 0U, 0U, 0U};
+    const gui_forms::Color forms{color.red(), color.green(), color.blue(), color.alpha()};
+    return forms;
 }
 
 [[nodiscard]] std::uint8_t premultiply(std::uint8_t channel,
@@ -494,25 +504,40 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         return true;
     }
 
-    std::vector<SkColor4f> colors;
-    std::vector<float> positions;
-    colors.reserve(brush.colors.size());
-    positions.reserve(brush.positions.size());
-    for (const Color color : brush.colors) {
-        colors.push_back(SkColor4f::FromColor(to_sk_color(color)));
-    }
-    for (const double position : brush.positions) {
-        positions.push_back(static_cast<SkScalar>(position));
-    }
-    if (colors.size() < 2U || colors.size() != positions.size()) {
+    if (brush.colors.size() < 2U || brush.colors.size() != brush.positions.size()) {
         paint.setColor(to_sk_color(brush.primary));
         return true;
+    }
+    // Gradients interpolate in linear light (owner, 2026-11-16;
+    // gui_forms/types/linear_light/linear_light.hpp), as SkiaRaster's do:
+    // the stops are expanded with the linear-light colours between them,
+    // which Skia then interpolates premultiplied in sRGB. Room for the
+    // brush's own stops and for those the expansion adds.
+    std::vector<gui_forms::GradientStop> stops;
+    stops.reserve(brush.colors.size());
+    for (std::size_t index = 0U; index < brush.colors.size(); ++index) {
+        stops.push_back(gui_forms::GradientStop{brush.positions[index], forms_color_of(brush.colors[index])});
+    }
+    std::vector<gui_forms::GradientStop> expanded(stops.size() + gui_forms::maximum_linear_light_stops);
+    const stxlib::View<gui_forms::GradientStop> stop_view(stops.data(), stops.size());
+    const stxlib::MutableView<gui_forms::GradientStop> expanded_view(expanded.data(), expanded.size());
+    const std::size_t count = gui_forms::expand_linear_light_stops(stop_view, expanded_view);
+    std::vector<SkColor4f> colors;
+    std::vector<float> positions;
+    colors.reserve(count);
+    positions.reserve(count);
+    for (std::size_t index = 0U; index < count; ++index) {
+        colors.push_back(SkColor4f::FromColor(to_sk_color(expanded[index].color)));
+        positions.push_back(static_cast<SkScalar>(expanded[index].offset));
     }
     const SkGradient::Colors gradient_colors(
         SkSpan<const SkColor4f>(colors.data(), colors.size()),
         SkSpan<const float>(positions.data(), positions.size()),
         tile_mode(brush.wrap_mode), SkColorSpace::MakeSRGB());
-    const SkGradient gradient(gradient_colors, SkGradient::Interpolation{});
+    SkGradient::Interpolation interpolation;
+    interpolation.fInPremul = SkGradient::Interpolation::InPremul::kYes;
+    interpolation.fColorSpace = SkGradient::Interpolation::ColorSpace::kSRGB;
+    const SkGradient gradient(gradient_colors, interpolation);
     if (brush.kind == BrushKind::conic_gradient) {
         // One full turn clockwise (y down) from the start angle.
         const double start = std::fmod(brush.angle, 360.0);

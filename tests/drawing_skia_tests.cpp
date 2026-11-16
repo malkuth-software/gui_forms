@@ -240,8 +240,9 @@ void radial_gradient_brush_rasterizes() {
     const RasterResult result = executor.execute(recorder, target);
     CHECK(result);
     CHECK(result.commands_executed == 3U);
-    // The centre is red; past the circle the clamp holds blue.
-    CHECK(target.get_pixel(16, 16).red() > 220U && target.get_pixel(16, 16).blue() < 35U);
+    // The centre is red; past the circle the clamp holds blue. The centre
+    // pixel lies at t = 0.09, where linear light gives blue about 84.
+    CHECK(target.get_pixel(16, 16).red() > 220U && target.get_pixel(16, 16).blue() < 100U);
     CHECK(target.get_pixel(29, 16).blue() > 240U && target.get_pixel(29, 16).red() < 15U);
     // Repeated, the colours start again past the circle: red-dominant
     // just beyond the radius, where the clamp gave blue.
@@ -263,8 +264,10 @@ void elliptical_radial_gradient_brush_rasterizes() {
     Bitmap target(32, 32);
     const RasterResult result = executor.execute(recorder, target);
     CHECK(result);
-    CHECK(target.get_pixel(16, 16).red() > 220U && target.get_pixel(16, 16).blue() < 35U);
-    CHECK(target.get_pixel(28, 16).red() > 30U && target.get_pixel(28, 16).blue() < 230U);
+    // In linear light: the centre pixel (t = 0.13) has blue about 100, and
+    // t = 0.78 has red about 129 and blue about 229, short of the clamp's 255.
+    CHECK(target.get_pixel(16, 16).red() > 220U && target.get_pixel(16, 16).blue() < 115U);
+    CHECK(target.get_pixel(28, 16).red() > 30U && target.get_pixel(28, 16).blue() < 245U);
     CHECK(target.get_pixel(16, 22).blue() > 240U && target.get_pixel(16, 22).red() < 15U);
     // Mirror images across both axes give the same colour.
     CHECK(target.get_pixel(8, 14).argb() == target.get_pixel(24, 18).argb());

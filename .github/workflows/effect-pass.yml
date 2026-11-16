@@ -98,7 +98,8 @@ jobs:
             -DGUI_FORMS_ENABLE_WINDOWS_HOST=OFF -DGUI_FORMS_ENABLE_MACOS_HOST=OFF \
             -DGUI_FORMS_ENABLE_LINUX_HOST=OFF -DGUI_FORMS_ENABLE_SKIA=OFF \
             -DGUI_FORMS_BUILD_GENERATED_FORM_TESTS=OFF \
-            -DGUI_FORMS_LOCALIZABLE_PLUGIN=ON -DGUI_FORMS_EFFECT_VERIFY=ON
+            -DGUI_FORMS_LOCALIZABLE_PLUGIN=ON -DGUI_FORMS_EFFECT_VERIFY=ON \
+            -DGUI_FORMS_REFERENCE_ARITHMETIC=ON
       # The effect-pass tests exist only in a tree whose effects are verified;
       # their absence means the plugin was skipped, which fails this job
       # rather than passing it with nothing checked.
