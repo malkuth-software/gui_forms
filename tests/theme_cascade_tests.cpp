@@ -339,7 +339,7 @@ void newer_engine_rules_fall_back() {
     sheet.requires_engine = next;
     sheet.rules.push_back(rule("future", CascadeLevel::theme_sheet, by_type(), bulge(0.5)));
     ThemeRule today = rule("today", CascadeLevel::class_rule, by_class("loud"), bulge(0.7));
-    today.requires_engine = EngineVersion{0, 1};
+    today.requires_engine.set(EngineVersion{0, 1});
     sheet.rules.push_back(today);
     const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
     require(has_diagnostic(rules, RuleDiagnosticKind::needs_newer_engine, "future") && rules.rule_count() == 1U,

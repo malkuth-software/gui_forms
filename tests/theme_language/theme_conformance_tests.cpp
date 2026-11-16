@@ -432,9 +432,9 @@ std::string rule_text(std::size_t index, const ThemeRule& rule) {
         text += "  specificity " + std::to_string(given.ids) + "," + std::to_string(given.classes) + "," +
                 std::to_string(given.types) + "\n";
     }
-    if (rule.requires_engine) {
-        text += "  requires " + std::to_string((*rule.requires_engine).major) + "." +
-                std::to_string((*rule.requires_engine).minor) + "\n";
+    const EngineVersion* const needed = rule.requires_engine.value();
+    if (needed != nullptr) {
+        text += "  requires " + std::to_string((*needed).major) + "." + std::to_string((*needed).minor) + "\n";
     }
     text += media_text(rule.media);
     for (const RuleDeclaration& declaration : rule.declarations) text += declaration_text(declaration);

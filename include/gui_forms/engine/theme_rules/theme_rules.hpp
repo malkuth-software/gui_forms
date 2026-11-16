@@ -1529,7 +1529,7 @@ struct GUI_FORMS_API ThemeRule final {
     RuleSelector selector{};
     stxlib::Optional<RuleSpecificity> specificity{};
     std::vector<RuleDeclaration> declarations{};
-    std::optional<EngineVersion> requires_engine{};
+    stxlib::Optional<EngineVersion> requires_engine{};
     std::vector<PropertyTransition> transitions{};
     std::optional<AmbientEffect> ambient{};
     std::vector<MaterialDeclaration> materials{};
