@@ -1307,8 +1307,9 @@ DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, 
         record.cell_button_label = visible_part(inset_rect(face, padding * 0.5), clip);
     } else if (kind == DataGridViewColumnKind::image) {
         // The part is the image as it is seen: cut at the cell's edges.
-        const std::optional<CellImage> image = cell_image(row, column, inside);
-        if (image) record.cell_image = visible_part((*image).bounds, Rect::intersection(inside, clip));
+        const stxlib::Optional<CellImage> placed_image = cell_image(row, column, inside);
+        const CellImage* const image = placed_image.value();
+        if (image != nullptr) record.cell_image = visible_part((*image).bounds, Rect::intersection(inside, clip));
     } else {
         double reserved = 0.0;
         if (kind == DataGridViewColumnKind::combo_box && shows_drop_down(row, column)) {
@@ -1344,9 +1345,10 @@ DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, 
             const Rect line = line_box(content, placement, line_height);
             record.cell_content = visible_part(line, clip);
             if (kind == DataGridViewColumnKind::link) {
-                const std::optional<CellLink> link =
+                const stxlib::Optional<CellLink> placed_link =
                     cell_link(result.content.text, text_alignment(style.alignment, *this), face, line);
-                if (link) {
+                const CellLink* const link = placed_link.value();
+                if (link != nullptr) {
                     record.cell_link = visible_part((*link).text, clip);
                     record.cell_link_underline = visible_part((*link).underline, clip);
                 }
@@ -1374,9 +1376,9 @@ DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, 
     return result;
 }
 
-std::optional<DataGridView::CellLink> DataGridView::cell_link(std::string_view text, PartTextAlignment alignment,
-                                                              FontSpec face, Rect content) const {
-    if (content.empty() || text.empty()) return std::nullopt;
+stxlib::Optional<DataGridView::CellLink> DataGridView::cell_link(std::string_view text, PartTextAlignment alignment,
+                                                                 FontSpec face, Rect content) const {
+    if (content.empty() || text.empty()) return stxlib::Optional<CellLink>::none();
     // The link is as wide as its text, measured with the font it is drawn
     // in, and no wider than the content area, which cuts it as it cuts a
     // text cell's text.
@@ -1394,30 +1396,33 @@ std::optional<DataGridView::CellLink> DataGridView::cell_link(std::string_view t
     const double line_height = std::max(measured.logical_size.height, face.size * 1.2);
     const double ascent = std::max(face.size, line_height * 0.82);
     const double baseline = content.y + (content.height - line_height) * 0.5 + ascent;
-    const CellLink result{{x, content.y, width, content.height}, {x, baseline + 1.5, width, 1.0}};
+    const CellLink placed{{x, content.y, width, content.height}, {x, baseline + 1.5, width, 1.0}};
+    const stxlib::Optional<CellLink> result = stxlib::Optional<CellLink>::of(placed);
     return result;
 }
 
-std::optional<DataGridView::CellImage> DataGridView::cell_image(DataGridViewRowPosition row, std::size_t column,
-                                                                Rect inside) const {
+stxlib::Optional<DataGridView::CellImage> DataGridView::cell_image(DataGridViewRowPosition row, std::size_t column,
+                                                                   Rect inside) const {
     const DataGridViewColumn& definition = columns_[column];
-    if (definition.kind != DataGridViewColumnKind::image) return std::nullopt;
+    if (definition.kind != DataGridViewColumnKind::image) return stxlib::Optional<CellImage>::none();
     const BindingValue value = stored_value(row, column);
     const ImageId* const image = std::get_if<ImageId>(&value);
     const Window* const host = attached_window();
-    if (image == nullptr || (*image).value == 0U || host == nullptr || inside.empty()) return std::nullopt;
+    if (image == nullptr || (*image).value == 0U || host == nullptr || inside.empty()) {
+        return stxlib::Optional<CellImage>::none();
+    }
     const std::optional<ImageResourceView> resource = (*host).image_resources().find(*image);
-    if (!resource) return std::nullopt;
+    if (!resource) return stxlib::Optional<CellImage>::none();
     // An image's pixels are logical units, as in PictureBox; the grid's text
     // scale does not apply to them.
     const double width = static_cast<double>((*resource).metadata.width);
     const double height = static_cast<double>((*resource).metadata.height);
-    if (width <= 0.0 || height <= 0.0) return std::nullopt;
+    if (width <= 0.0 || height <= 0.0) return stxlib::Optional<CellImage>::none();
     CellImage result;
     result.image = *image;
     if (definition.image_layout == DataGridViewImageLayout::stretch) {
         result.bounds = inside;
-        return result;
+        return stxlib::Optional<CellImage>::of(result);
     }
     double placed_width = width;
     double placed_height = height;
@@ -1428,7 +1433,7 @@ std::optional<DataGridView::CellImage> DataGridView::cell_image(DataGridViewRowP
     }
     result.bounds = {inside.x + (inside.width - placed_width) * 0.5, inside.y + (inside.height - placed_height) * 0.5,
                      placed_width, placed_height};
-    return result;
+    return stxlib::Optional<CellImage>::of(result);
 }
 
 DataGridView::ColumnParts DataGridView::column_parts(std::size_t column, const GridLayout& layout) const {
@@ -1797,8 +1802,9 @@ bool DataGridView::resolve_cell(DataGridViewRowPosition row, std::size_t column,
     if (parts.cell_image.present) {
         // Drawn whole at its own bounds and cut at the cell's inside.
         const Rect inside = cell_inside(cell_bounds(row, column, layout));
-        const std::optional<CellImage> image = cell_image(row, column, inside);
-        if (image) {
+        const stxlib::Optional<CellImage> placed_image = cell_image(row, column, inside);
+        const CellImage* const image = placed_image.value();
+        if (image != nullptr) {
             out.image = PartGeometry::from_bounds(moved_rect((*image).bounds, offset));
             resolved.image = (*image).image;
             resolved.image_clip = moved_rect(inside, offset);

@@ -806,20 +806,20 @@ DataGridView::PressIdentity DataGridView::press_identity(const HitResult& hit) c
     return pressed;
 }
 
-std::optional<DataGridView::HitResult> DataGridView::resolve_press(const HitResult& hit,
-                                                                   const PressIdentity& pressed) const {
+stxlib::Optional<DataGridView::HitResult> DataGridView::resolve_press(const HitResult& hit,
+                                                                      const PressIdentity& pressed) const {
     HitResult resolved = hit;
     if (pressed.row) {
         const stxlib::Optional<std::size_t> row = find_row(pressed.row_id);
-        if (row.absent()) return std::nullopt;
+        if (row.absent()) return stxlib::Optional<HitResult>::none();
         resolved.row = DataGridViewRowPosition{*row.value()};
     }
     if (pressed.column) {
         const stxlib::Optional<std::size_t> column = column_index(pressed.column_name);
-        if (column.absent()) return std::nullopt;
+        if (column.absent()) return stxlib::Optional<HitResult>::none();
         resolved.column = *column.value();
     }
-    return resolved;
+    return stxlib::Optional<HitResult>::of(resolved);
 }
 
 stxlib::Optional<std::size_t> DataGridView::current_position() const {
@@ -4263,9 +4263,9 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         Window* const host = window();
         if (host != nullptr) static_cast<void>((*host).request_focus(lifetime));
         if (!is_alive()) return;
-        const std::optional<HitResult> resolved = resolve_press(hit, pressed);
-        if (!resolved) return;
-        const HitResult target = *resolved;
+        const stxlib::Optional<HitResult> resolved = resolve_press(hit, pressed);
+        if (resolved.absent()) return;
+        const HitResult target = *resolved.value();
         const bool shift = has_modifier(event.modifiers, Modifier::shift);
         const bool control = has_modifier(event.modifiers, Modifier::control);
         SelectionGesture gesture = SelectionGesture::replace;
@@ -4327,8 +4327,9 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         // removed the row or the column: the cell is found again by identity
         // and kept by it until the release.
         if (!is_alive()) return;
-        const std::optional<HitResult> moved = resolve_press(target, pressed);
-        if (!moved) return;
+        const stxlib::Optional<HitResult> found = resolve_press(target, pressed);
+        const HitResult* const moved = found.value();
+        if (moved == nullptr) return;
         const DataGridViewCellAddress cell{(*moved).row, (*moved).column};
         pressed_cell_ = key_of(cell);
         pressed_cell_double_ = event.click_count >= 2U;

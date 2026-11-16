@@ -1379,7 +1379,7 @@ private:
     [[nodiscard]] PressIdentity press_identity(const HitResult& hit) const;
     // The press at its row's and column's present positions, or none when
     // the handlers removed either.
-    [[nodiscard]] std::optional<HitResult> resolve_press(const HitResult& hit, const PressIdentity& pressed) const;
+    [[nodiscard]] stxlib::Optional<HitResult> resolve_press(const HitResult& hit, const PressIdentity& pressed) const;
     // How a key or click moves the current cell and the selection.
     enum class SelectionGesture : std::uint8_t { replace, extend, toggle };
     // The kind of edit in progress.
@@ -1722,8 +1722,8 @@ private:
         Rect underline{};
     };
     // None for empty text or an empty content area.
-    [[nodiscard]] std::optional<CellLink> cell_link(std::string_view text, PartTextAlignment alignment,
-                                                    FontSpec face, Rect content) const;
+    [[nodiscard]] stxlib::Optional<CellLink> cell_link(std::string_view text, PartTextAlignment alignment,
+                                                       FontSpec face, Rect content) const;
     // Throws std::out_of_range for a cell past the rows or columns and
     // std::invalid_argument for one outside a link column.
     void require_link_cell(DataGridViewRowPosition row, std::size_t column) const;
@@ -1735,8 +1735,8 @@ private:
         ImageId image{};
         Rect bounds{};
     };
-    [[nodiscard]] std::optional<CellImage> cell_image(DataGridViewRowPosition row, std::size_t column,
-                                                      Rect inside) const;
+    [[nodiscard]] stxlib::Optional<CellImage> cell_image(DataGridViewRowPosition row, std::size_t column,
+                                                         Rect inside) const;
     [[nodiscard]] ColumnParts column_parts(std::size_t column, const GridLayout& layout) const;
     [[nodiscard]] AnatomyStateSet row_states(DataGridViewRowPosition row) const;
     [[nodiscard]] AnatomyStateSet cell_states(DataGridViewRowPosition row, std::size_t column) const;
