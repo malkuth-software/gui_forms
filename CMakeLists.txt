@@ -1904,6 +1904,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/linux/settings/xsettings_watch.cpp
         src/host/linux/accessibility/linux_accessibility.cpp
         src/host/linux/services/linux_services.cpp
+        src/host/linux/services/x11_foreign_window.cpp
         src/host/linux/services/x11_tray_icons.cpp
         src/host/linux/services/linux_drag_drop.cpp
         src/host/linux/services/linux_dialogs.cpp
@@ -6840,7 +6841,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GUI_FORMS_BUILD_TESTS)
         if(TARGET PkgConfig::GUI_FORMS_TEST_ATK AND TARGET X11::X11)
             add_executable(gui_forms_linux_accessibility_fixture
                 tests/linux_accessibility_fixture.cpp
-                src/host/linux/accessibility/linux_accessibility.cpp)
+                src/host/linux/accessibility/linux_accessibility.cpp
+                src/host/linux/services/x11_foreign_window.cpp)
             target_link_libraries(gui_forms_linux_accessibility_fixture PRIVATE
                 gui_forms_controls gui_forms_core PkgConfig::GUI_FORMS_TEST_ATK X11::X11)
             set(gui_forms_linux_accessibility_test_ready ON)
@@ -6874,7 +6876,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GUI_FORMS_BUILD_TESTS)
     if(gui_forms_linux_accessibility_test_ready AND GUI_FORMS_SYSTEM_PYTHON3 AND TARGET gui_forms_gallery_model)
         add_executable(gui_forms_linux_accessibility_gallery_fixture
             tests/linux_accessibility_gallery_fixture.cpp
-            src/host/linux/accessibility/linux_accessibility.cpp)
+            src/host/linux/accessibility/linux_accessibility.cpp
+            src/host/linux/services/x11_foreign_window.cpp)
         target_include_directories(gui_forms_linux_accessibility_gallery_fixture PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR})
         target_link_libraries(gui_forms_linux_accessibility_gallery_fixture PRIVATE
