@@ -442,7 +442,7 @@ stxlib::Optional<double> DataGridView::automatic_width(std::size_t column, DataG
         for (std::size_t position = span.start(); position < span.end; position = span.next(position)) {
             widest = std::max(widest, preferred_cell_width(DataGridViewRowPosition{position}, column));
             // A formatting handler changed the grid: the rows are not these.
-            if (structure_revision_ != revision) return std::nullopt;
+            if (structure_revision_ != revision) return stxlib::Optional<double>::none();
         }
     }
     const double result = std::max(columns_[column].minimum_width, widest);
@@ -665,7 +665,7 @@ stxlib::Optional<double> DataGridView::automatic_height(std::size_t position, Da
         for (std::size_t column = 0U; column < columns_.size(); ++column) {
             tallest = std::max(tallest, preferred_cell_height(row, column));
             // A formatting handler changed the grid: the rows are not these.
-            if (structure_revision_ != revision) return std::nullopt;
+            if (structure_revision_ != revision) return stxlib::Optional<double>::none();
         }
     }
     if (tallest <= 0.0) tallest = row_height.read();

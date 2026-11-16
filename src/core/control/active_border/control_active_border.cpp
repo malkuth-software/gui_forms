@@ -88,7 +88,7 @@ void Control::paint_active_border(Painter& painter) {
     }
     const ActiveBorderPose pose = resolve_active_border(state.border, conditions);
     const bool moving = pose.motion != ActiveBorderMotion::steady;
-    const bool changed = !state.pose || !(*state.pose == pose);
+    const bool changed = state.pose.absent() || !(*state.pose.value() == pose);
     if (!moving) {
         state.timer.stop();
     } else if (changed || !state.timer.started()) {
@@ -99,7 +99,7 @@ void Control::paint_active_border(Painter& painter) {
         const std::weak_ptr<Control> observed = shared_from_this();
         state.timer.start(*this, active_border_interval(pose), ActiveBorderTick{observed});
     }
-    state.pose = pose;
+    state.pose.set(pose);
     const std::chrono::duration<double> elapsed = state.shown - state.start;
     const Color colour = active_border_colour_at(pose, elapsed.count());
     if (colour.alpha == 0U) return;
