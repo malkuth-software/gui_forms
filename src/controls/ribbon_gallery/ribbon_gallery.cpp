@@ -675,7 +675,17 @@ bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
         overlay_revoked_ = (*closed).subscribe(Delegate<>::bind<RibbonGallery, &RibbonGallery::on_overlay_revoked>(*this));
     }
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer_) : shared_from_this();
-    scope_ = window.begin_focus_scope(layer_, preferred_focus);
+    // begin_focus_scope runs the previous control's focus and validation
+    // handlers; one that closed the overlay found no scope to end, so this
+    // one is ended here and nothing reports an opening (A-gf-controls-12-F4).
+    // `lifetime` holds the gallery across them.
+    const Control::Ptr lifetime = shared_from_this();
+    const FocusScopeId started = window.begin_focus_scope(layer_, preferred_focus);
+    if (!is_alive() || !overlay_open_) {
+        if (started) static_cast<void>(window.end_focus_scope(started));
+        return false;
+    }
+    scope_ = started;
     invalidate(Dirty::paint | Dirty::semantics);
     overlay_open_changed_.emit(true);
     return true;
