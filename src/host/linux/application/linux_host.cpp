@@ -746,10 +746,13 @@ std::uint32_t key_usage(KeySym key) {
 // locate_bundled_fonts counts and reports (bundled_font_diagnostics, bundled_font_refusal).
 gui_forms::detail::BundledFontLocation fonts_location() {
   std::array<gui_forms::detail::BundledFontCandidate, 2> candidates{};
-  const char *override_path = std::getenv("GUI_FORMS_FONT_DIR");
   candidates[0].source = gui_forms::BundledFontSource::environment;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake).
+  const char *override_path = std::getenv("GUI_FORMS_FONT_DIR");
   if (override_path != nullptr)
     candidates[0].directory = override_path;
+#endif
   candidates[1].source = gui_forms::BundledFontSource::source_tree;
   candidates[1].directory = gui_forms::detail::development_source_font_directory();
   const gui_forms::detail::BundledFontLocation location =
@@ -2394,12 +2397,17 @@ HostCapabilities linux_capabilities() {
           // X11 desktops follow the PC keyboard convention.
           pc_key_map()};
   // locale: the environment's POSIX locale (read_posix_locale); none for
-  // the C and POSIX locales.
+  // the C and POSIX locales. A high-integrity build reads no environment
+  // variable (cmake/HighIntegrity.cmake): the host reports no locale, the
+  // controls start from portable_host_locale(), and the program sets its own
+  // formats.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
   const std::optional<HostLocale> locale = read_posix_locale();
   if (locale.has_value()) {
     capabilities.locale = *locale;
     capabilities.available = capabilities.available | HostCapability::locale;
   }
+#endif
   return capabilities;
 }
 int run_linux_application(std::vector<LinuxApplicationWindow> windows,

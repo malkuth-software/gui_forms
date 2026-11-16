@@ -104,9 +104,14 @@ constexpr std::size_t maximum_font_bytes = 64U * 1024U * 1024U;
 // Whether GUI_DRAWING_TRACE_FONTS is 1 (B3): read once, as getenv walks the
 // environment on every call.
 [[nodiscard]] bool read_trace_fonts() {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake).
+    return false;
+#else
     const char* const trace = std::getenv("GUI_DRAWING_TRACE_FONTS");
     const bool result = trace != nullptr && std::strcmp(trace, "1") == 0;
     return result;
+#endif
 }
 
 [[nodiscard]] bool trace_fonts() {

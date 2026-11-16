@@ -1840,9 +1840,13 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         src/host/macos/services/appkit_status_items.mm
         src/host/macos/compositor/macos_compositor.mm
         src/host/macos/locale/icu_date_pattern.cpp
-        src/host/macos/locale/macos_locale.cpp
         $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
     )
+    # The user's locale (CoreFoundation), which a high-integrity build does
+    # not read (cmake/HighIntegrity.cmake).
+    if(NOT GUI_FORMS_HIGH_INTEGRITY)
+        target_sources(gui_forms_host_macos PRIVATE src/host/macos/locale/macos_locale.cpp)
+    endif()
     target_include_directories(gui_forms_host_macos PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/host/macos
     )
@@ -1913,7 +1917,6 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/linux/application/x11_shm_present.cpp
         src/host/linux/settings/xsettings_parse.cpp
         src/host/linux/locale/strftime_date_pattern.cpp
-        src/host/linux/locale/posix_locale.cpp
         src/host/linux/application/linux_input_rules.cpp
         src/host/linux/settings/xsettings_watch.cpp
         src/host/linux/accessibility/linux_accessibility.cpp
@@ -1923,6 +1926,11 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/linux/services/linux_drag_drop.cpp
         src/host/linux/services/linux_dialogs.cpp
         src/host/linux/compositor/x11_compositor.cpp)
+    # The environment's POSIX locale (LC_ALL, LC_TIME, LANG), which a
+    # high-integrity build does not read (cmake/HighIntegrity.cmake).
+    if(NOT GUI_FORMS_HIGH_INTEGRITY)
+        target_sources(gui_forms_host_linux PRIVATE src/host/linux/locale/posix_locale.cpp)
+    endif()
     set_target_properties(gui_forms_host_linux PROPERTIES POSITION_INDEPENDENT_CODE ON)
     target_link_libraries(gui_forms_host_linux PUBLIC gui_forms_core gui_forms_controls gui_forms_skia
         PRIVATE X11::X11 X11::Xfixes X11::Xrender PkgConfig::GUI_FORMS_ATK

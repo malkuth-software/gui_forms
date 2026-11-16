@@ -1,0 +1,22 @@
+# Symbols no first-party object of a high-integrity build defines or imports
+# (cmake/HighIntegrity.cmake). Checked by gui_forms_high_integrity_surface
+# (cmake/HighIntegrityTests.cmake, cmake/CheckObjectSurface.cmake): one CMake
+# regular expression per line, matched unanchored against each line of the
+# demangled `nm -C` listing; a final $ ends the line. Grouped by the area that
+# compiles them out; each group names its commit's subject.
+
+# Environment variables: no unit reads one.
+getenv
+GetEnvironmentVariable
+GetEnvironmentStrings
+ExpandEnvironmentStrings
+_dupenv_s
+_?environ$
+# The user's locale settings: the host reports no locale; the program sets
+# its formats.
+CFLocaleCopyCurrent
+newlocale
+GetUserDefaultLocaleName
+GetLocaleInfoEx
+gui_forms::host::read_posix_locale\(
+gui_forms::host::read_macos_locale\(

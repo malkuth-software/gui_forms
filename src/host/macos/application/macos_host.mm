@@ -76,11 +76,16 @@ HostCapabilities macos_capabilities() {
     capabilities.window_corner_shapes = WindowCornerShapes{true, false};
     // locale: the user's locale and calendar from CoreFoundation, the
     // formats chosen in System Settings included (read_macos_locale).
+    // A high-integrity build reads none of the user's settings
+    // (cmake/HighIntegrity.cmake): the host reports no locale, the controls
+    // start from portable_host_locale(), and the program sets its own formats.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     const std::optional<HostLocale> locale = read_macos_locale();
     if (locale.has_value()) {
         capabilities.locale = *locale;
         capabilities.available = capabilities.available | HostCapability::locale;
     }
+#endif
     return capabilities;
 }
 

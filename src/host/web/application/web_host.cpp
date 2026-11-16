@@ -40,10 +40,15 @@ surface_detail::SurfaceInputQueue& web_input_queue() noexcept {
 }
 
 std::filesystem::path web_fonts_directory() {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake).
+    std::filesystem::path directory("/gui_forms/fonts");
+#else
     const char* override_path = std::getenv("GUI_FORMS_FONT_DIR");
     std::filesystem::path directory =
         override_path != nullptr && override_path[0] != '\0' ? std::filesystem::path(override_path)
                                                              : std::filesystem::path("/gui_forms/fonts");
+#endif
     std::error_code error;
     if (!std::filesystem::is_directory(directory, error)) directory.clear();
     return directory;
