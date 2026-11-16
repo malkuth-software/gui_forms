@@ -14,6 +14,7 @@ first-window
 application-and-windows
 consume-the-sdk
 c-abi-conformance-kit
+code-statistics
 ```
 
 ```{toctree}

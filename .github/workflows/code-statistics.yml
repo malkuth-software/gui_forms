@@ -1,0 +1,70 @@
+name: Code statistics
+# Counts the C++ and C that GUI.Forms provides (tools/code_statistics.py):
+# gui_forms itself and the stx packages at the commit stx.lock pins, by
+# component, language and provenance. It reads the git trees only: no build,
+# no compiler, a few seconds on one Linux runner. The Markdown tables go to
+# the job summary and the JSON report is uploaded as the artifact
+# code-statistics. A manual run may also count STXlib, at the commit stx's
+# stxlib.lock pins.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      include_stxlib:
+        description: Also count STXlib at the commit stx's stxlib.lock pins
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: code-statistics-${{ github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  code-statistics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gui_forms
+      # The stx sources come from malkuth-software/stx at the commit stx.lock pins.
+      - name: Check out the pinned stx
+        run: |
+          commit=$(sed -n 's/^commit = "\([0-9a-f]\{40\}\)"$/\1/p' gui_forms/stx.lock)
+          test -n "$commit"
+          git init -q stx
+          git -C stx remote add origin https://github.com/malkuth-software/stx.git
+          git -C stx fetch -q --depth 1 origin "$commit"
+          git -C stx checkout -q --detach FETCH_HEAD
+      - name: Check out the pinned STXlib
+        if: inputs.include_stxlib
+        run: |
+          commit=$(sed -n 's/^commit = "\([0-9a-f]\{40\}\)"$/\1/p' stx/stxlib.lock)
+          test -n "$commit"
+          git init -q stxlib
+          git -C stxlib remote add origin https://github.com/malkuth-software/stxlib.git
+          git -C stxlib fetch -q --depth 1 origin "$commit"
+          git -C stxlib checkout -q --detach FETCH_HEAD
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Check the counter
+        run: python3 -B -m unittest discover -s gui_forms/tools -p test_code_statistics.py
+      - name: Count
+        env:
+          INCLUDE_STXLIB: ${{ inputs.include_stxlib && 'true' || 'false' }}
+        run: |
+          mkdir -p code-statistics
+          checkouts="stx=stx"
+          if [ "$INCLUDE_STXLIB" = true ]; then checkouts="$checkouts stxlib=stxlib"; fi
+          # shellcheck disable=SC2086
+          python3 -B gui_forms/tools/code_statistics.py --root gui_forms $checkouts \
+            --json code-statistics/code-statistics.json \
+            --markdown code-statistics/code-statistics.md
+          { echo '## C++ and C in GUI.Forms'; echo; cat code-statistics/code-statistics.md; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: code-statistics
+          path: code-statistics/
+          if-no-files-found: error
