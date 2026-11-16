@@ -269,8 +269,9 @@ void elliptical_radial_gradient_brush_rasterizes() {
     CHECK(target.get_pixel(16, 16).red() > 220U && target.get_pixel(16, 16).blue() < 115U);
     CHECK(target.get_pixel(28, 16).red() > 30U && target.get_pixel(28, 16).blue() < 245U);
     CHECK(target.get_pixel(16, 22).blue() > 240U && target.get_pixel(16, 22).red() < 15U);
-    // Mirror images across both axes give the same colour.
-    CHECK(target.get_pixel(8, 14).argb() == target.get_pixel(24, 18).argb());
+    // Mirror images across both axes give the same colour: pixel centres
+    // (8.5, 14.5) and (23.5, 17.5) lie 7.5 and 1.5 either side of (16, 16).
+    CHECK(target.get_pixel(8, 14).argb() == target.get_pixel(23, 17).argb());
 }
 
 void transparent_png_channels_are_premultiplied() {

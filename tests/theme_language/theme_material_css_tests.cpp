@@ -1189,7 +1189,8 @@ void test_refusals() {
         {"#a { glow: red 1px, red 1px, red 1px }", DiagnosticCode::too_many_layers},
         {"#a { glow: red 8px }", DiagnosticCode::value_out_of_range},
         {"#a { glow-placement: sideways }", DiagnosticCode::keyword_unknown},
-        {"#a { mask-image: linear-gradient(black, white), linear-gradient(black, white) }",
+        {"#a { mask-image: linear-gradient(black, white), linear-gradient(black, white), "
+         "linear-gradient(black, white), linear-gradient(black, white), linear-gradient(black, white) }",
          DiagnosticCode::too_many_layers},
         {"#a { mask-image: url(\"resource:icon.check\") }", DiagnosticCode::value_wrong_kind},
         {"#a { mask-image: url(\"resource:tile.quadrant\") }", DiagnosticCode::value_form_not_admitted},

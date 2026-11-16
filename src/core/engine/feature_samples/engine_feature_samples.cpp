@@ -166,6 +166,28 @@ void image_single(const FeatureSampleInputs& inputs, ThemeDefinition& definition
     draw_material(definition, material, "image_single");
 }
 
+// Tiles reflected in turn (theme language background-repeat: mirror), anchored at the
+// box's centre so a reflected tile meets the box's edge.
+void image_mirror(const FeatureSampleInputs& inputs, ThemeDefinition& definition) {
+    SurfaceMaterial material = pale_face();
+    MaterialFillLayer tiles = MaterialFillLayer::tiled_image(inputs.image, image_size, 1.0);
+    tiles.image_mode = MaterialImageMode::mirror;
+    tiles.image_anchor = Point{0.5, 0.5};
+    material.fills.push_back(tiles);
+    draw_material(definition, material, "image_mirror");
+}
+
+// One tile at the box's centre, its edge pixels drawn out to the box's edges
+// (theme language background-repeat: extend).
+void image_extend(const FeatureSampleInputs& inputs, ThemeDefinition& definition) {
+    SurfaceMaterial material = pale_face();
+    MaterialFillLayer tile = MaterialFillLayer::tiled_image(inputs.image, image_size, 1.0);
+    tile.image_mode = MaterialImageMode::extend;
+    tile.image_anchor = Point{0.5, 0.5};
+    material.fills.push_back(tile);
+    draw_material(definition, material, "image_extend");
+}
+
 void image_nine_patch(const FeatureSampleInputs& inputs, ThemeDefinition& definition) {
     SurfaceMaterial material = pale_face();
     material.fills.push_back(MaterialFillLayer::nine_patch(inputs.image, image_size, Insets{2.0, 2.0, 2.0, 2.0}, 1.0));
@@ -618,6 +640,8 @@ constexpr EngineFeatureSample samples[] = {
     {"image_tiled_positioned", "material", PartRole::face, Drive::rest, image_tiled_positioned},
     {"image_nine_patch", "material", PartRole::face, Drive::rest, image_nine_patch},
     {"image_single", "material", PartRole::face, Drive::rest, image_single},
+    {"image_mirror", "material", PartRole::face, Drive::rest, image_mirror},
+    {"image_extend", "material", PartRole::face, Drive::rest, image_extend},
     {"procedural_felt", "material", PartRole::face, Drive::rest, procedural_felt},
     {"procedural_wood_grain", "material", PartRole::face, Drive::rest, procedural_wood_grain},
     {"procedural_paper_fibre", "material", PartRole::face, Drive::rest, procedural_paper_fibre},

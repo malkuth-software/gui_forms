@@ -118,11 +118,11 @@ void write_file(const std::filesystem::path& path, std::string_view text) {
     stream.write(text.data(), static_cast<std::streamsize>(text.size()));
 }
 
-// The compiled manifest is the 37 faces of bundled-fonts.sha256, and each record matches the
+// The compiled manifest is the 39 faces of bundled-fonts.sha256, and each record matches the
 // file in assets/fonts.
 bool compiled_manifest_matches() {
     const std::span<const BundledFaceRecord> manifest = gui_forms::detail::bundled_face_manifest();
-    if (!require(manifest.size() == 37U, "the compiled manifest does not list 37 faces")) return false;
+    if (!require(manifest.size() == 39U, "the compiled manifest does not list 39 faces")) return false;
     std::ifstream listing(std::filesystem::path(GUI_FORMS_TEST_FONT_DIRECTORY) / "bundled-fonts.sha256");
     std::string line;
     std::size_t index = 0;
