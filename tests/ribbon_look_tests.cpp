@@ -299,7 +299,7 @@ void test_theme_metrics() {
             "the selected tab's label takes its state's larger, bolder font");
     // Selecting the other tab moves neither tab sideways: widths hold the
     // wider of the two fonts.
-    (*ribbon).selected_tab = std::size_t{1U};
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(1U);
     window.perform_layout();
     const std::vector<Ribbon::Tab> after = (*ribbon).realized_tabs();
     require(after.size() == 2U && near(after[0].parts.tab.bounds.x, home.x) &&
@@ -343,17 +343,17 @@ void test_disabled_tab() {
     const Point view = centre(realized[1].parts.tab.bounds);
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, view}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, view}));
-    require((*ribbon).selected_tab.read() == std::size_t{0U}, "a click on a disabled tab selects nothing");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U), "a click on a disabled tab selects nothing");
     require(!(*ribbon).on_semantic_child_action("ribbon.tab.view", SemanticAction::select, {}) &&
-                (*ribbon).selected_tab.read() == std::size_t{0U},
+                (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U),
             "accessibility cannot select a disabled tab");
     bool refused = false;
     try {
-        (*ribbon).selected_tab = std::size_t{1U};
+        (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(1U);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*ribbon).selected_tab.read() == std::size_t{0U},
+    require(refused && (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U),
             "the application cannot select a disabled tab");
     const std::vector<SemanticNode> nodes = (*ribbon).semantic_virtual_children();
     require(nodes.size() >= 2U && nodes[1].children.size() == 2U &&
@@ -364,7 +364,7 @@ void test_disabled_tab() {
     std::vector<RibbonTabSpec> first_disabled = two_tabs();
     first_disabled[0].enabled = false;
     std::shared_ptr<Ribbon> other = ribbon_with(std::move(first_disabled));
-    require((*other).selected_tab.read() == std::size_t{1U}, "the selection falls back past a disabled first tab");
+    require((*other).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U), "the selection falls back past a disabled first tab");
 }
 
 // Defect 7: selection on release, as an option; on the press by default.
@@ -379,16 +379,16 @@ void test_release_activation() {
     const Point view = centre(realized[1].parts.tab.bounds);
     require(!(*ribbon).tabs_activate_on_release.read(), "tabs select on the press by default");
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, view}));
-    require((*ribbon).selected_tab.read() == std::size_t{1U}, "by default the press selects");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U), "by default the press selects");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, view}));
     (*ribbon).tabs_activate_on_release = true;
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, home}));
-    require((*ribbon).selected_tab.read() == std::size_t{1U}, "on release, the press alone selects nothing");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U), "on release, the press alone selects nothing");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, home}));
-    require((*ribbon).selected_tab.read() == std::size_t{0U}, "the release over the pressed tab selects it");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U), "the release over the pressed tab selects it");
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, view}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, home}));
-    require((*ribbon).selected_tab.read() == std::size_t{0U} && !(*ribbon).minimized.read(),
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U) && !(*ribbon).minimized.read(),
             "a release over another tab selects nothing");
 }
 
@@ -543,9 +543,9 @@ void check_selected_tool_tab(const std::shared_ptr<const Theme>& theme, std::str
     Window window(ribbon, {700.0, 200.0});
     window.perform_layout();
     (*ribbon).set_tabs(tool_tabs("Pencil"));
-    (*ribbon).selected_tab = std::optional<std::size_t>{2U};
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(2U);
     window.perform_layout();
-    require((*ribbon).selected_tab.read() == std::optional<std::size_t>{2U}, name + ": the tool tab is selected");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(2U), name + ": the tool tab is selected");
     AnatomyStateSet selected;
     selected.insert(AnatomyState::selected);
     const ResolvedControlRecipe resolved = (*ribbon).effective_theme().resolve(
@@ -616,10 +616,10 @@ void test_overlapping_tabs() {
     const Point shared{view.x + 2.0, view.y + view.height * 0.5};
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(view)}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, centre(view)}));
-    require((*ribbon).selected_tab.read() == std::size_t{1U}, "the second tab is selected");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U), "the second tab is selected");
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, shared}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, shared}));
-    require((*ribbon).selected_tab.read() == std::size_t{1U}, "the selected tab lies over its left neighbour");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U), "the selected tab lies over its left neighbour");
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(home)}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, centre(home)}));
     window.perform_layout();
@@ -627,7 +627,7 @@ void test_overlapping_tabs() {
     const Point overlap{raised.x + 2.0, raised.y + raised.height * 0.5};
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, overlap}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, overlap}));
-    require((*ribbon).selected_tab.read() == std::size_t{0U}, "otherwise the left tab is on top where they overlap");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U), "otherwise the left tab is on top where they overlap");
     LookPainter painter;
     static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 200.0}));
     require(painter.filled_rgb(shadow_ink) && painter.gradients > 0U, "the upper tab casts its shadow onto the next");

@@ -87,8 +87,9 @@ std::size_t index_of(const Ribbon& ribbon, std::string_view id) {
 }
 
 std::string selected(const Ribbon& ribbon) {
-    if (!ribbon.selected_tab.read()) return "none";
-    return ribbon.tabs()[*ribbon.selected_tab.read()].stable_id;
+    const stxlib::Optional<std::size_t> tab = ribbon.selected_tab.read();
+    if (tab.absent()) return "none";
+    return ribbon.tabs()[*tab.value()].stable_id;
 }
 
 std::vector<std::string> shown_tabs(const Ribbon& ribbon) {
@@ -183,7 +184,7 @@ void availability_and_selection_rules() {
     require(threw, "an unknown set is refused");
     threw = false;
     try {
-        ribbon.selected_tab = index_of(ribbon, "design");
+        ribbon.selected_tab = stxlib::Optional<std::size_t>::of(index_of(ribbon, "design"));
     } catch (const std::invalid_argument&) {
         threw = true;
     }
@@ -277,7 +278,7 @@ void modes() {
     require((*ribbon).application_modes.read() == 0x1U &&
                 shown_tabs(*ribbon) == std::vector<std::string>{"home", "edit", "view"},
             "mode 0 shows the core tabs that belong to it, and those in every mode");
-    (*ribbon).selected_tab = index_of(*ribbon, "edit");
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(index_of(*ribbon, "edit"));
     (*ribbon).set_tab_set_availability("picture", RibbonTabSetAvailability::active);
     window.perform_layout();
     require(selected(*ribbon) == "format", "a set shows in its modes");
@@ -285,7 +286,7 @@ void modes() {
     window.perform_layout();
     require(shown_tabs(*ribbon) == std::vector<std::string>{"print", "view"} && selected(*ribbon) == "print",
             "switching modes replaces the core tabs; a hidden selection falls back to the first core tab shown");
-    (*ribbon).selected_tab = index_of(*ribbon, "view");
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(index_of(*ribbon, "view"));
     window.perform_layout();
     require((*ribbon).realized_groups().size() == 2U, "a group in the new mode shows on its tab");
     const std::vector<RibbonLadderEntry> both = (*ribbon).reduction_ladder(index_of(*ribbon, "view"));
@@ -458,7 +459,7 @@ void scaling_with_contextual_tabs() {
     (*fixture.window).resize({ladder.back().width - 10.0, 300.0});
     (*fixture.window).perform_layout();
     require(ribbon.scrolling() && !ribbon.plane_hidden(), "and scrolls below its narrowest entry");
-    ribbon.selected_tab = 0U;
+    ribbon.selected_tab = stxlib::Optional<std::size_t>::of(0U);
     (*fixture.window).resize({home[0].width, 300.0});
     (*fixture.window).perform_layout();
     const std::vector<RibbonLadderEntry> home_again = ribbon.reduction_ladder(0U);

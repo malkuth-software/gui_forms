@@ -878,7 +878,7 @@ private:
         RibbonTabSetAvailability availability{RibbonTabSetAvailability::not_available};
         stxlib::Optional<AccentIndex> accent{};
         stxlib::Optional<AccentIndex> last_accent{};
-        std::optional<std::size_t> remembered_tab{};
+        stxlib::Optional<std::size_t> remembered_tab{};
         std::size_t first_tab{};
         std::size_t tab_count{};
     };
@@ -890,9 +890,9 @@ private:
     // Whether a tab may be selected: shown and enabled.
     [[nodiscard]] bool selectable(std::size_t tab) const noexcept;
     [[nodiscard]] bool group_shown(std::size_t tab, std::size_t group) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> find_tab_set(std::string_view set_id) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> find_tab_set(std::string_view set_id) const noexcept;
     [[nodiscard]] stxlib::Optional<AccentIndex> tab_accent(std::size_t tab) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> fallback_tab() const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> fallback_tab() const noexcept;
     // A shown tab's 1-based place among the shown tabs of its kind (the core
     // tabs, or its set's tabs) and how many of them there are.
     struct TabPosition final {
@@ -915,7 +915,7 @@ private:
     // What set_tabs prepares before it changes anything: each tab's set (none
     // for a core tab) and every group's layouts, indexed [tab][group].
     struct PreparedTabs final {
-        std::vector<std::optional<std::size_t>> tab_set_of;
+        std::vector<stxlib::Optional<std::size_t>> tab_set_of;
         std::vector<std::vector<std::vector<RibbonGroupLayout>>> layouts;
     };
     // The hosted controls taken out of the records set_tabs replaces:
@@ -930,7 +930,7 @@ private:
                                             const std::vector<RibbonTabSetSpec>& sets) const;
     [[nodiscard]] HostedCarryOver take_hosted_controls();
     [[nodiscard]] std::vector<TabSetState> carried_set_states(
-        const std::vector<RibbonTabSetSpec>& sets, const std::vector<std::optional<std::size_t>>& tab_set_of) const;
+        const std::vector<RibbonTabSetSpec>& sets, const std::vector<stxlib::Optional<std::size_t>>& tab_set_of) const;
     void rebuild_records(HostedCarryOver& carried);
     void release_carried(const HostedCarryOver& carried);
 
@@ -1108,13 +1108,13 @@ private:
     std::vector<std::vector<std::vector<CommandRecord>>> records_{};
     // Every group's layouts, authored or generated, indexed [tab][group].
     std::vector<std::vector<std::vector<RibbonGroupLayout>>> layouts_{};
-    std::optional<std::size_t> selected_tab_{};
+    stxlib::Optional<std::size_t> selected_tab_{};
     // Contextual sets and modes: the sets, their states, each tab's set (none
     // for a core tab), the modes shown, and the core tab chosen last.
     std::vector<RibbonTabSetSpec> tab_sets_{};
     std::vector<TabSetState> set_states_{};
-    std::vector<std::optional<std::size_t>> tab_set_of_{};
-    std::optional<std::size_t> last_core_tab_{};
+    std::vector<stxlib::Optional<std::size_t>> tab_set_of_{};
+    stxlib::Optional<std::size_t> last_core_tab_{};
     detail::LendingVector<MenuItemSpec> application_menu_{};
     std::unique_ptr<ContextMenu> overlay_{};
     SubscriptionToken overlay_invoked_{};
@@ -1127,7 +1127,7 @@ private:
     CommandZone pressed_zone_{CommandZone::none};
     std::optional<std::size_t> pressed_launcher_{};
     // The tab pressed while tabs_activate_on_release holds, until the release.
-    std::optional<std::size_t> pressed_tab_{};
+    stxlib::Optional<std::size_t> pressed_tab_{};
     std::optional<std::size_t> pressed_group_{};
     Hit::Kind pressed_scroll_{Hit::Kind::none};
     bool application_pressed_{};
@@ -1257,8 +1257,8 @@ private:
     void written(const decltype(focus_region)& cell);
     void prepare_write(const decltype(font)& cell, FontSpec& incoming);
     void written(const decltype(font)& cell);
-    void write_view(const decltype(selected_tab)& cell, std::optional<std::size_t> incoming);
-    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_tab)& cell) const;
+    void write_view(const decltype(selected_tab)& cell, stxlib::Optional<std::size_t> incoming);
+    [[nodiscard]] stxlib::Optional<std::size_t> read_view(const decltype(selected_tab)& cell) const;
     void prepare_write(const decltype(tabs_activate_on_release)& cell, bool& incoming);
     void written(const decltype(tabs_activate_on_release)& cell);
     void prepare_write(const decltype(help_button_visible)& cell, bool& incoming);

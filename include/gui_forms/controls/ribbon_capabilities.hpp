@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -120,16 +121,16 @@ struct RibbonFocusRegionCapability {
 // The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
 template <typename Declaring>
 struct RibbonSelectedTabCapability {
-    PropertyView<std::optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab;
+    PropertyView<stxlib::Optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab;
 
-    static void assign(RibbonSelectedTabCapability& capability, std::optional<std::size_t> incoming) {
+    static void assign(RibbonSelectedTabCapability& capability, stxlib::Optional<std::size_t> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.write_view(std::as_const(capability.selected_tab), std::move(incoming));
     }
 
-    static std::optional<std::size_t> read(const RibbonSelectedTabCapability& capability) {
+    static stxlib::Optional<std::size_t> read(const RibbonSelectedTabCapability& capability) {
         const Declaring& control = static_cast<const Declaring&>(capability);
-        std::optional<std::size_t> current = control.read_view(capability.selected_tab);
+        stxlib::Optional<std::size_t> current = control.read_view(capability.selected_tab);
         return current;
     }
 };

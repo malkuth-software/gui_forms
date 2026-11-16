@@ -499,7 +499,7 @@ void backstage() {
     require((*ribbon).show_backstage(), "and again");
     window.perform_layout();
     click(window, centre((*ribbon).realized_tabs()[1].parts.tab.bounds));
-    require(!(*ribbon).backstage_open() && (*ribbon).selected_tab.read() == std::size_t{1U} && !(*ribbon).minimized.read(),
+    require(!(*ribbon).backstage_open() && (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U) && !(*ribbon).minimized.read(),
             "a tab closes it and selects that tab");
     require((*ribbon).show_backstage(), "Backstage reopens");
     window.perform_layout();

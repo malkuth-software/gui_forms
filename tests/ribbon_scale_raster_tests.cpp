@@ -287,14 +287,14 @@ void paint_whole(Window& window, render::SkiaRaster& raster, Size size) {
 // a check box's in the CheckBox's own font, its label part inside the
 // command's cell. `where` names the case in a failure.
 void labels_fit(const Ribbon& ribbon, render::SkiaRaster& raster, const std::string& where) {
-    const std::optional<std::size_t> selected = ribbon.selected_tab.read();
-    require(selected.has_value(), "a tab is selected");
-    if (!selected) return;
+    const stxlib::Optional<std::size_t> selected = ribbon.selected_tab.read();
+    require(selected.present(), "a tab is selected");
+    if (selected.absent()) return;
     const std::span<const RibbonTabSpec> tabs = ribbon.tabs();
     const FontSpec label_font = ribbon.text_font(ribbon.font.read());
     std::size_t checked = 0U;
     for (const Ribbon::CommandItem& item : ribbon.realized_commands()) {
-        const RibbonCommandSpec& spec = tabs[*selected].groups[item.group].commands[item.index];
+        const RibbonCommandSpec& spec = tabs[*selected.value()].groups[item.group].commands[item.index];
         std::string authored = spec.text;
         if (authored.empty() && spec.command) authored = (*spec.command).state().text;
         const std::string shown = parse_mnemonic_text(authored).display_text;

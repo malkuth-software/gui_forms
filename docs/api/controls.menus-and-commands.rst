@@ -1242,7 +1242,7 @@ Related types
 
       The font of the control's text (Font).
 
-   .. cpp:member:: std::optional<std::size_t> selected_tab
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_tab
 
       The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
 
@@ -2053,11 +2053,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(RibbonSelectedTabCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(RibbonSelectedTabCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const RibbonSelectedTabCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const RibbonSelectedTabCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab
 
 .. cpp:namespace:: gui_forms
 

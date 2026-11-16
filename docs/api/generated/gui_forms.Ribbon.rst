@@ -76,7 +76,7 @@ gui_forms::Ribbon
          its label at the wider of its resting and selected fonts, so selecting a
          tab never moves the others.
 
-      **selected_tab** : ``std::optional<std::size_t>``
+      **selected_tab** : ``stxlib::Optional<std::size_t>``
          The selected tab, or none while no tab shows. Assigning a tab past the
          end throws ``std::out_of_range``; a tab not shown or disabled, or no value,
          throws ``std::invalid_argument``.
@@ -498,7 +498,7 @@ gui_forms::Ribbon
       its label at the wider of its resting and selected fonts, so selecting a
       tab never moves the others.
 
-   .. cpp:member:: std::optional<std::size_t> selected_tab
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_tab
 
       The selected tab, or none while no tab shows. Assigning a tab past the
       end throws ``std::out_of_range``; a tab not shown or disabled, or no value,

@@ -274,7 +274,7 @@ namespace {
 // core tabs first, then each set's tabs together, in the sets' order, every
 // set with tabs and every tab with a mode. Returns each tab's set, none for a
 // core tab. Throws std::invalid_argument and changes nothing else.
-std::vector<std::optional<std::size_t>> validate_tab_sets(const std::vector<RibbonTabSpec>& tabs,
+std::vector<stxlib::Optional<std::size_t>> validate_tab_sets(const std::vector<RibbonTabSpec>& tabs,
                                                           const std::vector<RibbonTabSetSpec>& sets,
                                                           std::unordered_set<std::string>& identities) {
     for (const RibbonTabSetSpec& set : sets) {
@@ -284,29 +284,30 @@ std::vector<std::optional<std::size_t>> validate_tab_sets(const std::vector<Ribb
                 "Ribbon tab sets require unique stable IDs following the StableId segment rule and valid UTF-8");
         }
     }
-    std::vector<std::optional<std::size_t>> tab_set_of(tabs.size());
+    std::vector<stxlib::Optional<std::size_t>> tab_set_of(tabs.size());
     std::vector<std::size_t> set_tab_counts(sets.size(), 0U);
-    std::optional<std::size_t> current_set{};
+    stxlib::Optional<std::size_t> current_set{};
     for (std::size_t tab_index = 0; tab_index < tabs.size(); ++tab_index) {
         const RibbonTabSpec& tab = tabs[tab_index];
         if (tab.modes == 0U) throw std::invalid_argument("Ribbon tabs need at least one application mode");
         if (tab.tab_set.empty()) {
-            if (current_set) throw std::invalid_argument("Ribbon core tabs come before every contextual tab");
+            if (current_set.present()) throw std::invalid_argument("Ribbon core tabs come before every contextual tab");
             continue;
         }
-        std::optional<std::size_t> set{};
+        stxlib::Optional<std::size_t> set{};
         for (std::size_t candidate = 0; candidate < sets.size(); ++candidate) {
-            if (sets[candidate].stable_id == tab.tab_set) set = candidate;
+            if (sets[candidate].stable_id == tab.tab_set) set.set(candidate);
         }
-        if (!set) throw std::invalid_argument("Ribbon tab names an undeclared tab set");
-        if (current_set && *set < *current_set) {
+        if (set.absent()) throw std::invalid_argument("Ribbon tab names an undeclared tab set");
+        const std::size_t set_index = *set.value();
+        if (current_set.present() && set_index < *current_set.value()) {
             throw std::invalid_argument("Ribbon contextual tabs come together, in their sets' order");
         }
-        if (current_set != set && set_tab_counts[*set] != 0U) {
+        if (current_set != set && set_tab_counts[set_index] != 0U) {
             throw std::invalid_argument("Ribbon contextual tabs come together, in their sets' order");
         }
         current_set = set;
-        ++set_tab_counts[*set];
+        ++set_tab_counts[set_index];
         tab_set_of[tab_index] = set;
     }
     for (const std::size_t count : set_tab_counts) {
@@ -474,7 +475,7 @@ Ribbon::HostedCarryOver Ribbon::take_hosted_controls() {
 // The new sets' states: availability and last accent carried over by set ID,
 // and each set's range of tabs from `tab_set_of`.
 std::vector<Ribbon::TabSetState> Ribbon::carried_set_states(
-    const std::vector<RibbonTabSetSpec>& sets, const std::vector<std::optional<std::size_t>>& tab_set_of) const {
+    const std::vector<RibbonTabSetSpec>& sets, const std::vector<stxlib::Optional<std::size_t>>& tab_set_of) const {
     std::vector<TabSetState> states(sets.size());
     for (std::size_t set = 0; set < sets.size(); ++set) {
         for (std::size_t old = 0; old < tab_sets_.size(); ++old) {
@@ -484,8 +485,8 @@ std::vector<Ribbon::TabSetState> Ribbon::carried_set_states(
         }
     }
     for (std::size_t tab = 0; tab < tab_set_of.size(); ++tab) {
-        if (!tab_set_of[tab]) continue;
-        TabSetState& state = states[*tab_set_of[tab]];
+        if (tab_set_of[tab].absent()) continue;
+        TabSetState& state = states[*tab_set_of[tab].value()];
         if (state.tab_count == 0U) state.first_tab = tab;
         ++state.tab_count;
     }
@@ -575,7 +576,7 @@ void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetS
     // Lives to the end: its records keep their Command watches until then.
     HostedCarryOver carried = take_hosted_controls();
     std::string selected_id;
-    if (selected_tab_) selected_id = tabs_[*selected_tab_].stable_id;
+    if (selected_tab_.present()) selected_id = tabs_[*selected_tab_.value()].stable_id;
     std::vector<TabSetState> states = carried_set_states(sets, prepared.tab_set_of);
     tabs_ = std::move(tabs);
     advance_layout_revision();
@@ -592,12 +593,12 @@ void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetS
     selected_tab_.reset();
     last_core_tab_.reset();
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        if (tabs_[tab].stable_id == selected_id && selectable(tab)) selected_tab_ = tab;
+        if (tabs_[tab].stable_id == selected_id && selectable(tab)) selected_tab_.set(tab);
         advance_layout_revision();
     }
-    if (!selected_tab_) selected_tab_ = fallback_tab();
+    if (selected_tab_.absent()) selected_tab_ = fallback_tab();
     advance_layout_revision();
-    if (selected_tab_ && !tab_set_of_[*selected_tab_]) last_core_tab_ = selected_tab_;
+    if (selected_tab_.present() && tab_set_of_[*selected_tab_.value()].absent()) last_core_tab_ = selected_tab_;
     scaling_.assign(tabs_.size(), TabScaling{});
     advance_layout_revision();
     ++content_generation_;
@@ -665,14 +666,14 @@ std::shared_ptr<TextBox> Ribbon::text_box(std::string_view command_id) const {
     return std::static_pointer_cast<TextBox>(hosted_control(command_id, RibbonCommandKind::text_box));
 }
 
-std::optional<std::size_t> Ribbon::read_view(const decltype(selected_tab)&) const {
+stxlib::Optional<std::size_t> Ribbon::read_view(const decltype(selected_tab)&) const {
     return selected_tab_;
 }
 
-void Ribbon::write_view(const decltype(selected_tab)&, std::optional<std::size_t> incoming) {
+void Ribbon::write_view(const decltype(selected_tab)&, stxlib::Optional<std::size_t> incoming) {
     require_mutable();
-    if (!incoming) throw std::invalid_argument("Ribbon tab selection cannot be cleared");
-    const std::size_t tab = *incoming;
+    if (incoming.absent()) throw std::invalid_argument("Ribbon tab selection cannot be cleared");
+    const std::size_t tab = *incoming.value();
     if (tab >= tabs_.size()) throw std::out_of_range("Ribbon tab index is past the end");
     if (!shown(tab)) throw std::invalid_argument("Ribbon tab is not shown");
     if (!tabs_[tab].enabled) throw std::invalid_argument("Ribbon tab is disabled");
@@ -683,23 +684,23 @@ void Ribbon::write_view(const decltype(selected_tab)&, std::optional<std::size_t
 // rules: a set's tab until a core tab or another set's tab is chosen, and
 // the core tab chosen last.
 void Ribbon::select_tab(std::size_t tab, SelectionCause cause) {
-    const std::optional<std::size_t> set = tab_set_of_[tab];
+    const stxlib::Optional<std::size_t> set = tab_set_of_[tab];
     if (cause == SelectionCause::user) {
         for (std::size_t other = 0; other < set_states_.size(); ++other) {
-            if (!set || other != *set) set_states_[other].remembered_tab.reset();
+            if (set.absent() || other != *set.value()) set_states_[other].remembered_tab.reset();
         }
-        if (set) set_states_[*set].remembered_tab = tab;
+        if (set.present()) set_states_[*set.value()].remembered_tab.set(tab);
         advance_layout_revision();
     }
-    if (!set) last_core_tab_ = tab;
-    if (selected_tab_ == tab) return;
+    if (set.absent()) last_core_tab_.set(tab);
+    if (selected_tab_ == stxlib::Optional<std::size_t>::of(tab)) return;
     // Another tab has its own ladder; arrange latches scrolling afresh.
     scroll_latched_ = false;
     advance_layout_revision();
     close_menus();
     close_group_overlay();
     close_plane_popup();
-    selected_tab_ = tab;
+    selected_tab_.set(tab);
     advance_layout_revision();
     first_group_ = 0U;
     advance_layout_revision();
@@ -755,8 +756,8 @@ void Ribbon::set_application_menu(std::vector<MenuItemSpec> items) {
 }
 
 const RibbonGroupSpec* Ribbon::selected_group(std::size_t group) const noexcept {
-    if (!selected_tab_ || group >= tabs_[*selected_tab_].groups.size()) return nullptr;
-    return &tabs_[*selected_tab_].groups[group];
+    if (selected_tab_.absent() || group >= tabs_[*selected_tab_.value()].groups.size()) return nullptr;
+    return &tabs_[*selected_tab_.value()].groups[group];
 }
 
 const RibbonCommandSpec* Ribbon::selected_command(CommandAddress address) const noexcept {
@@ -766,8 +767,8 @@ const RibbonCommandSpec* Ribbon::selected_command(CommandAddress address) const 
 }
 
 std::optional<Ribbon::CommandAddress> Ribbon::find_command(std::string_view command_id) const {
-    if (!selected_tab_) return std::nullopt;
-    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    if (selected_tab_.absent()) return std::nullopt;
+    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
     for (std::size_t group = 0; group < groups.size(); ++group) {
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {
             if (groups[group].commands[command].stable_id == command_id) return CommandAddress{group, command};
@@ -777,8 +778,8 @@ std::optional<Ribbon::CommandAddress> Ribbon::find_command(std::string_view comm
 }
 
 std::optional<std::size_t> Ribbon::find_group(std::string_view group_id) const {
-    if (!selected_tab_) return std::nullopt;
-    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    if (selected_tab_.absent()) return std::nullopt;
+    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
     for (std::size_t group = 0; group < groups.size(); ++group) {
         if (groups[group].stable_id == group_id) return group;
     }
@@ -835,7 +836,7 @@ void Ribbon::command_state_changed(std::size_t tab, std::size_t group, std::size
         return;
     }
     invalidate(Dirty::semantics);
-    if (selected_tab_ != tab || minimized.read() || plane_hidden_) return;
+    if (selected_tab_ != stxlib::Optional<std::size_t>::of(tab) || minimized.read() || plane_hidden_) return;
     if (overlay_group_ == group && group_overlay_) {
         (*group_overlay_).invalidate(Dirty::paint);
         return;
@@ -962,8 +963,8 @@ void Ribbon::arrange(Rect final_bounds) {
     // Scrolling starts below the narrowest entry and ends only
     // scroll_hysteresis above it (owner decision 45).
     bool latched = false;
-    if (selected_tab_ && !minimized.read() && !plane_hidden_ && !tabs_[*selected_tab_].groups.empty()) {
-        const double narrowest = tab_scaling(*selected_tab_).ladder.back().width;
+    if (selected_tab_.present() && !minimized.read() && !plane_hidden_ && !tabs_[*selected_tab_.value()].groups.empty()) {
+        const double narrowest = tab_scaling(*selected_tab_.value()).ladder.back().width;
         latched = scroll_latched_ ? client.width < narrowest + scroll_hysteresis : client.width < narrowest;
     }
     scroll_latched_ = latched;
@@ -995,7 +996,7 @@ void Ribbon::arrange(Rect final_bounds) {
                 if (!control || !is_current_layout_child(control)) continue;
                 Rect bounds{};
                 const RibbonCommandSpec& spec = tabs_[tab].groups[group].commands[command];
-                if (selected_tab_ == tab) {
+                if (selected_tab_ == stxlib::Optional<std::size_t>::of(tab)) {
                     const Rect field = split_field(spec, placed.commands[group][command]).field;
                     bounds = Rect::intersection(field, placed.groups_area);
                 }
@@ -1020,7 +1021,7 @@ void Ribbon::arrange(Rect final_bounds) {
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         const Control::Ptr& panel = tabs_[tab].panel;
         if (!panel || !is_current_layout_child(panel)) continue;
-        const Rect bounds = selected_tab_ == tab ? placed.plane : Rect{};
+        const Rect bounds = selected_tab_ == stxlib::Optional<std::size_t>::of(tab) ? placed.plane : Rect{};
         set_child_layout_collapsed(panel, bounds.empty());
         if (!bounds.empty()) set_child_layout(panel, bounds);
     }
@@ -1153,7 +1154,7 @@ Ribbon::CommandParts Ribbon::command_parts(const Layout& placed, CommandAddress 
         return parts;
     }
     const RibbonGroupLayout& group_layout =
-        layouts_[*selected_tab_][address.group][placed.group_layouts[address.group]];
+        layouts_[*selected_tab_.value()][address.group][placed.group_layouts[address.group]];
     const bool large = layout_command_size(group_layout, spec, address.command) == RibbonCommandSize::large;
     Rect face = bounds;
     Rect icon{};
@@ -1234,7 +1235,7 @@ Ribbon::Parts Ribbon::control_parts(const Layout& placed) const {
     record.application_button.states = application;
     record.application_label.states = application;
     record.command_plane = PartGeometry::from_bounds(placed.plane);
-    if (record.command_plane.present && selected_tab_) record.command_plane.accent = tab_accent(*selected_tab_);
+    if (record.command_plane.present && selected_tab_.present()) record.command_plane.accent = tab_accent(*selected_tab_.value());
     const double glyph = arrow_glyph * scale;
     record.scroll_left = PartGeometry::from_bounds(placed.scroll_left);
     record.scroll_left_glyph = PartGeometry::from_bounds(centred_square(placed.scroll_left, glyph));
@@ -1274,7 +1275,7 @@ bool Ribbon::stop_focus_visible(const Stop& stop) const {
 AnatomyStateSet Ribbon::tab_states(std::size_t tab) const {
     AnatomyStateSet states;
     if (hot_.kind == Hit::Kind::tab && hot_.index == tab) states.insert(AnatomyState::hot);
-    if (selected_tab_ == tab) states.insert(AnatomyState::selected);
+    if (selected_tab_ == stxlib::Optional<std::size_t>::of(tab)) states.insert(AnatomyState::selected);
     if (!tabs_[tab].enabled) states.insert(AnatomyState::disabled);
     if (stop_focus_visible(Stop{StopKind::tab, tab, {}})) states.insert(AnatomyState::focus_visible);
     return states;
@@ -1358,7 +1359,7 @@ void Ribbon::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, part);
     for (std::size_t index = tabs_.size(); index > 0U; --index) {
         const std::size_t tab = index - 1U;
-        if (!shown(tab) || selected_tab_ == tab) continue;
+        if (!shown(tab) || selected_tab_ == stxlib::Optional<std::size_t>::of(tab)) continue;
         paint_tab(painter, part, placed, tab);
     }
     // The help button over the row's right end: a menu-item plate (flat at
@@ -1383,9 +1384,9 @@ void Ribbon::on_paint(Painter& painter, Rect) {
     }
     part.alignment = PartTextAlignment::start;
     part.font = label_font;
-    const bool plane = !placed.plane.empty() && selected_tab_.has_value();
+    const bool plane = !placed.plane.empty() && selected_tab_.present();
     if (plane) paint_plane(painter, part, placed, own);
-    if (selected_tab_ && shown(*selected_tab_)) paint_tab(painter, part, placed, *selected_tab_);
+    if (selected_tab_.present() && shown(*selected_tab_.value())) paint_tab(painter, part, placed, *selected_tab_.value());
     if (!plane) return;
     part.alignment = PartTextAlignment::start;
     part.font = label_font;
@@ -1510,7 +1511,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
     const FontSpec label_font = text_font(font.read());
     PartPaint part;
     part.font = label_font;
-    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
     for (std::size_t group = 0; group < groups.size(); ++group) {
         if (group >= placed.groups.size() || Rect::intersection(placed.groups[group], placed.groups_area).empty()) {
             continue;
@@ -1560,7 +1561,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             paint_part(painter, *this, part);
             continue;
         }
-        const RibbonGroupLayout& group_layout = layouts_[*selected_tab_][group][placed.group_layouts[group]];
+        const RibbonGroupLayout& group_layout = layouts_[*selected_tab_.value()][group][placed.group_layouts[group]];
         part.role = PartRole::caption;
         part.bounds = parts.group_caption.bounds;
         part.alignment = PartTextAlignment::center;
@@ -1687,7 +1688,7 @@ void Ribbon::paint_label_command(Painter& painter, PartPaint& part, const Ribbon
 }
 
 void Ribbon::overlay_paint(Painter& painter, Rect panel) const {
-    if (!selected_tab_ || !overlay_group_) return;
+    if (selected_tab_.absent() || !overlay_group_) return;
     const Layout placed = overlay_layout(panel);
     painter.save();
     painter.clip_rect(panel);
@@ -1709,9 +1710,9 @@ Ribbon::Hit Ribbon::hit_test(const Layout& placed, Point local) const {
     }
     // Overlapping tabs stack as they paint: the selected tab over both
     // neighbours, then each tab over the one to its right.
-    if (selected_tab_ && *selected_tab_ < placed.tabs.size() && placed.tabs[*selected_tab_].contains(local)) {
+    if (selected_tab_.present() && *selected_tab_.value() < placed.tabs.size() && placed.tabs[*selected_tab_.value()].contains(local)) {
         hit.kind = Hit::Kind::tab;
-        hit.index = *selected_tab_;
+        hit.index = *selected_tab_.value();
         return hit;
     }
     for (std::size_t tab = 0; tab < placed.tabs.size(); ++tab) {
@@ -1720,7 +1721,7 @@ Ribbon::Hit Ribbon::hit_test(const Layout& placed, Point local) const {
         hit.index = tab;
         return hit;
     }
-    if (placed.plane.empty() || !placed.plane.contains(local) || !selected_tab_) return hit;
+    if (placed.plane.empty() || !placed.plane.contains(local) || selected_tab_.absent()) return hit;
     if (placed.scroll_left.contains(local)) {
         hit.kind = Hit::Kind::scroll_left;
         return hit;
@@ -1730,7 +1731,7 @@ Ribbon::Hit Ribbon::hit_test(const Layout& placed, Point local) const {
         return hit;
     }
     if (!placed.groups_area.contains(local)) return hit;
-    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
     for (std::size_t group = 0; group < groups.size(); ++group) {
         if (!placed.groups[group].contains(local)) continue;
         const GroupParts parts = group_parts(placed, group);
@@ -1864,7 +1865,7 @@ void Ribbon::click_tab(std::size_t tab) {
     if (!selectable(tab)) return;
     // The selected tab minimizes the command plane or shows it again
     // (owner decision 19); another tab is selected and shows the plane.
-    if (selected_tab_ == tab) {
+    if (selected_tab_ == stxlib::Optional<std::size_t>::of(tab)) {
         minimized = !minimized.read();
         return;
     }
@@ -1907,7 +1908,7 @@ void Ribbon::click_command(CommandAddress address) {
 void Ribbon::request_help() {
     const Control::Ptr lifetime = shared_from_this();
     const RibbonHelpRequest request{std::string(stable_id().value()),
-                                    selected_tab_ ? tabs_[*selected_tab_].stable_id : std::string{}};
+                                    selected_tab_.present() ? tabs_[*selected_tab_.value()].stable_id : std::string{}};
     help_button_clicked_.emit(request);
 }
 
@@ -1936,7 +1937,7 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
         // On the press (Office's way), or, while tabs_activate_on_release
         // holds, on the release over the same tab.
         if (tabs_activate_on_release.read()) {
-            if (selectable(hit.index)) pressed_tab_ = hit.index;
+            if (selectable(hit.index)) pressed_tab_.set(hit.index);
         } else {
             click_tab(hit.index);
         }
@@ -1960,7 +1961,7 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
         if (spec == nullptr || !command_enabled(*spec)) return;
         // A press on a field's label focuses its field, as a form label does.
         if (hosted((*spec).kind)) {
-            const Control::Ptr& field = records_[*selected_tab_][hit.command.group][hit.command.command].hosted;
+            const Control::Ptr& field = records_[*selected_tab_.value()][hit.command.group][hit.command.command].hosted;
             if (field && field_labelled(*spec) && window() != nullptr) {
                 static_cast<void>((*window()).request_focus(field));
             }
@@ -1992,11 +1993,12 @@ void Ribbon::release(const Hit& hit, PointerEvent& event) {
     const std::optional<std::size_t> pressed_group = pressed_group_;
     const Hit::Kind pressed_scroll = pressed_scroll_;
     const bool scroll = pressed_scroll_ != Hit::Kind::none;
-    const std::optional<std::size_t> tab = pressed_tab_;
+    const stxlib::Optional<std::size_t> tab = pressed_tab_;
     pressed_tab_.reset();
-    if (tab) {
+    if (tab.present()) {
         event.handled = true;
-        if (hit.kind == Hit::Kind::tab && hit.index == *tab) click_tab(*tab);
+        const std::size_t pressed_tab = *tab.value();
+        if (hit.kind == Hit::Kind::tab && hit.index == pressed_tab) click_tab(pressed_tab);
         return;
     }
     if (help_pressed_) {
@@ -2135,10 +2137,10 @@ std::vector<Ribbon::Stop> Ribbon::stops_for(const Layout& placed) const {
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         if (selectable(tab)) result.push_back(Stop{StopKind::tab, tab, {}});
     }
-    if (minimized.read() || plane_hidden_ || !selected_tab_ || placed.plane.empty()) return result;
-    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    if (minimized.read() || plane_hidden_ || selected_tab_.absent() || placed.plane.empty()) return result;
+    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
     for (std::size_t group = 0; group < groups.size(); ++group) {
-        if (!group_shown(*selected_tab_, group)) continue;
+        if (!group_shown(*selected_tab_.value(), group)) continue;
         if (group_collapsed(placed, group)) {
             result.push_back(Stop{StopKind::group_button, group, {}});
             continue;
@@ -2161,9 +2163,9 @@ std::vector<Ribbon::Stop> Ribbon::stops() const {
 // launcher.
 std::vector<Ribbon::Stop> Ribbon::overlay_stops() const {
     std::vector<Stop> result;
-    if (!selected_tab_ || !overlay_group_) return result;
+    if (selected_tab_.absent() || !overlay_group_) return result;
     const std::size_t group = *overlay_group_;
-    const RibbonGroupSpec& spec = tabs_[*selected_tab_].groups[group];
+    const RibbonGroupSpec& spec = tabs_[*selected_tab_.value()].groups[group];
     for (std::size_t command = 0; command < spec.commands.size(); ++command) {
         const RibbonCommandSpec& item = spec.commands[command];
         if (hosted(item.kind) || text_only(item.kind) || !command_visible(item)) continue;
@@ -2379,8 +2381,8 @@ bool Ribbon::mnemonic_matches(char32_t character) const noexcept {
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         if (selectable(tab) && is_mnemonic(character, tabs_[tab].text)) return true;
     }
-    if (minimized.read() || plane_hidden_ || !selected_tab_) return false;
-    for (const RibbonGroupSpec& group : tabs_[*selected_tab_].groups) {
+    if (minimized.read() || plane_hidden_ || selected_tab_.absent()) return false;
+    for (const RibbonGroupSpec& group : tabs_[*selected_tab_.value()].groups) {
         for (const RibbonCommandSpec& command : group.commands) {
             if (hosted(command.kind) || text_only(command.kind)) continue;
             if (is_mnemonic(character, authored_text(command))) return true;
@@ -2403,8 +2405,8 @@ bool Ribbon::process_mnemonic_self(char32_t character) {
         if (minimized.read() && !show_plane_popup()) minimized = false;
         return true;
     }
-    if (minimized.read() || plane_hidden_ || !selected_tab_) return false;
-    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    if (minimized.read() || plane_hidden_ || selected_tab_.absent()) return false;
+    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
     for (std::size_t group = 0; group < groups.size(); ++group) {
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {
             const RibbonCommandSpec& spec = groups[group].commands[command];
@@ -2565,7 +2567,7 @@ bool Ribbon::show_group_overlay(std::string_view group_id, MenuOpenMode mode) {
     }
     overlay_group_ = group;
     overlay_stop_.reset();
-    const RibbonGroupSpec& spec = tabs_[*selected_tab_].groups[group];
+    const RibbonGroupSpec& spec = tabs_[*selected_tab_.value()].groups[group];
     (*group_overlay_).accessible_name = spec.caption;
     move_hosted_to_overlay(group);
     // The content runs from the ribbon's left edge (near alignment) to the
@@ -2650,8 +2652,8 @@ void Ribbon::finish_group_overlay() noexcept {
 }
 
 std::optional<std::string> Ribbon::overlay_group() const {
-    if (!overlay_group_ || !selected_tab_) return std::nullopt;
-    return tabs_[*selected_tab_].groups[*overlay_group_].stable_id;
+    if (!overlay_group_ || selected_tab_.absent()) return std::nullopt;
+    return tabs_[*selected_tab_.value()].groups[*overlay_group_].stable_id;
 }
 
 Control::Ptr Ribbon::group_overlay() const noexcept {
@@ -2661,7 +2663,7 @@ Control::Ptr Ribbon::group_overlay() const noexcept {
 // The overlay's group's hosted controls move into the overlay content while it
 // is open, and galleries show at their widest.
 void Ribbon::move_hosted_to_overlay(std::size_t group) {
-    const std::size_t tab = *selected_tab_;
+    const std::size_t tab = *selected_tab_.value();
     std::vector<CommandRecord>& records = records_[tab][group];
     for (std::size_t command = 0; command < records.size(); ++command) {
         const Control::Ptr control = records[command].hosted;
@@ -2721,7 +2723,7 @@ void Ribbon::on_group_overlay_revoked() {
 // plane would show unminimized.
 Ribbon::Layout Ribbon::popup_layout(Rect panel) const {
     Layout placed;
-    if (!selected_tab_) return placed;
+    if (selected_tab_.absent()) return placed;
     reset_layout_groups(placed);
     placed.plane = panel;
     place_plane(placed);
@@ -2729,7 +2731,7 @@ Ribbon::Layout Ribbon::popup_layout(Rect panel) const {
 }
 
 void Ribbon::popup_paint(Painter& painter, Rect panel) const {
-    if (!selected_tab_) return;
+    if (selected_tab_.absent()) return;
     const Layout placed = popup_layout(panel);
     const Parts own = control_parts(placed);
     PartPaint part;
@@ -2769,8 +2771,8 @@ void Ribbon::popup_pointer(PointerEvent& event, Rect panel) {
 bool Ribbon::show_plane_popup() {
     require_mutable();
     Window* const window = attached_window();
-    if (!minimized.read() || !selected_tab_ || window == nullptr || !effectively_enabled()) return false;
-    if (tabs_[*selected_tab_].panel) return false;
+    if (!minimized.read() || selected_tab_.absent() || window == nullptr || !effectively_enabled()) return false;
+    if (tabs_[*selected_tab_.value()].panel) return false;
     if (plane_popup_open_) return true;
     close_menus();
     close_group_overlay();
@@ -2786,7 +2788,7 @@ bool Ribbon::show_plane_popup() {
     }
     plane_popup_open_ = true;
     hot_ = Hit{};
-    const std::size_t tab = *selected_tab_;
+    const std::size_t tab = *selected_tab_.value();
     (*plane_popup_).accessible_name = parse_mnemonic_text(tabs_[tab].text).display_text;
     // The selected tab's hosted controls move into the popup, in record order.
     for (std::size_t group = 0; group < records_[tab].size(); ++group) {
@@ -2895,7 +2897,7 @@ SemanticDescriptor Ribbon::semantic_descriptor() const {
 // collapsed, a menu button that opens its overlay.
 void Ribbon::append_group_node(SemanticNode& parent, const Layout& placed, std::size_t group, Rect absolute) const {
     const std::string ribbon_id(stable_id().value());
-    const RibbonGroupSpec& spec = tabs_[*selected_tab_].groups[group];
+    const RibbonGroupSpec& spec = tabs_[*selected_tab_.value()].groups[group];
     const Rect visible = Rect::intersection(placed.groups[group], placed.groups_area);
     if (visible.empty()) return;
     SemanticState base = SemanticState::visible;
@@ -3025,19 +3027,19 @@ std::vector<SemanticNode> Ribbon::semantic_virtual_children() const {
         node.role = SemanticRole::tab;
         node.name = parse_mnemonic_text(tabs_[tab].text).display_text;
         node.access_key = mnemonic_access_key(tabs_[tab].text);
-        if (tab_set_of_[tab]) node.description = tab_sets_[*tab_set_of_[tab]].caption;
+        if (tab_set_of_[tab].present()) node.description = tab_sets_[*tab_set_of_[tab].value()].caption;
         node.position_in_set.set(place.position);
         node.set_size.set(place.count);
         node.bounds = to_window(absolute, placed.tabs[tab]);
         // A disabled tab is published, neither enabled nor focusable, with
         // no action.
         node.states = tabs_[tab].enabled ? base | SemanticState::focusable : SemanticState::visible;
-        if (selected_tab_ == tab) node.states |= SemanticState::selected;
+        if (selected_tab_ == stxlib::Optional<std::size_t>::of(tab)) node.states |= SemanticState::selected;
         if (focused_ && stop_ && *stop_ == Stop{StopKind::tab, tab, {}}) node.states |= SemanticState::focused;
         // The selected tab shows the command plane, its panel (owner
         // decision DK-40). Tabs publish select, not press (DK-35); a press
         // sent anyway still clicks the tab (on_semantic_child_action).
-        if (selected_tab_ == tab && !placed.plane.empty()) node.controlled_panel = ribbon_id + ".command-plane";
+        if (selected_tab_ == stxlib::Optional<std::size_t>::of(tab) && !placed.plane.empty()) node.controlled_panel = ribbon_id + ".command-plane";
         if (tabs_[tab].enabled) node.actions = {SemanticAction::select};
         row.children.push_back(std::move(node));
     }
@@ -3052,7 +3054,7 @@ std::vector<SemanticNode> Ribbon::semantic_virtual_children() const {
         help.actions = {SemanticAction::press};
         nodes.push_back(std::move(help));
     }
-    if (!selected_tab_) return nodes;
+    if (selected_tab_.absent()) return nodes;
 
     // The command plane is published while minimized too, collapsed, so that
     // assistive technology can restore it: tabs expose selection and never
@@ -3061,7 +3063,7 @@ std::vector<SemanticNode> Ribbon::semantic_virtual_children() const {
     SemanticNode plane{};
     plane.stable_id = ribbon_id + ".command-plane";
     plane.role = SemanticRole::tab_panel;
-    plane.name = parse_mnemonic_text(tabs_[*selected_tab_].text).display_text;
+    plane.name = parse_mnemonic_text(tabs_[*selected_tab_.value()].text).display_text;
     plane.bounds = to_window(absolute, placed.plane);
     plane.states = base;
     if (!placed.plane.empty()) plane.states |= SemanticState::expanded;
@@ -3080,7 +3082,7 @@ std::vector<SemanticNode> Ribbon::semantic_virtual_children() const {
         scroll.actions = {SemanticAction::press};
         plane.children.push_back(std::move(scroll));
     }
-    for (std::size_t group = 0; group < tabs_[*selected_tab_].groups.size(); ++group) {
+    for (std::size_t group = 0; group < tabs_[*selected_tab_.value()].groups.size(); ++group) {
         append_group_node(plane, placed, group, absolute);
     }
     if (!placed.scroll_right.empty()) {
@@ -3098,7 +3100,7 @@ std::vector<SemanticNode> Ribbon::semantic_virtual_children() const {
 }
 
 std::vector<SemanticNode> Ribbon::overlay_semantic_children(Rect panel) const {
-    if (!selected_tab_ || !overlay_group_ || !group_overlay_) return {};
+    if (selected_tab_.absent() || !overlay_group_ || !group_overlay_) return {};
     const Layout placed = overlay_layout(panel);
     SemanticNode holder{};
     append_group_node(holder, placed, *overlay_group_, (*group_overlay_).absolute_bounds());
@@ -3128,7 +3130,7 @@ bool Ribbon::on_semantic_child_action(std::string_view id, SemanticAction action
         return show_application_menu();
     }
     if (id == ribbon_id + ".command-plane" && (action == SemanticAction::expand || action == SemanticAction::collapse)) {
-        if (!selected_tab_) return false;
+        if (selected_tab_.absent()) return false;
         minimized = action == SemanticAction::collapse;
         return true;
     }
@@ -3182,8 +3184,8 @@ bool Ribbon::on_semantic_child_action(std::string_view id, SemanticAction action
         return false;
     }
     const std::string_view launcher_id = node_suffix(id, ribbon_id, "launcher");
-    if (!launcher_id.empty() && action == SemanticAction::press && selected_tab_ && !minimized.read() && !plane_hidden_) {
-        const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    if (!launcher_id.empty() && action == SemanticAction::press && selected_tab_.present() && !minimized.read() && !plane_hidden_) {
+        const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
         for (std::size_t group = 0; group < groups.size(); ++group) {
             if (groups[group].stable_id != launcher_id) continue;
             launch(group);
@@ -3394,8 +3396,8 @@ std::vector<Ribbon::RealizedItem> Ribbon::realized_list(const Layout& placed) co
         item.index = tab;
         list.push_back(item);
     }
-    if (placed.plane.empty() || !selected_tab_) return list;
-    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    if (placed.plane.empty() || selected_tab_.absent()) return list;
+    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
     for (std::size_t group = 0; group < groups.size(); ++group) {
         if (Rect::intersection(placed.groups[group], placed.groups_area).empty()) continue;
         RealizedItem item;
@@ -3499,8 +3501,8 @@ std::vector<Ribbon::Tab> Ribbon::realized_tabs() const {
 
 std::vector<Ribbon::Group> Ribbon::groups_of(const Layout& placed) const {
     std::vector<Group> records;
-    if (placed.plane.empty() || !selected_tab_) return records;
-    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    if (placed.plane.empty() || selected_tab_.absent()) return records;
+    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
     for (std::size_t group = 0; group < groups.size(); ++group) {
         if (Rect::intersection(placed.groups[group], placed.groups_area).empty()) continue;
         Group record;
@@ -3516,8 +3518,8 @@ std::vector<Ribbon::Group> Ribbon::groups_of(const Layout& placed) const {
 
 std::vector<Ribbon::CommandItem> Ribbon::commands_of(const Layout& placed) const {
     std::vector<CommandItem> records;
-    if (placed.plane.empty() || !selected_tab_) return records;
-    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    if (placed.plane.empty() || selected_tab_.absent()) return records;
+    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
     for (std::size_t group = 0; group < groups.size(); ++group) {
         if (Rect::intersection(placed.groups[group], placed.groups_area).empty()) continue;
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {

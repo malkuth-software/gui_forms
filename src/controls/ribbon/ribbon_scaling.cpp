@@ -638,7 +638,7 @@ double Ribbon::place_group(const TabScaling& scaling, std::size_t tab, std::size
 }
 
 void Ribbon::reset_layout_groups(Layout& placed) const {
-    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
+    const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_.value()].groups;
     placed.groups.assign(groups.size(), Rect{});
     placed.group_layouts.assign(groups.size(), 0U);
     placed.group_sizes.assign(groups.size(), RibbonGroupSize::large);
@@ -655,7 +655,7 @@ void Ribbon::reset_layout_groups(Layout& placed) const {
 // while groups remain past the edge; a group that does not fit whole before
 // the right button is not shown, except the first, which is clipped.
 void Ribbon::place_plane(Layout& placed) const {
-    const std::size_t tab = *selected_tab_;
+    const std::size_t tab = *selected_tab_.value();
     const TabScaling& scaling = tab_scaling(tab);
     ++counters_.ladder_lookups;
     const std::vector<RibbonLadderEntry>& ladder = scaling.ladder;
@@ -770,7 +770,7 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
             const double deepest = std::min(*previous_width, width) * 0.5;
             x += std::max(row_widths.gap, -deepest);
         }
-        const TabMargins margins = selected_tab_ == tab ? row_widths.selected : row_widths.rest;
+        const TabMargins margins = selected_tab_ == stxlib::Optional<std::size_t>::of(tab) ? row_widths.selected : row_widths.rest;
         placed.tabs.push_back({x, client.y + margins.top, width, std::max(1.0, row - margins.top - margins.bottom)});
         x += width;
         previous_width = width;
@@ -787,11 +787,11 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
     // The Quick Access Toolbar's own row: under the plane, or under the tab
     // row while the plane does not show.
     if (quick_access_at(QuickAccessToolbarPlacement::below_ribbon)) {
-        const bool plane_shown = selected_tab_.has_value() && !minimized.read() && !plane_hidden_;
+        const bool plane_shown = selected_tab_.present() && !minimized.read() && !plane_hidden_;
         const double top = client.y + row + (plane_shown ? plane_height() : 0.0);
         placed.quick_access = {client.x, top, client.width, row};
     }
-    if (!selected_tab_) return placed;
+    if (selected_tab_.absent()) return placed;
     reset_layout_groups(placed);
     if (minimized.read() || plane_hidden_) return placed;
     placed.plane = {client.x, client.y + row, client.width, plane_height()};
@@ -804,9 +804,9 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
 Ribbon::Layout Ribbon::overlay_layout(Rect panel) const {
     Layout placed;
     placed.overlay = true;
-    if (!selected_tab_ || !overlay_group_) return placed;
+    if (selected_tab_.absent() || !overlay_group_) return placed;
     reset_layout_groups(placed);
-    const std::size_t tab = *selected_tab_;
+    const std::size_t tab = *selected_tab_.value();
     const std::size_t group = *overlay_group_;
     const TabScaling& scaling = tab_scaling(tab);
     placed.plane = panel;
@@ -823,8 +823,8 @@ Ribbon::Layout Ribbon::overlay_layout(Rect panel) const {
 }
 
 Size Ribbon::overlay_panel_size() const {
-    if (!selected_tab_ || !overlay_group_) return {};
-    const std::size_t tab = *selected_tab_;
+    if (selected_tab_.absent() || !overlay_group_) return {};
+    const std::size_t tab = *selected_tab_.value();
     const std::size_t group = *overlay_group_;
     const TabScaling& scaling = tab_scaling(tab);
     const std::size_t columns = scaling.galleries[group] ? scaling.gallery_metrics[group].maximum : 0U;
