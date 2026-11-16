@@ -347,8 +347,8 @@ struct CaptureRequest final {
 
 WindowCapture captured(OffscreenAttachment& attached, const SampleWindow& sample, const CaptureRequest& request) {
     OffscreenCaptureOptions options{};
-    options.colour_scheme = request.scheme;
-    options.high_contrast = request.high_contrast;
+    options.colour_scheme.set(request.scheme);
+    options.high_contrast.set(request.high_contrast);
     options.include_backplane = false;
     const std::optional<WindowCapture> capture = attached.capture_control(sample.graph, options);
     require(capture.has_value() && (*capture).pixel_width == 520U && (*capture).pixel_height == 330U,
@@ -393,8 +393,8 @@ WindowCapture settled(OffscreenAttachment& attached, const SampleWindow& sample,
     const PresentationOverrides* const current = window.presentation_overrides();
     if (current != nullptr) kept = *current;
     PresentationOverrides held = kept;
-    held.colour_scheme = request.scheme;
-    held.high_contrast = request.high_contrast;
+    held.colour_scheme.set(request.scheme);
+    held.high_contrast.set(request.high_contrast);
     window.set_presentation_overrides(held);
     window.perform_layout();
     const Rect whole{0.0, 0.0, window.client_size().width, window.client_size().height};

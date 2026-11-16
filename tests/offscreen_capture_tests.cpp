@@ -168,7 +168,7 @@ void attachment_and_control_capture() {
                 "without the backplane the margin stays transparent");
 
         options.include_backplane = true;
-        options.colour_scheme = ColourScheme::dark;
+        options.colour_scheme.set(ColourScheme::dark);
         const std::optional<WindowCapture> dark = attached.capture_control(button, options);
         require(dark.has_value() && pixel_at(*dark, 1U, 1U) != pixel_at(*light, 1U, 1U),
                 "a dark capture draws a dark backplane");

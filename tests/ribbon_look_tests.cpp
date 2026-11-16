@@ -704,7 +704,7 @@ void test_dark_tab_ink() {
     (*ribbon).set_theme_override(gui_forms_theme());
     Window window(ribbon, {700.0, 160.0});
     PresentationOverrides dark{};
-    dark.colour_scheme = ColourScheme::dark;
+    dark.colour_scheme.set(ColourScheme::dark);
     window.set_presentation_overrides(dark);
     window.perform_layout();
     LookPainter painter;

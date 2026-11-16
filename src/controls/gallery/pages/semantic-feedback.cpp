@@ -143,7 +143,7 @@ void SemanticFeedbackPage::on_sound_changed(const bool enabled) {
     // reach the window's other fields.
     PresentationOverrides overrides{};
     if (const PresentationOverrides* const current = (*window).presentation_overrides()) overrides = *current;
-    overrides.sound_enabled = enabled;
+    overrides.sound_enabled.set(enabled);
     (*window).set_presentation_overrides(overrides);
 }
 

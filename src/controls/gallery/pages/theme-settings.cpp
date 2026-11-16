@@ -279,9 +279,9 @@ void ThemeSettingsPage::apply_scheme() {
     overrides.high_contrast.reset();
     const SchemeChoice choice = scheme();
     if (choice == SchemeChoice::high_contrast) {
-        overrides.high_contrast = true;
+        overrides.high_contrast.set(true);
     } else if (!follow_host_.get()) {
-        overrides.colour_scheme = choice == SchemeChoice::dark ? ColourScheme::dark : ColourScheme::light;
+        overrides.colour_scheme.set(choice == SchemeChoice::dark ? ColourScheme::dark : ColourScheme::light);
     }
     (*target).set_presentation_overrides(overrides);
     refresh_state();
@@ -322,8 +322,8 @@ void ThemeSettingsPage::refresh_state() {
     const PresentationOverrides* const overrides = (*target).presentation_overrides();
     if (overrides != nullptr && (*overrides).high_contrast.value_or(false)) {
         scheme_text += "high contrast";
-    } else if (overrides != nullptr && (*overrides).colour_scheme) {
-        scheme_text += std::string(colour_scheme_name(*(*overrides).colour_scheme));
+    } else if (overrides != nullptr && (*overrides).colour_scheme.present()) {
+        scheme_text += std::string(colour_scheme_name(*(*overrides).colour_scheme.value()));
     } else {
         scheme_text += follow_host_.get() ? "the host's preference" : "the window's own";
     }
