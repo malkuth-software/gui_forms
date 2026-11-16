@@ -10,6 +10,7 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "../../basic/number_text.hpp"
+#include "../../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
@@ -261,7 +262,8 @@ bool PlotView::set_x_range(std::size_t index, plots::PlotRange range) {
     if (!(*engine_).model().set_x_range(index, range)) return false;
     view_moved_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
-    if (index == 0U) raise_outcome(true, false, std::nullopt, std::nullopt);
+    if (index == 0U) raise_outcome(true, false, stxlib::Optional<PlotPointPick>::none(),
+                                   stxlib::Optional<std::size_t>::none());
     if (live_host_) send_live_update(false);
     return true;
 }
@@ -271,7 +273,8 @@ bool PlotView::set_y_range(std::size_t index, plots::PlotRange range) {
     if (!(*engine_).model().set_y_range(index, range)) return false;
     view_moved_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
-    if (index == 0U) raise_outcome(true, false, std::nullopt, std::nullopt);
+    if (index == 0U) raise_outcome(true, false, stxlib::Optional<PlotPointPick>::none(),
+                                   stxlib::Optional<std::size_t>::none());
     if (live_host_) send_live_update(false);
     return true;
 }
@@ -284,7 +287,7 @@ void PlotView::fit_view() {
     view_moved_ = false;
     if (!moved) return;
     invalidate(Dirty::paint | Dirty::semantics);
-    raise_outcome(true, false, std::nullopt, std::nullopt);
+    raise_outcome(true, false, stxlib::Optional<PlotPointPick>::none(), stxlib::Optional<std::size_t>::none());
     if (live_host_) send_live_update(false);
 }
 
@@ -315,14 +318,15 @@ void PlotView::clear_query() {
     if (!(*engine_).model().selection().has_value()) return;
     (*engine_).model().clear_selection();
     invalidate(Dirty::paint);
-    raise_outcome(false, true, std::nullopt, std::nullopt);
+    raise_outcome(false, true, stxlib::Optional<PlotPointPick>::none(), stxlib::Optional<std::size_t>::none());
 }
 
-std::optional<PlotPointPick> PlotView::cursor() const {
+stxlib::Optional<PlotPointPick> PlotView::cursor() const {
     if (live_host_) return live_cursor_;
     std::vector<detail::PlotEngineSeries> series;
     collect_series(series, nullptr, nullptr);
-    return (*engine_).cursor_point(series);
+    const stxlib::Optional<PlotPointPick> at = platform::stxlib_optional((*engine_).cursor_point(series));
+    return at;
 }
 
 bool PlotView::set_cursor(std::size_t series, std::size_t element) {
@@ -330,7 +334,8 @@ bool PlotView::set_cursor(std::size_t series, std::size_t element) {
     gather_series();
     if (!(*engine_).set_cursor(detail::PlotCursor{series, element}, gathered_)) return false;
     invalidate(Dirty::paint | Dirty::semantics);
-    raise_outcome(false, false, (*engine_).cursor_point(gathered_), std::nullopt);
+    raise_outcome(false, false, platform::stxlib_optional((*engine_).cursor_point(gathered_)),
+                  stxlib::Optional<std::size_t>::none());
     return true;
 }
 
@@ -366,8 +371,8 @@ double PlotView::device_scale() const noexcept {
     return scale;
 }
 
-void PlotView::raise_outcome(bool view, bool selection, const std::optional<PlotPointPick>& pick,
-                             const std::optional<std::size_t>& legend_toggle) {
+void PlotView::raise_outcome(bool view, bool selection, const stxlib::Optional<PlotPointPick>& pick,
+                             const stxlib::Optional<std::size_t>& legend_toggle) {
     if (view) {
         const PlotViewRanges ranges = (*engine_).ranges();
         view_changed_.emit(ranges);
@@ -376,8 +381,10 @@ void PlotView::raise_outcome(bool view, bool selection, const std::optional<Plot
         const PlotQuery shown = (*engine_).query();
         selection_changed_.emit(shown);
     }
-    if (pick.has_value()) point_picked_.emit(*pick);
-    if (legend_toggle.has_value()) toggle_series(*legend_toggle);
+    const PlotPointPick* const picked = pick.value();
+    if (picked != nullptr) point_picked_.emit(*picked);
+    const std::size_t* const toggled = legend_toggle.value();
+    if (toggled != nullptr) toggle_series(*toggled);
 }
 
 // -- layout and paint ----------------------------------------------------------------
@@ -509,17 +516,19 @@ void PlotView::handle_pointer(PointerEvent& event) {
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
     // A primary press on a handle arms its drag, ahead of panning.
     if (event.action == PointerAction::down && event.button == PointerButton::primary) {
-        const std::optional<std::size_t> hit = handle_at(local);
-        if (hit.has_value()) {
+        const stxlib::Optional<std::size_t> hit_found = handle_at(local);
+        const std::size_t* const hit = hit_found.value();
+        if (hit != nullptr) {
             const PlotHandle& handle = handles_[*hit];
-            const std::optional<Point> centre = handle_point(handle.id);
-            if (centre.has_value()) {
+            const stxlib::Optional<Point> centre_found = handle_point(handle.id);
+            const Point* const centre = centre_found.value();
+            if (centre != nullptr) {
                 DragStart start{};
                 start.key = handle.id;
                 start.source = Rect{absolute.x + (*centre).x - handle_pick_radius,
                                     absolute.y + (*centre).y - handle_pick_radius, handle_pick_radius * 2.0,
                                     handle_pick_radius * 2.0};
-                handle_drag_state_ = HandleDrag{handle.id, handle.x, handle.y};
+                handle_drag_state_.set(HandleDrag{handle.id, handle.x, handle.y});
                 const DragStartResult result = handle_drag_.press(event, start);
                 if (result == DragStartResult::armed || result == DragStartResult::started) {
                     if (surface_root() != nullptr) static_cast<void>((*surface_root()).request_focus(shared_from_this()));
@@ -542,7 +551,8 @@ void PlotView::handle_pointer(PointerEvent& event) {
     event.handled = true;
     if (outcome.view) view_moved_ = true;
     if (outcome.repaint) invalidate(Dirty::paint | Dirty::semantics);
-    raise_outcome(outcome.view, outcome.selection, outcome.pick, outcome.legend_toggle);
+    raise_outcome(outcome.view, outcome.selection, platform::stxlib_optional(outcome.pick),
+                  platform::stxlib_optional(outcome.legend_toggle));
 }
 
 // -- handles -------------------------------------------------------------------------
@@ -566,46 +576,49 @@ void PlotView::set_handles(std::vector<PlotHandle> handles) {
 
 bool PlotView::set_handle_position(std::uint32_t id, double x, double y) {
     require_mutable();
-    const std::optional<std::size_t> index = handle_index(id);
-    if (!index.has_value() || !std::isfinite(x) || !std::isfinite(y)) return false;
+    const stxlib::Optional<std::size_t> found = handle_index(id);
+    const std::size_t* const index = found.value();
+    if (index == nullptr || !std::isfinite(x) || !std::isfinite(y)) return false;
     handles_[*index].x = x;
     handles_[*index].y = y;
     invalidate(Dirty::paint);
     return true;
 }
 
-std::optional<std::uint32_t> PlotView::dragged_handle() const noexcept {
-    if (!handle_drag_state_.has_value()) return std::nullopt;
-    const std::optional<std::uint32_t> id = (*handle_drag_state_).id;
+stxlib::Optional<std::uint32_t> PlotView::dragged_handle() const noexcept {
+    const HandleDrag* const drag = handle_drag_state_.value();
+    if (drag == nullptr) return stxlib::Optional<std::uint32_t>::none();
+    const stxlib::Optional<std::uint32_t> id = stxlib::Optional<std::uint32_t>::of((*drag).id);
     return id;
 }
 
-std::optional<std::size_t> PlotView::handle_index(std::uint32_t id) const noexcept {
+stxlib::Optional<std::size_t> PlotView::handle_index(std::uint32_t id) const noexcept {
     for (std::size_t index = 0U; index < handles_.size(); ++index) {
-        if (handles_[index].id == id) return index;
+        if (handles_[index].id == id) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
-std::optional<Point> PlotView::handle_point(std::uint32_t id) const {
-    const std::optional<std::size_t> index = handle_index(id);
-    if (!index.has_value()) return std::nullopt;
+stxlib::Optional<Point> PlotView::handle_point(std::uint32_t id) const {
+    const stxlib::Optional<std::size_t> found = handle_index(id);
+    const std::size_t* const index = found.value();
+    if (index == nullptr) return stxlib::Optional<Point>::none();
     const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
-    if (made.check != plots::PlotTransformCheck::valid) return std::nullopt;
+    if (made.check != plots::PlotTransformCheck::valid) return stxlib::Optional<Point>::none();
     const PlotHandle& handle = handles_[*index];
     const Rect plot = made.transform.plot();
     Point centre = made.transform.to_device(handle.x, handle.y);
     // A line's grab point is its middle across the plot.
     if (handle.kind == PlotHandleKind::vertical_line) centre.y = plot.y + plot.height * 0.5;
     if (handle.kind == PlotHandleKind::horizontal_line) centre.x = plot.x + plot.width * 0.5;
-    return centre;
+    return stxlib::Optional<Point>::of(centre);
 }
 
-std::optional<std::size_t> PlotView::handle_at(Point local) const {
+stxlib::Optional<std::size_t> PlotView::handle_at(Point local) const {
     const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
-    if (made.check != plots::PlotTransformCheck::valid) return std::nullopt;
+    if (made.check != plots::PlotTransformCheck::valid) return stxlib::Optional<std::size_t>::none();
     const Rect plot = made.transform.plot();
-    if (!plot.contains(local)) return std::nullopt;
+    if (!plot.contains(local)) return stxlib::Optional<std::size_t>::none();
     // The last handle drawn is on top, so it is found first.
     for (std::size_t remaining = handles_.size(); remaining > 0U; --remaining) {
         const PlotHandle& handle = handles_[remaining - 1U];
@@ -619,27 +632,29 @@ std::optional<std::size_t> PlotView::handle_at(Point local) const {
         } else {
             distance = std::hypot(local.x - at.x, local.y - at.y);
         }
-        if (distance <= handle_pick_radius) return remaining - 1U;
+        if (distance <= handle_pick_radius) return stxlib::Optional<std::size_t>::of(remaining - 1U);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
-std::optional<Point> PlotView::handle_data_at(Point window_top_left) const {
+stxlib::Optional<Point> PlotView::handle_data_at(Point window_top_left) const {
     const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
-    if (made.check != plots::PlotTransformCheck::valid) return std::nullopt;
+    if (made.check != plots::PlotTransformCheck::valid) return stxlib::Optional<Point>::none();
     const Rect absolute = absolute_bounds();
     const double local_x = window_top_left.x + handle_pick_radius - absolute.x;
     const double local_y = window_top_left.y + handle_pick_radius - absolute.y;
     const Point data{made.transform.x_from_device(local_x), made.transform.y_from_device(local_y)};
-    if (!std::isfinite(data.x) || !std::isfinite(data.y)) return std::nullopt;
-    return data;
+    if (!std::isfinite(data.x) || !std::isfinite(data.y)) return stxlib::Optional<Point>::none();
+    return stxlib::Optional<Point>::of(data);
 }
 
 void PlotView::plan_handle_drag(DragPlan& plan) {
-    const std::optional<std::size_t> index =
-        handle_drag_state_.has_value() ? handle_index((*handle_drag_state_).id) : std::nullopt;
+    const HandleDrag* const drag = handle_drag_state_.value();
+    const stxlib::Optional<std::size_t> found =
+        drag != nullptr ? handle_index((*drag).id) : stxlib::Optional<std::size_t>::none();
+    const std::size_t* const index = found.value();
     const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
-    if (!index.has_value() || made.check != plots::PlotTransformCheck::valid) {
+    if (index == nullptr || made.check != plots::PlotTransformCheck::valid) {
         plan.refused = true;
         return;
     }
@@ -660,15 +675,18 @@ void PlotView::plan_handle_drag(DragPlan& plan) {
 }
 
 void PlotView::preview_handle_drag(const DragTrackerFrame& frame) {
-    if (frame.hit != DragHit::point || !handle_drag_state_.has_value()) return;
-    const std::optional<std::size_t> index = handle_index((*handle_drag_state_).id);
-    const std::optional<Point> data = handle_data_at(frame.point);
-    if (!index.has_value()) {
+    const HandleDrag* const drag = handle_drag_state_.value();
+    if (frame.hit != DragHit::point || drag == nullptr) return;
+    const stxlib::Optional<std::size_t> found = handle_index((*drag).id);
+    const std::size_t* const index = found.value();
+    const stxlib::Optional<Point> data_found = handle_data_at(frame.point);
+    const Point* const data = data_found.value();
+    if (index == nullptr) {
         // The handle went away under the drag.
         handle_drag_.cancel(DragEnd::model_changed);
         return;
     }
-    if (!data.has_value()) return;
+    if (data == nullptr) return;
     PlotHandle& handle = handles_[*index];
     if (handle.kind != PlotHandleKind::horizontal_line) handle.x = (*data).x;
     if (handle.kind != PlotHandleKind::vertical_line) handle.y = (*data).y;
@@ -678,16 +696,20 @@ void PlotView::preview_handle_drag(const DragTrackerFrame& frame) {
 }
 
 void PlotView::finish_handle_drag(const DragTrackerFrame& frame) {
-    if (!handle_drag_state_.has_value()) return;
-    const HandleDrag drag = *handle_drag_state_;
+    const HandleDrag* const dragged = handle_drag_state_.value();
+    if (dragged == nullptr) return;
+    const HandleDrag drag = *dragged;
     handle_drag_state_.reset();
     invalidate(Dirty::paint);
-    const std::optional<std::size_t> index = handle_index(drag.id);
-    if (!index.has_value()) return;
+    const stxlib::Optional<std::size_t> found = handle_index(drag.id);
+    const std::size_t* const index = found.value();
+    if (index == nullptr) return;
     PlotHandle& handle = handles_[*index];
     if (drag_end_commits(frame.end)) {
-        const std::optional<Point> data = frame.hit == DragHit::point ? handle_data_at(frame.point) : std::nullopt;
-        if (data.has_value()) {
+        const stxlib::Optional<Point> data_found =
+            frame.hit == DragHit::point ? handle_data_at(frame.point) : stxlib::Optional<Point>::none();
+        const Point* const data = data_found.value();
+        if (data != nullptr) {
             if (handle.kind != PlotHandleKind::horizontal_line) handle.x = (*data).x;
             if (handle.kind != PlotHandleKind::vertical_line) handle.y = (*data).y;
         }
@@ -702,7 +724,7 @@ void PlotView::finish_handle_drag(const DragTrackerFrame& frame) {
 }
 
 void PlotView::paint_handles(Painter& painter) {
-    const std::optional<std::uint32_t> dragged = dragged_handle();
+    const std::optional<std::uint32_t> dragged = platform::standard_optional(dragged_handle());
     (*engine_).paint_handles(painter, *this, std::span<const PlotHandle>(handles_.data(), handles_.size()), dragged,
                              device_scale());
 }
@@ -757,7 +779,8 @@ void PlotView::handle_key(KeyEvent& event) {
     event.handled = true;
     if (outcome.view) view_moved_ = true;
     if (outcome.repaint) invalidate(Dirty::paint | Dirty::semantics);
-    raise_outcome(outcome.view, outcome.selection, outcome.pick, outcome.legend_toggle);
+    raise_outcome(outcome.view, outcome.selection, platform::stxlib_optional(outcome.pick),
+                  platform::stxlib_optional(outcome.legend_toggle));
 }
 
 // The key raisers raise the event first; an unhandled key reaches
@@ -922,7 +945,7 @@ void PlotView::take_live_notice(const detail::PlotLiveNotice& notice) {
         selection_changed_.emit(notice.query);
         return;
     case detail::PlotLiveNoticeKind::pick:
-        live_cursor_ = notice.pick;
+        live_cursor_.set(notice.pick);
         invalidate(Dirty::semantics);
         point_picked_.emit(notice.pick);
         return;
@@ -990,8 +1013,9 @@ SemanticDescriptor PlotView::semantic_descriptor() const {
     descriptor.role = SemanticRole::figure;
     descriptor.name = accessible_name.read().empty() ? title.read() : accessible_name.read();
     descriptor.description = accessible_description.read().empty() ? summary() : accessible_description.read();
-    const std::optional<PlotPointPick> at = cursor();
-    if (at.has_value()) {
+    const stxlib::Optional<PlotPointPick> at_found = cursor();
+    const PlotPointPick* const at = at_found.value();
+    if (at != nullptr) {
         std::string text;
         number_text::append_number_text(text, (*at).x, std::chars_format::general, 6);
         text += ", ";

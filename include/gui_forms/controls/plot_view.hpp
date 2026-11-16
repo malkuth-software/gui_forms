@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class PlotAnnotationItem;
@@ -133,10 +135,10 @@ public:
     // raises nothing.
     bool set_handle_position(std::uint32_t id, double x, double y);
     // The handle being dragged, if any.
-    [[nodiscard]] std::optional<std::uint32_t> dragged_handle() const noexcept;
+    [[nodiscard]] stxlib::Optional<std::uint32_t> dragged_handle() const noexcept;
     // The handle's centre in local coordinates on the first axes, if the
     // plot is laid out (tests and owner-drawn labels).
-    [[nodiscard]] std::optional<Point> handle_point(std::uint32_t id) const;
+    [[nodiscard]] stxlib::Optional<Point> handle_point(std::uint32_t id) const;
 
     // The item children, in child order, as the plot read them last.
     [[nodiscard]] std::vector<PlotSeriesItem*> series_items() const;
@@ -161,7 +163,7 @@ public:
     void clear_query();
 
     // The keyboard point cursor's point, if it is on one.
-    [[nodiscard]] std::optional<PlotPointPick> cursor() const;
+    [[nodiscard]] stxlib::Optional<PlotPointPick> cursor() const;
     // Places the cursor on element `element` of series `series` (false
     // when there is none) and raises point_picked.
     bool set_cursor(std::size_t series, std::size_t element);
@@ -255,8 +257,8 @@ private:
     // channels, is attached and not live; withdraws it otherwise.
     void update_ambient();
     // Raises the events an engine outcome calls for.
-    void raise_outcome(bool view, bool selection, const std::optional<PlotPointPick>& pick,
-                       const std::optional<std::size_t>& legend_toggle);
+    void raise_outcome(bool view, bool selection, const stxlib::Optional<PlotPointPick>& pick,
+                       const stxlib::Optional<std::size_t>& legend_toggle);
     // Makes or removes the live sub-surface, and sends it the plot's state.
     void update_live_host();
     void send_live_update(bool reset_view);
@@ -267,10 +269,10 @@ private:
     [[nodiscard]] double device_scale() const noexcept;
     // Handles: the enabled handle under a local point, the drag's callbacks
     // and the handles' paint.
-    [[nodiscard]] std::optional<std::size_t> handle_at(Point local) const;
-    [[nodiscard]] std::optional<std::size_t> handle_index(std::uint32_t id) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> handle_at(Point local) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> handle_index(std::uint32_t id) const noexcept;
     // The data position a placement frame's top-left gives the dragged handle.
-    [[nodiscard]] std::optional<Point> handle_data_at(Point window_top_left) const;
+    [[nodiscard]] stxlib::Optional<Point> handle_data_at(Point window_top_left) const;
     void plan_handle_drag(DragPlan& plan);
     void preview_handle_drag(const DragTrackerFrame& frame);
     void finish_handle_drag(const DragTrackerFrame& frame);
@@ -316,7 +318,7 @@ private:
     std::uint64_t live_column_copies_{};
     // The live frame's last reported view and cursor, for the summary.
     PlotViewRanges live_ranges_{};
-    std::optional<PlotPointPick> live_cursor_{};
+    stxlib::Optional<PlotPointPick> live_cursor_{};
     Event<const PlotViewRanges&> view_changed_{};
     Event<const PlotQuery&> selection_changed_{};
     Event<const PlotPointPick&> point_picked_{};
@@ -330,7 +332,7 @@ private:
         double start_x{};
         double start_y{};
     };
-    std::optional<HandleDrag> handle_drag_state_{};
+    stxlib::Optional<HandleDrag> handle_drag_state_{};
     // Declared last of the handle state: it borrows this plot and ends a
     // running session without calling back when destroyed.
     DragTracker handle_drag_;

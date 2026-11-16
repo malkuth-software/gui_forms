@@ -497,8 +497,9 @@ void test_keyboard_cursor() {
     home.physical_key = PhysicalKey::home;
     static_cast<void>(window.dispatch_key(home));
     require(recorder.views == 2, "Home fits and raises view_changed");
-    const std::optional<PlotPointPick> at = (*fixture.plot).cursor();
-    require(at.has_value() && (*at).element == 10U && near((*at).y, 1.0), "the cursor names its point");
+    const stxlib::Optional<PlotPointPick> at_found = (*fixture.plot).cursor();
+    const PlotPointPick* const at = at_found.value();
+    require(at != nullptr && (*at).element == 10U && near((*at).y, 1.0), "the cursor names its point");
     require((*fixture.plot).semantic_descriptor().value == "10, 1", "the figure's value is the cursor's point");
 
     // A-gf-controls-10-F2: a cursor on a series that was removed is dropped
@@ -981,8 +982,9 @@ void test_handles_drag_on_the_drag_engine() {
         Delegate<const PlotHandleMove&>::bind<HandleRecorder, &HandleRecorder::moved>(recorder));
     SubscriptionToken committed = (*fixture.plot).handle_committed().subscribe(
         Delegate<const PlotHandleMove&>::bind<HandleRecorder, &HandleRecorder::committed>(recorder));
-    const std::optional<Point> point = (*fixture.plot).handle_point(1U);
-    require(point.has_value(), "a laid-out plot places its handles");
+    const stxlib::Optional<Point> point_found = (*fixture.plot).handle_point(1U);
+    const Point* const point = point_found.value();
+    require(point != nullptr, "a laid-out plot places its handles");
     const plots::PlotRange before = (*fixture.plot).x_range(0U);
     drag_pointer(window, *point, Point{(*point).x + 40.0, (*point).y - 30.0});
     require(recorder.moves >= 1 && recorder.commits == 1 && recorder.last_commit.id == 1U,
@@ -990,14 +992,15 @@ void test_handles_drag_on_the_drag_engine() {
     require((*fixture.plot).handles()[0].x > middle_x && (*fixture.plot).handles()[0].y > middle_y,
             "the point follows the pointer right and up");
     require((*fixture.plot).x_range(0U) == before, "a handle drag does not pan the plot");
-    const std::optional<Point> line = (*fixture.plot).handle_point(2U);
-    require(line.has_value(), "the line has a grab point");
+    const stxlib::Optional<Point> line_found = (*fixture.plot).handle_point(2U);
+    const Point* const line = line_found.value();
+    require(line != nullptr, "the line has a grab point");
     const double line_y = (*fixture.plot).handles()[1].y;
     drag_pointer(window, *line, Point{(*line).x + 30.0, (*line).y + 50.0});
     require(recorder.commits == 2 && (*fixture.plot).handles()[1].x > x.minimum + x.extent() * 0.25 &&
                 (*fixture.plot).handles()[1].y == line_y,
             "a vertical line moves across x only");
-    require(!(*fixture.plot).dragged_handle().has_value(), "no handle is dragged after the release");
+    require((*fixture.plot).dragged_handle().absent(), "no handle is dragged after the release");
     moved.disconnect();
     committed.disconnect();
 }

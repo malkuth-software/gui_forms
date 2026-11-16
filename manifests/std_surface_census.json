@@ -42,8 +42,8 @@
       "headers": 1
     },
     "optional": {
-      "occurrences": 954,
-      "headers": 184
+      "occurrences": 944,
+      "headers": 183
     },
     "nullopt": {
       "occurrences": 15,
