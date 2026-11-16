@@ -9,9 +9,11 @@ Matrix Matrix::translation(double x, double y) {
 Matrix Matrix::rotation_at(double degrees, PointF center) {
     require_finite(degrees, "rotation degrees");
     require_finite(center, "rotation center");
-    const double radians = degrees * (std::acos(-1.0) / 180.0);
-    const double cosine = std::cos(radians);
-    const double sine = std::sin(radians);
+    // The engine's deterministic sine and cosine, exact at quarter turns.
+    const gui_forms::EngineSineCosine turn =
+        gui_forms::engine_sine_cosine_degrees(degrees);
+    const double cosine = turn.cosine;
+    const double sine = turn.sine;
     const Matrix rotation{cosine, sine, -sine, cosine, 0.0, 0.0};
     return Matrix::translation(-center.x, -center.y)
         .followed_by(rotation)

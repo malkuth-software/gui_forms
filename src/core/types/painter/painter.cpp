@@ -286,9 +286,9 @@ struct TextTurn final {
 };
 
 [[nodiscard]] TextTurn text_turn(const double degrees) noexcept {
-    const double radians = degrees * (3.14159265358979323846 / 180.0);
-    const double cosine = std::cos(radians);
-    const double sine = std::sin(radians);
+    const EngineSineCosine angle = engine_sine_cosine_degrees(degrees);
+    const double cosine = angle.cosine;
+    const double sine = angle.sine;
     const TextTurn turn{cosine, -sine, sine, cosine};
     return turn;
 }

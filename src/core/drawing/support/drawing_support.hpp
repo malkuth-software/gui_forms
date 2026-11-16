@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/drawing.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include <algorithm>
 #include <array>
@@ -65,29 +66,30 @@ void require_finite(RectF rect, std::string_view field) {
 
 [[nodiscard]] PointF point_on_ellipse(RectF bounds,
                                       double angle_degrees) noexcept {
-    constexpr double degrees_to_radians =
-        0.01745329251994329576923690768489;
-    const double radians = angle_degrees * degrees_to_radians;
-    return {bounds.x + bounds.width * 0.5 +
-                bounds.width * 0.5 * std::cos(radians),
+    // The engine's deterministic sine and cosine, exact at quarter turns.
+    const gui_forms::EngineSineCosine turn =
+        gui_forms::engine_sine_cosine_degrees(angle_degrees);
+    return {bounds.x + bounds.width * 0.5 + bounds.width * 0.5 * turn.cosine,
             bounds.y + bounds.height * 0.5 +
-                bounds.height * 0.5 * std::sin(radians)};
+                bounds.height * 0.5 * turn.sine};
 }
 
 [[nodiscard]] double ellipse_parameter_angle(
     double radius_x, double radius_y, double geometric_degrees) noexcept {
-    constexpr double degrees_to_radians =
-        0.01745329251994329576923690768489;
-    const double geometric = geometric_degrees * degrees_to_radians;
-    return std::atan2(radius_x * std::sin(geometric),
-                      radius_y * std::cos(geometric));
+    const gui_forms::EngineSineCosine geometric =
+        gui_forms::engine_sine_cosine_degrees(geometric_degrees);
+    const double parameter = gui_forms::engine_arctangent2(
+        radius_x * geometric.sine, radius_y * geometric.cosine);
+    return parameter;
 }
 
 [[nodiscard]] PointF ellipse_point(double center_x, double center_y,
                                    double radius_x, double radius_y,
                                    double parameter) noexcept {
-    return {center_x + radius_x * std::cos(parameter),
-            center_y + radius_y * std::sin(parameter)};
+    const gui_forms::EngineSineCosine turn =
+        gui_forms::engine_sine_cosine(parameter);
+    return {center_x + radius_x * turn.cosine,
+            center_y + radius_y * turn.sine};
 }
 
 class RectBoundsAccumulator final {
