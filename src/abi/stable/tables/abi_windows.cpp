@@ -1194,18 +1194,24 @@ std::optional<WindowBandColourRole> band_role_from(gf_window_band_role role) noe
 }
 
 // The texture a caller's record gives: none, or the procedural pattern or
-// finish it names (GF_PROCEDURAL_PATTERN_* and GF_FINISH_* are the C++
-// enumerations' orders). False for an unknown texture or kind.
+// finish it names (GF_PROCEDURAL_PATTERN_*, GF_HATCH_STYLE_* and GF_FINISH_*
+// are the C++ enumerations' orders; a hatch reads its style from the seed).
+// False for an unknown texture, kind or hatch style.
 bool band_texture_from(const gf_window_band_appearance& record, std::optional<WindowBandTexture>& texture) noexcept {
     texture.reset();
     if (record.texture == GF_WINDOW_BAND_TEXTURE_NONE) return true;
     WindowBandTexture made{};
     made.opacity = record.texture_opacity;
     if (record.texture == GF_WINDOW_BAND_TEXTURE_PROCEDURAL) {
-        if (record.texture_kind > GF_PROCEDURAL_PATTERN_CHECKER) return false;
+        if (record.texture_kind > GF_PROCEDURAL_PATTERN_HATCH) return false;
         made.source = WindowBandTextureSource::procedural;
         made.procedural.pattern = static_cast<ProceduralPattern>(record.texture_kind);
         made.procedural.seed = record.texture_seed;
+        if (record.texture_kind == GF_PROCEDURAL_PATTERN_HATCH) {
+            if (record.texture_seed > GF_HATCH_STYLE_DIAGONAL_CROSS) return false;
+            made.procedural.seed = 0U;
+            made.procedural.hatch_style = static_cast<HatchStyle>(record.texture_seed);
+        }
         made.procedural.ground = unpacked_color(record.texture_primary);
         made.procedural.figure = unpacked_color(record.texture_secondary);
         made.procedural.tile = record.texture_tile;
@@ -1227,8 +1233,12 @@ bool band_texture_from(const gf_window_band_appearance& record, std::optional<Wi
 }
 
 static_assert(static_cast<std::uint32_t>(ProceduralPattern::checker) == GF_PROCEDURAL_PATTERN_CHECKER &&
-                  static_cast<std::uint32_t>(ProceduralPattern::felt) == GF_PROCEDURAL_PATTERN_FELT,
+                  static_cast<std::uint32_t>(ProceduralPattern::felt) == GF_PROCEDURAL_PATTERN_FELT &&
+                  static_cast<std::uint32_t>(ProceduralPattern::hatch) == GF_PROCEDURAL_PATTERN_HATCH,
               "GF_PROCEDURAL_PATTERN_* follow ProceduralPattern");
+static_assert(static_cast<std::uint32_t>(HatchStyle::horizontal) == GF_HATCH_STYLE_HORIZONTAL &&
+                  static_cast<std::uint32_t>(HatchStyle::diagonal_cross) == GF_HATCH_STYLE_DIAGONAL_CROSS,
+              "GF_HATCH_STYLE_* follow HatchStyle");
 static_assert(static_cast<std::uint32_t>(FinishKind::cloth_weave) == GF_FINISH_CLOTH_WEAVE &&
                   static_cast<std::uint32_t>(FinishKind::dusty_matte) == GF_FINISH_DUSTY_MATTE,
               "GF_FINISH_* follow FinishKind");

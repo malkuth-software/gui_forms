@@ -2045,6 +2045,9 @@ bool canvas_texture_admitted(const CanvasTextureLayers& texture) noexcept {
         if (!canvas_texture_pattern(layer.pattern)) return false;
         if (!in_range(layer.tile, minimum_procedural_tile, maximum_canvas_texture_tile)) return false;
         if (!in_range(layer.strength, 0.0, 1.0)) return false;
+        HatchPattern style{};
+        style.style = layer.hatch_style;
+        if (layer.pattern == ProceduralPattern::hatch && !valid_hatch_pattern(style)) return false;
     }
     return true;
 }

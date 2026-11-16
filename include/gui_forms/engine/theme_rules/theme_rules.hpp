@@ -1289,8 +1289,9 @@ enum class CanvasTextureSource : std::uint8_t { procedural, finish };
 // [0, maximum_canvas_texture_contrast]:
 // - `procedural`: a built-in pattern (ProceduralFill's `pattern`, `seed`,
 //   `tile` in [minimum_procedural_tile, maximum_canvas_texture_tile]
-//   logical units and `strength` in [0, 1]); the canvas chooses its
-//   colours (resolve_canvas_look), so a theme sets its form only;
+//   logical units and `strength` in [0, 1], and for a hatch its
+//   `hatch_style`); the canvas chooses its colours (resolve_canvas_look),
+//   so a theme sets its form only;
 // - `finish`: a surface finish (`finish`, any kind but the glint, in the
 //   colours the theme writes); the pattern fields are not read.
 struct GUI_FORMS_API CanvasTextureLayer final {
@@ -1299,12 +1300,13 @@ struct GUI_FORMS_API CanvasTextureLayer final {
     std::uint32_t seed{};
     double tile{64.0};
     double strength{1.0};
+    HatchStyle hatch_style{HatchStyle::horizontal};
     FinishFill finish{};
     double contrast{};
     friend bool operator==(const CanvasTextureLayer& left, const CanvasTextureLayer& right) noexcept {
         return left.source == right.source && left.pattern == right.pattern && left.seed == right.seed &&
-               left.tile == right.tile && left.strength == right.strength && left.finish == right.finish &&
-               left.contrast == right.contrast;
+               left.tile == right.tile && left.strength == right.strength && left.hatch_style == right.hatch_style &&
+               left.finish == right.finish && left.contrast == right.contrast;
     }
 };
 

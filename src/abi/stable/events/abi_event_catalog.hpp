@@ -138,6 +138,7 @@
 #include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/drawing/types/drawing_types.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/key_events/key_events.hpp"
@@ -550,6 +551,19 @@ struct EnumerationChoices<GradientSpreadMode> {
         {"pad", static_cast<std::int64_t>(GradientSpreadMode::pad)},
         {"repeat", static_cast<std::int64_t>(GradientSpreadMode::repeat)},
         {"reflect", static_cast<std::int64_t>(GradientSpreadMode::reflect)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<HatchStyle> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 6> choices{{
+        {"horizontal", static_cast<std::int64_t>(HatchStyle::horizontal)},
+        {"vertical", static_cast<std::int64_t>(HatchStyle::vertical)},
+        {"forward_diagonal", static_cast<std::int64_t>(HatchStyle::forward_diagonal)},
+        {"backward_diagonal", static_cast<std::int64_t>(HatchStyle::backward_diagonal)},
+        {"cross", static_cast<std::int64_t>(HatchStyle::cross)},
+        {"diagonal_cross", static_cast<std::int64_t>(HatchStyle::diagonal_cross)},
     }};
 };
 
@@ -2701,6 +2715,8 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     append_field(fields, "image_anchor", value.image_anchor);
     append_field(fields, "image_offset", value.image_offset);
     append_field(fields, "period_degrees", value.period_degrees);
+    append_field(fields, "focused", value.focused);
+    append_field(fields, "focus", value.focus);
     append_field(fields, "blend", value.blend);
     append_field(fields, "procedural", value.procedural);
     append_field(fields, "finish", value.finish);
@@ -3130,6 +3146,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Proce
     append_field(fields, "figure", value.figure);
     append_field(fields, "accent", value.accent);
     append_field(fields, "bloom", value.bloom);
+    append_field(fields, "hatch_style", value.hatch_style);
     fields.leave(prefix);
 }
 

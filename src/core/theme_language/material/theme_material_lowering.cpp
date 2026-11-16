@@ -282,20 +282,30 @@ constexpr double maximum_finish_seed = 2147483647.0;
 
 // The patterns a canvas texture layer names in `procedural()`
 // (`background-texture`), every tiled built-in pattern: the fresco covers
-// a box and does not tile. A layer may instead be a surface finish,
+// a box and does not tile. Each hatch style is a kind of its own, as in
+// `pattern()`. A layer may instead be a surface finish,
 // written as `finish()` is in a fill (finish_names).
 struct CanvasTextureKind final {
     std::string_view name{};
     ProceduralPattern pattern{ProceduralPattern::felt};
+    HatchStyle hatch_style{HatchStyle::horizontal};
 };
 
-constexpr std::array<CanvasTextureKind, 6> canvas_texture_kinds{{
+constexpr std::array<CanvasTextureKind, 12> canvas_texture_kinds{{
     {.name = "felt", .pattern = ProceduralPattern::felt},
     {.name = "wood-grain", .pattern = ProceduralPattern::wood_grain},
     {.name = "paper-fibre", .pattern = ProceduralPattern::paper_fibre},
     {.name = "pinstripe", .pattern = ProceduralPattern::pinstripe},
     {.name = "brushed-metal", .pattern = ProceduralPattern::brushed_metal},
     {.name = "checker", .pattern = ProceduralPattern::checker},
+    {.name = "hatch-horizontal", .pattern = ProceduralPattern::hatch, .hatch_style = HatchStyle::horizontal},
+    {.name = "hatch-vertical", .pattern = ProceduralPattern::hatch, .hatch_style = HatchStyle::vertical},
+    {.name = "hatch-forward-diagonal", .pattern = ProceduralPattern::hatch,
+     .hatch_style = HatchStyle::forward_diagonal},
+    {.name = "hatch-backward-diagonal", .pattern = ProceduralPattern::hatch,
+     .hatch_style = HatchStyle::backward_diagonal},
+    {.name = "hatch-cross", .pattern = ProceduralPattern::hatch, .hatch_style = HatchStyle::cross},
+    {.name = "hatch-diagonal-cross", .pattern = ProceduralPattern::hatch, .hatch_style = HatchStyle::diagonal_cross},
 }};
 
 constexpr std::string_view procedural_function_name = "procedural";
@@ -3086,7 +3096,7 @@ bool MaterialReader::read_procedural(std::size_t index, CanvasTextureLayer& laye
     }
     if (named == nullptr) {
         return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
-                    "felt, wood-grain, paper-fibre, pinstripe, brushed-metal or checker");
+                    "felt, wood-grain, paper-fibre, pinstripe, brushed-metal, checker or a hatch-* style");
     }
     const ValueComponent& seed = value_.components[arguments[1].first];
     const bool whole = seed.kind == ValueComponentKind::number && seed.unit == ValueUnit::none &&
@@ -3109,6 +3119,7 @@ bool MaterialReader::read_procedural(std::size_t index, CanvasTextureLayer& laye
         return fail(DiagnosticCode::value_out_of_range, strength.token, clipped_theme_detail(strength.text));
     }
     layer.pattern = (*named).pattern;
+    layer.hatch_style = (*named).hatch_style;
     layer.seed = static_cast<std::uint32_t>(seed.number);
     layer.tile = tile.units;
     layer.strength = strength.number;
