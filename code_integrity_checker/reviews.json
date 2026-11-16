@@ -105,7 +105,7 @@
       "reviewed": "2026-10-28"
     },
     {
-      "path": "src/host/linux/services/linux_services.cpp",
+      "path": "src/surface/linux/services/linux_services.cpp",
       "rule": "I05",
       "evidence": "mask.mask_len = static_cast<int>(bits.size());",
       "decision": "false_shape",
@@ -113,7 +113,7 @@
       "reviewed": "2026-11-15"
     },
     {
-      "path": "src/host/linux/services/linux_services.cpp",
+      "path": "src/surface/linux/services/linux_services.cpp",
       "rule": "I05",
       "evidence": "static_cast<int>(targets.size()));",
       "decision": "false_shape",
@@ -121,7 +121,7 @@
       "reviewed": "2026-10-27"
     },
     {
-      "path": "src/host/windows/services/windows_notify_icons.cpp",
+      "path": "src/surface/windows/services/windows_notify_icons.cpp",
       "rule": "I05",
       "evidence": "static_cast<int>(text.size()), nullptr, 0);",
       "decision": "guarded",
@@ -130,7 +130,7 @@
       "reviewed": "2026-10-27"
     },
     {
-      "path": "src/host/windows/services/windows_notify_icons.cpp",
+      "path": "src/surface/windows/services/windows_notify_icons.cpp",
       "rule": "I05",
       "evidence": "MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), wide.data(), length);",
       "decision": "guarded",
