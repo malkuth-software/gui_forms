@@ -329,7 +329,7 @@ void collections(const Tables& tables) {
     gf_subscription subscription = 0U;
     require_ok(tables.events.subscribe(list, text_view("selection_changed"), &callback, &subscription),
                "subscribe selection_changed");
-    const ListSelectionChange change{{4U, 7U}, {9U}, std::nullopt};
+    const ListSelectionChange change{{4U, 7U}, {9U}, stxlib::Optional<std::size_t>::none()};
     (*control).selection_changed().emit(change);
     require(probe.invoked == 1, "selection_changed reached the callback");
     require(probe.previous_count == 2U && probe.first_previous == 7U,

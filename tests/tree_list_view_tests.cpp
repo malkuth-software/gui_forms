@@ -336,7 +336,9 @@ void sort_within_siblings() {
                 std::vector<std::string>({"src", "beta", "delta", "lib", "eta", "zeta", "docs", "manual"}),
             "a descending sort by a cell column orders siblings by that column's text");
     (*view).set_cell_text("zeta", 2U, "9");
-    require(*(*view).row_of("zeta").value() < *(*view).row_of("eta").value(),
+    const stxlib::Optional<std::size_t> zeta_row = (*view).row_of("zeta");
+    const stxlib::Optional<std::size_t> eta_row = (*view).row_of("eta");
+    require(zeta_row.present() && eta_row.present() && *zeta_row.value() < *eta_row.value(),
             "an edit to the sort column sorts the siblings again");
     (*view).set_sort(stxlib::Optional<std::size_t>::none(), TreeListSortOrder::ascending);
     require(row_ids(*view) ==

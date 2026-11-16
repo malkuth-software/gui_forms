@@ -730,7 +730,7 @@ void take_and_put_round_trip() {
     require(taken.page.record.id == page_id("doc") && taken.page.record.title == "Title doc" &&
                 taken.page.record.image_key == "text" && taken.page.record.closable,
             "take returns the whole record");
-    require(!source.find(page_id("doc")).has_value() && source.count() == 1U,
+    require(source.find(page_id("doc")).absent() && source.count() == 1U,
             "the page left the source");
     require(target.put(taken.page, PagePlacement::end_of_group()) == PageEditStatus::applied,
             "the page is put into another set");

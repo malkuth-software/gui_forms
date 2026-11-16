@@ -440,8 +440,9 @@ void views_lay_out_items() {
             "only the details view has headers and sub-items");
     require((*view).parts().horizontal_scroll_bar.present && !(*view).parts().vertical_scroll_bar.present,
             "the list view scrolls sideways");
-    require(window.request_focus(view) && key(window, PhysicalKey::right) && (*view).focused_index().present() &&
-                *(*view).focused_index().value() > 1U,
+    const bool moved_right = window.request_focus(view) && key(window, PhysicalKey::right);
+    const stxlib::Optional<std::size_t> focused_after_right = (*view).focused_index();
+    require(moved_right && focused_after_right.present() && *focused_after_right.value() > 1U,
             "Right moves to the next column of the list view");
 
     (*view).view = ListViewView::small_icon;
@@ -1093,7 +1094,7 @@ void virtual_mode() {
             "select-all selects every virtual item");
     (*source).set_count(10U);
     (*view).refresh_virtual_items();
-    require((*view).item_count() == 10U && (*view).selected_count() == 10U && (*view).focused_index().absent().has_value(),
+    require((*view).item_count() == 10U && (*view).selected_count() == 10U && (*view).focused_index().absent(),
             "a refresh keeps the selection below the new count and drops a focus past it");
     (*view).check_boxes = true;
     SubscriptionToken stored = (*view).item_checking().subscribe(StoreVirtualCheck{source.get()});

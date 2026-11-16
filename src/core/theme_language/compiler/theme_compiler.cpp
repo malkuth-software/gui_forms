@@ -1348,7 +1348,7 @@ void CompilePass::rule_scopes(std::size_t rule_index, std::vector<SelectorScope>
         const RuleSelector& named = selector.selector;
         scopes.push_back(SelectorScope{.control_type = named.control_type, .stable_id = named.stable_id});
         const bool whole = !named.control_type.empty() && named.stable_id.empty() && named.classes.empty() &&
-                           named.part.empty() && !named.role.has_value() && named.states.empty();
+                           named.part.empty() && named.role.absent() && named.states.empty();
         if (whole && covers != nullptr) (*covers).push_back(named.control_type);
     }
 }

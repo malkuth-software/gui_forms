@@ -878,7 +878,7 @@ void VirtualRowsView::select_range(VirtualRowIndex anchor, VirtualRowIndex curre
     const std::size_t count = std::max(anchor.value, current.value) - first + 1U;
     const bool same_set = ranges_.size() == 1U && ranges_[0] == range_of(first, count);
     selection_anchor_.set(anchor.value);
-    if (same_set && previous == current.value) return;
+    if (same_set && previous == stxlib::Optional<std::size_t>::of(current.value)) return;
     select_only(first, count);
     selected_.set(current.value);
     invalidate(Dirty::paint | Dirty::semantics);

@@ -521,7 +521,7 @@ bool SelectorPass::read_pseudo() {
             return add_simple(simple);
         }
         simple.kind = SimpleKind::state;
-        simple.state = *state;
+        simple.state = *state.value();
         return add_simple(simple);
     }
     if (names_one_of(name, refused_pseudo_classes)) {

@@ -522,7 +522,9 @@ void keyboard_and_activation() {
             "Down with no selection selects the first visible row");
     require(key(window, PhysicalKey::down) && (*view).selected_row() == some_row(1U),
             "Down moves the selection a row");
-    require(key(window, PhysicalKey::page_down) && (*(*view).selected_row().value()).value > 5U,
+    const bool paged_down = key(window, PhysicalKey::page_down);
+    const stxlib::Optional<VirtualRowIndex> after_page_down = (*view).selected_row();
+    require(paged_down && after_page_down.present() && (*after_page_down.value()).value > 5U,
             "Page Down moves the selection by a viewport");
     require(key(window, PhysicalKey::end) && (*view).selected_row() == some_row(4'999U) &&
                 (*view).end_visible_row().value == 5'000U,
@@ -908,7 +910,9 @@ void extended_selection() {
             "an erasure removes its rows from the ranges and joins the rest");
 
     (*view).set_selection_mode(ListSelectionMode::one);
-    const std::size_t current = (*(*view).selected_row().value()).value;
+    const stxlib::Optional<VirtualRowIndex> selected_now = (*view).selected_row();
+    require(selected_now.present(), "a row is selected before the mode changes");
+    const std::size_t current = (*selected_now.value()).value;
     require(ranges_are(*view, {rows_from(current, 1U)}) &&
                 !has_semantic_state((*view).semantic_descriptor().states, SemanticState::multiselectable),
             "the single mode keeps the current row alone");

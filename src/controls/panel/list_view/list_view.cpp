@@ -888,12 +888,12 @@ void ListView::on_horizontal_scroll(double value) {
 
 void ListView::set_sort_indicator(stxlib::Optional<std::size_t> column, ListViewSortOrder order) {
     require_mutable();
-    if (column && *column >= columns_.size()) throw std::out_of_range("ListView sort column is past the end");
+    if (column.present() && *column.value() >= columns_.size()) throw std::out_of_range("ListView sort column is past the end");
     if (order != ListViewSortOrder::none && order != ListViewSortOrder::ascending &&
         order != ListViewSortOrder::descending) {
         throw std::invalid_argument("ListView sort order is invalid");
     }
-    if (!column || order == ListViewSortOrder::none) {
+    if (column.absent() || order == ListViewSortOrder::none) {
         column.reset();
         order = ListViewSortOrder::none;
     }
@@ -907,7 +907,7 @@ void ListView::sort_items(std::size_t column, ListViewSortOrder order) {
     require_mutable();
     if (source_) throw std::logic_error("A virtual ListView's source owns the item order");
     if (column >= columns_.size()) throw std::out_of_range("ListView sort column is past the end");
-    set_sort_indicator(column, order);
+    set_sort_indicator(stxlib::Optional<std::size_t>::of(column), order);
     if (order == ListViewSortOrder::none) return;
     // `order_of[new position]` is the item's old position.
     std::vector<std::size_t> order_of(items_.size(), 0U);
