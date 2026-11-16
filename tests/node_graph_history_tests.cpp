@@ -984,6 +984,40 @@ void identities_across_load() {
             "the log starts at the load");
 }
 
+// An undone add frees its identity for good: the next record made in that
+// slot, appended or reused, takes a newer generation, so an identity kept from
+// the undone record stays stale (A-gf-controls-07-F1).
+void identities_after_undo() {
+    NodeGraph graph;
+    const NodeId appended = add(graph, "a", 0.0, 0.0);
+    require(graph.undo().status == GraphStatus::ok, "the appending add is undone");
+    const NodeId next = add(graph, "b", 0.0, 0.0);
+    require(next.index == appended.index && next.generation != appended.generation &&
+                graph.node(appended) == nullptr && graph.node(next) != nullptr,
+            "a node appended after an undone append takes a new identity");
+    const NodeId c = add(graph, "c", 0.0, 0.0);
+    require(graph.remove_node(c).status == GraphStatus::ok, "a slot is freed");
+    const NodeId reused = add(graph, "d", 0.0, 0.0);
+    require(graph.undo().status == GraphStatus::ok, "the reusing add is undone");
+    const NodeId again = add(graph, "e", 0.0, 0.0);
+    require(again.index == reused.index && again.generation != reused.generation &&
+                again.generation != c.generation && graph.node(reused) == nullptr,
+            "a node reusing a slot after an undone reuse takes a new identity");
+    const NodeId f = add(graph, "f", 0.0, 0.0);
+    const LinkId link = join(graph, next, f);
+    require(graph.undo().status == GraphStatus::ok, "the connect is undone");
+    const LinkId relinked = join(graph, next, f);
+    require(relinked.index == link.index && relinked.generation != link.generation && graph.link(link) == nullptr,
+            "a link made after an undone connect takes a new identity");
+    // A load after an undo that popped an appended slot: the slot's newest
+    // generation is kept, so the load's record does not take the undone one's.
+    NodeGraph loaded;
+    const NodeId popped = add(loaded, "p", 0.0, 0.0);
+    require(loaded.undo().status == GraphStatus::ok, "the add is undone and its slot popped");
+    require(loaded.load(sample_document).error == GraphLoadError::ok && loaded.node(popped) == nullptr,
+            "a load does not make the undone identity live");
+}
+
 void add_refusals() {
     NodeGraph graph;
     static_cast<void>(add(graph, "a", 0.0, 0.0));
@@ -1061,6 +1095,7 @@ int main() {
     truncated_documents();
     save_storage();
     identities_across_load();
+    identities_after_undo();
     add_refusals();
     chains_and_cycles();
     std::cout << "node-graph-history-tests: inverses, groups, bounds, seeded edits, documents and errors passed\n";

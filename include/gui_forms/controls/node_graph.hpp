@@ -9,7 +9,9 @@
 // Identities carry a generation. Removing a record frees its slot for reuse
 // with the next generation, so an identity kept past its record's removal
 // is stale and every operation refuses it with GraphStatus::stale_identity;
-// nothing dereferences a stale identity.
+// nothing dereferences a stale identity. A record whose creation was undone
+// counts as removed: the next record in its slot takes a generation after
+// every one the slot issued, so the undone identity stays stale.
 //
 // Geometry is in world units (WorldPoint, WorldRect, declared in
 // gui_forms/scene/world_geometry), float64, so deep zoom keeps placement;
@@ -597,6 +599,12 @@ private:
     // Free slots, reused last freed first.
     std::vector<std::uint32_t> free_nodes_{};
     std::vector<std::uint32_t> free_links_{};
+    // Per slot index ever used (so longer than the slot list after an undo
+    // pops appended slots): the newest generation issued there. Undo never
+    // lowers it, so a record made after an undone one never takes the undone
+    // record's identity (A-gf-controls-07-F1).
+    std::vector<std::uint32_t> node_generations_issued_{};
+    std::vector<std::uint32_t> link_generations_issued_{};
     // Per node slot: the revision of the last move that moved it.
     std::vector<std::uint64_t> move_marks_{};
     // Live node slots ordered by key, for find_node and duplicate checks.

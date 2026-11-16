@@ -972,15 +972,25 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
     links_.reserve(link_total);
     free_links_.reserve(link_total);
     link_key_order_.reserve(link_total);
+    node_generations_issued_.reserve(std::max(node_generations_issued_.size(), node_count));
+    link_generations_issued_.reserve(std::max(link_generations_issued_.size(), link_count));
 
     // Nothing below allocates or fails; each push checks its reservation.
     require_room(nodes_, node_total - nodes_.size(), "node_graph.load");
     require_room(links_, link_total - links_.size(), "node_graph.load");
     clear_log();
+    // Each slot takes a generation after every one it issued, including
+    // those of records an undo took away (A-gf-controls-07-F1).
     for (std::size_t index = 0U; index < node_count; ++index) {
         std::uint32_t generation = 1U;
+        if (index < node_generations_issued_.size()) {
+            generation = newer_generation(node_generations_issued_[index]);
+            node_generations_issued_[index] = generation;
+        } else {
+            require_room(node_generations_issued_, 1U, "node_graph.load");
+            node_generations_issued_.push_back(generation);
+        }
         if (index < nodes_.size()) {
-            generation = newer_generation(nodes_[index].generation);
             nodes_[index] = std::move(parsed.nodes[index]);
         } else {
             nodes_.push_back(std::move(parsed.nodes[index]));
@@ -1019,8 +1029,14 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
                           PortIndex{static_cast<std::uint16_t>(parsed_link.to_port)}};
         link.live = true;
         link.generation = 1U;
+        if (index < link_generations_issued_.size()) {
+            link.generation = newer_generation(link_generations_issued_[index]);
+            link_generations_issued_[index] = link.generation;
+        } else {
+            require_room(link_generations_issued_, 1U, "node_graph.load");
+            link_generations_issued_.push_back(link.generation);
+        }
         if (index < links_.size()) {
-            link.generation = newer_generation(links_[index].generation);
             links_[index] = std::move(link);
         } else {
             links_.push_back(std::move(link));
