@@ -16,15 +16,6 @@ namespace gui_forms::host::linux_detail {
 #if defined(GUI_FORMS_X11_PRESENT_DIRECT)
 namespace {
 
-// Set by attach_error while an attach is being checked: the server refused
-// it (a remote display answers BadAccess). UI thread only.
-thread_local bool attach_failed = false;
-
-int attach_error(Display *, XErrorEvent *) noexcept {
-  attach_failed = true;
-  return 0;
-}
-
 // The largest pixmap made: the copy path's presentation limit (64 MiB).
 constexpr std::size_t maximum_pixmap_bytes = 64U * 1024U * 1024U;
 
@@ -123,16 +114,21 @@ bool X11PresentPath::make_slot(PixmapSlot &slot, presentation::PresentExtent ext
   }
   (*segment).shmaddr = static_cast<char *>(address);
   (*segment).readOnly = False;
-  // The attach is checked synchronously: a refusal arrives as an error.
-  XSync(display_, False);
-  attach_failed = false;
-  const XErrorHandler previous = XSetErrorHandler(attach_error);
-  const Bool attached = XShmAttach(display_, segment);
-  XSync(display_, False);
-  XSetErrorHandler(previous);
+  // The attach is checked synchronously: a refusal (a remote display
+  // answers BadAccess) arrives as an error of an MIT-SHM request, absorbed
+  // by the host's scoped absorption; any other error is passed on to the
+  // handler in place, not swallowed (A-gf-present-01-F5). X is spoken on
+  // the UI thread only, so no other thread's error can arrive meanwhile.
+  bool attach_refused = false;
+  Bool attached = False;
+  {
+    ForeignWindowScope scope(display_, window_, std::span<const int>(opcodes_));
+    attached = XShmAttach(display_, segment);
+    attach_refused = scope.synchronize();
+  }
   // Marked for removal now: the segment goes when both sides detach.
   shmctl((*segment).shmid, IPC_RMID, nullptr);
-  if (attached == False || attach_failed) {
+  if (attached == False || attach_refused) {
     shmdt((*segment).shmaddr);
     delete segment;
     return false;
