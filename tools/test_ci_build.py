@@ -358,5 +358,39 @@ class WholeTreeTestTests(unittest.TestCase):
         narrowed.assert_not_called()
 
 
+class KeepGoingBuildTests(unittest.TestCase):
+    """A build keeps going past a failed command (ninja -k 0) and a failed
+    one ends with its distinct error lines, so one CI run reports every
+    compile error (#483: one miss per run before)."""
+
+    def test_a_failed_build_keeps_going_and_lists_each_error_once(self) -> None:
+        output: str = ('[1/3] Building a.cpp\n'
+                       'src/a.cpp:3:1: error: one\n'
+                       'src/a.cpp:3:1: error: one\n'
+                       'src/b.cpp:9:2: error: two\n'
+                       'ninja: build stopped: cannot make progress due to previous errors.\n')
+        commands: list[list[str]] = []
+
+        class FailedBuild:
+            def __init__(self, command: list[str], **unused: object) -> None:
+                commands.append(command)
+                self.stdout = io.StringIO(output)
+
+            def wait(self) -> int:
+                return 1
+
+        printed: io.StringIO = io.StringIO()
+        with tempfile.TemporaryDirectory() as scratch:
+            with mock.patch.object(ci_build.subprocess, 'Popen', FailedBuild), \
+                    mock.patch.object(sys, 'stdout', printed):
+                with self.assertRaises(ci_build.subprocess.CalledProcessError):
+                    ci_build.build_logged(Path(scratch), False, '--parallel', '4')
+        self.assertEqual(commands[0][-3:], ['--', '-k', '0'])
+        summary: str = printed.getvalue().split('build failed: ')[1]
+        self.assertTrue(summary.startswith('2 distinct error lines'))
+        self.assertEqual(summary.count('src/a.cpp:3:1: error: one'), 1)
+        self.assertIn('src/b.cpp:9:2: error: two', summary)
+
+
 if __name__ == '__main__':
     unittest.main()

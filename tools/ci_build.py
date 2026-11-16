@@ -233,14 +233,41 @@ def report_stx_package(toolkit: Path, restored: bool) -> None:
               '(cmake/Stx.cmake)', flush=True)
 
 
+# The most distinct error lines a failed build prints at its end.
+KEEP_GOING_SUMMARY: int = 200
+
+
+def print_build_errors(log_path: Path) -> None:
+    """Prints the distinct compiler error lines of a failed build's log, in
+    the order they first appear, up to KEEP_GOING_SUMMARY."""
+    seen: set[str] = set()
+    errors: list[str] = []
+    line: str
+    for line in log_path.read_text(encoding='utf-8', errors='replace').splitlines():
+        if ' error: ' not in line and not line.startswith('error: '):
+            continue
+        if line in seen:
+            continue
+        seen.add(line)
+        errors.append(line)
+    print(f'build failed: {len(errors)} distinct error lines', flush=True)
+    shown: str
+    for shown in errors[:KEEP_GOING_SUMMARY]:
+        print(shown, flush=True)
+
+
 def build_logged(toolkit: Path, sanitize: bool, *arguments: str) -> None:
     """Runs `cmake --build toolkit` with `arguments`, echoing its output and
     keeping it in toolkit/build-output.log, then checks the warnings it
     reports against tools/warning_baseline.json (cmake/Hardening.cmake,
     owner decision D11). The sanitized build's warnings are not counted: its
-    flags differ from the baseline's. A build failure raises before the check."""
+    flags differ from the baseline's. A build failure raises before the check.
+
+    Ninja keeps going past a failed command (-k 0, every tree here is
+    configured with -G Ninja), so one run reports every compile error, and a
+    failed build ends with the distinct error lines (KEEP_GOING_SUMMARY)."""
     log_path: Path = toolkit / 'build-output.log'
-    command: list[str] = ['cmake', '--build', str(toolkit), *arguments]
+    command: list[str] = ['cmake', '--build', str(toolkit), *arguments, '--', '-k', '0']
     print(' '.join(command), flush=True)
     line: str
     with log_path.open('w', encoding='utf-8', errors='replace') as log:
@@ -253,6 +280,7 @@ def build_logged(toolkit: Path, sanitize: bool, *arguments: str) -> None:
         status: int = process.wait()
     sys.stdout.flush()
     if status != 0:
+        print_build_errors(log_path)
         raise subprocess.CalledProcessError(status, command)
     if sanitize:
         return
