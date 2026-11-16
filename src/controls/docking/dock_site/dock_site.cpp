@@ -158,7 +158,7 @@ DockSite::~DockSite() {
 void DockSite::on_dispose() noexcept {
     capture_token_.disconnect();
     active_token_.disconnect();
-    reset_drag();
+    abandon_drag(false);
     close_flyout(DockFlyoutCause::programmatic);
     close_navigator();
     close_position_menu();
@@ -176,6 +176,9 @@ void DockSite::on_dispose() noexcept {
 }
 
 void DockSite::release_workspace() noexcept {
+    // A drag under way ends here: end_drag refuses once the workspace is
+    // gone (A-gf-controls-04-F2).
+    abandon_drag(true);
     close_flyout(DockFlyoutCause::programmatic);
     close_navigator();
     close_position_menu();
@@ -820,7 +823,9 @@ void DockSite::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
         }
     }
     drag_.picture.reset();
-    reset_drag();
+    // The guest showing this drag stops too (A-gf-controls-04-F2); the
+    // former window ends the capture itself.
+    abandon_drag(false);
     focus_token_.disconnect();
     followed_window_ = nullptr;
     root_pointer_.disconnect();

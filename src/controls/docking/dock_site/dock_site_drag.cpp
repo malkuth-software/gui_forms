@@ -35,6 +35,12 @@ constexpr double cue_side = 14.0;
 constexpr double cue_offset_x = 14.0;
 constexpr double cue_offset_y = 16.0;
 
+// Whether two drags move the same panel or stack.
+bool same_subject(const DockSubject& left, const DockSubject& right) noexcept {
+    const bool same = left.kind == right.kind && left.panel == right.panel && left.stack == right.stack;
+    return same;
+}
+
 DockShapeRegion region_of(DockDropZone zone) noexcept {
     switch (zone) {
     case DockDropZone::top: return DockShapeRegion::top;
@@ -132,6 +138,26 @@ std::optional<DockDropTarget> DockSite::drag_target() const {
 Rect DockSite::drag_stamp() const noexcept {
     if (drag_.phase != DockDragPhase::dragging && drag_.phase != DockDragPhase::settling) return {};
     return drag_.stamp;
+}
+
+// The drag of this site ends without an edit: the guest showing it (of a
+// drag or a window move) stops, the capture goes when asked, the layer hides
+// and the session clears (A-gf-controls-04-F2).
+void DockSite::abandon_drag(bool release_capture) noexcept {
+    DockSite* const guest = drag_.guest ? nullptr : remote_guest();
+    drag_.remote.reset();
+    if (guest != nullptr) (*guest).leave_guest_drag();
+    leave_window_move_guest();
+    const bool dragging = drag_.phase != DockDragPhase::idle;
+    // Reset first: the capture change below then finds no drag to end.
+    reset_drag();
+    if (!dragging) return;
+    try {
+        if (release_capture && has_pointer_capture()) set_pointer_capture(false);
+        if (drag_layer_) (*drag_layer_).visible = false;
+        if (is_alive()) invalidate(Dirty::paint | Dirty::semantics);
+    } catch (...) {
+    }
 }
 
 void DockSite::reset_drag() noexcept {
@@ -1065,8 +1091,14 @@ void DockSite::show_guest_drag(const DragSession& source, const MotionValue* sou
                                Modifier modifiers) {
     if (workspace_ == nullptr || !drag_layer_ || !is_alive()) return;
     if (drag_.guest && drag_.phase == DockDragPhase::dragging) {
-        update_drag_pointer(local, modifiers);
-        return;
+        if (same_subject(drag_.subject, source.subject)) {
+            update_drag_pointer(local, modifiers);
+            return;
+        }
+        // A session left behind by an abandoned drag gives way to this one,
+        // so its drop never reads the stale subject's targets
+        // (A-gf-controls-04-F2).
+        leave_guest_drag();
     }
     if (drag_.phase != DockDragPhase::idle || window_move_.active) return;
     DragSession session{};

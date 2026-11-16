@@ -1014,6 +1014,10 @@ private:
     // Ends the session: its picture's image is released (unless a guest's),
     // then the session is cleared.
     void reset_drag() noexcept;
+    // Ends this site's drag without an edit when the site leaves its
+    // window or workspace: the guest showing it stops, the capture goes
+    // when `release_capture`, the drag layer hides, then reset_drag.
+    void abandon_drag(bool release_capture) noexcept;
     // -- across windows (phase D4) --
     // The desktop point of a point in this site, or none without frames.
     [[nodiscard]] stxlib::Optional<Point> to_desktop(Point local) const;
