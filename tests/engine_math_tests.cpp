@@ -216,7 +216,12 @@ void test_degrees_and_tangent() {
     const double bound = 2e-15;
     for (int step = -40000; step <= 40000; ++step) {
         const double degrees = static_cast<double>(step) * 0.0917;
-        const double radians = degrees * 0.017453292519943295769;
+        // The host's reference is taken within one turn: fmod is exact, and
+        // rounding degrees · π/180 once below 2π moves the radian argument
+        // by at most 2^-51. Converted whole, 3668 degrees (64 radians) would
+        // carry up to 2^-48 of argument rounding into the host's value,
+        // more than the bound being checked.
+        const double radians = std::fmod(degrees, 360.0) * 0.017453292519943295769;
         const EngineSineCosine observed = engine_sine_cosine_degrees(degrees);
         require(std::fabs(observed.sine - std::sin(radians)) <= bound &&
                     std::fabs(observed.cosine - std::cos(radians)) <= bound,
