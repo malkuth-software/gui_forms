@@ -87,14 +87,14 @@ public:
         named.bounds = {0.0, 24.0, 60.0, 14.0};
         named.text = lend_paint_text("Named");
         named.key.reset();
-        if (keyed) named.key.set(PartKey{"item_label", "item.alpha", item_position});
+        if (keyed) named.key.set(PartKey{"item_label", "item.alpha", stxlib::Optional<std::size_t>::of(item_position)});
         paint_part(painter, *this, named);
 
         PartPaint indexed = named;
         indexed.bounds = {0.0, 40.0, 60.0, 14.0};
         indexed.text = lend_paint_text("Indexed");
         indexed.key.reset();
-        if (keyed) indexed.key.set(PartKey{"item_label", {}, item_position});
+        if (keyed) indexed.key.set(PartKey{"item_label", {}, stxlib::Optional<std::size_t>::of(item_position)});
         paint_part(painter, *this, indexed);
 
         PartPaint plain = face;
@@ -137,17 +137,17 @@ void test_table_records_and_handles() {
 
     // An item with a stable ID keeps its record wherever it moves; an item
     // without one is identified by its index.
-    const PartRecordAcquisition first = table.acquire("control.a", PartKey{"row", "item.1", 0U});
-    const PartRecordAcquisition moved = table.acquire("control.a", PartKey{"row", "item.1", 5U});
+    const PartRecordAcquisition first = table.acquire("control.a", PartKey{"row", "item.1", stxlib::Optional<std::size_t>::of(0U)});
+    const PartRecordAcquisition moved = table.acquire("control.a", PartKey{"row", "item.1", stxlib::Optional<std::size_t>::of(5U)});
     require(first.created && !moved.created && moved.handle == first.handle,
             "an item with a stable ID is the same part at any index");
-    const PartRecordAcquisition at_zero = table.acquire("control.a", PartKey{"row", {}, 0U});
-    const PartRecordAcquisition at_one = table.acquire("control.a", PartKey{"row", {}, 1U});
+    const PartRecordAcquisition at_zero = table.acquire("control.a", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(0U)});
+    const PartRecordAcquisition at_one = table.acquire("control.a", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(1U)});
     require(at_zero.created && at_one.created && !(at_zero.handle == at_one.handle),
             "without a stable ID each index is its own part");
-    require((*table.record(at_one.handle)).item_index == std::optional<std::size_t>{1U},
+    require((*table.record(at_one.handle)).item_index == stxlib::Optional<std::size_t>::of(1U),
             "the fallback record keeps its index");
-    require(!(*table.record(first.handle)).item_index, "an item with a stable ID keeps no index");
+    require((*table.record(first.handle)).item_index.absent(), "an item with a stable ID keeps no index");
 
     // The control's ID is part of the key, and field boundaries are exact.
     const PartRecordAcquisition other = table.acquire("control.b", PartKey{"face", {}, {}});
@@ -165,7 +165,7 @@ void test_table_records_and_handles() {
 void test_release_makes_handles_stale() {
     EnginePartTable table{};
     const PartRecordAcquisition face = table.acquire("control.a", PartKey{"face", {}, {}});
-    const PartRecordAcquisition row = table.acquire("control.a", PartKey{"row", {}, 2U});
+    const PartRecordAcquisition row = table.acquire("control.a", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(2U)});
     const PartRecordAcquisition kept = table.acquire("control.b", PartKey{"face", {}, {}});
     require(table.release_control("control.a") == 2U, "both of the control's records are released");
     require(table.record_count() == 1U, "the other control's record remains");
@@ -193,8 +193,8 @@ void test_release_control_visits_its_own_records() {
     std::vector<PartRecordHandle> first{};
     std::vector<PartRecordHandle> second{};
     for (std::size_t index = 0U; index < 40U; ++index) {
-        first.push_back(table.acquire("control.first", PartKey{"row", {}, index}).handle);
-        second.push_back(table.acquire("control.second", PartKey{"row", {}, index}).handle);
+        first.push_back(table.acquire("control.first", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(index)}).handle);
+        second.push_back(table.acquire("control.second", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(index)}).handle);
     }
     const std::size_t slots = table.slot_count();
     require(table.release_control("control.first") == 40U, "the first control's forty records are released");
@@ -205,7 +205,7 @@ void test_release_control_visits_its_own_records() {
         require(table.record(handle) != nullptr, "the interleaved control's records stay live");
     }
     for (std::size_t index = 0U; index < 40U; ++index) {
-        require(table.acquire("control.third", PartKey{"row", {}, index}).created, "a new record is made");
+        require(table.acquire("control.third", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(index)}).created, "a new record is made");
     }
     require(table.slot_count() == slots, "the released slots are reused before the table grows");
     require(table.release_control("control.second") == 40U, "the second control still owns its forty");
@@ -497,15 +497,15 @@ void test_item_records_are_evicted_least_recently_painted_first() {
     EnginePartTable table(4U);
     std::vector<PartRecordHandle> rows{};
     for (std::size_t index = 0U; index < 4U; ++index) {
-        rows.push_back(table.acquire("list", PartKey{"row", {}, index}).handle);
+        rows.push_back(table.acquire("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(index)}).handle);
     }
     const PartRecordHandle face = table.acquire("list", PartKey{"face", {}, {}}).handle;
     require(table.item_record_count() == 4U && table.record_count() == 5U,
             "four item records and the control's own part");
 
     // Painting row 0 again makes row 1 the least recently painted.
-    static_cast<void>(table.acquire("list", PartKey{"row", {}, 0U}));
-    const PartRecordAcquisition fifth = table.acquire("list", PartKey{"row", {}, 4U});
+    static_cast<void>(table.acquire("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(0U)}));
+    const PartRecordAcquisition fifth = table.acquire("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(4U)});
     require(fifth.created && fifth.evicted == 1U, "a fifth item record evicts one");
     require(table.record(rows[1]) == nullptr, "the least recently painted item record (row 1) is evicted");
     require(table.record(rows[0]) != nullptr && table.record(rows[2]) != nullptr,
@@ -515,17 +515,17 @@ void test_item_records_are_evicted_least_recently_painted_first() {
 
     // A record with unsettled motion is passed over.
     (*table.record(rows[2])).motion_unsettled = true;
-    const PartRecordAcquisition sixth = table.acquire("list", PartKey{"row", {}, 5U});
+    const PartRecordAcquisition sixth = table.acquire("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(5U)});
     require(sixth.evicted == 1U && table.record(rows[2]) != nullptr && table.record(rows[3]) == nullptr,
             "an unsettled record is never evicted; the next oldest settled one is");
 
     // When every other item record is unsettled, the table holds more than
     // the cap until their motion settles.
     for (std::size_t index = 0U; index < 6U; ++index) {
-        const std::optional<PartRecordHandle> handle = table.find("list", PartKey{"row", {}, index});
+        const std::optional<PartRecordHandle> handle = table.find("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(index)});
         if (handle) (*table.record(*handle)).motion_unsettled = true;
     }
-    const PartRecordAcquisition seventh = table.acquire("list", PartKey{"row", {}, 6U});
+    const PartRecordAcquisition seventh = table.acquire("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(6U)});
     require(seventh.created && seventh.evicted == 0U && table.item_record_count() == 5U,
             "nothing unsettled is evicted, even past the cap");
 }
@@ -545,7 +545,7 @@ public:
             label.role = PartRole::label;
             label.bounds = {0.0, static_cast<double>(offset) * 2.0, 60.0, 2.0};
             label.text = lend_paint_text("row");
-            label.key.set(PartKey{"row_label", stable ? std::string_view(row_id) : std::string_view{}, row});
+            label.key.set(PartKey{"row_label", stable ? std::string_view(row_id) : std::string_view{}, stxlib::Optional<std::size_t>::of(row)});
             paint_part(painter, *this, label);
         }
     }
@@ -590,8 +590,8 @@ void test_scrolling_a_virtualized_control_stays_within_the_cap() {
         require(metrics.engine_part_index_fallbacks == (stable ? 0U : distance),
                 "only rows without a stable ID count the fallback");
         const std::string last = "row." + std::to_string(distance - 1U);
-        const PartKey newest{"row_label", stable ? std::string_view(last) : std::string_view{}, distance - 1U};
-        const PartKey oldest{"row_label", stable ? std::string_view("row.0") : std::string_view{}, 0U};
+        const PartKey newest{"row_label", stable ? std::string_view(last) : std::string_view{}, stxlib::Optional<std::size_t>::of(distance - 1U)};
+        const PartKey oldest{"row_label", stable ? std::string_view("row.0") : std::string_view{}, stxlib::Optional<std::size_t>::of(0U)};
         require(table.find("rows", newest).has_value(), "the rows in view keep their records");
         require(!table.find("rows", oldest).has_value(), "the rows scrolled away longest ago are evicted");
     }

@@ -2551,7 +2551,7 @@ Types
 
    .. cpp:member:: std::string item
 
-   .. cpp:member:: std::optional<std::size_t> item_index
+   .. cpp:member:: stxlib::Optional<std::size_t> item_index
 
       Set only for the index fallback (PartKey::index_fallback).
 
@@ -4821,7 +4821,7 @@ Types
 
    .. cpp:member:: std::string_view item
 
-   .. cpp:member:: std::optional<std::size_t> item_index
+   .. cpp:member:: stxlib::Optional<std::size_t> item_index
 
 .. cpp:namespace:: gui_forms
 

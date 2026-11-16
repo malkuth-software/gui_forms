@@ -226,15 +226,15 @@ void test_eviction_order_and_the_cap() {
 void test_evicted_item_records_release_their_rasters() {
     EnginePartTable table(2U);
     const EnginePrimitive& dithered = builtin("dithered_bulge");
-    const PartRecordHandle first = table.acquire("list", PartKey{"row", {}, 0U}).handle;
-    const PartRecordHandle second = table.acquire("list", PartKey{"row", {}, 1U}).handle;
+    const PartRecordHandle first = table.acquire("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(0U)}).handle;
+    const PartRecordHandle second = table.acquire("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(1U)}).handle;
     require(table.raster_for(first, request_for(dithered, button, 1.0, 1.0), 1U).status ==
                     PartRasterStatus::new_storage &&
                 table.raster_for(second, request_for(dithered, button, 1.0, 1.0), 2U).status ==
                     PartRasterStatus::new_storage,
             "both rows draw");
     require(table.cache_statistics().rasters == 2U, "two rasters are cached");
-    const PartRecordAcquisition third = table.acquire("list", PartKey{"row", {}, 2U});
+    const PartRecordAcquisition third = table.acquire("list", PartKey{"row", {}, stxlib::Optional<std::size_t>::of(2U)});
     require(third.evicted == 1U && table.record(first) == nullptr, "the oldest row's record is evicted");
     const RasterCacheStatistics statistics = table.cache_statistics();
     require(statistics.rasters == 1U && statistics.bytes == 40U * 28U * 4U,

@@ -218,7 +218,7 @@ struct GUI_FORMS_API EnginePartRecord final {
     std::string part;
     std::string item;
     // Set only for the index fallback (PartKey::index_fallback).
-    std::optional<std::size_t> item_index{};
+    stxlib::Optional<std::size_t> item_index{};
     // The states the part was last painted in.
     AnatomyStateSet states{};
     // What the part's primitive derived for its geometry; empty until a

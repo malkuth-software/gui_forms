@@ -675,7 +675,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
         rule.role = PartRole::divider;
         rule.bounds = parts.item_separator.bounds;
         rule.family = ControlVisualRole::panel;
-        rule.key.set(PartKey{"item_separator", item.stable_id, index});
+        rule.key.set(PartKey{"item_separator", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         paint_part(painter, *this, rule);
         return;
     }
@@ -697,14 +697,14 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_face.present) {
         part.role = PartRole::face;
         part.bounds = parts.item_face.bounds;
-        part.key.set(PartKey{"item_face", item.stable_id, index});
+        part.key.set(PartKey{"item_face", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         part.states = face_states;
         paint_part(painter, *this, part);
     }
     if (parts.item_arrow.present) {
         part.role = PartRole::actuator;
         part.bounds = parts.item_arrow.bounds;
-        part.key.set(PartKey{"item_arrow", item.stable_id, index});
+        part.key.set(PartKey{"item_arrow", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         part.states = arrow_states;
         paint_part(painter, *this, part);
     }
@@ -712,14 +712,14 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_icon.present) {
         part.role = PartRole::icon;
         part.bounds = parts.item_icon.bounds;
-        part.key.set(PartKey{"item_icon", item.stable_id, index});
+        part.key.set(PartKey{"item_icon", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         part.image = item.image;
         paint_part(painter, *this, part);
     }
     if (parts.item_label.present) {
         part.role = PartRole::label;
         part.bounds = parts.item_label.bounds;
-        part.key.set(PartKey{"item_label", item.stable_id, index});
+        part.key.set(PartKey{"item_label", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         const std::string text = item_text(item);
         part.text = lend_paint_text(text);
         paint_part(painter, *this, part);
@@ -728,7 +728,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_arrow_glyph.present) {
         part.role = PartRole::glyph;
         part.bounds = parts.item_arrow_glyph.bounds;
-        part.key.set(PartKey{"item_arrow_glyph", item.stable_id, index});
+        part.key.set(PartKey{"item_arrow_glyph", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         part.mark = PartMark::arrow_down;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
@@ -736,7 +736,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_focus.present) {
         part.role = PartRole::focus;
         part.bounds = parts.item_focus.bounds;
-        part.key.set(PartKey{"item_focus", item.stable_id, index});
+        part.key.set(PartKey{"item_focus", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         paint_part(painter, *this, part);
     }
 }

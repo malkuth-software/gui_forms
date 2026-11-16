@@ -841,14 +841,14 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
             for (double x = laid.x; x + block <= laid.x + laid.width; x += block + gap) {
                 const Rect laid_block{x, laid.y, block, laid.height};
                 fill_part.bounds = mirrored ? horizontally_mirrored(laid_block, interior) : laid_block;
-                fill_part.key.set(PartKey{"fill", {}, block_index});
+                fill_part.key.set(PartKey{"fill", {}, stxlib::Optional<std::size_t>::of(block_index)});
                 paint_part(painter, *this, fill_part);
                 block_index = block_index + 1U;
             }
         } else {
             for (double y = fill.y + fill.height - block; y >= fill.y; y -= block + gap) {
                 fill_part.bounds = {fill.x, y, fill.width, block};
-                fill_part.key.set(PartKey{"fill", {}, block_index});
+                fill_part.key.set(PartKey{"fill", {}, stxlib::Optional<std::size_t>::of(block_index)});
                 paint_part(painter, *this, fill_part);
                 block_index = block_index + 1U;
             }

@@ -746,7 +746,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
                               laid_block.bar.height};
             bar.states = states;
             bar.corner_radius.set(0.0);
-            bar.key.set(PartKey{"topic_bar", "topic", section});
+            bar.key.set(PartKey{"topic_bar", "topic", stxlib::Optional<std::size_t>::of(section)});
             paint_part(painter, *this, bar);
             PartPaint expander{};
             expander.family = ControlVisualRole::menu_item;
@@ -755,7 +755,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
             expander.bounds = Rect{laid_block.expander.x + offset.x, laid_block.expander.y + offset.y,
                                    laid_block.expander.width, laid_block.expander.height};
             expander.states = states;
-            expander.key.set(PartKey{"expander", "topic", section});
+            expander.key.set(PartKey{"expander", "topic", stxlib::Optional<std::size_t>::of(section)});
             paint_part(painter, *this, expander);
             if (focused_section == section && focused_) {
                 PartPaint ring{};
@@ -838,7 +838,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
                 part.family = was_visited ? ControlVisualRole::visited_link : ControlVisualRole::link;
                 if (hovered_link_ == link) part.states.insert(AnatomyState::hot);
                 if (pressed_link_ == link) part.states.insert(AnatomyState::pressed);
-                part.key.set(PartKey{"link_text", "link", link});
+                part.key.set(PartKey{"link_text", "link", stxlib::Optional<std::size_t>::of(link)});
             }
             paint_text_part_at(painter, *this, part, Point{bounds.x, piece.baseline + offset.y}, bounds.width);
             if (piece.kind == PieceKind::link) {
