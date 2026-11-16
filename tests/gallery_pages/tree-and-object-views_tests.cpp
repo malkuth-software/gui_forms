@@ -156,7 +156,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
             "the grid must have a link column whose empty cells show its text");
     require((*grid).on_semantic_child_action("button.cpp.history", SemanticAction::press, {}) &&
                 (*status).text.read().find("History of button.cpp") == 0U &&
-                (*grid).link_visited((*grid).row_position(DataGridViewRowId{"button.cpp"}).take(), *history.value()),
+                (*grid).link_visited(*source.value(), *history.value()),
             "pressing a link cell must report the link and leave it visited");
 
     // VirtualRowsView: the seeded message history, measured only near its

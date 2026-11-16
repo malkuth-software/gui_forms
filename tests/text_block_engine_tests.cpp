@@ -35,6 +35,14 @@ void require(bool condition, const std::string& message) {
     if (!condition) throw std::runtime_error(message);
 }
 
+// A baseline the test expects; none fails the test instead of reading an
+// absent value.
+double present_baseline(const stxlib::Optional<double>& baseline, const std::string& what) {
+    require(baseline.present(), what + ": a baseline");
+    const double value = *baseline.value();
+    return value;
+}
+
 void require_near(double actual, double expected, double tolerance, const std::string& what) {
     require(std::abs(actual - expected) <= tolerance,
             what + ": got " + std::to_string(actual) + ", expected " + std::to_string(expected));
@@ -185,7 +193,7 @@ void test_design_metrics_and_line_boxes(const std::filesystem::path& fonts) {
     const Size measured = (*block).measure_for_layout(widest);
     require_near(measured.width, resolved.logical_size.width, 0.0, "the block is as wide as its shaped line");
     require_near(measured.height, 15.0, 0.0, "and one line box tall");
-    require_near((*block).first_baseline(measured.width).take(), 12.0, 0.0, "its baseline is Chromium's");
+    require_near(present_baseline((*block).first_baseline(measured.width), "its baseline is Chromium's"), 12.0, 0.0, "its baseline is Chromium's");
 }
 
 } // namespace

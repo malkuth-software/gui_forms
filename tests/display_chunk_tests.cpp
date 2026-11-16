@@ -149,6 +149,8 @@ void test_local_rebuild_and_generation() {
     const stxlib::Optional<DisplayChunkInfo> root_after = (*fixture.root).display_chunk_info();
     const stxlib::Optional<DisplayChunkInfo> control_after = (*fixture.control).display_chunk_info();
     const stxlib::Optional<DisplayChunkInfo> overlay_after = (*fixture.overlay).display_chunk_info();
+    require(root_after.present() && control_after.present() && overlay_after.present(),
+            "every chunk is kept through the paint");
     require((*root_after.value()).generation == (*root_before.value()).generation &&
                 (*overlay_after.value()).generation == (*overlay_before.value()).generation &&
                 (*control_after.value()).generation > (*control_before.value()).generation,
@@ -191,8 +193,9 @@ void test_invalid_plane_rejection_preserves_state() {
     } catch (const std::invalid_argument&) {
         setter_rejected = true;
     }
-    require(setter_rejected && (*fixture.control).paint_plane() == PaintPlane::control &&
-                (*fixture.control).display_chunk_info().take().generation == (*before.value()).generation,
+    const stxlib::Optional<DisplayChunkInfo> after = (*fixture.control).display_chunk_info();
+    require(setter_rejected && (*fixture.control).paint_plane() == PaintPlane::control && before.present() &&
+                after.present() && (*after.value()).generation == (*before.value()).generation,
             "invalid paint-plane mutation must be rejected without changing cache state");
 
     (*fixture.control).invalidate(invalidation::paint_only);

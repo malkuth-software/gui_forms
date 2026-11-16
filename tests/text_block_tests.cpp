@@ -37,6 +37,14 @@ bool near(double left, double right) {
     return std::abs(left - right) <= 1.0e-9;
 }
 
+// A baseline the test expects; none fails the test instead of reading an
+// absent value.
+double present_baseline(const stxlib::Optional<double>& baseline, const std::string& what) {
+    require(baseline.present(), what + ": a baseline");
+    const double value = *baseline.value();
+    return value;
+}
+
 void require_near(double actual, double expected, const std::string& what) {
     require(near(actual, expected), what + ": got " + std::to_string(actual) + ", expected " +
                                         std::to_string(expected));
@@ -189,8 +197,9 @@ void test_intrinsic_sizes_and_padding() {
     require_near(maximum.height, 15.0 + 8.0, "one line");
     const Size narrowed = measured_at(*block, width_query(minimum.width));
     require_near(narrowed.height, 45.0 + 8.0, "handed back its min-content width it keeps every word whole");
-    require_near((*block).first_baseline(100.0).take(), 3.0 + 12.0, "the first baseline is below the top padding");
-    require_near((*block).last_baseline(minimum.width).take(), 3.0 + 30.0 + 12.0,
+    require_near(present_baseline((*block).first_baseline(100.0), "the first baseline is below the top padding"), 3.0 + 12.0, "the first baseline is below the top padding");
+    require_near(present_baseline((*block).last_baseline(minimum.width), "the last baseline is on the third line"),
+                 3.0 + 30.0 + 12.0,
                  "the last baseline is on the third line");
 }
 
@@ -206,7 +215,7 @@ void test_text_scale() {
     require_near(measured.height, 30.0, "a set line height scales with it");
     (*block).line_height = stxlib::Optional<double>::none();
     require_near(measured_at(*block, width_query(200.0)).height, 24.0, "19.5 px's line box is 19 + 5");
-    require_near((*block).first_baseline(200.0).take(), 19.0, "its baseline is its rounded ascent");
+    require_near(present_baseline((*block).first_baseline(200.0), "its baseline is its rounded ascent"), 19.0, "its baseline is its rounded ascent");
 }
 
 // A set line height's leading goes half above the text, rounded down.
@@ -216,11 +225,11 @@ void test_half_leading() {
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{800.0, 600.0});
     (*held).set_text_metrics_provider(&metrics);
     (*block).line_height = stxlib::Optional<double>::of(20.0);
-    require_near((*block).first_baseline(100.0).take(), 14.0, "5 px of leading puts 2 above");
+    require_near(present_baseline((*block).first_baseline(100.0), "5 px of leading puts 2 above"), 14.0, "5 px of leading puts 2 above");
     (*block).line_height = stxlib::Optional<double>::of(21.0);
-    require_near((*block).first_baseline(100.0).take(), 15.0, "6 px puts 3 above");
+    require_near(present_baseline((*block).first_baseline(100.0), "6 px puts 3 above"), 15.0, "6 px puts 3 above");
     (*block).line_height = stxlib::Optional<double>::of(12.0);
-    require_near((*block).first_baseline(100.0).take(), 10.0, "-3 px puts -2 above");
+    require_near(present_baseline((*block).first_baseline(100.0), "-3 px puts -2 above"), 10.0, "-3 px puts -2 above");
 }
 
 void test_breaks_come_from_the_provider() {

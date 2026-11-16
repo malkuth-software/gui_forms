@@ -104,6 +104,15 @@ stxlib::Optional<DataGridViewRowPosition> present_row(std::size_t position) {
     return stxlib::Optional<DataGridViewRowPosition>::of(row);
 }
 
+// The position of a row the test expects in the grid; a missing row fails
+// the test with `message` instead of reading an absent position.
+DataGridViewRowPosition shown_position(const DataGridView& grid, const DataGridViewRowId& row, const char* message) {
+    const stxlib::Optional<DataGridViewRowPosition> position = grid.row_position(row);
+    require(position.present(), message);
+    const DataGridViewRowPosition shown = *position.value();
+    return shown;
+}
+
 // A present cell address, as current_cell reports it and set_current_cell
 // takes it.
 stxlib::Optional<DataGridViewCellAddress> cell_at(std::size_t row, std::size_t column) {
@@ -335,7 +344,11 @@ struct AddDuplicateRow final {
      };
      struct RemoveNewRow final {
          DataGridView* grid{};
-         void operator()() const { (*grid).rows.erase((*grid).new_row_index().take().value, 1U); }
+         void operator()() const {
+             const stxlib::Optional<DataGridViewRowPosition> new_row = (*grid).new_row_index();
+             require(new_row.present(), "the handler finds the new row to remove");
+             (*grid).rows.erase((*new_row.value()).value, 1U);
+         }
      };
      struct SetCount final {
          DataGridView* grid{};
@@ -813,15 +826,18 @@ void virtual_row_identity() {
 
     // Full-row selection is kept by ID too.
     (*grid).selection_mode = DataGridViewSelectionMode::full_row_select;
-    (*grid).set_row_selected((*grid).row_position(id("v10")).take(), true);
+    (*grid).set_row_selected(shown_position(*grid, id("v10"), "v10 is in the order"), true);
     (*grid).set_virtual_row_order(removed);
-    require((*grid).is_row_selected((*grid).row_position(id("v10")).take()) &&
-                (*grid).is_row_selected((*grid).row_position(id("v3")).take()) && (*grid).selected_rows().size() == 2U,
+    const DataGridViewRowPosition v10_after = shown_position(*grid, id("v10"), "v10 stays in the order");
+    const DataGridViewRowPosition v3_after = shown_position(*grid, id("v3"), "v3 stays in the order");
+    require((*grid).is_row_selected(v10_after) && (*grid).is_row_selected(v3_after) &&
+                (*grid).selected_rows().size() == 2U,
             "selected rows stay selected through a sort");
     (*grid).selection_mode = DataGridViewSelectionMode::cell_select;
 
     // An edit in progress stays on its row through a reorder and commits to it.
-    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{(*grid).row_position(id("v3")).take(), 0U})) &&
+    const DataGridViewCellAddress v3_cell{shown_position(*grid, id("v3"), "v3 is in the order"), 0U};
+    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::of(v3_cell)) &&
                 (*grid).begin_edit(),
             "an edit begins on v3");
     (*(*grid).editing_control()).text = "edited";
@@ -862,7 +878,8 @@ void virtual_row_identity() {
     std::vector<DataGridViewRowId> above{id("n7"), id("n8"), id("n9")};
     above.insert(above.end(), without.begin(), without.end());
     (*grid).set_virtual_row_order(above);
-    require((*grid).first_displayed_row() == (*grid).row_position(top).take(), "the first displayed row follows its ID");
+    require((*grid).row_position(top) == stxlib::Optional<DataGridViewRowPosition>::of((*grid).first_displayed_row()),
+            "the first displayed row follows its ID");
 
     // Refusals leave the grid unchanged.
     const std::size_t count = (*grid).row_count();
@@ -3563,7 +3580,7 @@ void bound_identity_follows_list_changes() {
     }
     // A removal of the current row moves the current cell to the row now at
     // its position.
-    const std::size_t shown = (*grid).row_position(DataGridViewRowId{current}).take().value;
+    const std::size_t shown = shown_position(*grid, DataGridViewRowId{current}, "the current row is bound").value;
     static_cast<void>(table.remove(*table.find(current), 1U));
     const stxlib::Optional<DataGridViewCellAddress> after = (*grid).current_cell();
     require(after.present() && (*after.value()).row.value == std::min(shown, (*source).count() - 1U),

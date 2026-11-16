@@ -404,7 +404,8 @@ void test_retained_replay_preserves_material_operations() {
     require(before.present() && !damage.empty(),
             "material mutation must invalidate its retained display chunk");
     window.paint(painter, damage.bounds());
-    require((*panel).display_chunk_info().take().generation > (*before.value()).generation,
+    const stxlib::Optional<DisplayChunkInfo> after = (*panel).display_chunk_info();
+    require(after.present() && (*after.value()).generation > (*before.value()).generation,
             "material mutation must rebuild rather than reuse stale pixels");
 }
 

@@ -119,11 +119,17 @@ void test_css_layout_panels(gui_forms::Window& window) {
     require(caption && value && paragraph, "the page must retain its TextBlock specimens");
     const Rect caption_bounds = (*caption).arranged_bounds();
     const Rect value_bounds = (*value).arranged_bounds();
-    const double caption_baseline = caption_bounds.y + (*caption).first_baseline(caption_bounds.width).take();
-    const double value_baseline = value_bounds.y + (*value).first_baseline(value_bounds.width).take();
+    const stxlib::Optional<double> caption_first = (*caption).first_baseline(caption_bounds.width);
+    const stxlib::Optional<double> value_first = (*value).first_baseline(value_bounds.width);
+    require(caption_first.present() && value_first.present(), "the caption and the value must have baselines");
+    const double caption_baseline = caption_bounds.y + *caption_first.value();
+    const double value_baseline = value_bounds.y + *value_first.value();
     require(std::abs(caption_baseline - value_baseline) < 1.0e-6 && caption_bounds.y > value_bounds.y,
             "the caption must drop to the larger value's baseline");
-    require((*paragraph).last_baseline(476.0).take() > (*paragraph).first_baseline(476.0).take(),
+    const stxlib::Optional<double> paragraph_last = (*paragraph).last_baseline(476.0);
+    const stxlib::Optional<double> paragraph_first = (*paragraph).first_baseline(476.0);
+    require(paragraph_last.present() && paragraph_first.present() &&
+                *paragraph_last.value() > *paragraph_first.value(),
             "the paragraph must wrap to more than one line");
     const Control::Ptr text_group = window.find("gallery.css-layout.text.group");
     require(text_group && (*text_group).arranged_bounds().y + (*text_group).arranged_bounds().height <= 660.0,
