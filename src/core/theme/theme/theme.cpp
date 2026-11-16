@@ -12,6 +12,7 @@
 #include "kept_resolutions.hpp"
 #include "theme_access.hpp"
 #include "../contrast/theme_contrast.hpp"
+#include "../../types/painter/painter_support.hpp"
 #include "../dark_variant/dark_variant.hpp"
 #include "../theme_compiler/theme_source_record.hpp"
 
@@ -847,6 +848,72 @@ void paint_image_fill(Painter& painter, Rect bounds, const MaterialFillLayer& fi
     return;
 }
 
+// The stops of a conic layer over one whole turn, for
+// Painter::fill_conic_gradient, which spans a turn from offset 0 to 1:
+// `period` (valid stops) repeated `periods_per_turn` times, each period
+// after the first starting a millionth of a turn past its boundary so the
+// offsets stay strictly increasing (the hard edge between two periods then
+// spans that millionth), and the last period cut at the turn's end by the
+// colour it reaches there. Writes the stops into `expanded` and returns
+// their count, or 0 when the turn needs more than maximum_gradient_stops
+// stops or a period's second stop lies within that millionth.
+std::size_t expanded_conic_stops(std::span<const GradientStop> period, double periods_per_turn,
+                                 std::array<GradientStop, maximum_gradient_stops>& expanded) noexcept {
+    constexpr double boundary_gap = 1.0e-6;
+    constexpr double end_tolerance = 1.0e-9;
+    if (!(periods_per_turn > 0.0) || !std::isfinite(periods_per_turn) || period.size() < 2U) return 0U;
+    const double period_width = 1.0 / periods_per_turn;
+    if (period[1].offset * period_width <= boundary_gap) return 0U;
+    std::size_t count = 0U;
+    for (std::size_t repeat = 0U; repeat < maximum_gradient_stops; ++repeat) {
+        const double start = static_cast<double>(repeat) * period_width;
+        for (std::size_t index = 0U; index < period.size(); ++index) {
+            if (count == expanded.size()) return 0U;
+            double offset = start + period[index].offset * period_width;
+            if (repeat != 0U && index == 0U) offset = offset + boundary_gap;
+            if (offset > 1.0 - end_tolerance) {
+                // The turn ends here: on this stop (within the rounding of
+                // the period arithmetic), or inside the period, where the
+                // colour it reaches ends it.
+                Color last = period[index].color;
+                if (offset > 1.0 + end_tolerance) {
+                    const double reached = (1.0 - start) / period_width;
+                    last = detail::sample_gradient(period, reached);
+                }
+                expanded[count] = GradientStop{1.0, last};
+                count = count + 1U;
+                return count;
+            }
+            expanded[count] = GradientStop{offset, period[index].color};
+            count = count + 1U;
+        }
+    }
+    return 0U;
+}
+
+// A conic layer through Painter::fill_conic_gradient. The layer's angle is
+// CSS's (clockwise from up); the painter's is clockwise from +x, a quarter
+// turn earlier. A repeating layer whose turn needs more stops than a
+// gradient holds draws one colour instead: its period's colour halfway
+// through.
+void paint_conic_layer(Painter& painter, Rect bounds, const MaterialFillLayer& fill) {
+    const Point centre = resolve_point(fill.center, fill.coordinate_space, bounds);
+    const double start_degrees = fill.angle_degrees - 90.0;
+    if (fill.period_degrees == 360.0) {
+        painter.fill_conic_gradient(bounds, centre, start_degrees, fill.stops);
+        return;
+    }
+    std::array<GradientStop, maximum_gradient_stops> expanded{};
+    const std::size_t count = expanded_conic_stops(fill.stops, 360.0 / fill.period_degrees, expanded);
+    if (count == 0U) {
+        const Color middle = detail::sample_gradient(fill.stops, 0.5);
+        painter.fill_rect(bounds, middle);
+        return;
+    }
+    painter.fill_conic_gradient(bounds, centre, start_degrees,
+                                std::span<const GradientStop>(expanded.data(), count));
+}
+
 // One fill layer of a material over `bounds`; a solid fill follows the
 // material's rounded corners when the layers are `clipped` to them.
 void paint_fill_layer(Painter& painter, Rect bounds, const MaterialFillLayer& fill,
@@ -874,23 +941,26 @@ void paint_fill_layer(Painter& painter, Rect bounds, const MaterialFillLayer& fi
             fill.spread);
         return;
     case MaterialFillKind::radial_gradient:
-        // The Painter has no spread for a radial gradient, so a repeating
-        // radial gradient draws padded here (documented on MaterialFillKind).
-        painter.fill_radial_gradient(
+        // A padded radial gradient keeps its own call, so recordings of
+        // existing materials are unchanged; a repeating or reflected one
+        // draws its spread.
+        if (fill.spread == GradientSpreadMode::pad) {
+            painter.fill_radial_gradient(
+                bounds, resolve_point(fill.center, fill.coordinate_space, bounds),
+                resolve_radii(fill.radii, fill.coordinate_space, bounds), fill.stops);
+            return;
+        }
+        painter.fill_radial_gradient_spread(
             bounds, resolve_point(fill.center, fill.coordinate_space, bounds),
-            resolve_radii(fill.radii, fill.coordinate_space, bounds), fill.stops);
+            resolve_radii(fill.radii, fill.coordinate_space, bounds), fill.stops, fill.spread);
         return;
     case MaterialFillKind::image:
         paint_image_fill(painter, bounds, fill);
         return;
     case MaterialFillKind::conic_gradient:
-        // The Painter has no conic gradient; its first stop stands in
-        // (documented on MaterialFillKind). Validation guarantees a stop.
-        if (clipped) {
-            painter.fill_rounded_rect(bounds, corner_radius, fill.stops.front().color);
-        } else {
-            painter.fill_rect(bounds, fill.stops.front().color);
-        }
+        // Under the material's rounded clip when `clipped`, as the
+        // gradients above are.
+        paint_conic_layer(painter, bounds, fill);
         return;
     case MaterialFillKind::procedural: {
         // The painter path never generates a pattern (E10): it draws the

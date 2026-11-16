@@ -245,6 +245,25 @@ void RecordingPainter::fill_radial_gradient(
     commands_.push_back(std::move(command));
 }
 
+void RecordingPainter::fill_radial_gradient_spread(
+    Rect rect, Point center, Size radii,
+    std::span<const GradientStop> stops, GradientSpreadMode spread) {
+    if (!valid_gradient_stops(stops) ||
+        (spread != GradientSpreadMode::pad &&
+         spread != GradientSpreadMode::repeat &&
+         spread != GradientSpreadMode::reflect)) {
+        throw std::invalid_argument("display gradient spread is invalid");
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::fill_radial_gradient_spread;
+    command.rect = rect;
+    command.first = center;
+    command.second = {radii.width, radii.height};
+    command.gradient_stops.assign(stops.begin(), stops.end());
+    command.gradient_spread = spread;
+    commands_.push_back(std::move(command));
+}
+
 void RecordingPainter::draw_box_shadow(Rect rect, double corner_radius,
                                        Point offset, double blur_radius,
                                        double spread, Color color) {
@@ -347,6 +366,20 @@ void RecordingPainter::fill_path(PaintPathView path, Color color, PolygonFillRul
     (*marks).points.assign(path.points.begin(), path.points.end());
     (*marks).fill_rule = rule;
     command.color = color;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::clip_path(PaintPathView path, PolygonFillRule rule) {
+    if (save_depth_ == 0U) clipped_ = true;
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::clip_path, marks);
+    (*marks).path_verbs.assign(path.verbs.begin(), path.verbs.end());
+    (*marks).points.assign(path.points.begin(), path.points.end());
+    (*marks).fill_rule = rule;
+    // The clip's extent for the readers that follow clips as rectangles
+    // (the backplane, inspection): the path's bounds, empty when invalid.
+    command.rect = paint_path_bounds(path);
     command.marks = std::move(marks);
     commands_.push_back(std::move(command));
 }

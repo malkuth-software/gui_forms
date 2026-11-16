@@ -181,6 +181,8 @@ const char* image_mode_name(MaterialImageMode value) noexcept {
 const char* image_pattern_wrap_name(ImagePatternWrap value) noexcept {
     switch (value) {
     case ImagePatternWrap::tile: return "tile";
+    case ImagePatternWrap::mirror: return "mirror";
+    case ImagePatternWrap::clamp: return "clamp";
     }
     return "unknown";
 }
@@ -651,6 +653,8 @@ const char* visual_paint_operation_name(VisualPaintOperation operation) noexcept
     case VisualPaintOperation::stroke_rounded_rect_corners: return "stroke_rounded_rect_corners";
     case VisualPaintOperation::fill_path: return "fill_path";
     case VisualPaintOperation::stroke_path: return "stroke_path";
+    case VisualPaintOperation::clip_path: return "clip_path";
+    case VisualPaintOperation::fill_radial_gradient_spread: return "fill_radial_gradient_spread";
     }
     return "unknown";
 }

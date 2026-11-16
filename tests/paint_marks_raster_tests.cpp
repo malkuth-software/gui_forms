@@ -4,14 +4,23 @@
 // direction, the per-corner rounding, the curved paths (exhibit gap E7:
 // fill rules, strokes, and a frame repainted tile by tile drawing the bytes
 // of one whole paint), and the replay of a recording drawing the same bytes
-// as drawing directly.
+// as drawing directly; then the path clip (exact pixels on either side of
+// its edges, the fill rules, a refused clip, a part raster drawn under it),
+// the radial gradient's spreads and the image pattern's wraps (exact
+// pixels where a tile's texels land on device pixel centres).
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
 #include "gui_forms/types/damage_region/damage_region.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_marks/paint_marks.hpp"
 #include "gui_forms/types/paint_path/paint_path.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 #include "skia_raster.hpp"
 #include "../src/core/display/recording_painter/recording_painter.hpp"
 #include "../src/core/display/replay/replay_display_chunk.hpp"
@@ -25,7 +34,9 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <span>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace {
@@ -42,6 +53,7 @@ constexpr Color white = Color::rgba(255, 255, 255);
 constexpr Color black = Color::rgba(0, 0, 0);
 constexpr Color red = Color::rgba(255, 0, 0);
 constexpr Color blue = Color::rgba(0, 0, 255);
+
 constexpr double not_a_number = std::numeric_limits<double>::quiet_NaN();
 
 // One device pixel's straight channels (the raster is premultiplied BGRA8;
@@ -315,6 +327,197 @@ void test_path_damage_invariance(double scale) {
             "a path repainted tile by tile must draw the bytes of one whole paint");
 }
 
+bool is_exactly(Pixel pixel, Color color) noexcept {
+    return pixel.red == color.red && pixel.green == color.green && pixel.blue == color.blue && pixel.alpha == 255U;
+}
+
+bool is_near(Pixel left, Pixel right) noexcept {
+    const bool near = std::abs(static_cast<int>(left.red) - static_cast<int>(right.red)) <= 2 &&
+                      std::abs(static_cast<int>(left.green) - static_cast<int>(right.green)) <= 2 &&
+                      std::abs(static_cast<int>(left.blue) - static_cast<int>(right.blue)) <= 2;
+    return near;
+}
+
+// The clip scene's shapes: a right triangle whose legs lie on whole units
+// (from (40, 4) along x to 88 and along y to 52: inside where x + y < 92),
+// a 32-unit square ring with a 16-unit hole, both wound the same way, and
+// a smaller ring like it.
+PaintPath clip_triangle() {
+    PaintPath triangle;
+    triangle.move_to(Point{40.0, 4.0});
+    triangle.line_to(Point{88.0, 4.0});
+    triangle.line_to(Point{40.0, 52.0});
+    triangle.close();
+    return triangle;
+}
+
+PaintPath square_ring(double left, double top, double outer, double inset) {
+    PaintPath ring;
+    ring.move_to(Point{left, top});
+    ring.line_to(Point{left + outer, top});
+    ring.line_to(Point{left + outer, top + outer});
+    ring.line_to(Point{left, top + outer});
+    ring.close();
+    ring.move_to(Point{left + inset, top + inset});
+    ring.line_to(Point{left + outer - inset, top + inset});
+    ring.line_to(Point{left + outer - inset, top + outer - inset});
+    ring.line_to(Point{left + inset, top + outer - inset});
+    ring.close();
+    return ring;
+}
+
+void clip_scene(Painter& painter) {
+    const Rect whole{0.0, 0.0, scene_size.width, scene_size.height};
+    const PaintPath triangle = clip_triangle();
+    painter.save();
+    painter.clip_path(triangle.view(), PolygonFillRule::nonzero);
+    painter.fill_rect(whole, red);
+    painter.restore();
+    const PaintPath ring = square_ring(4.0, 4.0, 32.0, 8.0);
+    painter.save();
+    painter.clip_path(ring.view(), PolygonFillRule::even_odd);
+    painter.fill_rect(whole, blue);
+    painter.restore();
+    const PaintPath small_ring = square_ring(4.0, 40.0, 16.0, 4.0);
+    painter.save();
+    painter.clip_path(small_ring.view(), PolygonFillRule::nonzero);
+    painter.fill_rect(whole, blue);
+    painter.restore();
+    // A refused clip hides everything until its restore.
+    PaintPath broken;
+    broken.line_to(Point{1.0, 1.0});
+    painter.save();
+    painter.clip_path(broken.view(), PolygonFillRule::nonzero);
+    painter.fill_rect(whole, black);
+    painter.restore();
+}
+
+void test_path_clip() {
+    SkiaRaster raster;
+    paint(raster, &clip_scene);
+    require(is_exactly(pixel_at(raster, 44U, 8U), red) && is_exactly(pixel_at(raster, 40U, 4U), red) &&
+                is_exactly(pixel_at(raster, 40U, 48U), red),
+            "a fill under a path clip must cover the path's interior exactly, to its whole-unit edges");
+    require(is_exactly(pixel_at(raster, 39U, 10U), white) && is_exactly(pixel_at(raster, 60U, 3U), white),
+            "nothing may draw beyond a path clip's whole-unit edges");
+    require(is_exactly(pixel_at(raster, 80U, 40U), white) && is_exactly(pixel_at(raster, 86U, 50U), white),
+            "a path clip must hide its bounding box's corner outside the path");
+    require(is_exactly(pixel_at(raster, 6U, 6U), blue) && is_exactly(pixel_at(raster, 20U, 20U), white),
+            "an even-odd path clip must leave the ring's hole open");
+    require(is_exactly(pixel_at(raster, 12U, 48U), blue) && is_exactly(pixel_at(raster, 5U, 41U), blue),
+            "a nonzero path clip must fill the same-wound hole");
+    require(is_exactly(pixel_at(raster, 90U, 60U), white) && is_exactly(pixel_at(raster, 2U, 2U), white),
+            "a refused path clip must draw nothing until its restore");
+}
+
+void test_part_raster_under_path_clip() {
+    // A 16-pixel opaque red raster at (40, 4) under a triangle whose
+    // hypotenuse runs from (56, 4) to (40, 20): the raster's own composite
+    // follows rectangles only, so under the path it draws through Skia.
+    const std::shared_ptr<PartRaster> raster = PartRaster::create(DeviceExtent{16U, 16U}, DeviceScale{1.0});
+    require(static_cast<bool>(raster), "the part raster must be made");
+    const PartRasterView view = (*raster).view();
+    for (std::size_t at = 0U; at + 3U < view.pixels.size(); at = at + 4U) {
+        view.pixels[at] = 0U;
+        view.pixels[at + 1U] = 0U;
+        view.pixels[at + 2U] = 255U;
+        view.pixels[at + 3U] = 255U;
+    }
+    (*raster).record_opacity();
+    const std::shared_ptr<const PartRaster> shared = raster;
+    PaintPath triangle;
+    triangle.move_to(Point{40.0, 4.0});
+    triangle.line_to(Point{56.0, 4.0});
+    triangle.line_to(Point{40.0, 20.0});
+    triangle.close();
+    SkiaRaster target;
+    require(target.resize(scene_size, 1.0) || target.pixel_width() != 0U, "the raster must have a surface");
+    DamageRegion damage;
+    damage.add(Rect{0.0, 0.0, scene_size.width, scene_size.height});
+    target.begin_frame(damage);
+    target.fill_rect(Rect{0.0, 0.0, scene_size.width, scene_size.height}, white);
+    target.save();
+    target.clip_path(triangle.view(), PolygonFillRule::nonzero);
+    target.draw_part_raster(shared, Point{40.0, 4.0}, 1.0);
+    target.restore();
+    target.end_frame();
+    require(is_exactly(pixel_at(target, 42U, 6U), red) && is_exactly(pixel_at(target, 40U, 4U), red),
+            "a part raster under a path clip must draw inside the path");
+    require(is_exactly(pixel_at(target, 54U, 18U), white) && is_exactly(pixel_at(target, 50U, 14U), white),
+            "a part raster under a path clip must not draw in its box outside the path");
+}
+
+// Red at the centre to blue at 8 units, centred on a device pixel's
+// centre, so the pixels 4, 12 and the others along the row lie at whole
+// fractions of the radius.
+void radial_spread(SkiaRaster& raster, GradientSpreadMode spread) {
+    require(raster.resize(scene_size, 1.0) || raster.pixel_width() != 0U, "the raster must have a surface");
+    DamageRegion damage;
+    damage.add(Rect{0.0, 0.0, scene_size.width, scene_size.height});
+    raster.begin_frame(damage);
+    raster.fill_rect(Rect{0.0, 0.0, scene_size.width, scene_size.height}, white);
+    const std::array<GradientStop, 2> stops{{GradientStop{0.0, red}, GradientStop{1.0, blue}}};
+    raster.fill_radial_gradient_spread(Rect{0.0, 0.0, scene_size.width, scene_size.height}, Point{48.5, 32.5},
+                                       Size{8.0, 8.0}, stops, spread);
+    raster.end_frame();
+}
+
+void test_radial_spreads() {
+    SkiaRaster padded;
+    radial_spread(padded, GradientSpreadMode::pad);
+    require(is_exactly(pixel_at(padded, 60U, 32U), blue), "a padded radial gradient keeps its last colour outside");
+    SkiaRaster repeated;
+    radial_spread(repeated, GradientSpreadMode::repeat);
+    require(is_near(pixel_at(repeated, 60U, 32U), pixel_at(repeated, 52U, 32U)) &&
+                is_near(pixel_at(repeated, 62U, 32U), pixel_at(repeated, 54U, 32U)),
+            "a repeating radial gradient must start its stops again past its radius");
+    SkiaRaster reflected;
+    radial_spread(reflected, GradientSpreadMode::reflect);
+    require(is_near(pixel_at(reflected, 62U, 32U), pixel_at(reflected, 50U, 32U)) &&
+                !is_near(pixel_at(reflected, 62U, 32U), pixel_at(reflected, 54U, 32U)),
+            "a reflected radial gradient must run its stops back past its radius");
+    SkiaRaster refused;
+    radial_spread(refused, static_cast<GradientSpreadMode>(9));
+    require(is_exactly(pixel_at(refused, 48U, 32U), white), "an unknown spread must draw nothing");
+}
+
+void test_image_pattern_wraps() {
+    // A 2 x 1 image, red then blue, in tiles of its own size at scale 1 from
+    // a whole-unit origin: every device pixel centre lies on a texel centre,
+    // so each pixel is a texel's colour exactly.
+    const Control::Ptr root = make_control<Control>(StableId("pattern.wraps"));
+    Window window(root, scene_size);
+    const std::array<std::byte, 8> strip{{std::byte{0U}, std::byte{0U}, std::byte{255U}, std::byte{255U},
+                                          std::byte{255U}, std::byte{0U}, std::byte{0U}, std::byte{255U}}};
+    const ImageLoadResult loaded = window.load_bgra32_premultiplied(2U, 1U, 8U, strip);
+    require(static_cast<bool>(loaded), "the strip image must load");
+    const std::array<ImagePatternWrap, 3> wraps{{ImagePatternWrap::tile, ImagePatternWrap::mirror,
+                                                 ImagePatternWrap::clamp}};
+    // Each wrap's eight columns: r red, b blue (ImagePatternWrap).
+    const std::array<const char*, 3> expected{{"rbrbrbrb", "rbbrrbbr", "rbbbbbbb"}};
+    for (std::size_t index = 0U; index < wraps.size(); ++index) {
+        SkiaRaster raster;
+        require(raster.resize(scene_size, 1.0) || raster.pixel_width() != 0U, "the raster must have a surface");
+        require(raster.synchronize_images(window.image_resources()), "image synchronization failed");
+        DamageRegion damage;
+        damage.add(Rect{0.0, 0.0, scene_size.width, scene_size.height});
+        raster.begin_frame(damage);
+        raster.fill_rect(Rect{0.0, 0.0, scene_size.width, scene_size.height}, white);
+        raster.fill_image_pattern(loaded.image, Size{2.0, 1.0}, Rect{0.0, 40.0, 8.0, 4.0}, Size{2.0, 1.0},
+                                  wraps[index], 1.0);
+        raster.end_frame();
+        const std::string columns(expected[index]);
+        for (std::size_t row = 40U; row < 44U; ++row) {
+            for (std::size_t column = 0U; column < columns.size(); ++column) {
+                const Color wanted = columns[column] == 'r' ? red : blue;
+                require(is_exactly(pixel_at(raster, column, row), wanted),
+                        "each pattern pixel must be the texel its wrap maps it to");
+            }
+        }
+        require(is_exactly(pixel_at(raster, 8U, 41U), white), "the pattern must stay within its destination");
+    }
+}
+
 // Every new call in one scene, so a recording's replay can be compared with
 // drawing directly.
 void all_marks_scene(Painter& painter) {
@@ -325,6 +528,7 @@ void all_marks_scene(Painter& painter) {
     corner_scene(painter);
     pattern_scene(painter);
     path_scene(painter);
+    clip_scene(painter);
 }
 
 void replayed_scene(Painter& painter) {
@@ -360,6 +564,10 @@ int main() {
         test_path_fill_and_stroke();
         test_path_damage_invariance(1.0);
         test_path_damage_invariance(2.0);
+        test_path_clip();
+        test_part_raster_under_path_clip();
+        test_radial_spreads();
+        test_image_pattern_wraps();
         test_replay_draws_the_same_bytes();
         std::cout << "gui_forms_paint_marks_raster_tests: all tests passed\n";
         return EXIT_SUCCESS;

@@ -61,6 +61,11 @@ enum class VisualPaintOperation : std::uint8_t {
     // Curved paths: `element_count` gives the path's point slots.
     fill_path,
     stroke_path,
+    // A path clip: `rect` the path's bounds, `element_count` its point
+    // slots.
+    clip_path,
+    // A radial gradient with its spread in `gradient_spread`.
+    fill_radial_gradient_spread,
 };
 
 [[nodiscard]] GUI_FORMS_API const char* visual_paint_operation_name(

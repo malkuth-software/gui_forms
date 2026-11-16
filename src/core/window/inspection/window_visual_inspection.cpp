@@ -71,6 +71,8 @@ VisualPaintOperation public_operation(detail::DisplayOperation operation) {
     case Private::stroke_rounded_rect_corners: return VisualPaintOperation::stroke_rounded_rect_corners;
     case Private::fill_path: return VisualPaintOperation::fill_path;
     case Private::stroke_path: return VisualPaintOperation::stroke_path;
+    case Private::clip_path: return VisualPaintOperation::clip_path;
+    case Private::fill_radial_gradient_spread: return VisualPaintOperation::fill_radial_gradient_spread;
     }
     throw std::logic_error("GUI.Forms display operation has no inspection spelling");
 }

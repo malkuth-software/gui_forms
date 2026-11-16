@@ -46,8 +46,10 @@ std::optional<DisplayOccluder> find_occluder(const DisplayCommandList& commands)
             offset.x += level.offset.x;
             offset.y += level.offset.y;
         }
+        // A path clip is followed as a rounded one is: not a rectangle.
         const bool rounded_clip = operation == DisplayOperation::clip_rounded_rect ||
-                                  operation == DisplayOperation::clip_rounded_rect_corners;
+                                  operation == DisplayOperation::clip_rounded_rect_corners ||
+                                  operation == DisplayOperation::clip_path;
         if (open.empty() && (operation == DisplayOperation::translate || operation == DisplayOperation::clip_rect ||
                              rounded_clip)) {
             // A surface found before it still hides what came before that.

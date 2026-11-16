@@ -16,12 +16,15 @@
 #include "gui_forms/window/window.hpp"
 #include "support/named_callbacks.hpp"
 
+#include <array>
 #include <cstdlib>
 #include <cmath>
 #include <exception>
 #include <iostream>
+#include <span>
 #include <stdexcept>
 #include <string_view>
+#include <vector>
 
 namespace {
 
@@ -75,6 +78,21 @@ public:
         last_center = center;
         last_radii = radii;
         last_stop_count = stops.size();
+    }
+    void fill_radial_gradient_spread(Rect, Point center, Size radii, std::span<const GradientStop> stops,
+                                     GradientSpreadMode spread) override {
+        ++spread_radial_fills;
+        last_center = center;
+        last_radii = radii;
+        last_stop_count = stops.size();
+        last_spread = spread;
+    }
+    void fill_conic_gradient(Rect, Point center, double start_degrees,
+                             std::span<const GradientStop> stops) override {
+        ++conic_fills;
+        last_center = center;
+        last_start_degrees = start_degrees;
+        conic_stops.assign(stops.begin(), stops.end());
     }
     void draw_box_shadow(Rect, double, Point, double, double, Color) override {
         ++shadows;
@@ -130,6 +148,10 @@ public:
     unsigned linear_fills{};
     unsigned spread_linear_fills{};
     unsigned radial_fills{};
+    unsigned spread_radial_fills{};
+    unsigned conic_fills{};
+    double last_start_degrees{};
+    std::vector<GradientStop> conic_stops;
     unsigned shadows{};
     unsigned inset_shadows{};
     double last_radius{};
@@ -431,6 +453,56 @@ void test_repeating_material_survives_record_and_replay() {
             "repeat mode and logical period must survive the retained display list");
 }
 
+// The painter path draws a repeating radial layer with its spread and a
+// conic layer as a conic gradient (it drew them padded and as one colour
+// before the Painter had the calls).
+void test_conic_and_repeating_radial_layers_reach_the_painter() {
+    const std::vector<GradientStop> two{{0.0, Color::rgba(200, 30, 40)}, {1.0, Color::rgba(20, 40, 210)}};
+    SurfaceMaterial rings;
+    rings.fills = {MaterialFillLayer::repeating_radial({0.5, 0.5}, {0.25, 0.25}, two)};
+    RichPainter radial;
+    paint_surface_material(radial, Rect{0.0, 0.0, 80.0, 40.0}, rings);
+    require(radial.spread_radial_fills == 1U && radial.radial_fills == 0U &&
+                radial.last_spread == GradientSpreadMode::repeat && radial.last_center == Point{40.0, 20.0} &&
+                radial.last_radii == Size{20.0, 10.0} && radial.last_stop_count == 2U,
+            "a repeating radial layer must reach the painter with its spread");
+
+    SurfaceMaterial wheel;
+    wheel.fills = {MaterialFillLayer::conic({0.5, 0.5}, 30.0, two)};
+    RichPainter conic;
+    paint_surface_material(conic, Rect{0.0, 0.0, 80.0, 40.0}, wheel);
+    // The layer's angle is clockwise from up; the painter's from +x.
+    require(conic.conic_fills == 1U && conic.solid_fills == 0U && conic.last_center == Point{40.0, 20.0} &&
+                conic.last_start_degrees == -60.0 && conic.conic_stops.size() == 2U,
+            "a conic layer must reach the painter as a conic gradient");
+
+    // A quarter-turn period repeats four times: each period after the
+    // first starts a millionth of a turn past its boundary, and the last
+    // ends the turn on its own last stop.
+    SurfaceMaterial quarters;
+    quarters.fills = {MaterialFillLayer::repeating_conic({0.5, 0.5}, 0.0, 90.0, two)};
+    RichPainter repeated;
+    paint_surface_material(repeated, Rect{0.0, 0.0, 80.0, 40.0}, quarters);
+    const std::array<double, 8> offsets{{0.0, 0.25, 0.25 + 1.0e-6, 0.5, 0.5 + 1.0e-6, 0.75, 0.75 + 1.0e-6, 1.0}};
+    require(repeated.conic_fills == 1U && repeated.conic_stops.size() == offsets.size() &&
+                valid_gradient_stops(repeated.conic_stops),
+            "a repeating conic layer must expand to one valid turn of stops");
+    for (std::size_t index = 0U; index < offsets.size(); ++index) {
+        const GradientStop& stop = repeated.conic_stops[index];
+        const Color wanted = index % 2U == 0U ? two[0].color : two[1].color;
+        require(std::abs(stop.offset - offsets[index]) < 1.0e-12 && stop.color == wanted,
+                "each period of a repeating conic layer must repeat its stops");
+    }
+
+    // A period too short for the stops a gradient holds draws one colour.
+    SurfaceMaterial fine;
+    fine.fills = {MaterialFillLayer::repeating_conic({0.5, 0.5}, 0.0, 10.0, two)};
+    RichPainter flat;
+    paint_surface_material(flat, Rect{0.0, 0.0, 80.0, 40.0}, fine);
+    require(flat.conic_fills == 0U && flat.solid_fills == 1U,
+            "a repeating conic layer past the stop bound must draw one colour");
+}
+
 void test_image_materials_retain_crop_tile_and_nine_patch() {
     std::shared_ptr<gui_forms::MaterialPanel> panel = make_control<MaterialPanel>(StableId("material.images"));
     (*panel).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
@@ -645,6 +717,7 @@ int main() {
         test_material_validation_is_atomic();
         test_retained_replay_preserves_material_operations();
         test_repeating_material_survives_record_and_replay();
+        test_conic_and_repeating_radial_layers_reach_the_painter();
         test_image_materials_retain_crop_tile_and_nine_patch();
         test_minimal_painter_fallbacks_are_bounded();
         test_shadow_outsets_participate_in_damage();

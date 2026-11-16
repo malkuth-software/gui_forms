@@ -109,6 +109,17 @@ void Painter::fill_linear_gradient_spread(
     fill_linear_gradient(rect, start, end, stops);
 }
 
+void Painter::fill_radial_gradient_spread(Rect rect, Point center, Size radii,
+                                          std::span<const GradientStop> stops,
+                                          GradientSpreadMode spread) {
+    // As fill_linear_gradient_spread's: a minimal painter pads. A spread
+    // outside the enumeration draws nothing, as the production painters'.
+    const bool known_spread = spread == GradientSpreadMode::pad || spread == GradientSpreadMode::repeat ||
+                              spread == GradientSpreadMode::reflect;
+    if (!known_spread) return;
+    fill_radial_gradient(rect, center, radii, stops);
+}
+
 void Painter::fill_radial_gradient(Rect rect, Point center, Size radii,
                                    std::span<const GradientStop> stops) {
     if (rect.empty() || radii.width <= 0.0 || radii.height <= 0.0 ||
@@ -411,10 +422,50 @@ void Painter::draw_image_region_sampled(
     draw_image_region(image, source, destination, opacity);
 }
 
+namespace {
+
+// fill_image_pattern's clamp fallback: the first tile, clipped to
+// `destination`, then its last source column stretched over the room to its
+// right, its last row over the room below, and its corner pixel over the
+// rest, each sampled nearest so the extended pixels keep the edge's
+// colours. Inputs validated by the caller.
+void fill_clamped_pattern(Painter& painter, ImageId image, Size source_pixel_size, Rect destination,
+                          Size logical_tile_size, double opacity) {
+    const double tile_width = std::min(logical_tile_size.width, destination.width);
+    const double tile_height = std::min(logical_tile_size.height, destination.height);
+    const double source_width = tile_width * source_pixel_size.width / logical_tile_size.width;
+    const double source_height = tile_height * source_pixel_size.height / logical_tile_size.height;
+    painter.draw_image_region(image, Rect{0.0, 0.0, source_width, source_height},
+                              Rect{destination.x, destination.y, tile_width, tile_height}, opacity);
+    const double right_width = destination.width - tile_width;
+    const double below_height = destination.height - tile_height;
+    const double last_column = source_pixel_size.width - 1.0;
+    const double last_row = source_pixel_size.height - 1.0;
+    if (right_width > 0.0) {
+        painter.draw_image_region_sampled(image, Rect{last_column, 0.0, 1.0, source_height},
+                                          Rect{destination.x + tile_width, destination.y, right_width, tile_height},
+                                          ImageSampling::nearest, opacity);
+    }
+    if (below_height > 0.0) {
+        painter.draw_image_region_sampled(image, Rect{0.0, last_row, source_width, 1.0},
+                                          Rect{destination.x, destination.y + tile_height, tile_width, below_height},
+                                          ImageSampling::nearest, opacity);
+    }
+    if (right_width > 0.0 && below_height > 0.0) {
+        painter.draw_image_region_sampled(image, Rect{last_column, last_row, 1.0, 1.0},
+                                          Rect{destination.x + tile_width, destination.y + tile_height, right_width,
+                                               below_height},
+                                          ImageSampling::nearest, opacity);
+    }
+}
+
+} // namespace
+
 void Painter::fill_image_pattern(ImageId image, Size source_pixel_size,
                                  Rect destination, Size logical_tile_size,
                                  ImagePatternWrap wrap, double opacity) {
-    const bool known_wrap = wrap == ImagePatternWrap::tile;
+    const bool known_wrap = wrap == ImagePatternWrap::tile || wrap == ImagePatternWrap::mirror ||
+                            wrap == ImagePatternWrap::clamp;
     if (!known_wrap || image.value == 0U || destination.empty() ||
         !destination.finite() || !std::isfinite(source_pixel_size.width) ||
         !std::isfinite(source_pixel_size.height) ||
@@ -425,6 +476,11 @@ void Painter::fill_image_pattern(ImageId image, Size source_pixel_size,
         !std::isfinite(opacity) || opacity <= 0.0) {
         return;
     }
+    if (wrap == ImagePatternWrap::clamp) {
+        fill_clamped_pattern(*this, image, source_pixel_size, destination, logical_tile_size, opacity);
+        return;
+    }
+    // `mirror` draws as `tile` here (painter.hpp): there is no flip.
     constexpr std::size_t maximum_fallback_tiles = 4096U;
     const std::size_t columns = static_cast<std::size_t>(
         std::ceil(destination.width / logical_tile_size.width));

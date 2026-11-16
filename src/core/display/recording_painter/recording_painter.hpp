@@ -25,6 +25,9 @@ public:
     void clip_rect(Rect rect) override;
     void clip_rounded_rect(Rect rect, double radius) override;
     void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) override;
+    // Recorded as given, like fill_path; the painter that replays it
+    // validates the path and the rule.
+    void clip_path(PaintPathView path, PolygonFillRule rule) override;
     void fill_rect(Rect rect, Color color) override;
     void fill_rounded_rect(Rect rect, double radius, Color color) override;
     void stroke_rect(Rect rect, Color color, double width) override;
@@ -38,6 +41,11 @@ public:
         GradientSpreadMode spread) override;
     void fill_radial_gradient(Rect rect, Point center, Size radii,
                               std::span<const GradientStop> stops) override;
+    // Throws std::invalid_argument for invalid stops or a spread outside
+    // the enumeration, as fill_linear_gradient_spread does.
+    void fill_radial_gradient_spread(Rect rect, Point center, Size radii,
+                                     std::span<const GradientStop> stops,
+                                     GradientSpreadMode spread) override;
     void draw_box_shadow(Rect rect, double corner_radius, Point offset,
                          double blur_radius, double spread,
                          Color color) override;

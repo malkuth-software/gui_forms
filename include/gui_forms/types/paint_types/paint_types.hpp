@@ -172,8 +172,21 @@ struct GUI_FORMS_API ImageId {
     }
 };
 
+// What an image pattern shows beyond its first tile
+// (Painter::fill_image_pattern), along both axes. With a tile of n source
+// pixels, source column i of the pattern (counted from the first tile's
+// left edge, negative to its left) shows:
+// - `tile`: the image repeated, column i mod n (in [0, n));
+// - `mirror`: the image and its reflection in turn, so neighbouring tiles
+//   join without a seam: with m = i mod 2n, column m when m < n, else
+//   column 2n - 1 - m;
+// - `clamp`: the image once, its edge columns and rows extended beyond it:
+//   column 0 left of the tile, n - 1 right of it, i itself within it.
+// Rows map in the same way.
 enum class ImagePatternWrap : std::uint8_t {
     tile,
+    mirror,
+    clamp,
 };
 
 enum class ImageSampling : std::uint8_t {

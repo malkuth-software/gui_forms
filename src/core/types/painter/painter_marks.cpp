@@ -190,6 +190,19 @@ void Painter::fill_path(PaintPathView path, Color color, PolygonFillRule rule) {
     scan_fill_contours(*this, points, contour_ends, color, rule);
 }
 
+// A minimal painter clips by rectangles only: the path's bounding box,
+// which holds every pixel the exact clip would keep. A refused path or rule
+// clips to the empty rectangle, so nothing draws until the restore.
+void Painter::clip_path(PaintPathView path, PolygonFillRule rule) {
+    const bool known_rule = rule == PolygonFillRule::nonzero || rule == PolygonFillRule::even_odd;
+    if (!known_rule || !valid_paint_path(path)) {
+        clip_rect(Rect{});
+        return;
+    }
+    const Rect bounds = paint_path_bounds(path);
+    clip_rect(bounds);
+}
+
 void Painter::stroke_path(PaintPathView path, const StrokeStyle& style) {
     if (!valid_stroke_style(style) || !valid_paint_path(path)) return;
     FallbackPath flattened{};

@@ -75,6 +75,14 @@ enum class DisplayOperation : std::uint8_t {
     // and points in `marks`.
     fill_path = 39,
     stroke_path = 40,
+    // A path clip (Painter::clip_path): the verbs, points and rule in
+    // `marks`, and `rect` the path's bounds (empty for an invalid path),
+    // which readers that keep clips as rectangles use.
+    clip_path = 41,
+    // A radial gradient with a spread: as fill_radial_gradient (`rect`,
+    // `first` the centre, `second` the radii, `gradient_stops`) with
+    // `gradient_spread`.
+    fill_radial_gradient_spread = 42,
 };
 
 // The payload of a batched mark or pattern command: the caller's spans,
@@ -90,7 +98,8 @@ enum class DisplayOperation : std::uint8_t {
 // - draw_markers: `points`, `marker`;
 // - fill_checker: `checker`; fill_grid_pattern: `grid`;
 // - fill_path: `path_verbs`, `points`, `color` on the command, `fill_rule`;
-// - stroke_path: `path_verbs`, `points`, `stroke`.
+// - stroke_path: `path_verbs`, `points`, `stroke`;
+// - clip_path: `path_verbs`, `points`, `fill_rule`.
 struct DisplayMarks final {
     std::vector<Point> points;
     std::vector<Point> lower_points;

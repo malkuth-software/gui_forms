@@ -1204,6 +1204,10 @@ Enumerations
 
    .. cpp:enumerator:: stroke_path
 
+   .. cpp:enumerator:: clip_path
+
+   .. cpp:enumerator:: fill_radial_gradient_spread
+
 Functions, constants and aliases
 --------------------------------
 

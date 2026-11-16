@@ -112,6 +112,13 @@ public:
     void clip_rect(Rect rect) override;
     void clip_rounded_rect(Rect rect, double radius) override;
     void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) override;
+    // An antialiased Skia path clip. Under it the raster's own composites
+    // (text coverage, part rasters), which follow rectangular and rounded
+    // clips only, give way to Skia draws that follow the path: text draws
+    // its coverage mask through Skia, a part raster draws as a Skia image
+    // (source-over at its opacity), and a paint group that would isolate
+    // draws directly, counted as a refusal (group_refusals).
+    void clip_path(PaintPathView path, PolygonFillRule rule) override;
     void fill_rect(Rect rect, Color color) override;
     void fill_rounded_rect(Rect rect, double radius, Color color) override;
     void stroke_rect(Rect rect, Color color, double width) override;
@@ -127,6 +134,10 @@ public:
     void fill_radial_gradient(
         Rect rect, Point center, Size radii,
         std::span<const GradientStop> stops) override;
+    void fill_radial_gradient_spread(
+        Rect rect, Point center, Size radii,
+        std::span<const GradientStop> stops,
+        GradientSpreadMode spread) override;
     void draw_box_shadow(Rect rect, double corner_radius, Point offset,
                          double blur_radius, double spread,
                          Color color) override;

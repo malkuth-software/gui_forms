@@ -162,6 +162,17 @@ public:
     // every corner by the largest of the four, so it never shows more
     // than the exact clip at a corner.
     virtual void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii);
+    // Narrows the clip to `path`'s interior under `rule`: every contour,
+    // open ones closed by a straight segment, as fill_path fills them. Any
+    // fill drawn under it (a gradient, a pattern, an image, text) then shows
+    // in an arbitrary shape: a radial gradient in a star is clip_path, then
+    // fill_radial_gradient over the path's bounds. The clip lasts until the
+    // matching restore, as clip_rect's does. An invalid path
+    // (valid_paint_path) or a rule outside the enumeration clips everything
+    // away until that restore, so a refused clip never shows what it was to
+    // hide. The base implementation clips to paint_path_bounds(path): a
+    // minimal painter shows the path's bounding box, never more.
+    virtual void clip_path(PaintPathView path, PolygonFillRule rule);
     virtual void fill_rect(Rect rect, Color color) = 0;
     virtual void fill_rounded_rect(Rect rect, double radius, Color color);
     virtual void stroke_rect(Rect rect, Color color, double width) = 0;
@@ -176,6 +187,16 @@ public:
     virtual void fill_radial_gradient(
         Rect rect, Point center, Size radii,
         std::span<const GradientStop> stops);
+    // fill_radial_gradient with `spread` outside the ellipse: `pad` keeps
+    // the last stop's colour, `repeat` starts the stops again at each
+    // further radius (concentric rings, CSS repeating-radial-gradient), and
+    // `reflect` runs them back and forth so the rings join without a seam.
+    // A spread outside the enumeration draws nothing. The base
+    // implementation draws as fill_radial_gradient (padded), as
+    // fill_linear_gradient_spread's does.
+    virtual void fill_radial_gradient_spread(
+        Rect rect, Point center, Size radii,
+        std::span<const GradientStop> stops, GradientSpreadMode spread);
     // Drawn before the owning surface fill.  The shape body may therefore be
     // included by a fallback without changing the final composited result.
     virtual void draw_box_shadow(Rect rect, double corner_radius, Point offset,
@@ -435,7 +456,12 @@ public:
         double opacity = 1.0);
     // One retained command regardless of repetition count. Production
     // painters realize the pattern exactly; the base implementation is a
-    // bounded compatibility fallback for deliberately minimal hosts.
+    // bounded compatibility fallback for deliberately minimal hosts. The
+    // first tile's top-left corner lies at `destination`'s; `wrap` says
+    // what lies beyond it (ImagePatternWrap). The base implementation
+    // draws `tile` (one image when the tiles exceed its bound), `clamp`
+    // as the tile and its stretched edges, and `mirror` as `tile` (it
+    // cannot flip an image: every tile shows unflipped).
     virtual void fill_image_pattern(ImageId image, Size source_pixel_size,
                                     Rect destination, Size logical_tile_size,
                                     ImagePatternWrap wrap = ImagePatternWrap::tile,

@@ -134,6 +134,19 @@ public:
     void stroke_path(PaintPathView path, const StrokeStyle& style) override {
         out << "stroke_path " << path_text(path) << ' ' << stroke(style) << '\n';
     }
+    void clip_path(PaintPathView path, PolygonFillRule rule) override {
+        out << "clip_path " << path_text(path) << ' ' << (rule == PolygonFillRule::even_odd ? "even_odd" : "nonzero")
+            << '\n';
+    }
+    void fill_radial_gradient_spread(Rect rect, Point center, Size radii, std::span<const GradientStop> stops,
+                                     GradientSpreadMode spread) override {
+        static constexpr std::array<const char*, 3> spreads{{"pad", "repeat", "reflect"}};
+        const std::size_t index = static_cast<std::size_t>(spread);
+        out << "fill_radial_gradient_spread " << box(rect) << ' ' << point(center) << ' ' << radii.width << ','
+            << radii.height << ' ' << (index < spreads.size() ? spreads[index] : "?");
+        for (const GradientStop stop : stops) out << ' ' << stop.offset << ':' << colour(stop.color);
+        out << '\n';
+    }
 
     std::ostringstream out;
 
@@ -885,12 +898,144 @@ void test_path_recording_and_fallbacks() {
     require(refused.fills.empty() && refused.lines.empty(), "an invalid path draws nothing");
 }
 
+// A painter that keeps every image region drawn, for the image pattern
+// fallbacks (draw_image_region_sampled's base draws through
+// draw_image_region).
+class ImageRegionPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    void draw_image_region(ImageId, Rect source, Rect destination, double) override {
+        sources.push_back(source);
+        destinations.push_back(destination);
+    }
+
+    std::vector<Rect> sources;
+    std::vector<Rect> destinations;
+};
+
+PaintPath clip_triangle() {
+    PaintPath triangle;
+    triangle.move_to(Point{0.0, 0.0});
+    triangle.line_to(Point{20.0, 0.0});
+    triangle.line_to(Point{0.0, 10.0});
+    triangle.close();
+    return triangle;
+}
+
+void test_path_clip_recording_and_fallback() {
+    const PaintPath triangle = clip_triangle();
+    const std::array<GradientStop, 2> stops{{GradientStop{0.0, ink}, GradientStop{1.0, paper}}};
+    detail::RecordingPainter recorder;
+    recorder.save();
+    recorder.clip_path(triangle.view(), PolygonFillRule::even_odd);
+    recorder.fill_radial_gradient_spread(Rect{0.0, 0.0, 20.0, 10.0}, Point{5.0, 5.0}, Size{4.0, 2.0}, stops,
+                                         GradientSpreadMode::reflect);
+    recorder.restore();
+    const std::shared_ptr<const detail::DisplayChunk> chunk =
+        recorder.finish(1U, PaintPlane::control, Rect{0.0, 0.0, 64.0, 32.0});
+    require((*chunk).commands().size() == 4U, "the clip and the gradient record one command each");
+    require((*chunk).commands()[1].rect == Rect{0.0, 0.0, 20.0, 10.0},
+            "a path clip records its bounds for the readers that follow clips as rectangles");
+    TracePainter trace;
+    require(detail::replay_display_chunk(*chunk, trace) == 4U, "every command replays");
+    const std::string expected =
+        "save\n"
+        "clip_path M0,0L20,0L0,10Z even_odd\n"
+        "fill_radial_gradient_spread 0,0,20,10 5,5 4,2 reflect 0:#10.20.30.255 1:#240.240.240.255\n"
+        "restore\n";
+    const std::string observed = trace.out.str();
+    if (observed != expected) std::cerr << "observed trace:\n" << observed;
+    require(observed == expected, "the path clip and the spread replay what was recorded");
+
+    bool refused = false;
+    try {
+        recorder.fill_radial_gradient_spread(Rect{0.0, 0.0, 4.0, 4.0}, Point{2.0, 2.0}, Size{2.0, 2.0}, stops,
+                                             static_cast<GradientSpreadMode>(9));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused, "a spread outside the enumeration is refused when recorded");
+
+    // The fallback: a minimal painter clips to the path's bounding box; a
+    // refused path or rule clips everything away.
+    MinimalPainter minimal;
+    minimal.clip_path(triangle.view(), PolygonFillRule::nonzero);
+    require(minimal.clips.size() == 1U && minimal.clips.back() == Rect{0.0, 0.0, 20.0, 10.0},
+            "a minimal painter clips to the path's bounds");
+    PaintPath broken;
+    broken.line_to(Point{1.0, 1.0});
+    minimal.clip_path(broken.view(), PolygonFillRule::nonzero);
+    minimal.clip_path(triangle.view(), static_cast<PolygonFillRule>(7));
+    require(minimal.clips.size() == 3U && minimal.clips[1] == Rect{} && minimal.clips[2] == Rect{},
+            "a refused path or rule clips to nothing");
+    // The base spread pads (through fill_radial_gradient's rings, drawn as
+    // rounded rectangles and so as fill_rect on this painter); an unknown
+    // spread draws nothing.
+    MinimalPainter padded;
+    padded.fill_radial_gradient_spread(Rect{0.0, 0.0, 20.0, 10.0}, Point{5.0, 5.0}, Size{4.0, 2.0}, stops,
+                                       GradientSpreadMode::repeat);
+    MinimalPainter unknown;
+    unknown.fill_radial_gradient_spread(Rect{0.0, 0.0, 20.0, 10.0}, Point{5.0, 5.0}, Size{4.0, 2.0}, stops,
+                                        static_cast<GradientSpreadMode>(9));
+    require(!padded.fills.empty() && unknown.fills.empty(),
+            "the base spread draws a padded gradient and refuses an unknown spread");
+}
+
+void test_image_pattern_clamp_fallback() {
+    // A 4 x 2 image in 8 x 4 tiles over 30 x 12: the tile, then its last
+    // column stretched right, its last row down, and its corner pixel over
+    // the rest.
+    ImageRegionPainter painter;
+    painter.fill_image_pattern(ImageId{7U}, Size{4.0, 2.0}, Rect{10.0, 20.0, 30.0, 12.0}, Size{8.0, 4.0},
+                               ImagePatternWrap::clamp, 1.0);
+    const std::array<Rect, 4> sources{{Rect{0.0, 0.0, 4.0, 2.0}, Rect{3.0, 0.0, 1.0, 2.0}, Rect{0.0, 1.0, 4.0, 1.0},
+                                        Rect{3.0, 1.0, 1.0, 1.0}}};
+    const std::array<Rect, 4> destinations{{Rect{10.0, 20.0, 8.0, 4.0}, Rect{18.0, 20.0, 22.0, 4.0},
+                                             Rect{10.0, 24.0, 8.0, 8.0}, Rect{18.0, 24.0, 22.0, 8.0}}};
+    require(painter.sources.size() == 4U && painter.destinations.size() == 4U,
+            "a clamped pattern draws its tile and three extensions");
+    for (std::size_t index = 0U; index < sources.size(); ++index) {
+        require(painter.sources[index] == sources[index] && painter.destinations[index] == destinations[index],
+                "each clamped region samples the tile's edge where the pattern extends it");
+    }
+    // A destination smaller than one tile draws the tile's visible part
+    // only.
+    ImageRegionPainter small;
+    small.fill_image_pattern(ImageId{7U}, Size{4.0, 2.0}, Rect{0.0, 0.0, 4.0, 4.0}, Size{8.0, 4.0},
+                             ImagePatternWrap::clamp, 1.0);
+    require(small.sources.size() == 1U && small.sources[0] == Rect{0.0, 0.0, 2.0, 2.0} &&
+                small.destinations[0] == Rect{0.0, 0.0, 4.0, 4.0},
+            "a clamped pattern inside one tile draws that tile's part");
+    // Mirror draws as tile on a minimal painter; an unknown wrap draws
+    // nothing.
+    ImageRegionPainter mirrored;
+    mirrored.fill_image_pattern(ImageId{7U}, Size{4.0, 2.0}, Rect{0.0, 0.0, 16.0, 4.0}, Size{8.0, 4.0},
+                                ImagePatternWrap::mirror, 1.0);
+    ImageRegionPainter unknown;
+    unknown.fill_image_pattern(ImageId{7U}, Size{4.0, 2.0}, Rect{0.0, 0.0, 16.0, 4.0}, Size{8.0, 4.0},
+                               static_cast<ImagePatternWrap>(9), 1.0);
+    require(mirrored.sources.size() == 2U && mirrored.sources[1] == Rect{0.0, 0.0, 4.0, 2.0} &&
+                unknown.sources.empty(),
+            "a minimal painter tiles a mirrored pattern unflipped and refuses an unknown wrap");
+}
+
 void test_operation_names() {
     require(std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_polyline)) == "stroke_polyline" &&
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_grid_pattern)) ==
                     "fill_grid_pattern" &&
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_path)) == "fill_path" &&
-                std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_path)) == "stroke_path",
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_path)) == "stroke_path" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::clip_path)) == "clip_path" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_radial_gradient_spread)) ==
+                    "fill_radial_gradient_spread",
             "the batched operations must have inspection names");
 }
 
@@ -913,6 +1058,8 @@ int main() {
         test_joined_segments();
         test_path_values();
         test_path_recording_and_fallbacks();
+        test_path_clip_recording_and_fallback();
+        test_image_pattern_clamp_fallback();
         test_operation_names();
         test_radial_layout_places_and_picks();
         test_direction_ring_trace();
