@@ -283,8 +283,7 @@ bool DataGridView::row_resizable() const noexcept {
 
 bool DataGridView::column_resizable(std::size_t column) const {
     if (column >= columns_.size()) return false;
-    const std::optional<bool> own = columns_[column].resizable;
-    const bool allowed = own ? *own : allow_user_to_resize_columns.read();
+    const bool allowed = columns_[column].resizable.value_or(allow_user_to_resize_columns.read());
     const bool result = allowed && column_auto_size_mode(column) == DataGridViewAutoSizeColumnMode::none;
     return result;
 }

@@ -95,7 +95,7 @@ struct GUI_FORMS_API DataGridViewColumn final {
     std::string data_property_name{};
     DataGridViewSortDirection sort_glyph{DataGridViewSortDirection::none};
     DataGridViewCellStyle header_cell_style{};
-    std::optional<DataGridViewColumnSortMode> sort_mode{};
+    stxlib::Optional<DataGridViewColumnSortMode> sort_mode{};
     DataGridViewAutoSizeColumnMode auto_size_mode{DataGridViewAutoSizeColumnMode::not_set};
     // A fill column's share of the width the other columns leave, against
     // the other fill columns' weights; finite and positive.
@@ -103,7 +103,7 @@ struct GUI_FORMS_API DataGridViewColumn final {
     // Whether the user may resize the column (Windows Forms' Resizable):
     // none inherits allow_user_to_resize_columns, a value overrides it. An
     // automatically sized column is never resized by the user.
-    std::optional<bool> resizable{};
+    stxlib::Optional<bool> resizable{};
     // Whether the grid shows the column (Windows Forms' Visible). A hidden
     // column keeps its index, display index, width and values; layout,
     // painting, hit testing, keyboard movement, selection ranges and the
@@ -655,7 +655,17 @@ public:
     // A column's sort mode, its kind's default when its sort_mode is empty.
     // Throws std::out_of_range for an unknown column.
     [[nodiscard]] DataGridViewColumnSortMode column_sort_mode(std::size_t column) const;
-    void set_column_sort_mode(std::size_t column, std::optional<DataGridViewColumnSortMode> mode);
+    void set_column_sort_mode(std::size_t column, stxlib::Optional<DataGridViewColumnSortMode> mode);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<DataGridViewColumnSortMode>")]]
+    void set_column_sort_mode(std::size_t column, std::optional<DataGridViewColumnSortMode> mode) {
+        stxlib::Optional<DataGridViewColumnSortMode> owned{};
+        if (mode.has_value()) owned.set(*mode);
+        set_column_sort_mode(column, owned);
+    }
+    // A plain mode is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<DataGridViewColumnSortMode>::of(mode).
+    void set_column_sort_mode(std::size_t column, DataGridViewColumnSortMode mode) = delete;
 
     // The selection as text (Windows Forms' GetClipboardContent, its text
     // format): one line per row with a selected cell, in order, ending

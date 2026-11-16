@@ -85,6 +85,16 @@ concept takes_optional_current_cell =
     requires(Grid& grid) { grid.set_current_cell(stxlib::Optional<DataGridViewCellAddress>::none()); };
 static_assert(!takes_plain_current_cell<DataGridView> && !takes_empty_current_cell<DataGridView>);
 static_assert(takes_optional_current_cell<DataGridView>);
+// The same for set_column_sort_mode.
+template <typename Grid>
+concept takes_plain_sort_mode =
+    requires(Grid& grid) { grid.set_column_sort_mode(0U, DataGridViewColumnSortMode::automatic); };
+template <typename Grid>
+concept takes_empty_sort_mode = requires(Grid& grid) { grid.set_column_sort_mode(0U, {}); };
+template <typename Grid>
+concept takes_optional_sort_mode = requires(Grid& grid) { grid.set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::none()); };
+static_assert(!takes_plain_sort_mode<DataGridView> && !takes_empty_sort_mode<DataGridView>);
+static_assert(takes_optional_sort_mode<DataGridView>);
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -358,7 +368,7 @@ struct AddDuplicateRow final {
      struct SetSortMode final {
          DataGridView* grid{};
          DataGridViewColumnSortMode mode{};
-         void operator()() const { (*grid).set_column_sort_mode(0U, mode); }
+         void operator()() const { (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(mode)); }
      };
      struct SetVirtualRows final {
          DataGridView* grid{};
@@ -927,7 +937,7 @@ void sorting_headers_and_resizing() {
     static_cast<void>((*grid).set_cell_value(row_at(2U), 0U, BindingValue{std::string("Able")}));
     // The header click here only raises the event; sort_modes covers the
     // automatic sort a text column's click makes by default.
-    (*grid).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::programmatic));
     Window window(grid, {360.0, 160.0});
     window.perform_layout();
     std::vector<std::size_t> header_clicks;
@@ -2744,7 +2754,7 @@ void column_order() {
     (*dragged).allow_user_to_order_columns = true;
     std::vector<std::size_t> clicks;
     SubscriptionToken click_token = (*dragged).column_header_click().subscribe(RecordIndex{&clicks});
-    (*dragged).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    (*dragged).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::programmatic));
     const Point start = centre(*dragged, (*dragged).realized_columns()[0].parts.column_label.bounds);
     require(drag_window.dispatch_pointer({PointerAction::down, PointerButton::primary, start}),
             "a header press is taken");
@@ -2841,13 +2851,13 @@ void sort_modes() {
     click(window, centre(*grid, (*grid).realized_columns()[1].parts.column_label.bounds));
     require(header_clicks.size() == 3U && sorted_count == 2 && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(0U),
             "a not_sortable column's click raises the event and leaves the order");
-    (*grid).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::programmatic));
     require((*grid).column_sort_mode(0U) == DataGridViewColumnSortMode::programmatic,
             "the sort mode is the column's own once set");
     click(window, centre(*grid, (*grid).realized_columns()[0].parts.column_label.bounds));
     require(sorted_count == 2 && row_ids(*grid) == std::vector<std::string>{"alpha", "charlie", "bravo"},
             "a programmatic column's click leaves the order to the application");
-    (*grid).set_column_sort_mode(1U, DataGridViewColumnSortMode::automatic);
+    (*grid).set_column_sort_mode(1U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::automatic));
     require((*grid).sort(1U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(1U) &&
                 row_ids(*grid) == std::vector<std::string>{"charlie", "bravo", "alpha"},
             "sort orders by any column whatever its mode: empty, false, true");
@@ -2882,7 +2892,7 @@ void sort_modes() {
     std::sort(ids.begin(), ids.end());
     require(ids == std::vector<std::string>{"alpha", "bravo", "charlie"}, "and the rows are all still there, once");
 
-    (*grid).set_column_sort_mode(0U, std::nullopt);
+    (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::none());
     require((*grid).sort(0U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(0U),
             "sorted again");
     (*grid).clear_rows();
@@ -3985,7 +3995,7 @@ struct SetMinimumRowHeight final {
 void column_resizable_and_minimum_row_height() {
     std::shared_ptr<DataGridView> grid = make_grid("grid.resizable");
     std::vector<DataGridViewColumn> columns = sample_columns();
-    columns[0].resizable = false;
+    columns[0].resizable.set(false);
     (*grid).set_columns(columns);
     Window window(grid, {360.0, 160.0});
     window.perform_layout();
@@ -3993,7 +4003,7 @@ void column_resizable_and_minimum_row_height() {
     require(headers.size() >= 2U && !headers[0].parts.column_grip.present && headers[1].parts.column_grip.present,
             "a column that is not resizable has no grip while the others keep theirs");
     (*grid).allow_user_to_resize_columns = false;
-    columns[1].resizable = true;
+    columns[1].resizable.set(true);
     (*grid).set_columns(columns);
     window.perform_layout();
     const std::vector<DataGridView::Column> overridden = (*grid).realized_columns();

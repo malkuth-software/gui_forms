@@ -2539,7 +2539,7 @@ Related types
 
    .. cpp:member:: DataGridViewCellStyle header_cell_style
 
-   .. cpp:member:: std::optional<DataGridViewColumnSortMode> sort_mode
+   .. cpp:member:: stxlib::Optional<DataGridViewColumnSortMode> sort_mode
 
    .. cpp:member:: DataGridViewAutoSizeColumnMode auto_size_mode
 
@@ -2549,7 +2549,7 @@ Related types
 
       A fill column's share of the width the other columns leave, against the other fill columns' weights; finite and positive. Default: ``{100.0}``.
 
-   .. cpp:member:: std::optional<bool> resizable
+   .. cpp:member:: stxlib::Optional<bool> resizable
 
       Whether the user may resize the column (Windows Forms' Resizable): none inherits allow_user_to_resize_columns, a value overrides it. An automatically sized column is never resized by the user.
 

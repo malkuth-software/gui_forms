@@ -2010,16 +2010,17 @@ void DataGridView::require_not_sorting() const {
 DataGridViewColumnSortMode DataGridView::column_sort_mode(std::size_t column) const {
     require_column(column);
     const DataGridViewColumn& definition = columns_[column];
-    if (definition.sort_mode) return *definition.sort_mode;
+    if (definition.sort_mode.present()) return *definition.sort_mode.value();
     if (definition.kind == DataGridViewColumnKind::text) return DataGridViewColumnSortMode::automatic;
     return DataGridViewColumnSortMode::not_sortable;
 }
 
-void DataGridView::set_column_sort_mode(std::size_t column, std::optional<DataGridViewColumnSortMode> mode) {
+void DataGridView::set_column_sort_mode(std::size_t column, stxlib::Optional<DataGridViewColumnSortMode> mode) {
     require_mutable();
     require_column(column);
-    if (mode && *mode != DataGridViewColumnSortMode::not_sortable && *mode != DataGridViewColumnSortMode::automatic &&
-        *mode != DataGridViewColumnSortMode::programmatic) {
+    const DataGridViewColumnSortMode* const given = mode.value();
+    if (given != nullptr && *given != DataGridViewColumnSortMode::not_sortable &&
+        *given != DataGridViewColumnSortMode::automatic && *given != DataGridViewColumnSortMode::programmatic) {
         throw std::invalid_argument("DataGridView column sort mode is outside the enumeration");
     }
     columns_[column].sort_mode = mode;
