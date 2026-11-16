@@ -1862,6 +1862,15 @@ void test_drop_down_button_routes_pointer_keyboard_and_semantics() {
     require(operation_check_58, "split activation ownership must follow the pressed region rather than release drift");
     const bool operation_check_59 = split_requests == 1U;
     require(operation_check_59, "split activation ownership must follow the pressed region rather than release drift");
+    // The primary segment applies dialog_result as a Button does (A-gf-controls-01-F4).
+    (*split).dialog_result = DialogResult::yes;
+    window.set_dialog_result(DialogResult::none);
+    const bool primary_down = window.dispatch_pointer({PointerAction::down, PointerButton::primary, primary});
+    const bool primary_up = window.dispatch_pointer({PointerAction::up, PointerButton::primary, primary});
+    require(primary_down && primary_up && split_clicks == 3U && window.dialog_result() == DialogResult::yes,
+            "split drop-down primary click hands its dialog result to the window");
+    (*split).dialog_result = DialogResult::none;
+    window.set_dialog_result(DialogResult::none);
 
     const bool operation_check_60 = window.request_focus(menu);
     require(operation_check_60, "Alt+Down must request the focused drop-down menu");
