@@ -15,11 +15,12 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -133,7 +134,7 @@ public:
     // and the highlighted one.
     [[nodiscard]] bool auto_complete_open() const noexcept;
     [[nodiscard]] std::span<const std::string> auto_complete_suggestions() const noexcept;
-    [[nodiscard]] std::optional<std::size_t> auto_complete_highlighted() const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> auto_complete_highlighted() const noexcept;
     // Closes the suggestion list and ends a pending appended completion,
     // keeping the text as it is.
     void close_auto_complete();
@@ -302,7 +303,7 @@ private:
     void decorations_changed(const TextDecorationChange& change);
     // The text rectangle's part showing the rows of `range`, or none when
     // the rows are not current.
-    [[nodiscard]] std::optional<Rect> multiline_range_damage(Utf8Range range) const;
+    [[nodiscard]] stxlib::Optional<Rect> multiline_range_damage(Utf8Range range) const;
     // One visual row with decorations: grounds, then the selection band,
     // then each styled run's glyphs (the selection's ink inside the band),
     // then underlines.
@@ -334,7 +335,7 @@ private:
                                           std::vector<std::string>& matches);
     void open_auto_complete_list();
     void place_auto_complete_list();
-    void highlight_auto_complete(std::optional<std::size_t> index);
+    void highlight_auto_complete(stxlib::Optional<std::size_t> index);
     void accept_auto_complete(std::string accepted);
     void restore_auto_complete_typed_text();
     void end_auto_complete(bool restore_typed);
