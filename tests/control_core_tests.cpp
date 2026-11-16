@@ -33,6 +33,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -170,7 +171,7 @@ void test_child_index_from_top() {
     std::shared_ptr<Panel> front = make_panel("order.front", {0.0, 0.0, 10.0, 10.0});
     (*root).add_child(back);
     (*root).add_child(front);
-    require((*root).child_index_from_top((*front).runtime_id()) == std::optional<std::size_t>{0U} &&
+    require((*root).child_index_from_top((*front).runtime_id()) == stxlib::Optional<std::size_t>::of(0U) &&
                 (*root).children().back() == front,
             "the last added child is index 0 from the top and last in painter order");
     Window window(root, Size{100.0, 100.0});

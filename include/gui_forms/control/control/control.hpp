@@ -474,7 +474,7 @@ public:
     // last puts the child at the bottom. Moving a child to where it is
     // changes nothing; returns false for a child this control does not hold.
     bool set_child_index_from_top(RuntimeId child, std::size_t index);
-    [[nodiscard]] std::optional<std::size_t> child_index_from_top(
+    [[nodiscard]] stxlib::Optional<std::size_t> child_index_from_top(
         RuntimeId child) const noexcept;
     void clear_children();
 
@@ -1958,7 +1958,7 @@ private:
     }
     void disconnect_control_events() noexcept;
     static void restore_to_previous_parent(const Ptr& child, const Ptr& previous_parent,
-                                           std::optional<std::size_t> previous_index) noexcept;
+                                           stxlib::Optional<std::size_t> previous_index) noexcept;
     // attach_child's depth check, after its cycle check and before any
     // change: throws ControlTreeDepthError when `child`'s subtree, put
     // under this control at `depth` levels (this control's own level, the

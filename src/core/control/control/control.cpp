@@ -2818,7 +2818,7 @@ void Control::attach_child(Ptr child, std::size_t index) {
     // to its previous parent at its previous index.
     if (surface_root_) detail::SurfaceTreeAccess::validate_subtree_registration(*surface_root_, *child);
     const Ptr previous_parent = (*child).parent();
-    std::optional<std::size_t> previous_index{};
+    stxlib::Optional<std::size_t> previous_index{};
     if (previous_parent) {
         previous_index = (*previous_parent).child_index_from_top((*child).runtime_id());
         // The move announces its net direction change once, below: the
@@ -2954,15 +2954,15 @@ void Control::raise_height_bounds(std::size_t child_height) noexcept {
 // the index it had there. A second failure leaves it parentless; the first
 // failure is the one reported.
 void Control::restore_to_previous_parent(const Ptr& child, const Ptr& previous_parent,
-                                         std::optional<std::size_t> previous_index) noexcept {
+                                         stxlib::Optional<std::size_t> previous_index) noexcept {
     if (!previous_parent || !(*previous_parent).is_alive() || !(*child).is_alive() ||
         (*child).parent()) {
         return;
     }
     try {
         (*previous_parent).add_child(child);
-        if (previous_index) {
-            static_cast<void>((*previous_parent).set_child_index_from_top((*child).runtime_id(), *previous_index));
+        if (previous_index.present()) {
+            static_cast<void>((*previous_parent).set_child_index_from_top((*child).runtime_id(), *previous_index.value()));
         }
     } catch (...) {
         // Left parentless, as before audit A9; the caller rethrows the
@@ -3048,16 +3048,16 @@ bool Control::set_child_index_from_top(RuntimeId child_id, std::size_t index) {
     return true;
 }
 
-std::optional<std::size_t> Control::child_index_from_top(RuntimeId child_id) const noexcept {
+stxlib::Optional<std::size_t> Control::child_index_from_top(RuntimeId child_id) const noexcept {
     ChildList::const_iterator found = children_.begin();
     while (found != children_.end() &&
            (!*found || (*(*found)).runtime_id() != child_id)) {
         ++found;
     }
-    if (found == children_.end()) return std::nullopt;
+    if (found == children_.end()) return stxlib::Optional<std::size_t>::none();
     const std::size_t painter_index = static_cast<std::size_t>(
         std::distance(children_.begin(), found));
-    return children_.size() - 1U - painter_index;
+    return stxlib::Optional<std::size_t>::of(children_.size() - 1U - painter_index);
 }
 
 void Control::clear_children() {

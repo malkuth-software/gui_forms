@@ -10,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <stdexcept>
@@ -802,7 +803,7 @@ void test_insert_child_is_one_mutation() {
                 (*root).children()[1] == middle &&
                 (*root).children()[2] == top,
             "insert_child must place a new child at its top-counted index");
-    require((*root).child_index_from_top((*middle).runtime_id()) == std::optional<std::size_t>(1U),
+    require((*root).child_index_from_top((*middle).runtime_id()) == stxlib::Optional<std::size_t>::of(1U),
             "insert_child index must read back through child_index");
     (*root).insert_child(middle, 0U);
     require((*root).children()[2] == middle && (*root).children().size() == 3U,

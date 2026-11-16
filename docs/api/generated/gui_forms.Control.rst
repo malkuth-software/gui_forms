@@ -1500,7 +1500,7 @@ gui_forms::Control
       null if there is no such child. The child is not disposed: it lives on
       as long as someone holds it.
 
-   .. cpp:function:: std::optional<std::size_t> child_index_from_top(RuntimeId child) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> child_index_from_top(RuntimeId child) const noexcept
 
       The child's z-order index counted from the top, where 0 is the
       frontmost child (the Windows Forms index), or none. children() runs

@@ -68,6 +68,7 @@
 #include <locale>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <sstream>
 #include <string>
@@ -486,14 +487,14 @@ private:
             return refusal;
         }
         const std::string text = (*button).text.read();
-        const std::optional<std::size_t> index = (*parent).child_index_from_top((*control).runtime_id());
+        const stxlib::Optional<std::size_t> index = (*parent).child_index_from_top((*control).runtime_id());
         const Rect bounds = (*control).requested_bounds();
         Control::Ptr removed = (*parent).remove_child((*control).runtime_id());
         removed.reset();
         replacement_ = make_control<Button>(StableId(std::string(stable_id)), text);
         (*replacement_).set_requested_bounds(bounds);
         (*parent).add_child(replacement_);
-        if (index) static_cast<void>((*parent).set_child_index_from_top((*replacement_).runtime_id(), *index));
+        if (index.present()) static_cast<void>((*parent).set_child_index_from_top((*replacement_).runtime_id(), *index.value()));
         replacement_counter_.clicks = 0;
         replacement_clicked_ = (*replacement_).clicked().subscribe(
             Delegate<ButtonBase&>::bind<ClickCounter, &ClickCounter::clicked>(replacement_counter_));
