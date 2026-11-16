@@ -92,6 +92,13 @@ struct Refuser final {
     void closing(ModalLayerClosingEvent& event) { event.cancel = refuse; }
 };
 
+// A page_changing handler that removes a page from the wizard.
+struct PageRemover final {
+    Wizard* wizard{};
+    Control* page{};
+    void changing(WizardPageChangingEvent&) { static_cast<void>((*wizard).remove_child((*page).runtime_id())); }
+};
+
 PointerEvent press(Point at) {
     PointerEvent event{};
     event.action = PointerAction::down;
@@ -442,6 +449,14 @@ void test_wizard() {
     require(refused, "a page past the last is refused");
     (*wizard).back_text = std::string{"Previous"};
     require((*(*wizard).back_button()).text.read() == "Previous", "the button texts are properties");
+
+    // A page_changing handler that removes the target page refuses the move
+    // instead of throwing (A-gf-controls-14-F8).
+    PageRemover remover{wizard.get(), third.get()};
+    SubscriptionToken removing =
+        (*wizard).page_changing().subscribe(Delegate<WizardPageChangingEvent&>::bind<PageRemover, &PageRemover::changing>(remover));
+    require(!(*wizard).go_to(2U) && (*wizard).current_page.read() == 0U && (*wizard).page_count() == 2U,
+            "a target removed by page_changing is refused");
 }
 
 // -- overlays ----------------------------------------------------------------------
