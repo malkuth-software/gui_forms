@@ -207,7 +207,7 @@ struct GUI_FORMS_API RibbonTabSpec final {
     std::string tab_set{};
     std::uint32_t modes{ribbon_all_modes};
     std::shared_ptr<Control> panel{};
-    std::optional<double> width{};
+    stxlib::Optional<double> width{};
     bool enabled{true};
 };
 
@@ -422,7 +422,7 @@ public:
     [[nodiscard]] std::vector<RibbonLadderEntry> reduction_ladder(std::size_t tab) const;
     // The ladder entry the command plane shows, or none while it is hidden,
     // minimized or there is no tab.
-    [[nodiscard]] std::optional<std::size_t> ladder_step() const;
+    [[nodiscard]] stxlib::Optional<std::size_t> ladder_step() const;
     // Whether the plane scrolls (owner decision 35): it starts when even the
     // narrowest entry is wider than the plane and ends only once the plane is
     // scroll_hysteresis wider than that entry (decision 45). The first group
@@ -740,7 +740,7 @@ private:
         Rect groups_area{};
         Rect scroll_left{};
         Rect scroll_right{};
-        std::optional<std::size_t> step{};
+        stxlib::Optional<std::size_t> step{};
         bool scrolling{};
         bool overlay{};
         // Per group of the selected tab: bounds (empty when not shown), the
@@ -841,7 +841,7 @@ private:
         std::vector<std::vector<CommandMetrics>> commands;
         std::vector<double> captions;
         std::vector<double> collapsed;
-        std::vector<std::optional<std::size_t>> galleries;
+        std::vector<stxlib::Optional<std::size_t>> galleries;
         std::vector<GalleryMetrics> gallery_metrics;
         std::vector<RibbonLadderEntry> ladder;
     };

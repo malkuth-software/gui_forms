@@ -2172,7 +2172,7 @@ Related types
 
    .. cpp:member:: std::shared_ptr<Control> panel
 
-   .. cpp:member:: std::optional<double> width
+   .. cpp:member:: stxlib::Optional<double> width
 
    .. cpp:member:: bool enabled
 

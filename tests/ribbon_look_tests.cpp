@@ -266,7 +266,7 @@ void test_theme_metrics() {
         "ribbon::part(tab-label):state(selected) { font-weight: bold; font-size: 1.5em; }\n",
         "the metrics sheet compiles cleanly");
     std::vector<RibbonTabSpec> tabs = two_tabs();
-    tabs[1].width = 63.0;
+    tabs[1].width.set(63.0);
     std::shared_ptr<Ribbon> ribbon = ribbon_with(std::move(tabs));
     (*ribbon).set_theme_override(theme);
     Window window(ribbon, {700.0, 200.0});
@@ -395,9 +395,9 @@ void test_release_activation() {
 // An authored width outside (0, maximum_tab_width] is refused.
 void test_width_refusals() {
     std::vector<RibbonTabSpec> zero = two_tabs();
-    zero[0].width = 0.0;
+    zero[0].width.set(0.0);
     std::vector<RibbonTabSpec> wide = two_tabs();
-    wide[0].width = Ribbon::maximum_tab_width + 1.0;
+    wide[0].width.set(Ribbon::maximum_tab_width + 1.0);
     std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("ribbon"));
     bool zero_refused = false;
     try {
@@ -466,8 +466,8 @@ void test_plan_paint_package() {
         "}\n",
         "Plan Paint's package compiles cleanly with the tab capabilities");
     std::vector<RibbonTabSpec> tabs = two_tabs();
-    tabs[0].width = 63.0;
-    tabs[1].width = 100.0;
+    tabs[0].width.set(63.0);
+    tabs[1].width.set(100.0);
     std::shared_ptr<Ribbon> ribbon = ribbon_with(std::move(tabs));
     (*ribbon).set_theme_override(theme);
     Window window(ribbon, {700.0, 200.0});
@@ -522,11 +522,11 @@ constexpr Color selection_plate = Color::rgba(0xcf, 0xe2, 0xfa);
 
 std::vector<RibbonTabSpec> tool_tabs(std::string_view tool_label) {
     std::vector<RibbonTabSpec> tabs = two_tabs();
-    tabs[0].width = 61.0;
-    tabs[1].width = 63.0;
+    tabs[0].width.set(61.0);
+    tabs[1].width.set(63.0);
     RibbonTabSpec tool{.stable_id = "tool-tab", .text = std::string(tool_label)};
     tool.modes = 1U;
-    tool.width = 142.0;
+    tool.width.set(142.0);
     RibbonGroupSpec settings{.stable_id = "tool-settings", .caption = "Tool settings"};
     settings.commands.push_back(
         {.stable_id = "tool-size", .command = std::make_shared<Command>("tool-size", "Size")});

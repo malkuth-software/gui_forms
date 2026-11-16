@@ -28,6 +28,8 @@
 #include <string>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace {
 using namespace gui_forms;
 
@@ -463,7 +465,7 @@ void scaling_with_contextual_tabs() {
             "a contextual tab has its own ladder, built from its groups");
     (*fixture.window).resize({ladder.back().width, 300.0});
     (*fixture.window).perform_layout();
-    require(ribbon.ladder_step() == std::size_t{2U} && ribbon.realized_groups()[0].collapsed &&
+    require(ribbon.ladder_step() == stxlib::Optional<std::size_t>::of(2U) && ribbon.realized_groups()[0].collapsed &&
                 ribbon.parts().command_plane.accent == ribbon.tab_set_accent("picture"),
             "a contextual tab's plane scales and keeps its tint");
     (*fixture.window).resize({ladder.back().width - 10.0, 300.0});
@@ -474,7 +476,7 @@ void scaling_with_contextual_tabs() {
     (*fixture.window).perform_layout();
     const std::vector<RibbonLadderEntry> home_again = ribbon.reduction_ladder(0U);
     require(home_again.size() == home.size() && home_again[0].width == home[0].width &&
-                ribbon.ladder_step() == std::size_t{0U},
+                ribbon.ladder_step() == stxlib::Optional<std::size_t>::of(0U),
             "showing sets on the tab row leaves the core tab's ladder unchanged");
 }
 

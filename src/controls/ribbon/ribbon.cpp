@@ -407,7 +407,9 @@ Ribbon::PreparedTabs Ribbon::prepare_tabs(const std::vector<RibbonTabSpec>& tabs
         if (tab.groups.size() > maximum_groups_per_tab) {
             throw std::invalid_argument("Ribbon tab has more groups than maximum_groups_per_tab");
         }
-        if (tab.width && !(std::isfinite(*tab.width) && *tab.width > 0.0 && *tab.width <= maximum_tab_width)) {
+        const double* const authored_width = tab.width.value();
+        if (authored_width != nullptr &&
+            !(std::isfinite(*authored_width) && *authored_width > 0.0 && *authored_width <= maximum_tab_width)) {
             throw std::invalid_argument("Ribbon tab width must be above zero and at most maximum_tab_width");
         }
         if (tab.panel) {

@@ -117,7 +117,7 @@ gui_forms::Ribbon
       **tab_sets** : ``std::span<const RibbonTabSetSpec>``, read-only
          The contextual tab sets (:cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`: ID and caption).
 
-      **ladder_step** : ``std::optional<std::size_t>``, read-only
+      **ladder_step** : ``stxlib::Optional<std::size_t>``, read-only
          The selected tab's ladder entry the plane shows, or none while it is
          hidden or minimized.
 
@@ -548,7 +548,7 @@ gui_forms::Ribbon
 
       The contextual tab sets (:cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`: ID and caption).
 
-   .. cpp:function:: std::optional<std::size_t> ladder_step() const
+   .. cpp:function:: stxlib::Optional<std::size_t> ladder_step() const
 
       The selected tab's ladder entry the plane shows, or none while it is
       hidden or minimized.
