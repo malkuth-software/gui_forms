@@ -131,8 +131,9 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void publish_realized_item_geometry(std::size_t item,
                                         std::span<PartGeometry> geometry) const override;
-    // The model position of a realized row.
-    [[nodiscard]] std::size_t realized_item_index(std::size_t item) const noexcept;
+    // The model position of a realized row. Throws std::out_of_range for an
+    // item past realized_item_count().
+    [[nodiscard]] std::size_t realized_item_index(std::size_t item) const;
     // A realized row's own parts in local coordinates, clipped to the list's
     // content.
     [[nodiscard]] ItemParts list_item_parts(std::size_t item) const;

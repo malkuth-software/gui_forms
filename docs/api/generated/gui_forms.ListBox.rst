@@ -439,11 +439,11 @@ gui_forms::ListBox
 
       *Protected.*
 
-   .. cpp:function:: std::size_t realized_item_index(std::size_t item) const noexcept
+   .. cpp:function:: std::size_t realized_item_index(std::size_t item) const
 
       *Protected.*
 
-      The model position of a realized row.
+      The model position of a realized row. Throws std::out_of_range for an item past realized_item_count().
 
    .. cpp:function:: ItemParts list_item_parts(std::size_t item) const
 

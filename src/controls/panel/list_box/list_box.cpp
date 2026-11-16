@@ -766,7 +766,13 @@ std::size_t ListBox::realized_item_count() const {
     return count;
 }
 
-std::size_t ListBox::realized_item_index(std::size_t item) const noexcept {
+// Every realized-item accessor of ListBox and CheckedListBox goes through
+// here, so an item past the realized rows is refused before it indexes the
+// items (A-gf-controls-08-F7).
+std::size_t ListBox::realized_item_index(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("ListBox realized item is past the realized rows");
+    }
     const std::size_t index = top_index_ + item;
     return index;
 }

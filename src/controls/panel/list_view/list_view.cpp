@@ -3360,9 +3360,14 @@ ListView::RealizedSlot ListView::realized_slot(const Layout& placed, std::size_t
         slot.column = visible_column(placed, item - rows - sub_items);
         return slot;
     }
-    // A group's slot names its band.
+    // A group's slot names its band; an item past the realized group
+    // headers (realized_group_band answers bands.size() for it) is refused
+    // before it indexes the bands (A-gf-controls-08-F7).
     slot.system = group_system;
     slot.index = realized_group_band(placed, item - rows - sub_items - columns);
+    if (slot.index >= placed.bands.size()) {
+        throw std::out_of_range("ListView realized item is past the realized items");
+    }
     return slot;
 }
 
