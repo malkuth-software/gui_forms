@@ -451,6 +451,37 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     run('ctest', '--test-dir', examples, '--output-on-failure')
 
 
+def build_high_integrity(host: str, build: Path, jobs: int, test_jobs: int, clipboard_text: bool) -> None:
+    """Configures, builds and tests the high-integrity tree
+    (cmake/HighIntegrity.cmake) in build/gui-forms-high-integrity.
+
+    Its own configure: toolkit_options turns on the audio service and the
+    suite, which the configuration refuses. Only the tests labelled
+    high_integrity build and run (the build profile, the refusal tests, the
+    damaged font pack and the object-surface check). The warning baseline is
+    not checked: the tree compiles a different set of sources. Nothing is
+    installed.
+    """
+    toolkit: Path = build / 'gui-forms-high-integrity'
+    prepare_host(ROOT / 'gui_forms', True)
+    stx_package_dir: str = os.environ.get('GUI_FORMS_STX_PACKAGE_DIR', '')
+    if stx_package_dir:
+        stx_package_dir += '-high-integrity'
+    allowance: str = 'ON' if clipboard_text else 'OFF'
+    configure: list[str] = [
+        'cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(toolkit), '-G', 'Ninja',
+        '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_INSTALL_LIBDIR=lib',
+        '-DCMAKE_TOOLCHAIN_FILE=' + str(ROOT / 'gui_forms/cmake/llvm22.cmake'),
+        '-DCMAKE_POSITION_INDEPENDENT_CODE=ON', '-DGUI_FORMS_HIGH_INTEGRITY=ON',
+        f'-DGUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT={allowance}',
+        *host_options(host),
+        *stx_options(os.environ.get('GUI_FORMS_STX_PREFIX', ''), stx_package_dir)]
+    configure_tree(toolkit, configure)
+    run('cmake', '--build', toolkit, '--parallel', jobs)
+    run('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', '300',
+        '--parallel', test_jobs, '-L', 'high_integrity')
+
+
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jobs', type=int, default=4)
@@ -481,6 +512,11 @@ def main() -> None:
     parser.add_argument('--gallery', action='store_true',
                         help='also configure GUI_FORMS_BUILD_GALLERY=ON '
                              '(or set GUI_FORMS_CI_BUILD_GALLERY=1); default OFF')
+    parser.add_argument('--high-integrity', action='store_true',
+                        help='build the high-integrity tree (cmake/HighIntegrity.cmake) in '
+                             'gui-forms-high-integrity and run its tests only')
+    parser.add_argument('--allow-clipboard-text', action='store_true',
+                        help='with --high-integrity, keep the clipboard text allowance')
     args: argparse.Namespace = parser.parse_args()
     if args.jobs < 1:
         parser.error('--jobs must be positive')
@@ -494,6 +530,12 @@ def main() -> None:
     if args.install_only and (args.sanitize or args.tests or args.changed_from or args.skip_labels):
         parser.error('--install-only builds and installs everything and runs no toolkit test; '
                      'it takes no --sanitize, --tests, --changed-from or --skip-labels')
+    if args.high_integrity and (args.sanitize or args.tests or args.changed_from or args.install_only
+                                or args.test_targets_only or args.gallery or args.skip_labels):
+        parser.error('--high-integrity builds its own tree and runs its own tests; it takes only '
+                     '--jobs, --test-jobs and --allow-clipboard-text')
+    if args.allow_clipboard_text and not args.high_integrity:
+        parser.error('--allow-clipboard-text is an allowance of --high-integrity')
     if args.debug_info and not args.sanitize:
         parser.error('--debug-info applies to the sanitized build only')
     debug_info: str = 'lines'
@@ -514,6 +556,9 @@ def main() -> None:
     build_root.mkdir(parents=True, exist_ok=True)
     build: Path = build_root.resolve() / ('native-' + host + '-' + architecture)
     build.mkdir(parents=True, exist_ok=True)
+    if args.high_integrity:
+        build_high_integrity(host, build, args.jobs, args.test_jobs, args.allow_clipboard_text)
+        return
     build_toolkit(host, build, build / 'gui-forms-sdk', args.jobs,
                   gallery_enabled(args.gallery, dict(os.environ)), args.sanitize, args.tests,
                   args.test_jobs, debug_info, args.skip_labels, args.changed_from, args.install_only,
