@@ -166,22 +166,10 @@ shape.
 
 A program may link its own HarfBuzz and FreeType beside
 `GUIForms::Application`, for content it lays out and renders itself (see
-[Content surfaces](content-surfaces.md)). GUI.Forms' text engine and its
-pinned FreeType and HarfBuzz are inside the
-Application library and not exported from it: its export list holds only
-GUI.Forms' declarations, so no `hb_` or `FT_` symbol of ours is visible to
-your program, and your copies never replace ours. The static Core,
-Controls and Drawing archives hold no text engine at all. The build checks
-this on every shared GUI.Forms library (the `gui_forms_foreign_text_symbols_tests`
-and `gui_forms_abi_foreign_text_symbols` tests), and
-`tools/verify_install.py --native --upstream-text-stack <prefix>` builds
-`tests/upstream_text_stack_consumer/`, which links the system's HarfBuzz and
-FreeType through pkg-config beside Application and uses both.
-
-The one exception is deliberate: `GUIForms::FreeType` and `GUIForms::HarfBuzz`
-(`tools/build_sdk.py --features all`) install the pinned libraries under
-their upstream names for a program that calls them directly. Link those or
-your own copies, not both.
+[Content surfaces](content-surfaces.md)). GUI.Forms contains neither: since
+2026-11-16 it reads fonts, shapes and lays out text with STXlib (its font
+tables, shaper and text layout, inside the stx package), so no `hb_` or
+`FT_` symbol comes from GUI.Forms and nothing of yours can collide with it.
 
 ## Runtime files to ship
 

@@ -124,8 +124,8 @@ ctest --test-dir build --output-on-failure
 cmake --install build
 ```
 
-The CPU renderer, `stx_skia/`, builds with the tree from the stx checkout,
-as do HarfBuzz and FreeType. Linux native tests need an X11 display;
+The CPU renderer, `stx_skia/`, builds with the tree from the stx checkout.
+Linux native tests need an X11 display;
 use `xvfb-run -a ctest --test-dir build --output-on-failure` on a headless runner.
 
 Pass the absolute path to the same `cmake/llvm22.cmake` to every consumer
@@ -172,7 +172,6 @@ message saying which build provides it.
 | `Audio` | `GUIForms::Audio` | `GUI_FORMS_BUILD_AUDIO` (on in CI and in `build_sdk.py`) |
 | `TextMasks` | `GUIForms::TextMasks` | `GUI_FORMS_BUILD_TEXT_MASKS` with a native host (`build_sdk.py --features all`) |
 | `AudioLoopTransport` | `GUIForms::AudioLoopTransport` | `GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT` with audio (`build_sdk.py --features all`) |
-| `FreeType`, `HarfBuzz` | `GUIForms::FreeType`, `GUIForms::HarfBuzz` | `GUI_FORMS_INSTALL_TEXT_STACK` with the text engine (`build_sdk.py --features all`) |
 | `CAbi` | `GUIForms::CAbi` | A native host is enabled: the C ABI library, which links `Application` |
 | `CAbiConformance` | `GUIForms::CAbiConformance` | With `CAbi`: the C ABI conformance kit ([Running the C ABI conformance kit](c-abi-conformance-kit)) |
 | `GalleryModel`, `Lab`, `DemoControls` | `GUIForms::GalleryModel`, `::Lab`, `::DemoControls` | `GUI_FORMS_INSTALL_GALLERY_MODEL` with `GUI_FORMS_INSTALL_LAB` (`build_sdk.py --features all`): the Gallery's model, for a project that builds the Gallery program from an installed SDK |
@@ -194,24 +193,9 @@ find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application TextMasks Audio
 target_link_libraries(my_app PRIVATE GUIForms::Application GUIForms::TextMasks GUIForms::AudioLoopTransport)
 ```
 
-`FreeType` and `HarfBuzz` are the pinned FreeType 2.14.2 and HarfBuzz 14.6.0
-that GUI.Forms' text engine links, for a product that calls them directly.
-They install as the static libraries GUI.Forms builds, with its options:
-FreeType without zlib, so it refuses gzip-compressed fonts, and HarfBuzz with
-its FreeType functions (`hb-ft.h`). Their headers keep the upstream layouts,
-`include/freetype2/` and `include/harfbuzz/`, and each target puts its
-directory on the include path, so `#include <ft2build.h>` and
-`#include <hb.h>` work. `GUIForms::HarfBuzz` links `GUIForms::FreeType`.
-GUI.Forms' own libraries hold their own copies, so pass no FreeType or
-HarfBuzz object between them and your code. The licences are
-`FreeType-FTL.txt` and `HarfBuzz-COPYING.txt` in `share/licenses/GUIForms/`.
-FreeType's licence asks a product that ships it to credit it in its
-documentation; `THIRD_PARTY_NOTICES.md` there carries the credit.
-
-```cmake
-find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS FreeType HarfBuzz)
-target_link_libraries(my_compositor PRIVATE GUIForms::HarfBuzz GUIForms::FreeType)
-```
+GUI.Forms no longer installs FreeType or HarfBuzz components: since
+2026-11-16 it builds no third-party code, and a product that calls
+either links its own copy.
 
 ## The source SDK
 
@@ -226,7 +210,7 @@ holds one directory, `gui-forms-sdk-<version>/`, containing:
 
   | Path | Source | Pinned in |
   |---|---|---|
-  | `stx/` | the stx repository: `stx_skia/`, the stx libraries and every third-party source (HarfBuzz without `test/` and `perf/`, FreeType, the Unicode data) | `stx.lock` |
+  | `stx/` | the stx repository: `stx_skia/`, the stx libraries and the data it keeps (the Unicode data and the Noto fallback fonts) | `stx.lock` |
   | `third_party/miniaudio/` | miniaudio | `cmake/Audio.cmake` |
 
 - `SDK_MANIFEST.json`, which names the build entry point (`"build":
@@ -262,14 +246,13 @@ as in [Verify the installation](#verify-the-installation).
 
 `default`
 : The components CI builds and tests: `Core`, `Controls`, `Drawing`,
-  `Threading`, the host's `Application` with the HarfBuzz/FreeType text
-  engine, and `Audio` with the stx Vorbis decoder.
+  `Threading`, the host's `Application` with the text engine (STXlib's font
+  tables, shaper and text layout), and `Audio` with the stx Vorbis decoder.
 
 `all`
 : The default set, plus every optional component a product may link:
   `TextMasks` (`GUI_FORMS_BUILD_TEXT_MASKS`), `AudioLoopTransport`
-  (`GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT`), `FreeType` and `HarfBuzz`
-  (`GUI_FORMS_INSTALL_TEXT_STACK`), and `GalleryModel` with `Lab` and
+  (`GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT`), and `GalleryModel` with `Lab` and
   `DemoControls` (`GUI_FORMS_INSTALL_GALLERY_MODEL`,
   `GUI_FORMS_INSTALL_LAB`). One such install serves every product;
   template_harness's lockstep build uses it.

@@ -75,7 +75,8 @@ if(CMAKE_CXX_FLAGS MATCHES "-fsanitize=")
     set(_gf_high_integrity_sanitized ON)
 endif()
 
-# Each record: the cache entry, the value it must hold, its type, and why.
+# Each record: the cache entry, the value it must hold, its type, and why
+# (no semicolon in a reason: CMake would split the record there).
 # A boolean compares by truth (ON, 1, TRUE and YES agree); a string by text.
 set(_gf_high_integrity_settings
     "GUI_FORMS_HARDENING|ON|BOOL|the hardening flags are part of the configuration (cmake/Hardening.cmake)"
@@ -89,7 +90,7 @@ set(_gf_high_integrity_settings
     "GUI_FORMS_ENABLE_X11_DRI3_PRESENT|OFF|BOOL|the presentation shim's direct paths are not compiled"
     "GUI_FORMS_ENABLE_WAYLAND_PRESENT|OFF|BOOL|the presentation shim's direct paths are not compiled"
     "GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT|OFF|BOOL|the presentation shim's direct paths are not compiled"
-    "GUI_FORMS_BUILD_TESTS|OFF|BOOL|the suite calls entries this configuration removes; GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS builds its tests"
+    "GUI_FORMS_BUILD_TESTS|OFF|BOOL|the suite calls entries this configuration removes (GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS builds its tests)"
     "GUI_FORMS_BUILD_GALLERY|OFF|BOOL|the Gallery calls entries this configuration removes"
     "GUI_FORMS_BUILD_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
     "GUI_FORMS_INSTALL_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"

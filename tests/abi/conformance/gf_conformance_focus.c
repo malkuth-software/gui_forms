@@ -507,7 +507,7 @@ void gf_kit_content_effect(gf_kit* kit) {
     if (!controls_have_content_effect(kit)) {
         return;
     }
-    const gf_object control = gf_kit_create(kit, "Button", "kit.content_effect");
+    const gf_object control = gf_kit_create(kit, "Button", "kit.content-effect");
     gf_effect_mask_layer layers[2];
     layers[0] = effect_mask_layer();
     layers[1] = effect_mask_layer();

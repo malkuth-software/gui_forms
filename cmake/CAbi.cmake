@@ -421,9 +421,10 @@ if(GUI_FORMS_BUILD_TESTS)
     # The C ABI library exports exactly its allowlisted gf_ entry points and
     # gd_get_api_v0 (cmake/CheckCAbiExports.cmake against the generated
     # gf_abi_exports.txt: no gdr_, libc++, STXlib or engine symbol, none
-    # missing; on Windows the Win32 shim's export names are accepted too), and no symbol of the pinned text stack
-    # (cmake/CheckForeignTextSymbols.cmake). It is one module: it imports no
-    # library but the system's (cmake/CheckSystemImports.cmake).
+    # missing; on Windows the Win32 shim's export names are accepted too). (No
+    # foreign text stack is linked since FreeType left on 2026-11-16, so its
+    # symbol check is retired.) It is one module: it imports no library but
+    # the system's (cmake/CheckSystemImports.cmake).
     set(_gf_abi_extra_exports "")
     if(WIN32)
         set(_gf_abi_extra_exports "-DEXTRA_DEF=${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/win32_compat_shim.def")
@@ -443,10 +444,6 @@ if(GUI_FORMS_BUILD_TESTS)
             "-DALLOW_SHARED_CXX_RUNTIME=${_gf_abi_shared_runtime}"
             "-DBINARIES=$<TARGET_FILE:gui_forms_abi>"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckSystemImports.cmake")
-    add_test(NAME gui_forms_abi_foreign_text_symbols
-        COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
-            "-DLIBRARIES=$<TARGET_FILE:gui_forms_abi>"
-            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckForeignTextSymbols.cmake")
 
     # The stage C3 gate: the control schema read through the ABI alone equals
     # manifests/control-schema.json, its composites loaded from the Gallery's

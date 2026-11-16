@@ -560,7 +560,8 @@ void validation() {
     material.drop_shadow.set(MaterialDropShadow{Point{0.0, 0.0}, std::numeric_limits<double>::infinity(), red});
     require(!valid_surface_material(material), "a non-finite shadow is refused");
     material.drop_shadow.reset();
-    material.fills[0].blend = static_cast<MaterialBlendMode>(9U);
+    // One past the last mode (exclusion, the twelfth).
+    material.fills[0].blend = static_cast<MaterialBlendMode>(12U);
     require(!valid_surface_material(material), "a blend outside the enumeration is refused");
 }
 
