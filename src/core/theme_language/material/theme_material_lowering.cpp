@@ -753,6 +753,10 @@ enum class FilterFunction : std::uint8_t {
     opacity,
     saturate,
     sepia,
+    // The theme language's colour stages (owner 2026-11-16; not CSS).
+    fill,
+    duotone,
+    tritone,
 };
 
 struct NamedFilter final {
@@ -760,7 +764,7 @@ struct NamedFilter final {
     FilterFunction function{FilterFunction::blur};
 };
 
-constexpr std::array<NamedFilter, 10> filter_functions{{
+constexpr std::array<NamedFilter, 13> filter_functions{{
     {.name = "blur", .function = FilterFunction::blur},
     {.name = "brightness", .function = FilterFunction::brightness},
     {.name = "contrast", .function = FilterFunction::contrast},
@@ -771,6 +775,9 @@ constexpr std::array<NamedFilter, 10> filter_functions{{
     {.name = "opacity", .function = FilterFunction::opacity},
     {.name = "saturate", .function = FilterFunction::saturate},
     {.name = "sepia", .function = FilterFunction::sepia},
+    {.name = "fill", .function = FilterFunction::fill},
+    {.name = "duotone", .function = FilterFunction::duotone},
+    {.name = "tritone", .function = FilterFunction::tritone},
 }};
 
 [[nodiscard]] const NamedFilter* filter_function(std::string_view name) noexcept {
@@ -957,6 +964,7 @@ private:
     bool read_shadow(ComponentRange range, MaterialShadow& shadow);
     bool read_amount(std::size_t function, double& amount);
     bool read_colour_function(std::size_t function, FilterFunction kind, MaterialColourMatrix& matrix);
+    bool read_function_colours(std::size_t function, std::span<Color> colours);
     bool read_blur(std::size_t function, double& deviation);
     bool read_drop_shadow(std::size_t function, MaterialDropShadow& shadow);
     bool read_glow(ComponentRange range, MaterialGlow& glow);
@@ -2294,7 +2302,36 @@ bool MaterialReader::read_amount(std::size_t function, double& amount) {
     return true;
 }
 
+// A house colour function's colours (fill(), duotone(), tritone()):
+// exactly colours.size() comma-separated colours.
+bool MaterialReader::read_function_colours(std::size_t function, std::span<Color> colours) {
+    const ValueComponent& written = value_.components[function];
+    std::vector<ComponentRange> arguments{};
+    split(ComponentRange{function + 1U, written.subtree_end}, arguments);
+    if (arguments.size() != colours.size()) {
+        return fail(DiagnosticCode::value_syntax, written.token,
+                    std::to_string(colours.size()) + " comma-separated colours");
+    }
+    for (std::size_t index = 0U; index < colours.size(); ++index) {
+        if (count(arguments[index]) != 1U) return fail(DiagnosticCode::value_syntax, written.token, "one colour");
+        if (!read_colour(arguments[index].first, colours[index])) return false;
+    }
+    return true;
+}
+
 bool MaterialReader::read_colour_function(std::size_t function, FilterFunction kind, MaterialColourMatrix& matrix) {
+    if (kind == FilterFunction::fill) {
+        std::array<Color, 1> colour{};
+        if (!read_function_colours(function, colour)) return false;
+        matrix = MaterialColourMatrix::fill(colour[0]);
+        return true;
+    }
+    if (kind == FilterFunction::duotone) {
+        std::array<Color, 2> pair{};
+        if (!read_function_colours(function, pair)) return false;
+        matrix = MaterialColourMatrix::duotone(pair[0], pair[1]);
+        return true;
+    }
     if (kind == FilterFunction::hue_rotate) {
         const ValueComponent& written = value_.components[function];
         const ComponentRange arguments{function + 1U, written.subtree_end};
@@ -2317,7 +2354,10 @@ bool MaterialReader::read_colour_function(std::size_t function, FilterFunction k
     case FilterFunction::sepia: matrix = MaterialColourMatrix::sepia(amount); return true;
     case FilterFunction::blur:
     case FilterFunction::drop_shadow:
-    case FilterFunction::hue_rotate: break;
+    case FilterFunction::hue_rotate:
+    case FilterFunction::fill:
+    case FilterFunction::duotone:
+    case FilterFunction::tritone: break;
     // A value outside the enumeration is no colour function: the matrix
     // is left as it is.
     default: break;
@@ -2381,7 +2421,14 @@ bool MaterialReader::read_drop_shadow(std::size_t function, MaterialDropShadow& 
 // blur(), whose colour the colour functions after it also turn. A
 // drop-shadow() after blur(), a second drop-shadow(), opacity() after a
 // drop-shadow() (which would fade the shadow twice) and an SVG filter
-// reference are not admitted.
+// reference are not admitted. The theme language's fill(<colour>),
+// duotone(<dark>, <light>) and tritone(<shadow>, <midtone>, <highlight>)
+// (owner 2026-11-16) are colour functions too: fill and duotone one matrix
+// each, tritone the luminance matrix and then a colour table
+// (MaterialColourTable). After a table, a colour function that reads only
+// its own channel (brightness(), contrast(), invert(), opacity()) folds
+// into the table; one that mixes channels, a second tritone(), and a
+// tritone() after drop-shadow() are not admitted.
 bool MaterialReader::lower_filter() {
     MaterialDeclaration colour{};
     colour.field = MaterialField::colour_filter;
@@ -2398,6 +2445,7 @@ bool MaterialReader::lower_filter() {
     bool blurred = false;
     MaterialDropShadow shadow{};
     bool shadowed = false;
+    std::optional<MaterialColourTable> table{};
     for (std::size_t index = 0U; index < whole.end && !none; index = next(index)) {
         const ValueComponent& component = value_.components[index];
         if (component.kind == ValueComponentKind::resource) {
@@ -2424,13 +2472,36 @@ bool MaterialReader::lower_filter() {
         if (kind == FilterFunction::opacity && shadowed) {
             return fail(DiagnosticCode::value_form_not_admitted, component.token, "opacity() after drop-shadow()");
         }
+        if (kind == FilterFunction::tritone) {
+            if (table) return fail(DiagnosticCode::value_form_not_admitted, component.token, "a second tritone()");
+            if (shadowed) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token, "tritone() after drop-shadow()");
+            }
+            std::array<Color, 3> tones{};
+            if (!read_function_colours(index, tones)) return false;
+            composed = composed.then(MaterialColourMatrix::luminance());
+            table = MaterialColourTable::tritone(tones[0], tones[1], tones[2]);
+            filtered = true;
+            continue;
+        }
         MaterialColourMatrix matrix{};
         if (!read_colour_function(index, kind, matrix)) return false;
-        composed = composed.then(matrix);
+        if (!table) {
+            composed = composed.then(matrix);
+        } else if (matrix.per_channel()) {
+            table = (*table).then_matrix(matrix);
+        } else {
+            return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                        clipped_theme_detail(component.text) + "() after tritone()");
+        }
         filtered = true;
         if (shadowed) after_shadow = after_shadow.then(matrix);
     }
-    if (filtered) colour.colour_filter = composed;
+    if (filtered && table) {
+        colour.colour_filter = MaterialColourFilter(composed, *table);
+    } else if (filtered) {
+        colour.colour_filter = composed;
+    }
     if (shadowed) {
         shadow.color = filtered_colour(after_shadow, shadow.color);
         drop.drop_shadow = shadow;

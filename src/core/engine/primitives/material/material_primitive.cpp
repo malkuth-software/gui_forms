@@ -224,6 +224,8 @@ struct MaterialLook final {
     // The colour filter, applied to each finished pixel (E9.6).
     bool filtered{};
     MaterialColourMatrix filter{};
+    // The colour filter's table stage after `filter`, if it has one.
+    std::optional<MaterialColourTable> table{};
     bool border{};
     Color border_colour{};
     Rect border_inner{};
@@ -709,6 +711,8 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
     if (material.colour_filter) {
         look.filtered = true;
         look.filter = *material.colour_filter;
+        const MaterialColourTable* const table = material.colour_filter.table();
+        if (table != nullptr) look.table = *table;
     }
     bool over_glows = false;
     for (std::size_t index = 0U; index < look.outer_count; ++index) {
@@ -1284,7 +1288,8 @@ void join_layer(Unit& face, Unit layer, MaterialBlendMode blend) noexcept {
 // A finished pixel through the material's colour filter, if it has one.
 Unit finished(const MaterialLook& look, Unit pixel) noexcept {
     if (!look.filtered) return pixel;
-    const Unit filtered = colour_filtered(look.filter, pixel);
+    const MaterialColourTable* const table = look.table ? &*look.table : nullptr;
+    const Unit filtered = colour_staged(look.filter, table, pixel);
     return filtered;
 }
 

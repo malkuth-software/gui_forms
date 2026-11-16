@@ -269,9 +269,13 @@ Types
    * - :cpp:class:`MaterialClipPoint <gui_forms::MaterialClipPoint>`
      - A clip path point in the box: x = box.x + x_units + x_fraction * box.width, and y likewise (a CSS length or percentage of the box).
    * - :cpp:class:`MaterialColourFilter <gui_forms::MaterialColourFilter>`
-     - A material's colour filter: none, or one matrix held out of line.
+     - A material's colour filter: none, or its stages held out of line: one matrix, then optionally one per-channel table (MaterialColourTable).
    * - :cpp:class:`MaterialColourMatrix <gui_forms::MaterialColourMatrix>`
      - A colour filter (E9.6; CSS ``filter`` and ``backdrop-filter`` colour functions): a 4 × 5 matrix on straight (not premultiplied) colour with each channel in [0, 1].
+   * - :cpp:class:`MaterialColourStages <gui_forms::MaterialColourStages>`
+     - A filter's stages: the matrix, then, if present, the table.
+   * - :cpp:class:`MaterialColourTable <gui_forms::MaterialColourTable>`
+     - A per-channel colour table (owner 2026-11-16: feComponentTransfer, the second colour stage after MaterialColourMatrix): each straight channel, quantized once to 8 bits (floor(C × 255 + 0.5)), is looked up in its channel's 256 entries, an entry e giving e / 255.
    * - :cpp:class:`MaterialCornerRadii <gui_forms::MaterialCornerRadii>`
      - A material's four corner radii (E9.6, CSS ``border-*-radius``), in logical units: top-left, top-right, bottom-right and bottom-left.
    * - :cpp:class:`MaterialDeclaration <gui_forms::MaterialDeclaration>`
@@ -294,6 +298,8 @@ Types
      - A reflection (stage T5, C7; owner T5-Q14, T5-Q15): ``source`` within the part's box, mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end.
    * - :cpp:class:`MaterialShadow <gui_forms::MaterialShadow>`
      - MaterialShadow specifies offset, blur, spread, and color for one bounded surface shadow.
+   * - :cpp:class:`MaterialTransferFunction <gui_forms::MaterialTransferFunction>`
+     -  
    * - :cpp:class:`MaterialTransform <gui_forms::MaterialTransform>`
      - A material's own linear transform (theme ``transform: rotate() | scale()``, owner 2026-11-16) about its box's centre: a point p of the face is drawn at c + L (p - c), where c is the centre and L maps (x, y) to (xx x + xy y, yx x + yy y).
    * - :cpp:class:`MediaCondition <gui_forms::MediaCondition>`
@@ -3783,7 +3789,7 @@ Types
 
    ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
 
-   A material's colour filter: none, or one matrix held out of line. Every recipe of every theme holds a SurfaceMaterial, so a matrix held inline (160 bytes) would grow a theme definition by tens of kilobytes; this holder is one pointer. It owns its matrix; a copy copies the matrix, a move leaves the source empty, and two filters are equal when both are empty or their matrices are equal.
+   A material's colour filter: none, or its stages held out of line: one matrix, then optionally one per-channel table (MaterialColourTable). Every recipe of every theme holds a SurfaceMaterial, so stages held inline would grow a theme definition by tens of kilobytes; this holder is one pointer. It owns its stages; a copy copies them, a move leaves the source empty, and two filters are equal when both are empty or their stages are equal.
 
 
    .. rubric:: Construction
@@ -3794,6 +3800,10 @@ Types
 
       Implicit, as std::optional's is: ``material.colour_filter = matrix;``. Throws std::bad_alloc when the matrix cannot be held.
 
+   .. cpp:function:: MaterialColourFilter(const MaterialColourMatrix& matrix, const MaterialColourTable& table)
+
+      The matrix, then the table. Throws std::bad_alloc when they cannot be held.
+
    .. cpp:function:: MaterialColourFilter(const MaterialColourFilter& other)
 
    .. cpp:function:: MaterialColourFilter(MaterialColourFilter&& other) noexcept
@@ -3802,6 +3812,10 @@ Types
    .. rubric:: Properties
 
    .. cpp:function:: bool has_value() const noexcept
+
+   .. cpp:function:: const MaterialColourTable* table() const noexcept
+
+      The table after the matrix, or null for none (or no filter).
 
 
    .. rubric:: Methods
@@ -3817,6 +3831,13 @@ Types
    ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
 
    A colour filter (E9.6; CSS ``filter`` and ``backdrop-filter`` colour functions): a 4 × 5 matrix on straight (not premultiplied) colour with each channel in [0, 1]. Its rows give red, green, blue and alpha; its columns read red, green, blue and alpha, and the fifth is a constant. Each result is clamped to [0, 1]. The factories are the CSS functions, with CSS's matrices (Filter Effects Level 1). A list of functions composes into one matrix with :cpp:func:`then <gui_forms::MaterialColourMatrix::then>`, in source order. CSS clamps between the functions of a list; one matrix does not, which differs only where an intermediate colour leaves [0, 1].
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool per_channel() const noexcept
+
+      Whether each row reads only its own channel and the constant, as a colour table can (MaterialColourTable::then_matrix).
 
 
    .. rubric:: Methods
@@ -3841,6 +3862,14 @@ Types
 
       Turns hues by ``degrees`` (any finite angle), with the engine's sine and cosine so that the matrix has the same bits on every host.
 
+   .. cpp:function:: static MaterialColourMatrix fill(Color colour) noexcept
+
+      The theme language's colour stages (owner 2026-11-16; not CSS): - fill: every colour channel ``colour``'s, and alpha the pixel's times the colour's (a covered pixel recoloured, its coverage kept); - duotone (tint): with L = 0.2126 R + 0.7152 G + 0.0722 B, each colour channel dark + L (light - dark); alpha kept, the colours' own alpha not read; - luminance: each colour channel L (the first stage of tritone, whose second is MaterialColourTable::tritone); alpha kept.
+
+   .. cpp:function:: static MaterialColourMatrix duotone(Color dark, Color light) noexcept
+
+   .. cpp:function:: static MaterialColourMatrix luminance() noexcept
+
    .. cpp:function:: MaterialColourMatrix then(const MaterialColourMatrix& after) const noexcept
 
       This filter, then ``after``: one matrix applying both.
@@ -3856,6 +3885,57 @@ Types
    .. cpp:member:: std::array<double, rows * columns> values
 
       Row-major: values[row × 5 + column]. The identity by default. Default: ``{detail::identity_colour_entries}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialColourStages final
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   A filter's stages: the matrix, then, if present, the table.
+
+   .. cpp:member:: MaterialColourMatrix matrix
+
+   .. cpp:member:: std::optional<MaterialColourTable> table
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialColourTable final
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   A per-channel colour table (owner 2026-11-16: feComponentTransfer, the second colour stage after MaterialColourMatrix): each straight channel, quantized once to 8 bits (floor(C × 255 + 0.5)), is looked up in its channel's 256 entries, an entry e giving e / 255. Red's levels first, then green's, blue's and alpha's. The identity by default. The table is made once, from transfer functions evaluated at each level; drawing it is a lookup, the same on every host.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static MaterialColourTable transfer(const MaterialTransferFunction& red, const MaterialTransferFunction& green, const MaterialTransferFunction& blue, const MaterialTransferFunction& alpha)
+
+      The four channels' functions, each evaluated at level / 255 and stored floor(clamp(f, 0, 1) × 255 + 0.5). An invalid function throws std::invalid_argument.
+
+   .. cpp:function:: static MaterialColourTable tritone(Color shadow, Color midtone, Color highlight)
+
+      Tritone's table (after MaterialColourMatrix::luminance()): each colour channel a table of the shadow's, the midtone's and the highlight's value; alpha kept.
+
+   .. cpp:function:: MaterialColourTable then(const MaterialColourTable& after) const noexcept
+
+      This table, then ``after``: one table applying both.
+
+   .. cpp:function:: MaterialColourTable then_matrix(const MaterialColourMatrix& matrix) const noexcept
+
+      This table, then ``matrix``, which must be per_channel(): each entry e becomes floor(clamp(m e / 255 + c, 0, 1) × 255 + 0.5) with its row's own coefficient m and constant c.
+
+   .. cpp:member:: constexpr std::size_t channels
+
+      Default: ``4U``.
+
+   .. cpp:member:: constexpr std::size_t levels
+
+      Default: ``256U``.
+
+   .. cpp:member:: std::array<std::uint8_t, channels * levels> entries
+
+      Default: ``{detail::identity_colour_table_entries()}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4263,6 +4343,42 @@ Types
       Default: ``{Color::rgba(20, 30, 42, 72)}``.
 
    .. cpp:member:: bool inset
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialTransferFunction final
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   .. cpp:member:: constexpr std::size_t maximum_values
+
+      Default: ``32U``.
+
+   .. cpp:member:: MaterialTransferKind kind
+
+      Default: ``{MaterialTransferKind::identity}``.
+
+   .. cpp:member:: std::vector<double> values
+
+   .. cpp:member:: double slope
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double intercept
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double amplitude
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double exponent
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double offset
+
+      Default: ``{0.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -8485,6 +8601,22 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: MaterialTransferKind
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   .. cpp:enumerator:: identity
+
+   .. cpp:enumerator:: table
+
+   .. cpp:enumerator:: discrete
+
+   .. cpp:enumerator:: linear
+
+   .. cpp:enumerator:: gamma
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: MotionEasing
 
    ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
@@ -10519,6 +10651,8 @@ Functions, constants and aliases
 .. cpp:function:: bool valid_colour_matrix(const MaterialColourMatrix& matrix) noexcept
 
    Every entry finite and at most 256 in magnitude.
+
+.. cpp:function:: bool valid_transfer_function(const MaterialTransferFunction& function) noexcept
 
 .. cpp:namespace:: gui_forms
 

@@ -442,6 +442,17 @@ void append_material(std::ostringstream& output,
     }
     output << "],\"colour_filter\":";
     append_colour_filter(output, material.colour_filter);
+    // The colour filter's table stage, only when set, so that other
+    // materials' snapshots are unchanged: 1024 levels, red's first.
+    const MaterialColourTable* const colour_table = material.colour_filter.table();
+    if (colour_table != nullptr) {
+        output << ",\"colour_table\":[";
+        for (std::size_t index = 0U; index < (*colour_table).entries.size(); ++index) {
+            if (index != 0U) output << ',';
+            output << static_cast<unsigned int>((*colour_table).entries[index]);
+        }
+        output << ']';
+    }
     output << ",\"drop_shadow\":";
     append_drop_shadow(output, material.drop_shadow);
     output << ",\"filter_blur\":" << material.filter_blur;

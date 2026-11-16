@@ -43,6 +43,11 @@ void blend_screen(Unit& target, Unit source) noexcept {
 }
 
 Unit colour_filtered(const MaterialColourMatrix& matrix, Unit pixel) noexcept {
+    const Unit filtered = colour_staged(matrix, nullptr, pixel);
+    return filtered;
+}
+
+Unit colour_staged(const MaterialColourMatrix& matrix, const MaterialColourTable* table, Unit pixel) noexcept {
     const double alpha = pixel.alpha;
     const bool visible = alpha > 0.0;
     const std::array<double, 4> straight{visible ? pixel.red / alpha : 0.0, visible ? pixel.green / alpha : 0.0,
@@ -55,6 +60,13 @@ Unit colour_filtered(const MaterialColourMatrix& matrix, Unit pixel) noexcept {
             sum = sum + matrix.values[first + column] * straight[column];
         }
         filtered[row] = std::clamp(sum, 0.0, 1.0);
+    }
+    if (table != nullptr) {
+        for (std::size_t channel = 0U; channel < MaterialColourTable::channels; ++channel) {
+            const std::size_t level = to_byte(filtered[channel]);
+            const std::uint8_t entry = (*table).entries[channel * MaterialColourTable::levels + level];
+            filtered[channel] = static_cast<double>(entry) / 255.0;
+        }
     }
     const double shown = filtered[3];
     const Unit result{filtered[0] * shown, filtered[1] * shown, filtered[2] * shown, shown};

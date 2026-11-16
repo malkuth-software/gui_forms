@@ -141,58 +141,232 @@ bool valid_colour_matrix(const MaterialColourMatrix& matrix) noexcept {
     return bounded;
 }
 
-MaterialColourFilter::MaterialColourFilter() noexcept : matrix_{} {}
-
-MaterialColourFilter::MaterialColourFilter(const MaterialColourMatrix& matrix)
-    : matrix_{new MaterialColourMatrix(matrix)} {}
-
-MaterialColourFilter::MaterialColourFilter(const MaterialColourFilter& other) : matrix_{} {
-    if (other.matrix_) matrix_ = new MaterialColourMatrix(*other.matrix_);
+MaterialColourMatrix MaterialColourMatrix::fill(Color colour) noexcept {
+    MaterialColourMatrix matrix{};
+    matrix.values = std::array<double, rows * columns>{};
+    matrix.values[4U] = static_cast<double>(colour.red) / 255.0;
+    matrix.values[columns + 4U] = static_cast<double>(colour.green) / 255.0;
+    matrix.values[2U * columns + 4U] = static_cast<double>(colour.blue) / 255.0;
+    matrix.values[3U * columns + 3U] = static_cast<double>(colour.alpha) / 255.0;
+    return matrix;
 }
 
-MaterialColourFilter::MaterialColourFilter(MaterialColourFilter&& other) noexcept : matrix_{other.matrix_} {
-    other.matrix_ = nullptr;
+MaterialColourMatrix MaterialColourMatrix::duotone(Color dark, Color light) noexcept {
+    const std::array<double, 3> coefficients{0.2126, 0.7152, 0.0722};
+    const std::array<double, 3> low{static_cast<double>(dark.red) / 255.0, static_cast<double>(dark.green) / 255.0,
+                                    static_cast<double>(dark.blue) / 255.0};
+    const std::array<double, 3> high{static_cast<double>(light.red) / 255.0,
+                                     static_cast<double>(light.green) / 255.0,
+                                     static_cast<double>(light.blue) / 255.0};
+    MaterialColourMatrix matrix{};
+    for (std::size_t row = 0U; row < 3U; ++row) {
+        const double span = high[row] - low[row];
+        for (std::size_t column = 0U; column < 3U; ++column) {
+            matrix.values[row * columns + column] = coefficients[column] * span;
+        }
+        matrix.values[row * columns + 4U] = low[row];
+    }
+    return matrix;
+}
+
+MaterialColourMatrix MaterialColourMatrix::luminance() noexcept {
+    const std::array<double, 9> rows_of_luminance{0.2126, 0.7152, 0.0722, 0.2126, 0.7152,
+                                                  0.0722, 0.2126, 0.7152, 0.0722};
+    const MaterialColourMatrix matrix = colour_only(rows_of_luminance);
+    return matrix;
+}
+
+bool MaterialColourMatrix::per_channel() const noexcept {
+    for (std::size_t row = 0U; row < rows; ++row) {
+        for (std::size_t column = 0U; column < rows; ++column) {
+            if (column != row && values[row * columns + column] != 0.0) return false;
+        }
+    }
+    return true;
+}
+
+namespace {
+
+bool bounded_number(double value) noexcept {
+    const bool bounded = std::isfinite(value) && std::abs(value) <= 256.0;
+    return bounded;
+}
+
+// One level of a table, stored as the engine stores a channel.
+std::uint8_t table_level(double value) noexcept {
+    const double clamped = std::clamp(value, 0.0, 1.0);
+    const double scaled = std::floor(clamped * 255.0 + 0.5);
+    const std::uint8_t level = static_cast<std::uint8_t>(scaled);
+    return level;
+}
+
+// `function` (valid) at C in [0, 1].
+double transferred(const MaterialTransferFunction& function, double c) noexcept {
+    switch (function.kind) {
+    case MaterialTransferKind::identity: return c;
+    case MaterialTransferKind::table: {
+        const std::size_t steps = function.values.size() - 1U;
+        const double scaled = c * static_cast<double>(steps);
+        const std::size_t low = std::min(static_cast<std::size_t>(std::floor(scaled)), steps - 1U);
+        const double within = scaled - static_cast<double>(low);
+        const double value = function.values[low] + within * (function.values[low + 1U] - function.values[low]);
+        return value;
+    }
+    case MaterialTransferKind::discrete: {
+        const std::size_t count = function.values.size();
+        const double scaled = c * static_cast<double>(count);
+        const std::size_t step = std::min(static_cast<std::size_t>(std::floor(scaled)), count - 1U);
+        return function.values[step];
+    }
+    case MaterialTransferKind::linear: {
+        const double value = function.slope * c + function.intercept;
+        return value;
+    }
+    case MaterialTransferKind::gamma: {
+        const double value = function.amplitude * engine_power(c, function.exponent) + function.offset;
+        return value;
+    }
+    }
+    // A kind outside the enumeration (refused by valid_transfer_function)
+    // is the identity.
+    return c;
+}
+
+} // namespace
+
+bool valid_transfer_function(const MaterialTransferFunction& function) noexcept {
+    const std::array<double, 5> numbers{function.slope, function.intercept, function.amplitude, function.exponent,
+                                        function.offset};
+    if (!std::all_of(numbers.begin(), numbers.end(), &bounded_number)) return false;
+    if (!std::all_of(function.values.begin(), function.values.end(), &bounded_number)) return false;
+    const std::size_t count = function.values.size();
+    switch (function.kind) {
+    case MaterialTransferKind::identity:
+    case MaterialTransferKind::linear: return true;
+    case MaterialTransferKind::table: return count >= 2U && count <= MaterialTransferFunction::maximum_values;
+    case MaterialTransferKind::discrete: return count >= 1U && count <= MaterialTransferFunction::maximum_values;
+    case MaterialTransferKind::gamma: return function.exponent > 0.0 && function.exponent <= 64.0;
+    }
+    return false;
+}
+
+MaterialColourTable MaterialColourTable::transfer(const MaterialTransferFunction& red,
+                                                  const MaterialTransferFunction& green,
+                                                  const MaterialTransferFunction& blue,
+                                                  const MaterialTransferFunction& alpha) {
+    const std::array<const MaterialTransferFunction*, channels> functions{&red, &green, &blue, &alpha};
+    for (const MaterialTransferFunction* function : functions) {
+        if (!valid_transfer_function(*function)) throw std::invalid_argument("an invalid colour transfer function");
+    }
+    MaterialColourTable table{};
+    for (std::size_t channel = 0U; channel < channels; ++channel) {
+        for (std::size_t level = 0U; level < levels; ++level) {
+            const double c = static_cast<double>(level) / 255.0;
+            table.entries[channel * levels + level] = table_level(transferred(*functions[channel], c));
+        }
+    }
+    return table;
+}
+
+MaterialColourTable MaterialColourTable::tritone(Color shadow, Color midtone, Color highlight) {
+    const std::array<Color, 3> colours{shadow, midtone, highlight};
+    std::array<MaterialTransferFunction, 3> functions{};
+    for (std::size_t channel = 0U; channel < functions.size(); ++channel) {
+        functions[channel].kind = MaterialTransferKind::table;
+        for (const Color colour : colours) {
+            const std::array<std::uint8_t, 3> bytes{colour.red, colour.green, colour.blue};
+            functions[channel].values.push_back(static_cast<double>(bytes[channel]) / 255.0);
+        }
+    }
+    const MaterialColourTable table = transfer(functions[0], functions[1], functions[2], MaterialTransferFunction{});
+    return table;
+}
+
+MaterialColourTable MaterialColourTable::then(const MaterialColourTable& after) const noexcept {
+    MaterialColourTable result{};
+    for (std::size_t channel = 0U; channel < channels; ++channel) {
+        const std::size_t first = channel * levels;
+        for (std::size_t level = 0U; level < levels; ++level) {
+            result.entries[first + level] = after.entries[first + entries[first + level]];
+        }
+    }
+    return result;
+}
+
+MaterialColourTable MaterialColourTable::then_matrix(const MaterialColourMatrix& matrix) const noexcept {
+    MaterialColourTable result{};
+    for (std::size_t channel = 0U; channel < channels; ++channel) {
+        const double coefficient = matrix.values[channel * MaterialColourMatrix::columns + channel];
+        const double constant = matrix.values[channel * MaterialColourMatrix::columns + 4U];
+        const std::size_t first = channel * levels;
+        for (std::size_t level = 0U; level < levels; ++level) {
+            const double value = coefficient * (static_cast<double>(entries[first + level]) / 255.0) + constant;
+            result.entries[first + level] = table_level(value);
+        }
+    }
+    return result;
+}
+
+MaterialColourFilter::MaterialColourFilter() noexcept : stages_{} {}
+
+MaterialColourFilter::MaterialColourFilter(const MaterialColourMatrix& matrix)
+    : stages_{new MaterialColourStages{matrix, std::nullopt}} {}
+
+MaterialColourFilter::MaterialColourFilter(const MaterialColourMatrix& matrix, const MaterialColourTable& table)
+    : stages_{new MaterialColourStages{matrix, table}} {}
+
+MaterialColourFilter::MaterialColourFilter(const MaterialColourFilter& other) : stages_{} {
+    if (other.stages_) stages_ = new MaterialColourStages(*other.stages_);
+}
+
+MaterialColourFilter::MaterialColourFilter(MaterialColourFilter&& other) noexcept : stages_{other.stages_} {
+    other.stages_ = nullptr;
 }
 
 MaterialColourFilter& MaterialColourFilter::operator=(const MaterialColourFilter& other) {
     if (this == &other) return *this;
     // The copy is made first: a failed allocation leaves this filter as it was.
-    MaterialColourMatrix* copy = nullptr;
-    if (other.matrix_) copy = new MaterialColourMatrix(*other.matrix_);
-    delete matrix_;
-    matrix_ = copy;
+    MaterialColourStages* copy = nullptr;
+    if (other.stages_) copy = new MaterialColourStages(*other.stages_);
+    delete stages_;
+    stages_ = copy;
     return *this;
 }
 
 MaterialColourFilter& MaterialColourFilter::operator=(MaterialColourFilter&& other) noexcept {
     if (this == &other) return *this;
-    delete matrix_;
-    matrix_ = other.matrix_;
-    other.matrix_ = nullptr;
+    delete stages_;
+    stages_ = other.stages_;
+    other.stages_ = nullptr;
     return *this;
 }
 
 MaterialColourFilter::~MaterialColourFilter() {
-    delete matrix_;
+    delete stages_;
 }
 
 bool MaterialColourFilter::has_value() const noexcept {
-    const bool held = matrix_ != nullptr;
+    const bool held = stages_ != nullptr;
     return held;
 }
 
 MaterialColourFilter::operator bool() const noexcept {
-    const bool held = matrix_ != nullptr;
+    const bool held = stages_ != nullptr;
     return held;
 }
 
 const MaterialColourMatrix& MaterialColourFilter::operator*() const noexcept {
-    return *matrix_;
+    return (*stages_).matrix;
+}
+
+const MaterialColourTable* MaterialColourFilter::table() const noexcept {
+    if (stages_ == nullptr || !(*stages_).table) return nullptr;
+    return &*(*stages_).table;
 }
 
 void MaterialColourFilter::reset() noexcept {
-    delete matrix_;
-    matrix_ = nullptr;
+    delete stages_;
+    stages_ = nullptr;
 }
 
 } // namespace gui_forms

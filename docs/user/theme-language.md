@@ -265,7 +265,7 @@ only material fields selects the `material` primitive.
 | fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` and `reflecting-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat` (`repeat`, `no-repeat`, and the GUI.Forms additions `mirror` and `extend`), `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `seat`, `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
-| filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` (up to 4 layers), `mask-mode`, `mask-composite`, `mask-size`, `mask-position`, `mask-repeat` |
+| filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`, and the GUI.Forms additions `fill()`, `duotone()` and `tritone()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` (up to 4 layers), `mask-mode`, `mask-composite`, `mask-size`, `mask-position`, `mask-repeat` |
 | presentation | `opacity`, `scale`, `translate` |
 | shape | `transform` (`rotate()`, `scale()`) and `clip-path` (`polygon()`, `path()`), on a material |
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; a user theme the process is started with (`--theme`, `GUI_FORMS_THEME_SHEET`) is checked against the process's installed registry (`install_built_in_effect_registry()`, called by a program using the stock controls while it sets up) and refused the same way, the program's own theme staying; with none installed the names' form only is checked and the request's report says so; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
@@ -361,6 +361,25 @@ are drawn by a transform group and a path clip around however the part
 is drawn, so a baked face composites under the path's coverage mask, the
 same on every host. For example, a tab's slanted face:
 `clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%)`.
+
+A `filter` list may also use three GUI.Forms colour functions (not CSS).
+`fill(<colour>)` paints every covered pixel in the colour and keeps its
+coverage: the colour channels become the colour's, and the alpha is the
+pixel's times the colour's. `duotone(<dark>, <light>)` (a tint) maps each
+pixel's luminance L = 0.2126 R + 0.7152 G + 0.0722 B (on the sRGB-encoded
+values) to dark + L (light - dark), keeping its alpha; the colours' own
+alpha is not read. `tritone(<shadow>, <midtone>, <highlight>)` maps
+luminance through the three colours, shadow at 0, midtone at one half and
+highlight at 1, straight lines between. `fill()` and `duotone()` are colour
+matrices, composed with the CSS colour functions in order. `tritone()` is
+the luminance matrix followed by a colour table: each straight channel,
+rounded to 8 bits once, looked up in a table of 256 levels made when the
+theme compiles, the same bytes on every host. After `tritone()` a function
+that reads only its own channel (`brightness()`, `contrast()`, `invert()`,
+`opacity()`) folds into the table; one that mixes channels (`saturate()`,
+`grayscale()`, `sepia()`, `hue-rotate()`, `fill()`, `duotone()`), a second
+`tritone()`, and a `tritone()` after `drop-shadow()` refuse the theme. For
+example, `filter: tritone(#14213d, #fca311, #e5e5e5)`.
 
 A material's mask fades the whole finished part, its shadows and glows
 included. `mask-image` is `none` or up to 4 comma-separated layers, the

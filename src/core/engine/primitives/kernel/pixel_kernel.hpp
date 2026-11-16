@@ -40,6 +40,12 @@ void blend_screen(Unit& target, Unit source) noexcept;
 // row applied and clamped to [0, 1], and premultiplied again. A pixel of
 // alpha 0 is read as transparent black.
 [[nodiscard]] Unit colour_filtered(const MaterialColourMatrix& matrix, Unit pixel) noexcept;
+// `pixel` through `matrix`, then, when `table` is not null, each clamped
+// straight channel quantized once to 8 bits and looked up in `table`
+// (MaterialColourTable), before premultiplying again. With a null table,
+// colour_filtered's bits.
+[[nodiscard]] Unit colour_staged(const MaterialColourMatrix& matrix, const MaterialColourTable* table,
+                                 Unit pixel) noexcept;
 
 // One channel quantized once: floor(clamp(v, 0, 1) × 255 + 0.5).
 [[nodiscard]] std::uint8_t to_byte(double value) noexcept;

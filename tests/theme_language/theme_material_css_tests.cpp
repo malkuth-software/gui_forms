@@ -1045,7 +1045,7 @@ void test_seat() {
 }
 
 void test_refusals() {
-    const std::array<Refusal, 81> refusals{{
+    const std::array<Refusal, 87> refusals{{
         {"#a { reflection: below backplane 1px }", DiagnosticCode::value_syntax},
         {"#a { reflection: below 1px mirror }", DiagnosticCode::keyword_unknown},
         {"#a { reflection: below 4px 6px }", DiagnosticCode::value_out_of_range},
@@ -1100,6 +1100,13 @@ void test_refusals() {
         {"#a { filter: blur(-1px) }", DiagnosticCode::value_out_of_range},
         {"#a { filter: hue-rotate(2px) }", DiagnosticCode::value_wrong_kind},
         {"#a { filter: red }", DiagnosticCode::value_wrong_kind},
+        {"#a { filter: tritone(black, grey, white) saturate(2) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: tritone(black, grey, white) tritone(black, grey, white) }",
+         DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: drop-shadow(1px 1px red) tritone(black, grey, white) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: duotone(black) }", DiagnosticCode::value_syntax},
+        {"#a { filter: fill(1px) }", DiagnosticCode::value_wrong_kind},
+        {"#a { filter: tritone(black grey white) }", DiagnosticCode::value_syntax},
         {"#a { surface-finish: 2 }", DiagnosticCode::value_out_of_range},
         {"#a { surface-finish: 1px }", DiagnosticCode::value_wrong_kind},
         {"#a { gradient-dither: dots }", DiagnosticCode::keyword_unknown},
@@ -1403,6 +1410,26 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     colours.material.fills = {MaterialFillLayer::solid(red)};
     colours.material.colour_filter = MaterialColourMatrix::grayscale(1.0).then(MaterialColourMatrix::brightness(0.5));
     rows.push_back(colours);
+    // The theme language's colour stages (owner 2026-11-16).
+    GateRow filled_stage{};
+    filled_stage.declarations = "background: red; filter: fill(#102030)";
+    filled_stage.material.fills = {MaterialFillLayer::solid(red)};
+    filled_stage.material.colour_filter = MaterialColourMatrix::fill(Color::rgba(16, 32, 48));
+    rows.push_back(filled_stage);
+    GateRow duotoned{};
+    duotoned.declarations = "background: red; filter: duotone(#000000, #ffffff)";
+    duotoned.material.fills = {MaterialFillLayer::solid(red)};
+    duotoned.material.colour_filter =
+        MaterialColourMatrix::duotone(Color::rgba(0, 0, 0), Color::rgba(255, 255, 255));
+    rows.push_back(duotoned);
+    GateRow tritoned{};
+    tritoned.declarations = "background: red; filter: tritone(blue, lime, red) brightness(0.5)";
+    tritoned.material.fills = {MaterialFillLayer::solid(red)};
+    const MaterialColourTable tones =
+        MaterialColourTable::tritone(Color::rgba(0, 0, 255), Color::rgba(0, 255, 0), Color::rgba(255, 0, 0));
+    tritoned.material.colour_filter =
+        MaterialColourFilter(MaterialColourMatrix::luminance(), tones.then_matrix(MaterialColourMatrix::brightness(0.5)));
+    rows.push_back(tritoned);
     GateRow blurred{};
     blurred.declarations = "background: blue; filter: blur(1px) blur(1px)";
     blurred.material.fills = {MaterialFillLayer::solid(blue)};

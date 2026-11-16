@@ -237,6 +237,71 @@ void colour_filters() {
     require(first && second, "the colour filters match their references");
 }
 
+// The colour stages (owner 2026-11-16): fill and duotone as matrices,
+// tritone as the luminance matrix and a table, and the table's transfer
+// functions, each checked to the byte.
+void colour_stages() {
+    const Size logical{24.0, 16.0};
+    SurfaceMaterial filled = filled_with(brick);
+    filled.colour_filter = MaterialColourMatrix::fill(Color{10, 20, 30, 255});
+    require(draw(filled, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{10U, 20U, 30U, 255U}),
+            "fill recolours the face and keeps its alpha");
+    // L = 128 / 255 on grey: 20 + 200 L = 120.39, 40 + 200 L = 140.39,
+    // 60 + 195 L = 157.88.
+    SurfaceMaterial toned = filled_with(grey);
+    toned.colour_filter = MaterialColourMatrix::duotone(Color{20, 40, 60, 255}, Color{220, 240, 255, 255});
+    require(draw(toned, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{120U, 140U, 158U, 255U}),
+            "duotone maps luminance between its colours");
+    // Grey's luminance is level 128, 0.00392 past the midtone: red rises
+    // to 1, green falls to 254, blue stays 0.
+    SurfaceMaterial tritoned = filled_with(grey);
+    tritoned.colour_filter =
+        MaterialColourFilter(MaterialColourMatrix::luminance(),
+                             MaterialColourTable::tritone(Color{0, 0, 255, 255}, Color{0, 255, 0, 255},
+                                                          Color{255, 0, 0, 255}));
+    require(draw(tritoned, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{1U, 254U, 0U, 255U}),
+            "tritone maps luminance through its three colours");
+
+    MaterialTransferFunction peak{};
+    peak.kind = MaterialTransferKind::table;
+    peak.values = {0.0, 1.0, 0.0};
+    MaterialTransferFunction steps{};
+    steps.kind = MaterialTransferKind::discrete;
+    steps.values = {0.2, 0.8};
+    MaterialTransferFunction line{};
+    line.kind = MaterialTransferKind::linear;
+    line.slope = 0.5;
+    line.intercept = 0.25;
+    MaterialTransferFunction square{};
+    square.kind = MaterialTransferKind::gamma;
+    square.exponent = 2.0;
+    const MaterialColourTable table = MaterialColourTable::transfer(peak, steps, line, square);
+    const std::size_t levels = MaterialColourTable::levels;
+    require(table.entries[0] == 0U && table.entries[64] == 128U && table.entries[255] == 0U,
+            "a table interpolates between its values");
+    require(table.entries[levels + 127U] == 51U && table.entries[levels + 128U] == 204U,
+            "discrete steps at its intervals");
+    require(table.entries[2U * levels] == 64U && table.entries[2U * levels + 255U] == 191U,
+            "linear is slope C + intercept");
+    require(table.entries[3U * levels + 128U] == 64U, "gamma is amplitude C^exponent + offset");
+    require(MaterialColourTable{}.then(table) == table && table.then(MaterialColourTable{}) == table,
+            "the identity table composes to the other");
+    require(MaterialColourTable{}.then_matrix(MaterialColourMatrix::brightness(0.5)).entries[255] == 128U,
+            "a per-channel matrix folds into a table");
+    require(!MaterialColourMatrix::saturate(2.0).per_channel() && MaterialColourMatrix::opacity(0.5).per_channel(),
+            "only a matrix reading each channel alone folds");
+    MaterialTransferFunction flat{};
+    flat.kind = MaterialTransferKind::table;
+    flat.values = {0.5};
+    bool refused = false;
+    try {
+        static_cast<void>(MaterialColourTable::transfer(flat, flat, flat, flat));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && !valid_transfer_function(flat), "a table of one value is refused");
+}
+
 void drop_shadows() {
     const Size logical{24.0, 16.0};
     SurfaceMaterial lifted = filled_with(brick);
@@ -442,6 +507,7 @@ void validation() {
 int main() {
     colour_matrices();
     colour_filters();
+    colour_stages();
     drop_shadows();
     blurs();
     fill_blends();
