@@ -17,8 +17,9 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -70,7 +71,7 @@ public:
     // The live values, oldest first.
     [[nodiscard]] plots::SeriesSpans<double> values() const noexcept { return values_.read(); }
     // The newest finite value, if any.
-    [[nodiscard]] std::optional<double> latest() const noexcept;
+    [[nodiscard]] stxlib::Optional<double> latest() const noexcept;
     // The live values' finite extent (invalid when there are none).
     [[nodiscard]] plots::PlotRange extent() const noexcept;
     // The plot the line is drawn in, in local coordinates.

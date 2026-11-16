@@ -889,10 +889,11 @@ void test_custom_series() {
 
 void test_sparkline() {
     std::shared_ptr<Sparkline> line = make_control<Sparkline>(StableId("spark"));
-    require((*line).capacity.read() == 120U && !(*line).latest().has_value(), "a sparkline starts empty");
+    require((*line).capacity.read() == 120U && (*line).latest().absent(), "a sparkline starts empty");
     const std::array<double, 5> values{3.0, 1.0, std::nan(""), 4.0, 2.0};
     (*line).push_values(values);
-    require((*line).latest().has_value() && near(*(*line).latest(), 2.0), "latest is the newest finite value");
+    const stxlib::Optional<double> newest = (*line).latest();
+    require(newest.present() && near(*newest.value(), 2.0), "latest is the newest finite value");
     require((*line).extent() == (plots::PlotRange{1.0, 4.0}), "the extent ignores gaps");
     bool threw = false;
     try {
