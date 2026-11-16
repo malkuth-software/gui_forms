@@ -916,6 +916,52 @@ void test_refused_pixmap_or_present_falls_back() {
     require_trace_valid(trace, "refused pixmap or present");
 }
 
+// A direct path that grants one buffer of any extent and always claims age
+// 1, as a path that recycles a buffer across a resize could
+// (A-gf-present-01-F3): the shim must not trust that age at a new size.
+class ResizeAgePath final : public PresentationDirectPath {
+public:
+    DirectAcquire acquire(PresentExtent extent) override {
+        if (buffer.extent != extent) {
+            buffer = make_image(extent.width, extent.height, 4U);
+            // Contents never written by the shim.
+            paint_rect(buffer, rect(0, 0, static_cast<std::int32_t>(extent.width),
+                                    static_cast<std::int32_t>(extent.height)), std::byte{0xee});
+        }
+        DirectBuffer granted{};
+        granted.pixels = buffer.pixels.data();
+        granted.row_bytes = buffer.row_bytes;
+        granted.extent = extent;
+        granted.age = presents == 0U ? 0U : 1U;
+        return DirectAcquire::granted(granted);
+    }
+    PresentOutcome present(std::span<const PresentRect> damage) override {
+        static_cast<void>(damage);
+        ++presents;
+        return PresentOutcome::presented;
+    }
+    void release() noexcept override {}
+
+    Image buffer{};
+    std::uint32_t presents{};
+};
+
+void test_new_extent_forgets_ages() {
+    FakeCopyPath copy(24U, 24U, false);
+    std::unique_ptr<ResizeAgePath> owned = std::make_unique<ResizeAgePath>();
+    ResizeAgePath& direct = *owned;
+    PresentationShim shim(&copy, std::move(owned), nullptr);
+    Image small = make_image(16U, 16U, 0U);
+    paint_pattern(small, 2U);
+    const std::array<PresentRect, 1> small_whole{rect(0, 0, 16, 16)};
+    require(shim.present(frame_of(small, small_whole, {})).path == PresentPath::direct, "direct at the first size");
+    Image large = make_image(24U, 24U, 0U);
+    paint_pattern(large, 3U);
+    const std::array<PresentRect, 1> corner{rect(0, 0, 4, 4)};
+    require(shim.present(frame_of(large, corner, {})).path == PresentPath::direct, "direct at the new size");
+    require(same_pixels(direct.buffer, large), "a new extent writes the whole frame whatever age is claimed");
+}
+
 void test_policy_from_environment() {
     // Only the default is checked: the variable is the process's, and a
     // test does not set it.
@@ -964,6 +1010,7 @@ int main() {
         test_policy_list_words();
         test_no_buffer_ready_falls_back_without_waiting();
         test_refused_pixmap_or_present_falls_back();
+        test_new_extent_forgets_ages();
     } catch (const std::exception& error) {
         std::cerr << "presentation shim tests failed: " << error.what() << '\n';
         return EXIT_FAILURE;

@@ -241,8 +241,11 @@ std::optional<PresentReport> PresentationShim::present_direct(const PresentFrame
     const DirectBuffer buffer = *granted;
     const PresentTargetPixels target = target_of(buffer);
     // A buffer's contents count only if the direct path presented the
-    // frame before (a path change writes everything).
-    const std::uint32_t age = last_path_ == PresentPath::direct ? buffer.age : 0U;
+    // frame before at this extent (a path change or a new size writes
+    // everything, and a new size forgets the old size's history).
+    const bool resized = extent != direct_extent_;
+    if (resized) history_.reset();
+    const std::uint32_t age = last_path_ == PresentPath::direct && !resized ? buffer.age : 0U;
     record(PresentTraceEvent::acquire, PresentPath::direct, trace_detail(age), 0U, 0U);
     // What changed on screen (presented as damage, and remembered for
     // older buffers) and what this buffer needs written if it is the one
@@ -300,6 +303,7 @@ std::optional<PresentReport> PresentationShim::present_direct(const PresentFrame
     case PresentOutcome::presented:
     case PresentOutcome::pending: {
         history_.record(damage);
+        direct_extent_ = extent;
         consecutive_losses_ = 0U;
         last_path_ = PresentPath::direct;
         pending_ = outcome == PresentOutcome::pending;
@@ -424,8 +428,14 @@ DirectAcquire PresentationShim::acquire_for_writing(PresentExtent extent) {
     direct_holds_ = true;
     holding_ = true;
     held_ = *granted;
+    // A new size: the grant's contents are unknown whatever age the path
+    // reports, and the old size's history is forgotten.
+    if (extent != direct_extent_) {
+        history_.reset();
+        held_.age = 0U;
+    }
     record(PresentTraceEvent::acquire, PresentPath::direct, trace_detail(held_.age), 0U, 0U);
-    return acquired;
+    return DirectAcquire::granted(held_);
 }
 
 PresentScrollResult PresentationShim::scroll_written(const PresentScroll& scroll) {
@@ -469,6 +479,7 @@ PresentOutcome PresentationShim::present_written(std::span<const PresentRect> da
     case PresentOutcome::presented:
     case PresentOutcome::pending:
         history_.record(rects);
+        direct_extent_ = held_.extent;
         last_path_ = PresentPath::direct;
         pending_ = outcome == PresentOutcome::pending;
         ++counters_.direct_frames;

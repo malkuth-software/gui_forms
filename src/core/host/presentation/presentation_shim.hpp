@@ -306,6 +306,10 @@ private:
     bool copy_in_sync_{};
     std::uint64_t frame_{};
     PresentDamageHistory history_{};
+    // The extent of the last direct present: a buffer granted at another
+    // extent has unknown contents whatever age its path reports, and the
+    // history of the old size is forgotten (A-gf-present-01-F3).
+    PresentExtent direct_extent_{};
     PresentShimSnapshot counters_{};
     // Reused per frame: the clipped damage, the rectangles written and
     // those presented.
