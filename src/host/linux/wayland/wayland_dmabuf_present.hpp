@@ -2,7 +2,8 @@
 // The Wayland linux-dmabuf buffer route (docs/user/presentation.md; host
 // capability linux_dmabuf, reserved until a Wayland host reports it):
 // linear GBM buffers on the compositor's render node, mapped for CPU
-// writing, shared as zwp_linux_dmabuf_v1 buffers, attached with
+// writing (age 0: a mapping may not keep their contents, so the whole
+// frame is written; gbm_buffer_known_age), shared as zwp_linux_dmabuf_v1 buffers, attached with
 // wl_surface_damage_buffer for the damage and committed; a buffer is
 // written again after wl_buffer.release. GBM only obtains, maps and
 // exports the buffer: no EGL, rendering or GPU work. Built only with

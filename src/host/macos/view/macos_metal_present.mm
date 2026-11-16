@@ -20,6 +20,9 @@ namespace {
 // pool the system replaces).
 constexpr NSUInteger maximum_drawables = 3U;
 constexpr std::size_t remembered_surfaces = 4U;
+// The presents tracked until they are replaced on screen: more than the
+// pool, so that a full pool is seen before the table is.
+constexpr std::size_t tracked_presents = 8U;
 
 } // namespace
 
@@ -39,6 +42,11 @@ struct MacMetalPath::State final {
     id<CAMetalDrawable> drawable{};
     IOSurfaceRef locked{};
     bool unsupported{};
+    // The drawables presented and not yet known to be replaced on screen,
+    // oldest first (strong: kept only to read presentedTime, and dropped as
+    // soon as a later one is displayed, so they return to the pool).
+    std::array<id<CAMetalDrawable>, tracked_presents> presented{};
+    std::size_t presented_count{};
     std::array<Shown, remembered_surfaces> shown{};
     std::size_t next_shown{};
     std::uint64_t presents{};
@@ -65,6 +73,30 @@ void remember_shown(MacMetalPath::State& state, IOSurfaceRef surface) noexcept {
     }
     state.shown[state.next_shown] = MacMetalPath::State::Shown{surface, state.presents};
     state.next_shown = (state.next_shown + 1U) % remembered_surfaces;
+}
+
+// The drawables the window server still holds (count_present_holds over
+// each tracked present's presentedTime): those replaced on screen are
+// forgotten first. Never waits.
+std::size_t held_drawables(MacMetalPath::State& state) noexcept {
+    std::array<bool, tracked_presents> displayed{};
+    for (std::size_t index = 0U; index < state.presented_count; ++index) {
+        // presentedTime is 0 until the drawable reaches the screen.
+        displayed[index] = state.presented[index].presentedTime > 0.0;
+    }
+    const presentation::PresentHoldCount count =
+        presentation::count_present_holds(std::span<const bool>(displayed.data(), state.presented_count));
+    for (std::size_t index = 0U; index < count.held; ++index)
+        state.presented[index] = state.presented[index + count.displaced];
+    for (std::size_t index = count.held; index < state.presented_count; ++index) state.presented[index] = nil;
+    state.presented_count = count.held;
+    return count.held;
+}
+
+// Forgets every tracked present (release, destruction).
+void forget_presented(MacMetalPath::State& state) noexcept {
+    for (std::size_t index = 0U; index < state.presented_count; ++index) state.presented[index] = nil;
+    state.presented_count = 0U;
 }
 
 // Unlocks and drops the drawable held between acquire and present.
@@ -96,6 +128,8 @@ bool make_layer(MacMetalPath::State& state) {
     // CPU-writable drawables: their textures are backed by IOSurfaces.
     layer.framebufferOnly = NO;
     layer.maximumDrawableCount = maximum_drawables;
+    // A backstop only: acquire never calls nextDrawable while the pool is
+    // held (held_drawables), so it does not wait for a drawable.
     layer.allowsNextDrawableTimeout = YES;
     layer.presentsWithTransaction = NO;
     layer.anchorPoint = CGPointZero;
@@ -117,6 +151,7 @@ MacMetalPath::MacMetalPath(GUIFormsView* view, CGColorSpaceRef colorSpace) : sta
 MacMetalPath::~MacMetalPath() {
     State& state = *state_;
     drop_drawable(state);
+    forget_presented(state);
     hide_layer(state);
     if (state.layer != nil) [state.layer removeFromSuperlayer];
     state.layer = nil;
@@ -137,7 +172,12 @@ presentation::DirectAcquire MacMetalPath::acquire(presentation::PresentExtent ex
         return presentation::DirectAcquire::refused(presentation::DirectRefusal::resources);
     const CGSize size = CGSizeMake(static_cast<CGFloat>(extent.width), static_cast<CGFloat>(extent.height));
     if (!CGSizeEqualToSize(state.layer.drawableSize, size)) state.layer.drawableSize = size;
-    // Waits at most the layer's timeout (one second) for a free drawable.
+    // No drawable ready is a refusal for this frame, never a wait: while
+    // every drawable of the pool is presented and not yet replaced on
+    // screen, nextDrawable would block, so it is not called. The frame is
+    // presented by the copy path with the same pixels.
+    if (held_drawables(state) >= maximum_drawables || state.presented_count == tracked_presents)
+        return presentation::DirectAcquire::refused(presentation::DirectRefusal::busy);
     id<CAMetalDrawable> drawable = [state.layer nextDrawable];
     if (drawable == nil) return presentation::DirectAcquire::refused(presentation::DirectRefusal::busy);
     IOSurfaceRef surface = drawable.texture.iosurface;
@@ -192,6 +232,8 @@ presentation::PresentOutcome MacMetalPath::present(std::span<const presentation:
     [CATransaction commit];
     // Presentation only: no command buffer is made or committed.
     [state.drawable present];
+    state.presented[state.presented_count] = state.drawable;
+    ++state.presented_count;
     state.drawable = nil;
     ++state.presents;
     remember_shown(state, surface);
@@ -203,6 +245,7 @@ void MacMetalPath::detach_view() noexcept { (*state_).view = nil; }
 void MacMetalPath::release() noexcept {
     State& state = *state_;
     drop_drawable(state);
+    forget_presented(state);
     hide_layer(state);
     state.shown = {};
     state.next_shown = 0U;

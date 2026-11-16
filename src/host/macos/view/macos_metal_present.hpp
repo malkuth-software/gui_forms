@@ -10,9 +10,18 @@
 // GUI_FORMS_ENABLE_METAL_PRESENT, and chosen only when GUI_FORMS_PRESENT
 // names both "direct" and "metal".
 //
+// It never waits. nextDrawable blocks while every drawable of the layer's
+// pool is held, so acquire first counts the drawables the window server
+// still holds (each tracked present's presentedTime; count_present_holds)
+// and refuses busy without calling it when the pool is held; the frame is
+// then presented by the copy path with the same pixels, and the shim's
+// pause follows. There is no asynchronous work: nothing to cancel, and
+// release or destruction only drops references.
+//
 // Refusals: no Metal device, or a drawable without an IOSurface (a
 // framebuffer-only or compressed texture), is unsupported for the window's
-// life; no drawable ready (nextDrawable returned nil) is busy; a drawable
+// life; no drawable ready (the pool held, or nextDrawable's backstop
+// timeout returning nil) is busy; a drawable
 // smaller than the frame is extent; a surface that cannot be locked is
 // lost. The drawable's IOSurface identity gives the buffer's age.
 //

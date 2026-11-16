@@ -208,10 +208,37 @@ copies' clips, and the shim adds back the area of any scroll it refuses.
 
 | Route | Capability | Build option and policy | What the API is used for |
 |---|---|---|---|
-| macOS `CAMetalLayer` (`macos_metal_present.mm`) | `metal_drawables` | `GUI_FORMS_ENABLE_METAL_PRESENT`; `GUI_FORMS_PRESENT=direct,metal` | the system default device for the layer, `nextDrawable`, the drawable texture's `iosurface` (locked for writing), `-[CAMetalDrawable present]`; no command buffer |
-| X11 DRI3 (`x11_dri3_present.cpp`, `src/host/linux/gbm/`) | `dri3_pixmaps` | `GUI_FORMS_ENABLE_X11_DRI3_PRESENT` (with libXpresent); `GUI_FORMS_PRESENT=direct,dri3` | `DRI3Open` for the server's device, linear GBM buffers mapped for writing and exported, `DRI3PixmapFromBuffer`, then `XPresentPixmap` |
+| macOS `CAMetalLayer` (`macos_metal_present.mm`) | `metal_drawables` | `GUI_FORMS_ENABLE_METAL_PRESENT`; `GUI_FORMS_PRESENT=direct,metal` | the system default device for the layer, `nextDrawable` (only while a drawable is free), the drawable texture's `iosurface` (locked for writing), `-[CAMetalDrawable present]`; no command buffer |
+| X11 DRI3 (`x11_dri3_present.cpp`, `src/host/linux/gbm/`) | `dri3_pixmaps` | `GUI_FORMS_ENABLE_X11_DRI3_PRESENT` (with libXpresent); `GUI_FORMS_PRESENT=direct,dri3` | `DRI3Open` for the server's device, linear GBM buffers mapped for writing (age 0) and exported, `DRI3PixmapFromBuffer`, then `XPresentPixmap` |
 | Wayland linux-dmabuf (`wayland_dmabuf_present.cpp`) | `linux_dmabuf` (reserved) | `GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT`; `direct,dmabuf` for a future Wayland host | linear GBM buffers on the compositor's render node, mapped and exported, `zwp_linux_dmabuf_v1` `create_immed` |
 | Windows DXGI flip model or DirectComposition | to be added by the Windows side | the Windows side's | the Windows side's study (below) |
+
+Two rules hold for every route, as for every direct path:
+
+- **A route never waits for a buffer.** "No buffer ready" is a refusal
+  (`busy`) for that frame, never a block on the UI thread: the frame is
+  presented by the copy path at once with the same pixels, and the shim's
+  pause follows (the table above). The Metal route chose this over a
+  separate acquiring context: `nextDrawable` blocks while every drawable
+  of the layer's pool is held, so before calling it the route counts the
+  drawables the window server still holds (each tracked present's
+  `presentedTime`, which is 0 until it reaches the screen; a present
+  followed by a later displayed one has been replaced and is forgotten:
+  `count_present_holds`) and refuses busy, without calling it, when the
+  pool is held. The layer's one-second `nextDrawable` timeout stays only as
+  a backstop. There is no asynchronous work, so nothing is cancelled: a
+  release or the window's destruction only drops the route's references,
+  and the window server finishes showing what it has.
+- **A route claims only the contents it knows.** A buffer's age is what the
+  route can prove of its contents. GBM mappings (the DRI3 and linux-dmabuf
+  routes) do not promise the buffer's earlier contents, since a driver may
+  map a staging copy that is not read back, and GBM reports no age; so
+  those routes map for writing only and report age 0, and the shim writes
+  the whole frame from the raster each time (`gbm_buffer_known_age` is
+  where a driver's own report would answer). Where an age is known, the
+  shim writes the union of the damage since that buffer was last written
+  (`PresentDamageHistory`); an age older than the history kept is
+  unknown.
 
 Each route reports `direct_buffers` with its own bit. Where a route is not
 built, or the policy does not name it, the host uses its non-API direct

@@ -52,8 +52,10 @@ bool gbm_buffer_map(GbmBuffer &buffer, presentation::PresentExtent extent) noexc
   if (buffer.buffer == nullptr || buffer.pixels != nullptr) return false;
   std::uint32_t stride = 0U;
   void *mapping = nullptr;
-  void *pixels = gbm_bo_map(buffer.buffer, 0U, 0U, extent.width, extent.height, GBM_BO_TRANSFER_READ_WRITE, &stride,
-                            &mapping);
+  // Write only: the contents are not relied on (gbm_buffer_known_age), so
+  // nothing is read back.
+  void *pixels =
+      gbm_bo_map(buffer.buffer, 0U, 0U, extent.width, extent.height, GBM_BO_TRANSFER_WRITE, &stride, &mapping);
   if (pixels == nullptr || stride < extent.width * 4U) {
     if (pixels != nullptr) gbm_bo_unmap(buffer.buffer, mapping);
     return false;
@@ -62,6 +64,12 @@ bool gbm_buffer_map(GbmBuffer &buffer, presentation::PresentExtent extent) noexc
   buffer.mapped_stride = stride;
   buffer.mapping = mapping;
   return true;
+}
+
+std::uint32_t gbm_buffer_known_age(const GbmBuffer &buffer, std::uint32_t presents_since) noexcept {
+  static_cast<void>(buffer);
+  static_cast<void>(presents_since);
+  return 0U;
 }
 
 void gbm_buffer_unmap(GbmBuffer &buffer) noexcept {

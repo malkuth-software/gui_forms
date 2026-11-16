@@ -145,7 +145,11 @@ presentation::DirectAcquire X11Dri3Path::acquire(presentation::PresentExtent ext
   buffer.pixels = slot.buffer.pixels;
   buffer.row_bytes = slot.buffer.mapped_stride;
   buffer.extent = extent;
-  buffer.age = slot.shown_at == 0U ? 0U : static_cast<std::uint32_t>(presents_ - slot.shown_at + 1U);
+  // The presents since this buffer was shown, and what GBM lets the route
+  // claim of its contents: unknown, so the shim writes the whole frame.
+  const std::uint32_t since =
+      slot.shown_at == 0U ? 0U : static_cast<std::uint32_t>(presents_ - slot.shown_at + 1U);
+  buffer.age = gbm_buffer_known_age(slot.buffer, since);
   return presentation::DirectAcquire::granted(buffer);
 }
 

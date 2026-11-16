@@ -47,9 +47,17 @@ struct GbmBuffer final {
 // False, leaving `made` empty, when GBM declines.
 [[nodiscard]] bool gbm_buffer_make(GbmDevice &device, presentation::PresentExtent extent, bool alpha,
                                    GbmBuffer &made) noexcept;
-// Maps the whole buffer for reading and writing (its contents kept, so
-// that its age holds). False when the mapping fails.
+// Maps the whole buffer for writing. False when the mapping fails.
+//
+// A mapping does not promise the buffer's earlier contents: a driver may
+// map a staging copy that is not read back. GBM reports no buffer age, so
+// a route over these buffers reports age 0 (unknown) and the shim writes
+// the whole frame into the mapping each time (gbm_buffer_known_age).
 [[nodiscard]] bool gbm_buffer_map(GbmBuffer &buffer, presentation::PresentExtent extent) noexcept;
+// The age a route reports for a buffer GBM mapped: 0, unknown, whatever
+// the presents since (GBM has no query for whether a mapping keeps the
+// buffer's contents). One place, so that a driver query can answer here.
+[[nodiscard]] std::uint32_t gbm_buffer_known_age(const GbmBuffer &buffer, std::uint32_t presents_since) noexcept;
 // Ends the mapping; the writes reach the buffer.
 void gbm_buffer_unmap(GbmBuffer &buffer) noexcept;
 // A new dmabuf descriptor for the buffer, owned by the caller; -1 on

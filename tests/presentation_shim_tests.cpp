@@ -322,6 +322,70 @@ void test_damage_history_ages() {
             "an overfull frame is kept as its bounding rectangle");
 }
 
+void test_hold_count() {
+    const std::array<bool, 0> none{};
+    PresentHoldCount count = count_present_holds(none);
+    require(count.displaced == 0U && count.held == 0U, "no presents hold nothing");
+    const std::array<bool, 3> waiting{false, false, false};
+    count = count_present_holds(waiting);
+    require(count.displaced == 0U && count.held == 3U, "presents not yet displayed are all held");
+    const std::array<bool, 4> replaced{true, false, true, false};
+    count = count_present_holds(replaced);
+    require(count.displaced == 2U && count.held == 2U,
+            "the newest displayed present replaces the earlier ones; it and later ones are held");
+    const std::array<bool, 2> shown{false, true};
+    count = count_present_holds(shown);
+    require(count.displaced == 1U && count.held == 1U, "the one on screen stays held");
+}
+
+// What a buffer of each age must be written with, proved on pixels: a
+// buffer last written k presents ago holds that frame, and the union of the
+// damage since (overlapping and clipped) brings it to the current frame
+// exactly; unknown contents (age 0, or a route whose mapping may lose them)
+// take the whole frame.
+void test_damage_union_since_last_written() {
+    const PresentExtent extent{32U, 24U};
+    PresentDamageHistory history{};
+    std::vector<Image> frames{};
+    Image frame = make_image(32U, 24U, 0U);
+    paint_pattern(frame, 9U);
+    const std::array<PresentRect, 1> whole{rect(0, 0, 32, 24)};
+    history.record(whole);
+    frames.push_back(frame);
+    // Damage that overlaps, nests and runs past the extent.
+    const std::array<std::array<PresentRect, 2>, 3> damage{{
+        {rect(2, 2, 12, 10), rect(20, 4, 40, 8)},
+        {rect(4, 4, 8, 8), rect(10, 14, 30, 30)},
+        {rect(0, 20, 6, 24), rect(6, 6, 22, 18)},
+    }};
+    for (std::size_t step = 0U; step < damage.size(); ++step) {
+        for (const PresentRect area : damage[step]) {
+            const PresentRect clipped = present_rect_intersection(area, present_extent_rect(extent));
+            paint_rect(frame, clipped, static_cast<std::byte>(0x30U + step));
+        }
+        if (step + 1U < damage.size()) history.record(damage[step]);
+        frames.push_back(frame);
+    }
+    // frames[k] is the frame of present k + 1; the current frame (present 4)
+    // carries damage[2], not yet recorded.
+    const Image& current = frames.back();
+    for (std::uint32_t age = 1U; age <= 3U; ++age) {
+        Image buffer = frames[frames.size() - 1U - age];
+        std::array<PresentRect, 16> out{};
+        std::size_t count = 0U;
+        require(history.accumulate(age, damage[2], extent, out, count), "a known age has a union");
+        require(copy_present_rects(source_of(current), target_of(buffer), std::span<const PresentRect>(out.data(), count)),
+                "the union copies");
+        require(same_pixels(buffer, current), "the union since the buffer was last written restores the frame");
+    }
+    std::array<PresentRect, 16> out{};
+    std::size_t count = 0U;
+    require(!history.accumulate(0U, damage[2], extent, out, count), "unknown contents have no union");
+    Image lost = make_image(32U, 24U, 0U);
+    require(copy_present_rects(source_of(current), target_of(lost), whole) && same_pixels(lost, current),
+            "unknown contents take the whole frame");
+}
+
 void test_copy_kernel_validates_first() {
     Image source = make_image(16U, 8U, 4U);
     Image target = make_image(16U, 8U, 12U);
@@ -755,6 +819,67 @@ void test_producer_mode() {
     require_trace_valid(trace, "producer mode");
 }
 
+// A direct path that never waits for a buffer (the Metal route's rule):
+// before the call that could block, it counts the buffers the window system
+// still holds, and refuses busy when the pool is all held.
+class NonWaitingPath final : public PresentationDirectPath {
+public:
+    static constexpr std::size_t pool = 3U;
+
+    NonWaitingPath() : buffer(make_image(16U, 16U, 0U)) {}
+
+    DirectAcquire acquire(PresentExtent extent) override {
+        const PresentHoldCount count = count_present_holds(displayed);
+        displayed.erase(displayed.begin(), displayed.begin() + static_cast<std::ptrdiff_t>(count.displaced));
+        if (count.held >= pool) return DirectAcquire::refused(DirectRefusal::busy);
+        // Stands for nextDrawable, which may wait while the pool is held.
+        ++blocking_calls;
+        DirectBuffer granted{};
+        granted.pixels = buffer.pixels.data();
+        granted.row_bytes = buffer.row_bytes;
+        granted.extent = extent;
+        granted.age = 0U;
+        return DirectAcquire::granted(granted);
+    }
+    PresentOutcome present(std::span<const PresentRect> damage) override {
+        static_cast<void>(damage);
+        displayed.push_back(false);
+        return PresentOutcome::presented;
+    }
+    void release() noexcept override { ++release_calls; }
+
+    Image buffer;
+    std::vector<bool> displayed{};
+    std::uint32_t blocking_calls{};
+    std::uint32_t release_calls{};
+};
+
+void test_no_buffer_ready_falls_back_without_waiting() {
+    FakeCopyPath copy(16U, 16U, false);
+    PresentTrace trace{};
+    trace.set_enabled(true);
+    std::unique_ptr<NonWaitingPath> owned = std::make_unique<NonWaitingPath>();
+    NonWaitingPath& direct = *owned;
+    PresentationShim shim(&copy, std::move(owned), &trace);
+    Image frame = make_image(16U, 16U, 0U);
+    const std::array<PresentRect, 1> whole{rect(0, 0, 16, 16)};
+    // The window system displays nothing: every present stays held.
+    for (std::size_t index = 0U; index < NonWaitingPath::pool; ++index) {
+        paint_pattern(frame, static_cast<std::uint32_t>(index));
+        require(shim.present(frame_of(frame, whole, {})).path == PresentPath::direct, "the pool fills");
+    }
+    require(direct.blocking_calls == NonWaitingPath::pool, "one obtain per buffer");
+    paint_pattern(frame, 21U);
+    const std::array<PresentRect, 1> small{rect(3, 3, 9, 9)};
+    const PresentReport report = shim.present(frame_of(frame, small, {}));
+    require(direct.blocking_calls == NonWaitingPath::pool, "no buffer ready: the blocking obtain is never called");
+    require(report.path == PresentPath::copy && report.outcome == PresentOutcome::presented,
+            "the frame is presented by the copy path at once");
+    require(same_pixels(copy.window, frame), "with identical pixels (the whole frame after a direct present)");
+    require(direct.release_calls == 1U, "the direct buffers are released so the copy shows");
+    require_trace_valid(trace, "no buffer ready");
+}
+
 void test_policy_from_environment() {
     // Only the default is checked: the variable is the process's, and a
     // test does not set it.
@@ -782,6 +907,8 @@ int main() {
         test_scroll_plan_edges();
         test_damage_clipping_and_overflow();
         test_damage_history_ages();
+        test_hold_count();
+        test_damage_union_since_last_written();
         test_copy_kernel_validates_first();
         test_move_kernel_matches_a_copy();
         test_trace_order_checks();
@@ -799,6 +926,7 @@ int main() {
         test_producer_mode();
         test_policy_from_environment();
         test_policy_list_words();
+        test_no_buffer_ready_falls_back_without_waiting();
     } catch (const std::exception& error) {
         std::cerr << "presentation shim tests failed: " << error.what() << '\n';
         return EXIT_FAILURE;

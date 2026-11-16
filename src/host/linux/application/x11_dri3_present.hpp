@@ -1,7 +1,8 @@
 #pragma once
 // The X11 DRI3 buffer route (docs/user/presentation.md; host capability
 // dri3_pixmaps): GBM buffers on the server's own DRM device (DRI3Open),
-// mapped for CPU writing, made into pixmaps with DRI3PixmapFromBuffer and
+// mapped for CPU writing (age 0: a mapping may not keep their contents, so
+// the whole frame is written; gbm_buffer_known_age), made into pixmaps with DRI3PixmapFromBuffer and
 // presented with XPresentPixmap and the damage as the update region. GBM
 // and DRI3 are used only to obtain the buffer and hand it to the server;
 // no rendering, EGL context or GPU work. Built only with
