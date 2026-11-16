@@ -42,6 +42,7 @@ WindowCapsuleSection capsule_section(SurfaceDeskPart part) noexcept {
         return WindowCapsuleSection::help;
     case SurfaceDeskPart::capsule_right:
         return WindowCapsuleSection::right;
+    // Parts outside the capsule (none, client, title_bar, the edges, ...): no section.
     default:
         return WindowCapsuleSection::none;
     }

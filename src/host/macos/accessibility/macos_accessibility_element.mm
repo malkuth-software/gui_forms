@@ -390,6 +390,60 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
     case SemanticRole::table:
     case SemanticRole::tree_grid:
         return NSAccessibilitySelectedRowsChangedNotification;
+    case SemanticRole::generic:
+    case SemanticRole::group:
+    case SemanticRole::static_text:
+    case SemanticRole::button:
+    case SemanticRole::check_box:
+    case SemanticRole::radio_button:
+    case SemanticRole::link:
+    case SemanticRole::text_box:
+    case SemanticRole::list_item:
+    case SemanticRole::check_list_item:
+    case SemanticRole::combo_box:
+    case SemanticRole::slider:
+    case SemanticRole::scroll_bar:
+    case SemanticRole::progress_bar:
+    case SemanticRole::image:
+    case SemanticRole::tab_group:
+    case SemanticRole::tab:
+    case SemanticRole::split_pane:
+    case SemanticRole::numeric_field:
+    case SemanticRole::tool_tip:
+    case SemanticRole::date_picker:
+    case SemanticRole::calendar:
+    case SemanticRole::date_cell:
+    case SemanticRole::property_grid:
+    case SemanticRole::property_group:
+    case SemanticRole::property_row:
+    case SemanticRole::menu_bar:
+    case SemanticRole::menu_bar_item:
+    case SemanticRole::menu:
+    case SemanticRole::menu_item:
+    case SemanticRole::separator:
+    case SemanticRole::toolbar:
+    case SemanticRole::radio_group:
+    case SemanticRole::split_button:
+    case SemanticRole::menu_button:
+    case SemanticRole::pane:
+    case SemanticRole::tab_panel:
+    case SemanticRole::tree_item:
+    case SemanticRole::row:
+    case SemanticRole::cell:
+    case SemanticRole::column_header:
+    case SemanticRole::row_header:
+    case SemanticRole::dialog:
+    case SemanticRole::status_bar:
+    case SemanticRole::live_region:
+    case SemanticRole::meter:
+    case SemanticRole::toggle_switch:
+    case SemanticRole::search_box:
+    case SemanticRole::figure:
+    case SemanticRole::document:
+    case SemanticRole::heading:
+    case SemanticRole::count:
+        return NSAccessibilitySelectedChildrenChangedNotification;
+    // An out-of-range role selects children, as the other containers do.
     default:
         return NSAccessibilitySelectedChildrenChangedNotification;
     }
@@ -401,6 +455,62 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
     case SemanticRole::tree_item:
     case SemanticRole::row:
         return expanded ? NSAccessibilityRowExpandedNotification : NSAccessibilityRowCollapsedNotification;
+    case SemanticRole::generic:
+    case SemanticRole::group:
+    case SemanticRole::static_text:
+    case SemanticRole::button:
+    case SemanticRole::check_box:
+    case SemanticRole::radio_button:
+    case SemanticRole::link:
+    case SemanticRole::text_box:
+    case SemanticRole::list:
+    case SemanticRole::list_item:
+    case SemanticRole::check_list_item:
+    case SemanticRole::combo_box:
+    case SemanticRole::slider:
+    case SemanticRole::scroll_bar:
+    case SemanticRole::progress_bar:
+    case SemanticRole::image:
+    case SemanticRole::tab_group:
+    case SemanticRole::tab:
+    case SemanticRole::split_pane:
+    case SemanticRole::numeric_field:
+    case SemanticRole::tool_tip:
+    case SemanticRole::date_picker:
+    case SemanticRole::calendar:
+    case SemanticRole::date_cell:
+    case SemanticRole::property_grid:
+    case SemanticRole::property_group:
+    case SemanticRole::property_row:
+    case SemanticRole::menu_bar:
+    case SemanticRole::menu_bar_item:
+    case SemanticRole::menu:
+    case SemanticRole::menu_item:
+    case SemanticRole::separator:
+    case SemanticRole::toolbar:
+    case SemanticRole::radio_group:
+    case SemanticRole::split_button:
+    case SemanticRole::menu_button:
+    case SemanticRole::pane:
+    case SemanticRole::tab_panel:
+    case SemanticRole::tree:
+    case SemanticRole::table:
+    case SemanticRole::cell:
+    case SemanticRole::column_header:
+    case SemanticRole::row_header:
+    case SemanticRole::tree_grid:
+    case SemanticRole::dialog:
+    case SemanticRole::status_bar:
+    case SemanticRole::live_region:
+    case SemanticRole::meter:
+    case SemanticRole::toggle_switch:
+    case SemanticRole::search_box:
+    case SemanticRole::figure:
+    case SemanticRole::document:
+    case SemanticRole::heading:
+    case SemanticRole::count:
+        return NSAccessibilityValueChangedNotification;
+    // An out-of-range role announces a value change, as the roles without rows do.
     default:
         return NSAccessibilityValueChangedNotification;
     }

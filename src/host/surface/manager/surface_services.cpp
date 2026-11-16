@@ -45,6 +45,7 @@ HostServiceStatus Services::apply_window_backdrop_impl(WindowBackdrop backdrop) 
     case WindowBackdrop::transparent:
         window_.present_alpha = true;
         break;
+    // The materials are host_unsupported here (Runtime's backdrop support), so the service refuses them.
     default:
         return {HostServiceError::backend_failure};
     }

@@ -126,6 +126,7 @@ CursorKind frame_part_cursor(SurfaceDeskPart part) noexcept {
     case SurfaceDeskPart::corner_top_right:
     case SurfaceDeskPart::corner_bottom_left:
         return CursorKind::resize_diagonal_up;
+    // Parts that do not resize (none, client, title_bar, the boxes, tabs, ...) show the arrow.
     default:
         return CursorKind::arrow;
     }
@@ -1629,6 +1630,7 @@ void Runtime::handle_pointer(const SurfaceInputRecord& record) {
         case SurfaceDeskPart::minimized_tab:
             static_cast<void>(restore_window(pressed.window));
             break;
+        // The parts not acted on at their release (frame_part_clicks): their release does nothing.
         default:
             break;
         }
@@ -1681,6 +1683,7 @@ void Runtime::handle_pointer(const SurfaceInputRecord& record) {
         event.action = PointerAction::move;
         event.click_count = 0U;
         break;
+    // leave returned above (leave_pointer_window); it and an out-of-range action send the window nothing.
     default:
         return;
     }
