@@ -26,7 +26,7 @@ void ErrorGlyph::set_error(std::string error) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ErrorGlyph::set_icon(std::optional<ImageId> icon) {
+void ErrorGlyph::set_icon(stxlib::Optional<ImageId> icon) {
     if (icon_ == icon) return;
     icon_ = icon;
     invalidate(Dirty::paint);
@@ -74,7 +74,7 @@ void ErrorGlyph::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::editor;
     part.bounds = bounds;
     part.role = PartRole::icon;
-    part.image = icon_ ? *icon_ : stock_icon_image(stock_icon_error, StockIconStyle::solid);
+    part.image = icon_.value_or(stock_icon_image(stock_icon_error, StockIconStyle::solid));
     paint_part(painter, *this, part);
 }
 

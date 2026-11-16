@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -57,9 +58,9 @@ struct TextBlockTextAlignCapability {
 // CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).
 template <typename Declaring>
 struct TextBlockLineHeightCapability {
-    PropertyCell<std::optional<double>, TextBlockLineHeightCapability<Declaring>> line_height{};
+    PropertyCell<stxlib::Optional<double>, TextBlockLineHeightCapability<Declaring>> line_height{};
 
-    static void assign(TextBlockLineHeightCapability& capability, std::optional<double> incoming) {
+    static void assign(TextBlockLineHeightCapability& capability, stxlib::Optional<double> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.line_height), incoming);
         if (!capability.line_height.replace(std::move(incoming))) return;

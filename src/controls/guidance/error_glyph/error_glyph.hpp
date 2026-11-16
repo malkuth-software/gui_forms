@@ -11,7 +11,7 @@ public:
     explicit ErrorGlyph(StableId stable_id);
 
     void set_error(std::string error);
-    void set_icon(std::optional<ImageId> icon);
+    void set_icon(stxlib::Optional<ImageId> icon);
     void configure_blink(ErrorBlinkStyle style,
                          std::chrono::milliseconds rate,
                          bool restart);
@@ -44,7 +44,7 @@ private:
     void advance_blink();
 
     std::string error_;
-    std::optional<ImageId> icon_;
+    stxlib::Optional<ImageId> icon_;
     // ADR-016: a paint-gated UI timer the glyph stops.
     AnimationTimer blink_timer_;
     std::chrono::milliseconds rate_{250};

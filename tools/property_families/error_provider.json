@@ -109,7 +109,7 @@
       "event": null,
       "name": "icon",
       "capability": "ErrorProviderIcon",
-      "value": "std::optional<ImageId>",
+      "value": "stxlib::Optional<ImageId>",
       "hooks": "hand",
       "hand": [
         "written refreshes every icon"

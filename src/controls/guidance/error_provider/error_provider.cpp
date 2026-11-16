@@ -294,13 +294,14 @@ void ErrorProvider::written(const decltype(right_to_left)&) {
     right_to_left_changed_.emit(right_to_left.read());
 }
 
-void ErrorProvider::prepare_write(const decltype(icon)&, std::optional<ImageId>& incoming) {
+void ErrorProvider::prepare_write(const decltype(icon)&, stxlib::Optional<ImageId>& incoming) {
     require_access("ErrorProvider icon mutation");
     Window* owner = bound_window();
+    const ImageId* image = incoming.value();
     // A stock icon (E10) names no registry entry and is valid anywhere.
-    const bool stock = incoming && is_stock_icon_image(*incoming);
-    if (incoming && !stock && ((*incoming).value == 0U || !owner ||
-                               !(*owner).image_resources().find(*incoming))) {
+    const bool stock = image != nullptr && is_stock_icon_image(*image);
+    if (image != nullptr && !stock && ((*image).value == 0U || !owner ||
+                                       !(*owner).image_resources().find(*image))) {
         throw std::invalid_argument(
             "GUI.Forms ErrorProvider icon must identify a live Window image or a stock icon");
     }

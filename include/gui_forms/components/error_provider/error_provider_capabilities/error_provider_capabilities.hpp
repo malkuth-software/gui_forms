@@ -11,6 +11,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -84,9 +85,9 @@ struct ErrorProviderRightToLeftCapability {
 // The icon image, or none for the stock glyph. An image that is not live in the provider's window throws std::invalid_argument.
 template <typename Declaring>
 struct ErrorProviderIconCapability {
-    PropertyCell<std::optional<ImageId>, ErrorProviderIconCapability<Declaring>> icon{};
+    PropertyCell<stxlib::Optional<ImageId>, ErrorProviderIconCapability<Declaring>> icon{};
 
-    static void assign(ErrorProviderIconCapability& capability, std::optional<ImageId> incoming) {
+    static void assign(ErrorProviderIconCapability& capability, stxlib::Optional<ImageId> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.icon), incoming);
         if (!capability.icon.replace(std::move(incoming))) return;

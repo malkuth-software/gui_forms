@@ -61,6 +61,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -604,7 +605,7 @@ void bubbles_and_steam() {
 // The bar hosts its effects: the style's own by default, another by name,
 // none for a name no progress-bar effect has; the seed follows the stable
 // ID unless the application sets one; steam widens the bar's outsets.
-std::uint64_t hosted_checksum(const char* id, std::optional<std::uint64_t> seed) {
+std::uint64_t hosted_checksum(const char* id, stxlib::Optional<std::uint64_t> seed) {
     std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId(std::string_view(id)));
     (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
     (*bar).value = 70.0;
@@ -657,11 +658,11 @@ void progress_bar_hosting() {
     (*bar).effect = "";
     require((*bar).effect_instance().entry() == &built_in("progress_laser"), "an empty name restores the style's");
 
-    const std::uint64_t first = hosted_checksum("effects.woven", std::nullopt);
-    require(first == hosted_checksum("effects.woven", std::nullopt), "the default seed follows the stable ID");
-    require(first != hosted_checksum("effects.other", std::nullopt), "another stable ID weaves another pattern");
-    require(first != hosted_checksum("effects.woven", 7U) && hosted_checksum("effects.woven", 7U) ==
-                                                               hosted_checksum("effects.other", 7U),
+    const std::uint64_t first = hosted_checksum("effects.woven", stxlib::Optional<std::uint64_t>::none());
+    require(first == hosted_checksum("effects.woven", stxlib::Optional<std::uint64_t>::none()), "the default seed follows the stable ID");
+    require(first != hosted_checksum("effects.other", stxlib::Optional<std::uint64_t>::none()), "another stable ID weaves another pattern");
+    require(first != hosted_checksum("effects.woven", stxlib::Optional<std::uint64_t>::of(7U)) && hosted_checksum("effects.woven", stxlib::Optional<std::uint64_t>::of(7U)) ==
+                                                               hosted_checksum("effects.other", stxlib::Optional<std::uint64_t>::of(7U)),
             "an application seed replaces the default");
 }
 
@@ -790,9 +791,9 @@ void effect_properties_and_input() {
     require(std::holds_alternative<std::monostate>(*(*bar).property_value("effect_seed")),
             "the effect seed is null by default");
     (*bar).set_property_value("effect_seed", BindingValue{std::uint64_t{42U}});
-    require((*bar).effect_seed.read() == std::optional<std::uint64_t>{42U}, "the effect_seed property sets the seed");
+    require((*bar).effect_seed.read() == stxlib::Optional<std::uint64_t>::of(42U), "the effect_seed property sets the seed");
     (*bar).set_property_value("effect_seed", BindingValue{});
-    require(!(*bar).effect_seed.read().has_value(), "null restores the derived seed");
+    require((*bar).effect_seed.read().absent(), "null restores the derived seed");
     require(!(*bar).hit_test_local({10.0, 10.0}), "without a grant the pointer passes through the bar");
     (*bar).set_property_value("effect_input", BindingValue{PropertyEnumValue{"effect_input_kind", "pointer", 1}});
     require((*bar).effect_input.read() == EffectInputKind::pointer && (*bar).hit_test_local({10.0, 10.0}),

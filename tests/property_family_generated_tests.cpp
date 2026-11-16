@@ -2275,7 +2275,7 @@ void test_progress_bar_properties() {
                "ProgressBar.effect: the table reads the cell");
     }
     {
-        const std::optional<std::uint64_t> sample = std::uint64_t{7U};
+        const stxlib::Optional<std::uint64_t> sample = stxlib::Optional<std::uint64_t>::of(7U);
         (*control).effect_seed = sample;
         expect((*control).effect_seed.read() == sample, "ProgressBar.effect_seed: a write stores");
         expect((*control).property_value("effect_seed").has_value(), "ProgressBar.effect_seed: the table reads it");
@@ -2927,7 +2927,7 @@ void test_text_block_properties() {
                "TextBlock.text_align: the table reads the cell");
     }
     {
-        const std::optional<double> sample = 18.0;
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(18.0);
         (*control).line_height = sample;
         expect((*control).line_height.read() == sample, "TextBlock.line_height: a write stores");
         expect((*control).property_value("line_height").has_value(), "TextBlock.line_height: the table reads it");

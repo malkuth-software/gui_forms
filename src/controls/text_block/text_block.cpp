@@ -133,18 +133,17 @@ PropertyValueOrigin TextBlock::fore_color_property_origin() const noexcept {
 }
 
 BindingValue TextBlock::line_height_property_value() const {
-    const std::optional<double>& own = line_height.read();
-    const double value = own ? *own : 0.0;
+    const double value = line_height.read().value_or(0.0);
     return BindingValue{value};
 }
 
 void TextBlock::write_line_height_property(const BindingValue& value) {
     const double requested = std::get<double>(value);
     if (requested == 0.0) {
-        line_height = std::nullopt;
+        line_height = stxlib::Optional<double>::none();
         return;
     }
-    line_height = requested;
+    line_height = stxlib::Optional<double>::of(requested);
 }
 
 // A present font must be valid; writing one records that code chose it,
@@ -222,9 +221,9 @@ LineBoxMetrics TextBlock::line_metrics(FontSpec face) const {
     // resolves them; a set line height scales with the text, as the font
     // does.
     const ResolvedTextLayout primary = resolve_text_layout_utf8(" ", face);
-    const std::optional<double>& own_line_height = line_height.read();
+    const double* own_line_height = line_height.read().value();
     std::optional<double> used_line_height;
-    if (own_line_height) used_line_height = *own_line_height * effective_text_scale();
+    if (own_line_height != nullptr) used_line_height = *own_line_height * effective_text_scale();
     const LineBoxMetrics metrics = line_box_metrics(primary, used_line_height);
     return metrics;
 }
@@ -589,9 +588,10 @@ void TextBlock::written(const decltype(text_align)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void TextBlock::prepare_write(const decltype(line_height)&, std::optional<double>& incoming) {
+void TextBlock::prepare_write(const decltype(line_height)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming && (!std::isfinite(*incoming) || *incoming <= 0.0)) throw std::invalid_argument("TextBlock line height must be finite and positive");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr && (!std::isfinite(*incoming_value) || *incoming_value <= 0.0)) throw std::invalid_argument("TextBlock line height must be finite and positive");
 }
 
 void TextBlock::written(const decltype(line_height)&) {

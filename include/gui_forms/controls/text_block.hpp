@@ -150,7 +150,7 @@ private:
     void written(const decltype(font)& cell);
     void prepare_write(const decltype(text_align)& cell, TextAlignment& incoming);
     void written(const decltype(text_align)& cell);
-    void prepare_write(const decltype(line_height)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(line_height)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(line_height)& cell);
     // property_codemod end TextBlock
 };

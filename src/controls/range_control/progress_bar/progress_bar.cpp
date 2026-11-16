@@ -138,17 +138,17 @@ ProgressBar::ProgressBar(StableId stable_id)
 }
 
 BindingValue ProgressBar::effect_seed_property_value() const {
-    const std::optional<std::uint64_t>& seed = effect_seed.read();
-    if (!seed) return BindingValue{};
+    const std::uint64_t* seed = effect_seed.read().value();
+    if (seed == nullptr) return BindingValue{};
     return BindingValue{*seed};
 }
 
 void ProgressBar::write_effect_seed_property(const BindingValue& value) {
     if (std::holds_alternative<std::monostate>(value)) {
-        effect_seed = std::nullopt;
+        effect_seed = stxlib::Optional<std::uint64_t>::none();
         return;
     }
-    effect_seed = std::get<std::uint64_t>(value);
+    effect_seed = stxlib::Optional<std::uint64_t>::of(std::get<std::uint64_t>(value));
 }
 
 void ProgressBar::validate_animation_appearance(const ProgressBarAnimationAppearance& appearance) const {
@@ -225,7 +225,7 @@ void ProgressBar::written(const decltype(effect)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ProgressBar::prepare_write(const decltype(effect_seed)&, std::optional<std::uint64_t>&) {
+void ProgressBar::prepare_write(const decltype(effect_seed)&, stxlib::Optional<std::uint64_t>&) {
     require_mutable();
 }
 
