@@ -871,6 +871,15 @@ FormGenerateOutcome generate_form_cpp(const theme_language::ThemeSource& source,
     if (options.model_header.find_first_of("\"\n") != std::string::npos) {
         throw std::invalid_argument("generate_form_cpp: the model header cannot be spelled in an #include");
     }
+    // The source name is written into // comments as it is (A-gf-core-07-F2):
+    // a line break, or any other control byte, would end the comment and
+    // let the rest of a file's name compile as code of the header.
+    for (const char character : options.source_name) {
+        const unsigned char byte = static_cast<unsigned char>(character);
+        if (byte < 0x20U || byte == 0x7FU) {
+            throw std::invalid_argument("generate_form_cpp: the source name holds a control byte");
+        }
+    }
     std::string scratch{};
     FormGenerator generator(source, schema, model, options, diagnostics);
     if (!generator.run(scratch)) return FormGenerateOutcome::refused;

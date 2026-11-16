@@ -422,6 +422,17 @@ void test_refusals() {
         thrown = true;
     }
     require(thrown, "refusals: a malformed namespace throws");
+    // A-gf-core-07-F2: a source name that would end the generated comment.
+    options = sample_options();
+    options.source_name = "evil.form\nint injected = 0;\n//";
+    thrown = false;
+    plain_text = "kept";
+    try {
+        static_cast<void>(generate(plain, schema, options, plain_text));
+    } catch (const std::invalid_argument&) {
+        thrown = true;
+    }
+    require(thrown && plain_text == "kept", "refusals: a source name holding a line break throws");
 }
 
 // Fonts and text items (owner decisions FD6-3 and FD6-4): written, loaded
