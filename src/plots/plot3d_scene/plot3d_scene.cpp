@@ -1120,18 +1120,18 @@ bool Plot3DScene::pan_by(double dx, double dy) {
     return changed;
 }
 
-bool Plot3DScene::zoom_by(double factor, std::optional<Point> about) {
+bool Plot3DScene::zoom_by(double factor, stxlib::Optional<Point> about) {
     const State& state = *state_;
     if (!std::isfinite(factor) || !(factor > 0.0)) return false;
     const double zoom = clamped(state.camera.zoom * factor, minimum_zoom, maximum_zoom);
     const double applied = zoom / state.camera.zoom;
     Plot3DCamera zoomed = state.camera;
     zoomed.zoom = zoom;
-    if (about.has_value() && state.rendered) {
+    if (about.present() && state.rendered) {
         // The point under `about` on the target's plane stays put: the
         // target moves towards it by (1 - 1 / applied) of its offset.
-        const double across = (*about).x - state.view_width * 0.5;
-        const double down = (*about).y - state.view_height * 0.5;
+        const double across = (*about.value()).x - state.view_width * 0.5;
+        const double down = (*about.value()).y - state.view_height * 0.5;
         const double step = world_per_logical(state) * (1.0 - 1.0 / applied);
         const stx_raster3d::Vec3 moved = vector_of(state.camera.target) + state.view.right() * (across * step) -
                                          state.view.upward() * (down * step);

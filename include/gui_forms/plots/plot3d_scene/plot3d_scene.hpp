@@ -295,7 +295,18 @@ public:
     bool pan_by(double dx, double dy);
     // Multiplies the zoom by `factor`, keeping the point under `about`
     // (logical, from the picture's top left) in place when given.
-    bool zoom_by(double factor, std::optional<Point> about);
+    bool zoom_by(double factor, stxlib::Optional<Point> about);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<Point>")]]
+    bool zoom_by(double factor, std::optional<Point> about) {
+        stxlib::Optional<Point> owned{};
+        if (about.has_value()) owned.set(*about);
+        const bool zoomed = zoom_by(factor, owned);
+        return zoomed;
+    }
+    // A plain point is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<Point>::of(about).
+    bool zoom_by(double factor, Point about) = delete;
 
     // -- picture ---------------------------------------------------------------
     // The device size of a frame's picture (its logical size times its

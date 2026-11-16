@@ -28,8 +28,23 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace {
 using namespace gui_forms;
+
+// D15 Q3: Plot3DScene::zoom_by keeps its deprecated std::optional point for
+// one stage; a plain point or {} must not reach it silently. Each plain call
+// below is refused (the deleted overload or an ambiguity), and the stxlib
+// form is accepted.
+template <typename Scene>
+concept takes_plain_zoom_point = requires(Scene& scene) { scene.zoom_by(2.0, Point{1.0, 1.0}); };
+template <typename Scene>
+concept takes_empty_zoom_point = requires(Scene& scene) { scene.zoom_by(2.0, {}); };
+template <typename Scene>
+concept takes_optional_zoom_point = requires(Scene& scene) { scene.zoom_by(2.0, stxlib::Optional<Point>::none()); };
+static_assert(!takes_plain_zoom_point<plots::Plot3DScene> && !takes_empty_zoom_point<plots::Plot3DScene>);
+static_assert(takes_optional_zoom_point<plots::Plot3DScene>);
 
 void require(bool condition, const char* message) {
     if (condition) return;
