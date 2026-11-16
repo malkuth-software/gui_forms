@@ -426,6 +426,7 @@ void BlendWalk::command(const DisplayCommand& command) {
         return;
     case DisplayOperation::begin_group: begin_group(command); return;
     case DisplayOperation::end_group: end_group(); return;
+    // Every other operation draws: counted by the drawing switch below.
     default:
         break;
     }
@@ -493,6 +494,7 @@ void BlendWalk::command(const DisplayCommand& command) {
     case DisplayOperation::stroke_path:
         marks(command);
         return;
+    // The state operations were handled by the switch above; nothing else is counted.
     default:
         break;
     }

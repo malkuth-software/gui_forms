@@ -449,7 +449,7 @@ Related types
 
    .. cpp:member:: std::string accessible_name
 
-   .. cpp:member:: std::optional<KeyGesture> shortcut
+   .. cpp:member:: stxlib::Optional<KeyGesture> shortcut
 
    .. cpp:member:: Command* command
 

@@ -51,6 +51,9 @@ MaterialBlendMode separable_mode(ContrastBlend blend) noexcept {
     case ContrastBlend::normal:
     case ContrastBlend::multiply:
     case ContrastBlend::screen: break;
+    default:
+        // A value outside the enumeration takes the fallback after the switch.
+        break;
     }
     return MaterialBlendMode::normal;
 }

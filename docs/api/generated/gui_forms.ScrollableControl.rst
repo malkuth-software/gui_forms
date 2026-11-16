@@ -89,7 +89,7 @@ gui_forms::ScrollableControl
       **vscroll** : ``bool``, default ``false``
          Whether the vertical bar is visible; see :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`.
 
-      **last_scroll_event** : ``std::optional<ScrollEvent>``, read-only
+      **last_scroll_event** : ``stxlib::Optional<ScrollEvent>``, read-only
          The most recent event raised by :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`, or empty if there has been none.
 
       **scroll_event_revision** : ``std::uint64_t``, default ``0``, read-only
@@ -334,7 +334,7 @@ gui_forms::ScrollableControl
 
       Sets :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`; see the property's description above.
 
-   .. cpp:function:: std::optional<ScrollEvent> last_scroll_event() const noexcept
+   .. cpp:function:: stxlib::Optional<ScrollEvent> last_scroll_event() const noexcept
 
       The most recent event raised by :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`, or empty if there has been none.
 

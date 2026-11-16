@@ -441,7 +441,7 @@ Types
 
    .. cpp:member:: std::uint64_t key
 
-   .. cpp:member:: std::optional<Rect> source
+   .. cpp:member:: stxlib::Optional<Rect> source
 
    .. cpp:member:: double threshold
 

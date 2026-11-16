@@ -663,7 +663,7 @@ Related types
 
    .. rubric:: Extension points
 
-   .. cpp:function:: virtual std::optional<FontFallbackMatch> resolve(const FontFallbackRequest& request) = 0
+   .. cpp:function:: virtual stxlib::Optional<FontFallbackMatch> resolve(const FontFallbackRequest& request) = 0
 
       Returns an admitted face and coverage count, or no fallback.
 
@@ -711,7 +711,7 @@ Related types
 
       Default: ``{FontFamilyKind::bundled}``.
 
-   .. cpp:member:: std::optional<FontRole> role
+   .. cpp:member:: stxlib::Optional<FontRole> role
 
       The role whose faces are this family's, or none for a family whose faces are registered as its own.
 
@@ -1157,7 +1157,7 @@ Related types
 
    .. cpp:member:: std::string text
 
-   .. cpp:member:: std::optional<LocaleLayerKind> origin
+   .. cpp:member:: stxlib::Optional<LocaleLayerKind> origin
 
    .. cpp:member:: bool fallback
 
@@ -1320,7 +1320,7 @@ Related types
 
    .. cpp:function:: bool succeeded() const noexcept
 
-   .. cpp:function:: std::optional<MarkdownParseError> error() const noexcept
+   .. cpp:function:: stxlib::Optional<MarkdownParseError> error() const noexcept
 
       The error of a parse that failed; none when it succeeded.
 
@@ -1367,11 +1367,11 @@ Related types
 
    .. cpp:member:: MarkdownSpanStyle style
 
-   .. cpp:member:: std::optional<std::size_t> link
+   .. cpp:member:: stxlib::Optional<std::size_t> link
 
       The link the span is the text of: an index into MarkdownDocument::links.
 
-   .. cpp:member:: std::optional<std::size_t> image
+   .. cpp:member:: stxlib::Optional<std::size_t> image
 
       The image the span is the alternative text of: an index into MarkdownDocument::images.
 
@@ -1397,9 +1397,9 @@ Related types
 
       Default: ``{MarkdownBaseline::normal}``.
 
-   .. cpp:member:: std::optional<MarkdownRgb> colour
+   .. cpp:member:: stxlib::Optional<MarkdownRgb> colour
 
-   .. cpp:member:: std::optional<MarkdownRgb> background
+   .. cpp:member:: stxlib::Optional<MarkdownRgb> background
 
    .. cpp:member:: std::int8_t size_step
 
@@ -1714,7 +1714,7 @@ Related types
 
    .. cpp:member:: std::span<const std::byte> encoded
 
-   .. cpp:member:: std::optional<FontRole> role
+   .. cpp:member:: stxlib::Optional<FontRole> role
 
    .. cpp:member:: std::uint16_t weight
 
@@ -2119,7 +2119,7 @@ Related types
 
       The preferred primary face's line gap at this size: what its line height, rounded to whole pixels, adds to its rounded ascent and descent, never negative. A line box is the larger of the logical height and ascent + descent + line_gap, for TextBox and prepared text alike.
 
-   .. cpp:member:: std::optional<FontVerticalMetrics> design_metrics
+   .. cpp:member:: stxlib::Optional<FontVerticalMetrics> design_metrics
 
       The preferred primary face's design metrics at this size, when the terminal engine reads them; an estimate has none.
 
@@ -2850,11 +2850,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: TextEditResult replace(Utf8Range range, std::string_view replacement, std::optional<TextStyleId> inserted_style = std::nullopt)
+   .. cpp:function:: TextEditResult replace(Utf8Range range, std::string_view replacement, stxlib::Optional<TextStyleId> inserted_style = stxlib::Optional<TextStyleId>::none())
 
       Validates typed range and replacement UTF-8, constructs candidate text and metadata, transforms styles, then commits all state and counters atomically.
 
-   .. cpp:function:: std::optional<TextStyleId> style_at(Utf8Offset position) const
+   .. cpp:function:: stxlib::Optional<TextStyleId> style_at(Utf8Offset position) const
 
       Validates the byte position and returns the containing style identity when present.
 
@@ -3835,7 +3835,7 @@ Functions, constants and aliases
 
    The field's name in the locale XML: "text", "tool-tip", "access-key", "title", "placeholder", "header", "accessible-name", "accessible-description", "help-line", "help" or "keywords". Static storage.
 
-.. cpp:function:: std::optional<LocaleField> find_locale_field(std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<LocaleField> find_locale_field(std::string_view name) noexcept
 
    The field a locale XML name names, or nothing.
 
@@ -3855,7 +3855,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view locale_refusal_name(LocaleRefusal refusal) noexcept
 
-.. cpp:function:: std::optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value, const LocaleLimits& limits = {})
+.. cpp:function:: stxlib::Optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value, const LocaleLimits& limits = {})
 
    Checks one value against its field's rules and bound: the refusal, or nothing when the value is acceptable. Display text only: no C0 controls but tab and line feed, balanced bidirectional controls, a well-formed keyword list for ``keywords`` and one grapheme for ``access-key``.
 
@@ -4147,7 +4147,7 @@ Functions, constants and aliases
 
 .. cpp:function:: FontFamilyOrder font_family_order(const FontSpec& font) noexcept
 
-.. cpp:function:: constexpr std::optional<std::size_t> font_family_position(const FontFamilyOrder& order, FontFamilyId family) noexcept
+.. cpp:function:: constexpr stxlib::Optional<std::size_t> font_family_position(const FontFamilyOrder& order, FontFamilyId family) noexcept
 
    The position of ``family`` in ``order``, or none.
 
@@ -4189,7 +4189,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::array<FontFamilyRecord, 8> bundled_font_families
 
-   The bundled families, in the order of their numbers. Value: ``{{{selawik_font_family, "Selawik", FontFamilyKind::bundled, std::nullopt, detail::selawik_faces}, {portsmouth_rapids_font_family, "Portsmouth Rapids", FontFamilyKind::bundled, FontRole::control, detail::portsmouth_rapids_faces}, {carlito_font_family, "Carlito", FontFamilyKind::bundled, FontRole::content, detail::carlito_faces}, {cousine_font_family, "Cousine", FontFamilyKind::bundled, FontRole::monospace, detail::cousine_faces}, {arimo_font_family, "Arimo", FontFamilyKind::bundled, std::nullopt, detail::arimo_faces}, {tinos_font_family, "Tinos", FontFamilyKind::bundled, std::nullopt, detail::tinos_faces}, {portsmouth_mono_font_family, "Portsmouth Mono", FontFamilyKind::bundled, std::nullopt, detail::portsmouth_mono_faces}, {selawik_semibold_font_family, "Selawik Semibold", FontFamilyKind::bundled, std::nullopt, detail::selawik_semibold_faces}}}``.
+   The bundled families, in the order of their numbers. Value: ``{{{selawik_font_family, "Selawik", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::selawik_faces}, {portsmouth_rapids_font_family, "Portsmouth Rapids", FontFamilyKind::bundled, stxlib::Optional<FontRole>::of(FontRole::control), detail::portsmouth_rapids_faces}, {carlito_font_family, "Carlito", FontFamilyKind::bundled, stxlib::Optional<FontRole>::of(FontRole::content), detail::carlito_faces}, {cousine_font_family, "Cousine", FontFamilyKind::bundled, stxlib::Optional<FontRole>::of(FontRole::monospace), detail::cousine_faces}, {arimo_font_family, "Arimo", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::arimo_faces}, {tinos_font_family, "Tinos", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::tinos_faces}, {portsmouth_mono_font_family, "Portsmouth Mono", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::portsmouth_mono_faces}, {selawik_semibold_font_family, "Selawik Semibold", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::selawik_semibold_faces}}}``.
 
 .. cpp:var:: constexpr std::array<GenericFontFamily, 13> generic_font_families
 
@@ -4223,7 +4223,7 @@ Functions, constants and aliases
 
    Deterministic renderer-free fallback. It is explicitly labelled estimated; callers must not report it as a resolved bundled face or a raster metric.
 
-.. cpp:function:: LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary, std::optional<double> used_line_height) noexcept
+.. cpp:function:: LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary, stxlib::Optional<double> used_line_height) noexcept
 
    The line box of ``primary`` (a resolution of any text in the used font). The face's ascent, descent and line gap are each rounded to a whole logical pixel; ``normal`` (no used_line_height) is their sum. The leading (the gap, or a used line height's excess over the rounded ascent and descent, negative when it is less) goes half above the text, rounded down, and the rest below: Chromium's rounding, measured against Chrome 155 from 12 to 21 px (notes:planning/stages/L-layout/PLAN.md section 12.5). Without design metrics (an estimate) it uses the resolution's ascent, descent and line gap.
 

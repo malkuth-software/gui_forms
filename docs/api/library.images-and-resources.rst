@@ -198,11 +198,11 @@ Related types
 
       Program icons (T3 user themes). Registers ``image``, an image of these resources, as the icon ``identifier``. std::invalid_argument when the identifier is invalid or already registered, or the image is not one of these resources'; nothing changes then. The image stays the program's: removing it leaves icon() naming an image no longer there.
 
-   .. cpp:function:: std::optional<ImageId> icon(std::string_view identifier) const noexcept
+   .. cpp:function:: stxlib::Optional<ImageId> icon(std::string_view identifier) const noexcept
 
       The image to draw for the icon ``identifier``: the selected user theme's override of an overridable icon, else the program's image; nullopt for an identifier not registered. A user theme is selected before the first window, so a window resolves the same image for its whole life.
 
-   .. cpp:function:: std::optional<ImageId> program_icon(std::string_view identifier) const noexcept
+   .. cpp:function:: stxlib::Optional<ImageId> program_icon(std::string_view identifier) const noexcept
 
       The program's own image for the icon ``identifier``, whatever user theme is selected; nullopt for an identifier not registered.
 
@@ -508,7 +508,7 @@ Related types
 
       Retires every occupied slot and resets byte/resource totals while preserving future generation safety.
 
-   .. cpp:function:: std::optional<ImageResourceView> find(ImageId image) const noexcept
+   .. cpp:function:: stxlib::Optional<ImageResourceView> find(ImageId image) const noexcept
 
       Resolves only an exact current generational ID and returns a mutation-scoped byte view.
 
@@ -748,7 +748,7 @@ Related types
 
       Default: ``{StockIconStyle::solid}``.
 
-   .. cpp:member:: std::optional<StockIconSize> size
+   .. cpp:member:: stxlib::Optional<StockIconSize> size
 
 .. cpp:namespace:: gui_forms
 
@@ -1102,7 +1102,7 @@ Functions, constants and aliases
 
 .. cpp:function:: bool is_stock_icon_image(ImageId image) noexcept
 
-.. cpp:function:: std::optional<StockIconImage> stock_icon_image_parts(ImageId image) noexcept
+.. cpp:function:: stxlib::Optional<StockIconImage> stock_icon_image_parts(ImageId image) noexcept
 
 .. cpp:function:: std::optional<StockIcon> stock_icon_for_image(ImageId image, double logical_side)
 

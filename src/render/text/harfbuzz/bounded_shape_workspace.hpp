@@ -27,7 +27,9 @@ struct ShapeScratch final {
     using CountedScalars =
         std::vector<std::uint32_t, gui_forms::detail::CountedAllocator<std::uint32_t, AllocationSubsystem::text_layout>>;
     CountedScalars characters{};
-
+    CountedScalars clusters{};
+    stxlib::Vector<stxlib::glyphs::ShapedGlyph> glyphs{};
+};
 
 // Face indices refer only to the current engine's stable registration table.
 // They are overwritten before use on each call; no native face borrow persists.

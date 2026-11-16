@@ -785,6 +785,9 @@ std::int64_t separable_term(const std::int64_t source, const std::int64_t source
     case PartCompositeBlend::multiply:
     case PartCompositeBlend::screen:
     case PartCompositeBlend::copy: break;
+    default:
+        // A value outside the enumeration takes the fallback after the switch.
+        break;
     }
     // Any other mode joins as multiply.
     return source * destination;

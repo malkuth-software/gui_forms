@@ -1790,7 +1790,7 @@ Types
 
    .. cpp:member:: Matrix transform
 
-   .. cpp:member:: std::optional<RectF> clip
+   .. cpp:member:: stxlib::Optional<RectF> clip
 
    .. cpp:member:: SmoothingMode smoothing
 
@@ -1906,7 +1906,7 @@ Types
 
       Waits up to ``timeout`` for parent messages and handles every one that arrived: configure updates request(), release frees a slot, input (key, text, pointer, focus) is queued for take_input, stop sets stop_requested(). Returns false once a stop was asked for or the channel closed or broke.
 
-   .. cpp:function:: std::optional<std::uint32_t> acquire_slot(std::chrono::milliseconds timeout)
+   .. cpp:function:: stxlib::Optional<std::uint32_t> acquire_slot(std::chrono::milliseconds timeout)
 
       A slot the parent has released, pumping up to ``timeout`` for one; none on timeout, stop or a closed channel.
 
@@ -2224,7 +2224,7 @@ Types
 
    ImageAttributesSnapshot owns optional 5x5 color-matrix state and a bounded remap table.
 
-   .. cpp:member:: std::optional<std::array<double, 25>> color_matrix
+   .. cpp:member:: stxlib::Optional<std::array<double, 25>> color_matrix
 
       The colour matrix as set_color_matrix took it; absent when none is set.
 

@@ -523,7 +523,7 @@ Types
 
       The column's name at index as its provider wrote it (trimmed, letters as given: "City"), for display, such as a generated grid column's header; column(index).name is the canonical match key ("city").
 
-   .. cpp:function:: std::optional<std::size_t> find(std::string_view name) const
+   .. cpp:function:: stxlib::Optional<std::size_t> find(std::string_view name) const
 
       The index of the column named name in any spelling that folds to it, or empty. A name that is blank finds nothing.
 
@@ -666,7 +666,7 @@ Types
 
    .. cpp:function:: bool editable(std::size_t row) const
 
-   .. cpp:function:: std::optional<std::size_t> find(std::string_view stable_id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> find(std::string_view stable_id) const
 
       The row's index, found by a linear search.
 
@@ -1131,7 +1131,7 @@ Types
 
       Default: ``{NumberFormatKind::general}``.
 
-   .. cpp:member:: std::optional<std::uint32_t> precision
+   .. cpp:member:: stxlib::Optional<std::uint32_t> precision
 
       Empty for the kind's default: 2 for F, N, P and C; 6 for E. For G an empty or zero precision gives a double's shortest text that parses back to the same value (scientific from an exponent of 15 or below -5) and an integer's every digit.
 
@@ -1438,7 +1438,7 @@ Types
 
       Default: ``{true}``.
 
-   .. cpp:member:: std::optional<BindingValueKind> declared_kind
+   .. cpp:member:: stxlib::Optional<BindingValueKind> declared_kind
 
       Optional schema is required when a member's current value is null and may also pin conversion/editor services independently of its owner.
 
@@ -1912,7 +1912,7 @@ Functions, constants and aliases
 
 ``#include <gui_forms/binding/number_format/number_format.hpp>``
 
-.. cpp:function:: std::optional<NumberFormat> parse_number_format(std::string_view text) noexcept
+.. cpp:function:: stxlib::Optional<NumberFormat> parse_number_format(std::string_view text) noexcept
 
    The format a format string names: one of the letters F, N, P, C, E and G in either case, then at most two decimal digits. Empty for any other text, the empty string included (an empty format string means "no format" to its callers, not a format).
 
@@ -2090,13 +2090,13 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string binding_value_to_string(const BindingValue& value)
 
-.. cpp:function:: std::optional<bool> binding_value_to_bool(const BindingValue& value) noexcept
+.. cpp:function:: stxlib::Optional<bool> binding_value_to_bool(const BindingValue& value) noexcept
 
-.. cpp:function:: std::optional<std::int64_t> binding_value_to_signed(const BindingValue& value) noexcept
+.. cpp:function:: stxlib::Optional<std::int64_t> binding_value_to_signed(const BindingValue& value) noexcept
 
-.. cpp:function:: std::optional<std::uint64_t> binding_value_to_unsigned(const BindingValue& value) noexcept
+.. cpp:function:: stxlib::Optional<std::uint64_t> binding_value_to_unsigned(const BindingValue& value) noexcept
 
-.. cpp:function:: std::optional<double> binding_value_to_number(const BindingValue& value) noexcept
+.. cpp:function:: stxlib::Optional<double> binding_value_to_number(const BindingValue& value) noexcept
 
 .. cpp:function:: std::optional<BindingValue> convert_binding_value(const BindingValue& value, BindingValueKind target_kind)
 

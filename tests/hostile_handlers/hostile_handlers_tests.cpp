@@ -204,8 +204,10 @@ void perform(Stage& stage) {
     case HostileAction::destroy_window:
         stage.window.reset();
         return;
+    default:
+        // An unknown action does nothing: the case then only checks consistency.
+        break;
     }
-    // An unknown action does nothing: the case then only checks consistency.
 }
 
 void HostileHandler::fire() {

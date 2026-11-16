@@ -2850,7 +2850,7 @@ Types
 
       How far inside a part of ``logical`` size, at display ``scale`` and the window's ``text_scale``, its text may begin (E8, T1's hand-off: text is published as a layout slot, ThemeEngine::text_slot). In logical units; the slot inside them lies within the shape the primitive draws. None unless the primitive says otherwise. ``parameters`` match the declarations; ``logical`` and ``scale`` are positive and finite.
 
-   .. cpp:function:: virtual std::optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters, ControlVisualRole family) const noexcept
+   .. cpp:function:: virtual stxlib::Optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters, ControlVisualRole family) const noexcept
 
       The recipe role (ControlVisualRole) whose theme material the primitive draws with ``parameters`` (E8-1) on a part of recipe family ``family``: the engine then resolves the role's recipe for the part's state and lends its material in the target, with the material fields the theme's rules set in place of the recipe's (EC1). None unless the primitive says otherwise. ``parameters`` match the declarations.
 
@@ -2858,11 +2858,11 @@ Types
 
       Whether the primitive draws the theme's overlay shadow (E9, GIVEN E1-1): the engine then lends the theme's overlay shadow layers for the part's presentation as a material of one transparent fill and those shadows, at the part's corner radius, and draws nothing when the theme casts none. False unless the primitive says otherwise.
 
-   .. cpp:function:: virtual std::optional<PointerOverlay> pointer_overlay(const PrimitiveParameterBlock& parameters, Size part) const noexcept
+   .. cpp:function:: virtual stxlib::Optional<PointerOverlay> pointer_overlay(const PrimitiveParameterBlock& parameters, Size part) const noexcept
 
       How the primitive is composited over a part of ``part`` size when it stands behind the overlay seam (PointerOverlay); none for a primitive drawn over the part's own box, unless the primitive says otherwise. ``parameters`` match the declarations.
 
-   .. cpp:function:: virtual std::optional<std::uint32_t> backplane_margin(const PrimitiveParameterBlock& parameters, DeviceScale scale) const noexcept
+   .. cpp:function:: virtual stxlib::Optional<std::uint32_t> backplane_margin(const PrimitiveParameterBlock& parameters, DeviceScale scale) const noexcept
 
       How many device pixels past the destination, on every side, the primitive reads the backplane at display ``scale`` (PrimitiveTarget:: backplane); none for a primitive that does not sample it, unless the primitive says otherwise. ``parameters`` match the declarations.
 
@@ -3430,7 +3430,7 @@ Types
 
    .. cpp:member:: DeviceScale scale
 
-   .. cpp:member:: std::optional<ProceduralFill> procedural
+   .. cpp:member:: stxlib::Optional<ProceduralFill> procedural
 
 .. cpp:namespace:: gui_forms
 
@@ -5393,7 +5393,7 @@ Types
 
       The arc and needle roles' angles (PartArc), or none, when neither draws. Every other role ignores them.
 
-   .. cpp:member:: std::optional<PartLightPlanes> light_planes
+   .. cpp:member:: stxlib::Optional<PartLightPlanes> light_planes
 
       The baked light planes the part is composited from (PartLightPlanes), or none. Such a part is drawn as the bake's light, room · R + Σ colour · power · L_i toned (engine_light::composite_light_planes), stretched over ``bounds`` at the window's scale, in place of its recipe and of any primitive a rule would choose: the bake carries the part's whole look, its body included. The composite is transparent where the bake's coverage is 0, so its light never reaches past the part; a part with a corner radius is clipped to that shape as well. The recipe draws the part instead in forced high contrast, where the role's colours stand, and when no raster of the part's size can be made (ornament gives way first).
 
@@ -6781,7 +6781,7 @@ Types
 
       The overlay shadow's layers (owner decision RB-37) for ordinary or high-contrast presentation; empty when the theme casts none.
 
-   .. cpp:function:: std::optional<ImageId> icon_override(std::string_view identifier) const noexcept
+   .. cpp:function:: stxlib::Optional<ImageId> icon_override(std::string_view identifier) const noexcept
 
       The image a compiled user theme gives the program icon ``identifier`` (its ``icons/<identifier>.png``), held by the theme while it lives; nullopt where it gives none (T3 user themes). Whether the program lets the icon be replaced is the application's (ApplicationResources:: icon).
 
@@ -7355,7 +7355,7 @@ Types
 
    .. cpp:member:: std::vector<std::string> published_values
 
-   .. cpp:member:: std::optional<ColourSchemeSet> colour_schemes
+   .. cpp:member:: stxlib::Optional<ColourSchemeSet> colour_schemes
 
       The colour schemes the sheet declares (``:root { color-scheme: ... }``, T4 theme variants), or none where it declares none. Theme::create takes a declared set as the theme's (ThemeDefinition::colour_schemes).
 
@@ -10350,7 +10350,7 @@ Functions, constants and aliases
 
    Checks every value against its declaration.
 
-.. cpp:function:: std::optional<std::size_t> find_parameter(const PrimitiveDescriptor& descriptor, std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<std::size_t> find_parameter(const PrimitiveDescriptor& descriptor, std::string_view name) noexcept
 
 .. cpp:function:: ParameterAssignment set_number_parameter(PrimitiveParameterBlock& block, const PrimitiveDescriptor& descriptor, std::string_view name, double value) noexcept
 
@@ -10362,7 +10362,7 @@ Functions, constants and aliases
 
    A choice by its name; an unknown choice is out_of_range.
 
-.. cpp:function:: std::optional<std::size_t> find_choice(const PrimitiveParameterDeclaration& declaration, std::string_view choice) noexcept
+.. cpp:function:: stxlib::Optional<std::size_t> find_choice(const PrimitiveParameterDeclaration& declaration, std::string_view choice) noexcept
 
    The position of ``choice`` among a choice parameter's choices, or none.
 
@@ -10996,7 +10996,7 @@ Functions, constants and aliases
 
    Whether paint_surface_material draws each pixel of its bounds the same whatever the bounds' size: a valid, unfinished material with square corners, no border, shadow, visual outset, filter, mask or reflection, whose fills are all solid. Its pixels inside an old extent then stay right when the extent changes (Panel::paint_depends_on_size).
 
-.. cpp:function:: std::optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept
+.. cpp:function:: stxlib::Optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept
 
    How far in from the bounds' right and bottom edges a size change can alter what paint_surface_material draws, in logical units, when nothing else moves: 0 for a size-invariant material; for one whose only size-dependent parts are square or rounded corners and a solid border of one width on every edge, the larger of the corner radius and the border width. Empty for any other material (a gradient, an image, shadows, outsets, filters, masks, reflections, per-edge borders), which a size change alters anywhere.
 
@@ -11180,7 +11180,7 @@ Functions, constants and aliases
 
    The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``, ``macos-style``, ``windows-professional``); empty for ``count``.
 
-.. cpp:function:: std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept
+.. cpp:function:: stxlib::Optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept
 
    The theme ``id`` names, or none.
 

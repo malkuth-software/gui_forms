@@ -38,7 +38,7 @@ gui_forms::DockNavigator
       **current_list** : ``DockNavigatorList``, default ``DockNavigatorList::documents``, read-only
          The list holding the current row.
 
-      **current_index** : ``std::optional<std::size_t>``, default none, read-only
+      **current_index** : ``stxlib::Optional<std::size_t>``, default none, read-only
          The current row's index in :cpp:func:`current_list <gui_forms::DockNavigator::current_list>`; none while both lists are
          empty.
 
@@ -153,7 +153,7 @@ gui_forms::DockNavigator
 
       The list holding the current row.
 
-   .. cpp:function:: std::optional<std::size_t> current_index() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> current_index() const noexcept
 
       The current row's index in :cpp:func:`current_list <gui_forms::DockNavigator::current_list>`; none while both lists are
       empty.

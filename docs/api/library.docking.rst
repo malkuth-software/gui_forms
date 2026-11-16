@@ -332,7 +332,7 @@ Related types
 
       Default: ``{false}``.
 
-   .. cpp:member:: std::optional<std::size_t> pane
+   .. cpp:member:: stxlib::Optional<std::size_t> pane
 
       The pane's index in the panes given, while over a pane.
 
@@ -716,11 +716,11 @@ Related types
 
       Where show() returns a hidden panel: docked, floating or auto_hidden. Default: ``{DockPlacementKind::docked}``.
 
-   .. cpp:member:: std::optional<DockDockedMemory> docked
+   .. cpp:member:: stxlib::Optional<DockDockedMemory> docked
 
    .. cpp:member:: std::optional<DockFloatingMemory> floating
 
-   .. cpp:member:: std::optional<DockAutoHideMemory> auto_hidden
+   .. cpp:member:: stxlib::Optional<DockAutoHideMemory> auto_hidden
 
 .. cpp:namespace:: gui_forms
 
@@ -1337,7 +1337,7 @@ Functions, constants and aliases
 
    Fills ``out`` (cleared first) with every target of a drag of ``subject`` over ``panes`` and the site's edges that ``layout`` accepts as a user edit (DockLayout::check, so the three restriction layers and the user lock decide): each pane's zones in DockDropZone order, panes in the order given (the keyboard's Tab order), then, unless ``edges`` is none, the edges top, left, right, bottom. The centre of ``own_stack`` (where a dragged panel came from) is left out: dropping a panel back into its own stack changes nothing. A side a document stack refuses is tried beside its document area (DockDropPane).
 
-.. cpp:function:: std::optional<std::size_t> find_dock_drop_target(std::span<const DockDropTarget> targets, std::span<const DockDropPane> panes, const DockDropHit& hit) noexcept
+.. cpp:function:: stxlib::Optional<std::size_t> find_dock_drop_target(std::span<const DockDropTarget> targets, std::span<const DockDropPane> panes, const DockDropHit& hit) noexcept
 
    The planned target a hit selects, as an index into ``targets``, or none (a refused zone, a gap inside the site, or outside it).
 

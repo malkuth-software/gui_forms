@@ -25,13 +25,13 @@ gui_forms::RtfConversionResult
 
       **succeeded** : ``bool``, read-only
 
-      **losses** : ``std::optional<MarkdownLossReport>``, read-only
+      **losses** : ``stxlib::Optional<MarkdownLossReport>``, read-only
          The losses of a conversion that succeeded; none for a failure.
 
-      **body** : ``std::optional<RtfBodySize>``, read-only
+      **body** : ``stxlib::Optional<RtfBodySize>``, read-only
          An import's body size; none for an export or a failure.
 
-      **error** : ``std::optional<RtfConversionError>``, read-only
+      **error** : ``stxlib::Optional<RtfConversionError>``, read-only
          The error of a conversion that failed; none when it succeeded.
 
       **offset** : ``std::uint64_t``, read-only
@@ -89,15 +89,15 @@ gui_forms::RtfConversionResult
 
    .. cpp:function:: bool succeeded() const noexcept
 
-   .. cpp:function:: std::optional<MarkdownLossReport> losses() const noexcept
+   .. cpp:function:: stxlib::Optional<MarkdownLossReport> losses() const noexcept
 
       The losses of a conversion that succeeded; none for a failure.
 
-   .. cpp:function:: std::optional<RtfBodySize> body() const noexcept
+   .. cpp:function:: stxlib::Optional<RtfBodySize> body() const noexcept
 
       An import's body size; none for an export or a failure.
 
-   .. cpp:function:: std::optional<RtfConversionError> error() const noexcept
+   .. cpp:function:: stxlib::Optional<RtfConversionError> error() const noexcept
 
       The error of a conversion that failed; none when it succeeded.
 

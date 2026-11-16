@@ -356,7 +356,7 @@ gui_forms::PropertyList
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<bool> row_expanded(std::string_view row_id) const
+   .. cpp:function:: stxlib::Optional<bool> row_expanded(std::string_view row_id) const
 
       Whether a row's child rows are shown, or no value when the row is
       unknown or not expandable.

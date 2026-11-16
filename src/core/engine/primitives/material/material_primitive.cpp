@@ -1714,6 +1714,9 @@ void mask_layer_weights(const MaterialLook& look, const ResolvedMask& layer, con
             weights[index] = 1.0 - sample_luminance(samples[index]);
         }
         return;
+    default:
+        // A value outside the enumeration takes the fallback after the switch.
+        break;
     }
     // A mode outside the enumeration (refused by valid_surface_material)
     // reads alpha.
@@ -1745,6 +1748,9 @@ void join_mask_weights(MaterialMaskComposite composite, const MaskRun& layer, st
             combined[index] = above + beneath;
         }
         return;
+    default:
+        // A value outside the enumeration takes the fallback after the switch.
+        break;
     }
     // A composite outside the enumeration (refused by
     // valid_surface_material) adds.

@@ -1007,7 +1007,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<std::size_t> find(std::string_view stable_id) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> find(std::string_view stable_id) const noexcept
 
       The record holding ``stable_id``, or none.
 
@@ -1442,11 +1442,11 @@ Related types
 
       Default: ``{HelpCalloutKind::none}``.
 
-   .. cpp:member:: std::optional<std::size_t> section
+   .. cpp:member:: stxlib::Optional<std::size_t> section
 
    .. cpp:member:: std::string anchor
 
-   .. cpp:member:: std::optional<std::size_t> image
+   .. cpp:member:: stxlib::Optional<std::size_t> image
 
    .. cpp:member:: std::size_t first_run
 
@@ -1491,7 +1491,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<std::size_t> find_anchor(std::string_view anchor) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> find_anchor(std::string_view anchor) const noexcept
 
       The block whose anchor is ``anchor``, or none.
 
@@ -1539,7 +1539,7 @@ Related types
 
    .. cpp:member:: bool line_break
 
-   .. cpp:member:: std::optional<std::size_t> link
+   .. cpp:member:: stxlib::Optional<std::size_t> link
 
 .. cpp:namespace:: gui_forms
 
@@ -1727,7 +1727,7 @@ Related types
 
    .. cpp:member:: std::string text
 
-   .. cpp:member:: std::optional<HelpLayer> origin
+   .. cpp:member:: stxlib::Optional<HelpLayer> origin
 
    .. cpp:member:: bool fallback
 
@@ -2934,7 +2934,7 @@ Related types
 
    .. cpp:function:: plots::PlotRange domain() const noexcept
 
-   .. cpp:function:: void set_domain(std::optional<plots::PlotRange> domain)
+   .. cpp:function:: void set_domain(stxlib::Optional<plots::PlotRange> domain)
 
       A fixed colour domain (valid), or none to follow the values.
 
@@ -2984,7 +2984,7 @@ Related types
 
       Copies ``samples`` and counts them. Throws std::invalid_argument, changing nothing, for bins of 0 or above maximum_bins.
 
-   .. cpp:function:: void set_range(std::optional<plots::PlotRange> range)
+   .. cpp:function:: void set_range(stxlib::Optional<plots::PlotRange> range)
 
       A fixed bin range (valid), or none for the samples' finite extent; the samples are counted again.
 

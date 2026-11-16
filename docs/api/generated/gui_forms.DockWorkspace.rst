@@ -631,7 +631,7 @@ gui_forms::DockWorkspace
       Retitles a panel's caption, tab and navigator row; false for an
       unregistered panel.
 
-   .. cpp:function:: void set_floating_window_shown_while_inactive(DockSiteId site, std::optional<bool> shown)
+   .. cpp:function:: void set_floating_window_shown_while_inactive(DockSiteId site, stxlib::Optional<bool> shown)
 
       One floating site's override of the option above (none: the workspace's). Kept for the site while it exists, through a window opened again for it.
 

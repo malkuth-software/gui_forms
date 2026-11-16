@@ -27,7 +27,7 @@ gui_forms::BusinessCard
 
       **last_website_request** : ``BusinessCardLinkOutcome``, read-only
 
-      **heading_band_bottom** : ``std::optional<double>``, read-only
+      **heading_band_bottom** : ``stxlib::Optional<double>``, read-only
          The band's lower edge in this control's coordinates, or none without a rule in force.
 
       **turn_available** : ``bool``, read-only
@@ -96,7 +96,7 @@ gui_forms::BusinessCard
 
    .. cpp:function:: BusinessCardLinkOutcome last_website_request() const noexcept
 
-   .. cpp:function:: std::optional<double> heading_band_bottom() const noexcept
+   .. cpp:function:: stxlib::Optional<double> heading_band_bottom() const noexcept
 
       The band's lower edge in this control's coordinates, or none without a rule in force.
 

@@ -519,6 +519,18 @@ SkBlendMode group_blend_mode(const PaintGroupComposite composite) noexcept {
     case PaintGroupComposite::multiply: return SkBlendMode::kMultiply;
     case PaintGroupComposite::screen: return SkBlendMode::kScreen;
     case PaintGroupComposite::copy: return SkBlendMode::kSrc;
+    case PaintGroupComposite::overlay: return SkBlendMode::kOverlay;
+    case PaintGroupComposite::darken: return SkBlendMode::kDarken;
+    case PaintGroupComposite::lighten: return SkBlendMode::kLighten;
+    case PaintGroupComposite::color_dodge: return SkBlendMode::kColorDodge;
+    case PaintGroupComposite::color_burn: return SkBlendMode::kColorBurn;
+    case PaintGroupComposite::hard_light: return SkBlendMode::kHardLight;
+    case PaintGroupComposite::soft_light: return SkBlendMode::kSoftLight;
+    case PaintGroupComposite::difference: return SkBlendMode::kDifference;
+    case PaintGroupComposite::exclusion: return SkBlendMode::kExclusion;
+    default:
+        // A value outside the enumeration draws source-over.
+        break;
     }
     return SkBlendMode::kSrcOver;
 }

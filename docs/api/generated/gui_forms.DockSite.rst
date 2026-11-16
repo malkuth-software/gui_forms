@@ -75,7 +75,7 @@ gui_forms::DockSite
          The smallest size that shows every stack: the panels' minimum sizes,
          the captions, the tab strips and the seams.
 
-      **focused_seam** : ``std::optional<std::size_t>``, default none, read-only
+      **focused_seam** : ``stxlib::Optional<std::size_t>``, default none, read-only
          The seam the keyboard is on while the site has focus.
 
       **position_menu_open** : ``bool``, read-only
@@ -552,7 +552,7 @@ gui_forms::DockSite
       The smallest size that shows every stack: the panels' minimum sizes,
       the captions, the tab strips and the seams.
 
-   .. cpp:function:: std::optional<std::size_t> focused_seam() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> focused_seam() const noexcept
 
       The seam the keyboard is on while the site has focus.
 

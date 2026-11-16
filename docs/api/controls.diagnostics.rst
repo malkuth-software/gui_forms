@@ -811,7 +811,7 @@ Related types
 
    .. cpp:member:: std::string stable_id
 
-   .. cpp:member:: std::optional<RuntimeId> parent_runtime_id
+   .. cpp:member:: stxlib::Optional<RuntimeId> parent_runtime_id
 
    .. cpp:member:: std::string parent_stable_id
 
@@ -841,7 +841,7 @@ Related types
 
    .. cpp:member:: std::optional<SurfaceMaterial> authored_material
 
-   .. cpp:member:: std::optional<DisplayChunkInfo> display_chunk
+   .. cpp:member:: stxlib::Optional<DisplayChunkInfo> display_chunk
 
    .. cpp:member:: bool display_chunk_current
 

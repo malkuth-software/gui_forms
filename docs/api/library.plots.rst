@@ -1363,11 +1363,11 @@ Types
 
    .. cpp:function:: PlotGesture gesture() const noexcept
 
-   .. cpp:function:: std::optional<Rect> drag_box() const noexcept
+   .. cpp:function:: stxlib::Optional<Rect> drag_box() const noexcept
 
       The box being dragged in logical units (box zoom or query); none otherwise.
 
-   .. cpp:function:: const std::optional<PlotSelection>& selection() const noexcept
+   .. cpp:function:: const stxlib::Optional<PlotSelection>& selection() const noexcept
 
 
    .. rubric:: Methods

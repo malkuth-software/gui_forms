@@ -54,7 +54,7 @@ gui_forms::PlotSeriesItem
       **pyramid** : ``plots::EnvelopePyramid*``, read-only
          The pyramid when it matches the columns (a growable, monotone, gap-free series of at least pyramid_threshold points), else null.
 
-      **signal** : ``std::optional<plots::SignalProgram>``, read-only
+      **signal** : ``stxlib::Optional<plots::SignalProgram>``, read-only
          The parsed :cpp:member:`source <gui_forms::PlotSeriesItem::source>`, when one is set.
 
       **channel** : ``std::shared_ptr<plots::SeriesRingChannel>``, read-only
@@ -152,7 +152,7 @@ gui_forms::PlotSeriesItem
 
       The pyramid when it matches the columns (a growable, monotone, gap-free series of at least pyramid_threshold points), else null.
 
-   .. cpp:function:: const std::optional<plots::SignalProgram>& signal() const noexcept
+   .. cpp:function:: const stxlib::Optional<plots::SignalProgram>& signal() const noexcept
 
       The parsed :cpp:member:`source <gui_forms::PlotSeriesItem::source>`, when one is set.
 

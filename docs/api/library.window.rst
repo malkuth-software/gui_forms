@@ -2140,7 +2140,7 @@ Related types
 
       Cycles a second of a flash or a cycle, lowered to maximum_band_frequency; 0 holds the band lit. Finite, not negative. Default: ``{maximum_band_frequency}``.
 
-   .. cpp:member:: std::optional<WindowBandTexture> texture
+   .. cpp:member:: stxlib::Optional<WindowBandTexture> texture
 
 .. cpp:namespace:: gui_forms
 
@@ -2174,7 +2174,7 @@ Related types
 
       Default: ``{WindowBandFullScreen::stays}``.
 
-   .. cpp:member:: std::optional<WindowBandEdges> edges
+   .. cpp:member:: stxlib::Optional<WindowBandEdges> edges
 
       Per-edge widths (the owner's approval of 2026-11-13: per-edge widths in logical units). When set, each edge takes its own width, finite from 0 to maximum_band_width, and the theme's ``band-width`` is not read; under high contrast each edge that has a width is widened to the palette's focus width, and an edge of 0 stays empty.
 
@@ -3672,7 +3672,7 @@ Functions, constants and aliases
 
 ``#include <gui_forms/window/native_popup/popup_lift.hpp>``
 
-.. cpp:function:: std::optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x)
+.. cpp:function:: stxlib::Optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x)
 
    The face, in ``window``'s client coordinates, of a drop-down of ``size`` hung from ``anchor`` (client coordinates) at ``preferred_x``, against the work area of the monitor under the anchor's lower left corner: under the anchor, or above it when it would overrun the area's bottom, and moved and cut to stay inside the area. None when the run has no Popup windows or cannot say the work area; the caller then places the drop-down in its client. UI thread.
 

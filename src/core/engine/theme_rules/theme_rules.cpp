@@ -2312,6 +2312,7 @@ bool content_effect_field(MaterialField field) noexcept {
     case MaterialField::mask:
     case MaterialField::mask_modes:
     case MaterialField::mask_composites: return true;
+    // Every other material field paints the part itself, not the content effect.
     default: return false;
     }
 }

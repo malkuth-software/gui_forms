@@ -300,7 +300,7 @@ Related types
 
    .. cpp:member:: ApplicationThemeConfig theme
 
-   .. cpp:member:: std::optional<PresentationSettings> presentation
+   .. cpp:member:: stxlib::Optional<PresentationSettings> presentation
 
       The presentation defaults every window of the application starts with, until the host reports its own; GUI.Forms' defaults when unset.
 
@@ -419,7 +419,7 @@ Related types
 
       A floating window (stage DK decisions 1, 10 and 11): owned by the primary window (owner_id names it; tool_window stays false), no taskbar button, minimized with it, above it only, moved with it and clamped to the work area of the screen it lands on. A floating tool also hides while the application is inactive; a floating document does not. The policy decides when the window is on screen; show and hide on its handle say whether it is wanted. See HostWindowKindTraits. Default: ``{HostWindowFloating::none}``.
 
-   .. cpp:member:: std::optional<HostPopupPlacement> popup
+   .. cpp:member:: stxlib::Optional<HostPopupPlacement> popup
 
       A native popup window (HostPopupPlacement): opened only during the run, owned by ``owner_id``, never a tool or floating window; none for every other kind.
 
@@ -2664,7 +2664,7 @@ Related types
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
 
-   .. cpp:member:: std::optional<HostPopupPlacement> popup
+   .. cpp:member:: stxlib::Optional<HostPopupPlacement> popup
 
       A native popup window (ApplicationWindow::popup); none for every other kind.
 
@@ -2690,7 +2690,7 @@ Related types
 
       Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true\|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
 
-   .. cpp:member:: std::optional<Size> capture_size
+   .. cpp:member:: stxlib::Optional<Size> capture_size
 
       When set, the window is created at this logical size instead of initial_size.
 
@@ -2768,7 +2768,7 @@ Related types
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
 
-   .. cpp:member:: std::optional<HostPopupPlacement> popup
+   .. cpp:member:: stxlib::Optional<HostPopupPlacement> popup
 
       A native popup window (ApplicationWindow::popup); none for every other kind.
 
@@ -2796,7 +2796,7 @@ Related types
 
       Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true\|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
 
-   .. cpp:member:: std::optional<Size> capture_size
+   .. cpp:member:: stxlib::Optional<Size> capture_size
 
       When set, the window is created at this logical size instead of initial_size.
 
@@ -2904,7 +2904,7 @@ Related types
 
       invalid_argument for text that is not UTF-8 or too long, or a progress outside [0, 1], changing nothing.
 
-   .. cpp:function:: SplashscreenError set_progress(std::optional<double> progress)
+   .. cpp:function:: SplashscreenError set_progress(stxlib::Optional<double> progress)
 
 .. cpp:namespace:: gui_forms
 
@@ -2934,7 +2934,7 @@ Related types
 
       UTF-8, at most maximum_text_bytes.
 
-   .. cpp:member:: std::optional<double> progress
+   .. cpp:member:: stxlib::Optional<double> progress
 
       In [0, 1]; none shows no bar.
 
@@ -2984,7 +2984,7 @@ Related types
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
 
-   .. cpp:member:: std::optional<HostPopupPlacement> popup
+   .. cpp:member:: stxlib::Optional<HostPopupPlacement> popup
 
       A popup layer (ApplicationWindow::popup); none for every other kind.
 

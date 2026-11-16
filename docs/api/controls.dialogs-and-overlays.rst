@@ -1553,7 +1553,7 @@ Related types
 
       Default: ``{TaskDialogIcon::none}``.
 
-   .. cpp:member:: std::optional<TaskDialogProgressBar> progress_bar
+   .. cpp:member:: stxlib::Optional<TaskDialogProgressBar> progress_bar
 
    .. cpp:member:: bool allow_cancel
 

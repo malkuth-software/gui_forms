@@ -73,12 +73,12 @@ gui_forms::ContentTextEditor
          The selection's boxes in local coordinates, one for each part of a
          cluster it covers.
 
-      **caret_quad** : ``std::optional<ContentQuad>``, read-only
+      **caret_quad** : ``stxlib::Optional<ContentQuad>``, read-only
          The same boxes as quads (ContentQuad), mapped by the layout's transform: exact for turned or sheared text, where caret_rectangle and selection_rectangles give each quad's axis-aligned bounds. Without a transform a quad's corners are its rectangle's.
 
       **selection_quads** : ``std::vector<ContentQuad>``, read-only
 
-      **composition_range** : ``std::optional<Utf8Range>``, read-only
+      **composition_range** : ``stxlib::Optional<Utf8Range>``, read-only
          The input method's unfinished composition (marked text) as a range of the text, for a consumer that draws the text and underlines it: set while a composition is open and the text has not changed by another edit since its last update, none otherwise. It changes only with the text, so read it after text_changed. composition_rectangles and composition_quads are its boxes by the current layout (empty without one), as the selection's.
 
       **composition_rectangles** : ``std::vector<Rect>``, read-only
@@ -250,13 +250,13 @@ gui_forms::ContentTextEditor
       The selection's boxes in local coordinates, one for each part of a
       cluster it covers.
 
-   .. cpp:function:: std::optional<ContentQuad> caret_quad() const
+   .. cpp:function:: stxlib::Optional<ContentQuad> caret_quad() const
 
       The same boxes as quads (ContentQuad), mapped by the layout's transform: exact for turned or sheared text, where caret_rectangle and selection_rectangles give each quad's axis-aligned bounds. Without a transform a quad's corners are its rectangle's.
 
    .. cpp:function:: std::vector<ContentQuad> selection_quads() const
 
-   .. cpp:function:: std::optional<Utf8Range> composition_range() const
+   .. cpp:function:: stxlib::Optional<Utf8Range> composition_range() const
 
       The input method's unfinished composition (marked text) as a range of the text, for a consumer that draws the text and underlines it: set while a composition is open and the text has not changed by another edit since its last update, none otherwise. It changes only with the text, so read it after text_changed. composition_rectangles and composition_quads are its boxes by the current layout (empty without one), as the selection's.
 

@@ -587,7 +587,7 @@ gui_forms::BindingSource
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<std::size_t> column_of(std::string_view name) const
+   .. cpp:function:: stxlib::Optional<std::size_t> column_of(std::string_view name) const
 
    .. cpp:function:: bool move_first()
 
@@ -653,11 +653,11 @@ gui_forms::BindingSource
       field, or for the record as a whole when the name is empty, or an empty
       string.
 
-   .. cpp:function:: std::optional<std::size_t> add(BindingRow row)
+   .. cpp:function:: stxlib::Optional<std::size_t> add(BindingRow row)
 
       Appends a row through the provider; see :cpp:func:`insert <gui_forms::BindingSource::insert>`.
 
-   .. cpp:function:: std::optional<std::size_t> insert(std::size_t index, BindingRow row)
+   .. cpp:function:: stxlib::Optional<std::size_t> insert(std::size_t index, BindingRow row)
 
       ``insert(index, row)`` asks the provider to insert a :cpp:class:`BindingRow <gui_forms::BindingRow>` (values
       by column position) before the row shown at ``index``, and returns the
@@ -692,13 +692,13 @@ gui_forms::BindingSource
       Removes every row and raises :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with ``reset``. The position
       becomes -1.
 
-   .. cpp:function:: std::optional<std::size_t> find(std::string_view field, const BindingValue& value) const
+   .. cpp:function:: stxlib::Optional<std::size_t> find(std::string_view field, const BindingValue& value) const
 
       ``find(name, value)`` returns the position of the first row whose field
       equals the value, or an empty optional, reading every row until it
       finds one. ``find_stable_id(id)`` finds a row by its stable ID.
 
-   .. cpp:function:: std::optional<std::size_t> find_stable_id(std::string_view stable_id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> find_stable_id(std::string_view stable_id) const
 
    .. cpp:function:: void remove_sort()
 

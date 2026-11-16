@@ -20,10 +20,6 @@ namespace gui_forms::render::text {
 
 class HarfBuzzFontEngine;
 
-    CountedScalars clusters{};
-    stxlib::Vector<stxlib::glyphs::ShapedGlyph> glyphs{};
-};
-
 // One shaping's runs and glyphs, in the workspace's arrays: the record the
 // engine's bounded shaping fills (BoundedShapedText's members, over arrays
 // the workspace owns). run_capacity and glyph_capacity are the arrays'

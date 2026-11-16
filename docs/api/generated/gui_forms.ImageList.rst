@@ -270,7 +270,7 @@ gui_forms::ImageList
       The key of the entry at an index. Throws ``std::out_of_range`` past the
       end.
 
-   .. cpp:function:: std::optional<std::size_t> index_of_key(std::string_view key) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> index_of_key(std::string_view key) const noexcept
 
       The index of a key, or an empty optional. Keys compare ignoring ASCII
       case.

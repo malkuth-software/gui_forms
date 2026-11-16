@@ -509,7 +509,7 @@ Related types
 
    .. cpp:member:: bool collapsed
 
-   .. cpp:member:: std::optional<std::uint16_t> collapse_priority
+   .. cpp:member:: stxlib::Optional<std::uint16_t> collapse_priority
 
 .. cpp:namespace:: gui_forms
 
@@ -525,7 +525,7 @@ Related types
 
    .. cpp:member:: double maximum
 
-   .. cpp:member:: std::optional<std::uint16_t> collapse_priority
+   .. cpp:member:: stxlib::Optional<std::uint16_t> collapse_priority
 
 .. cpp:namespace:: gui_forms
 
@@ -2056,7 +2056,7 @@ Related types
 
    .. cpp:member:: bool hidden
 
-   .. cpp:member:: std::optional<std::uint16_t> collapse_priority
+   .. cpp:member:: stxlib::Optional<std::uint16_t> collapse_priority
 
 .. cpp:namespace:: gui_forms
 

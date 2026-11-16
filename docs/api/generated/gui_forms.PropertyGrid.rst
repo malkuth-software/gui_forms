@@ -367,13 +367,13 @@ gui_forms::PropertyGrid
       The descriptor the grid uses for a property or property part, or no
       value when it is not shown.
 
-   .. cpp:function:: std::optional<PropertyValueOrigin> selected_origin(std::string_view property_name) const
+   .. cpp:function:: stxlib::Optional<PropertyValueOrigin> selected_origin(std::string_view property_name) const
 
       Where the first selected control's value for a property comes from, such
       as a local assignment, a default or inheritance, or no value when it is
       not shown.
 
-   .. cpp:function:: std::optional<bool> property_expanded(std::string_view property_name) const
+   .. cpp:function:: stxlib::Optional<bool> property_expanded(std::string_view property_name) const
 
       Whether the parts of a compound property are shown, or no value when the
       property is not shown or has no parts.
