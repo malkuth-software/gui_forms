@@ -200,6 +200,15 @@ void test_pointer_capture_keyboard_and_disabled_state() {
     up.button = PointerButton::primary;
     require(window.dispatch_pointer(up) && !window.captured_control(),
             "track pointer up must deterministically release capture");
+    // A press whose capture is taken away stops tracking (A-gf-controls-11-F3).
+    require(window.dispatch_pointer(down) && window.captured_control() == slider, "a second press captures");
+    const double pressed_value = (*slider).value.read();
+    (*slider).set_pointer_capture(false);
+    PointerEvent hover = move;
+    hover.position = {12.0, 24.0};
+    static_cast<void>(window.dispatch_pointer(hover));
+    require((*slider).value.read() == pressed_value,
+            "after its capture is lost a plain move leaves the track bar's value");
 
     KeyEvent home;
     home.action = KeyAction::down;
