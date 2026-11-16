@@ -2717,7 +2717,7 @@ private:
         bool suspended{};
         bool escape_taken{};
         Point virtual_position{};
-        std::optional<Point> last_position{};
+        stxlib::Optional<Point> last_position{};
         PointerButton press_button{PointerButton::none};
         std::array<Rect, maximum_pointer_release_regions> regions{};
         std::size_t region_count{};
