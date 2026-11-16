@@ -405,7 +405,7 @@ gui_forms::Control
          The compositing plane the control paints into. Panels use
          :cpp:enumerator:`PaintPlane::backplane <gui_forms::PaintPlane::backplane>`.
 
-      **display_chunk_info** : ``std::optional<DisplayChunkInfo>``, read-only
+      **display_chunk_info** : ``stxlib::Optional<DisplayChunkInfo>``, read-only
 
       **initializing** : ``bool``, read-only
          Whether the control is between :cpp:func:`begin_init <gui_forms::Control::begin_init>` and :cpp:func:`end_init <gui_forms::Control::end_init>`.
@@ -1313,7 +1313,7 @@ gui_forms::Control
 
       Sets :cpp:func:`paint_plane <gui_forms::Control::paint_plane>`; see the property's description above.
 
-   .. cpp:function:: std::optional<DisplayChunkInfo> display_chunk_info() const noexcept
+   .. cpp:function:: stxlib::Optional<DisplayChunkInfo> display_chunk_info() const noexcept
 
    .. cpp:function:: bool initializing() const noexcept
 

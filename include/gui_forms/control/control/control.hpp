@@ -913,7 +913,7 @@ public:
     [[nodiscard]] detail::ControlSlot surface_slot() const noexcept { return surface_slot_; }
     [[nodiscard]] PaintPlane paint_plane() const noexcept { return paint_plane_; }
     void set_paint_plane(PaintPlane plane);
-    [[nodiscard]] std::optional<DisplayChunkInfo> display_chunk_info() const noexcept;
+    [[nodiscard]] stxlib::Optional<DisplayChunkInfo> display_chunk_info() const noexcept;
     void invalidate(Dirty dirty);
     // Marks only a local client rectangle for repaint. The retained display
     // chunk remains the authoritative complete presentation, while host

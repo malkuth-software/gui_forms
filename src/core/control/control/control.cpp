@@ -4233,8 +4233,9 @@ void Control::set_paint_plane(PaintPlane plane) {
     invalidate(invalidation::paint_only);
 }
 
-std::optional<DisplayChunkInfo> Control::display_chunk_info() const noexcept {
-    return display_chunk_ ? std::optional((*display_chunk_).info()) : std::nullopt;
+stxlib::Optional<DisplayChunkInfo> Control::display_chunk_info() const noexcept {
+    if (!display_chunk_) return stxlib::Optional<DisplayChunkInfo>::none();
+    return stxlib::Optional<DisplayChunkInfo>::of((*display_chunk_).info());
 }
 
 void Control::invalidate(Dirty requested_dirty) {

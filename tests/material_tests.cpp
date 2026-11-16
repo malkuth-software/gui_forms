@@ -22,6 +22,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string_view>
+#include <stxlib/optional.hpp>
 
 namespace {
 
@@ -397,13 +398,13 @@ void test_retained_replay_preserves_material_operations() {
     require(painter.last_spread == GradientSpreadMode::pad,
             "retained material must preserve its explicit gradient spread");
 
-    const std::optional<DisplayChunkInfo> before = (*panel).display_chunk_info();
+    const stxlib::Optional<DisplayChunkInfo> before = (*panel).display_chunk_info();
     (*panel).material = SurfaceMaterial{};
     const DamageRegion damage = window.take_damage();
-    require(before && !damage.empty(),
+    require(before.present() && !damage.empty(),
             "material mutation must invalidate its retained display chunk");
     window.paint(painter, damage.bounds());
-    require((*(*panel).display_chunk_info()).generation > (*before).generation,
+    require((*panel).display_chunk_info().take().generation > (*before.value()).generation,
             "material mutation must rebuild rather than reuse stale pixels");
 }
 
