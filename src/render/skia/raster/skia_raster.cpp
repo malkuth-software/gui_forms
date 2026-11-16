@@ -504,6 +504,12 @@ public:
         sk_sp<SkImage> device_tile;
         // Every pixel of device_tile has alpha 255.
         bool device_tile_opaque{};
+        // Every decoded pixel has alpha 255 (ResourcePixelResult::
+        // every_pixel_opaque); never set for a premultiplied BGRA image,
+        // whose pixels a patch may change. And whether `image` is an opaque
+        // image, drawn as a copy (Painter::image_draw_opacity).
+        bool pixels_opaque{};
+        bool drawn_as_copy{};
     };
 
     using ImageMap = std::unordered_map<std::uint64_t, DecodedImage>;
@@ -1365,6 +1371,7 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
         // D3: a decoded image goes straight into the storage its SkImage
         // keeps, with no intermediate vector and second copy.
         sk_sp<SkData> pixel_data;
+        bool pixels_opaque = false;
         const bool patchable =
             (*resource).encoding == ImageResourceEncoding::bgra32_premultiplied;
         if (patchable) {
@@ -1391,6 +1398,7 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
                 synchronized = false;
                 continue;
             }
+            pixels_opaque = decoded.every_pixel_opaque;
         }
         sk_sp<SkImage> image = SkImages::RasterFromData(output_info, pixel_data, row_bytes);
         if (!image) {
@@ -1401,6 +1409,7 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
         Impl::DecodedImage record{};
         record.content_hash = (*resource).content_hash;
         record.image = std::move(image);
+        record.pixels_opaque = pixels_opaque;
         if (patchable) {
             record.pixels = std::move(pixel_data);
             record.row_bytes = row_bytes;
@@ -2635,6 +2644,15 @@ void SkiaRaster::draw_live_surface(const std::shared_ptr<LiveSurface> surface,
     if (!surface) return;
     const LiveSurfaceFrame frame = (*surface).acquire_latest();
     static_cast<void>(draw_live_surface_frame(frame, destination, opacity));
+}
+
+ImageDrawOpacity SkiaRaster::image_draw_opacity(const ImageId image) const noexcept {
+    ImageDrawOpacity known{};
+    const Impl::ImageMap::const_iterator found = (*impl_).images.find(image.value);
+    if (found == (*impl_).images.end()) return known;
+    known.pixels_opaque = (*found).second.pixels_opaque;
+    known.drawn_as_copy = (*found).second.drawn_as_copy;
+    return known;
 }
 
 Rect SkiaRaster::opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,

@@ -222,6 +222,8 @@ Types
      - A world-aligned grid (piece C17; the node canvas's blueprint background): lines ``spacing`` units apart through ``origin``, the point where world (0, 0) lies in the painter's current coordinates, so the lines move with a pan; every ``major_every``-th line counted from the origin (1: every line) is a major line in ``major``, the others are minor lines in ``minor``.
    * - :cpp:class:`GuiFormsThemeBuild <gui_forms::GuiFormsThemeBuild>`
      - The built theme and what building it measured.
+   * - :cpp:class:`ImageDrawOpacity <gui_forms::ImageDrawOpacity>`
+     - What a painter knows of an image's alpha (Painter::image_draw_opacity, for the blend study, blend_study.hpp): whether every decoded pixel is opaque, and whether it draws the image as an opaque source (a copy, nothing beneath showing through) rather than blending it.
    * - :cpp:class:`ImageId <gui_forms::ImageId>`
      - ImageId is the nonzero renderer-neutral identity returned by a Window image registry.
    * - :cpp:class:`ImageVariantRequest <gui_forms::ImageVariantRequest>`
@@ -3296,6 +3298,18 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ImageDrawOpacity final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   What a painter knows of an image's alpha (Painter::image_draw_opacity, for the blend study, blend_study.hpp): whether every decoded pixel is opaque, and whether it draws the image as an opaque source (a copy, nothing beneath showing through) rather than blending it. A painter that does not know says neither.
+
+   .. cpp:member:: bool pixels_opaque
+
+   .. cpp:member:: bool drawn_as_copy
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ImageId
 
    ``#include <gui_forms/types/paint_types/paint_types.hpp>``
@@ -4639,6 +4653,10 @@ Types
    .. cpp:function:: virtual Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface, Rect destination, double opacity)
 
       The part of ``destination``, in the current coordinates, that draw_live_surface(surface, destination, opacity) would overwrite with opaque pixels if drawn now, whatever lay beneath: replay then need not paint what an opaque live surface hides (a panned canvas's sheet). Empty when the painter cannot promise it (the default): the newest frame is not opaque, the opacity is below one, the transform is not a scale and translation, or a clip has soft edges. Reads only.
+
+   .. cpp:function:: virtual ImageDrawOpacity image_draw_opacity(ImageId image) const noexcept
+
+      What this painter knows of ``image``'s alpha as it would draw it now (ImageDrawOpacity); the default knows nothing. Reads only.
 
    .. cpp:function:: virtual void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin, double opacity = 1.0)
 

@@ -649,6 +649,8 @@ __ZGVZN9gui_forms16AuthoredGradient*
 __ZGVZN9gui_forms16BackgroundWorker*
 __ZGVZN9gui_forms16BindingNavigator*
 __ZGVZN9gui_forms16BindingPredicate*
+__ZGVZN9gui_forms16BlendHeatMapView*
+__ZGVZN9gui_forms16BlendStudyPlanes*
 __ZGVZN9gui_forms16CachedPartRaster*
 __ZGVZN9gui_forms16ColorValueEditor*
 __ZGVZN9gui_forms16CompositeControl*
@@ -700,6 +702,7 @@ __ZGVZN9gui_forms16HostDialogResult*
 __ZGVZN9gui_forms16HostDisplayEvent*
 __ZGVZN9gui_forms16HostTrayMenuItem*
 __ZGVZN9gui_forms16ImageAtlasLayout*
+__ZGVZN9gui_forms16ImageDrawOpacity*
 __ZGVZN9gui_forms16ImagePatchRegion*
 __ZGVZN9gui_forms16ItemContentPaint*
 __ZGVZN9gui_forms16LayoutConstraint*
@@ -871,6 +874,8 @@ __ZGVZN9gui_forms18AcceleratorOptions*
 __ZGVZN9gui_forms18ApplicationWindows*
 __ZGVZN9gui_forms18BindingManagerBase*
 __ZGVZN9gui_forms18BindingWriteResult*
+__ZGVZN9gui_forms18BlendFrameCounters*
+__ZGVZN9gui_forms18BlendStudySnapshot*
 __ZGVZN9gui_forms18BlockFlowItemInput*
 __ZGVZN9gui_forms18CalendarDimensions*
 __ZGVZN9gui_forms18CanvasTextureLayer*
@@ -2307,6 +2312,8 @@ __ZGVZNK9gui_forms16AuthoredGradient*
 __ZGVZNK9gui_forms16BackgroundWorker*
 __ZGVZNK9gui_forms16BindingNavigator*
 __ZGVZNK9gui_forms16BindingPredicate*
+__ZGVZNK9gui_forms16BlendHeatMapView*
+__ZGVZNK9gui_forms16BlendStudyPlanes*
 __ZGVZNK9gui_forms16CachedPartRaster*
 __ZGVZNK9gui_forms16ColorValueEditor*
 __ZGVZNK9gui_forms16CompositeControl*
@@ -2358,6 +2365,7 @@ __ZGVZNK9gui_forms16HostDialogResult*
 __ZGVZNK9gui_forms16HostDisplayEvent*
 __ZGVZNK9gui_forms16HostTrayMenuItem*
 __ZGVZNK9gui_forms16ImageAtlasLayout*
+__ZGVZNK9gui_forms16ImageDrawOpacity*
 __ZGVZNK9gui_forms16ImagePatchRegion*
 __ZGVZNK9gui_forms16ItemContentPaint*
 __ZGVZNK9gui_forms16LayoutConstraint*
@@ -2529,6 +2537,8 @@ __ZGVZNK9gui_forms18AcceleratorOptions*
 __ZGVZNK9gui_forms18ApplicationWindows*
 __ZGVZNK9gui_forms18BindingManagerBase*
 __ZGVZNK9gui_forms18BindingWriteResult*
+__ZGVZNK9gui_forms18BlendFrameCounters*
+__ZGVZNK9gui_forms18BlendStudySnapshot*
 __ZGVZNK9gui_forms18BlockFlowItemInput*
 __ZGVZNK9gui_forms18CalendarDimensions*
 __ZGVZNK9gui_forms18CanvasTextureLayer*
@@ -4149,6 +4159,8 @@ __ZN9gui_forms15WindowChromeHit*
 __ZN9gui_forms15WindowFrameDrag*
 __ZN9gui_forms15WindowOverrides*
 __ZN9gui_forms15XmlWriteOptions*
+__ZN9gui_forms15add_blend_frameB*
+__ZN9gui_forms15add_blend_frameE*
 __ZN9gui_forms15add_material_emB*
 __ZN9gui_forms15add_material_emE*
 __ZN9gui_forms15bake_stock_iconB*
@@ -4205,6 +4217,8 @@ __ZN9gui_forms16AuthoredGradient*
 __ZN9gui_forms16BackgroundWorker*
 __ZN9gui_forms16BindingNavigator*
 __ZN9gui_forms16BindingPredicate*
+__ZN9gui_forms16BlendHeatMapView*
+__ZN9gui_forms16BlendStudyPlanes*
 __ZN9gui_forms16CachedPartRaster*
 __ZN9gui_forms16ColorValueEditor*
 __ZN9gui_forms16CompositeControl*
@@ -4256,6 +4270,7 @@ __ZN9gui_forms16HostDialogResult*
 __ZN9gui_forms16HostDisplayEvent*
 __ZN9gui_forms16HostTrayMenuItem*
 __ZN9gui_forms16ImageAtlasLayout*
+__ZN9gui_forms16ImageDrawOpacity*
 __ZN9gui_forms16ImagePatchRegion*
 __ZN9gui_forms16ItemContentPaint*
 __ZN9gui_forms16LayoutConstraint*
@@ -4583,6 +4598,8 @@ __ZN9gui_forms18AcceleratorOptions*
 __ZN9gui_forms18ApplicationWindows*
 __ZN9gui_forms18BindingManagerBase*
 __ZN9gui_forms18BindingWriteResult*
+__ZN9gui_forms18BlendFrameCounters*
+__ZN9gui_forms18BlendStudySnapshot*
 __ZN9gui_forms18BlockFlowItemInput*
 __ZN9gui_forms18CalendarDimensions*
 __ZN9gui_forms18CanvasTextureLayer*
@@ -4915,6 +4932,8 @@ __ZN9gui_forms19apply_theme_requestB*
 __ZN9gui_forms19apply_theme_requestE*
 __ZN9gui_forms19backdrop_chain_blurB*
 __ZN9gui_forms19backdrop_chain_blurE*
+__ZN9gui_forms19blend_study_defaultB*
+__ZN9gui_forms19blend_study_defaultE*
 __ZN9gui_forms19build_help_contentsB*
 __ZN9gui_forms19build_help_contentsE*
 __ZN9gui_forms19bundled_font_noticeB*
@@ -5410,6 +5429,8 @@ __ZN9gui_forms22ThemeCompileDiagnostic*
 __ZN9gui_forms22VirtualRowsHeaderClick*
 __ZN9gui_forms22active_border_intervalB*
 __ZN9gui_forms22active_border_intervalE*
+__ZN9gui_forms22append_blend_study_logB*
+__ZN9gui_forms22append_blend_study_logE*
 __ZN9gui_forms22band_declaration_validB*
 __ZN9gui_forms22band_declaration_validE*
 __ZN9gui_forms22canonical_binding_nameB*
@@ -5418,6 +5439,8 @@ __ZN9gui_forms22check_effect_selectionB*
 __ZN9gui_forms22check_effect_selectionE*
 __ZN9gui_forms22compile_theme_packagesB*
 __ZN9gui_forms22compile_theme_packagesE*
+__ZN9gui_forms22compose_blend_heat_mapB*
+__ZN9gui_forms22compose_blend_heat_mapE*
 __ZN9gui_forms22compositor_state_validB*
 __ZN9gui_forms22compositor_state_validE*
 __ZN9gui_forms22connect_property_entryB*
@@ -5631,6 +5654,8 @@ __ZN9gui_forms23scene_detail_level_nameB*
 __ZN9gui_forms23scene_detail_level_nameE*
 __ZN9gui_forms23semantic_text_unit_nameB*
 __ZN9gui_forms23semantic_text_unit_nameE*
+__ZN9gui_forms23set_blend_study_defaultB*
+__ZN9gui_forms23set_blend_study_defaultE*
 __ZN9gui_forms23stock_control_anatomiesB*
 __ZN9gui_forms23stock_control_anatomiesE*
 __ZN9gui_forms23surface_material_opaqueB*
@@ -5750,6 +5775,8 @@ __ZN9gui_forms25allocation_subsystem_nameB*
 __ZN9gui_forms25allocation_subsystem_nameE*
 __ZN9gui_forms25binding_value_to_unsignedB*
 __ZN9gui_forms25binding_value_to_unsignedE*
+__ZN9gui_forms25blend_frame_counters_jsonB*
+__ZN9gui_forms25blend_frame_counters_jsonE*
 __ZN9gui_forms25box_shadow_visual_outsetsB*
 __ZN9gui_forms25box_shadow_visual_outsetsE*
 __ZN9gui_forms25bundled_font_pack_refusalB*
@@ -6080,6 +6107,8 @@ __ZN9gui_forms35paint_data_grid_view_cell_selectionE*
 __ZN9gui_forms35validate_window_chrome_drag_regionsB*
 __ZN9gui_forms35validate_window_chrome_drag_regionsE*
 __ZN9gui_forms36DataGridViewCellErrorTextNeededEvent*
+__ZN9gui_forms36blend_study_requested_by_environmentB*
+__ZN9gui_forms36blend_study_requested_by_environmentE*
 __ZN9gui_forms37child_property_entry_should_serializeB*
 __ZN9gui_forms37child_property_entry_should_serializeE*
 __ZN9gui_forms37windows_professional_theme_definitionB*
@@ -7247,6 +7276,8 @@ __ZNK[RO]9gui_forms16AuthoredGradient*
 __ZNK[RO]9gui_forms16BackgroundWorker*
 __ZNK[RO]9gui_forms16BindingNavigator*
 __ZNK[RO]9gui_forms16BindingPredicate*
+__ZNK[RO]9gui_forms16BlendHeatMapView*
+__ZNK[RO]9gui_forms16BlendStudyPlanes*
 __ZNK[RO]9gui_forms16CachedPartRaster*
 __ZNK[RO]9gui_forms16ColorValueEditor*
 __ZNK[RO]9gui_forms16CompositeControl*
@@ -7298,6 +7329,7 @@ __ZNK[RO]9gui_forms16HostDialogResult*
 __ZNK[RO]9gui_forms16HostDisplayEvent*
 __ZNK[RO]9gui_forms16HostTrayMenuItem*
 __ZNK[RO]9gui_forms16ImageAtlasLayout*
+__ZNK[RO]9gui_forms16ImageDrawOpacity*
 __ZNK[RO]9gui_forms16ImagePatchRegion*
 __ZNK[RO]9gui_forms16ItemContentPaint*
 __ZNK[RO]9gui_forms16LayoutConstraint*
@@ -7469,6 +7501,8 @@ __ZNK[RO]9gui_forms18AcceleratorOptions*
 __ZNK[RO]9gui_forms18ApplicationWindows*
 __ZNK[RO]9gui_forms18BindingManagerBase*
 __ZNK[RO]9gui_forms18BindingWriteResult*
+__ZNK[RO]9gui_forms18BlendFrameCounters*
+__ZNK[RO]9gui_forms18BlendStudySnapshot*
 __ZNK[RO]9gui_forms18BlockFlowItemInput*
 __ZNK[RO]9gui_forms18CalendarDimensions*
 __ZNK[RO]9gui_forms18CanvasTextureLayer*
@@ -8905,6 +8939,8 @@ __ZN[KRO]9gui_forms16AuthoredGradient*
 __ZN[KRO]9gui_forms16BackgroundWorker*
 __ZN[KRO]9gui_forms16BindingNavigator*
 __ZN[KRO]9gui_forms16BindingPredicate*
+__ZN[KRO]9gui_forms16BlendHeatMapView*
+__ZN[KRO]9gui_forms16BlendStudyPlanes*
 __ZN[KRO]9gui_forms16CachedPartRaster*
 __ZN[KRO]9gui_forms16ColorValueEditor*
 __ZN[KRO]9gui_forms16CompositeControl*
@@ -8956,6 +8992,7 @@ __ZN[KRO]9gui_forms16HostDialogResult*
 __ZN[KRO]9gui_forms16HostDisplayEvent*
 __ZN[KRO]9gui_forms16HostTrayMenuItem*
 __ZN[KRO]9gui_forms16ImageAtlasLayout*
+__ZN[KRO]9gui_forms16ImageDrawOpacity*
 __ZN[KRO]9gui_forms16ImagePatchRegion*
 __ZN[KRO]9gui_forms16ItemContentPaint*
 __ZN[KRO]9gui_forms16LayoutConstraint*
@@ -9127,6 +9164,8 @@ __ZN[KRO]9gui_forms18AcceleratorOptions*
 __ZN[KRO]9gui_forms18ApplicationWindows*
 __ZN[KRO]9gui_forms18BindingManagerBase*
 __ZN[KRO]9gui_forms18BindingWriteResult*
+__ZN[KRO]9gui_forms18BlendFrameCounters*
+__ZN[KRO]9gui_forms18BlendStudySnapshot*
 __ZN[KRO]9gui_forms18BlockFlowItemInput*
 __ZN[KRO]9gui_forms18CalendarDimensions*
 __ZN[KRO]9gui_forms18CanvasTextureLayer*
@@ -10563,6 +10602,8 @@ __ZT[VIST]N9gui_forms16AuthoredGradient*E
 __ZT[VIST]N9gui_forms16BackgroundWorker*E
 __ZT[VIST]N9gui_forms16BindingNavigator*E
 __ZT[VIST]N9gui_forms16BindingPredicate*E
+__ZT[VIST]N9gui_forms16BlendHeatMapView*E
+__ZT[VIST]N9gui_forms16BlendStudyPlanes*E
 __ZT[VIST]N9gui_forms16CachedPartRaster*E
 __ZT[VIST]N9gui_forms16ColorValueEditor*E
 __ZT[VIST]N9gui_forms16CompositeControl*E
@@ -10614,6 +10655,7 @@ __ZT[VIST]N9gui_forms16HostDialogResult*E
 __ZT[VIST]N9gui_forms16HostDisplayEvent*E
 __ZT[VIST]N9gui_forms16HostTrayMenuItem*E
 __ZT[VIST]N9gui_forms16ImageAtlasLayout*E
+__ZT[VIST]N9gui_forms16ImageDrawOpacity*E
 __ZT[VIST]N9gui_forms16ImagePatchRegion*E
 __ZT[VIST]N9gui_forms16ItemContentPaint*E
 __ZT[VIST]N9gui_forms16LayoutConstraint*E
@@ -10785,6 +10827,8 @@ __ZT[VIST]N9gui_forms18AcceleratorOptions*E
 __ZT[VIST]N9gui_forms18ApplicationWindows*E
 __ZT[VIST]N9gui_forms18BindingManagerBase*E
 __ZT[VIST]N9gui_forms18BindingWriteResult*E
+__ZT[VIST]N9gui_forms18BlendFrameCounters*E
+__ZT[VIST]N9gui_forms18BlendStudySnapshot*E
 __ZT[VIST]N9gui_forms18BlockFlowItemInput*E
 __ZT[VIST]N9gui_forms18CalendarDimensions*E
 __ZT[VIST]N9gui_forms18CanvasTextureLayer*E
@@ -12221,6 +12265,8 @@ __ZT[hvc]*9gui_forms16AuthoredGradient*
 __ZT[hvc]*9gui_forms16BackgroundWorker*
 __ZT[hvc]*9gui_forms16BindingNavigator*
 __ZT[hvc]*9gui_forms16BindingPredicate*
+__ZT[hvc]*9gui_forms16BlendHeatMapView*
+__ZT[hvc]*9gui_forms16BlendStudyPlanes*
 __ZT[hvc]*9gui_forms16CachedPartRaster*
 __ZT[hvc]*9gui_forms16ColorValueEditor*
 __ZT[hvc]*9gui_forms16CompositeControl*
@@ -12272,6 +12318,7 @@ __ZT[hvc]*9gui_forms16HostDialogResult*
 __ZT[hvc]*9gui_forms16HostDisplayEvent*
 __ZT[hvc]*9gui_forms16HostTrayMenuItem*
 __ZT[hvc]*9gui_forms16ImageAtlasLayout*
+__ZT[hvc]*9gui_forms16ImageDrawOpacity*
 __ZT[hvc]*9gui_forms16ImagePatchRegion*
 __ZT[hvc]*9gui_forms16ItemContentPaint*
 __ZT[hvc]*9gui_forms16LayoutConstraint*
@@ -12443,6 +12490,8 @@ __ZT[hvc]*9gui_forms18AcceleratorOptions*
 __ZT[hvc]*9gui_forms18ApplicationWindows*
 __ZT[hvc]*9gui_forms18BindingManagerBase*
 __ZT[hvc]*9gui_forms18BindingWriteResult*
+__ZT[hvc]*9gui_forms18BlendFrameCounters*
+__ZT[hvc]*9gui_forms18BlendStudySnapshot*
 __ZT[hvc]*9gui_forms18BlockFlowItemInput*
 __ZT[hvc]*9gui_forms18CalendarDimensions*
 __ZT[hvc]*9gui_forms18CanvasTextureLayer*
@@ -13879,6 +13928,8 @@ __ZZN9gui_forms16AuthoredGradient*
 __ZZN9gui_forms16BackgroundWorker*
 __ZZN9gui_forms16BindingNavigator*
 __ZZN9gui_forms16BindingPredicate*
+__ZZN9gui_forms16BlendHeatMapView*
+__ZZN9gui_forms16BlendStudyPlanes*
 __ZZN9gui_forms16CachedPartRaster*
 __ZZN9gui_forms16ColorValueEditor*
 __ZZN9gui_forms16CompositeControl*
@@ -13930,6 +13981,7 @@ __ZZN9gui_forms16HostDialogResult*
 __ZZN9gui_forms16HostDisplayEvent*
 __ZZN9gui_forms16HostTrayMenuItem*
 __ZZN9gui_forms16ImageAtlasLayout*
+__ZZN9gui_forms16ImageDrawOpacity*
 __ZZN9gui_forms16ImagePatchRegion*
 __ZZN9gui_forms16ItemContentPaint*
 __ZZN9gui_forms16LayoutConstraint*
@@ -14101,6 +14153,8 @@ __ZZN9gui_forms18AcceleratorOptions*
 __ZZN9gui_forms18ApplicationWindows*
 __ZZN9gui_forms18BindingManagerBase*
 __ZZN9gui_forms18BindingWriteResult*
+__ZZN9gui_forms18BlendFrameCounters*
+__ZZN9gui_forms18BlendStudySnapshot*
 __ZZN9gui_forms18BlockFlowItemInput*
 __ZZN9gui_forms18CalendarDimensions*
 __ZZN9gui_forms18CanvasTextureLayer*
@@ -15537,6 +15591,8 @@ __ZZNK9gui_forms16AuthoredGradient*
 __ZZNK9gui_forms16BackgroundWorker*
 __ZZNK9gui_forms16BindingNavigator*
 __ZZNK9gui_forms16BindingPredicate*
+__ZZNK9gui_forms16BlendHeatMapView*
+__ZZNK9gui_forms16BlendStudyPlanes*
 __ZZNK9gui_forms16CachedPartRaster*
 __ZZNK9gui_forms16ColorValueEditor*
 __ZZNK9gui_forms16CompositeControl*
@@ -15588,6 +15644,7 @@ __ZZNK9gui_forms16HostDialogResult*
 __ZZNK9gui_forms16HostDisplayEvent*
 __ZZNK9gui_forms16HostTrayMenuItem*
 __ZZNK9gui_forms16ImageAtlasLayout*
+__ZZNK9gui_forms16ImageDrawOpacity*
 __ZZNK9gui_forms16ImagePatchRegion*
 __ZZNK9gui_forms16ItemContentPaint*
 __ZZNK9gui_forms16LayoutConstraint*
@@ -15759,6 +15816,8 @@ __ZZNK9gui_forms18AcceleratorOptions*
 __ZZNK9gui_forms18ApplicationWindows*
 __ZZNK9gui_forms18BindingManagerBase*
 __ZZNK9gui_forms18BindingWriteResult*
+__ZZNK9gui_forms18BlendFrameCounters*
+__ZZNK9gui_forms18BlendStudySnapshot*
 __ZZNK9gui_forms18BlockFlowItemInput*
 __ZZNK9gui_forms18CalendarDimensions*
 __ZZNK9gui_forms18CanvasTextureLayer*

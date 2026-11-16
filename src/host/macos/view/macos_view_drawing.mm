@@ -578,7 +578,13 @@ using gui_forms::host::macos::MacPresentedFrame;
     // shown. The raster is never drawn on, so the overlay damages nothing.
     // Off, this is one relaxed load.
     gui_forms::InvalidationOverlay* const overlay = (*_model).invalidation_overlay();
-    if (overlay != nullptr && pixels != nullptr && _rasterHasContent == YES && presentationSize.width > 0.0) {
+    // The blend study's heat map (blend_study.hpp) is composited the same
+    // way, beneath the outlines; off, its view's mode is off.
+    const gui_forms::BlendHeatMapView heatMap = (*_model).blend_heat_map();
+    const bool showsHeatMap = heatMap.mode == gui_forms::BlendStudyMode::overdraw_heat_map ||
+                              heatMap.mode == gui_forms::BlendStudyMode::blend_heat_map;
+    if ((overlay != nullptr || showsHeatMap) && pixels != nullptr && _rasterHasContent == YES &&
+        presentationSize.width > 0.0) {
         const std::size_t frameBytes = _raster.byte_size();
         const std::int32_t frameWidth = static_cast<std::int32_t>(_raster.pixel_width());
         const std::int32_t frameHeight = static_cast<std::int32_t>(_raster.pixel_height());
@@ -605,14 +611,17 @@ using gui_forms::host::macos::MacPresentedFrame;
             const std::size_t offset = static_cast<std::size_t>(y) * rowBytes + rowOffset;
             std::memcpy(_overlayScratch.data() + offset, source + offset, rowLength);
         }
-        const gui_forms::InvalidationClock::time_point now = gui_forms::InvalidationClock::now();
-        (*overlay).expire(now);
         gui_forms::InvalidationOverlayTarget target{};
         target.pixels = std::span<std::byte>(_overlayScratch);
         target.width = static_cast<std::uint32_t>(frameWidth);
         target.height = static_cast<std::uint32_t>(frameHeight);
         target.row_bytes = rowBytes;
-        (*overlay).compose(target, frameScale, now, box);
+        if (showsHeatMap) gui_forms::compose_blend_heat_map(target, heatMap, box);
+        if (overlay != nullptr) {
+            const gui_forms::InvalidationClock::time_point now = gui_forms::InvalidationClock::now();
+            (*overlay).expire(now);
+            (*overlay).compose(target, frameScale, now, box);
+        }
         pixels = _overlayScratch.data();
     }
     // Native exposure/snapshot callbacks can precede unocclusion. The model

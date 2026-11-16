@@ -7,6 +7,7 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/window.hpp"
 
+#include "../../diagnostics/blend_study/count_display_blend.hpp"
 #include "../../display/chunk/display_chunk.hpp"
 #include "../../display/recording_painter/recording_painter.hpp"
 #include "../../display/replay/replay_display_chunk.hpp"
@@ -22,6 +23,8 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdio>
+#include <exception>
+#include <memory>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -728,6 +731,73 @@ void SurfaceRoot::paint_plane_rectangle(Painter& candidate, const std::size_t in
                     consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
 }
 
+void SurfaceRoot::count_blend_frame(const detail::DisplayChunk& transaction, Painter& painter,
+                                    const std::span<const Rect> painted, const Rect window_bounds) noexcept {
+    BlendFrameCounters counted{};
+    try {
+        if (!blend_planes_) blend_planes_ = std::make_unique<BlendStudyPlanes>();
+        // The window's device extent, as its raster is sized: whole device
+        // pixels, outward. Beyond the study's limit begin_frame refuses.
+        const double device_width = std::ceil(client_size_.width * scale_);
+        const double device_height = std::ceil(client_size_.height * scale_);
+        const bool representable = device_width >= 0.0 && device_height >= 0.0 && device_width <= 65536.0 &&
+                                   device_height <= 65536.0;
+        const std::uint32_t width = representable ? static_cast<std::uint32_t>(device_width) : 0U;
+        const std::uint32_t height = representable ? static_cast<std::uint32_t>(device_height) : 0U;
+        blend_painted_.clear();
+        for (const Rect rectangle : painted) blend_painted_.push_back(detail::device_outward(rectangle, scale_));
+        BlendStudyPlanes& planes = *blend_planes_;
+        if (planes.begin_frame(width, height, blend_painted_)) {
+            detail::count_display_blend(transaction, painter, window_bounds, scale_, planes);
+        }
+        counted = planes.end_frame(blend_painted_);
+    } catch (const std::exception&) {
+        // The study is diagnostics: a frame it cannot count (storage, or a
+        // painter's measurement failing) is counted as refused, and the
+        // paint goes on.
+        counted = BlendFrameCounters{};
+        counted.refused = 1U;
+    }
+    blend_last_ = counted;
+    blend_frame_pending_ = true;
+}
+
+void SurfaceRoot::set_blend_study(const std::optional<BlendStudyMode> mode) {
+    require_root_thread("blend study setting");
+    blend_study_setting_ = mode;
+    if (blend_study_mode() == BlendStudyMode::off) blend_planes_.reset();
+}
+
+BlendStudyMode SurfaceRoot::blend_study_mode() const noexcept {
+    const BlendStudyMode mode = blend_study_setting_ ? *blend_study_setting_ : blend_study_default();
+    return mode;
+}
+
+BlendStudySnapshot SurfaceRoot::blend_study_snapshot() const noexcept {
+    BlendStudySnapshot snapshot{};
+    snapshot.mode = blend_study_mode();
+    snapshot.frames = blend_frames_;
+    snapshot.last = blend_last_;
+    snapshot.totals = blend_totals_;
+    return snapshot;
+}
+
+void SurfaceRoot::reset_blend_study() noexcept {
+    blend_frames_ = 0U;
+    blend_last_ = BlendFrameCounters{};
+    blend_totals_ = BlendFrameCounters{};
+    blend_frame_pending_ = false;
+}
+
+BlendHeatMapView SurfaceRoot::blend_heat_map() const& noexcept {
+    const BlendStudyMode mode = blend_study_mode();
+    const bool heat = mode == BlendStudyMode::overdraw_heat_map || mode == BlendStudyMode::blend_heat_map;
+    if (!heat || !blend_planes_) return BlendHeatMapView{};
+    const BlendStudyPlanes& planes = *blend_planes_;
+    const BlendHeatMapView view = planes.heat_map(mode);
+    return view;
+}
+
 void SurfaceRoot::note_opaque_cover(const Control& control, const Painter& painter, const Rect local) noexcept {
     const Painter* const recorder = recording_painter_;
     if (recording_control_ != &control || recorder != &painter) return;
@@ -778,6 +848,14 @@ std::optional<PaintReceipt> SurfaceRoot::paint_timed(Painter& painter, std::span
     const std::uint64_t budget = metrics_.expectation_thresholds().paint_budget_nanoseconds;
     if (nanoseconds > budget) {
         metrics_.record_expectation_miss(HousekeepingExpectation::paint_within_budget, budget, nanoseconds);
+    }
+    if (blend_frame_pending_) {
+        blend_frame_pending_ = false;
+        blend_last_.paint_nanoseconds = nanoseconds;
+        add_blend_frame(blend_totals_, blend_last_);
+        ++blend_frames_;
+        // GUI_FORMS_BLEND_STUDY_LOG, when set (blend_study.hpp).
+        if ((*root_).is_alive()) append_blend_study_log((*root_).stable_id().value(), blend_frames_, blend_last_);
     }
     return receipt;
 }
@@ -958,6 +1036,9 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& pain
         // alone can say whether an opaque live surface hides what lies
         // beneath it (a panned canvas's sheet over its surround).
         static_cast<void>(detail::replay_display_chunk_occluded(*transaction, painter, window_bounds));
+        // The blend study (blend_study.hpp) walks the same commands; off, it
+        // costs the switch's one atomic load.
+        if (blend_study_mode() != BlendStudyMode::off) count_blend_frame(*transaction, painter, painted, window_bounds);
         // A backend painter may enter a native callback while replaying. A
         // resize, scale transition, or owner retirement at that boundary
         // invalidates the candidate even though every draw command returned.

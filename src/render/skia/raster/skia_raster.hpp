@@ -222,6 +222,9 @@ public:
     // its publication repaints the surface's area.
     [[nodiscard]] Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,
                                                  Rect destination, double opacity) override;
+    // From the decode (ResourcePixelResult::every_pixel_opaque) and the
+    // image's alpha type; an image not synchronized is unknown.
+    [[nodiscard]] ImageDrawOpacity image_draw_opacity(ImageId image) const noexcept override;
     // Composites the raster into the canvas pixels with the shared blend
     // (detail::composite_part_raster) under the recorded clips, as text is
     // composited. Draws nothing when the canvas is not a plain scale and

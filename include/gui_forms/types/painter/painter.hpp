@@ -125,6 +125,16 @@ struct GUI_FORMS_API RotatedTextBox final {
 // gives `centre`.
 [[nodiscard]] GUI_FORMS_API Point rotated_text_anchor(Point centre, const RotatedTextBox& box) noexcept;
 
+// What a painter knows of an image's alpha (Painter::image_draw_opacity, for
+// the blend study, blend_study.hpp): whether every decoded pixel is opaque,
+// and whether it draws the image as an opaque source (a copy, nothing beneath
+// showing through) rather than blending it. A painter that does not know
+// says neither.
+struct GUI_FORMS_API ImageDrawOpacity final {
+    bool pixels_opaque{};
+    bool drawn_as_copy{};
+};
+
 class GUI_FORMS_API Painter : public TextMetricsProvider {
 public:
     virtual ~Painter() = default;
@@ -379,6 +389,9 @@ public:
     // scale and translation, or a clip has soft edges. Reads only.
     [[nodiscard]] virtual Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,
                                                          Rect destination, double opacity);
+    // What this painter knows of `image`'s alpha as it would draw it now
+    // (ImageDrawOpacity); the default knows nothing. Reads only.
+    [[nodiscard]] virtual ImageDrawOpacity image_draw_opacity(ImageId image) const noexcept;
     // Composites one of the theme engine's part rasters (T2 plan, E2;
     // GIVEN A2-2 and C1-1). `origin` is the raster's top-left corner in
     // logical units; the painter places the raster's first pixel on the

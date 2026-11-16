@@ -180,6 +180,7 @@ option(GUI_FORMS_BUILD_TEXT_PAINT_PROBE "Build the private prepared glyph raster
 option(GUI_FORMS_BUILD_TEXT_RASTER_PROFILE_PROBE "Build the diagnostic text rasterization profile probe" OFF)
 option(GUI_FORMS_BUILD_TEXT_ENGINE_BENCHMARK "Build the shared text engine cost benchmark" OFF)
 option(GUI_FORMS_BUILD_PAINT_PROFILE "Build the Gallery paint workload that the Linux profiling job samples" OFF)
+option(GUI_FORMS_BUILD_BLEND_STUDY "Build the Gallery blend and opaque study workload (tools/blend_study.py)" OFF)
 option(GUI_FORMS_BUILD_PREPARED_TEXT "Build the development prepared-text service" OFF)
 option(GUI_FORMS_BUILD_TEXT_MASKS "Build the development logical text-mask service" OFF)
 option(GUI_FORMS_INSTALL_TEXT_STACK "Install and export the pinned FreeType and HarfBuzz (cmake/TextStackExport.cmake)" OFF)
@@ -625,6 +626,8 @@ add_library(gui_forms_core STATIC
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp
     src/core/diagnostics/shadow_frames/shadow_frames.cpp
+    src/core/diagnostics/blend_study/blend_study.cpp
+    src/core/diagnostics/blend_study/count_display_blend.cpp
     src/core/diagnostics/invalidation_overlay/invalidation_overlay.cpp
     src/core/metrics/metrics/metrics.cpp
     src/core/metrics/snapshot/metrics_snapshot.cpp
@@ -3050,6 +3053,18 @@ if(GUI_FORMS_BUILD_PAINT_PROFILE)
     target_link_libraries(gui_forms_paint_profile_workload PRIVATE gui_forms_gallery_model gui_forms_skia)
 endif()
 
+# The blend and opaque study (2026-11-16): the Gallery's blend counters and
+# frame times through the CPU Skia adapter, for tools/blend_study.py.
+if(GUI_FORMS_BUILD_BLEND_STUDY)
+    if(NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
+        message(FATAL_ERROR "The blend study workload requires Skia and GUI_FORMS_BUILD_GALLERY")
+    endif()
+    add_executable(gui_forms_blend_study_workload benchmarks/blend_study_workload.cpp)
+    target_compile_definitions(gui_forms_blend_study_workload PRIVATE
+        GUI_FORMS_BLEND_STUDY_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+    target_link_libraries(gui_forms_blend_study_workload PRIVATE gui_forms_gallery_model gui_forms_skia)
+endif()
+
 # Stage C5: the cost of shadow frames, alone and over a window workload.
 # Built only when asked for.
 add_executable(gui_forms_shadow_frames_benchmark EXCLUDE_FROM_ALL benchmarks/shadow_frames_benchmark.cpp)
@@ -4048,6 +4063,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_invalidation_overlay_tests tests/invalidation_overlay_tests.cpp)
     target_link_libraries(gui_forms_invalidation_overlay_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_invalidation_overlay_tests COMMAND gui_forms_invalidation_overlay_tests)
+    add_executable(gui_forms_blend_study_tests tests/blend_study_tests.cpp)
+    target_link_libraries(gui_forms_blend_study_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_blend_study_tests COMMAND gui_forms_blend_study_tests)
     add_executable(gui_forms_business_card_tests tests/business_card_tests.cpp)
     target_include_directories(gui_forms_business_card_tests PRIVATE tests)
     target_link_libraries(gui_forms_business_card_tests PRIVATE gui_forms_host_headless)

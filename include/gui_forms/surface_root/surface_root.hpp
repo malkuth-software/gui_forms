@@ -9,6 +9,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/display.hpp"
 #include "gui_forms/dispatcher.hpp"
+#include "gui_forms/diagnostics/blend_study/blend_study.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/engine/part_table/engine_part_table.hpp"
@@ -716,6 +717,28 @@ public:
     // (a live frame, external content), with its cause and source, while
     // the overlay is on; nothing while it is off. UI thread.
     void record_presented_area(Rect bounds, InvalidationCause cause, std::string_view source);
+
+    // The blend and opaque study (2026-11-16; see blend_study.hpp). The
+    // window's own setting: a mode, or none to follow the process switch
+    // (set_blend_study_default, read from GUI_FORMS_DEBUG_BLEND at first).
+    // While the study is on, each paint counts how its frame's device
+    // pixels were written (BlendFrameCounters); turning it off keeps the
+    // counts and frees the planes. Neither damages the window. UI thread.
+    void set_blend_study(std::optional<BlendStudyMode> mode);
+    [[nodiscard]] std::optional<BlendStudyMode> blend_study_setting() const noexcept { return blend_study_setting_; }
+    // The mode in force: the window's setting, else the process switch.
+    [[nodiscard]] BlendStudyMode blend_study_mode() const noexcept;
+    // The frames counted since the window was made or the last reset, the
+    // last of them and their sum. UI thread.
+    [[nodiscard]] BlendStudySnapshot blend_study_snapshot() const noexcept;
+    // Zeroes the frames, the last frame and the sums. UI thread.
+    void reset_blend_study() noexcept;
+    // The planes the last counted frames left, while a heat-map mode is in
+    // force, for the host to composite at present time
+    // (compose_blend_heat_map); a view whose mode is off otherwise.
+    // Borrowed until the window's next paint or setting change. UI thread.
+    [[nodiscard]] BlendHeatMapView blend_heat_map() const& noexcept;
+    BlendHeatMapView blend_heat_map() const&& = delete;
     // Removes a snapshot's image as remove_image does: every window sharing
     // the registry retires its retained paint, so no chunk replays the dead
     // image. False, changing nothing, for an image that is not there.
@@ -2822,6 +2845,24 @@ private:
     // (HousekeepingExpectation::paint_within_budget).
     std::optional<PaintReceipt> paint_timed(Painter& painter, std::span<const Rect> rectangles,
                                             bool explicit_request);
+    // The blend study's count of the frame just replayed into `painter`
+    // (count_display_blend): the frame's painted rectangles (window
+    // coordinates) and the window's bounds as the replay's clip. Never
+    // throws: a frame it cannot count is counted as refused. paint_timed
+    // adds the paint's duration and folds the frame into the sums.
+    void count_blend_frame(const detail::DisplayChunk& transaction, Painter& painter,
+                           std::span<const Rect> painted, Rect window_bounds) noexcept;
+    // The study's planes while it is on (null while off), the painted
+    // rectangles in device pixels (reused each frame), the window's
+    // setting, and the counts: frames, the last frame (pending until
+    // paint_timed adds its duration) and the sums.
+    std::unique_ptr<BlendStudyPlanes> blend_planes_{};
+    std::vector<DevicePixelRect> blend_painted_{};
+    std::optional<BlendStudyMode> blend_study_setting_{};
+    std::uint64_t blend_frames_{};
+    BlendFrameCounters blend_last_{};
+    BlendFrameCounters blend_totals_{};
+    bool blend_frame_pending_{};
     // One paint pass over `rectangles` (window coordinates, disjoint after
     // merging). With `explicit_request`, every plane paints each rectangle;
     // otherwise each plane paints only where it holds damage.
