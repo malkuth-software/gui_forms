@@ -74,28 +74,28 @@ add_test(NAME gui_forms_high_integrity_damaged_pack_fails_fast
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
 set_tests_properties(gui_forms_high_integrity_damaged_pack_fails_fast PROPERTIES LABELS high_integrity)
 
-# The object surface (gui_forms_high_integrity_surface): no first-party
-# archive of the configuration, nor the C ABI's objects, defines or imports a
-# symbol of manifests/high_integrity/absent_symbols.txt
-# (cmake/CheckSystemImports.cmake with FORBIDDEN). The merged Application
-# archive and the linked C ABI module are left out: they also hold the text
-# stack's and the C++ runtime's objects, which are not GUI.Forms' code
-# (HarfBuzz reads HB_OPTIONS with getenv). The same proof, as a component file
-# for template_harness's check_object_surface.py, is
-# manifests/high_integrity/object_surface/gui_forms.toml.
+# The object surface (gui_forms_high_integrity_surface), checked on a linked
+# program (owner, 2026-11-16: a high-integrity build holds exactly what the
+# program uses): examples/high_integrity, an application with its embedded
+# theme and two stock controls on the native host, linked as a shipped
+# program is (Release, static, dead stripping; cmake/HighIntegrity.cmake).
+# What it reaches is in it; what it does not reach is stripped. The test
+# fails when the program defines or imports a symbol of
+# manifests/high_integrity/absent_symbols.txt (cmake/CheckSystemImports.cmake
+# with FORBIDDEN): an environment read, a user-locale read, a theme request
+# from the arguments, or an entry the configuration compiles out. The text
+# stack and the C++ runtime are inside the program too, so a getenv they make
+# (HarfBuzz's HB_OPTIONS, FreeType's FREETYPE_PROPERTIES) fails it as well.
+# The same proof, as a component file for template_harness's
+# check_object_surface.py, is manifests/high_integrity/object_surface/gui_forms.toml.
 set(_gf_high_integrity_binaries "")
-foreach(_gf_high_integrity_target IN ITEMS
-        gui_forms_core gui_forms_controls gui_forms_host_headless gui_forms_plot_primitives gui_drawing_core
-        gui_drawing_c_api gui_forms_skia gui_drawing_skia gui_drawing_raster_c_api gui_forms_host_macos
-        gui_forms_host_linux gui_forms_host_windows gui_forms_host_web gui_forms_host_surface
-        gui_forms_text_engine)
-    if(TARGET ${_gf_high_integrity_target})
-        list(APPEND _gf_high_integrity_binaries "$<TARGET_FILE:${_gf_high_integrity_target}>")
-    endif()
-endforeach()
-list(JOIN _gf_high_integrity_binaries "|" _gf_high_integrity_binaries)
-if(TARGET gui_forms_abi_objects)
-    string(APPEND _gf_high_integrity_binaries "|$<JOIN:$<TARGET_OBJECTS:gui_forms_abi_objects>,|>")
+if(TARGET gui_forms_application)
+    add_executable(gui_forms_high_integrity_example examples/high_integrity/high_integrity_example.cpp)
+    target_compile_features(gui_forms_high_integrity_example PRIVATE cxx_std_20)
+    target_link_libraries(gui_forms_high_integrity_example PRIVATE gui_forms_application)
+    gui_forms_add_theme(gui_forms_high_integrity_example examples/high_integrity/theme
+                        FUNCTION high_integrity_example_theme NAMESPACE high_integrity_example)
+    set(_gf_high_integrity_binaries "$<TARGET_FILE:gui_forms_high_integrity_example>")
 endif()
 # The list the test reads: absent_symbols.txt, and the clipboard text
 # entries unless the build keeps that allowance.
@@ -109,9 +109,11 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/high_integrity_absent_symbols.txt" "${_g
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/manifests/high_integrity/absent_symbols.txt"
     "${CMAKE_CURRENT_SOURCE_DIR}/manifests/high_integrity/absent_clipboard_text.txt")
-add_test(NAME gui_forms_high_integrity_surface
-    COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
-        "-DBINARIES=${_gf_high_integrity_binaries}"
-        "-DFORBIDDEN=${CMAKE_CURRENT_BINARY_DIR}/high_integrity_absent_symbols.txt"
-        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckSystemImports.cmake")
-set_tests_properties(gui_forms_high_integrity_surface PROPERTIES LABELS high_integrity TIMEOUT 600)
+if(NOT _gf_high_integrity_binaries STREQUAL "")
+    add_test(NAME gui_forms_high_integrity_surface
+        COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
+            "-DBINARIES=${_gf_high_integrity_binaries}"
+            "-DFORBIDDEN=${CMAKE_CURRENT_BINARY_DIR}/high_integrity_absent_symbols.txt"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckSystemImports.cmake")
+    set_tests_properties(gui_forms_high_integrity_surface PROPERTIES LABELS high_integrity TIMEOUT 600)
+endif()

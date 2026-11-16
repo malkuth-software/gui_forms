@@ -1,9 +1,12 @@
-# Symbols no first-party object of a high-integrity build defines or imports
-# (cmake/HighIntegrity.cmake). Checked by gui_forms_high_integrity_surface
+# Symbols a linked high-integrity program neither defines nor imports
+# (cmake/HighIntegrity.cmake). Checked by gui_forms_high_integrity_surface on
+# examples/high_integrity, linked as a shipped program is (static, Release,
+# dead stripping), so the program holds exactly what it reaches
 # (cmake/HighIntegrityTests.cmake, cmake/CheckObjectSurface.cmake): one CMake
 # regular expression per line, matched unanchored against each line of the
-# demangled `nm -C` listing; a final $ ends the line. Grouped by the area that
-# compiles them out; each group names its commit's subject.
+# demangled `nm -C` listing; a final $ ends the line. A group is either
+# compiled out (reachable without the program asking) or only unreached
+# (an entry a program calls itself, pruned from one that does not).
 
 # Environment variables: no unit reads one.
 getenv
@@ -20,7 +23,8 @@ GetUserDefaultLocaleName
 GetLocaleInfoEx
 gui_forms::host::read_posix_locale\(
 gui_forms::host::read_macos_locale\(
-# Application fonts: no application font reaches the font reader.
+# Application fonts (unreached: the program loads none; the C ABI slots are
+# null).
 gui_forms::load_app_font_family\(
 gui_forms::validate_app_font\(
 gui_forms::AppFontFamily::
@@ -32,7 +36,8 @@ gdi_font_bytes\(
 CTFontDescriptorCreate
 CTFontCopyTable
 GetFontData
-# Hosted content: no other process is started or spoken to.
+# Hosted content (unreached: the program starts none; the C ABI slots are
+# null). socketpair and shm_open have no other first-party user.
 gui_forms::make_hosted_content\(
 gui_forms::hosted_content_support\(
 gui_forms::HostedInput::
@@ -64,3 +69,13 @@ Runtime::handle_drop\(
 gf_web_post_drop
 answerPerformDragOperation
 draggingEntered
+# The theme request read from the arguments and environment (--theme,
+# GUI_FORMS_THEME_SHEET) and the user-theme loader behind it: compiled out
+# of Application::create, the first window and the C ABI engine. The C ABI's
+# load, install and load_sheet slots are null.
+process_theme_request\(
+read_theme_request\(
+apply_theme_request\(
+hold_process_theme_request\(
+scan_user_themes\(
+compile_user_theme\(

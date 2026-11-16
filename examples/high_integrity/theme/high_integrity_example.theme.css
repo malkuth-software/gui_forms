@@ -1,0 +1,5 @@
+/* The high-integrity example's theme, embedded at build time
+   (gui_forms_add_theme): the program's only theme besides the built-in
+   base. */
+:root { example-ink-on-paper: #1d3557 on #ffffff; }
+.note { color: role(example-ink-on-paper); font-family: content; font-size: 13px; }

@@ -17,7 +17,23 @@
 #     setting, the value it needs and why;
 #   - the stx package is built with STXlib's own allocator (stx_minmallocpp)
 #     and without math dispatch (one code path); cmake/Stx.cmake records the
-#     choice in the package's stamp, so a package built otherwise is refused.
+#     choice in the package's stamp, so a package built otherwise is refused;
+#   - the build is Release with the C++ runtime linked statically, so every
+#     program is one module pruned by the linker (CMakeLists.txt: every
+#     function and datum in its own section, -dead_strip on Mach-O,
+#     --gc-sections elsewhere, ThinLTO where the toolchain links with lld).
+#     A high-integrity program holds exactly what it reaches (owner,
+#     2026-11-16), and its symbols are the proof
+#     (gui_forms_high_integrity_surface checks a linked example program).
+#
+# What is compiled out is only what a program would reach without asking for
+# it: environment and user-locale reads at start-up, host defaults (the
+# hosts' virtual services, drops from other programs, frame capture), motion,
+# the theme request read from the arguments and environment, and the C ABI
+# table entries (null slots), which a table keeps reachable whatever the
+# program calls. An entry a program must call itself (application fonts,
+# hosted content, user themes, inline styles) stays compiled and is pruned
+# from every program that does not call it.
 #
 # GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT is the one allowance so far:
 # with it, HostServices keeps read_clipboard_text and write_clipboard_text
@@ -80,7 +96,8 @@ set(_gf_high_integrity_settings
     "GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD|OFF|BOOL|the demoboard calls entries this configuration removes"
     "GUI_FORMS_BUILD_FUZZERS|OFF|BOOL|the fuzzers feed outside bytes to the parsers"
     "GUI_FORMS_BUILD_BENCHMARKS|OFF|BOOL|the measurement harnesses are development programs"
-    "STXLIB_MATH_DISPATCH|OFF|BOOL|STXlib's math takes one code path, chosen at build time")
+    "STXLIB_MATH_DISPATCH|OFF|BOOL|STXlib's math takes one code path, chosen at build time"
+    "GUI_FORMS_LTO|ON|BOOL|link-time optimisation prunes across modules where the toolchain allows")
 if(NOT _gf_high_integrity_sanitized)
     list(APPEND _gf_high_integrity_settings
         "STXLIB_ALLOCATOR|stx_minmallocpp|STRING|STXlib's memory comes from its own allocator")
@@ -115,6 +132,16 @@ foreach(_gf_high_integrity_record IN LISTS _gf_high_integrity_settings)
             "Settled by GUI_FORMS_HIGH_INTEGRITY: ${_gf_high_integrity_reason}")
     endif()
 endforeach()
+# A pruned, one-module program needs a Release build (the pruning flags are
+# Release's) and a static C++ runtime (cmake/llvm22.cmake decides it).
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    string(APPEND _gf_high_integrity_conflicts
+           "\n  CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}: needs Release (the linker pruning is Release's)")
+endif()
+if(DEFINED GUI_FORMS_STATIC_CXX_RUNTIME AND NOT GUI_FORMS_STATIC_CXX_RUNTIME)
+    string(APPEND _gf_high_integrity_conflicts
+           "\n  GUI_FORMS_STATIC_CXX_RUNTIME=OFF: needs the C++ runtime linked statically (cmake/llvm22.cmake)")
+endif()
 if(NOT _gf_high_integrity_conflicts STREQUAL "")
     message(FATAL_ERROR "GUI_FORMS_HIGH_INTEGRITY=ON contradicts these settings:"
                         "${_gf_high_integrity_conflicts}\n"
