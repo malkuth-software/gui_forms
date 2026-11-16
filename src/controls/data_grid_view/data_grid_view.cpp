@@ -492,10 +492,10 @@ bool valid_alignment(DataGridViewContentAlignment alignment) noexcept {
 // Fills the properties `style` leaves unset from `from` (one step of a cell
 // style's inheritance chain).
 void inherit_unset(DataGridViewCellStyle& style, const DataGridViewCellStyle& from) {
-    if (!style.font) style.font = from.font;
-    if (!style.alignment) style.alignment = from.alignment;
-    if (!style.padding) style.padding = from.padding;
-    if (!style.wrap_mode) style.wrap_mode = from.wrap_mode;
+    if (style.font.absent()) style.font = from.font;
+    if (style.alignment.absent()) style.alignment = from.alignment;
+    if (style.padding.absent()) style.padding = from.padding;
+    if (style.wrap_mode.absent()) style.wrap_mode = from.wrap_mode;
     if (!style.format) style.format = from.format;
     if (!style.null_value) style.null_value = from.null_value;
     if (!style.data_source_null_value) style.data_source_null_value = from.data_source_null_value;
@@ -3888,11 +3888,13 @@ void DataGridView::set_row_error_text(DataGridViewRowPosition row, std::string t
 // -- cell styles ---------------------------------------------------------------
 
 void DataGridView::validate_cell_style(const DataGridViewCellStyle& style) {
-    if (style.alignment && !valid_alignment(*style.alignment)) {
+    const DataGridViewContentAlignment* const alignment = style.alignment.value();
+    if (alignment != nullptr && !valid_alignment(*alignment)) {
         throw std::invalid_argument("DataGridView cell style alignment is outside the enumeration");
     }
-    if (style.padding) {
-        const Insets& padding = *style.padding;
+    const Insets* const authored_padding = style.padding.value();
+    if (authored_padding != nullptr) {
+        const Insets& padding = *authored_padding;
         const bool finite = std::isfinite(padding.left) && std::isfinite(padding.top) &&
                             std::isfinite(padding.right) && std::isfinite(padding.bottom);
         if (!finite || padding.left < 0.0 || padding.top < 0.0 || padding.right < 0.0 || padding.bottom < 0.0) {

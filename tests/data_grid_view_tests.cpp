@@ -71,6 +71,18 @@
 namespace {
 using namespace gui_forms;
 
+// A cell style's alignment and padding, as the style records them.
+stxlib::Optional<DataGridViewContentAlignment> aligned(const DataGridViewContentAlignment alignment) noexcept {
+    const stxlib::Optional<DataGridViewContentAlignment> result =
+        stxlib::Optional<DataGridViewContentAlignment>::of(alignment);
+    return result;
+}
+
+stxlib::Optional<Insets> padded(const Insets padding) noexcept {
+    const stxlib::Optional<Insets> result = stxlib::Optional<Insets>::of(padding);
+    return result;
+}
+
 // D15 Q3: set_current_cell keeps its deprecated std::optional form for one
 // stage; a plain address or {} must not reach it silently. Each plain call
 // below is refused (a deleted overload or an ambiguity), and the stxlib form
@@ -1314,7 +1326,8 @@ void link_cells() {
         {.name = "site", .header_text = "Site", .kind = DataGridViewColumnKind::link, .width = 150.0,
          .link_text = "Open"},
         {.name = "plain", .header_text = "Plain", .kind = DataGridViewColumnKind::link, .width = 100.0,
-         .default_cell_style = {.alignment = DataGridViewContentAlignment::middle_end}, .track_visited_state = false},
+         .default_cell_style = {.alignment = aligned(DataGridViewContentAlignment::middle_end)},
+         .track_visited_state = false},
     });
     Window window(grid, {420.0, 160.0});
     (*grid).rows.append({.stable_id = {"alpha"},
@@ -1918,7 +1931,9 @@ struct SetBadFormat final {
 };
 struct SetNegativePadding final {
     DataGridView* grid{};
-    void operator()() const { (*grid).set_cell_style(row_at(0U), 0U, {.padding = Insets{-1.0, 0.0, 0.0, 0.0}}); }
+    void operator()() const {
+        (*grid).set_cell_style(row_at(0U), 0U, {.padding = padded(Insets{-1.0, 0.0, 0.0, 0.0})});
+    }
 };
 struct StyleCellPastEnd final {
     DataGridView* grid{};
@@ -1935,7 +1950,7 @@ struct FormatNames final {
             event.formatted_value = "B!";
             event.formatting_applied = true;
         }
-        if (event.row_id.value == "alpha") event.cell_style.alignment = DataGridViewContentAlignment::top_start;
+        if (event.row_id.value == "alpha") event.cell_style.alignment.set(DataGridViewContentAlignment::top_start);
     }
 };
 
@@ -1976,29 +1991,36 @@ void cell_styles() {
                 (*grid).inherited_column_header_style(0U) == empty,
             "every style is empty by default: an unstyled grid is the theme's");
     const FontSpec big{FontRole::content, 15.0, 700, false};
-    (*grid).default_cell_style = {.font = big, .alignment = DataGridViewContentAlignment::middle_start};
-    (*grid).set_column_default_cell_style(0U, {.alignment = DataGridViewContentAlignment::middle_end});
-    (*grid).rows_default_cell_style = {.wrap_mode = true};
+    (*grid).default_cell_style = {.font = stxlib::Optional<FontSpec>::of(big),
+                                  .alignment = aligned(DataGridViewContentAlignment::middle_start)};
+    (*grid).set_column_default_cell_style(0U, {.alignment = aligned(DataGridViewContentAlignment::middle_end)});
+    (*grid).rows_default_cell_style = {.wrap_mode = stxlib::Optional<bool>::of(true)};
     (*grid).alternating_rows_default_cell_style = {.fore_color = stxlib::Optional<Color>::of(Color{1, 2, 3, 255})};
-    (*grid).set_row_default_cell_style(row_at(2U), {.alignment = DataGridViewContentAlignment::bottom_center});
-    (*grid).set_cell_style(row_at(2U), 0U, {.padding = Insets{10.0, 2.0, 10.0, 2.0}});
+    (*grid).set_row_default_cell_style(row_at(2U),
+                                       {.alignment = aligned(DataGridViewContentAlignment::bottom_center)});
+    (*grid).set_cell_style(row_at(2U), 0U, {.padding = padded(Insets{10.0, 2.0, 10.0, 2.0})});
     const DataGridViewCellStyle first = (*grid).inherited_cell_style(row_at(0U), 0U);
-    require(first.font == big && first.alignment == DataGridViewContentAlignment::middle_end &&
-                first.wrap_mode == true && first.fore_color.absent(),
+    require(first.font == stxlib::Optional<FontSpec>::of(big) &&
+                first.alignment == aligned(DataGridViewContentAlignment::middle_end) &&
+                first.wrap_mode == stxlib::Optional<bool>::of(true) && first.fore_color.absent(),
             "a cell inherits the column's alignment over the grid's, the rows' wrap mode and the grid's font");
     const DataGridViewCellStyle second = (*grid).inherited_cell_style(row_at(1U), 1U);
-    require(second.fore_color == stxlib::Optional<Color>::of(Color{1, 2, 3, 255}) && second.alignment == DataGridViewContentAlignment::middle_start,
+    require(second.fore_color == stxlib::Optional<Color>::of(Color{1, 2, 3, 255}) &&
+                second.alignment == aligned(DataGridViewContentAlignment::middle_start),
             "odd positions take the alternating rows' style; another column the grid's alignment");
     const DataGridViewCellStyle third = (*grid).inherited_cell_style(row_at(2U), 0U);
-    require(third.alignment == DataGridViewContentAlignment::bottom_center && third.padding &&
-                (*third.padding).left == 10.0 && (*grid).cell_style(row_at(2U), 0U).padding &&
-                !(*grid).cell_style(row_at(2U), 0U).alignment,
+    require(third.alignment == aligned(DataGridViewContentAlignment::bottom_center) && third.padding.present() &&
+                (*third.padding.value()).left == 10.0 && (*grid).cell_style(row_at(2U), 0U).padding.present() &&
+                (*grid).cell_style(row_at(2U), 0U).alignment.absent(),
             "a row's style wins over the column's, a cell's own over its row's");
-    (*grid).column_headers_default_cell_style = {.alignment = DataGridViewContentAlignment::middle_center};
-    (*grid).set_column_header_cell_style(1U, {.alignment = DataGridViewContentAlignment::middle_end});
-    require((*grid).inherited_column_header_style(0U).alignment == DataGridViewContentAlignment::middle_center &&
-                (*grid).inherited_column_header_style(1U).alignment == DataGridViewContentAlignment::middle_end &&
-                (*grid).inherited_column_header_style(0U).font == big && (*grid).inherited_row_header_style().font == big,
+    (*grid).column_headers_default_cell_style = {.alignment = aligned(DataGridViewContentAlignment::middle_center)};
+    (*grid).set_column_header_cell_style(1U, {.alignment = aligned(DataGridViewContentAlignment::middle_end)});
+    require((*grid).inherited_column_header_style(0U).alignment ==
+                    aligned(DataGridViewContentAlignment::middle_center) &&
+                (*grid).inherited_column_header_style(1U).alignment ==
+                    aligned(DataGridViewContentAlignment::middle_end) &&
+                (*grid).inherited_column_header_style(0U).font == stxlib::Optional<FontSpec>::of(big) &&
+                (*grid).inherited_row_header_style().font == stxlib::Optional<FontSpec>::of(big),
             "headers inherit their own style, the headers', then the grid's");
     require(throws<std::invalid_argument>(SetBadFormat{grid.get()}) &&
                 throws<std::invalid_argument>(SetNegativePadding{grid.get()}) &&
@@ -2009,10 +2031,11 @@ void cell_styles() {
     // Styles are kept by row ID: they follow their rows and end with them.
     require((*grid).sort(0U, DataGridViewSortDirection::descending) &&
                 (*grid).row_position(id("charlie")) == present_row(0U) &&
-                (*grid).cell_style(row_at(0U), 0U).padding && (*grid).row_default_cell_style(row_at(0U)).alignment,
+                (*grid).cell_style(row_at(0U), 0U).padding.present() &&
+                (*grid).row_default_cell_style(row_at(0U)).alignment.present(),
             "sorting moves a row's and a cell's styles with the row");
     (*grid).rows.erase(0U, 1U);
-    require(!(*grid).row_default_cell_style(row_at(0U)).alignment, "a removed row's styles end with it");
+    require((*grid).row_default_cell_style(row_at(0U)).alignment.absent(), "a removed row's styles end with it");
 
     // Geometry: padding and alignment place the content part.
     std::shared_ptr<DataGridView> placed = make_grid("grid.styles.placed");
@@ -2023,8 +2046,8 @@ void cell_styles() {
     const DataGridView::Cell* plain = find_cell(before, 0U, 0U);
     require(plain != nullptr && (*plain).parts.cell_content.present, "a text cell's content");
     const Rect plain_content = (*plain).parts.cell_content.bounds;
-    (*placed).set_cell_style(row_at(0U), 0U, {.alignment = DataGridViewContentAlignment::top_start,
-                                              .padding = Insets{12.0, 3.0, 12.0, 3.0}});
+    (*placed).set_cell_style(row_at(0U), 0U, {.alignment = aligned(DataGridViewContentAlignment::top_start),
+                                              .padding = padded(Insets{12.0, 3.0, 12.0, 3.0})});
     placed_window.perform_layout();
     const std::vector<DataGridView::Cell> after = (*placed).realized_cells();
     const DataGridView::Cell* styled = find_cell(after, 0U, 0U);
@@ -2434,7 +2457,7 @@ void wrapped_cells() {
     }
     require(whole, "without wrap_mode the text is one line");
 
-    (*grid).set_column_default_cell_style(0U, {.wrap_mode = true});
+    (*grid).set_column_default_cell_style(0U, {.wrap_mode = stxlib::Optional<bool>::of(true)});
     window.perform_layout();
     CountingPainter wrapped;
     (*grid).on_paint(wrapped, (*grid).client_rectangle());
@@ -3174,7 +3197,7 @@ void row_auto_sizing() {
     std::shared_ptr<DataGridView> grid = make_grid("grid.row.auto");
     Window window(grid, {360.0, 220.0});
     static_cast<void>((*grid).set_cell_value(row_at(0U), 0U, BindingValue{std::string("Kilo Lima Mike November")}));
-    (*grid).set_column_default_cell_style(0U, {.wrap_mode = true});
+    (*grid).set_column_default_cell_style(0U, {.wrap_mode = stxlib::Optional<bool>::of(true)});
     window.perform_layout();
     require((*grid).auto_size_rows_mode.read() == DataGridViewAutoSizeRowsMode::none &&
                 (*grid).row_height_at(row_at(0U)) == 22.0,

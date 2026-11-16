@@ -78,8 +78,9 @@ Rect cell_inside(Rect cell) noexcept {
 // The text's alignment across its box for a style's alignment; start when
 // none is set. Right to left the start is the cell's right edge, as
 // Windows Forms mirrors a cell's alignment under RightToLeft.
-PartTextAlignment reading_alignment(std::optional<DataGridViewContentAlignment> alignment) noexcept {
-    if (!alignment) return PartTextAlignment::start;
+PartTextAlignment reading_alignment(const stxlib::Optional<DataGridViewContentAlignment>& held) noexcept {
+    const DataGridViewContentAlignment* const alignment = held.value();
+    if (alignment == nullptr) return PartTextAlignment::start;
     switch (*alignment) {
     case DataGridViewContentAlignment::top_center:
     case DataGridViewContentAlignment::middle_center:
@@ -99,7 +100,8 @@ PartTextAlignment reading_alignment(std::optional<DataGridViewContentAlignment> 
 }
 
 // As `grid` draws it: start and end exchange when it resolves right to left.
-PartTextAlignment text_alignment(std::optional<DataGridViewContentAlignment> alignment, const Control& grid) noexcept {
+PartTextAlignment text_alignment(const stxlib::Optional<DataGridViewContentAlignment>& alignment,
+                                 const Control& grid) noexcept {
     const bool mirrored = grid.effective_layout_direction() == LayoutDirection::right_to_left;
     const PartTextAlignment reading = reading_alignment(alignment);
     if (mirrored && reading == PartTextAlignment::start) return PartTextAlignment::end;
@@ -110,8 +112,9 @@ PartTextAlignment text_alignment(std::optional<DataGridViewContentAlignment> ali
 // Where a line of text sits up and down in its content box.
 enum class LinePlacement : std::uint8_t { top, middle, bottom };
 
-LinePlacement line_placement(std::optional<DataGridViewContentAlignment> alignment) noexcept {
-    if (!alignment) return LinePlacement::middle;
+LinePlacement line_placement(const stxlib::Optional<DataGridViewContentAlignment>& held) noexcept {
+    const DataGridViewContentAlignment* const alignment = held.value();
+    if (alignment == nullptr) return LinePlacement::middle;
     switch (*alignment) {
     case DataGridViewContentAlignment::top_start:
     case DataGridViewContentAlignment::top_center:
@@ -132,11 +135,12 @@ LinePlacement line_placement(std::optional<DataGridViewContentAlignment> alignme
 // The space a style keeps around a cell's content, at `scale`: the style's
 // padding, else the grid's own margins (cell_padding at the start and end).
 Insets content_padding(const DataGridViewCellStyle& style, double scale) noexcept {
-    if (!style.padding) {
+    const Insets* const authored = style.padding.value();
+    if (authored == nullptr) {
         const Insets margins{cell_padding * scale, 0.0, cell_padding * scale, 0.0};
         return margins;
     }
-    const Insets& padding = *style.padding;
+    const Insets& padding = *authored;
     const Insets scaled{padding.left * scale, padding.top * scale, padding.right * scale, padding.bottom * scale};
     return scaled;
 }
@@ -370,7 +374,7 @@ double DataGridView::preferred_cell_width(DataGridViewRowPosition row, std::size
     const std::string text = shown_text(row, column, std::move(formatted.text));
     const DataGridViewCellStyle& style = formatted.style;
     const double scale = effective_text_scale();
-    const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
+    const FontSpec face = cell_face(style);
     // Text is measured in the scaled font; widths are logical units.
     const double text_width = text.empty() ? 0.0 : measure_text_extent_utf8(text, face).logical_size.width / scale;
     const Insets padding = content_padding(style, 1.0);
@@ -409,7 +413,7 @@ double DataGridView::preferred_column_header_width(std::size_t column) const {
     const DataGridViewCellStyle style = inherited_column_header_style(column);
     const DataGridViewColumn& definition = columns_[column];
     const double scale = effective_text_scale();
-    const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
+    const FontSpec face = cell_face(style);
     const double text_width = definition.header_text.empty()
         ? 0.0
         : measure_text_extent_utf8(definition.header_text, face).logical_size.width / scale;
@@ -572,7 +576,7 @@ double DataGridView::preferred_cell_height(DataGridViewRowPosition row, std::siz
     const std::string text = shown_text(row, column, std::move(formatted.text));
     const DataGridViewCellStyle& style = formatted.style;
     const double scale = effective_text_scale();
-    const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
+    const FontSpec face = cell_face(style);
     // Lines are measured in the scaled font; heights are logical units.
     const double line = text_line_height(face) / scale;
     const Insets padding = content_padding(style, 1.0);
@@ -618,7 +622,7 @@ double DataGridView::preferred_column_headers_height() const {
     double tallest = 0.0;
     for (const std::size_t column : shown_order_) {
         const DataGridViewCellStyle style = inherited_column_header_style(column);
-        const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
+        const FontSpec face = cell_face(style);
         const Insets padding = content_padding(style, 1.0);
         const double height = text_line_height(face) / scale + padding.top + padding.bottom + 1.0;
         tallest = std::max(tallest, height);
@@ -646,7 +650,7 @@ double DataGridView::preferred_row_header_height(DataGridViewRowPosition row) co
     if (row.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
     const DataGridViewCellStyle style = inherited_row_header_style();
     const double scale = effective_text_scale();
-    const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
+    const FontSpec face = cell_face(style);
     const Insets padding = content_padding(style, 1.0);
     // As stored by the row index (see preferred_cell_height).
     const double result = DataGridViewRowHeights::stored_height(text_line_height(face) / scale + padding.top + padding.bottom + 1.0);
@@ -1322,7 +1326,7 @@ DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, 
         const Rect padded = result.content_box;
         const Rect content{padded.x, padded.y,
                            std::max(0.0, padded.width - reserved - error_reserved), padded.height};
-        const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
+        const FontSpec face = cell_face(style);
         const LinePlacement placement = line_placement(style.alignment);
         if (kind == DataGridViewColumnKind::text && style.wrap_mode.value_or(false)) {
             // Wrapped text (WrapMode): lines at the content's width, breaking
@@ -1373,6 +1377,12 @@ DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, 
     record.cell_button_label.authored_foreground = colours.foreground;
     record.cell_vertical_rule.authored_foreground = grid_color.read();
     record.cell_horizontal_rule.authored_foreground = grid_color.read();
+    return result;
+}
+
+FontSpec DataGridView::cell_face(const DataGridViewCellStyle& style) const {
+    const FontSpec* const authored = style.font.value();
+    const FontSpec result = authored != nullptr ? effective_font(*authored) : text_font(font.read());
     return result;
 }
 
@@ -1459,7 +1469,7 @@ DataGridView::ColumnParts DataGridView::column_parts(std::size_t column, const G
     const Rect labelled{label_x, padded.y, std::max(0.0, padded.width - glyph_lane), padded.height};
     const LinePlacement placement = line_placement(style.alignment);
     const double line_height =
-        placement == LinePlacement::middle ? 0.0 : text_line_height((style.font ? effective_font(*style.font) : text_font(font.read())));
+        placement == LinePlacement::middle ? 0.0 : text_line_height(cell_face(style));
     record.column_label = visible_part(line_box(labelled, placement, line_height), clip);
     if (sorted) {
         const Rect reading_lane{header.x + header.width - sort_glyph_margin * scale, header.y,
@@ -1687,7 +1697,7 @@ void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, cons
     PartPaint part;
     part.family = ControlVisualRole::panel;
     part.states = states;
-    part.font = (style.font ? effective_font(*style.font) : text_font(font.read()));
+    part.font = cell_face(style);
     part.role = PartRole::face;
     part.bounds = parts.row_header.bounds;
     part.authored_background = parts.row_header.authored_background;
@@ -1780,7 +1790,7 @@ bool DataGridView::resolve_cell(DataGridViewRowPosition row, std::size_t column,
     resolved.states = cell_states(row, column);
     resolved.visited = resolved.states.contains(visited_state);
     resolved.editing_text = editing_ && edit_kind_ == EditKind::text && is_current_cell(row, column);
-    resolved.font = (style.font ? effective_font(*style.font) : text_font(font.read()));
+    resolved.font = cell_face(style);
     resolved.alignment = text_alignment(style.alignment, *this);
     const std::size_t text_begin = into.text.size();
     into.text.append(placed.content.text);
@@ -1992,7 +2002,7 @@ void DataGridView::paint_column_header(Painter& painter, std::size_t column, con
     PartPaint part;
     part.family = ControlVisualRole::panel;
     part.states = column_states(column);
-    part.font = (style.font ? effective_font(*style.font) : text_font(font.read()));
+    part.font = cell_face(style);
     part.role = PartRole::face;
     part.bounds = parts.column_header.bounds;
     part.authored_background = parts.column_header.authored_background;

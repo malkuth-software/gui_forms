@@ -115,10 +115,10 @@ enum class DataGridViewHeaderBorderStyle : std::uint8_t { single, raised, sunken
 // colours stand in for both while the cell is selected; an unset selection
 // colour leaves the theme's selection look. A disabled grid stays greyed.
 struct GUI_FORMS_API DataGridViewCellStyle final {
-    std::optional<FontSpec> font{};
-    std::optional<DataGridViewContentAlignment> alignment{};
-    std::optional<Insets> padding{};
-    std::optional<bool> wrap_mode{};
+    stxlib::Optional<FontSpec> font{};
+    stxlib::Optional<DataGridViewContentAlignment> alignment{};
+    stxlib::Optional<Insets> padding{};
+    stxlib::Optional<bool> wrap_mode{};
     std::optional<std::string> format{};
     std::optional<BindingValue> null_value{};
     std::optional<BindingValue> data_source_null_value{};

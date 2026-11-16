@@ -1721,6 +1721,9 @@ private:
         Rect text{};
         Rect underline{};
     };
+    // The face a cell with `style` draws its text in: the style's font, else
+    // the grid's.
+    [[nodiscard]] FontSpec cell_face(const DataGridViewCellStyle& style) const;
     // None for empty text or an empty content area.
     [[nodiscard]] stxlib::Optional<CellLink> cell_link(std::string_view text, PartTextAlignment alignment,
                                                        FontSpec face, Rect content) const;
