@@ -298,7 +298,7 @@ void sample_format() {
     const GraphLoadResult result = loaded.load(sample_document);
     require(result.error == GraphLoadError::ok, "the sample loads");
     require(saved(loaded) == sample_document, "load then save reproduces the sample");
-    require(loaded.find_node("mix") == NodeId{1U, 1U} && loaded.node_count() == 2U && loaded.link_count() == 1U,
+    require(loaded.find_node("mix").index == 1U && loaded.node_count() == 2U && loaded.link_count() == 1U,
             "nodes take slots in document order");
     const NodeProperty* const scale = loaded.property(loaded.find_node("noise"), "scale");
     require(scale != nullptr && (*scale).value == "5.0", "properties load as text");
@@ -975,11 +975,11 @@ void identities_across_load() {
     require(graph.node(a) == nullptr && graph.node(b) == nullptr && graph.node(c) == nullptr &&
                 graph.link(ab) == nullptr,
             "no identity from before the load is live after it");
-    require(graph.find_node("noise").index == 0U && graph.find_node("noise").generation == a.generation + 1U,
+    require(graph.find_node("noise").index == 0U && graph.find_node("noise").generation > c.generation,
             "a kept slot's generation advances");
     require(graph.node_slots().size() == 3U && !graph.node_slots()[2].live, "the third slot stays, freed");
     const NodeId d = add(graph, "d", 0.0, 0.0);
-    require(d.index == 2U && d.generation == c.generation + 1U, "it is reused with a newer generation");
+    require(d.index == 2U && d.generation > graph.find_node("noise").generation, "it is reused with a newer generation");
     require(graph.undo().status == GraphStatus::ok && graph.undo().status == GraphStatus::nothing_to_undo,
             "the log starts at the load");
 }

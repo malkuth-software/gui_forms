@@ -972,24 +972,16 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
     links_.reserve(link_total);
     free_links_.reserve(link_total);
     link_key_order_.reserve(link_total);
-    node_generations_issued_.reserve(std::max(node_generations_issued_.size(), node_count));
-    link_generations_issued_.reserve(std::max(link_generations_issued_.size(), link_count));
 
     // Nothing below allocates or fails; each push checks its reservation.
     require_room(nodes_, node_total - nodes_.size(), "node_graph.load");
     require_room(links_, link_total - links_.size(), "node_graph.load");
     clear_log();
-    // Each slot takes a generation after every one it issued, including
-    // those of records an undo took away (A-gf-controls-07-F1).
+    // Each record takes a generation after every one the graph issued,
+    // including those of records an undo took away (A-gf-controls-07-F1).
     for (std::size_t index = 0U; index < node_count; ++index) {
-        std::uint32_t generation = 1U;
-        if (index < node_generations_issued_.size()) {
-            generation = newer_generation(node_generations_issued_[index]);
-            node_generations_issued_[index] = generation;
-        } else {
-            require_room(node_generations_issued_, 1U, "node_graph.load");
-            node_generations_issued_.push_back(generation);
-        }
+        const std::uint32_t generation = newer_generation(node_generation_issued_);
+        node_generation_issued_ = generation;
         if (index < nodes_.size()) {
             nodes_[index] = std::move(parsed.nodes[index]);
         } else {
@@ -1028,14 +1020,8 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
         link.to = PortRef{NodeId{parsed_link.to_node, nodes_[parsed_link.to_node].generation},
                           PortIndex{static_cast<std::uint16_t>(parsed_link.to_port)}};
         link.live = true;
-        link.generation = 1U;
-        if (index < link_generations_issued_.size()) {
-            link.generation = newer_generation(link_generations_issued_[index]);
-            link_generations_issued_[index] = link.generation;
-        } else {
-            require_room(link_generations_issued_, 1U, "node_graph.load");
-            link_generations_issued_.push_back(link.generation);
-        }
+        link.generation = newer_generation(link_generation_issued_);
+        link_generation_issued_ = link.generation;
         if (index < links_.size()) {
             links_[index] = std::move(link);
         } else {

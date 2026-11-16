@@ -7,11 +7,11 @@
 // question 1): the canvas paints and hit-tests them.
 //
 // Identities carry a generation. Removing a record frees its slot for reuse
-// with the next generation, so an identity kept past its record's removal
+// with a newer generation, so an identity kept past its record's removal
 // is stale and every operation refuses it with GraphStatus::stale_identity;
 // nothing dereferences a stale identity. A record whose creation was undone
-// counts as removed: the next record in its slot takes a generation after
-// every one the slot issued, so the undone identity stays stale.
+// counts as removed: every new record takes a generation after every one
+// the graph issued, so the undone identity stays stale.
 //
 // Geometry is in world units (WorldPoint, WorldRect, declared in
 // gui_forms/scene/world_geometry), float64, so deep zoom keeps placement;
@@ -62,7 +62,7 @@ namespace gui_forms {
 
 // -- identities -------------------------------------------------------------------
 
-// A node's identity: its slot and the slot's generation when it was added.
+// A node's identity: its slot and the generation the graph issued it.
 struct GUI_FORMS_API NodeId final {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -599,12 +599,13 @@ private:
     // Free slots, reused last freed first.
     std::vector<std::uint32_t> free_nodes_{};
     std::vector<std::uint32_t> free_links_{};
-    // Per slot index ever used (so longer than the slot list after an undo
-    // pops appended slots): the newest generation issued there. Undo never
-    // lowers it, so a record made after an undone one never takes the undone
-    // record's identity (A-gf-controls-07-F1).
-    std::vector<std::uint32_t> node_generations_issued_{};
-    std::vector<std::uint32_t> link_generations_issued_{};
+    // The newest generation issued to any node (and link) record. Each new
+    // record takes the one after it, so a generation is never handed out
+    // twice; undo never lowers it, so a record made after an undone one never
+    // takes the undone record's identity (A-gf-controls-07-F1). Scalars, not
+    // a list per slot, so a slot an undo popped needs no entry.
+    std::uint32_t node_generation_issued_{};
+    std::uint32_t link_generation_issued_{};
     // Per node slot: the revision of the last move that moved it.
     std::vector<std::uint64_t> move_marks_{};
     // Live node slots ordered by key, for find_node and duplicate checks.

@@ -70,7 +70,7 @@ template <typename Entry> void reserve_more(std::vector<Entry>& list, std::size_
     list.reserve(grown);
 }
 
-// The next generation of a freed slot; zero is skipped so that a
+// The generation after `generation`; zero is skipped so that a
 // zero-initialised identity is never live.
 std::uint32_t next_generation(std::uint32_t generation) noexcept {
     std::uint32_t next = generation + 1U;
@@ -78,25 +78,13 @@ std::uint32_t next_generation(std::uint32_t generation) noexcept {
     return next;
 }
 
-// The generation a new record takes in slot `index`: the one after the
-// newest the slot ever issued (`issued`, kept per slot index ever used), so
-// a generation an undone record had is never handed out again
-// (A-gf-controls-07-F1); 1 for a slot index never used.
-std::uint32_t issued_generation(const std::vector<std::uint32_t>& issued, std::uint32_t index) noexcept {
-    const std::uint32_t generation = index < issued.size() ? next_generation(issued[index]) : 1U;
+// The generation a new record takes: the one after the newest the graph
+// ever issued (`issued`, which it then becomes), so a generation an undone
+// record had is never handed out again (A-gf-controls-07-F1).
+std::uint32_t issue_generation(std::uint32_t& issued) noexcept {
+    const std::uint32_t generation = next_generation(issued);
+    issued = generation;
     return generation;
-}
-
-// Records `generation` as the newest issued in slot `index`. A slot index
-// past the list's end is the next one (slots are appended one at a time),
-// and its room was reserved before the change began.
-void record_issued(std::vector<std::uint32_t>& issued, std::uint32_t index, std::uint32_t generation) noexcept {
-    if (index < issued.size()) {
-        issued[index] = generation;
-        return;
-    }
-    require_room(issued, 1U, "node_graph.record_issued");
-    issued.push_back(generation);
 }
 
 // The undo log's byte estimate for one node record kept in it.
@@ -730,7 +718,6 @@ GraphResult NodeGraph::add_node(const NodeSpec& spec) {
         // allocate.
         reserve_slot_list(free_nodes_, nodes_.size() + 1U);
         reserve_slot_list(key_order_, nodes_.size() + 1U);
-        reserve_slot_list(node_generations_issued_, nodes_.size() + 1U);
         move_marks_.reserve(nodes_.size() + 1U);
         nodes_.reserve(nodes_.size() + 1U);
     }
@@ -739,16 +726,15 @@ GraphResult NodeGraph::add_node(const NodeSpec& spec) {
     if (reuses) {
         index = free_nodes_.back();
         generation_before = nodes_[index].generation;
-        record.generation = issued_generation(node_generations_issued_, index);
+        record.generation = issue_generation(node_generation_issued_);
         nodes_[index] = std::move(record);
         free_nodes_.pop_back();
     } else {
         index = static_cast<std::uint32_t>(nodes_.size());
-        record.generation = issued_generation(node_generations_issued_, index);
+        record.generation = issue_generation(node_generation_issued_);
         nodes_.push_back(std::move(record));
         move_marks_.push_back(0U);
     }
-    record_issued(node_generations_issued_, index, nodes_[index].generation);
     ordered_insert(key_order_, nodes_, index);
     ++live_nodes_;
     result.node = NodeId{index, nodes_[index].generation};
@@ -1137,7 +1123,6 @@ GraphResult NodeGraph::install_link(PortRef from, PortRef to, std::string& key) 
         // undoing and redoing never allocate.
         reserve_slot_list(free_links_, links_.size() + 1U);
         reserve_slot_list(link_key_order_, links_.size() + 1U);
-        reserve_slot_list(link_generations_issued_, links_.size() + 1U);
         links_.reserve(links_.size() + 1U);
     }
     LinkRecord record{};
@@ -1150,16 +1135,15 @@ GraphResult NodeGraph::install_link(PortRef from, PortRef to, std::string& key) 
     if (reuses) {
         index = free_links_.back();
         generation_before = links_[index].generation;
-        record.generation = issued_generation(link_generations_issued_, index);
+        record.generation = issue_generation(link_generation_issued_);
         links_[index] = std::move(record);
         free_links_.pop_back();
     } else {
         index = static_cast<std::uint32_t>(links_.size());
-        record.generation = issued_generation(link_generations_issued_, index);
+        record.generation = issue_generation(link_generation_issued_);
         require_room(links_, 1U, "node_graph.connect");
         links_.push_back(std::move(record));
     }
-    record_issued(link_generations_issued_, index, links_[index].generation);
     ordered_insert(link_key_order_, links_, index);
     ++live_links_;
     result.link = LinkId{index, links_[index].generation};
