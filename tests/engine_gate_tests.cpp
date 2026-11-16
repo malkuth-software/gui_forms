@@ -284,7 +284,7 @@ public:
         part.family = ControlVisualRole::button;
         part.bounds = engine_samples::feature_sample_bounds;
         part.corner_radius.set(engine_samples::feature_sample_corner_radius);
-        part.key = PartKey{"subject", {}, {}};
+        part.key.set(PartKey{"subject", {}, {}});
         part.states = states;
         part.granted_overflow = overflow;
         paint_part(painter, *this, part);

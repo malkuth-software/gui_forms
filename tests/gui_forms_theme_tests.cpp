@@ -825,7 +825,7 @@ void sheet_darkened() {
             part.family = static_cast<ControlVisualRole>(family);
             part.role = static_cast<PartRole>(role);
             part.bounds = Rect{0.0, 0.0, 80.0, 24.0};
-            part.key = PartKey{part_role_name(part.role), {}, {}};
+            part.key.set(PartKey{part_role_name(part.role), {}, {}});
             set_scheme(window, ColourScheme::light);
             const ThemeEngine::PartPlan light = engine.plan(*probe, part);
             if (light.drawing != ThemeEngine::PartDrawing::primitive || light.resolution.primitive == nullptr) {

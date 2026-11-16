@@ -337,11 +337,11 @@ void LookupComboBox::on_paint(Painter& painter, Rect) {
     const AnatomyStateSet states = anatomy_states();
     PartPaint well{.role = PartRole::well, .bounds = placed.well, .states = states,
                    .family = ControlVisualRole::editor};
-    well.key = PartKey{"well", {}, {}};
+    well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
     PartPaint drop_down{.role = PartRole::actuator, .bounds = placed.actuator, .states = states,
                         .family = ControlVisualRole::choice};
-    drop_down.key = PartKey{"actuator", {}, {}};
+    drop_down.key.set(PartKey{"actuator", {}, {}});
     paint_part(painter, *this, drop_down);
     PartPaint disclosure{.role = PartRole::disclosure, .bounds = placed.glyph, .states = states,
                          .family = ControlVisualRole::choice};

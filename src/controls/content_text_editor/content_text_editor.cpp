@@ -892,7 +892,7 @@ void ContentTextEditor::on_paint(Painter& painter, Rect local_damage) {
         // given in every presentation (PartPaint::live_surface).
         PartPaint frame{};
         frame.role = PartRole::image;
-        frame.key = PartKey{"content", {}, {}};
+        frame.key.set(PartKey{"content", {}, {}});
         frame.family = ControlVisualRole::editor;
         frame.bounds = bounds;
         frame.states = states;

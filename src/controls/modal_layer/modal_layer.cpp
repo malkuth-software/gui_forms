@@ -87,7 +87,7 @@ void ModalLayer::on_paint(Painter& painter, Rect) {
     const AnatomyStateSet states = anatomy_states();
     PartPaint scrim{.role = PartRole::scrim, .bounds = client_rectangle(), .states = states,
                     .family = ControlVisualRole::window};
-    scrim.key = PartKey{"scrim", {}, {}};
+    scrim.key.set(PartKey{"scrim", {}, {}});
     // While it fades in, the scrim draws in a group at the fade's opacity.
     const bool fading = scrim_opacity_ < 1.0;
     if (fading) painter.begin_group(PaintGroup{.bounds = client_rectangle(), .opacity = scrim_opacity_});

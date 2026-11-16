@@ -550,13 +550,13 @@ void ValueBar::paint_texts(Painter& painter, AnatomyStateSet states, stxlib::Opt
     if (!name.empty()) {
         text.text = lend_paint_text(name);
         text.alignment = PartTextAlignment::start;
-        if (over_fill.absent()) text.key = PartKey{"label", {}, {}};
+        if (over_fill.absent()) text.key.set(PartKey{"label", {}, {}});
         paint_part(painter, *this, text);
     }
     text.text = lend_paint_text(shown);
     text.alignment = name.empty() ? PartTextAlignment::center : PartTextAlignment::end;
-    text.key = std::nullopt;
-    if (over_fill.absent()) text.key = PartKey{"value", {}, {}};
+    text.key.reset();
+    if (over_fill.absent()) text.key.set(PartKey{"value", {}, {}});
     paint_part(painter, *this, text);
 }
 
@@ -573,7 +573,7 @@ void ValueBar::on_paint(Painter& painter, Rect) {
     track_part.role = PartRole::track;
     track_part.bounds = track;
     track_part.states = states;
-    track_part.key = PartKey{"track", {}, {}};
+    track_part.key.set(PartKey{"track", {}, {}});
     paint_part(painter, *this, track_part);
     const Rect fill = fill_bounds();
     if (!field) {
@@ -583,7 +583,7 @@ void ValueBar::on_paint(Painter& painter, Rect) {
         fill_part.bounds = fill;
         fill_part.states = states;
         fill_part.states.insert(AnatomyState::selected);
-        fill_part.key = PartKey{"fill", {}, {}};
+        fill_part.key.set(PartKey{"fill", {}, {}});
         paint_part(painter, *this, fill_part);
         const Rect marker = overrange_bounds();
         if (!marker.empty()) {
@@ -592,7 +592,7 @@ void ValueBar::on_paint(Painter& painter, Rect) {
             overrange_part.role = PartRole::indicator;
             overrange_part.bounds = marker;
             overrange_part.states = states;
-            overrange_part.key = PartKey{"overrange", {}, {}};
+            overrange_part.key.set(PartKey{"overrange", {}, {}});
             paint_part(painter, *this, overrange_part);
         }
     }
@@ -621,11 +621,11 @@ void ValueBar::on_paint(Painter& painter, Rect) {
             arrow.role = PartRole::actuator;
             arrow.bounds = arrows[index];
             arrow.states = states;
-            arrow.key = PartKey{arrow_names[index], {}, {}};
+            arrow.key.set(PartKey{arrow_names[index], {}, {}});
             paint_part(painter, *this, arrow);
             arrow.role = PartRole::glyph;
             arrow.mark = marks[index];
-            arrow.key = PartKey{glyph_names[index], {}, {}};
+            arrow.key.set(PartKey{glyph_names[index], {}, {}});
             paint_part(painter, *this, arrow);
         }
     }
@@ -635,7 +635,7 @@ void ValueBar::on_paint(Painter& painter, Rect) {
         validation.role = PartRole::validation;
         validation.bounds = track;
         validation.states = states;
-        validation.key = PartKey{"validation", {}, {}};
+        validation.key.set(PartKey{"validation", {}, {}});
         paint_part(painter, *this, validation);
     }
     if (focused_ && !editing_) {
@@ -645,7 +645,7 @@ void ValueBar::on_paint(Painter& painter, Rect) {
         focus.bounds = track;
         focus.states = states;
         focus.states.insert(AnatomyState::focus_visible);
-        focus.key = PartKey{"focus", {}, {}};
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }

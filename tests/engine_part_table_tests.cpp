@@ -79,7 +79,7 @@ public:
         face.family = ControlVisualRole::button;
         face.bounds = {0.0, 0.0, 60.0, 20.0};
         face.states = face_states;
-        if (keyed) face.key = PartKey{"face", {}, {}};
+        if (keyed) face.key.set(PartKey{"face", {}, {}});
         paint_part(painter, *this, face);
 
         PartPaint named = face;
@@ -87,14 +87,14 @@ public:
         named.bounds = {0.0, 24.0, 60.0, 14.0};
         named.text = lend_paint_text("Named");
         named.key.reset();
-        if (keyed) named.key = PartKey{"item_label", "item.alpha", item_position};
+        if (keyed) named.key.set(PartKey{"item_label", "item.alpha", item_position});
         paint_part(painter, *this, named);
 
         PartPaint indexed = named;
         indexed.bounds = {0.0, 40.0, 60.0, 14.0};
         indexed.text = lend_paint_text("Indexed");
         indexed.key.reset();
-        if (keyed) indexed.key = PartKey{"item_label", {}, item_position};
+        if (keyed) indexed.key.set(PartKey{"item_label", {}, item_position});
         paint_part(painter, *this, indexed);
 
         PartPaint plain = face;
@@ -106,7 +106,7 @@ public:
         // A keyed part with empty bounds paints nothing and is not recorded.
         PartPaint empty = face;
         empty.bounds = {};
-        if (keyed) empty.key = PartKey{"empty", {}, {}};
+        if (keyed) empty.key.set(PartKey{"empty", {}, {}});
         paint_part(painter, *this, empty);
     }
 
@@ -545,7 +545,7 @@ public:
             label.role = PartRole::label;
             label.bounds = {0.0, static_cast<double>(offset) * 2.0, 60.0, 2.0};
             label.text = lend_paint_text("row");
-            label.key = PartKey{"row_label", stable ? std::string_view(row_id) : std::string_view{}, row};
+            label.key.set(PartKey{"row_label", stable ? std::string_view(row_id) : std::string_view{}, row});
             paint_part(painter, *this, label);
         }
     }

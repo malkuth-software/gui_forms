@@ -848,13 +848,13 @@ void DockSite::paint_drag_layer(Painter& painter) {
         part.states = tile_states(tile);
         part.role = PartRole::actuator;
         part.bounds = tile.bounds;
-        part.key = PartKey{"tile", identity, {}};
+        part.key.set(PartKey{"tile", identity, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.mark = PartMark::dock_shape;
         part.dock_region = region_of(tile.zone);
         part.bounds = tile_glyph_bounds(tile.bounds);
-        part.key = PartKey{"tile_glyph", identity, {}};
+        part.key.set(PartKey{"tile_glyph", identity, {}});
         paint_part(painter, *this, part);
         part.key.reset();
         part.mark = PartMark::none;

@@ -46,7 +46,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
         PartPaint face;
         face.family = ControlVisualRole::panel;
         face.role = PartRole::face;
-        face.key = PartKey{"face", {}, {}};
+        face.key.set(PartKey{"face", {}, {}});
         face.bounds = {0.0, rule_y, bounds.width, std::max(0.0, bounds.height - rule_y)};
         paint_part(painter, *this, face);
     }
@@ -101,7 +101,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     label.family = ControlVisualRole::panel;
     label.role = PartRole::caption;
     // The `caption` part, so a theme's `::part(caption) { color }` colours it.
-    label.key = PartKey{"caption", {}, {}};
+    label.key.set(PartKey{"caption", {}, {}});
     label.states = states;
     label.text = lend_paint_text(caption);
     label.font = caption_font;

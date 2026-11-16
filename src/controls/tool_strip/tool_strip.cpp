@@ -675,7 +675,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
         rule.role = PartRole::divider;
         rule.bounds = parts.item_separator.bounds;
         rule.family = ControlVisualRole::panel;
-        rule.key = PartKey{"item_separator", item.stable_id, index};
+        rule.key.set(PartKey{"item_separator", item.stable_id, index});
         paint_part(painter, *this, rule);
         return;
     }
@@ -697,14 +697,14 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_face.present) {
         part.role = PartRole::face;
         part.bounds = parts.item_face.bounds;
-        part.key = PartKey{"item_face", item.stable_id, index};
+        part.key.set(PartKey{"item_face", item.stable_id, index});
         part.states = face_states;
         paint_part(painter, *this, part);
     }
     if (parts.item_arrow.present) {
         part.role = PartRole::actuator;
         part.bounds = parts.item_arrow.bounds;
-        part.key = PartKey{"item_arrow", item.stable_id, index};
+        part.key.set(PartKey{"item_arrow", item.stable_id, index});
         part.states = arrow_states;
         paint_part(painter, *this, part);
     }
@@ -712,14 +712,14 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_icon.present) {
         part.role = PartRole::icon;
         part.bounds = parts.item_icon.bounds;
-        part.key = PartKey{"item_icon", item.stable_id, index};
+        part.key.set(PartKey{"item_icon", item.stable_id, index});
         part.image = item.image;
         paint_part(painter, *this, part);
     }
     if (parts.item_label.present) {
         part.role = PartRole::label;
         part.bounds = parts.item_label.bounds;
-        part.key = PartKey{"item_label", item.stable_id, index};
+        part.key.set(PartKey{"item_label", item.stable_id, index});
         const std::string text = item_text(item);
         part.text = lend_paint_text(text);
         paint_part(painter, *this, part);
@@ -728,7 +728,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_arrow_glyph.present) {
         part.role = PartRole::glyph;
         part.bounds = parts.item_arrow_glyph.bounds;
-        part.key = PartKey{"item_arrow_glyph", item.stable_id, index};
+        part.key.set(PartKey{"item_arrow_glyph", item.stable_id, index});
         part.mark = PartMark::arrow_down;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
@@ -736,7 +736,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_focus.present) {
         part.role = PartRole::focus;
         part.bounds = parts.item_focus.bounds;
-        part.key = PartKey{"item_focus", item.stable_id, index};
+        part.key.set(PartKey{"item_focus", item.stable_id, index});
         paint_part(painter, *this, part);
     }
 }
@@ -747,12 +747,12 @@ void ToolStrip::on_paint(Painter& painter, Rect) {
     strip.family = ControlVisualRole::panel;
     strip.role = PartRole::face;
     strip.bounds = client_rectangle();
-    strip.key = PartKey{"face", {}, {}};
+    strip.key.set(PartKey{"face", {}, {}});
     paint_part(painter, *this, strip);
     if (!placed.grip.empty()) {
         strip.role = PartRole::grip;
         strip.bounds = placed.grip;
-        strip.key = PartKey{"grip", {}, {}};
+        strip.key.set(PartKey{"grip", {}, {}});
         paint_part(painter, *this, strip);
     }
     for (std::size_t index = 0; index < items_.size(); ++index) {
@@ -765,18 +765,18 @@ void ToolStrip::on_paint(Painter& painter, Rect) {
         overflow.bounds = placed.overflow_button;
         if (overflow_hot_) overflow.states.insert(AnatomyState::hot);
         if (overflow_open_) overflow.states.insert(AnatomyState::open);
-        overflow.key = PartKey{"overflow_button", {}, {}};
+        overflow.key.set(PartKey{"overflow_button", {}, {}});
         paint_part(painter, *this, overflow);
         overflow.role = PartRole::glyph;
         overflow.bounds = centred_glyph(placed.overflow_button, arrow_glyph_size * effective_text_scale());
         overflow.mark = PartMark::overflow;
-        overflow.key = PartKey{"overflow_glyph", {}, {}};
+        overflow.key.set(PartKey{"overflow_glyph", {}, {}});
         paint_part(painter, *this, overflow);
     }
     if (!placed.sizing_grip.empty()) {
         strip.role = PartRole::grip;
         strip.bounds = placed.sizing_grip;
-        strip.key = PartKey{"sizing_grip", {}, {}};
+        strip.key.set(PartKey{"sizing_grip", {}, {}});
         paint_part(painter, *this, strip);
     }
 }

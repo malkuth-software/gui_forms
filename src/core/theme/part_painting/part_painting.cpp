@@ -654,7 +654,7 @@ void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualReci
 // (top_to_bottom), so its line box is centred across the width.
 void paint_text(Painter& painter, const PartPaint& part, Color color) {
     if (part.text.empty()) return;
-    const Size measured = part.measured_text ? *part.measured_text
+    const Size measured = part.measured_text.present() ? *part.measured_text.value()
                                              : painter.measure_text_utf8(part.text, part.font);
     const double line_height = std::max(measured.height, part.font.size * 1.2);
     const double ascent = std::max(part.font.size, line_height * 0.82);
@@ -693,7 +693,7 @@ void paint_text(Painter& painter, const PartPaint& part, Color color) {
 // centre, clipped to the rectangle bounding the turned bounds.
 void paint_rotated_text(Painter& painter, const PartPaint& part, Color color) {
     if (part.text.empty() || !std::isfinite(part.text_angle)) return;
-    const Size measured = part.measured_text ? *part.measured_text
+    const Size measured = part.measured_text.present() ? *part.measured_text.value()
                                              : painter.measure_text_utf8(part.text, part.font);
     const double line_height = std::max(measured.height, part.font.size * 1.2);
     const double ascent = std::max(part.font.size, line_height * 0.82);
@@ -808,10 +808,10 @@ void stroke_circle_arc(Painter& painter, Point centre, double radius, double sta
 // alarm range (invalid) keeps its solid band in the invalid edge colour.
 void paint_arc(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe,
                ControlVisualContext context) {
-    if (!part.arc) return;
+    if (!part.arc.present()) return;
     const double width = recipe.stroke_width;
-    const double start = (*part.arc).start;
-    const double sweep = std::clamp((*part.arc).sweep, -whole_turn, whole_turn);
+    const double start = (*part.arc.value()).start;
+    const double sweep = std::clamp((*part.arc.value()).sweep, -whole_turn, whole_turn);
     if (width <= 0.0 || !std::isfinite(start) || !std::isfinite(sweep) || sweep == 0.0) return;
     const InscribedCircle circle = inscribed_circle(part.bounds);
     const double radius = circle.radius - width * 0.5;
@@ -849,9 +849,9 @@ void paint_arc(Painter& painter, const PartPaint& part, const ControlVisualRecip
 // blade is drawn as eight sections narrowing from the stroke width towards
 // one unit.
 void paint_needle(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
-    if (!part.arc) return;
+    if (!part.arc.present()) return;
     const double width = recipe.stroke_width;
-    const double angle = (*part.arc).start;
+    const double angle = (*part.arc.value()).start;
     if (width <= 0.0 || !std::isfinite(angle)) return;
     const InscribedCircle circle = inscribed_circle(part.bounds);
     if (circle.radius <= 0.0) return;
@@ -1258,7 +1258,7 @@ void paint_profiled_part(Painter& painter, const Control& control, const PartPai
     const double flare = std::clamp(profile.flare, 0.0, std::min(bounds.height, maximum_part_shape));
     const double falloff = std::clamp(profile.edge_shadow, 0.0, maximum_part_shape);
     const ControlVisualContext context = part_visual_context(control, part.states);
-    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
     const ResolvedControlRecipe resolved =
         control.effective_theme().resolve(control, part.family, context, part.states, part_name, part.control_type);
     const SurfaceMaterial& material = resolved.recipe().material;
@@ -1379,7 +1379,7 @@ std::optional<AccentFill> primitive_accent_fill(const Control& control, const Pa
     const ThemeEngine::PartPlan decided = theme.engine().plan(control, part);
     if (decided.drawing != ThemeEngine::PartDrawing::primitive) return std::nullopt;
     const ControlVisualContext context = part_visual_context(control, part.states);
-    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
     const ResolvedControlRecipe resolved =
         theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
     AccentFill fill{};
@@ -1566,14 +1566,14 @@ void paint_text_part_at(Painter& painter, const Control& control, PartPaint part
                         double width) {
     if (part.text.empty()) return;
     // The line box paint_text centres the text in: its height and ascent.
-    const Size measured = part.measured_text ? *part.measured_text
+    const Size measured = part.measured_text.present() ? *part.measured_text.value()
                                              : painter.measure_text_utf8(part.text, part.font);
     const double line_height = std::max(measured.height, part.font.size * 1.2);
     const double ascent = std::max(part.font.size, line_height * 0.82);
     part.alignment = PartTextAlignment::start;
     part.orientation = TextOrientation::horizontal;
     part.bounds = {origin.x, origin.y - ascent, std::max(width, measured.width), line_height};
-    part.measured_text = measured;
+    part.measured_text.set(measured);
     paint_part(painter, control, part);
 }
 
@@ -1603,7 +1603,7 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
     // The control's recipe fields (T3 P6f) in the part's states: a label
     // part takes the control's text colour, or its own where a rule names
     // the part.
-    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
     const ResolvedControlRecipe resolved = theme.resolve(control, part.family, context, part.states, part_name,
                                                               part.control_type);
     const ControlVisualRecipe& recipe = resolved.recipe();

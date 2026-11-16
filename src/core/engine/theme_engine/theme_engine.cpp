@@ -904,7 +904,7 @@ bool show_content_in_high_contrast(const Control& control, const PartPaint& part
     ControlVisualContext ordinary = context;
     ordinary.high_contrast = false;
     const Theme& theme = control.effective_theme();
-    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
     const ResolvedControlRecipe recipe =
         theme.resolve(control, part.family, ordinary, part.states, part_name, part.control_type);
     MaterialAssemblyContext relative{};
@@ -960,7 +960,7 @@ ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint&
         detail::KeptResolutions& kept = detail::kept_resolutions_of(control);
         const detail::KeptPlacement placement = detail::kept_placement_of(control);
         const std::string_view control_type = part.control_type;
-        const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+        const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
         const ControlVisualContext context = part_visual_context(control, part.states);
         for (const detail::KeptPlan& entry : kept.plans) {
             const bool same = entry.resolver == this && entry.placement == placement && entry.role == part.role &&
@@ -1014,7 +1014,7 @@ ThemeEngine::PartPlan ThemeEngine::plan_from_rules(const Control& control, const
     facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
     facts.look_rules = control.look_rules();
-    if (part.key) facts.part = (*part.key).part;
+    if (part.key.present()) facts.part = (*part.key.value()).part;
     facts.role = part.role;
     facts.states = part.states;
     facts.family = control_visual_role_name(part.family);
@@ -1387,8 +1387,8 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
     if (window != nullptr && themed && control.inline_style_rules() != nullptr) {
         detail::SurfaceEngineAccess::note_inline_with_theme(*window, control);
     }
-    if (part.key && part_bounds_paintable(part.bounds) && window != nullptr) {
-        run.record = detail::SurfaceEngineAccess::note_part(*window, control, *part.key, part.states);
+    if (part.key.present() && part_bounds_paintable(part.bounds) && window != nullptr) {
+        run.record = detail::SurfaceEngineAccess::note_part(*window, control, *part.key.value(), part.states);
     }
     const CompiledThemeRules::Resolution& resolution = run.decided.resolution;
     // A frameless part (PartPaint::frame) is its material's ground; a
@@ -1482,7 +1482,7 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
         // that a content part shows its colours (W-7, ruling 9).
         if (!part.content_color.present()) return nullptr;
         const Theme& contrast_theme = control.effective_theme();
-        const std::string_view contrast_part = part.key ? (*part.key).part : std::string_view{};
+        const std::string_view contrast_part = part.key.present() ? (*part.key.value()).part : std::string_view{};
         const ResolvedControlRecipe contrast =
             contrast_theme.resolve(control, part.family, context, part.states, contrast_part, part.control_type);
         SurfaceMaterial& framed = detail::SurfaceEngineAccess::paint_material(*window);
@@ -1501,7 +1501,7 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
     const bool darkened = context.dark && derives_dark(theme) && !part.content_color.present();
     ControlVisualContext floor_context = context;
     if (darkened) floor_context.dark = false;
-    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
     const ResolvedControlRecipe floor =
         theme.resolve(control, part.family, floor_context, part.states, part_name, part.control_type);
     MaterialAssemblyContext relative{};

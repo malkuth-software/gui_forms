@@ -181,12 +181,12 @@ void ToggleSwitch::on_paint(Painter& painter, Rect) {
     PartPaint track{.role = PartRole::track, .bounds = placed.track, .states = states,
                     .family = ControlVisualRole::choice};
     track.corner_radius.set(track_height * 0.5);
-    track.key = PartKey{"track", {}, {}};
+    track.key.set(PartKey{"track", {}, {}});
     paint_part(painter, *this, track);
     PartPaint thumb{.role = PartRole::indicator, .bounds = placed.thumb, .states = states,
                     .family = ControlVisualRole::choice};
     thumb.mark = PartMark::toggle_knob;
-    thumb.key = PartKey{"thumb", {}, {}};
+    thumb.key.set(PartKey{"thumb", {}, {}});
     paint_part(painter, *this, thumb);
     const FontSpec spec = label_font();
     // The part borrows the text; the local keeps it alive through the paint.
@@ -207,7 +207,7 @@ void ToggleSwitch::on_paint(Painter& painter, Rect) {
     }
     PartPaint focus{.role = PartRole::focus, .bounds = bounds, .states = states,
                     .family = ControlVisualRole::choice};
-    focus.key = PartKey{"focus", {}, {}};
+    focus.key.set(PartKey{"focus", {}, {}});
     paint_part(painter, *this, focus);
 }
 

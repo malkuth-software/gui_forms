@@ -1108,7 +1108,7 @@ void PageStrip::on_paint(Painter& painter, Rect) {
     part.bounds = placed.rail;
     // Each part is keyed by its anatomy name (and a tab's by its page ID),
     // so that a theme's `page-strip::part(...)` rules select it.
-    part.key = PartKey{"rail", {}, {}};
+    part.key.set(PartKey{"rail", {}, {}});
     paint_part(painter, *this, part);
     part.key.reset();
     // Tabs: flat at rest, a plate when hot or selected (the menu-item
@@ -1141,7 +1141,7 @@ void PageStrip::on_paint(Painter& painter, Rect) {
         bar.bounds = mark;
         bar.states = {};
         bar.states.insert(AnatomyState::drop_accepted);
-        bar.key = PartKey{"insertion_mark", {}, {}};
+        bar.key.set(PartKey{"insertion_mark", {}, {}});
         paint_part(painter, *this, bar);
     }
     if (!placed.overflow) return;
@@ -1167,12 +1167,12 @@ void PageStrip::on_paint(Painter& painter, Rect) {
         part.states = (*buttons[index]).states;
         part.role = PartRole::actuator;
         part.bounds = (*buttons[index]).bounds;
-        part.key = PartKey{button_names[index], {}, {}};
+        part.key.set(PartKey{button_names[index], {}, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.bounds = (*glyphs[index]).bounds;
         part.mark = marks[index];
-        part.key = PartKey{glyph_names[index], {}, {}};
+        part.key.set(PartKey{glyph_names[index], {}, {}});
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
     }
@@ -1181,7 +1181,7 @@ void PageStrip::on_paint(Painter& painter, Rect) {
         part.role = PartRole::label;
         part.bounds = own.list_count.bounds;
         part.text = lend_paint_text(placed.list_count_text);
-        part.key = PartKey{"list_count", {}, {}};
+        part.key.set(PartKey{"list_count", {}, {}});
         paint_part(painter, *this, part);
         part.text = {};
     }
@@ -1201,7 +1201,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
     part.states = states;
     part.role = PartRole::face;
     part.bounds = parts.tab.bounds;
-    part.key = PartKey{"tab", paint_stable_id_, {}};
+    part.key.set(PartKey{"tab", paint_stable_id_, {}});
     paint_part(painter, *this, part);
     bool default_content = true;
     if (draw_mode.read() == ItemDrawMode::owner_draw && (parts.tab_icon.present || parts.tab_label.present)) {
@@ -1234,7 +1234,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         const ImageListResolution resolved = (*image_list.read()).resolve(record.image_key, state, scale);
         part.role = PartRole::icon;
         part.bounds = parts.tab_icon.bounds;
-        part.key = PartKey{"tab_icon", paint_stable_id_, {}};
+        part.key.set(PartKey{"tab_icon", paint_stable_id_, {}});
         part.image = resolved.image;
         paint_part(painter, *this, part);
         part.image = {};
@@ -1242,7 +1242,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
     if (default_content && parts.tab_label.present) {
         part.role = PartRole::label;
         part.bounds = parts.tab_label.bounds;
-        part.key = PartKey{"tab_label", paint_stable_id_, {}};
+        part.key.set(PartKey{"tab_label", paint_stable_id_, {}});
         part.text = lend_paint_text(placed.tabs[position].label);
         paint_part(painter, *this, part);
         part.text = {};
@@ -1251,11 +1251,11 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         part.states = parts.tab_close.states;
         part.role = PartRole::actuator;
         part.bounds = parts.tab_close.bounds;
-        part.key = PartKey{"tab_close", paint_stable_id_, {}};
+        part.key.set(PartKey{"tab_close", paint_stable_id_, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.bounds = parts.tab_close_glyph.bounds;
-        part.key = PartKey{"tab_close_glyph", paint_stable_id_, {}};
+        part.key.set(PartKey{"tab_close_glyph", paint_stable_id_, {}});
         part.mark = PartMark::close;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
@@ -1264,11 +1264,11 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         part.states = parts.tab_pin.states;
         part.role = PartRole::actuator;
         part.bounds = parts.tab_pin.bounds;
-        part.key = PartKey{"tab_pin", paint_stable_id_, {}};
+        part.key.set(PartKey{"tab_pin", paint_stable_id_, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.bounds = parts.tab_pin_glyph.bounds;
-        part.key = PartKey{"tab_pin_glyph", paint_stable_id_, {}};
+        part.key.set(PartKey{"tab_pin_glyph", paint_stable_id_, {}});
         part.mark = PartMark::pin;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
@@ -1279,7 +1279,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         // mark (there is no `modified` mark; DK-35 gave the state only).
         part.role = PartRole::glyph;
         part.bounds = parts.tab_modified.bounds;
-        part.key = PartKey{"tab_modified", paint_stable_id_, {}};
+        part.key.set(PartKey{"tab_modified", paint_stable_id_, {}});
         part.mark = PartMark::radio_dot;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
@@ -1287,12 +1287,12 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
     if (parts.tab_seam.present) {
         part.role = PartRole::seam;
         part.bounds = parts.tab_seam.bounds;
-        part.key = PartKey{"tab_seam", paint_stable_id_, {}};
+        part.key.set(PartKey{"tab_seam", paint_stable_id_, {}});
         paint_part(painter, *this, part);
     }
     part.role = PartRole::focus;
     part.bounds = parts.tab_focus.bounds;
-    part.key = PartKey{"tab_focus", paint_stable_id_, {}};
+    part.key.set(PartKey{"tab_focus", paint_stable_id_, {}});
     paint_part(painter, *this, part);
     part.key.reset();
     return true;

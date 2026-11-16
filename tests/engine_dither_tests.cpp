@@ -690,7 +690,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, tall_face.width, tall_face.height};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         return part;
     }
 };

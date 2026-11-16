@@ -1336,20 +1336,20 @@ void Ribbon::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::face;
     part.bounds = placed.tab_rail;
-    part.key = PartKey{"tab_rail", {}, {}};
+    part.key.set(PartKey{"tab_rail", {}, {}});
     paint_part(painter, *this, part);
     // The File tab: a solid accent face, as the design language's File tab.
     const std::string application_label = parse_mnemonic_text(application_text.read()).display_text;
     part.family = ControlVisualRole::accent_button;
     part.states = own.application_button.states;
     part.bounds = placed.application;
-    part.key = PartKey{"application_button", {}, {}};
+    part.key.set(PartKey{"application_button", {}, {}});
     paint_part(painter, *this, part);
     part.role = PartRole::label;
     part.text = lend_paint_text(application_label);
     part.alignment = PartTextAlignment::center;
     part.bounds = own.application_label.bounds;
-    part.key = PartKey{"application_label", {}, {}};
+    part.key.set(PartKey{"application_label", {}, {}});
     paint_part(painter, *this, part);
     part.text = {};
     part.role = PartRole::focus;
@@ -1370,13 +1370,13 @@ void Ribbon::on_paint(Painter& painter, Rect) {
         part.bounds = own.help_button.bounds;
         part.text = {};
         part.mark = PartMark::none;
-        part.key = PartKey{"help_button", {}, {}};
+        part.key.set(PartKey{"help_button", {}, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::label;
         part.text = lend_paint_text(help_mark_text);
         part.alignment = PartTextAlignment::center;
         part.bounds = own.help_label.bounds;
-        part.key = PartKey{"help_label", {}, {}};
+        part.key.set(PartKey{"help_label", {}, {}});
         paint_part(painter, *this, part);
         part.text = {};
         part.key.reset();
@@ -1400,7 +1400,7 @@ void Ribbon::paint_plane(Painter& painter, PartPaint& part, const Layout& placed
     part.role = PartRole::face;
     part.bounds = placed.plane;
     part.accent = own.command_plane.accent;
-    part.key = PartKey{"command_plane", {}, {}};
+    part.key.set(PartKey{"command_plane", {}, {}});
     paint_part(painter, *this, part);
     part.accent.reset();
     part.key.reset();
@@ -1417,12 +1417,12 @@ void Ribbon::paint_scroll_buttons(Painter& painter, PartPaint& part, const Parts
         part.role = PartRole::actuator;
         part.states = own.scroll_left.states;
         part.bounds = own.scroll_left.bounds;
-        part.key = PartKey{"scroll_left", {}, {}};
+        part.key.set(PartKey{"scroll_left", {}, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.bounds = own.scroll_left_glyph.bounds;
         part.mark = PartMark::arrow_left;
-        part.key = PartKey{"scroll_left_glyph", {}, {}};
+        part.key.set(PartKey{"scroll_left_glyph", {}, {}});
         paint_part(painter, *this, part);
     }
     if (own.scroll_right.present) {
@@ -1430,12 +1430,12 @@ void Ribbon::paint_scroll_buttons(Painter& painter, PartPaint& part, const Parts
         part.states = own.scroll_right.states;
         part.bounds = own.scroll_right.bounds;
         part.mark = PartMark::none;
-        part.key = PartKey{"scroll_right", {}, {}};
+        part.key.set(PartKey{"scroll_right", {}, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.bounds = own.scroll_right_glyph.bounds;
         part.mark = PartMark::arrow_right;
-        part.key = PartKey{"scroll_right_glyph", {}, {}};
+        part.key.set(PartKey{"scroll_right_glyph", {}, {}});
         paint_part(painter, *this, part);
     }
 }
@@ -1455,7 +1455,7 @@ void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, 
     part.role = PartRole::face;
     part.bounds = parts.tab.bounds;
     part.accent = parts.tab.accent;
-    part.key = PartKey{"tab", id, {}};
+    part.key.set(PartKey{"tab", id, {}});
     const ControlPartMetrics metrics = part_metrics("tab", ControlVisualRole::menu_item, states);
     const bool shaped = metrics.taper > 0.0 || metrics.flare > 0.0 || metrics.edge_shadow_width > 0.0;
     if (shaped) {
@@ -1484,7 +1484,7 @@ void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, 
     const Rect hover = parts.tab_hover.bounds;
     part.bounds = {hover.x, hover.y, hover.width - taper, hover.height};
     part.states = hover_layer_states(states);
-    part.key = PartKey{"tab_hover", id, {}};
+    part.key.set(PartKey{"tab_hover", id, {}});
     paint_part(painter, *this, part);
     part.states = states;
     const std::string label = parse_mnemonic_text(tabs_[tab].text).display_text;
@@ -1493,12 +1493,12 @@ void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, 
     part.text = lend_paint_text(label);
     part.font = tab_label_font(states);
     part.alignment = PartTextAlignment::center;
-    part.key = PartKey{"tab_label", id, {}};
+    part.key.set(PartKey{"tab_label", id, {}});
     paint_part(painter, *this, part);
     part.text = {};
     part.role = PartRole::focus;
     part.bounds = parts.tab_focus.bounds;
-    part.key = PartKey{"tab_focus", id, {}};
+    part.key.set(PartKey{"tab_focus", id, {}});
     paint_part(painter, *this, part);
     part.key.reset();
 }
@@ -1521,7 +1521,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
         part.states = {};
         part.role = PartRole::divider;
         part.bounds = parts.group_divider.bounds;
-        part.key = PartKey{"group_divider", group_id, {}};
+        part.key.set(PartKey{"group_divider", group_id, {}});
         paint_part(painter, *this, part);
         if (group_collapsed(placed, group)) {
             part.family = ControlVisualRole::menu_item;
@@ -1530,13 +1530,13 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             part.bounds = parts.group_button.bounds;
             // The engine's built-in rules raise its dithered bulge while it
             // is hot (T2 GIVEN H3-1).
-            part.key = PartKey{"group_button", group_id, {}};
+            part.key.set(PartKey{"group_button", group_id, {}});
             paint_part(painter, *this, part);
             if (parts.group_button_icon.present) {
                 part.role = PartRole::icon;
                 part.bounds = parts.group_button_icon.bounds;
                 part.image = group_image(groups[group]);
-                part.key = PartKey{"group_button_icon", group_id, {}};
+                part.key.set(PartKey{"group_button_icon", group_id, {}});
                 paint_part(painter, *this, part);
                 part.image = {};
             }
@@ -1544,19 +1544,19 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             part.bounds = parts.group_button_label.bounds;
             part.alignment = PartTextAlignment::center;
             part.text = lend_paint_text(groups[group].caption);
-            part.key = PartKey{"group_button_label", group_id, {}};
+            part.key.set(PartKey{"group_button_label", group_id, {}});
             paint_part(painter, *this, part);
             part.text = {};
             part.alignment = PartTextAlignment::start;
             part.role = PartRole::glyph;
             part.bounds = parts.group_button_glyph.bounds;
             part.mark = PartMark::chevron_down;
-            part.key = PartKey{"group_button_glyph", group_id, {}};
+            part.key.set(PartKey{"group_button_glyph", group_id, {}});
             paint_part(painter, *this, part);
             part.mark = PartMark::none;
             part.role = PartRole::focus;
             part.bounds = parts.group_button_focus.bounds;
-            part.key = PartKey{"group_button_focus", group_id, {}};
+            part.key.set(PartKey{"group_button_focus", group_id, {}});
             paint_part(painter, *this, part);
             continue;
         }
@@ -1565,7 +1565,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
         part.bounds = parts.group_caption.bounds;
         part.alignment = PartTextAlignment::center;
         part.text = lend_paint_text(groups[group].caption);
-        part.key = PartKey{"group_caption", group_id, {}};
+        part.key.set(PartKey{"group_caption", group_id, {}});
         paint_part(painter, *this, part);
         part.text = {};
         part.alignment = PartTextAlignment::start;
@@ -1574,17 +1574,17 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             part.states = parts.group_launcher.states;
             part.role = PartRole::actuator;
             part.bounds = parts.group_launcher.bounds;
-            part.key = PartKey{"group_launcher", group_id, {}};
+            part.key.set(PartKey{"group_launcher", group_id, {}});
             paint_part(painter, *this, part);
             part.role = PartRole::glyph;
             part.bounds = parts.group_launcher_glyph.bounds;
             part.mark = PartMark::dialog_launcher;
-            part.key = PartKey{"group_launcher_glyph", group_id, {}};
+            part.key.set(PartKey{"group_launcher_glyph", group_id, {}});
             paint_part(painter, *this, part);
             part.mark = PartMark::none;
             part.role = PartRole::focus;
             part.bounds = parts.group_launcher_focus.bounds;
-            part.key = PartKey{"group_launcher_focus", group_id, {}};
+            part.key.set(PartKey{"group_launcher_focus", group_id, {}});
             paint_part(painter, *this, part);
         }
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {
@@ -1622,13 +1622,13 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             // The engine's built-in rules draw its dithered bulge, flat at
             // rest and rising while it is hot (GIVEN D3-1, G4-1), unless a
             // theme authors the face (defect 2).
-            part.key = PartKey{"command_face", command_id, {}};
+            part.key.set(PartKey{"command_face", command_id, {}});
             paint_part(painter, *this, part);
             if (command_part.command_arrow.present) {
                 part.role = PartRole::actuator;
                 part.states = command_part.command_arrow.states;
                 part.bounds = command_part.command_arrow.bounds;
-                part.key = PartKey{"command_arrow", command_id, {}};
+                part.key.set(PartKey{"command_arrow", command_id, {}});
                 paint_part(painter, *this, part);
             }
             part.states = states;
@@ -1636,7 +1636,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 part.role = PartRole::icon;
                 part.bounds = command_part.command_icon.bounds;
                 part.image = spec.image;
-                part.key = PartKey{"command_icon", command_id, {}};
+                part.key.set(PartKey{"command_icon", command_id, {}});
                 paint_part(painter, *this, part);
                 part.image = {};
             }
@@ -1647,7 +1647,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 part.bounds = command_part.command_label.bounds;
                 part.text = lend_paint_text(label);
                 part.alignment = large ? PartTextAlignment::center : PartTextAlignment::start;
-                part.key = PartKey{"command_label", command_id, {}};
+                part.key.set(PartKey{"command_label", command_id, {}});
                 paint_part(painter, *this, part);
                 part.text = {};
                 part.alignment = PartTextAlignment::start;
@@ -1656,13 +1656,13 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 part.role = PartRole::glyph;
                 part.bounds = command_part.command_arrow_glyph.bounds;
                 part.mark = PartMark::arrow_down;
-                part.key = PartKey{"command_arrow_glyph", command_id, {}};
+                part.key.set(PartKey{"command_arrow_glyph", command_id, {}});
                 paint_part(painter, *this, part);
                 part.mark = PartMark::none;
             }
             part.role = PartRole::focus;
             part.bounds = command_part.command_focus.bounds;
-            part.key = PartKey{"command_focus", command_id, {}};
+            part.key.set(PartKey{"command_focus", command_id, {}});
             paint_part(painter, *this, part);
         }
     }
@@ -1681,7 +1681,7 @@ void Ribbon::paint_label_command(Painter& painter, PartPaint& part, const Ribbon
     const std::string label = command_text(spec);
     part.text = lend_paint_text(label);
     part.alignment = PartTextAlignment::start;
-    part.key = PartKey{"command_label", spec.stable_id, {}};
+    part.key.set(PartKey{"command_label", spec.stable_id, {}});
     paint_part(painter, *this, part);
     part.text = {};
 }

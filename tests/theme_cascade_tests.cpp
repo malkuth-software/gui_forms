@@ -432,7 +432,7 @@ void paint_path() {
     face.role = PartRole::face;
     face.family = ControlVisualRole::button;
     face.bounds = {10.0, 20.0, 40.0, 24.0};
-    face.key = PartKey{"face", {}, {}};
+    face.key.set(PartKey{"face", {}, {}});
     CountingPainter painter{};
     (*theme).engine().paint(painter, *control, face);
     require(painter.composites == 1U && painter.fills == 0U && painter.last_raster &&

@@ -775,7 +775,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
             word_label.states = status_states;
             word_label.text = lend_paint_text(layout.state_text);
             word_label.font = word_font;
-            word_label.measured_text = word;
+            word_label.measured_text.set(word);
             paint_text_part_at(painter, *this, word_label, word_origin, word.width);
         }
         if (layout.expanded) {

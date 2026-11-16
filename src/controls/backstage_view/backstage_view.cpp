@@ -246,11 +246,11 @@ void BackstageView::on_paint(Painter& painter, Rect) {
     part.role = PartRole::face;
     part.family = ControlVisualRole::window;
     part.bounds = placed.page;
-    part.key = PartKey{"page", {}, {}};
+    part.key.set(PartKey{"page", {}, {}});
     paint_part(painter, *this, part);
     part.family = ControlVisualRole::card;
     part.bounds = placed.column;
-    part.key = PartKey{"column", {}, {}};
+    part.key.set(PartKey{"column", {}, {}});
     paint_part(painter, *this, part);
     for (std::size_t item = 0; item < items_.size(); ++item) {
         const ItemParts parts = item_parts(placed, item);
@@ -260,13 +260,13 @@ void BackstageView::on_paint(Painter& painter, Rect) {
         part.states = states;
         part.role = PartRole::face;
         part.bounds = parts.item_face.bounds;
-        part.key = PartKey{"item_face", id, {}};
+        part.key.set(PartKey{"item_face", id, {}});
         paint_part(painter, *this, part);
         if (parts.item_icon.present) {
             part.role = PartRole::icon;
             part.bounds = parts.item_icon.bounds;
             part.image = items_[item].image;
-            part.key = PartKey{"item_icon", id, {}};
+            part.key.set(PartKey{"item_icon", id, {}});
             paint_part(painter, *this, part);
             part.image = {};
         }
@@ -274,12 +274,12 @@ void BackstageView::on_paint(Painter& painter, Rect) {
         part.role = PartRole::label;
         part.bounds = parts.item_label.bounds;
         part.text = lend_paint_text(label);
-        part.key = PartKey{"item_label", id, {}};
+        part.key.set(PartKey{"item_label", id, {}});
         paint_part(painter, *this, part);
         part.text = {};
         part.role = PartRole::focus;
         part.bounds = parts.item_focus.bounds;
-        part.key = PartKey{"item_focus", id, {}};
+        part.key.set(PartKey{"item_focus", id, {}});
         paint_part(painter, *this, part);
     }
     part.key.reset();

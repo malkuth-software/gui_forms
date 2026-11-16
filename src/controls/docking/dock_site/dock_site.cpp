@@ -1399,7 +1399,7 @@ void DockSite::on_paint(Painter& painter, Rect) {
     // Every part carries its anatomy name (PartKey), so that a theme's
     // `dock-site::part(...)` rules reach it; a seam item is known by its
     // split's node.
-    part.key = PartKey{"document_area", {}, {}};
+    part.key.set(PartKey{"document_area", {}, {}});
     paint_part(painter, *this, part);
     for (std::size_t seam = 0; seam < seams_.size(); ++seam) {
         const SeamParts parts = seam_parts(seam);
@@ -1408,12 +1408,12 @@ void DockSite::on_paint(Painter& painter, Rect) {
         part.states = seam_states(seam);
         part.role = PartRole::seam;
         part.bounds = parts.seam_bar.bounds;
-        part.key = PartKey{"seam_bar", item, {}};
+        part.key.set(PartKey{"seam_bar", item, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::grip;
         part.mark = PartMark::grip_dots;
         part.bounds = parts.seam_grip.bounds;
-        part.key = PartKey{"seam_grip", item, {}};
+        part.key.set(PartKey{"seam_grip", item, {}});
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
     }
@@ -1443,23 +1443,23 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     part.states = states;
     part.role = PartRole::face;
     part.bounds = moved(placed.caption, offset);
-    part.key = PartKey{"caption", item, {}};
+    part.key.set(PartKey{"caption", item, {}});
     paint_part(painter, surface, part);
     if (states.contains(AnatomyState::current)) {
         part.role = PartRole::keyline;
         part.bounds = moved(placed.accent, offset);
-        part.key = PartKey{"caption_accent", item, {}};
+        part.key.set(PartKey{"caption_accent", item, {}});
         part.accent.set(AccentIndex{0U});
         paint_part(painter, surface, part);
         part.accent.reset();
     }
     part.role = PartRole::chip;
     part.bounds = moved(placed.key, offset);
-    part.key = PartKey{"caption_key", item, {}};
+    part.key.set(PartKey{"caption_key", item, {}});
     paint_part(painter, surface, part);
     part.role = PartRole::caption;
     part.bounds = moved(placed.label, offset);
-    part.key = PartKey{"caption_label", item, {}};
+    part.key.set(PartKey{"caption_label", item, {}});
     part.text = lend_paint_text(slot.title);
     paint_part(painter, surface, part);
     part.text = {};
@@ -1471,7 +1471,7 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     if (!grip.empty()) {
         part.role = PartRole::grip;
         part.bounds = moved(grip, offset);
-        part.key = PartKey{"caption_grip", item, {}};
+        part.key.set(PartKey{"caption_grip", item, {}});
         paint_part(painter, surface, part);
     }
     // The buttons: flat at rest with a plate when hot (the menu-item family,
@@ -1488,12 +1488,12 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
         part.states = button_states(index, zones[button]);
         part.role = PartRole::actuator;
         part.bounds = moved(buttons[button], offset);
-        part.key = PartKey{button_names[button], item, {}};
+        part.key.set(PartKey{button_names[button], item, {}});
         paint_part(painter, surface, part);
         part.role = PartRole::glyph;
         part.bounds = moved(glyphs[button], offset);
         part.mark = marks[button];
-        part.key = PartKey{glyph_names[button], item, {}};
+        part.key.set(PartKey{glyph_names[button], item, {}});
         paint_part(painter, surface, part);
         part.mark = PartMark::none;
     }

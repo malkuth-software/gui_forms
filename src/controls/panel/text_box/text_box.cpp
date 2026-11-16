@@ -877,7 +877,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         // Keyed by its part's name, so that `text-box::part(well)` styles
         // the field as `:family(editor)` does (a rule naming a part matches
         // only a keyed part).
-        well.key = PartKey{"well", {}, {}};
+        well.key.set(PartKey{"well", {}, {}});
         well.frame = border_style.read() == BorderStyle::none ? PartFrame::none : PartFrame::drawn;
         paint_part(painter, *this, well);
     } else {
@@ -980,7 +980,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
     }
     PartPaint text_part = text_part_template(content_font, false);
     text_part.text = lend_paint_text(presented);
-    text_part.measured_text = presented_size;
+    text_part.measured_text.set(presented_size);
     if (!(*editing_).store().utf8().empty() && (!focused_ || (*editing_).selection().empty())) {
         paint_text_part_at(painter, *this, text_part, {origin_x, baseline}, 0.0);
     } else if (!(*editing_).store().utf8().empty()) {
@@ -988,7 +988,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         // in the text's ink to either side.
         PartPaint selected_part = text_part_template(content_font, true);
         selected_part.text = lend_paint_text(presented);
-        selected_part.measured_text = presented_size;
+        selected_part.measured_text.set(presented_size);
         const double band_width = std::max(0.0, selection_end_x - selection_x);
         const double band_right = selection_x + band_width;
         const double height = std::max(0.0, bounds.height - 4.0);

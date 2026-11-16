@@ -381,7 +381,7 @@ void ListBox::on_paint(Painter& painter, Rect) {
     well.bounds = bounds;
     well.states = states;
     if (has_background_override() || overridden) well.authored_background.set(background());
-    well.key = PartKey{"well", {}, {}};
+    well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
     const FontSpec row_font = text_font(font.read());
     const double row_height = item_height.read() * effective_text_scale();

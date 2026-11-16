@@ -812,7 +812,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     well.bounds = bounds;
     well.states = states;
     well.authored_background = ground;
-    well.key = PartKey{"well", {}, {}};
+    well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
     const double button_width = std::min(24.0, bounds.width);
     // Laid out left to right; a combo box that resolves right to left
@@ -825,7 +825,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
                         std::max(0.0, button_width - 1.0), std::max(0.0, bounds.height - 2.0)};
     if (mirrored) drop_down.bounds = horizontally_mirrored(drop_down.bounds, bounds);
     drop_down.states = states;
-    drop_down.key = PartKey{"drop_down", {}, {}};
+    drop_down.key.set(PartKey{"drop_down", {}, {}});
     paint_part(painter, *this, drop_down);
     PartPaint divider;
     divider.family = ControlVisualRole::choice;
@@ -833,7 +833,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     divider.bounds = {bounds.width - button_width - 0.5, 1.0, 1.0, std::max(0.0, bounds.height - 2.0)};
     if (mirrored) divider.bounds = horizontally_mirrored(divider.bounds, bounds);
     divider.states = states;
-    divider.key = PartKey{"divider", {}, {}};
+    divider.key.set(PartKey{"divider", {}, {}});
     paint_part(painter, *this, divider);
     // The 7 x 4 arrow, which flips and moves when the list is open. The
     // arrow mark draws half its square's side in rows, so the square is 8
@@ -849,7 +849,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     if (mirrored) disclosure.bounds = horizontally_mirrored(disclosure.bounds, bounds);
     disclosure.states = states;
     disclosure.authored_foreground = ink;
-    disclosure.key = PartKey{"disclosure", {}, {}};
+    disclosure.key.set(PartKey{"disclosure", {}, {}});
     paint_part(painter, *this, disclosure);
     // The drop_down style's editor shows its own text; otherwise the field
     // shows the selected item, or the placeholder without one.
@@ -876,7 +876,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     content.bounds = {7.0, baseline - box_ascent, std::max(0.0, bounds.width - button_width - 10.0), box_height};
     if (mirrored) content.bounds = horizontally_mirrored(content.bounds, bounds);
     content.authored_foreground = text_ink;
-    content.key = PartKey{"content", {}, {}};
+    content.key.set(PartKey{"content", {}, {}});
     paint_part(painter, *this, content);
     if (focused_ || dropped_down_) {
         PartPaint ring;

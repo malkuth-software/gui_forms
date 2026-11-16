@@ -966,7 +966,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
     face.bounds = bounds;
     face.states = states;
     if (has_background_override()) face.authored_background.set(background());
-    face.key = PartKey{"face", {}, {}};
+    face.key.set(PartKey{"face", {}, {}});
     paint_part(painter, *this, face);
     double y = (*impl_).header_height - (*impl_).scroll_offset;
     for (std::size_t group_index = 0;

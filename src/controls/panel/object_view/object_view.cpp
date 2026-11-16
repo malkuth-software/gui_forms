@@ -911,9 +911,9 @@ void ObjectView::paint_text_shown(Painter& painter, const PartPaint& part, Point
         return;
     }
     PartPaint measured_part = part;
-    const Size measured = part.measured_text ? *part.measured_text
+    const Size measured = part.measured_text.present() ? *part.measured_text.value()
                                              : painter.measure_text_utf8(part.text, part.font);
-    measured_part.measured_text = measured;
+    measured_part.measured_text.set(measured);
     const Rect frame = local_bounds();
     const double run = std::min(std::max(0.0, width), measured.width);
     const Point drawn{frame.x + frame.x + frame.width - origin.x - run, origin.y};
@@ -1968,7 +1968,7 @@ void ObjectView::paint_details(Painter& painter) {
         caption.states = states;
         caption.text = lend_paint_text(label);
         caption.font = body_font;
-        caption.measured_text = label_measured;
+        caption.measured_text.set(label_measured);
         paint_text_shown(painter, caption,
                          {cell.x + 6.0, cell.y + cell.height * .5 + body_font.size * .35},
                          std::max(0.0, cell.width - reserved));
@@ -2053,7 +2053,7 @@ void ObjectView::paint_details(Painter& painter) {
             }
             content.text = lend_paint_text(text);
             content.font = body_font;
-            content.measured_text = details_cache_[text_slot].measured;
+            content.measured_text.set(details_cache_[text_slot].measured);
             paint_text_shown(painter, content,
                              {origin, cell.y + cell.height * .5 + body_font.size * .35},
                              std::max(0.0, cell.x + cell.width - 6.0 - origin));

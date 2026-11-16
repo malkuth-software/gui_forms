@@ -324,7 +324,7 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
     face.family = ControlVisualRole::panel;
     face.role = PartRole::face;
     face.bounds = surface;
-    face.key = PartKey{"face", {}, {}};
+    face.key.set(PartKey{"face", {}, {}});
     paint_part(painter, *this, face);
     PartPaint rule;
     rule.family = ControlVisualRole::panel;
@@ -354,7 +354,7 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
         plate.bounds = {item.x + 1.0, 1.0, item.width - 2.0,
                         std::max(0.0, item.height - 2.0)};
         plate.states = plate_states;
-        plate.key = PartKey{"menu_item", items_[index].stable_id, index};
+        plate.key.set(PartKey{"menu_item", items_[index].stable_id, index});
         paint_part(painter, *this, plate);
         FontSpec item_font = text_font(font.read());
         if (active || selected) {

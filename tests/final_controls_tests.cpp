@@ -786,7 +786,7 @@ void test_high_contrast_gauge_arcs() {
     const ControlVisualRecipe& forced = (*house).resolve(ControlVisualRole::progress, contrast);
     PartPaint track{.role = PartRole::arc, .bounds = Rect{0.0, 0.0, 120.0, 120.0},
                     .family = ControlVisualRole::progress};
-    track.arc = PartArc{-2.0, 4.0};
+    track.arc.set(PartArc{-2.0, 4.0});
     LinePainter outlined;
     paint_part_from_recipe(outlined, track, forced, contrast);
     bool hairlines = !outlined.widths.empty();

@@ -215,7 +215,7 @@ struct ContextMenu::Impl final {
             gutter.family = ControlVisualRole::menu_item;
             gutter.role = PartRole::well;
             gutter.control_type = menu_item_control_type;
-            gutter.key = PartKey{menu_gutter_part, {}, {}};
+            gutter.key.set(PartKey{menu_gutter_part, {}, {}});
             gutter.bounds = {menu_border, menu_border, menu_gutter_width,
                              std::max(0.0, bounds.height - menu_border * 2.0)};
             paint_part(painter, *this, gutter);
@@ -455,7 +455,7 @@ struct ContextMenu::Impl final {
                             std::max(0.0, bounds.height - 2.0)};
             plate.states = states;
             plate.control_type = menu_item_control_type;
-            plate.key = PartKey{menu_item_part, item_.stable_id, {}};
+            plate.key.set(PartKey{menu_item_part, item_.stable_id, {}});
             paint_part(painter, *this, plate);
             const bool checked = (item_.kind == MenuItemKind::check || item_.kind == MenuItemKind::radio) &&
                                  item_.command_state.checked;
@@ -522,7 +522,7 @@ struct ContextMenu::Impl final {
                 shortcut.states = states;
                 shortcut.text = lend_paint_text(item_.command_state.shortcut);
                 shortcut.font = shortcut_font;
-                shortcut.measured_text = size;
+                shortcut.measured_text.set(size);
                 // Right-aligned in the shortcut column, before the chevron's
                 // trailing space.
                 const double shortcut_x =

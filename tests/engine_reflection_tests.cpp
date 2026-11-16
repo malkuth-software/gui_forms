@@ -396,7 +396,7 @@ public:
         face.role = PartRole::face;
         face.family = ControlVisualRole::button;
         face.bounds = Rect{20.0, 20.0, 40.0, 20.0};
-        face.key = PartKey{"face", {}, {}};
+        face.key.set(PartKey{"face", {}, {}});
         paint_part(painter, *this, face);
     }
 };

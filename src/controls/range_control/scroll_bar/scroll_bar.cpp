@@ -320,7 +320,7 @@ void ScrollBar::on_paint(Painter& painter, Rect) {
         focus.bounds = parts.thumb.empty() ? parts.track : parts.thumb;
         focus.states = parts.states;
         focus.states.insert(AnatomyState::focus_visible);
-        focus.key = PartKey{"focus", {}, {}};
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }
@@ -620,7 +620,7 @@ void paint_arrow_button(Painter& painter, const Control& control, const ScrollBa
     actuator.role = PartRole::actuator;
     actuator.bounds = button;
     actuator.states = states;
-    actuator.key = PartKey{incrementing ? "increment_arrow" : "decrement_arrow", drawn.item, {}};
+    actuator.key.set(PartKey{incrementing ? "increment_arrow" : "decrement_arrow", drawn.item, {}});
     actuator.control_type = drawn.control_type;
     paint_part(painter, control, actuator);
     const Rect mark = arrow_mark_bounds(button);
@@ -638,7 +638,7 @@ void paint_arrow_button(Painter& painter, const Control& control, const ScrollBa
     }
     arrow.bounds = mark;
     arrow.states = states;
-    arrow.key = PartKey{incrementing ? "increment_glyph" : "decrement_glyph", drawn.item, {}};
+    arrow.key.set(PartKey{incrementing ? "increment_glyph" : "decrement_glyph", drawn.item, {}});
     arrow.control_type = drawn.control_type;
     paint_part(painter, control, arrow);
 }
@@ -667,7 +667,7 @@ void paint_scroll_bar_parts(Painter& painter, const Control& control, const Scro
     track.role = PartRole::track;
     track.bounds = drawn.track;
     track.states = part_states(drawn.states, track_part(drawn.pressed), false, track_part(drawn.hot));
-    track.key = PartKey{"track", drawn.item, {}};
+    track.key.set(PartKey{"track", drawn.item, {}});
     track.control_type = drawn.control_type;
     paint_part(painter, control, track);
     paint_arrow_button(painter, control, drawn, drawn.decrement, false);
@@ -679,7 +679,7 @@ void paint_scroll_bar_parts(Painter& painter, const Control& control, const Scro
     thumb.bounds = drawn.thumb;
     thumb.states = part_states(drawn.states, drawn.pressed == ScrollBarPart::thumb, drawn.thumb_captured,
                                drawn.hot == ScrollBarPart::thumb);
-    thumb.key = PartKey{"thumb", drawn.item, {}};
+    thumb.key.set(PartKey{"thumb", drawn.item, {}});
     thumb.control_type = drawn.control_type;
     paint_part(painter, control, thumb);
 }

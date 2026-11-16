@@ -867,7 +867,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         face.role = PartRole::face;
         face.bounds = visual_bounds;
         face.states = states;
-        face.key = PartKey{"face", {}, {}};
+        face.key.set(PartKey{"face", {}, {}});
         if (authored) {
             face.authored_background.set((*authored).face);
             face.authored_foreground.set((*authored).text);
@@ -880,7 +880,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
             states.insert(*layer.state);
             PartPaint lit = face;
             lit.states = states;
-            lit.key = PartKey{"face", "layer", {}};
+            lit.key.set(PartKey{"face", "layer", {}});
             const double level = std::clamp(layer.level, 0.0, 1.0);
             painter.begin_group(PaintGroup{.bounds = visual_bounds, .opacity = level});
             paint_part(painter, *this, lit);
@@ -895,7 +895,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         cue.role = PartRole::preselect;
         paint_part(painter, *this, cue);
         cue.role = PartRole::focus;
-        cue.key = PartKey{"focus", {}, {}};
+        cue.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, cue);
     } else {
         paint_connected_surface_material(
@@ -979,7 +979,7 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     cue.states = states;
     cue.corner_radius.set(0.0);
     cue.role = PartRole::focus;
-    cue.key = PartKey{"focus", {}, {}};
+    cue.key.set(PartKey{"focus", {}, {}});
     paint_part(painter, *this, cue);
     ButtonContentInk content_ink;
     content_ink.family = ControlVisualRole::button;

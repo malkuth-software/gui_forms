@@ -1418,7 +1418,7 @@ void ScrollableControl::on_paint(Painter& painter, Rect) {
     ground.role = PartRole::face;
     ground.bounds = Rect{0.0, 0.0, arranged.width, arranged.height};
     ground.states = anatomy_states();
-    ground.key = PartKey{"face", {}, {}};
+    ground.key.set(PartKey{"face", {}, {}});
     if (!ground_named_by_rule(*this, ground)) return;
     paint_part(painter, *this, ground);
 }

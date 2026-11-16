@@ -185,14 +185,14 @@ void Dial::on_paint(Painter& painter, Rect) {
 
     PartPaint track{.role = PartRole::arc, .bounds = placed.arc, .states = states,
                     .family = ControlVisualRole::progress};
-    track.arc = PartArc{.start = sweep_start, .sweep = sweep};
-    track.key = PartKey{"track", {}, {}};
+    track.arc.set(PartArc{.start = sweep_start, .sweep = sweep});
+    track.key.set(PartKey{"track", {}, {}});
     paint_part(painter, *this, track);
     if (show_arc.read() && reading > 0.0) {
         PartPaint lit{.role = PartRole::arc, .bounds = placed.arc, .states = lit_states,
                       .family = ControlVisualRole::progress};
-        lit.arc = PartArc{.start = sweep_start, .sweep = sweep * reading};
-        lit.key = PartKey{"value_arc", {}, {}};
+        lit.arc.set(PartArc{.start = sweep_start, .sweep = sweep * reading});
+        lit.key.set(PartKey{"value_arc", {}, {}});
         paint_part(painter, *this, lit);
     }
 
@@ -204,7 +204,7 @@ void Dial::on_paint(Painter& painter, Rect) {
         const std::size_t marks = static_cast<std::size_t>(std::clamp(requested, 2.0, static_cast<double>(most_marks)));
         PartPaint mark{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
         mark.corner_radius.set(placed.mark * 0.5);
-        mark.key = PartKey{"graticule", {}, {}};
+        mark.key.set(PartKey{"graticule", {}, {}});
         for (std::size_t index = 0U; index < marks; ++index) {
             const double at = static_cast<double>(index) / static_cast<double>(marks - 1U);
             mark.bounds = mark_at(placed.centre, placed.mark_radius, at, placed.mark);
@@ -215,20 +215,20 @@ void Dial::on_paint(Painter& painter, Rect) {
     const Rect knob = knob_bounds();
     PartPaint thumb{.role = PartRole::thumb, .bounds = knob, .states = states, .family = ControlVisualRole::button};
     thumb.corner_radius.set(knob.width * 0.5);
-    thumb.key = PartKey{"thumb", {}, {}};
+    thumb.key.set(PartKey{"thumb", {}, {}});
     paint_part(painter, *this, thumb);
 
     PartPaint needle{.role = PartRole::needle, .bounds = needle_bounds(), .states = lit_states,
                      .family = ControlVisualRole::progress};
-    needle.arc = PartArc{.start = pointer_angle(), .sweep = 0.0};
-    needle.key = PartKey{"needle", {}, {}};
+    needle.arc.set(PartArc{.start = pointer_angle(), .sweep = 0.0});
+    needle.key.set(PartKey{"needle", {}, {}});
     paint_part(painter, *this, needle);
 
     if (focused_) {
         PartPaint focus = thumb;
         focus.role = PartRole::focus;
         focus.states.insert(AnatomyState::focus_visible);
-        focus.key = PartKey{"focus", {}, {}};
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }

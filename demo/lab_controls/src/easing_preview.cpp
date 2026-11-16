@@ -247,7 +247,7 @@ void EasingPreview::on_paint(Painter& painter, Rect) {
         face.family = ControlVisualRole::editor;
         face.role = PartRole::face;
         face.bounds = bounds;
-        face.key = PartKey{"face", {}, {}};
+        face.key.set(PartKey{"face", {}, {}});
         paint_part(painter, *this, face);
     }
     painter.stroke_rect({0.5, 0.5, std::max(0.0, bounds.width - 1.0),

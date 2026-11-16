@@ -398,7 +398,7 @@ void PageView::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::well;
     part.bounds = areas.content;
-    part.key = PartKey{"content", {}, {}};
+    part.key.set(PartKey{"content", {}, {}});
     paint_part(painter, *this, part);
 }
 

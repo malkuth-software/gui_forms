@@ -304,7 +304,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     const double baseline = std::max(field_font.size, (bounds.height + field_font.size) * 0.5 - 1.0);
     content.bounds = {text_left, baseline - box_ascent, std::max(0.0, button_x - text_left - 3.0), box_height};
     content.bounds = directed_rect(content.bounds, bounds, direction);
-    content.measured_text = measured;
+    content.measured_text.set(measured);
     paint_part(painter, *this, content);
     if (focused_ || dropped_down_) {
         PartPaint ring;

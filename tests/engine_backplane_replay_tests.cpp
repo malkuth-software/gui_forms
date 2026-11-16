@@ -318,7 +318,7 @@ public:
         part.family = ControlVisualRole::card;
         part.bounds = Rect{20.0, 20.0, 140.0, 30.0};
         part.corner_radius.set(0.0);
-        part.key = PartKey{"glass", {}, {}};
+        part.key.set(PartKey{"glass", {}, {}});
         paint_part(painter, *this, part);
     }
 };

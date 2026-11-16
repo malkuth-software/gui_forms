@@ -325,7 +325,7 @@ struct GUI_FORMS_API PartPaint final {
     // is drawn statically, with no transitions and no cached raster. It is
     // identity, not vocabulary: it changes nothing a part looks like today.
     // Its views are borrowed for the call.
-    std::optional<PartKey> key{};
+    stxlib::Optional<PartKey> key{};
     // The control type whose theme rules style the part (an anatomy control
     // id, such as "v_scroll_bar"), when a control draws a part on behalf of
     // a stock control it embeds (a scrollable control's built-in scroll
@@ -344,10 +344,10 @@ struct GUI_FORMS_API PartPaint final {
     // (paint_text_part_at does), so the text is not measured again; none
     // otherwise. A cache, not vocabulary: it changes nothing drawn, and a
     // caller that sets it must have measured exactly `text` in `font`.
-    std::optional<Size> measured_text{};
+    stxlib::Optional<Size> measured_text{};
     // The arc and needle roles' angles (PartArc), or none, when neither
     // draws. Every other role ignores them.
-    std::optional<PartArc> arc{};
+    stxlib::Optional<PartArc> arc{};
     // The baked light planes the part is composited from (PartLightPlanes),
     // or none. Such a part is drawn as the bake's light, room · R +
     // Σ colour · power · L_i toned (engine_light::composite_light_planes),

@@ -265,7 +265,7 @@ void SevenSegmentDisplay::on_paint(Painter& painter, Rect) {
     const Rect client = client_rectangle();
     const AnatomyStateSet states = anatomy_states();
     PartPaint plot{.role = PartRole::plot, .bounds = client, .states = states, .family = ControlVisualRole::editor};
-    plot.key = PartKey{"plot", {}, {}};
+    plot.key.set(PartKey{"plot", {}, {}});
     paint_part(painter, *this, plot);
 
     const std::vector<SevenSegmentCell> shown = cells();

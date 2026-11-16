@@ -115,7 +115,7 @@ PartPaint Panel::face_part(Rect bounds) const noexcept {
     face.family = visual_role.read();
     face.role = PartRole::face;
     face.bounds = bounds;
-    face.key = PartKey{"face", {}, {}};
+    face.key.set(PartKey{"face", {}, {}});
     if (border_style.read() == BorderStyle::sunken) {
         face.family = ControlVisualRole::editor;
         face.role = PartRole::well;

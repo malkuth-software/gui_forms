@@ -42,7 +42,7 @@ void paint_sheet_text(Painter& painter, const HelpBook& book, std::string_view t
     part.font = book.text_font(FontSpec{FontRole::control, header_text_size, 400, false});
     part.text = lend_paint_text(text);
     part.tone = PartTextTone::secondary;
-    part.key = PartKey{std::string(key), {}, {}};
+    part.key.set(PartKey{std::string(key), {}, {}});
     paint_text_part_at(painter, book, part, baseline, width);
 }
 
@@ -93,7 +93,7 @@ void paint_help_print_sheet(Painter& painter, const HelpBook& book, const HelpPr
     rule.family = ControlVisualRole::tool_tip;
     rule.role = PartRole::divider;
     rule.bounds = Rect{left, header_top + options.header_height - 1.0, width, 1.0};
-    rule.key = PartKey{"print_rule", {}, {}};
+    rule.key.set(PartKey{"print_rule", {}, {}});
     paint_part(painter, book, rule);
     // The content band.
     const HelpPrintSheet& band = plan.sheets[sheet];

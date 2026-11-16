@@ -304,7 +304,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{4.0, 4.0, 72.0, 28.0};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         if (hot) part.states.insert(AnatomyState::hot);
         paint_part(painter, *this, part);
     }

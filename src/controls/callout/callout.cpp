@@ -270,7 +270,7 @@ void Callout::on_paint(Painter& painter, Rect) {
     PartPaint beak{.role = PartRole::beak, .bounds = placed.beak, .states = states,
                    .family = ControlVisualRole::tool_tip};
     beak.mark = beak_down_ ? PartMark::arrow_down : PartMark::arrow_up;
-    beak.key = PartKey{"beak", {}, {}};
+    beak.key.set(PartKey{"beak", {}, {}});
     paint_part(painter, *this, beak);
     AnatomyStateSet close_states = states;
     if (hot_close_) close_states.insert(AnatomyState::hot);
@@ -278,7 +278,7 @@ void Callout::on_paint(Painter& painter, Rect) {
     PartPaint close_mark{.role = PartRole::glyph, .bounds = placed.close, .states = close_states,
                          .family = ControlVisualRole::tool_tip};
     close_mark.mark = PartMark::close;
-    close_mark.key = PartKey{"close", {}, {}};
+    close_mark.key.set(PartKey{"close", {}, {}});
     paint_part(painter, *this, close_mark);
 }
 

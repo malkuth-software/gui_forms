@@ -123,21 +123,21 @@ public:
         glass.family = ControlVisualRole::card;
         glass.bounds = glass_bounds;
         glass.corner_radius.set(10.0);
-        glass.key = PartKey{"compositor-lab.glass", {}, {}};
+        glass.key.set(PartKey{"compositor-lab.glass", {}, {}});
         paint_part(painter, *this, glass);
 
         PartPaint backplane_mirror{};
         backplane_mirror.role = PartRole::face;
         backplane_mirror.family = ControlVisualRole::choice;
         backplane_mirror.bounds = backplane_mirror_bounds;
-        backplane_mirror.key = PartKey{"compositor-lab.backplane-mirror", {}, {}};
+        backplane_mirror.key.set(PartKey{"compositor-lab.backplane-mirror", {}, {}});
         paint_part(painter, *this, backplane_mirror);
 
         PartPaint face_mirror{};
         face_mirror.role = PartRole::face;
         face_mirror.family = ControlVisualRole::button;
         face_mirror.bounds = face_mirror_bounds;
-        face_mirror.key = PartKey{"compositor-lab.face-mirror", {}, {}};
+        face_mirror.key.set(PartKey{"compositor-lab.face-mirror", {}, {}});
         paint_part(painter, *this, face_mirror);
     }
 };

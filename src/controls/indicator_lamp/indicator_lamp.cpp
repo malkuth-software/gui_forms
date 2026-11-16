@@ -238,7 +238,7 @@ void IndicatorLamp::paint_theme_lens(Painter& painter, const Placement& placed, 
     PartPaint bezel{.role = PartRole::well, .bounds = placed.bezel, .states = with_lit_state(states, state.read()),
                     .family = ControlVisualRole::panel};
     bezel.corner_radius.set(placed.bezel.width * 0.5);
-    bezel.key = PartKey{"bezel", {}, {}};
+    bezel.key.set(PartKey{"bezel", {}, {}});
     paint_part(painter, *this, bezel);
     // The dark lens, then the lit lens over it at the current power, clipped
     // to the lens so that its light reaches nothing else.
@@ -246,14 +246,14 @@ void IndicatorLamp::paint_theme_lens(Painter& painter, const Placement& placed, 
     PartPaint lens{.role = PartRole::indicator, .bounds = placed.lens, .states = states,
                    .family = ControlVisualRole::choice};
     lens.corner_radius.set(radius);
-    lens.key = PartKey{"lens", {}, {}};
+    lens.key.set(PartKey{"lens", {}, {}});
     paint_part(painter, *this, lens);
     if (power_ > 0.0 && lit(lit_state_)) {
         PartPaint lit_lens = lens;
         lit_lens.states = with_lit_state(states, lit_state_);
         lit_lens.family = lit_family(lit_state_);
         // The lit lens keeps its own record, so the dark lens's stays.
-        lit_lens.key = PartKey{"lens", "lit", {}};
+        lit_lens.key.set(PartKey{"lens", "lit", {}});
         // The application's lamp colour fills the lit lens (on only: an
         // error keeps the theme's error colour).
         const Color* chosen = lamp_color.read().value();
@@ -277,7 +277,7 @@ void IndicatorLamp::paint_baked_lens(Painter& painter, const Placement& placed, 
     PartPaint lens{.role = PartRole::indicator, .bounds = placed.lens,
                    .states = lit_now ? with_lit_state(states, lit_state_) : states,
                    .family = lit_now ? lit_family(lit_state_) : ControlVisualRole::choice};
-    lens.key = PartKey{"lens", {}, {}};
+    lens.key.set(PartKey{"lens", {}, {}});
     const double power = lit_now ? std::min(1.0, power_) : 0.0;
     lens.light_planes = PartLightPlanes{.planes = std::move(bake),
                                         .drive = engine_light::LampDrive{lit_colour(), power},

@@ -168,14 +168,14 @@ void LinearGauge::on_paint(Painter& painter, Rect) {
     const AnatomyStateSet states = anatomy_states();
     PartPaint plot{.role = PartRole::plot, .bounds = placed_rect(placed, placed.plot), .states = states,
                    .family = ControlVisualRole::progress};
-    plot.key = PartKey{"plot", {}, {}};
+    plot.key.set(PartKey{"plot", {}, {}});
     paint_part(painter, *this, plot);
 
     // The alarm ranges, over the field and under the reading.
     AnatomyStateSet alarm_states = states;
     alarm_states.insert(AnatomyState::invalid);
     PartPaint alarm{.role = PartRole::track, .states = alarm_states, .family = ControlVisualRole::progress};
-    alarm.key = PartKey{"alarm_zone", {}, {}};
+    alarm.key.set(PartKey{"alarm_zone", {}, {}});
     const double* low = low_alarm.read().value();
     const double* high = high_alarm.read().value();
     if (low != nullptr && ratio_of(*low) > 0.0) {
@@ -189,11 +189,11 @@ void LinearGauge::on_paint(Painter& painter, Rect) {
 
     PartPaint trace{.role = PartRole::trace, .bounds = placed_rect(placed, placed.trace), .states = reading_states(),
                     .family = ControlVisualRole::progress};
-    trace.key = PartKey{"trace", {}, {}};
+    trace.key.set(PartKey{"trace", {}, {}});
     paint_part(painter, *this, trace);
 
     PartPaint tick{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
-    tick.key = PartKey{"graticule", {}, {}};
+    tick.key.set(PartKey{"graticule", {}, {}});
     const std::vector<double> ratios = tick_ratios();
     for (const double ratio : ratios) {
         tick.bounds = mark_at(placed, ratio);

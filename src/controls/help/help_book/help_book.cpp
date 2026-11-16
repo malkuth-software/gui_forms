@@ -711,7 +711,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
         // A fallback page's title is drawn in the secondary tone: the page
         // came, at least in part, from the program's built-in language.
         title.tone = page_.fallback ? PartTextTone::secondary : PartTextTone::ordinary;
-        title.key = PartKey{"title", {}, {}};
+        title.key.set(PartKey{"title", {}, {}});
         paint_text_part_at(painter, *this, title, Point{laid.title.x + offset.x, laid.title_baseline + offset.y},
                            laid.title.width);
     }
@@ -719,7 +719,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
     rule.family = ControlVisualRole::tool_tip;
     rule.role = PartRole::divider;
     rule.bounds = Rect{laid.rule.x + offset.x, laid.rule.y + offset.y, laid.rule.width, laid.rule.height};
-    rule.key = PartKey{"rule", {}, {}};
+    rule.key.set(PartKey{"rule", {}, {}});
     paint_part(painter, *this, rule);
     if (!mode.print && close_visible_) {
         PartPaint close{};
@@ -728,7 +728,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
         close.mark = PartMark::close;
         close.bounds = Rect{laid.close.x + offset.x, laid.close.y + offset.y, laid.close.width, laid.close.height};
         if (close_hovered_) close.states.insert(AnatomyState::hot);
-        close.key = PartKey{"close", {}, {}};
+        close.key.set(PartKey{"close", {}, {}});
         paint_part(painter, *this, close);
     }
     for (const LaidBlock& laid_block : laid.blocks) {
@@ -746,7 +746,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
                               laid_block.bar.height};
             bar.states = states;
             bar.corner_radius.set(0.0);
-            bar.key = PartKey{"topic_bar", "topic", section};
+            bar.key.set(PartKey{"topic_bar", "topic", section});
             paint_part(painter, *this, bar);
             PartPaint expander{};
             expander.family = ControlVisualRole::menu_item;
@@ -755,7 +755,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
             expander.bounds = Rect{laid_block.expander.x + offset.x, laid_block.expander.y + offset.y,
                                    laid_block.expander.width, laid_block.expander.height};
             expander.states = states;
-            expander.key = PartKey{"expander", "topic", section};
+            expander.key.set(PartKey{"expander", "topic", section});
             paint_part(painter, *this, expander);
             if (focused_section == section && focused_) {
                 PartPaint ring{};
@@ -838,7 +838,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
                 part.family = was_visited ? ControlVisualRole::visited_link : ControlVisualRole::link;
                 if (hovered_link_ == link) part.states.insert(AnatomyState::hot);
                 if (pressed_link_ == link) part.states.insert(AnatomyState::pressed);
-                part.key = PartKey{"link_text", "link", link};
+                part.key.set(PartKey{"link_text", "link", link});
             }
             paint_text_part_at(painter, *this, part, Point{bounds.x, piece.baseline + offset.y}, bounds.width);
             if (piece.kind == PieceKind::link) {
@@ -882,7 +882,7 @@ void HelpBook::on_paint(Painter& painter, Rect) {
     paper.role = PartRole::face;
     paper.bounds = bounds;
     paper.corner_radius.set(0.0);
-    paper.key = PartKey{"paper", {}, {}};
+    paper.key.set(PartKey{"paper", {}, {}});
     paint_part(painter, *this, paper);
     const Rect viewport = viewport_rectangle();
     painter.save();

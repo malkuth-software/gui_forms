@@ -155,13 +155,13 @@ public:
         glass.family = ControlVisualRole::card;
         glass.bounds = Rect{20.0, 20.0, 100.0, 30.0};
         glass.corner_radius.set(6.0);
-        glass.key = PartKey{"glass", {}, {}};
+        glass.key.set(PartKey{"glass", {}, {}});
         paint_part(painter, *this, glass);
         PartPaint face{};
         face.role = PartRole::face;
         face.family = ControlVisualRole::button;
         face.bounds = Rect{140.0, 100.0, 60.0, 24.0};
-        face.key = PartKey{"face", {}, {}};
+        face.key.set(PartKey{"face", {}, {}});
         paint_part(painter, *this, face);
     }
 };

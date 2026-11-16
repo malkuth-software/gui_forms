@@ -148,7 +148,7 @@ public:
         part.family = ControlVisualRole::tool_tip;
         part.bounds = surface;
         part.corner_radius.set(4.0);
-        part.key = PartKey{"shadow", {}, {}};
+        part.key.set(PartKey{"shadow", {}, {}});
         paint_part(painter, *this, part);
     }
     Rect surface{20.0, 20.0, 120.0, 40.0};
@@ -287,7 +287,7 @@ public:
         part.family = ControlVisualRole::button;
         part.bounds = face;
         part.corner_radius.set(6.0);
-        part.key = PartKey{"sheen", {}, {}};
+        part.key.set(PartKey{"sheen", {}, {}});
         part.granted_overflow = overflow;
         if (hot) part.states.insert(AnatomyState::hot);
         paint_part(painter, *this, part);

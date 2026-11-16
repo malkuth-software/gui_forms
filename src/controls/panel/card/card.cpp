@@ -221,7 +221,7 @@ void Card::on_paint(Painter& painter, Rect local_damage) {
     face.role = PartRole::face;
     face.bounds = bounds;
     face.states = states;
-    face.key = PartKey{"face", {}, {}};
+    face.key.set(PartKey{"face", {}, {}});
     paint_part(painter, *this, face);
     if (focused_ && bounds.width > 8.0 && bounds.height > 8.0) {
         PartPaint ring;

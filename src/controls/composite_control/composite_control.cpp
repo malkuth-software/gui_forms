@@ -692,7 +692,7 @@ void CompositeControl::on_paint(Painter& painter, const Rect local_damage) {
         paint.mark = part.mark;
         paint.corner_radius = paint_radius(part, paint.bounds);
         paint.font = font;
-        paint.key = PartKey{part.registered, {}, {}};
+        paint.key.set(PartKey{part.registered, {}, {}});
         std::string shown{};
         if (part.text_property && text_role(part.role)) {
             const BindingValue value = read_property(*part.text_property);
@@ -708,7 +708,7 @@ void CompositeControl::on_paint(Painter& painter, const Rect local_damage) {
         const std::size_t part = *(*definition_).focus.visible_cue;
         PartPaint focus{.role = PartRole::focus, .bounds = geometry_.published[part], .states = control_states,
                         .family = (*definition_).family};
-        focus.key = PartKey{"focus", {}, {}};
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }

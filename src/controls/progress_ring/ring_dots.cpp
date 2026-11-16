@@ -56,7 +56,7 @@ void paint_ring(Painter& painter, const Control& owner, const RingPlacement& rin
         const bool is_lit = offset < lit;
         dot.bounds = ring_dot_bounds(ring, index, lighting.count);
         dot.role = is_lit ? lighting.lit_role : PartRole::track;
-        dot.key = PartKey{is_lit ? lighting.lit_part : std::string_view{"track"}, {}, {}};
+        dot.key.set(PartKey{is_lit ? lighting.lit_part : std::string_view{"track"}, {}, {}});
         dot.states = is_lit ? lit_states : states;
         paint_part(painter, owner, dot);
     }

@@ -237,7 +237,7 @@ void TrackBar::on_paint(Painter& painter, Rect) {
     track.role = PartRole::track;
     track.bounds = classic ? span : track_bounds();
     track.states = states;
-    track.key = PartKey{"track", {}, {}};
+    track.key.set(PartKey{"track", {}, {}});
     paint_part(painter, *this, track);
     if (!classic) {
         PartPaint fill;
@@ -246,7 +246,7 @@ void TrackBar::on_paint(Painter& painter, Rect) {
         fill.bounds = fill_bounds();
         fill.states = states;
         fill.states.insert(AnatomyState::selected);
-        fill.key = PartKey{"fill", {}, {}};
+        fill.key.set(PartKey{"fill", {}, {}});
         paint_part(painter, *this, fill);
     }
 
@@ -279,13 +279,13 @@ void TrackBar::on_paint(Painter& painter, Rect) {
     thumb.role = PartRole::thumb;
     thumb.bounds = thumb_bounds();
     thumb.states = states;
-    thumb.key = PartKey{"thumb", {}, {}};
+    thumb.key.set(PartKey{"thumb", {}, {}});
     paint_part(painter, *this, thumb);
     if (focused_) {
         PartPaint focus = thumb;
         focus.role = PartRole::focus;
         focus.states.insert(AnatomyState::focus_visible);
-        focus.key = PartKey{"focus", {}, {}};
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }
