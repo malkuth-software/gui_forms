@@ -146,7 +146,7 @@ int main() {
     {
         lab::Step step = steps.back();
         step.name = "+ border, radius 4";
-        step.material.border = MaterialBorder{Color::rgba(90, 100, 120), 1.0};
+        step.material.border.set(MaterialBorder{Color::rgba(90, 100, 120), 1.0});
         step.material.corner_radius = 4.0;
         steps.push_back(step);
     }

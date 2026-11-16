@@ -161,9 +161,9 @@ void ProgressRing::paint_arc_ring(Painter& painter, Rect square) const {
     track.role = PartRole::arc;
     track.family = ControlVisualRole::progress;
     track.bounds = square;
-    track.key = PartKey{"arc_track", {}, {}};
+    track.key.set(PartKey{"arc_track", {}, {}});
     track.states = states;
-    track.arc = PartArc{.start = 0.0, .sweep = whole_turn};
+    track.arc.set(PartArc{.start = 0.0, .sweep = whole_turn});
     paint_part(painter, *this, track);
     double start = 0.0;
     double sweep = whole_turn * fraction();
@@ -174,9 +174,9 @@ void ProgressRing::paint_arc_ring(Painter& painter, Rect square) const {
     }
     if (!(sweep > 0.0)) return;
     PartPaint lit = track;
-    lit.key = PartKey{"value_arc", {}, {}};
+    lit.key.set(PartKey{"value_arc", {}, {}});
     lit.states.insert(AnatomyState::selected);
-    lit.arc = PartArc{.start = start, .sweep = sweep};
+    lit.arc.set(PartArc{.start = start, .sweep = sweep});
     paint_part(painter, *this, lit);
 }
 
