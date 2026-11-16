@@ -219,11 +219,11 @@ double Splitter::clamped(double extent, const Control& target) const {
     return result;
 }
 
-std::optional<double> Splitter::split_position() const {
+stxlib::Optional<double> Splitter::split_position() const {
     const Control::Ptr resized = target();
-    if (!resized) return std::nullopt;
-    const double extent = extent_of(*resized);
-    return extent;
+    if (!resized) return stxlib::Optional<double>::none();
+    const stxlib::Optional<double> result = stxlib::Optional<double>::of(extent_of(*resized));
+    return result;
 }
 
 void Splitter::apply(Control& resized, double extent) {
@@ -369,14 +369,14 @@ SemanticDescriptor Splitter::semantic_descriptor() const {
 }
 
 bool Splitter::on_semantic_action(SemanticAction action, std::string_view value) {
-    const std::optional<double> current = split_position();
-    if (!current || !enabled.read()) return false;
+    const stxlib::Optional<double> current = split_position();
+    if (current.absent() || !enabled.read()) return false;
     if (action == SemanticAction::increment) {
-        set_split_position(*current + semantic_step);
+        set_split_position(*current.value() + semantic_step);
         return true;
     }
     if (action == SemanticAction::decrement) {
-        set_split_position(*current - semantic_step);
+        set_split_position(*current.value() - semantic_step);
         return true;
     }
     if (action != SemanticAction::set_value) return false;

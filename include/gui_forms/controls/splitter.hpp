@@ -8,8 +8,9 @@
 #include "gui_forms/controls/splitter_capabilities.hpp"
 
 #include <array>
-#include <optional>
 #include <span>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -53,7 +54,7 @@ public:
 
     // The target's extent along the splitter's axis, or none without a
     // target (Windows Forms' SplitPosition, -1 there).
-    [[nodiscard]] std::optional<double> split_position() const;
+    [[nodiscard]] stxlib::Optional<double> split_position() const;
     // Resizes the target to `extent`, clamped to the limits; does nothing
     // without a target. Throws std::invalid_argument for a non-finite value.
     void set_split_position(double extent);
