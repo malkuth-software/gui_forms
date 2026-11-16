@@ -89,12 +89,12 @@ constexpr ControlAnatomy sparkline_anatomy{
 }
 
 // The newest finite value, if any.
-[[nodiscard]] std::optional<double> newest_finite(plots::SeriesSpans<double> values) noexcept {
+[[nodiscard]] stxlib::Optional<double> newest_finite(plots::SeriesSpans<double> values) noexcept {
     for (std::size_t remaining = values.size(); remaining > 0U; --remaining) {
         const double value = values.at(plots::ElementIndex{remaining - 1U});
-        if (std::isfinite(value)) return value;
+        if (std::isfinite(value)) return stxlib::Optional<double>::of(value);
     }
-    return std::nullopt;
+    return stxlib::Optional<double>::none();
 }
 
 // The source's y values held at `baseline`: the band's lower edge.
@@ -146,9 +146,9 @@ void paint_sparkline(Painter& painter, Rect plot, plots::SeriesSpans<double> val
     stroke.join = StrokeJoin::round;
     static_cast<void>(workspace.marks.paint_line(painter, samples, plots::XOrder::monotone, made.transform, stroke,
                                                  plots::LineDecimation::envelope, nullptr));
-    const std::optional<double> newest = newest_finite(values);
-    if (newest.has_value() && style.newest_marker_size > 0.0) {
-        const std::array<Point, 1> centre{made.transform.to_device(x_axis.range.maximum, *newest)};
+    const stxlib::Optional<double> newest = newest_finite(values);
+    if (newest.present() && style.newest_marker_size > 0.0) {
+        const std::array<Point, 1> centre{made.transform.to_device(x_axis.range.maximum, *newest.value())};
         MarkerStyle marker{};
         marker.size = style.newest_marker_size;
         marker.fill = style.line;
@@ -185,8 +185,8 @@ void Sparkline::clear_values() {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-std::optional<double> Sparkline::latest() const noexcept {
-    const std::optional<double> result = newest_finite(values_.read());
+stxlib::Optional<double> Sparkline::latest() const noexcept {
+    const stxlib::Optional<double> result = newest_finite(values_.read());
     return result;
 }
 
@@ -252,13 +252,13 @@ SemanticDescriptor Sparkline::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::figure;
     descriptor.name = accessible_name.read();
-    const std::optional<double> newest = latest();
+    const stxlib::Optional<double> newest = latest();
     const plots::PlotRange range = extent();
     // Written in the C locale's form, as the gauges and Dial publish theirs
     // (A-gf-controls-05-F5).
-    if (newest.has_value()) {
+    if (newest.present()) {
         std::string value_text;
-        number_text::append_number_text(value_text, *newest, std::chars_format::general, 6);
+        number_text::append_number_text(value_text, *newest.value(), std::chars_format::general, 6);
         descriptor.value = value_text;
         std::string described = "Trend of " + std::to_string(values_.length()) + " values from ";
         number_text::append_number_text(described, range.minimum, std::chars_format::general, 6);
@@ -289,7 +289,7 @@ void Sparkline::publish_part_geometry(std::span<PartGeometry> geometry) const {
     record.series.present = values_.length() != 0U;
     // The newest value's dot sits on the plot's right edge.
     record.marker.bounds = Rect{plot.x + plot.width - newest_marker_size / 2.0, plot.y, newest_marker_size, plot.height};
-    record.marker.present = latest().has_value();
+    record.marker.present = latest().present();
     write_parts(anatomy(), sparkline_part_fields, record, geometry);
 }
 

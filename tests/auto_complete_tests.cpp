@@ -191,7 +191,7 @@ void suggest_keyboard_trace() {
     require(shown.size() == 5U && shown[0] == "Calgary" && shown[1] == "California" &&
                 shown[2] == "Cambridge" && shown[3] == "calgary" && shown[4] == "Caen",
             "the list shows matches in source order, each text once");
-    require(box.text.read() == "c" && !box.auto_complete_highlighted(), "suggest mode does not change the text");
+    require(box.text.read() == "c" && box.auto_complete_highlighted().absent(), "suggest mode does not change the text");
     require(window.find("ac.suggest.auto-complete.list") != nullptr && window.focused_control() == fixture.box,
             "the list is an overlay and the box keeps the focus");
     window.perform_layout();
@@ -211,17 +211,17 @@ void suggest_keyboard_trace() {
             "deleting widens the list again");
 
     trace.clear();
-    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == 0U &&
+    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == stxlib::Optional<std::size_t>::of(0U) &&
                 box.text.read() == "Calgary" && box.selection().caret == Utf8Offset(7U),
             "Down highlights the first suggestion and shows it in the box");
-    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == 1U && box.text.read() == "California",
+    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == stxlib::Optional<std::size_t>::of(1U) && box.text.read() == "California",
             "Down moves to the next suggestion");
     require(press(window, PhysicalKey::up) && press(window, PhysicalKey::up) &&
-                !box.auto_complete_highlighted() && box.text.read() == "ca",
+                box.auto_complete_highlighted().absent() && box.text.read() == "ca",
             "Up from the first suggestion returns to the typed text");
-    require(press(window, PhysicalKey::up) && box.auto_complete_highlighted() == 4U && box.text.read() == "Caen",
+    require(press(window, PhysicalKey::up) && box.auto_complete_highlighted() == stxlib::Optional<std::size_t>::of(4U) && box.text.read() == "Caen",
             "Up from the typed text highlights the last suggestion");
-    require(press(window, PhysicalKey::down) && !box.auto_complete_highlighted() && box.text.read() == "ca",
+    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted().absent() && box.text.read() == "ca",
             "Down from the last suggestion returns to the typed text");
     require(trace.size() == 6U && trace[0] == "text Calgary" && trace[5] == "text ca",
             "each highlight change shows its text once");
@@ -338,7 +338,7 @@ void suggest_append_mode() {
     Window& window = *fixture.window;
     TextBox& box = *fixture.box;
     require(type(window, "c") && box.text.read() == "calgary" && box.auto_complete_open() &&
-                !box.auto_complete_highlighted(),
+                box.auto_complete_highlighted().absent(),
             "suggest-append appends the first match and opens the list");
     require(press(window, PhysicalKey::down) && box.text.read() == "Calgary" && box.selection().empty(),
             "Down replaces the appended completion with the highlighted suggestion");
@@ -394,7 +394,7 @@ void pointer_and_dismissal() {
     const Rect list = (*window.find("ac.pointer.auto-complete.list")).absolute_bounds();
     const Point third{list.x + 20.0, list.y + 2.0 + 2.0 * 26.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, third}) &&
-                box.auto_complete_highlighted() == 2U && box.text.read() == "Cambridge" &&
+                box.auto_complete_highlighted() == stxlib::Optional<std::size_t>::of(2U) && box.text.read() == "Cambridge" &&
                 window.focused_control() == fixture.box,
             "pressing a row highlights it without taking the focus");
     require(window.dispatch_pointer({PointerAction::up, PointerButton::primary, third}) &&

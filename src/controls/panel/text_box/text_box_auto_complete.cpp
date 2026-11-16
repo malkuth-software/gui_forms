@@ -179,8 +179,8 @@ std::span<const std::string> TextBox::auto_complete_suggestions() const noexcept
     return result;
 }
 
-std::optional<std::size_t> TextBox::auto_complete_highlighted() const noexcept {
-    if (!auto_complete_session_ || !(*auto_complete_session_).open) return std::nullopt;
+stxlib::Optional<std::size_t> TextBox::auto_complete_highlighted() const noexcept {
+    if (!auto_complete_session_ || !(*auto_complete_session_).open) return stxlib::Optional<std::size_t>::none();
     return (*auto_complete_session_).highlighted;
 }
 
@@ -293,26 +293,27 @@ bool TextBox::auto_complete_key(const KeyEvent& event) {
         // Down from the typed text goes to the first suggestion and from the
         // last back to the typed text; Up goes the other way.
         const std::size_t count = session.suggestions.size();
-        std::optional<std::size_t> next{};
+        stxlib::Optional<std::size_t> next{};
+        const std::size_t* const highlighted = session.highlighted.value();
         if (event.physical_key == PhysicalKey::down) {
-            if (!session.highlighted) {
-                next = std::size_t{0U};
-            } else if (*session.highlighted + 1U < count) {
-                next = *session.highlighted + 1U;
+            if (highlighted == nullptr) {
+                next.set(0U);
+            } else if (*highlighted + 1U < count) {
+                next.set(*highlighted + 1U);
             }
         } else {
-            if (!session.highlighted) {
-                next = count - 1U;
-            } else if (*session.highlighted > 0U) {
-                next = *session.highlighted - 1U;
+            if (highlighted == nullptr) {
+                next.set(count - 1U);
+            } else if (*highlighted > 0U) {
+                next.set(*highlighted - 1U);
             }
         }
         highlight_auto_complete(next);
         return true;
     }
     if (event.physical_key == PhysicalKey::enter || event.physical_key == PhysicalKey::tab) {
-        if (open && session.highlighted) {
-            std::string accepted = session.suggestions[*session.highlighted];
+        if (open && session.highlighted.present()) {
+            std::string accepted = session.suggestions[*session.highlighted.value()];
             accept_auto_complete(std::move(accepted));
             return true;
         }
@@ -344,22 +345,22 @@ void TextBox::show_completion_text(std::string_view shown_text, TextSelection se
     session.shown_revision = (*editing_).store().revision();
 }
 
-void TextBox::highlight_auto_complete(std::optional<std::size_t> index) {
+void TextBox::highlight_auto_complete(stxlib::Optional<std::size_t> index) {
     detail::TextBoxAutoCompleteSession& session = auto_complete_session();
     session.highlighted = index;
     session.appended = false;
     if (session.list) {
         session.synchronizing = true;
-        if (index) {
-            (*session.list).select_index(*index);
+        if (index.present()) {
+            (*session.list).select_index(*index.value());
         } else {
             (*session.list).clear_selection();
         }
         (*session.list).synchronize_scroll();
         session.synchronizing = false;
     }
-    if (index) {
-        const std::string& suggestion = session.suggestions[*index];
+    if (index.present()) {
+        const std::string& suggestion = session.suggestions[*index.value()];
         const Utf8Offset end(suggestion.size());
         show_completion_text(suggestion, TextSelection{.anchor = end, .caret = end});
     } else {
@@ -513,7 +514,7 @@ void TextBox::auto_complete_list_selection_changed(const ListSelectionChange& ch
     // A press on a row highlights it, as Up and Down do; the release accepts it.
     const std::size_t active = *change.active_index.value();
     if (active >= session.suggestions.size()) return;
-    highlight_auto_complete(active);
+    highlight_auto_complete(stxlib::Optional<std::size_t>::of(active));
 }
 
 void TextBox::auto_complete_list_activated(std::size_t index) {
@@ -553,25 +554,25 @@ void TextBox::auto_complete_collection_changed() {
     // The candidates changed under the open list: match the typed text
     // again, keeping the highlight on the same text when it is still there.
     std::optional<std::string> highlighted_text{};
-    if (session.highlighted) highlighted_text = session.suggestions[*session.highlighted];
+    if (session.highlighted.present()) highlighted_text = session.suggestions[*session.highlighted.value()];
     collect_auto_complete_candidates(session.typed, session.suggestions);
     if (session.suggestions.empty()) {
         close_auto_complete_list();
         return;
     }
-    std::optional<std::size_t> kept{};
+    stxlib::Optional<std::size_t> kept{};
     if (highlighted_text) {
         const std::vector<std::string>::const_iterator found =
             std::find(session.suggestions.cbegin(), session.suggestions.cend(), *highlighted_text);
         if (found != session.suggestions.cend()) {
-            kept = static_cast<std::size_t>(std::distance(session.suggestions.cbegin(), found));
+            kept.set(static_cast<std::size_t>(std::distance(session.suggestions.cbegin(), found)));
         }
     }
     session.synchronizing = true;
     (*session.list).items = session.suggestions;
     (*session.list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
-    if (kept) {
-        (*session.list).select_index(*kept);
+    if (kept.present()) {
+        (*session.list).select_index(*kept.value());
     } else {
         (*session.list).clear_selection();
     }

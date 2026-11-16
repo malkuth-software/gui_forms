@@ -6,11 +6,12 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -40,7 +41,7 @@ public:
     [[nodiscard]] const std::vector<std::string>& steps() const& noexcept { return steps_; }
     const std::vector<std::string>& steps() const&& = delete;
     // The step whose chip or name contains a local point, if any.
-    [[nodiscard]] std::optional<std::size_t> step_at(Point local_point) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> step_at(Point local_point) const;
 
     // Raised with a completed step's index when it is pressed.
     [[nodiscard]] Event<std::size_t>& step_clicked() noexcept { return step_clicked_; }

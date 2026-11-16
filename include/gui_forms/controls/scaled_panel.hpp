@@ -4,8 +4,9 @@
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/scaled_panel_capabilities.hpp"
 
-#include <optional>
 #include <unordered_map>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -15,7 +16,7 @@ public:
 
     void add_at(Control::Ptr child, Rect design_bounds);
     void set_design_bounds(const Control& child, Rect design_bounds);
-    [[nodiscard]] std::optional<Rect> design_bounds(const Control& child) const;
+    [[nodiscard]] stxlib::Optional<Rect> design_bounds(const Control& child) const;
     void arrange(Rect final_bounds) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 

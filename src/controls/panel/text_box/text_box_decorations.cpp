@@ -87,15 +87,15 @@ void TextBox::decorations_changed(const TextDecorationChange& change) {
         invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
         return;
     }
-    const std::optional<Rect> damage = multiline_range_damage(change.range);
-    if (!damage.has_value()) {
+    const stxlib::Optional<Rect> damage = multiline_range_damage(change.range);
+    if (damage.absent()) {
         invalidate(Dirty::paint);
         return;
     }
-    if (!(*damage).empty()) invalidate(*damage);
+    if (!(*damage.value()).empty()) invalidate(*damage.value());
 }
 
-std::optional<Rect> TextBox::multiline_range_damage(Utf8Range range) const {
+stxlib::Optional<Rect> TextBox::multiline_range_damage(Utf8Range range) const {
     // Rows measured for another text, font, width or decoration layout, or a
     // scroll the next paint will make, would put the range elsewhere.
     const bool rows_current = !visual_lines_.empty() && multiline_width_ >= 0.0 &&
@@ -103,7 +103,7 @@ std::optional<Rect> TextBox::multiline_range_damage(Utf8Range range) const {
                               multiline_decoration_revision_ == decorations_.layout_revision() &&
                               !reveal_pending_ &&
                               !has_dirty(dirty(), Dirty::measure | Dirty::arrange);
-    if (!rows_current) return std::nullopt;
+    if (!rows_current) return stxlib::Optional<Rect>::none();
     struct BeforeVisualLine final {
         bool operator()(const std::size_t value, const VisualLine& line) const {
             const bool before = value < line.offsets.front();
@@ -126,7 +126,7 @@ std::optional<Rect> TextBox::multiline_range_damage(Utf8Range range) const {
     const double top = 4.0 + static_cast<double>(first) * line_height_ - offset.y;
     const double height = static_cast<double>(last - first + 1U) * line_height_;
     const Rect band{text.x, top, text.width, height};
-    const Rect damage = Rect::intersection(band, text);
+    const stxlib::Optional<Rect> damage = stxlib::Optional<Rect>::of(Rect::intersection(band, text));
     return damage;
 }
 

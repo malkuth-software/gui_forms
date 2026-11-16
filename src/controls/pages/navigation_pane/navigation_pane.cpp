@@ -551,13 +551,13 @@ void NavigationPane::on_pages_changed(const PageSetChange& change) {
 // Makes the content panel hold exactly the selected page's control.
 void NavigationPane::refresh_content() {
     if (!host_) return;
-    const std::optional<std::size_t> selected = selected_position();
+    const stxlib::Optional<std::size_t> selected = selected_position();
     Control::Ptr wanted{};
-    if (selected) {
+    if (selected.present()) {
         // The content's derived type is the presenter family's; RTTI is the
         // boundary between the set's erased content and the control it holds.
         const PageControlContent* const content =
-            dynamic_cast<const PageControlContent*>(pages_.content(pages_.record_at(PagePosition{*selected}).id));
+            dynamic_cast<const PageControlContent*>(pages_.content(pages_.record_at(PagePosition{*selected.value()}).id));
         if (content != nullptr) wanted = (*content).control();
     }
     (*host_).set_panel_name(selected_text());
@@ -575,12 +575,13 @@ void NavigationPane::refresh_content() {
     invalidate(Dirty::arrange | Dirty::paint | Dirty::semantics);
 }
 
-std::optional<std::size_t> NavigationPane::selected_position() const {
+stxlib::Optional<std::size_t> NavigationPane::selected_position() const {
     const std::optional<PageId>& selected = pages_.selected_page();
-    if (!selected) return std::nullopt;
+    if (!selected) return stxlib::Optional<std::size_t>::none();
     const stxlib::Optional<PagePosition> position = pages_.find(*selected);
-    if (position.absent()) return std::nullopt;
-    return (*position.value()).value;
+    if (position.absent()) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> result = stxlib::Optional<std::size_t>::of((*position.value()).value);
+    return result;
 }
 
 std::string NavigationPane::page_text(std::size_t position) const {
@@ -590,9 +591,9 @@ std::string NavigationPane::page_text(std::size_t position) const {
 }
 
 std::string NavigationPane::selected_text() const {
-    const std::optional<std::size_t> selected = selected_position();
-    if (!selected) return {};
-    std::string text = page_text(*selected);
+    const stxlib::Optional<std::size_t> selected = selected_position();
+    if (selected.absent()) return {};
+    std::string text = page_text(*selected.value());
     return text;
 }
 
@@ -716,8 +717,8 @@ void NavigationPane::layout_expanded(Rect surface, std::span<const std::size_t> 
     if (placed.collapse_button.x < 0.0) placed.collapse_button = {};
     placed.collapse_glyph = centred_square(placed.collapse_button, arrow_glyph_side * scale);
     double label_x = header_padding * scale;
-    const std::optional<std::size_t> selected = selected_position();
-    if (selected && page_image(*selected).value != 0U) {
+    const stxlib::Optional<std::size_t> selected = selected_position();
+    if (selected.present() && page_image(*selected.value()).value != 0U) {
         placed.header_icon = {label_x, std::floor((header_extent - side) * 0.5), side, side};
         label_x += side + icon_label_gap * scale * 0.5;
     }
@@ -915,7 +916,7 @@ AnatomyStateSet NavigationPane::tab_states(std::size_t position) const {
     target.kind = TargetKind::tab;
     target.page = pages_.record_at(PagePosition{position}).id;
     AnatomyStateSet states = target_states(target);
-    if (selected_position() == position) states.insert(AnatomyState::selected);
+    if (selected_position() == stxlib::Optional<std::size_t>::of(position)) states.insert(AnatomyState::selected);
     return states;
 }
 
@@ -990,11 +991,11 @@ void NavigationPane::on_paint(Painter& painter, Rect) {
         part.role = PartRole::face;
         part.bounds = placed.header;
         paint_part(painter, *this, part);
-        const std::optional<std::size_t> selected = selected_position();
-        if (!placed.header_icon.empty() && selected) {
+        const stxlib::Optional<std::size_t> selected = selected_position();
+        if (!placed.header_icon.empty() && selected.present()) {
             part.role = PartRole::icon;
             part.bounds = placed.header_icon;
-            part.image = page_image(*selected);
+            part.image = page_image(*selected.value());
             paint_part(painter, *this, part);
             part.image = {};
         }
@@ -1285,9 +1286,9 @@ std::vector<NavigationPane::Target> NavigationPane::stops(const Layout& placed) 
 // the collapse button.
 NavigationPane::Target NavigationPane::default_stop(const Layout& placed) const {
     Target target{};
-    const std::optional<std::size_t> selected = selected_position();
+    const stxlib::Optional<std::size_t> selected = selected_position();
     for (const TabSlot& slot : placed.tabs) {
-        if (selected && slot.position == *selected) {
+        if (selected == stxlib::Optional<std::size_t>::of(slot.position)) {
             target.kind = TargetKind::tab;
             target.page = pages_.record_at(PagePosition{slot.position}).id;
             return target;
@@ -1656,7 +1657,7 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
         for (const TabSlot& slot : placed.tabs) area = Rect::united(area, slot.bounds);
         list.bounds = window_rect(absolute, area);
         list.states = base;
-        const std::optional<std::size_t> selected = selected_position();
+        const stxlib::Optional<std::size_t> selected = selected_position();
         const std::string panel_id = host_ ? std::string((*host_).stable_id().value()) : std::string();
         for (std::size_t index = 0; index < placed.tabs.size(); ++index) {
             const TabSlot& slot = placed.tabs[index];
@@ -1672,7 +1673,7 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
             tab.position_in_set.set(index + 1U);
             tab.set_size.set(placed.tabs.size());
             tab.states = base | SemanticState::focusable;
-            if (selected == slot.position) {
+            if (selected == stxlib::Optional<std::size_t>::of(slot.position)) {
                 tab.states |= SemanticState::selected;
                 // The selected tab shows the content panel (owner decision
                 // DK-40). Tabs publish select, not press (DK-35).

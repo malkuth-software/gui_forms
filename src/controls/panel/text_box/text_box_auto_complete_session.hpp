@@ -12,9 +12,10 @@
 
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms::detail {
 
@@ -29,7 +30,7 @@ struct TextBoxAutoCompleteSession final {
     std::string typed{};
     TextSelection typed_selection{};
     std::vector<std::string> suggestions{};
-    std::optional<std::size_t> highlighted{};
+    stxlib::Optional<std::size_t> highlighted{};
     std::uint64_t shown_revision{};
     // The box shows completion text (shown_revision is valid).
     bool shown{};
