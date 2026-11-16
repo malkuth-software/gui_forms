@@ -103,8 +103,8 @@ struct BundledFaceCoverage final {
 inline constexpr std::uint64_t maximum_bundled_face_bytes = 64U * 1024U * 1024U;
 
 // Page storage that can be made read-only: the capability a host gives the font set. The
-// implementations live with the hosts: POSIX mmap and mprotect in src/host/posix/, Windows
-// VirtualAlloc and VirtualProtect in src/host/windows/. None of them may call back into the set.
+// implementations live with the hosts: POSIX mmap and mprotect in src/surface/posix/, Windows
+// VirtualAlloc and VirtualProtect in src/surface/windows/. None of them may call back into the set.
 struct SealedPageFunctions final {
     // Returns `bytes` (more than zero) of zeroed, readable and writable pages, or null.
     std::byte* (*reserve)(std::size_t bytes) noexcept {};

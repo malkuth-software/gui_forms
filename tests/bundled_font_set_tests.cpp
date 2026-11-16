@@ -14,9 +14,9 @@
 #include "stx_fontpack/loader.hpp"
 #include "support/unique_temporary_directory.hpp"
 #if defined(_WIN32)
-#include "../src/host/windows/fonts/sealed_pages_windows.hpp"
+#include "../src/surface/windows/fonts/sealed_pages_windows.hpp"
 #else
-#include "../src/host/posix/fonts/sealed_pages_posix.hpp"
+#include "../src/surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #include <algorithm>

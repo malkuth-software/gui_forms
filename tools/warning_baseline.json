@@ -120,7 +120,7 @@
    "src/core/theme/theme_compiler": 1,
    "src/core/window/presentation": 2,
    "src/core/window/scheduler": 1,
-   "src/host/windows/application": 2,
+   "src/surface/windows/application": 2,
    "src/plots/signal_program": 1,
    "src/render/skia/raster": 1,
    "tests": 105,

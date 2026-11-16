@@ -14,6 +14,7 @@ paths = ["src", "include", "tests", "examples", "demo", "benchmarks", "fuzz", "l
 # native host or its system interfaces directly.
 host_paths = [
     "src/host/*",
+    "src/surface/*",
     "tests/windows_*",
     "tests/macos_*",
     "tests/linux_*",

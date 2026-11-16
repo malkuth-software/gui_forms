@@ -99,12 +99,12 @@ file(CONFIGURE OUTPUT "${_gf_abi_generated}/${_gf_abi_output_name}.def" CONTENT 
 string(JOIN "\n" _gf_abi_expected_text ${_gf_abi_exports})
 file(CONFIGURE OUTPUT "${_gf_abi_generated}/gf_abi_exports.txt" CONTENT "${_gf_abi_expected_text}\n" @ONLY)
 # Windows: the link .def adds the Win32 compatibility shim's exports, each
-# `Name=gf_compat_Name` line of src/host/windows/win32_compat_shim.def, to the
+# `Name=gf_compat_Name` line of src/surface/windows/win32_compat_shim.def, to the
 # entry points; GUI_FORMS_ABI_WIN32_SHIM_EXPORTS lists the names for the
 # export check. The .def above, without them, makes both import libraries.
 set(GUI_FORMS_ABI_WIN32_SHIM_EXPORTS "")
 if(WIN32)
-    set(_gf_abi_shim_def "${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/win32_compat_shim.def")
+    set(_gf_abi_shim_def "${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/win32_compat_shim.def")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_gf_abi_shim_def}")
     file(STRINGS "${_gf_abi_shim_def}" _gf_abi_shim_lines)
     set(_gf_abi_link_def_text "${_gf_abi_def_text}")
@@ -192,11 +192,11 @@ endif()
 # The Win32 compatibility shim, part of the library on Windows (one module,
 # owner decision 2026-11-15, "Fold it in"): its gf_compat_ functions call the
 # paint endpoint table directly, and the link .def below exports them under
-# user32's and gdi32's names (src/host/windows/win32_compat_shim.def). The
+# user32's and gdi32's names (src/surface/windows/win32_compat_shim.def). The
 # Windows definitions are the shim's alone, so the other objects compile as
 # before.
 if(WIN32)
-    set(_gf_abi_shim_source "${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/win32_compat_shim.cpp")
+    set(_gf_abi_shim_source "${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/win32_compat_shim.cpp")
     target_sources(gui_forms_abi_objects PRIVATE "${_gf_abi_shim_source}")
     set_source_files_properties("${_gf_abi_shim_source}" PROPERTIES
         COMPILE_DEFINITIONS "${GUI_FORMS_WINDOWS_DEFINITIONS}")
@@ -427,7 +427,7 @@ if(GUI_FORMS_BUILD_TESTS)
     # the system's (cmake/CheckSystemImports.cmake).
     set(_gf_abi_extra_exports "")
     if(WIN32)
-        set(_gf_abi_extra_exports "-DEXTRA_DEF=${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/win32_compat_shim.def")
+        set(_gf_abi_extra_exports "-DEXTRA_DEF=${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/win32_compat_shim.def")
     endif()
     add_test(NAME gui_forms_abi_exports_only_entry_points
         COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
@@ -553,7 +553,7 @@ if(GUI_FORMS_BUILD_TESTS)
     set(_gf_abi_export_arguments --library $<TARGET_FILE:gui_forms_abi>
         --allowlist ${_gf_abi_generated}/gf_abi_exports.txt --tool-dir ${_gf_abi_tool_dir})
     if(WIN32)
-        list(APPEND _gf_abi_export_arguments --extra-def ${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/win32_compat_shim.def)
+        list(APPEND _gf_abi_export_arguments --extra-def ${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/win32_compat_shim.def)
     endif()
     if(_gf_abi_msvc_import)
         list(APPEND _gf_abi_export_arguments --import-library ${_gf_abi_msvc_import})

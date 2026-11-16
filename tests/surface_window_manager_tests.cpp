@@ -18,9 +18,9 @@
 #include "gui_forms/canvas.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
 #if defined(_WIN32)
-#include "../src/host/windows/fonts/sealed_pages_windows.hpp"
+#include "../src/surface/windows/fonts/sealed_pages_windows.hpp"
 #else
-#include "../src/host/posix/fonts/sealed_pages_posix.hpp"
+#include "../src/surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #include <cstdlib>

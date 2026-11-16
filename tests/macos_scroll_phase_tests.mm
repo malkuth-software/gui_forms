@@ -1,6 +1,6 @@
 #import <AppKit/AppKit.h>
 
-#include "../src/host/macos/view/macos_scroll_phase.hpp"
+#include "../src/surface/macos/view/macos_scroll_phase.hpp"
 
 #include <cstdio>
 #include <cstdlib>

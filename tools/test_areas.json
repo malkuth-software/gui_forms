@@ -51,7 +51,7 @@
   {"paths": ["demo/correspondence/"], "areas": ["controls", "gui", "a11y"]},
   {"paths": ["demo/program_options.hpp"], "areas": ["core", "gui", "a11y"]},
   {"paths": ["src/controls/gallery/", "demo/", "file_manager_demoboard/", "tests/gallery_pages/"], "areas": ["gui", "a11y"]},
-  {"paths": ["src/host/", "tests/windows_", "tests/x11_", "tests/macos_", "tests/cursor_"], "areas": ["host", "gui", "a11y"]},
+  {"paths": ["src/host/", "src/surface/", "tests/windows_", "tests/x11_", "tests/macos_", "tests/cursor_"], "areas": ["host", "gui", "a11y"]},
   {"paths": ["src/host/headless/"], "areas": ["core", "controls", "host", "gui", "a11y"]},
   {"paths": ["tests/linux_accessibility_", "tests/macos_accessibility_"], "areas": ["a11y"]},
   {"paths": ["tests/hostile_handlers/"], "areas": ["controls"]}

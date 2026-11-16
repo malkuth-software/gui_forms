@@ -203,7 +203,7 @@ struct HostFace final {
 #endif
 
 #if GUI_DRAWING_HOST_FACE_PROBE && defined(_WIN32)
-// The Windows host's face for the request (src/host/windows/fonts/
+// The Windows host's face for the request (src/surface/windows/fonts/
 // gdi_font_bytes.hpp: GDI's face when it names the family, else the
 // registry's file), filed by its own OS/2 bits.
 HostFace host_face(std::string_view family, std::uint32_t style) {

@@ -4,9 +4,9 @@
 #include "../text/harfbuzz/bundled_face_loader.hpp"
 #include "stx_zlib/checksum.hpp"
 #if defined(_WIN32)
-#include "../../host/windows/fonts/sealed_pages_windows.hpp"
+#include "../../surface/windows/fonts/sealed_pages_windows.hpp"
 #else
-#include "../../host/posix/fonts/sealed_pages_posix.hpp"
+#include "../../surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #include <array>

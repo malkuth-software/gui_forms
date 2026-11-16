@@ -13,7 +13,7 @@
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/window.hpp"
-#include "../src/host/windows/application/windows_host.cpp"
+#include "../src/surface/windows/application/windows_host.cpp"
 
 #include <cstdlib>
 #include <iostream>

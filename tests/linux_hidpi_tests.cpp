@@ -11,7 +11,7 @@
 // display's RESOURCE_MANAGER, which every other runtime on the display reads,
 // and restores it before it returns.
 #include "../src/core/application/splashscreen_surface.hpp"
-#include "../src/host/linux/application/linux_host_internal.hpp"
+#include "../src/surface/linux/application/linux_host_internal.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "support/routed_input_probe.hpp"
 

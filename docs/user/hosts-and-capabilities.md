@@ -306,7 +306,7 @@ keyboard context request with a panel's position menu.
 ## The three native hosts and the headless one
 
 macOS (AppKit)
-: `src/host/macos/`, the only place Objective-C++ is allowed. One `NSWindow`
+: `src/surface/macos/`, the only place AppKit is used. One `NSWindow`
   owns a custom view that presents the CPU raster; a display link drives
   scheduled frames; NSTextInputClient bridges IME composition; Retina scale
   arrives as a scale notification. Pointer capture maps onto the native
@@ -314,7 +314,7 @@ macOS (AppKit)
   the bundle.
 
 Windows (Win32)
-: `src/host/windows/`, the only place Win32 and COM types are allowed. An
+: `src/surface/windows/`, the only place Win32 and COM types are allowed. An
   ordinary resizable top-level window presents a top-down 32-bit DIB with
   software alpha blending. The process asks for per-monitor DPI awareness
   (`SetProcessDpiAwarenessContext`, resolved at run time, falling back to
@@ -363,7 +363,7 @@ Windows (Win32)
   placed below the caret. TSF is not used. OLE drag/drop and native menu publication are not implemented.
 
 Linux (X11)
-: `src/host/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib
+: `src/surface/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib
   window and event handling, Xcursor cursors, X11 clipboard selections,
   XDND drag destinations, and native ATK/AT-SPI accessibility publication.
   The publication is checked from an AT-SPI client's side on CI:
@@ -491,7 +491,7 @@ The host presents pixels; it does not paint them. Painting goes through the
   and encoding on every host use the shared owned codec in
   `src/core/image/` (on stx_zlib), not Skia's or the platform's.
 - On Windows, the host presents the renderer's frames from DIB sections
-  (`src/host/windows/raster/`); it draws nothing itself.
+  (`src/surface/windows/raster/`); it draws nothing itself.
 
 `MetricsSnapshot::renderer_name` names the active one and `cpu_only` is
 always true. No Skia type crosses into a public header, a control or a test

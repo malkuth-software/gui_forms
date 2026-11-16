@@ -12,7 +12,7 @@
 // The scene (and with it every GUI.Forms header) comes before windows.h,
 // whose `near` and `far` macros would otherwise rewrite enumerators.
 #include "backplane_replay_scene.hpp"
-#include "../src/host/windows/application/windows_host.cpp"
+#include "../src/surface/windows/application/windows_host.cpp"
 
 #include <chrono>
 #include <cstdio>

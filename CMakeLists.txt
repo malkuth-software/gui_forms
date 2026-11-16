@@ -828,9 +828,9 @@ target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
 # processes, shared memory and a socket pair on macOS and Linux; on Windows
 # an implementation that reports itself absent (the hand-back writes it).
 if(WIN32)
-    target_sources(gui_forms_core PRIVATE src/host/windows/hosted/hosted_content_windows.cpp)
+    target_sources(gui_forms_core PRIVATE src/surface/windows/hosted/hosted_content_windows.cpp)
 else()
-    target_sources(gui_forms_core PRIVATE src/host/posix/hosted/hosted_content_posix.cpp)
+    target_sources(gui_forms_core PRIVATE src/surface/posix/hosted/hosted_content_posix.cpp)
 endif()
 # stx_fontpack's loader (stx_fontpack/README.md), which opens the embedded font pack
 # (cmake/FontPack.cmake). Its objects are part of Core, so no target joins the
@@ -901,27 +901,27 @@ set(GUI_FORMS_WINDOWS_DEFINITIONS WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE 
 # The sealed font pages of the platform (bundled fonts, item 4): the hosts,
 # the bundled font tests and the Skia diagnostics.
 if(WIN32)
-    add_library(gui_forms_sealed_pages_objects OBJECT src/host/windows/fonts/sealed_pages_windows.cpp)
+    add_library(gui_forms_sealed_pages_objects OBJECT src/surface/windows/fonts/sealed_pages_windows.cpp)
     target_compile_definitions(gui_forms_sealed_pages_objects PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})
 elseif(EMSCRIPTEN)
     add_library(gui_forms_sealed_pages_objects OBJECT src/host/web/fonts/sealed_pages_web.cpp)
 else()
-    add_library(gui_forms_sealed_pages_objects OBJECT src/host/posix/fonts/sealed_pages_posix.cpp)
+    add_library(gui_forms_sealed_pages_objects OBJECT src/surface/posix/fonts/sealed_pages_posix.cpp)
 endif()
 target_link_libraries(gui_forms_sealed_pages_objects PRIVATE gui_forms_core)
 set_target_properties(gui_forms_sealed_pages_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # The hosted program's end (include/gui_forms/content/hosted/hosted_client.hpp):
 # what a program started by make_hosted_content links. macOS and Linux.
 if(NOT WIN32)
-    add_library(gui_forms_hosted_client STATIC src/host/posix/hosted/hosted_client_posix.cpp)
+    add_library(gui_forms_hosted_client STATIC src/surface/posix/hosted/hosted_client_posix.cpp)
     target_link_libraries(gui_forms_hosted_client PUBLIC gui_forms_core)
     set_target_properties(gui_forms_hosted_client PROPERTIES POSITION_INDEPENDENT_CODE ON)
     add_library(GUIForms::HostedClient ALIAS gui_forms_hosted_client)
 endif()
 if(WIN32 AND GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
     # The transactional DIB frame store: the Win32 host and three tests.
-    add_library(gui_forms_dib_frame_store_objects OBJECT src/host/windows/raster/dib_frame_store.cpp)
-    target_include_directories(gui_forms_dib_frame_store_objects PRIVATE include src/host/windows/raster)
+    add_library(gui_forms_dib_frame_store_objects OBJECT src/surface/windows/raster/dib_frame_store.cpp)
+    target_include_directories(gui_forms_dib_frame_store_objects PRIVATE include src/surface/windows/raster)
     target_compile_definitions(gui_forms_dib_frame_store_objects PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})
     target_compile_features(gui_forms_dib_frame_store_objects PRIVATE cxx_std_20)
 endif()
@@ -1744,11 +1744,11 @@ if(GUI_FORMS_ENABLE_SKIA)
             src/render/skia/executor/core_text_font_bytes.cpp)
     elseif(WIN32)
         # The same through GDI and the registry, kept with the Windows host
-        # (Win32 types stay in src/host/windows/).
-        target_sources(gui_drawing_skia PRIVATE src/host/windows/fonts/gdi_font_bytes.cpp)
-        set_source_files_properties(src/host/windows/fonts/gdi_font_bytes.cpp PROPERTIES
+        # (Win32 types stay in src/surface/windows/).
+        target_sources(gui_drawing_skia PRIVATE src/surface/windows/fonts/gdi_font_bytes.cpp)
+        set_source_files_properties(src/surface/windows/fonts/gdi_font_bytes.cpp PROPERTIES
             COMPILE_DEFINITIONS "${GUI_FORMS_WINDOWS_DEFINITIONS}")
-        target_include_directories(gui_drawing_skia PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/fonts)
+        target_include_directories(gui_drawing_skia PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/fonts)
     endif()
     target_include_directories(gui_drawing_skia
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/executor
@@ -1842,36 +1842,36 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     find_library(GUI_FORMS_UNIFORMTYPEIDENTIFIERS UniformTypeIdentifiers REQUIRED)
     find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
     add_library(gui_forms_host_macos STATIC
-        src/host/macos/application/macos_host.mm
-        src/host/macos/application/macos_application_run.mm
-        src/host/macos/application/macos_window_delegates.mm
-        src/host/macos/application/macos_window_requests.mm
-        src/host/macos/application/macos_main_work.mm
-        src/host/macos/application/macos_values.mm
-        src/host/macos/application/macos_bundled_fonts.mm
-        src/host/macos/application/macos_splashscreen.mm
+        src/surface/macos/application/macos_host.mm
+        src/surface/macos/application/macos_application_run.mm
+        src/surface/macos/application/macos_window_delegates.mm
+        src/surface/macos/application/macos_window_requests.mm
+        src/surface/macos/application/macos_main_work.mm
+        src/surface/macos/application/macos_values.mm
+        src/surface/macos/application/macos_bundled_fonts.mm
+        src/surface/macos/application/macos_splashscreen.mm
         src/host/macos/application/live_surface_damage.cpp
-        src/host/macos/view/macos_view.mm
-        src/host/macos/view/macos_view_scheduling.mm
-        src/host/macos/view/macos_view_drawing.mm
-        src/host/macos/view/macos_iosurface_present.mm
-        src/host/macos/view/macos_view_input.mm
-        src/host/macos/view/macos_view_accessibility.mm
-        src/host/macos/view/macos_view_diagnostics.mm
-        src/host/macos/accessibility/macos_accessibility_element.mm
-        src/host/macos/accessibility/macos_accessibility_text.mm
-        src/host/macos/application/application_menu.mm
-        src/host/macos/services/appkit_host_services.mm
-        src/host/macos/services/appkit_clipboard_image.mm
-        src/host/macos/services/appkit_status_items.mm
-        src/host/macos/compositor/macos_compositor.mm
+        src/surface/macos/view/macos_view.mm
+        src/surface/macos/view/macos_view_scheduling.mm
+        src/surface/macos/view/macos_view_drawing.mm
+        src/surface/macos/view/macos_iosurface_present.mm
+        src/surface/macos/view/macos_view_input.mm
+        src/surface/macos/view/macos_view_accessibility.mm
+        src/surface/macos/view/macos_view_diagnostics.mm
+        src/surface/macos/accessibility/macos_accessibility_element.mm
+        src/surface/macos/accessibility/macos_accessibility_text.mm
+        src/surface/macos/application/application_menu.mm
+        src/surface/macos/services/appkit_host_services.mm
+        src/surface/macos/services/appkit_clipboard_image.mm
+        src/surface/macos/services/appkit_status_items.mm
+        src/surface/macos/compositor/macos_compositor.mm
         src/host/macos/locale/icu_date_pattern.cpp
         $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
     )
     # The user's locale (CoreFoundation), which a high-integrity build does
     # not read (cmake/HighIntegrity.cmake).
     if(NOT GUI_FORMS_HIGH_INTEGRITY)
-        target_sources(gui_forms_host_macos PRIVATE src/host/macos/locale/macos_locale.cpp)
+        target_sources(gui_forms_host_macos PRIVATE src/surface/macos/locale/macos_locale.cpp)
     endif()
     target_include_directories(gui_forms_host_macos PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/host/macos
@@ -1918,7 +1918,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     # the macOS host adapter only, and only with this option.
     if(GUI_FORMS_ENABLE_METAL_PRESENT)
         find_library(GUI_FORMS_METAL Metal REQUIRED)
-        target_sources(gui_forms_host_macos PRIVATE src/host/macos/view/macos_metal_present.mm)
+        target_sources(gui_forms_host_macos PRIVATE src/surface/macos/view/macos_metal_present.mm)
         target_link_libraries(gui_forms_host_macos PRIVATE ${GUI_FORMS_METAL})
         target_compile_definitions(gui_forms_host_macos PRIVATE GUI_FORMS_HAVE_METAL_PRESENT=1)
         list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_METAL})
@@ -1945,27 +1945,27 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         message(FATAL_ERROR "The Linux X11 host requires libXfixes and libXrender")
     endif()
     add_library(gui_forms_host_linux STATIC
-        src/host/linux/application/linux_host.cpp
+        src/surface/linux/application/linux_host.cpp
         $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
-        src/host/linux/application/x11_windowing.cpp
-        src/host/linux/application/x11_shm_present.cpp
-        src/host/linux/application/x11_present_direct.cpp
+        src/surface/linux/application/x11_windowing.cpp
+        src/surface/linux/application/x11_shm_present.cpp
+        src/surface/linux/application/x11_present_direct.cpp
         src/host/linux/settings/xsettings_parse.cpp
         src/host/linux/locale/strftime_date_pattern.cpp
         src/host/linux/application/linux_input_rules.cpp
-        src/host/linux/settings/xsettings_watch.cpp
-        src/host/linux/accessibility/linux_accessibility.cpp
-        src/host/linux/services/linux_services.cpp
-        src/host/linux/services/x11_foreign_window.cpp
-        src/host/linux/services/x11_tray_icons.cpp
+        src/surface/linux/settings/xsettings_watch.cpp
+        src/surface/linux/accessibility/linux_accessibility.cpp
+        src/surface/linux/services/linux_services.cpp
+        src/surface/linux/services/x11_foreign_window.cpp
+        src/surface/linux/services/x11_tray_icons.cpp
         # XDND drops: not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
-        $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/host/linux/services/linux_drag_drop.cpp>
-        src/host/linux/services/linux_dialogs.cpp
-        src/host/linux/compositor/x11_compositor.cpp)
+        $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/surface/linux/services/linux_drag_drop.cpp>
+        src/surface/linux/services/linux_dialogs.cpp
+        src/surface/linux/compositor/x11_compositor.cpp)
     # The environment's POSIX locale (LC_ALL, LC_TIME, LANG), which a
     # high-integrity build does not read (cmake/HighIntegrity.cmake).
     if(NOT GUI_FORMS_HIGH_INTEGRITY)
-        target_sources(gui_forms_host_linux PRIVATE src/host/linux/locale/posix_locale.cpp)
+        target_sources(gui_forms_host_linux PRIVATE src/surface/linux/locale/posix_locale.cpp)
     endif()
     set_target_properties(gui_forms_host_linux PROPERTIES POSITION_INDEPENDENT_CODE ON)
     target_link_libraries(gui_forms_host_linux PUBLIC gui_forms_core gui_forms_controls gui_forms_skia
@@ -2009,8 +2009,8 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         endif()
         pkg_check_modules(GUI_FORMS_X11_DRI3 REQUIRED IMPORTED_TARGET gbm xcb xcb-dri3 x11-xcb)
         target_sources(gui_forms_host_linux PRIVATE
-            src/host/linux/gbm/gbm_buffer.cpp
-            src/host/linux/application/x11_dri3_present.cpp)
+            src/surface/linux/gbm/gbm_buffer.cpp
+            src/surface/linux/application/x11_dri3_present.cpp)
         target_link_libraries(gui_forms_host_linux PUBLIC PkgConfig::GUI_FORMS_X11_DRI3)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_X11_DRI3=1)
     endif()
@@ -2064,7 +2064,7 @@ if(GUI_FORMS_ENABLE_WAYLAND_PRESENT)
     endif()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(GUI_FORMS_WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
-    add_library(gui_forms_wayland_present STATIC src/host/linux/wayland/wayland_shm_present.cpp)
+    add_library(gui_forms_wayland_present STATIC src/surface/linux/wayland/wayland_shm_present.cpp)
     target_link_libraries(gui_forms_wayland_present PUBLIC gui_forms_core PRIVATE PkgConfig::GUI_FORMS_WAYLAND_CLIENT)
     # The linux-dmabuf buffer route (wayland_dmabuf_present.hpp): GBM and
     # the protocol's client code, generated by wayland-scanner from
@@ -2089,8 +2089,8 @@ if(GUI_FORMS_ENABLE_WAYLAND_PRESENT)
             DEPENDS ${_gf_dmabuf_xml}
             VERBATIM)
         target_sources(gui_forms_wayland_present PRIVATE
-            src/host/linux/gbm/gbm_buffer.cpp
-            src/host/linux/wayland/wayland_dmabuf_present.cpp
+            src/surface/linux/gbm/gbm_buffer.cpp
+            src/surface/linux/wayland/wayland_dmabuf_present.cpp
             ${_gf_dmabuf_dir}/linux-dmabuf-unstable-v1-client-protocol.h
             ${_gf_dmabuf_dir}/linux-dmabuf-unstable-v1-protocol.c)
         target_include_directories(gui_forms_wayland_present PRIVATE ${_gf_dmabuf_dir})
@@ -2123,15 +2123,15 @@ if(GUI_FORMS_ENABLE_WEB_HOST)
         message(FATAL_ERROR "The browser host requires the Emscripten toolchain (cmake/emscripten.cmake) and the private CPU Skia adapter")
     endif()
     add_library(gui_forms_host_web STATIC
-        src/host/web/application/web_host.cpp
+        src/surface/web/application/web_host.cpp
         src/host/web/application/web_dialog_rules.cpp
         src/host/web/input/web_input_rules.cpp
         src/host/web/page/web_present.cpp
-        src/host/web/page/web_page_exports.cpp
+        src/surface/web/page/web_page_exports.cpp
         $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
     target_link_libraries(gui_forms_host_web PUBLIC gui_forms_host_surface gui_forms_core gui_forms_controls gui_forms_skia)
     # The page half, linked into every program that links the host.
-    set(GUI_FORMS_WEB_HOST_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/src/host/web/page/web_host.js)
+    set(GUI_FORMS_WEB_HOST_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/src/surface/web/page/web_host.js)
     target_link_options(gui_forms_host_web INTERFACE "SHELL:--js-library ${GUI_FORMS_WEB_HOST_LIBRARY}")
     set_property(TARGET gui_forms_host_web APPEND PROPERTY INTERFACE_LINK_DEPENDS ${GUI_FORMS_WEB_HOST_LIBRARY})
     # The program runs on a worker (the page's main thread keeps the DOM and
@@ -2169,21 +2169,21 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     # host's build switches (the DIB store, prepared text, the tests' hooks):
     # compiled once for the host and the DIB lifecycle test.
     add_library(gui_forms_windows_host_objects OBJECT
-        src/host/windows/accessibility/windows_accessibility.cpp
-        src/host/windows/accessibility/windows_semantic_source.cpp
-        src/host/windows/accessibility/windows_automation.cpp
-        src/host/windows/accessibility/windows_text_automation.cpp
-        src/host/windows/services/windows_clipboard_image.cpp
-        src/host/windows/services/windows_notify_icons.cpp
-        src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
-        src/host/windows/compositor/windows_compositor.cpp
+        src/surface/windows/accessibility/windows_accessibility.cpp
+        src/surface/windows/accessibility/windows_semantic_source.cpp
+        src/surface/windows/accessibility/windows_automation.cpp
+        src/surface/windows/accessibility/windows_text_automation.cpp
+        src/surface/windows/services/windows_clipboard_image.cpp
+        src/surface/windows/services/windows_notify_icons.cpp
+        src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
+        src/surface/windows/compositor/windows_compositor.cpp
     )
     target_include_directories(gui_forms_windows_host_objects PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows)
     target_compile_definitions(gui_forms_windows_host_objects PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})
     target_link_libraries(gui_forms_windows_host_objects PRIVATE gui_forms_core gui_forms_skia gui_forms_text_engine)
     set_target_properties(gui_forms_windows_host_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
     add_library(gui_forms_host_windows STATIC
-        src/host/windows/application/windows_host.cpp
+        src/surface/windows/application/windows_host.cpp
         $<TARGET_OBJECTS:gui_forms_windows_host_objects>
         $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
     )
@@ -2239,7 +2239,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
             LIBRARIES ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
         gui_forms_install_bundled_fonts()
     endif()
-    # The Win32 compatibility shim (src/host/windows/win32_compat_shim.cpp)
+    # The Win32 compatibility shim (src/surface/windows/win32_compat_shim.cpp)
     # is part of the C ABI library on Windows (one module, owner decision
     # 2026-11-15, "Fold it in"): cmake/CAbi.cmake compiles it with the
     # library's objects and exports its Win32 names.
@@ -3309,20 +3309,20 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_audio_loop_scheduler_tests COMMAND gui_forms_audio_loop_scheduler_tests)
     if(WIN32)
         add_executable(gui_forms_windows_message_queue_tests tests/windows_message_queue_tests.cpp)
-        target_include_directories(gui_forms_windows_message_queue_tests PRIVATE src/host/windows/input)
+        target_include_directories(gui_forms_windows_message_queue_tests PRIVATE src/surface/windows/input)
         target_compile_features(gui_forms_windows_message_queue_tests PRIVATE cxx_std_20)
         target_link_libraries(gui_forms_windows_message_queue_tests PRIVATE user32)
         add_test(NAME gui_forms_windows_message_queue_tests COMMAND gui_forms_windows_message_queue_tests)
         # Explicit local probe only: needs ownership of an interactive desktop
         # window before injecting a bounded native key sequence. Not a CTest.
         add_executable(gui_forms_windows_message_queue_native_probe tests/windows_message_queue_native_probe.cpp)
-        target_include_directories(gui_forms_windows_message_queue_native_probe PRIVATE src/host/windows/input)
+        target_include_directories(gui_forms_windows_message_queue_native_probe PRIVATE src/surface/windows/input)
         target_compile_features(gui_forms_windows_message_queue_native_probe PRIVATE cxx_std_20)
         target_link_libraries(gui_forms_windows_message_queue_native_probe PRIVATE user32)
         add_executable(gui_forms_windows_notify_icon_tests
             tests/windows_notify_icon_tests.cpp
-            src/host/windows/services/windows_notify_icons.cpp)
-        target_include_directories(gui_forms_windows_notify_icon_tests PRIVATE src/host/windows)
+            src/surface/windows/services/windows_notify_icons.cpp)
+        target_include_directories(gui_forms_windows_notify_icon_tests PRIVATE src/surface/windows)
         target_compile_definitions(gui_forms_windows_notify_icon_tests PRIVATE
             ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_notify_icon_tests PRIVATE gui_forms_core user32 gdi32 shell32)
@@ -3331,11 +3331,11 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_windows_cursor_tests PRIVATE gui_forms_core user32 gdi32)
         add_test(NAME gui_forms_windows_cursors COMMAND gui_forms_windows_cursor_tests)
         add_executable(gui_forms_windows_key_translation_tests tests/windows_key_translation_tests.cpp)
-        target_include_directories(gui_forms_windows_key_translation_tests PRIVATE src/host/windows/input)
+        target_include_directories(gui_forms_windows_key_translation_tests PRIVATE src/surface/windows/input)
         target_link_libraries(gui_forms_windows_key_translation_tests PRIVATE gui_forms_core)
         add_test(NAME gui_forms_windows_key_translation_tests COMMAND gui_forms_windows_key_translation_tests)
         add_executable(gui_forms_windows_dib_band_present_tests tests/windows_dib_band_present_tests.cpp)
-        target_include_directories(gui_forms_windows_dib_band_present_tests PRIVATE src/host/windows/raster)
+        target_include_directories(gui_forms_windows_dib_band_present_tests PRIVATE src/surface/windows/raster)
         target_compile_definitions(gui_forms_windows_dib_band_present_tests PRIVATE
             ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_dib_band_present_tests PRIVATE gdi32 user32)
@@ -3345,7 +3345,7 @@ if(GUI_FORMS_BUILD_TESTS)
                 tests/windows_dib_frame_store_tests.cpp
                 $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
             target_include_directories(gui_forms_windows_dib_frame_store_tests PRIVATE
-                include src/host/windows/raster)
+                include src/surface/windows/raster)
             target_compile_definitions(gui_forms_windows_dib_frame_store_tests PRIVATE
                 ${GUI_FORMS_WINDOWS_DEFINITIONS}
                 GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1)
@@ -3354,7 +3354,7 @@ if(GUI_FORMS_BUILD_TESTS)
                      COMMAND gui_forms_windows_dib_frame_store_tests)
             add_executable(gui_forms_windows_dib_lifecycle_tests
                 tests/windows_dib_lifecycle_tests.cpp
-                src/host/windows/application/windows_host.cpp
+                src/surface/windows/application/windows_host.cpp
                 $<TARGET_OBJECTS:gui_forms_windows_host_objects>
                 $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
                 $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
@@ -3372,16 +3372,16 @@ if(GUI_FORMS_BUILD_TESTS)
             if(TARGET gui_forms_prepared_text_impl)
                 add_executable(gui_forms_windows_prepared_text_tests
                     tests/windows_prepared_text_tests.cpp
-                    src/host/windows/application/windows_host.cpp
-                    src/host/windows/fonts/sealed_pages_windows.cpp
-                    src/host/windows/accessibility/windows_accessibility.cpp
-                    src/host/windows/accessibility/windows_semantic_source.cpp
-                    src/host/windows/accessibility/windows_automation.cpp
-                    src/host/windows/accessibility/windows_text_automation.cpp
-                    src/host/windows/services/windows_clipboard_image.cpp
-                    src/host/windows/services/windows_notify_icons.cpp
-                    src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
-                    src/host/windows/compositor/windows_compositor.cpp
+                    src/surface/windows/application/windows_host.cpp
+                    src/surface/windows/fonts/sealed_pages_windows.cpp
+                    src/surface/windows/accessibility/windows_accessibility.cpp
+                    src/surface/windows/accessibility/windows_semantic_source.cpp
+                    src/surface/windows/accessibility/windows_automation.cpp
+                    src/surface/windows/accessibility/windows_text_automation.cpp
+                    src/surface/windows/services/windows_clipboard_image.cpp
+                    src/surface/windows/services/windows_notify_icons.cpp
+                    src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
+                    src/surface/windows/compositor/windows_compositor.cpp
                     $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
                 target_include_directories(gui_forms_windows_prepared_text_tests PRIVATE
                     include src/host/windows)
@@ -5021,11 +5021,11 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_host_locale_tests PRIVATE gui_forms_core)
     if(APPLE)
         find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
-        target_sources(gui_forms_host_locale_tests PRIVATE src/host/macos/locale/macos_locale.cpp)
+        target_sources(gui_forms_host_locale_tests PRIVATE src/surface/macos/locale/macos_locale.cpp)
         target_compile_definitions(gui_forms_host_locale_tests PRIVATE GUI_FORMS_TEST_MACOS_LOCALE=1)
         target_link_libraries(gui_forms_host_locale_tests PRIVATE ${GUI_FORMS_COREFOUNDATION})
     elseif(UNIX)
-        target_sources(gui_forms_host_locale_tests PRIVATE src/host/linux/locale/posix_locale.cpp)
+        target_sources(gui_forms_host_locale_tests PRIVATE src/surface/linux/locale/posix_locale.cpp)
         target_compile_definitions(gui_forms_host_locale_tests PRIVATE GUI_FORMS_TEST_POSIX_LOCALE=1)
     endif()
     add_test(NAME gui_forms_host_locale_tests COMMAND gui_forms_host_locale_tests)
@@ -6248,7 +6248,7 @@ if(GUI_FORMS_BUILD_TESTS)
     target_compile_options(gui_forms_macos_application_menu_tests PRIVATE -fobjc-arc)
     target_link_libraries(gui_forms_macos_application_menu_tests PRIVATE gui_forms_host_macos)
     target_include_directories(gui_forms_macos_application_menu_tests PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/host/macos/application)
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/surface/macos/application)
     add_test(NAME gui_forms_macos_application_menu_tests COMMAND gui_forms_macos_application_menu_tests)
 
         # Stage T5, C3's measurement: what the window server composes from a
@@ -6974,8 +6974,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GUI_FORMS_BUILD_TESTS)
         if(TARGET PkgConfig::GUI_FORMS_TEST_ATK AND TARGET X11::X11)
             add_executable(gui_forms_linux_accessibility_fixture
                 tests/linux_accessibility_fixture.cpp
-                src/host/linux/accessibility/linux_accessibility.cpp
-                src/host/linux/services/x11_foreign_window.cpp)
+                src/surface/linux/accessibility/linux_accessibility.cpp
+                src/surface/linux/services/x11_foreign_window.cpp)
             target_link_libraries(gui_forms_linux_accessibility_fixture PRIVATE
                 gui_forms_controls gui_forms_core PkgConfig::GUI_FORMS_TEST_ATK X11::X11)
             set(gui_forms_linux_accessibility_test_ready ON)
@@ -7009,8 +7009,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GUI_FORMS_BUILD_TESTS)
     if(gui_forms_linux_accessibility_test_ready AND GUI_FORMS_SYSTEM_PYTHON3 AND TARGET gui_forms_gallery_model)
         add_executable(gui_forms_linux_accessibility_gallery_fixture
             tests/linux_accessibility_gallery_fixture.cpp
-            src/host/linux/accessibility/linux_accessibility.cpp
-            src/host/linux/services/x11_foreign_window.cpp)
+            src/surface/linux/accessibility/linux_accessibility.cpp
+            src/surface/linux/services/x11_foreign_window.cpp)
         target_include_directories(gui_forms_linux_accessibility_gallery_fixture PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR})
         target_link_libraries(gui_forms_linux_accessibility_gallery_fixture PRIVATE

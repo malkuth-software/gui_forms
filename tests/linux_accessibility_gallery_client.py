@@ -163,7 +163,7 @@ CHECKABLE: int = 1 << 12
 MULTISELECTABLE: int = 1 << 13
 
 # The semantic role and the AT-SPI role name the ATK adapter publishes it as
-# (native_role in src/host/linux/accessibility/linux_accessibility.cpp).
+# (native_role in src/surface/linux/accessibility/linux_accessibility.cpp).
 ROLE_NAMES: dict[str, str] = {
     'generic': 'PANEL', 'group': 'PANEL', 'static_text': 'LABEL', 'button': 'PUSH_BUTTON',
     'check_box': 'CHECK_BOX', 'radio_button': 'RADIO_BUTTON', 'link': 'LINK', 'text_box': 'ENTRY',

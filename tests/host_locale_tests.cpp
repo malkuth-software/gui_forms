@@ -9,10 +9,10 @@
 #include "gui_forms/host/types/host_locale/host_locale.hpp"
 
 #if defined(GUI_FORMS_TEST_MACOS_LOCALE)
-#include "../src/host/macos/locale/macos_locale.hpp"
+#include "../src/surface/macos/locale/macos_locale.hpp"
 #endif
 #if defined(GUI_FORMS_TEST_POSIX_LOCALE)
-#include "../src/host/linux/locale/posix_locale.hpp"
+#include "../src/surface/linux/locale/posix_locale.hpp"
 #endif
 
 #include <cstdlib>
