@@ -13,12 +13,6 @@ breaker, the markdown reader and the bidi library were retired on
 | `third_party/unicode/` | the Unicode 17 licence and the provenance of GUI.Forms' generated grapheme tables | the tables' attribution |
 | `stx_skia/` | the CPU Skia derivative (Skia `chrome/m152`, pruned and converted) | the Skia adapters, linked from the stx package |
 
-FreeType, HarfBuzz, libunibreak, MD4C and SheenBidi left on 2026-11-16:
-GUI.Forms reads fonts with STXlib's font tables, shapes with its shaper,
-reads Markdown with stxlib::markdown and takes line breaks and bidi from
-stxlib::textlayout (STXlib, in the stx package). GUI.Forms builds no
-third-party code.
-
 Each stx directory keeps its licence, its PROVENANCE file and its intake
 record (stx `third_party/README.md`), unchanged from when they were here. The
 moved files were blob-for-blob equal to this repository's at 06a78004.
