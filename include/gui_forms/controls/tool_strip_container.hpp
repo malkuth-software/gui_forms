@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // The phases of a strip drag: `armed` from a press on a strip's grip until
@@ -192,7 +194,7 @@ private:
         std::optional<ToolStripDropTarget> target{};
         Rect stamp{};
         Rect settle_from{};
-        std::optional<ControlSnapshot> picture{};
+        stxlib::Optional<ControlSnapshot> picture{};
         std::weak_ptr<Control> focus_before{};
         bool focusable_before{};
         // The keyboard move: the chosen panel, its stop (2r: a new row at

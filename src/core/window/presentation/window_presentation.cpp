@@ -152,16 +152,16 @@ SurfaceRoot::CapturePaintLease::~CapturePaintLease() {
 // Four stages: validate the request; record the subtree's planes into one
 // display chunk; replay that chunk into an offscreen framebuffer; copy the
 // pixels into the image registry as premultiplied BGRA.
-std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr& control, const double scale) {
+stxlib::Optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr& control, const double scale) {
     require_root_thread("snapshot_control");
-    if (in_paint_ || framebuffer_painter_ == nullptr || !control) return std::nullopt;
-    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).effectively_visible()) return std::nullopt;
-    if (!std::isfinite(scale) || scale <= 0.0 || scale > 8.0) return std::nullopt;
+    if (in_paint_ || framebuffer_painter_ == nullptr || !control) return stxlib::Optional<ControlSnapshot>::none();
+    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).effectively_visible()) return stxlib::Optional<ControlSnapshot>::none();
+    if (!std::isfinite(scale) || scale <= 0.0 || scale > 8.0) return stxlib::Optional<ControlSnapshot>::none();
     const Rect bounds = absolute_bounds_of(*control);
-    if (bounds.empty() || !bounds.finite()) return std::nullopt;
+    if (bounds.empty() || !bounds.finite()) return stxlib::Optional<ControlSnapshot>::none();
     const Size logical{bounds.width, bounds.height};
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
-    if (!framebuffer) return std::nullopt;
+    if (!framebuffer) return stxlib::Optional<ControlSnapshot>::none();
     // Record: the subtree's planes, each in order, into one command list in
     // the subtree's own coordinates, its materials baked at the snapshot's
     // scale.
@@ -202,24 +202,25 @@ std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr&
     // damage over the area, as capture_window.
     if (consumed_invalidations > 0U) add_damage_all_planes(bounds);
     // Replay into the offscreen raster.
-    if (!(*framebuffer).begin(image_resources(), local)) return std::nullopt;
+    if (!(*framebuffer).begin(image_resources(), local)) return stxlib::Optional<ControlSnapshot>::none();
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
     (*framebuffer).end();
     // Register the pixels in the registry's layout.
     std::vector<std::byte> bgra;
-    if (!detail::copy_framebuffer_bgra(*framebuffer, bgra)) return std::nullopt;
+    if (!detail::copy_framebuffer_bgra(*framebuffer, bgra)) return stxlib::Optional<ControlSnapshot>::none();
     const std::uint32_t width = (*framebuffer).width();
     const std::uint32_t height = (*framebuffer).height();
     const std::uint64_t row = static_cast<std::uint64_t>(width) * 4U;
     const ImageLoadResult loaded = (*resources_).registry().load_bgra32_premultiplied(width, height, row, bgra);
-    if (!loaded) return std::nullopt;
+    if (!loaded) return stxlib::Optional<ControlSnapshot>::none();
     ControlSnapshot snapshot{};
     snapshot.image = loaded.image;
     snapshot.logical_size = logical;
     snapshot.scale = scale;
     snapshot.pixel_width = width;
     snapshot.pixel_height = height;
-    return snapshot;
+    const stxlib::Optional<ControlSnapshot> result = stxlib::Optional<ControlSnapshot>::of(snapshot);
+    return result;
 }
 
 bool SurfaceRoot::release_control_snapshot(ImageId image) {

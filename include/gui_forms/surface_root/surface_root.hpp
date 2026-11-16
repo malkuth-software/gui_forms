@@ -650,7 +650,7 @@ public:
     // The image lives until release_control_snapshot or the window's end.
     // The window is painting while it records and replays, as
     // capture_window says.
-    [[nodiscard]] std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale);
+    [[nodiscard]] stxlib::Optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale);
     // The whole window as it presents itself (owner request 2026-11-09):
     // its backplane (the theme's window material, cleared where a
     // non-opaque backdrop is granted), every paint plane of its content,

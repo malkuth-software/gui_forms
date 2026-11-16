@@ -26,6 +26,8 @@
 #include <variant>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // The drag layer's drop-pulse instance (effect_registry.hpp).
@@ -995,7 +997,7 @@ private:
         // none where the window cannot snapshot), and released when the
         // session ends (reset_drag) by the site that took it. Images are
         // application-scope, so a guest shows the same image.
-        std::optional<ControlSnapshot> picture{};
+        stxlib::Optional<ControlSnapshot> picture{};
         // Phase D4. `guest`: this site shows another site's drag (no capture,
         // no picture of its own, never ends it). `stamp_hidden`: no stamp (a
         // window moved by its caption is its own picture). `may_float`: a

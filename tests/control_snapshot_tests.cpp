@@ -61,18 +61,18 @@ void snapshots() {
     test_support::FakeRaster raster{};
     Window window(root, {200.0, 120.0});
     window.perform_layout();
-    require(!window.snapshot_control(card, 1.0), "without a framebuffer painter there is no snapshot");
+    require(window.snapshot_control(card, 1.0).absent(), "without a framebuffer painter there is no snapshot");
 
     window.set_framebuffer_painter(&raster);
     const std::uint64_t images = window.image_resources().snapshot().resource_count;
-    const std::optional<ControlSnapshot> snapshot = window.snapshot_control(card, 0.5);
-    require(snapshot.has_value() && raster.made == 1U, "a framebuffer painter gives a snapshot");
-    require((*snapshot).pixel_width == 51U && (*snapshot).pixel_height == 30U &&
-                (*snapshot).logical_size == Size{101.0, 60.0} && (*snapshot).scale == 0.5,
+    const stxlib::Optional<ControlSnapshot> snapshot = window.snapshot_control(card, 0.5);
+    require(snapshot.present() && raster.made == 1U, "a framebuffer painter gives a snapshot");
+    require((*snapshot.value()).pixel_width == 51U && (*snapshot.value()).pixel_height == 30U &&
+                (*snapshot.value()).logical_size == Size{101.0, 60.0} && (*snapshot.value()).scale == 0.5,
             "the picture covers the control at the scale asked, rounded up");
     require(raster.replayed.fills > 0U && raster.replayed.texts > 0U,
             "the subtree's painting (the card and its button) is replayed into the framebuffer");
-    const std::optional<ImageResourceView> view = window.image_resources().find((*snapshot).image);
+    const std::optional<ImageResourceView> view = window.image_resources().find((*snapshot.value()).image);
     require(view.has_value() && (*view).row_bytes == 51U * 4U && (*view).encoded.size() == 51U * 30U * 4U,
             "the pixels are registered as one image of the window");
     require((*view).encoded[0] == std::byte{1} && (*view).encoded[1] == std::byte{2} &&
@@ -80,26 +80,26 @@ void snapshots() {
             "the framebuffer's BGRA pixels are stored as they are");
     require(window.image_resources().snapshot().resource_count == images + 1U, "one image was added");
 
-    require(!window.snapshot_control(card, 0.0) && !window.snapshot_control(card, 9.0),
+    require(window.snapshot_control(card, 0.0).absent() && window.snapshot_control(card, 9.0).absent(),
             "a scale outside (0, 8] is refused");
     std::shared_ptr<Panel> foreign = make_control<Panel>(StableId("foreign"));
     Window other(foreign, {50.0, 50.0});
-    require(!window.snapshot_control(foreign, 1.0), "another window's control is refused");
+    require(window.snapshot_control(foreign, 1.0).absent(), "another window's control is refused");
     (*card).visible = false;
     window.perform_layout();
-    require(!window.snapshot_control(card, 1.0), "a hidden control is refused");
+    require(window.snapshot_control(card, 1.0).absent(), "a hidden control is refused");
     (*card).visible = true;
     window.perform_layout();
 
     // Finding V4: the release is UI-thread only and repaints as remove_image.
     bool refused = false;
-    std::thread releaser(OtherThreadRelease{&window, (*snapshot).image, &refused});
+    std::thread releaser(OtherThreadRelease{&window, (*snapshot.value()).image, &refused});
     releaser.join();
-    require(refused && window.image_resources().find((*snapshot).image).has_value(),
+    require(refused && window.image_resources().find((*snapshot.value()).image).has_value(),
             "a release off the UI thread is refused and keeps the image");
     const std::uint64_t marks = window.metrics_snapshot().dirty_marks;
-    require(window.release_control_snapshot((*snapshot).image) && !window.image_resources().find((*snapshot).image) &&
-                !window.release_control_snapshot((*snapshot).image),
+    require(window.release_control_snapshot((*snapshot.value()).image) && !window.image_resources().find((*snapshot.value()).image) &&
+                !window.release_control_snapshot((*snapshot.value()).image),
             "releasing removes the image once");
     require(window.metrics_snapshot().dirty_marks > marks,
             "releasing a snapshot retires the window's retained paint, as remove_image does");
@@ -145,11 +145,11 @@ void window_captures() {
     require(window.image_resources().snapshot().resource_count == images,
             "a capture registers no image: it owns its pixels");
     const std::size_t content_fills = raster.replayed.fills;
-    const std::optional<ControlSnapshot> card_only = window.snapshot_control(card, 1.0);
-    require(card_only.has_value(), "the card snapshots");
+    const stxlib::Optional<ControlSnapshot> card_only = window.snapshot_control(card, 1.0);
+    require(card_only.present(), "the card snapshots");
     const std::size_t card_fills = raster.replayed.fills - content_fills;
     require(content_fills > card_fills, "the capture draws more than the card: the backplane beneath it");
-    require(window.release_control_snapshot((*card_only).image), "the snapshot is released");
+    require(window.release_control_snapshot((*card_only.value()).image), "the snapshot is released");
 
     WindowCaptureOptions half{};
     half.scale = 0.5;

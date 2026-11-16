@@ -1298,7 +1298,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: std::unique_ptr<PaintFramebuffer> create_framebuffer(Size logical_size, double scale)
 
-   .. cpp:function:: std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale)
+   .. cpp:function:: stxlib::Optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale)
 
       A picture of a control and its descendants as last laid out: their
       retained painting is replayed, every paint plane in order, into an

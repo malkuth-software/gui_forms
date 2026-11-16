@@ -618,11 +618,11 @@ void ToolStripContainer::finish_settling() noexcept {
 }
 
 void ToolStripContainer::release_picture(SurfaceRoot& host) noexcept {
-    if (!drag_.picture) return;
+    if (drag_.picture.absent()) return;
     // A release that fails (allocation while marking the repaint) leaves
     // the image to the window's end.
     try {
-        static_cast<void>(host.release_control_snapshot((*drag_.picture).image));
+        static_cast<void>(host.release_control_snapshot((*drag_.picture.value()).image));
     } catch (...) {
     }
     drag_.picture.reset();
@@ -1015,9 +1015,9 @@ void ToolStripContainer::paint_drag_layer(Painter& painter) {
     part.role = PartRole::face;
     part.bounds = drag_.stamp;
     paint_part(painter, *this, part);
-    if (drag_.picture) {
+    if (drag_.picture.present()) {
         part.role = PartRole::image;
-        part.image = (*drag_.picture).image;
+        part.image = (*drag_.picture.value()).image;
     } else {
         part.role = PartRole::well;
     }
@@ -1114,7 +1114,7 @@ void ToolStripContainer::publish_part_geometry(std::span<PartGeometry> geometry)
     const Rect stamp = drag_stamp();
     if (!stamp.empty()) {
         record.drag_stamp = PartGeometry::from_bounds(stamp);
-        if (drag_.picture) record.drag_stamp_image = PartGeometry::from_bounds(stamp);
+        if (drag_.picture.present()) record.drag_stamp_image = PartGeometry::from_bounds(stamp);
     }
     if (drag_.target) record.drop_marker = PartGeometry::from_bounds((*drag_.target).marker);
     write_parts(anatomy(), tool_strip_container_part_fields, record, geometry);
