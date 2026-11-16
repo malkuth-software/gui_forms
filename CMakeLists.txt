@@ -3730,6 +3730,11 @@ if(GUI_FORMS_BUILD_TESTS)
                 -p test_check_test_asserts.py)
         # The C ABI's termination rule (tools/check_exit_statics.py): static
         # state in src/abi/ is never destroyed or trivially destructible.
+        # The sensible-naming audit (tools/naming_audit.py): names that say
+        # something other than what they hold. A report, not a gate.
+        add_test(NAME gui_forms_naming_audit_unit
+            COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
+                -p test_naming_audit.py)
         add_test(NAME gui_forms_exit_statics_check_unit
             COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
                 -p test_check_exit_statics.py)
