@@ -256,11 +256,11 @@ private:
     friend struct ValueBarLabelCapability<ValueBar>;
     friend struct ValueBarScrubRateCapability<ValueBar>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
-    void prepare_write(const decltype(soft_minimum)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(soft_minimum)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(soft_minimum)& cell);
-    void prepare_write(const decltype(soft_maximum)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(soft_maximum)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(soft_maximum)& cell);
-    void prepare_write(const decltype(snap_step)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(snap_step)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(snap_step)& cell);
     void prepare_write(const decltype(precision)& cell, std::int32_t& incoming);
     void written(const decltype(precision)& cell);
@@ -272,7 +272,7 @@ private:
     void written(const decltype(presentation)& cell);
     void prepare_write(const decltype(label)& cell, std::string& incoming);
     void written(const decltype(label)& cell);
-    void prepare_write(const decltype(scrub_rate)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(scrub_rate)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(scrub_rate)& cell);
     // property_codemod end ValueBar
 };

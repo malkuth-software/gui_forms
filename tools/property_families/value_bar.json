@@ -14,8 +14,8 @@
     {
       "name": "soft_minimum",
       "capability": "ValueBarSoftMinimum",
-      "value": "std::optional<double>",
-      "initial": "std::nullopt",
+      "value": "stxlib::Optional<double>",
+      "initial": null,
       "comment": "The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.",
       "getter": null,
       "setter": null,
@@ -40,15 +40,16 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (incoming) require_finite(*incoming, \"soft minimum must be finite\");"
+        "const double* incoming_value = incoming.value();",
+        "if (incoming_value != nullptr) require_finite(*incoming_value, \"soft minimum must be finite\");"
       ],
-      "sample": "std::optional<double>{10.0}"
+      "sample": "stxlib::Optional<double>::of(10.0)"
     },
     {
       "name": "soft_maximum",
       "capability": "ValueBarSoftMaximum",
-      "value": "std::optional<double>",
-      "initial": "std::nullopt",
+      "value": "stxlib::Optional<double>",
+      "initial": null,
       "comment": "The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.",
       "getter": null,
       "setter": null,
@@ -73,15 +74,16 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (incoming) require_finite(*incoming, \"soft maximum must be finite\");"
+        "const double* incoming_value = incoming.value();",
+        "if (incoming_value != nullptr) require_finite(*incoming_value, \"soft maximum must be finite\");"
       ],
-      "sample": "std::optional<double>{90.0}"
+      "sample": "stxlib::Optional<double>::of(90.0)"
     },
     {
       "name": "snap_step",
       "capability": "ValueBarSnapStep",
-      "value": "std::optional<double>",
-      "initial": "std::nullopt",
+      "value": "stxlib::Optional<double>",
+      "initial": null,
       "comment": "Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.",
       "getter": null,
       "setter": null,
@@ -106,12 +108,13 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (incoming) {",
-        "    require_finite(*incoming, \"snap step must be finite\");",
-        "    if (*incoming <= 0.0) throw std::invalid_argument(\"snap step must be positive\");",
+        "const double* incoming_value = incoming.value();",
+        "if (incoming_value != nullptr) {",
+        "    require_finite(*incoming_value, \"snap step must be finite\");",
+        "    if (*incoming_value <= 0.0) throw std::invalid_argument(\"snap step must be positive\");",
         "}"
       ],
-      "sample": "std::optional<double>{5.0}"
+      "sample": "stxlib::Optional<double>::of(5.0)"
     },
     {
       "name": "precision",
@@ -275,8 +278,8 @@
     {
       "name": "scrub_rate",
       "capability": "ValueBarScrubRate",
-      "value": "std::optional<double>",
-      "initial": "std::nullopt",
+      "value": "stxlib::Optional<double>",
+      "initial": null,
       "comment": "Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.",
       "getter": null,
       "setter": null,
@@ -301,12 +304,13 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (incoming) {",
-        "    require_finite(*incoming, \"scrub rate must be finite\");",
-        "    if (*incoming <= 0.0) throw std::invalid_argument(\"scrub rate must be positive\");",
+        "const double* incoming_value = incoming.value();",
+        "if (incoming_value != nullptr) {",
+        "    require_finite(*incoming_value, \"scrub rate must be finite\");",
+        "    if (*incoming_value <= 0.0) throw std::invalid_argument(\"scrub rate must be positive\");",
         "}"
       ],
-      "sample": "std::optional<double>{0.5}"
+      "sample": "stxlib::Optional<double>::of(0.5)"
     }
   ],
   "not_properties": [],

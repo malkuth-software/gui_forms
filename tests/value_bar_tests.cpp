@@ -36,6 +36,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -94,8 +95,8 @@ std::unique_ptr<Fixture> make_fixture() {
     (*fixture).bar = make_control<ValueBar>(StableId("value.bar"));
     ValueBar& bar = *(*fixture).bar;
     bar.set_requested_bounds({20.0, 20.0, 200.0, 24.0});
-    bar.soft_maximum = std::optional<double>{50.0};
-    bar.scrub_rate = std::optional<double>{0.5};
+    bar.soft_maximum = stxlib::Optional<double>::of(50.0);
+    bar.scrub_rate = stxlib::Optional<double>::of(0.5);
     bar.value = 10.0;
     bar.label = std::string("Samples");
     (*(*fixture).root).add_child((*fixture).bar);
@@ -161,10 +162,10 @@ void ranges() {
             "no soft minimum is the hard one");
     require(near(bar.soft_proportion(), 0.2) && !bar.overrange(), "10 of 0..50 fills a fifth");
     require(near(bar.fill_bounds().width, 40.0), "the fill is that proportion of the track");
-    bar.soft_maximum = std::optional<double>{500.0};
+    bar.soft_maximum = stxlib::Optional<double>::of(500.0);
     require(near(bar.effective_soft_maximum(), 100.0), "a soft limit past the hard one is held at it");
-    bar.soft_minimum = std::optional<double>{80.0};
-    bar.soft_maximum = std::optional<double>{60.0};
+    bar.soft_minimum = stxlib::Optional<double>::of(80.0);
+    bar.soft_maximum = stxlib::Optional<double>::of(60.0);
     require(near(bar.effective_soft_minimum(), 60.0) && near(bar.effective_soft_maximum(), 80.0),
             "crossed soft limits are ordered");
     require(bar.overrange() && near(bar.soft_proportion(), 0.0), "below the soft range: overrange and empty");
@@ -172,7 +173,7 @@ void ranges() {
             "the overrange marker is at the end the value passed");
     bool refused = false;
     try {
-        bar.soft_minimum = std::optional<double>{std::nan("")};
+        bar.soft_minimum = stxlib::Optional<double>::of(std::nan(""));
     } catch (const std::invalid_argument&) {
         refused = true;
     }
@@ -246,7 +247,7 @@ void scrub_modifiers() {
     std::unique_ptr<Fixture> fixture = make_fixture();
     Window& window = *(*fixture).window;
     ValueBar& bar = *(*fixture).bar;
-    bar.snap_step = std::optional<double>{5.0};
+    bar.snap_step = stxlib::Optional<double>::of(5.0);
     pointer(window, PointerAction::down, {100.0, row});
     pointer(window, PointerAction::move, {110.0, row});
     pointer(window, PointerAction::move, {130.0, row}, Modifier::shift);
@@ -412,7 +413,7 @@ void capabilities() {
     bar.set_property_value("presentation", BindingValue{PropertyEnumValue{"value_bar_style", "field", 1}});
     require(bar.presentation.read() == ValueBarStyle::field, "a write by name reaches the cell");
     bar.set_property_value("soft_minimum", BindingValue{5.0});
-    require(bar.soft_minimum.read() == std::optional<double>{5.0}, "a nullable number by name");
+    require(bar.soft_minimum.read() == stxlib::Optional<double>::of(5.0), "a nullable number by name");
     require(bar.anatomy().control_id == "value_bar" && bar.anatomy().parts.size() == 12U, "the anatomy");
 }
 

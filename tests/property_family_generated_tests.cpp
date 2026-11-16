@@ -3254,27 +3254,27 @@ void test_typography_specimen_properties() {
 void test_value_bar_properties() {
     std::shared_ptr<ValueBar> control = make_control<ValueBar>(StableId("generated.valuebar"));
     {
-        const std::optional<double> sample = std::optional<double>{10.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(10.0);
         (*control).soft_minimum = sample;
         expect((*control).soft_minimum.read() == sample, "ValueBar.soft_minimum: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("soft_minimum");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.soft_minimum: the table reads the cell");
     }
     {
-        const std::optional<double> sample = std::optional<double>{90.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(90.0);
         (*control).soft_maximum = sample;
         expect((*control).soft_maximum.read() == sample, "ValueBar.soft_maximum: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("soft_maximum");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.soft_maximum: the table reads the cell");
     }
     {
-        const std::optional<double> sample = std::optional<double>{5.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(5.0);
         (*control).snap_step = sample;
         expect((*control).snap_step.read() == sample, "ValueBar.snap_step: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("snap_step");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.snap_step: the table reads the cell");
     }
     {
@@ -3318,11 +3318,11 @@ void test_value_bar_properties() {
                "ValueBar.label: the table reads the cell");
     }
     {
-        const std::optional<double> sample = std::optional<double>{0.5};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(0.5);
         (*control).scrub_rate = sample;
         expect((*control).scrub_rate.read() == sample, "ValueBar.scrub_rate: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("scrub_rate");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.scrub_rate: the table reads the cell");
     }
 }

@@ -81,8 +81,8 @@ bool ValueBarScrub::begin_scrub(ScrubRange& range) {
     range.minimum = bar.effective_soft_minimum();
     range.maximum = bar.effective_soft_maximum();
     range.rate = bar.scrub_rate_in_force();
-    const std::optional<double> snap = bar.snap_step.read();
-    range.snap_step = snap ? *snap : bar.small_change.read();
+    const stxlib::Optional<double>& snap = bar.snap_step.read();
+    range.snap_step = snap.value_or(bar.small_change.read());
     range.keyboard_step = bar.small_change.read();
     // Right to left the fill grows from the right, so dragging left raises.
     range.reversed = bar.effective_layout_direction() == LayoutDirection::right_to_left;
@@ -149,10 +149,10 @@ void ValueBar::EditorValidatingCallback::operator()(ControlValidationEvent&) con
 double ValueBar::effective_soft_minimum() const noexcept {
     const double low = minimum.read();
     const double high = maximum.read();
-    const std::optional<double> soft_low = soft_minimum.read();
-    const std::optional<double> soft_high = soft_maximum.read();
-    const double first = std::clamp(soft_low ? *soft_low : low, low, high);
-    const double second = std::clamp(soft_high ? *soft_high : high, low, high);
+    const double soft_low = soft_minimum.read().value_or(low);
+    const double soft_high = soft_maximum.read().value_or(high);
+    const double first = std::clamp(soft_low, low, high);
+    const double second = std::clamp(soft_high, low, high);
     const double result = std::min(first, second);
     return result;
 }
@@ -160,10 +160,10 @@ double ValueBar::effective_soft_minimum() const noexcept {
 double ValueBar::effective_soft_maximum() const noexcept {
     const double low = minimum.read();
     const double high = maximum.read();
-    const std::optional<double> soft_low = soft_minimum.read();
-    const std::optional<double> soft_high = soft_maximum.read();
-    const double first = std::clamp(soft_low ? *soft_low : low, low, high);
-    const double second = std::clamp(soft_high ? *soft_high : high, low, high);
+    const double soft_low = soft_minimum.read().value_or(low);
+    const double soft_high = soft_maximum.read().value_or(high);
+    const double first = std::clamp(soft_low, low, high);
+    const double second = std::clamp(soft_high, low, high);
     const double result = std::max(first, second);
     return result;
 }
@@ -194,8 +194,8 @@ std::string ValueBar::formatted_value() const {
 // range; an empty soft range scrubs by a tenth of the small change per
 // unit.
 double ValueBar::scrub_rate_in_force() const noexcept {
-    const std::optional<double> authored = scrub_rate.read();
-    if (authored) return *authored;
+    const double* authored = scrub_rate.read().value();
+    if (authored != nullptr) return *authored;
     const double span = effective_soft_maximum() - effective_soft_minimum();
     if (span <= 0.0) return small_change.read() * scrub_fine_factor;
     const double width = std::max(1.0, content_bounds().width);
@@ -1139,29 +1139,32 @@ std::span<const PropertyEntry> ValueBar::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-void ValueBar::prepare_write(const decltype(soft_minimum)&, std::optional<double>& incoming) {
+void ValueBar::prepare_write(const decltype(soft_minimum)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) require_finite(*incoming, "soft minimum must be finite");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) require_finite(*incoming_value, "soft minimum must be finite");
 }
 
 void ValueBar::written(const decltype(soft_minimum)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ValueBar::prepare_write(const decltype(soft_maximum)&, std::optional<double>& incoming) {
+void ValueBar::prepare_write(const decltype(soft_maximum)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) require_finite(*incoming, "soft maximum must be finite");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) require_finite(*incoming_value, "soft maximum must be finite");
 }
 
 void ValueBar::written(const decltype(soft_maximum)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ValueBar::prepare_write(const decltype(snap_step)&, std::optional<double>& incoming) {
+void ValueBar::prepare_write(const decltype(snap_step)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) {
-        require_finite(*incoming, "snap step must be finite");
-        if (*incoming <= 0.0) throw std::invalid_argument("snap step must be positive");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) {
+        require_finite(*incoming_value, "snap step must be finite");
+        if (*incoming_value <= 0.0) throw std::invalid_argument("snap step must be positive");
     }
 }
 
@@ -1213,11 +1216,12 @@ void ValueBar::written(const decltype(label)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ValueBar::prepare_write(const decltype(scrub_rate)&, std::optional<double>& incoming) {
+void ValueBar::prepare_write(const decltype(scrub_rate)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) {
-        require_finite(*incoming, "scrub rate must be finite");
-        if (*incoming <= 0.0) throw std::invalid_argument("scrub rate must be positive");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) {
+        require_finite(*incoming_value, "scrub rate must be finite");
+        if (*incoming_value <= 0.0) throw std::invalid_argument("scrub rate must be positive");
     }
 }
 

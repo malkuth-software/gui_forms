@@ -48,6 +48,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -227,7 +228,7 @@ void test_value_bar() {
     require((*samples).minimum.read() == 1.0 && (*samples).maximum.read() == 4096.0 &&
                 (*samples).value.read() == 64.0,
             "value bar: the range family's values");
-    require((*samples).soft_maximum.read() == std::optional<double>{256.0} && !(*samples).soft_minimum.read(),
+    require((*samples).soft_maximum.read() == stxlib::Optional<double>::of(256.0) && (*samples).soft_minimum.read().absent(),
             "value bar: the soft limits");
     require((*samples).presentation.read() == gui_forms::ValueBarStyle::field &&
                 (*samples).precision.read() == 0 && (*samples).label.read() == "Samples",
