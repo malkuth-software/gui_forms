@@ -1284,6 +1284,10 @@ void DragEngine::drag_to(Point pointer, Modifier modifiers, DragTraceEvent event
 
 bool DragEngine::pointer(const PointerEvent& event) {
     if (mode_ != DragInputMode::pointer) return false;
+    // A non-finite position is refused as the press is (A-gf-core-04-F2):
+    // past this point it would plan a session and reach the indexed slot
+    // search's conversion to an index, which is undefined for NaN.
+    if (!finite_point(event.position)) return false;
     if (phase_ != DragPhase::armed && phase_ != DragPhase::dragging) return false;
     if (event.action != PointerAction::move && event.action != PointerAction::up) return false;
     const std::size_t landings_capacity = landings_.capacity();

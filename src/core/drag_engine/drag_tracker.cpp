@@ -679,6 +679,8 @@ DragStartResult DragTrackerSession::start(const DragStart& start, DragInputMode 
 
 bool DragTrackerSession::pointer(const PointerEvent& event) {
     if (depth_ > 0) return false;
+    // Refused before it is kept as the session's pointer (A-gf-core-04-F2).
+    if (!finite_point(event.position)) return false;
     DragEngine* engine = running_engine();
     if (engine == nullptr) return false;
     if (event.action == PointerAction::move || event.action == PointerAction::up) {

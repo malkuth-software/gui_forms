@@ -38,6 +38,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <new>
 #include <random>
@@ -483,6 +484,33 @@ void list_reorder_forward_and_back() {
     const bool taken = engine.pointer(pointer_event(PointerAction::up, again));
     require(!taken && engine.phase() == DragPhase::idle && client.ends.size() == 2U,
             "a release before the threshold disarms without an end");
+}
+
+// A-gf-core-04-F2: a move with a non-finite position is refused, armed or
+// dragging, and leaves the session as it was.
+void non_finite_moves_are_refused() {
+    TestClient client;
+    client.reset_list(5U, 1U);
+    Fixture fixture = make_fixture(client.slots[1]);
+    client.container = fixture.container.get();
+    DragEngine& engine = (*fixture.window).drag_engine();
+    const double not_a_number = std::numeric_limits<double>::quiet_NaN();
+    const double infinite = std::numeric_limits<double>::infinity();
+
+    const Point grab = centre(client.slots[1]);
+    require(press(fixture, client, grab, 4.0) && engine.phase() == DragPhase::armed, "a press arms a drag");
+    const bool armed_taken = engine.pointer(pointer_event(PointerAction::move, {not_a_number, grab.y}));
+    require(!armed_taken && engine.phase() == DragPhase::armed, "a NaN move while armed plans nothing");
+    move_to(fixture, {grab.x, 81.0});
+    require(engine.phase() == DragPhase::dragging && engine.selection().token.value == 3U, "a finite move plans");
+    const bool dragging_taken = engine.pointer(pointer_event(PointerAction::move, {grab.x, not_a_number}));
+    const bool infinite_taken = engine.pointer(pointer_event(PointerAction::move, {infinite, 81.0}));
+    require(!dragging_taken && !infinite_taken && engine.phase() == DragPhase::dragging &&
+                engine.selection().token.value == 3U,
+            "non-finite moves while dragging keep the selection");
+    release_at(fixture, {grab.x, 81.0});
+    require(engine.phase() == DragPhase::idle && client.ends.back().end == DragEnd::dropped,
+            "the drag still drops at the finite release");
 }
 
 // -- cancellation -------------------------------------------------------------------------
@@ -1191,6 +1219,7 @@ void no_allocation_while_dragging() {
 
 int main() {
     list_reorder_forward_and_back();
+    non_finite_moves_are_refused();
     cancels_leave_the_model_untouched();
     release_outside_and_suppression();
     ties_by_declaration_order();
