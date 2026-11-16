@@ -451,6 +451,27 @@ void test_reference_codes() {
                    DiagnosticCode::control_value_invalid, "a boolean default is true or false, as forms write it");
     expect_refused(schema, document("<property name=\"e\" kind=\"enumeration\"/>"),
                    DiagnosticCode::control_value_invalid, "an enumeration without choices");
+    // A-gf-core-03-F2: an integer default outside its kind's range is
+    // refused before any conversion; an unsigned default above 2^63 fits.
+    expect_refused(schema, document("<property name=\"i\" kind=\"signed-integer\" default=\"99999999999999999999\"/>"),
+                   DiagnosticCode::control_value_invalid, "a signed default of twenty digits");
+    expect_refused(schema, document("<property name=\"i\" kind=\"signed-integer\" default=\"9223372036854775808\"/>"),
+                   DiagnosticCode::control_value_invalid, "a signed default of 2^63");
+    expect_refused(schema,
+                   document("<property name=\"u\" kind=\"unsigned-integer\" default=\"18446744073709551616\"/>"),
+                   DiagnosticCode::control_value_invalid, "an unsigned default of 2^64");
+    {
+        Workspace workspace{};
+        ControlModel model{};
+        const ControlModelOutcome outcome = build(
+            workspace,
+            document("<property name=\"u\" kind=\"unsigned-integer\" default=\"9223372036854775808\"/>"
+                     "<property name=\"i\" kind=\"signed-integer\" default=\"-9223372036854775808\"/>"),
+            schema, model);
+        print_diagnostics(workspace.diagnostics);
+        require(outcome == ControlModelOutcome::model_built && workspace.diagnostics.records().empty(),
+                "an unsigned default of 2^63 and a signed default of -2^63 are admitted");
+    }
     // E924, E925.
     expect_refused(schema, document("<state name=\"s\" when=\"less(a,\"/>"),
                    DiagnosticCode::control_expression_invalid, "a malformed expression");

@@ -20,11 +20,14 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <span>
 #include <string>
+#include <system_error>
 #include <utility>
 
 namespace gui_forms::control_language {
@@ -181,6 +184,31 @@ std::optional<Color> color_of(const std::string_view text) noexcept {
     return color;
 }
 
+// A signed default as the model's checker admits it (A-gf-core-03-F2):
+// digits that parse exactly, else a whole number inside [-2^63, 2^63),
+// converted only after that test. Zero for anything else, which the checker
+// has refused.
+std::int64_t signed_default(const std::string_view written) noexcept {
+    std::int64_t exact = 0;
+    const std::from_chars_result result = std::from_chars(written.data(), written.data() + written.size(), exact);
+    if (result.ec == std::errc{} && result.ptr == written.data() + written.size()) return exact;
+    const double number = number_of(written);
+    if (!(number >= -9223372036854775808.0 && number < 9223372036854775808.0)) return 0;
+    const std::int64_t converted = static_cast<std::int64_t>(number);
+    return converted;
+}
+
+// An unsigned default, as signed_default with the range [0, 2^64).
+std::uint64_t unsigned_default(const std::string_view written) noexcept {
+    std::uint64_t exact = 0U;
+    const std::from_chars_result result = std::from_chars(written.data(), written.data() + written.size(), exact);
+    if (result.ec == std::errc{} && result.ptr == written.data() + written.size()) return exact;
+    const double number = number_of(written);
+    if (!(number >= 0.0 && number < 18446744073709551616.0)) return 0U;
+    const std::uint64_t converted = static_cast<std::uint64_t>(number);
+    return converted;
+}
+
 // The value a property starts with: its default read by kind (checked by
 // the model), else the kind's zero. Null for a presentational property
 // without a default and for a command.
@@ -194,10 +222,9 @@ BindingValue initial_value(const ControlProperty& property, const ControlPropert
     switch (kind) {
     case ControlPropertyKind::boolean: return BindingValue{written == "true"};
     case ControlPropertyKind::number: return BindingValue{given ? number_of(written) : 0.0};
-    case ControlPropertyKind::signed_integer:
-        return BindingValue{static_cast<std::int64_t>(given ? number_of(written) : 0.0)};
+    case ControlPropertyKind::signed_integer: return BindingValue{given ? signed_default(written) : std::int64_t{0}};
     case ControlPropertyKind::unsigned_integer:
-        return BindingValue{static_cast<std::uint64_t>(given ? number_of(written) : 0.0)};
+        return BindingValue{given ? unsigned_default(written) : std::uint64_t{0U}};
     case ControlPropertyKind::text: return BindingValue{std::string(written)};
     case ControlPropertyKind::enumeration: {
         PropertyEnumValue choice{};
