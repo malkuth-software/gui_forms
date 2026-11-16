@@ -301,8 +301,15 @@ bool ToolStripContainer::move_checked(const ToolStrip& strip, const ToolStripDro
         (*panel_on((*place).edge)).rows()[(*place).row][(*place).position];
     const Control::Ptr keep = shared_from_this();
     static_cast<void>(cancel_drag());
-    if (same_place(*place, target)) return true;
-    move_to(held, *place, target);
+    // cancel_drag returns the focus, running focus handlers that may move or
+    // remove strips: the place and the target are checked again after it,
+    // so move_to never removes a strip it cannot insert (A-gf-controls-14-F7).
+    if (!is_alive()) return false;
+    const stxlib::Optional<StripPlace> found_now = place_of(*held);
+    const StripPlace* const now = found_now.value();
+    if (now == nullptr || !admits(*held, target)) return false;
+    if (same_place(*now, target)) return true;
+    move_to(held, *now, target);
     return true;
 }
 
@@ -955,6 +962,9 @@ void ToolStripContainer::step_keyboard(int across, int along) {
     if (!dragged) return;
     const std::vector<std::vector<std::shared_ptr<ToolStrip>>> rows = rows_without(drag_.key_edge, *dragged);
     const std::size_t last_stop = rows.size() * 2U;
+    // The program may have removed rows since the stop was chosen
+    // (A-gf-controls-14-F7).
+    drag_.key_stop = std::min(drag_.key_stop, last_stop);
     if (across < 0 && drag_.key_stop > 0U) --drag_.key_stop;
     if (across > 0 && drag_.key_stop < last_stop) ++drag_.key_stop;
     const bool joins = drag_.key_stop % 2U == 1U;
