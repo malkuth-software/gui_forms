@@ -1576,9 +1576,9 @@ gui_forms::Control
 
    .. cpp:function:: double snap_text_baseline(double logical_baseline) const noexcept
 
-   .. cpp:function:: std::optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept
+   .. cpp:function:: stxlib::Optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept
 
-      The colours of the application colour role :cpp:member:`name <gui_forms::Control::name>` (a role the theme package declares with ``color-roles``, such as ``syntax-keyword``) for this control's window (window_media_facts; light, unforced while detached): from effective_theme, else, where that is GUI.Forms' own in place of the chosen theme, from the chosen theme. Nullopt where neither declares the role. Code draws program-meant colours through this rather than hard-coding them (T4 theme variants).
+      The colours of the application colour role :cpp:member:`name <gui_forms::Control::name>` (a role the theme package declares with ``color-roles``, such as ``syntax-keyword``) for this control's window (window_media_facts; light, unforced while detached): from effective_theme, else, where that is GUI.Forms' own in place of the chosen theme, from the chosen theme. None where neither declares the role. Code draws program-meant colours through this rather than hard-coding them (T4 theme variants).
 
    .. cpp:function:: void clear_theme_override()
 

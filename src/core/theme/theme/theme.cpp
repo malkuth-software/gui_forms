@@ -1604,14 +1604,14 @@ std::shared_ptr<const StockIconVectors> Theme::stock_icon_replacement(const Stoc
     return nullptr;
 }
 
-std::optional<ThemeRoleColours> Theme::application_role(std::string_view name,
-                                                        const MediaFacts& facts) const noexcept {
+stxlib::Optional<ThemeRoleColours> Theme::application_role(std::string_view name,
+                                                           const MediaFacts& facts) const noexcept {
     const std::vector<ApplicationColourRole>& roles = definition_.rules.application_roles;
     const ApplicationColourRole* found = nullptr;
     for (const ApplicationColourRole& role : roles) {
         if (role.name == name) found = &role;
     }
-    if (found == nullptr) return std::nullopt;
+    if (found == nullptr) return stxlib::Optional<ThemeRoleColours>::none();
     ThemeRoleColours colours{};
     colours.fallback = (*found).fallback;
     colours.paired = (*found).paired;
@@ -1632,8 +1632,8 @@ std::optional<ThemeRoleColours> Theme::application_role(std::string_view name,
         colours.background = pair.background;
         chosen = true;
     }
-    if (!chosen) return std::nullopt;
-    return colours;
+    if (!chosen) return stxlib::Optional<ThemeRoleColours>::none();
+    return stxlib::Optional<ThemeRoleColours>::of(colours);
 }
 
 const detail::ThemeSourceRecord& detail::ThemeAccess::source(const Theme& theme) noexcept {

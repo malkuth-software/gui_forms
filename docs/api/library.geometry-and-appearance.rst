@@ -6276,9 +6276,9 @@ Types
 
       The theme's own drawing of the stock icon variant ``icon`` (ThemeDefinition::stock_icons), shared with the theme; null where the theme keeps the built-in drawing.
 
-   .. cpp:function:: std::optional<ThemeRoleColours> application_role(std::string_view name, const MediaFacts& facts) const noexcept
+   .. cpp:function:: stxlib::Optional<ThemeRoleColours> application_role(std::string_view name, const MediaFacts& facts) const noexcept
 
-      The colours of the application colour role ``name`` (lowercase, as the sheet's ``color-roles`` declares it) where ``facts`` hold: its last declaration whose condition holds. Under forced colours with no ``forced-colors`` declaration of its own, its fallback role's high-contrast pair. Nullopt where the theme declares no such role.
+      The colours of the application colour role ``name`` (lowercase, as the sheet's ``color-roles`` declares it) where ``facts`` hold: its last declaration whose condition holds. Under forced colours with no ``forced-colors`` declaration of its own, its fallback role's high-contrast pair. None where the theme declares no such role.
 
 .. cpp:namespace:: gui_forms
 

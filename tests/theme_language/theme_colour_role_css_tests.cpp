@@ -639,34 +639,34 @@ void test_application_role_lookup() {
     dark_facts.dark_scheme = true;
     MediaFacts forced_facts{};
     forced_facts.forced_colours = true;
-    const std::optional<ThemeRoleColours> light = (*theme).application_role("syntax-keyword", light_facts);
-    require(light && (*light).foreground == Color::rgba(0, 0, 192) && (*light).background == Color::rgba(255, 255, 240) &&
-                (*light).fallback == ColourRole::ink_on_paper && (*light).paired,
+    const stxlib::Optional<ThemeRoleColours> light = (*theme).application_role("syntax-keyword", light_facts);
+    require(light.present() && (*light.value()).foreground == Color::rgba(0, 0, 192) && (*light.value()).background == Color::rgba(255, 255, 240) &&
+                (*light.value()).fallback == ColourRole::ink_on_paper && (*light.value()).paired,
             "the light colours");
-    const std::optional<ThemeRoleColours> dark = (*theme).application_role("syntax-keyword", dark_facts);
-    require(dark && (*dark).foreground == Color::rgba(128, 160, 255), "the dark colours");
-    const std::optional<ThemeRoleColours> forced = (*theme).application_role("syntax-keyword", forced_facts);
-    require(forced && (*forced).foreground == Color::rgba(255, 255, 255) && (*forced).background == Color::rgba(0, 0, 0),
+    const stxlib::Optional<ThemeRoleColours> dark = (*theme).application_role("syntax-keyword", dark_facts);
+    require(dark.present() && (*dark.value()).foreground == Color::rgba(128, 160, 255), "the dark colours");
+    const stxlib::Optional<ThemeRoleColours> forced = (*theme).application_role("syntax-keyword", forced_facts);
+    require(forced.present() && (*forced.value()).foreground == Color::rgba(255, 255, 255) && (*forced.value()).background == Color::rgba(0, 0, 0),
             "forced colours: the fallback's high-contrast pair");
-    const std::optional<ThemeRoleColours> declared = (*theme).application_role("find-mark", forced_facts);
-    require(declared && (*declared).foreground == Color::rgba(255, 255, 0),
+    const stxlib::Optional<ThemeRoleColours> declared = (*theme).application_role("find-mark", forced_facts);
+    require(declared.present() && (*declared.value()).foreground == Color::rgba(255, 255, 0),
             "forced colours: the role's own forced-colors declaration wins");
-    require(!(*theme).application_role("gutter-line", light_facts), "a role without colours has none");
-    require(!(*theme).application_role("missing", light_facts), "an undeclared role has none");
+    require((*theme).application_role("gutter-line", light_facts).absent(), "a role without colours has none");
+    require((*theme).application_role("missing", light_facts).absent(), "an undeclared role has none");
 
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
     const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
     (*root).add_child(pad);
     Window window(root, Size{200.0, 100.0});
     window.set_theme(theme);
-    const std::optional<ThemeRoleColours> through_control = (*pad).theme_role_colours("syntax-keyword");
-    require(through_control && (*through_control).foreground == Color::rgba(0, 0, 192),
+    const stxlib::Optional<ThemeRoleColours> through_control = (*pad).theme_role_colours("syntax-keyword");
+    require(through_control.present() && (*through_control.value()).foreground == Color::rgba(0, 0, 192),
             "a control reads the role through its window's theme");
     PresentationSettings settings = window.presentation_settings();
     settings.colour_scheme = ColourScheme::dark;
     window.set_presentation_settings(settings);
-    const std::optional<ThemeRoleColours> dark_control = (*pad).theme_role_colours("syntax-keyword");
-    require(dark_control && (*dark_control).foreground == Color::rgba(128, 160, 255),
+    const stxlib::Optional<ThemeRoleColours> dark_control = (*pad).theme_role_colours("syntax-keyword");
+    require(dark_control.present() && (*dark_control.value()).foreground == Color::rgba(128, 160, 255),
             "switched dark, the control reads the dark colours");
 }
 

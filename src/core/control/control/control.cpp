@@ -1662,16 +1662,16 @@ bool Control::application_colours_suspended() const noexcept {
     return suspended;
 }
 
-std::optional<ThemeRoleColours> Control::theme_role_colours(std::string_view name) const noexcept {
+stxlib::Optional<ThemeRoleColours> Control::theme_role_colours(std::string_view name) const noexcept {
     MediaFacts facts{};
     if (surface_root_ != nullptr) facts = window_media_facts(*surface_root_);
     const Theme& effective = effective_theme();
-    std::optional<ThemeRoleColours> colours = effective.application_role(name, facts);
-    if (colours) return colours;
+    const stxlib::Optional<ThemeRoleColours> from_effective = effective.application_role(name, facts);
+    if (from_effective.present()) return from_effective;
     const Theme& chosen = chosen_theme();
-    if (&chosen == &effective) return std::nullopt;
-    colours = chosen.application_role(name, facts);
-    return colours;
+    if (&chosen == &effective) return stxlib::Optional<ThemeRoleColours>::none();
+    const stxlib::Optional<ThemeRoleColours> from_chosen = chosen.application_role(name, facts);
+    return from_chosen;
 }
 
 void Control::warn_inline_colour(std::string_view property) const {
