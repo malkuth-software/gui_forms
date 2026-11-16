@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -47,7 +48,7 @@ public:
     // The picker, made on first opening (null before).
     [[nodiscard]] std::shared_ptr<ColorPicker> picker() const noexcept { return picker_; }
     [[nodiscard]] static std::string format_value(Color colour);
-    [[nodiscard]] static std::optional<Color> parse_value(std::string_view text);
+    [[nodiscard]] static stxlib::Optional<Color> parse_value(std::string_view text);
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;

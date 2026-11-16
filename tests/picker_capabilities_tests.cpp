@@ -22,6 +22,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 
@@ -137,10 +138,10 @@ void test_color_value_editor() {
     (*editor).value = translucent;
     require((*editor).value.read().alpha == 128U, "the value keeps its alpha");
     require((*(*editor).editor()).text.read() == "#11223380", "the text shows the alpha as a fourth pair");
-    const std::optional<Color> parsed = ColorValueEditor::parse_value("#11223380");
-    require(parsed.has_value() && *parsed == translucent, "eight digits parse with their alpha");
-    const std::optional<Color> opaque = ColorValueEditor::parse_value("#112233");
-    require(opaque.has_value() && (*opaque).alpha == 255U, "six digits parse as opaque");
+    const stxlib::Optional<Color> parsed = ColorValueEditor::parse_value("#11223380");
+    require(parsed == stxlib::Optional<Color>::of(translucent), "eight digits parse with their alpha");
+    const stxlib::Optional<Color> opaque = ColorValueEditor::parse_value("#112233");
+    require(opaque.present() && (*opaque.value()).alpha == 255U, "six digits parse as opaque");
 }
 
 PropertyEnumDescriptor edges_descriptor() {

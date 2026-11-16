@@ -255,12 +255,12 @@ private:
             channel_ = change.current_value;
             static_cast<void>((*properties_).set_value(channel_row, channel_));
         } else if (change.field_id == "tint") {
-            const std::optional<Color> parsed = ColorValueEditor::parse_value(change.current_value);
-            if (parsed) {
+            const stxlib::Optional<Color> parsed = ColorValueEditor::parse_value(change.current_value);
+            if (parsed.present()) {
                 // A programmatic set_value publishes no value_changed (only a
                 // user commit does), so the owner projects the colour itself.
-                (*color_).value = *parsed;
-                color_changed(*parsed);
+                (*color_).value = *parsed.value();
+                color_changed(*parsed.value());
             } else {
                 static_cast<void>((*rack_).set_field_validation(
                     module_id, "tint", "Use #RRGGBB or #RRGGBBAA"));

@@ -68,9 +68,10 @@ std::string format_color_hex(const BindingValue& value,
 
 std::optional<BindingValue> parse_color_hex(
     std::string_view text, const BindingValue&, const PropertyDescriptor&) {
-    const std::optional<Color> color = ColorValueEditor::parse_value(text);
-    return color ? std::optional<BindingValue>{BindingValue{*color}}
-                 : std::optional<BindingValue>{};
+    const stxlib::Optional<Color> color = ColorValueEditor::parse_value(text);
+    if (color.absent()) return std::optional<BindingValue>{};
+    const std::optional<BindingValue> converted{BindingValue{*color.value()}};
+    return converted;
 }
 
 } // namespace
