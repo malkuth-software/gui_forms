@@ -184,10 +184,17 @@ void ApplicationResources::hold_theme_request(std::unique_ptr<DeferredThemeReque
 void ApplicationResources::settle_theme_request() {
     require_access("theme request");
     if (held_theme_request_ == nullptr || !windows_.empty()) return;
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build (cmake/HighIntegrity.cmake) applies no theme
+    // request, so the first window never reaches the user-theme loader
+    // (apply_theme_request): a held request is released unread.
+    held_theme_request_.reset();
+#else
     // Released first: a request that throws is not settled twice.
     const std::unique_ptr<DeferredThemeRequest> held = std::move(held_theme_request_);
     ThemeRequestReport report = apply_theme_request(*this, (*held).request, (*held).context);
     theme_request_report_ = std::make_unique<ThemeRequestReport>(std::move(report));
+#endif
 }
 
 bool icon_identifier_valid(std::string_view identifier) noexcept {
