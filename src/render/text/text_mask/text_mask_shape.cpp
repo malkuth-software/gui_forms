@@ -41,7 +41,9 @@ NativeParagraph::NativeParagraph(const std::shared_ptr<MaskLedger>& ledger, Nati
     NativeWork& work, const std::string_view text)
     : fonts_(fonts), work_(work), text_(text),
       edges_(MaskAllocator<std::size_t>(ledger, MaskResource::workspace)),
-      clusters_(MaskAllocator<NativeCluster>(ledger, MaskResource::workspace)), ledger_(ledger) {
+      clusters_(MaskAllocator<NativeCluster>(ledger, MaskResource::workspace)),
+      run_characters_(MaskAllocator<std::uint32_t>(ledger, MaskResource::workspace)),
+      run_clusters_(MaskAllocator<std::uint32_t>(ledger, MaskResource::workspace)), ledger_(ledger) {
     const GraphemeStorageRequirement requirement = grapheme_storage_requirement(text);
     if (requirement.status != GraphemeStorageStatus::success) throw NativeFailure(TextMaskStatus::invalid_input);
     {
@@ -77,8 +79,6 @@ NativeParagraph::NativeParagraph(const std::shared_ptr<MaskLedger>& ledger, Nati
         if (static_cast<std::size_t>(paragraph_.length()) != text.size()) {
             throw NativeFailure(TextMaskStatus::unsupported_profile);
         }
-        buffer_ = hb_buffer_create();
-        if (buffer_ == nullptr || buffer_ == hb_buffer_get_empty() || !hb_buffer_allocation_successful(buffer_)) throw std::bad_alloc{};
         // A cluster takes the script of the run holding its first byte; the
         // runs cover the paragraph in order.
         const stxlib::View<stxlib::textlayout::ScriptRun> scripts = paragraph_.script_runs();
@@ -97,15 +97,16 @@ NativeParagraph::NativeParagraph(const std::shared_ptr<MaskLedger>& ledger, Nati
                 throw NativeFailure(TextMaskStatus::native_failure);
             }
             const std::uint32_t tag = stxlib::textlayout::script_tag(scripts[script_index].script);
-            cluster.script = hb_script_from_iso15924_tag(tag);
+            // Common, inherited and unknown text takes the run's first
+            // character's script in the shaper (TextRun::script 0).
+            const bool own_script = tag != 0x5A797979U && tag != 0x5A696E68U && tag != 0x5A7A7A7AU;  // Zyyy, Zinh, Zzzz
+            cluster.script = own_script ? tag : 0U;
             const std::string_view characters = text.substr(cluster.begin, cluster.end - cluster.begin);
             cluster.face = fonts.select_face(characters);
         }
     } catch (...) { release(); throw; }
 }
 void NativeParagraph::release() noexcept {
-    if (buffer_ != nullptr) hb_buffer_destroy(buffer_);
-    buffer_ = nullptr;
     paragraph_.release();
     line_.release();
     analysis_charge_.reset();
@@ -131,49 +132,60 @@ void NativeParagraph::append_run(const std::size_t line_begin, const std::size_t
     const bool rtl, NativeGlyphBuffer& output, NativeShape& shape) {
     const std::string_view line = text_.substr(line_begin, line_end - line_begin);
     work_.admit(line.size());
-    hb_buffer_reset(buffer_);
-    hb_buffer_set_cluster_level(buffer_, HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES);
-    unsigned flags = HB_BUFFER_FLAG_REMOVE_DEFAULT_IGNORABLES;
-    if (run_begin == line_begin) flags |= HB_BUFFER_FLAG_BOT;
-    if (run_end == line_end) flags |= HB_BUFFER_FLAG_EOT;
-    hb_buffer_set_flags(buffer_, static_cast<hb_buffer_flags_t>(flags));
-    hb_buffer_add_utf8(buffer_, line.data(), static_cast<int>(line.size()),
-        static_cast<unsigned>(run_begin - line_begin), static_cast<int>(run_end - run_begin));
-    hb_buffer_set_direction(buffer_, rtl ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
-    hb_buffer_set_script(buffer_, cluster.script);
-    hb_buffer_set_language(buffer_, hb_language_from_string("und", -1));
-    hb_buffer_guess_segment_properties(buffer_);
-    if (!hb_buffer_allocation_successful(buffer_)) throw std::bad_alloc{};
+    // The run's characters, each with its byte offset in the line as its cluster. STXlib
+    // shapes the run alone: no context from the line around it (HarfBuzz's pre- and
+    // post-context reached only the joining scripts, which are drawn unshaped), and default
+    // ignorables come back as zero-advance spaces where HarfBuzz removed them.
+    run_characters_.clear();
+    run_clusters_.clear();
+    std::size_t offset = run_begin;
+    while (offset < run_end) {
+        const unsigned char first = static_cast<unsigned char>(text_[offset]);
+        std::uint32_t scalar = first;
+        std::size_t following = 0;
+        if (first >= 0xF0) { scalar = first & 7U; following = 3; }
+        else if (first >= 0xE0) { scalar = first & 15U; following = 2; }
+        else if (first >= 0xC0) { scalar = first & 31U; following = 1; }
+        for (std::size_t index = 1; index <= following; ++index) {
+            scalar = (scalar << 6U) | (static_cast<unsigned char>(text_[offset + index]) & 63U);
+        }
+        run_characters_.push_back(scalar);
+        run_clusters_.push_back(static_cast<std::uint32_t>(offset - line_begin));
+        offset += following + 1U;
+    }
+    stxlib::glyphs::TextRun run{};
+    run.characters = stxlib::View<std::uint32_t>(run_characters_.data(), run_characters_.size());
+    run.clusters = stxlib::View<std::uint32_t>(run_clusters_.data(), run_clusters_.size());
+    run.direction = rtl ? stxlib::glyphs::TextDirection::right_to_left : stxlib::glyphs::TextDirection::left_to_right;
+    run.script = cluster.script;
+    // Advances and offsets in 26.6 pixels at the job's size, unhinted.
+    run.size = fonts_.size_64;
     NativeFace& face = fonts_.faces[cluster.face];
-    const hb_bool_t shaped = hb_shape_full(face.shaping, buffer_, nullptr, 0, nullptr);
-    if (!hb_buffer_allocation_successful(buffer_)) throw std::bad_alloc{};
-    if (!shaped) throw NativeFailure(TextMaskStatus::native_failure);
-    unsigned count = 0;
-    unsigned position_count = 0;
-    const hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer_, &count);
-    const hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer_, &position_count);
-    if (count != position_count || (count != 0 && (infos == nullptr || positions == nullptr))) {
+    const stxlib::Status shaped = face.shaper.shape(run, run_glyphs_);
+    if (shaped.failed()) {
+        const stxlib::ErrorRecord* const record = shaped.error();
+        if (record != nullptr && (*record).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc{};
         throw NativeFailure(TextMaskStatus::native_failure);
     }
+    const std::size_t count = run_glyphs_.count();
     if (count > 65536U - shape.glyph_count) throw MaskLimitFailure(TextMaskLimit::shaping_payload);
     resize_native_glyphs(output, shape.glyph_count + count);
     double pen = shape.advance;
-    for (unsigned index = 0; index < count; ++index) {
-        const hb_glyph_info_t& info = infos[index];
-        const hb_glyph_position_t& position = positions[index];
-        if (info.codepoint == 0) throw NativeFailure(TextMaskStatus::missing_font_coverage);
-        if (info.codepoint >= static_cast<std::uint64_t>((*face.value).num_glyphs) ||
+    for (std::size_t index = 0; index < count; ++index) {
+        const stxlib::glyphs::ShapedGlyph& info = run_glyphs_[index];
+        if (info.glyph == 0) throw NativeFailure(TextMaskStatus::missing_font_coverage);
+        if (info.glyph >= (*face.font).glyph_count ||
             info.cluster < run_begin - line_begin || info.cluster >= run_end - line_begin) {
             throw NativeFailure(TextMaskStatus::native_failure);
         }
         NativeGlyph& glyph = output[shape.glyph_count];
         glyph.face = cluster.face;
-        glyph.glyph = info.codepoint;
+        glyph.glyph = info.glyph;
         glyph.cluster = static_cast<std::uint32_t>(line_begin + info.cluster);
-        glyph.x = pen + static_cast<double>(position.x_offset) / 64.0;
-        glyph.y = -static_cast<double>(position.y_offset) / 64.0;
-        glyph.advance = static_cast<double>(position.x_advance) / 64.0;
-        if (position.y_advance != 0 || glyph.advance < 0.0) throw NativeFailure(TextMaskStatus::unsupported_profile);
+        glyph.x = pen + static_cast<double>(info.x_offset) / 64.0;
+        glyph.y = -static_cast<double>(info.y_offset) / 64.0;
+        glyph.advance = static_cast<double>(info.x_advance) / 64.0;
+        if (info.y_advance != 0 || glyph.advance < 0.0) throw NativeFailure(TextMaskStatus::unsupported_profile);
         pen += glyph.advance;
         ++shape.glyph_count;
     }
