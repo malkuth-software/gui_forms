@@ -117,13 +117,14 @@ yourself, add
 
 ## How fast it is
 
-**Unpacking.** These figures were measured on 2026-11-13 on a Mac mini M4
-(10 hardware threads, clang 22.1.8, `-O2`). The workload decodes the same
-37 faces from pack bytes in memory to font bytes in memory, including the
-CRC-32 check. The decoder was the experiment that `stx_fontpack` was taken
-from (`stx_fontpack/README.md`). It used the same groups as above, except
-that Cousine was in the families group. Each figure is the median of 25
-rounds in one process.
+**Unpacking, as first measured.** These figures were measured on
+2026-11-13 on a Mac mini M4 (10 hardware threads, clang 22.1.8, `-O2`). The
+code was the font pack experiment that `stx_fontpack`, the loader GUI.Forms
+ships, was converted from. It has the same format and codec
+(`stx_fontpack/PROVENANCE.md`). The workload decodes the 37 faces from pack
+bytes in memory to font bytes in memory, including the CRC-32 check. It used
+the same groups as above, except that Cousine was in the families group.
+Each figure is the median of 25 rounds in one process.
 
 | Decoded | 1 thread | 4 threads | 10 threads |
 |---|---:|---:|---:|
@@ -138,11 +139,35 @@ pays for the interface group once, at the first request for any face. It
 pays for each other group only when text first needs one of that group's
 faces, so a program that never shows Japanese never decodes the CJK group.
 
-**Not yet measured.** No unpacking times are recorded yet for the decoder
-that ships in Core, run on the core worker pool, or for Windows or Linux
-hosts. No time is recorded either for a window's first text with the faces
-already decoded. Those are the next measurements. Until they exist, this page
-claims no speed beyond the table above.
+**Unpacking with the shipped loader.** The same workload run on
+`stx_fontpack` itself, with `stx_fontpack/tools/bench_loader.py`. The
+1-thread column uses the loader's serial executor. The other columns use
+worker threads that start for each step, so a program that lends a running
+thread pool pays less.
+
+<!-- Filled from bench_loader.py's loader-timings.md: machine, compiler, flags, date. -->
+Measured on: to be recorded.
+
+| Decoded | 1 thread | 4 threads | all threads |
+|---|---:|---:|---:|
+| interface group | | | |
+| monospace group | | | |
+| families group | | | |
+| scripts group | | | |
+| emoji group | | | |
+| cjk group | | | |
+| eager groups (`set_open`) | | | |
+| every group in turn | | | |
+
+| Eager groups, 20 fresh processes | Median | Slowest |
+|---|---:|---:|
+| 1 thread | | |
+| all threads | | |
+
+**Not yet measured.** No unpacking times are recorded yet for Windows or
+Linux hosts, or for a window's first text with the faces already decoded.
+Those are the next measurements. Until they exist, this page claims no speed
+beyond the tables above.
 
 **Glyph start-up, a candidate rasterizer.** STXlib's glyph face is not yet
 used by GUI.Forms. On 2026-11-16 it was measured on the same machine beside

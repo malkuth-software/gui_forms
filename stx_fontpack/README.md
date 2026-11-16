@@ -44,6 +44,12 @@ the stx package until it moves to `malkuth-software/stx` unchanged.
   every font with its input before it writes anything. `embed` writes a pack
   as the body of a C++ array initializer, for a program that compiles its
   pack in.
+- `stx_fontpack_bench` (built with the tests, `tools/fontpack_bench.cpp`):
+  times `pack_load_group` per group and `set_open` for the eager groups, on
+  `serial_executor()` or worker threads. `tools/bench_loader.py` runs it as
+  the experiment was measured (the median of 25 rounds per group, and 20
+  fresh processes for the eager groups) and records the machine, compiler
+  and flags.
 - `stx_fontpack_objects`: the loader's objects, for a consumer that compiles
   them into its own static library rather than linking the loader (GUI.Forms
   Core, which embeds its pack).

@@ -85,6 +85,11 @@ if(STX_FONTPACK_TESTS)
     target_link_libraries(stx_fontpack_tests PRIVATE stx_fontpack_packer stx_zlib::stx_zlib Threads::Threads)
     target_compile_options(stx_fontpack_tests PRIVATE ${_stx_fontpack_warnings})
     add_test(NAME stx_fontpack_tests COMMAND stx_fontpack_tests)
+    # The loader's timings (tools/fontpack_bench.cpp, driven by
+    # tools/bench_loader.py); built with the tests, never run by ctest.
+    add_executable(stx_fontpack_bench tools/fontpack_bench.cpp)
+    target_link_libraries(stx_fontpack_bench PRIVATE stx_fontpack Threads::Threads)
+    target_compile_options(stx_fontpack_bench PRIVATE ${_stx_fontpack_warnings})
     if(STX_FONTPACK_TEST_FONT_DIR)
         add_test(NAME stx_fontpack_font_tests COMMAND stx_fontpack_tests "${STX_FONTPACK_TEST_FONT_DIR}")
     endif()
