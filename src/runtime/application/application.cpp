@@ -8,7 +8,8 @@
 
 #if defined(GUI_FORMS_APPLICATION_MACOS)
 #include "gui_forms/platform/macos_host.hpp"
-#include <pthread.h>
+#include <stxlib/result.hpp>
+#include <stxlib/threads.hpp>
 #elif defined(GUI_FORMS_APPLICATION_WINDOWS)
 #include "gui_forms/platform/windows_host.hpp"
 #elif defined(GUI_FORMS_APPLICATION_LINUX)
@@ -23,6 +24,18 @@
 
 namespace gui_forms {
 namespace {
+
+#if defined(GUI_FORMS_APPLICATION_MACOS)
+// AppKit's run and shutdown belong to the process's initial thread. STXlib
+// answers with pthread_main_np on macOS (stxlib::is_main_thread); a refused
+// answer counts as the wrong thread.
+bool on_main_thread() noexcept {
+    const stxlib::OperationResult<bool> answer = stxlib::is_main_thread();
+    if (answer.failed()) return false;
+    const bool result = *answer.value();
+    return result;
+}
+#endif
 std::atomic_flag running = ATOMIC_FLAG_INIT;
 // Set once by Application::shutdown. Read and written only while `running`
 // is held, so the flag orders it; atomic so a refused caller on another
@@ -422,7 +435,7 @@ ApplicationResult Application::run(std::unique_ptr<Window> window, ApplicationWi
 
 ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
 #if defined(GUI_FORMS_APPLICATION_MACOS)
-    if (pthread_main_np() == 0) return {ApplicationError::wrong_thread};
+    if (!on_main_thread()) return {ApplicationError::wrong_thread};
 #endif
     const RunningScope running_scope{};
     if (!running_scope.acquired()) return {ApplicationError::already_running};
@@ -493,7 +506,7 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
 
 ApplicationResult Application::shutdown() {
 #if defined(GUI_FORMS_APPLICATION_MACOS)
-    if (pthread_main_np() == 0) return {ApplicationError::wrong_thread};
+    if (!on_main_thread()) return {ApplicationError::wrong_thread};
 #endif
     // Holding the run flag keeps a run from starting while the library ends.
     const RunningScope running_scope{};

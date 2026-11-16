@@ -308,7 +308,6 @@ endif()
 # A static archive linked into each program (one module, above); position
 # independent, since the C ABI library holds it too.
 add_library(gui_forms_threading STATIC
-    src/core/threading/atomic_pool/atomic_pool.c
     src/core/threading/worker.cpp)
 add_library(GUIForms::Threading ALIAS gui_forms_threading)
 set_target_properties(gui_forms_threading PROPERTIES
@@ -317,8 +316,9 @@ target_include_directories(gui_forms_threading PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_compile_features(gui_forms_threading PUBLIC cxx_std_20)
-# Its pool threads end their STXlib thread records before they return
-# (worker.cpp, gui_forms_atomic_pool_thread_ending).
+# Its pool and worker threads are STXlib's (stxlib::AtomicPool and
+# stxlib::Thread, the standard augmentation), which end their STXlib thread
+# records before they return (worker.cpp).
 target_link_libraries(gui_forms_threading PRIVATE Threads::Threads stxlib::boundary stxlib::state)
 # GUI_FORMS_THREADING_API (gui_forms/export/threading_export.hpp) marks the
 # public declarations; in an archive it adds nothing on Windows, and default
@@ -1112,7 +1112,7 @@ add_library(gui_drawing_c_api_objects OBJECT
     src/abi/drawing_c_api.cpp
 )
 if(WIN32)
-    target_sources(gui_drawing_c_api_objects PRIVATE src/abi/drawing_platform_windows.cpp)
+    target_sources(gui_drawing_c_api_objects PRIVATE src/surface/windows/drawing/drawing_platform_windows.cpp)
 else()
     target_sources(gui_drawing_c_api_objects PRIVATE src/abi/drawing_platform_stub.cpp)
 endif()
@@ -1749,8 +1749,9 @@ if(GUI_FORMS_ENABLE_SKIA)
     if(GUI_FORMS_HIGH_INTEGRITY)
     elseif(APPLE)
         # Finds installed families nobody registered (ADR-004 phase 7).
+        # CoreText types stay in src/surface/macos/.
         target_sources(gui_drawing_skia PRIVATE
-            src/render/skia/executor/core_text_font_bytes.cpp)
+            src/surface/macos/fonts/core_text_font_bytes.cpp)
     elseif(WIN32)
         # The same through GDI and the registry, kept with the Windows host
         # (Win32 types stay in src/surface/windows/).
@@ -6546,7 +6547,8 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_skia_smoke PRIVATE gui_forms_skia)
         add_test(NAME gui_forms_skia_smoke COMMAND gui_forms_skia_smoke)
         # Process memory of the bundled fonts per configuration (item 4, step 6); a report, not a test.
-        add_executable(gui_forms_bundled_font_memory_report src/render/skia/bundled_font_memory_report.cpp
+        # A measuring program, kept with the benchmarks (it reads the host's memory counters).
+        add_executable(gui_forms_bundled_font_memory_report benchmarks/bundled_font_memory_report.cpp
             $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
         target_link_libraries(gui_forms_bundled_font_memory_report PRIVATE gui_forms_skia)
 
@@ -6881,7 +6883,6 @@ include(cmake/CAbi.cmake)
 include(cmake/HighIntegrityTests.cmake)
 
 install(FILES cmake/llvm22.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
-install(FILES src/core/threading/atomic_pool/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME threadpool_atomic_fast-LICENSE.txt)
 # The SDK carries the stx prefix it was built with whole (libraries, headers,
 # package configs, and the licences and provenance under share/licenses/<package>),
 # so GUIFormsConfig's find_dependency calls find the packages beside GUI.Forms.

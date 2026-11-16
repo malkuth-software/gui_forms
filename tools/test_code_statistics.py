@@ -159,8 +159,6 @@ class ProvenanceTests(unittest.TestCase):
         rules: code_statistics.ProvenanceRules = code_statistics.ProvenanceRules(
             code_statistics.KIND_GUI_FORMS, {})
         self.assertEqual(code_statistics.provenance_of('stx_zlib/src/inflate.cpp', rules), 'original')
-        self.assertEqual(code_statistics.provenance_of('src/core/threading/atomic_pool/atomic_pool.c', rules),
-                         'original')
         stxlib: code_statistics.ProvenanceRules = code_statistics.ProvenanceRules(
             code_statistics.KIND_STXLIB, {})
         self.assertEqual(code_statistics.provenance_of('tests/reference/atomic_pool.c', stxlib), 'original')

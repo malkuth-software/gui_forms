@@ -28,7 +28,7 @@ struct AtomicTask final {
 };
 
 // The owner's threadpool_atomic_fast algorithm: synchronous batches, reusable
-// task storage, native pthread workers. Small batches may run on the caller.
+// task storage, STXlib's AtomicPool workers. Small batches may run on the caller.
 // Methods belong to one owner thread; entries borrow contexts until run returns.
 class GUI_FORMS_THREADING_API AtomicThreadPool final {
 public:
@@ -45,7 +45,7 @@ private:
     std::unique_ptr<State> state_{};
 };
 
-// One asynchronous task on threadpool_atomic_fast. The named entry borrows
+// One asynchronous task on its own STXlib thread. The named entry borrows
 // context until join or destruction finishes. Declare the worker AFTER its
 // context owner. Only request_cancel is concurrent-safe; join/destruction
 // belong to the creating thread, never to the worker itself.

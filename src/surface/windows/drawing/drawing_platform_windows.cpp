@@ -1,4 +1,7 @@
-#include "drawing_platform.hpp"
+// The Windows half of the C ABI's drawing platform (src/abi/drawing_platform.hpp):
+// HDC leases over GDI DIB sections. Kept in the surface, since Win32 types
+// stay in src/surface/windows/ (tools/check_platform_headers.py).
+#include "../../../abi/drawing_platform.hpp"
 
 #ifndef NOMINMAX
 #define NOMINMAX

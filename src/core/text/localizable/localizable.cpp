@@ -2,27 +2,17 @@
 
 #include "gui_forms_notes.hpp"
 
+#include <stxlib/images.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/text_view.hpp>
+#include <stxlib/types.hpp>
+
 #include <algorithm>
 #include <cstring>
+#include <new>
 #include <optional>
 #include <string_view>
 #include <vector>
-
-#if defined(__APPLE__)
-#include <mach-o/dyld.h>
-#include <mach-o/getsect.h>
-#include <mach-o/loader.h>
-#elif defined(_WIN32)
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-// After windows.h; declares K32EnumProcessModules (exported by kernel32).
-#include <psapi.h>
-#else
-#include <elf.h>
-#include <link.h>
-#endif
 
 namespace gui_forms {
 namespace {
@@ -148,43 +138,43 @@ void collect_notes(std::span<const std::byte> bytes, std::size_t alignment, bool
     }
 }
 
-#if defined(_WIN32)
-// Collects the tables in one loaded module's .gfloc section (COFF groups
-// .gfloc$m into .gfloc). The module stays loaded while the caller holds it.
-void collect_module(HMODULE module, std::uint32_t type, std::vector<std::vector<std::byte>>& out) {
-    const std::byte* base = reinterpret_cast<const std::byte*>(module);
-    const IMAGE_DOS_HEADER* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
-    const IMAGE_NT_HEADERS* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + (*dos).e_lfanew);
-    const IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(nt);
-    for (WORD index = 0; index < (*nt).FileHeader.NumberOfSections; ++index, ++section) {
-        if (std::memcmp((*section).Name, ".gfloc", 6U) != 0 || ((*section).Name[6] != 0 && (*section).Name[6] != '$')) {
-            continue;
-        }
-        collect_notes({base + (*section).VirtualAddress, (*section).Misc.VirtualSize}, 4U, false, type, out);
-    }
-}
-#endif
-
-#if !defined(__APPLE__) && !defined(_WIN32)
-// What dl_iterate_phdr's callback collects into.
-struct ImageSearch final {
-    std::uint32_t type{};
-    std::vector<std::vector<std::byte>>* out{};
+// Where the tables are, in each image format's terms (STXlib's image
+// regions, stxlib/images.hpp, which replace the dyld, PE and
+// dl_iterate_phdr walks this file made itself): Mach-O __DATA,__gui_forms_loc;
+// COFF .gfloc (grouped from .gfloc$m); ELF PT_NOTE segments, which hold
+// other programs' notes too.
+constexpr stxlib::ImageRegionQuery note_regions{
+    .mach_o_segment = stxlib::TextView("__DATA"),
+    .mach_o_section = stxlib::TextView("__gui_forms_loc"),
+    .pe_section = stxlib::TextView(".gfloc"),
 };
 
-int collect_image(dl_phdr_info* info, std::size_t, void* data) {
-    const ImageSearch& search = *static_cast<const ImageSearch*>(data);
-    for (ElfW(Half) index = 0; index < (*info).dlpi_phnum; ++index) {
-        const ElfW(Phdr)& header = (*info).dlpi_phdr[index];
-        if (header.p_type != PT_NOTE) continue;
-        const std::byte* start = reinterpret_cast<const std::byte*>((*info).dlpi_addr + header.p_vaddr);
-        const std::size_t alignment = header.p_align == 8U ? 8U : 4U;
-        collect_notes({start, static_cast<std::size_t>(header.p_memsz)}, alignment, true, search.type,
-                      *search.out);
+// What the region visitor collects into. `exhausted` is set when a copy
+// could not be allocated; the visit then stops and the caller throws.
+struct NoteSearch final {
+    std::uint32_t type{};
+    std::vector<std::vector<std::byte>>* out{};
+    bool exhausted{false};
+};
+
+// STXlib's region visitor: copies the region's tables of the search's type.
+// A section of our own holds only GUI.Forms notes; a note segment may hold
+// foreign ones, which are skipped. No exception leaves it (STXlib calls it
+// while the host's image list is held).
+bool collect_region(const stxlib::ImageRegion& region, void* context) noexcept {
+    NoteSearch& search = *static_cast<NoteSearch*>(context);
+    const std::span<const std::byte> bytes(reinterpret_cast<const std::byte*>(region.bytes.data()),
+                                           static_cast<std::size_t>(region.bytes.count()));
+    const bool others_allowed = region.form == stxlib::ImageRegionForm::note_segment;
+    const std::size_t alignment = region.alignment == 8U ? 8U : 4U;
+    try {
+        collect_notes(bytes, alignment, others_allowed, search.type, *search.out);
+    } catch (const std::bad_alloc&) {
+        search.exhausted = true;
+        return false;
     }
-    return 0;
+    return true;
 }
-#endif
 
 } // namespace
 
@@ -193,49 +183,31 @@ bool parse_gui_forms_notes(std::span<const std::byte> section, std::uint32_t typ
     return parse_notes(section, 4U, false, type, out);
 }
 
+// On Windows a non-null `within` reads only the module holding it, as the
+// PE walk this replaced did; elsewhere every image is read, as dyld and
+// dl_iterate_phdr gave. A host STXlib cannot walk (unsupported) or a failed
+// walk yields what was found before it.
 std::vector<std::vector<std::byte>> gui_forms_note_descriptions(std::uint32_t type, const void* within) {
     std::vector<std::vector<std::byte>> out;
-#if defined(__APPLE__)
-    static_cast<void>(within);
-    const std::uint32_t count = _dyld_image_count();
-    for (std::uint32_t index = 0U; index < count; ++index) {
-        const mach_header* header = _dyld_get_image_header(index);
-        if (header == nullptr || (*header).magic != MH_MAGIC_64) continue;
-        unsigned long size = 0UL;
-        const std::uint8_t* data = getsectiondata(reinterpret_cast<const mach_header_64*>(header), "__DATA",
-                                                  "__gui_forms_loc", &size);
-        if (data == nullptr || size == 0UL) continue;
-        collect_notes({reinterpret_cast<const std::byte*>(data), static_cast<std::size_t>(size)}, 4U, false, type,
-                      out);
-    }
-#elif defined(_WIN32)
-    // The module holding `within`, or, without one, every module loaded in
-    // the process (as dyld and dl_iterate_phdr give on the other hosts).
-    if (within != nullptr) {
-        HMODULE module = nullptr;
-        const DWORD flags = GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
-        if (GetModuleHandleExW(flags, static_cast<LPCWSTR>(within), &module) == 0) return out;
-        collect_module(module, type, out);
-        return out;
-    }
-    // K32EnumProcessModules lives in kernel32, so no psapi import. The list
-    // is sized by a first call; modules loaded between the calls are missed,
-    // as a dyld image added during the walk would be.
-    const HANDLE process = GetCurrentProcess();
-    DWORD needed = 0U;
-    if (K32EnumProcessModules(process, nullptr, 0U, &needed) == 0) return out;
-    std::vector<HMODULE> modules(needed / sizeof(HMODULE) + 8U);
-    const DWORD capacity = static_cast<DWORD>(modules.size() * sizeof(HMODULE));
-    if (K32EnumProcessModules(process, modules.data(), capacity, &needed) == 0) return out;
-    const std::size_t listed = std::min<std::size_t>(modules.size(), needed / sizeof(HMODULE));
-    for (std::size_t index = 0U; index < listed; ++index) {
-        collect_module(modules[index], type, out);
-    }
+    NoteSearch search{type, &out, false};
+#if defined(_WIN32)
+    const bool only_containing = within != nullptr;
 #else
+    const bool only_containing = false;
     static_cast<void>(within);
-    ImageSearch search{type, &out};
-    dl_iterate_phdr(collect_image, &search);
 #endif
+    // A failed walk's status is not reported: what was found before it is
+    // the answer.
+    if (only_containing) {
+        const stxlib::uptr address = reinterpret_cast<stxlib::uptr>(within);
+        const stxlib::OperationStatus visited =
+            stxlib::visit_image_regions_containing(address, note_regions, collect_region, &search);
+        static_cast<void>(visited);
+    } else {
+        const stxlib::OperationStatus visited = stxlib::visit_image_regions(note_regions, collect_region, &search);
+        static_cast<void>(visited);
+    }
+    if (search.exhausted) throw std::bad_alloc();
     return out;
 }
 

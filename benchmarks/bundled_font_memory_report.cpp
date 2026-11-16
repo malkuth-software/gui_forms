@@ -10,11 +10,11 @@
 //         one per process, fallbacks read when text first needs them.
 // The text each window draws decides which fallbacks a shared set reads.
 
-#include "skia_raster.hpp"
+#include "../src/render/skia/skia_raster.hpp"
 #if defined(_WIN32)
-#include "../../surface/windows/fonts/sealed_pages_windows.hpp"
+#include "../src/surface/windows/fonts/sealed_pages_windows.hpp"
 #else
-#include "../../surface/posix/fonts/sealed_pages_posix.hpp"
+#include "../src/surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #if defined(__APPLE__)

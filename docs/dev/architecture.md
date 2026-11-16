@@ -80,10 +80,12 @@ build inspect symbols, imports and sources:
 - `cmake/check_drawing_boundaries.cmake`: no renderer or host dependency in
   the drawing libraries.
 
-One Apple-framework file lives outside `src/surface/macos/`:
-`src/render/skia/executor/core_text_font_bytes.cpp`, inside the private
-renderer, recovers a named face's bytes for the drawing C API so the shared
-text engine can load it. Nothing it does crosses the portable contract.
+One Apple-framework file is compiled into the private renderer:
+`src/surface/macos/fonts/core_text_font_bytes.cpp` recovers a named face's
+bytes for the drawing C API so the shared text engine can load it. It lives
+under `src/surface/macos/`, as every file that includes a platform header does
+(`tools/check_platform_headers.py`). Nothing it does crosses the portable
+contract.
 
 ## Extension objects
 

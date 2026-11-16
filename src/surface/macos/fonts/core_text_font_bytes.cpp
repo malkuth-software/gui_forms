@@ -1,4 +1,7 @@
-#include "core_text_font_bytes.hpp"
+// Kept in the surface, since CoreText and CoreFoundation types stay in
+// src/surface/macos/ (tools/check_platform_headers.py); the declaration is the
+// renderer's (src/render/skia/executor/core_text_font_bytes.hpp).
+#include "../../../render/skia/executor/core_text_font_bytes.hpp"
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreText/CoreText.h>

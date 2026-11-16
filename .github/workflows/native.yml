@@ -133,6 +133,10 @@ jobs:
           # (engine_math.hpp; manifests/host_trig_allowance.json only shrinks).
           python3 -B -m unittest discover -s tools -p test_host_trig_check.py
           python3 -B tools/host_trig_check.py check
+          # Platform headers only under src/surface/<platform>/; the rest reaches the
+          # system through STXlib (manifests/platform_header_allowance.json, empty, only shrinks).
+          python3 -B -m unittest discover -s tools -p test_check_platform_headers.py
+          python3 -B tools/check_platform_headers.py check
           # Theme variants stage B: the colour relocation instrument.
           python3 -B -m unittest discover -s tools -p test_relocate_colours.py
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py
