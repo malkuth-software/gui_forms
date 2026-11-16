@@ -340,10 +340,12 @@ ProgressBar::RequestedEffect ProgressBar::requested_effect() const noexcept {
         const ThemeEngine::PartPlan plan = effective_theme().engine().plan(*this, part);
         theme_effect = plan.resolution.effect_declared;
         theme_name = plan.resolution.effect;
-        if (plan.resolution.effect_primary && plan.resolution.effect_secondary) {
+        const EffectColourDeclaration* const primary = plan.resolution.effect_primary.value();
+        const EffectColourDeclaration* const secondary = plan.resolution.effect_secondary.value();
+        if (primary != nullptr && secondary != nullptr) {
             const ControlVisualContext context = part_visual_context(*this, part.states);
-            requested.colours.primary = effect_colour(*plan.resolution.effect_primary, context);
-            requested.colours.secondary = effect_colour(*plan.resolution.effect_secondary, context);
+            requested.colours.primary = effect_colour(*primary, context);
+            requested.colours.secondary = effect_colour(*secondary, context);
             requested.themed_colours = true;
         }
     }

@@ -495,21 +495,21 @@ void surface_rules() {
     chain.steps[1].kind = BackdropStepKind::tint;
     chain.steps[1].colour = Color::rgba(255, 255, 255, 128);
     chain.length = 2U;
-    backdrop_rule.backdrop = chain;
+    backdrop_rule.backdrop.set(chain);
     ThemeRuleSheet sheet{};
     sheet.rules.push_back(rule("any", CascadeLevel::theme_sheet, RuleSelector{}, bulge(0.4)));
     sheet.rules.push_back(backdrop_rule);
     // A backdrop on a control rule, and an invalid chain (two blurs, one out
     // of range), are dropped.
     ThemeRule on_control = rule("control", CascadeLevel::theme_sheet, by_type(), bulge(0.6));
-    on_control.backdrop = chain;
+    on_control.backdrop.set(chain);
     sheet.rules.push_back(on_control);
     BackdropDeclaration invalid = chain;
     invalid.steps[1].kind = BackdropStepKind::blur;
     invalid.steps[1].amount = 40.0;
     require(!backdrop_declaration_valid(invalid), "two blurs, one over 32, are no chain");
     ThemeRule invalid_rule = rule("invalid", CascadeLevel::theme_sheet, window, bulge(0.2));
-    invalid_rule.backdrop = invalid;
+    invalid_rule.backdrop.set(invalid);
     sheet.rules.push_back(invalid_rule);
     const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
     require(has_diagnostic(rules, RuleDiagnosticKind::backdrop_invalid, "control", "backdrop"),

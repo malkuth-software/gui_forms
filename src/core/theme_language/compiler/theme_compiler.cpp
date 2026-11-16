@@ -632,7 +632,7 @@ private:
     // lowered sets it.
     std::optional<ColourRoleSide> bare_side_{};
     // The backdrop the rule being lowered declares, or none.
-    std::optional<BackdropDeclaration> backdrop_{};
+    stxlib::Optional<BackdropDeclaration> backdrop_{};
     // The band the rule being lowered declares, or none.
     stxlib::Optional<BandDeclaration> band_{};
     // The palette slots the rule being lowered read, one bit a slot.
@@ -2770,7 +2770,7 @@ bool CompilePass::lower_backdrop(const SyntaxNode& node) {
         if (!read_backdrop_step(index, *kind, chain.steps[chain.length])) return false;
         chain.length = chain.length + 1U;
     }
-    backdrop_ = chain;
+    backdrop_.set(chain);
     return true;
 }
 
@@ -3426,7 +3426,7 @@ bool CompilePass::apply_loop(const DeclaredLoop& loop, ThemeRule& lowered) {
         edge.offset = 1.0;
         if (!ends) frames.push_back(edge);
     }
-    const AmbientEffect& ambient = *motion_.animations.ambient;
+    const AmbientEffect& ambient = *motion_.animations.ambient.value();
     const MotionLoweringOutcome built =
         loop_program(frames, loop.timing, ambient.period, loop.token, motion_.program, motion_.problem);
     if (built != MotionLoweringOutcome::lowered) {
@@ -3785,7 +3785,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     // A borrowed selection alone declares nothing of the rule's own.
     const std::size_t owned = emitted.borrowed ? selections : 0U;
     if (lowered.declarations.size() == owned && lowered.transitions.empty() && lowered.materials.empty() &&
-        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop && lowered.band.absent()) {
+        lowered.recipe_fields.empty() && lowered.ambient.absent() && lowered.backdrop.absent() && lowered.band.absent()) {
         return true;
     }
     std::size_t bytes = lowered_record_bytes + lowered.label.size();
@@ -3793,7 +3793,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     for (const MaterialDeclaration& declaration : lowered.materials) bytes += material_bytes(declaration);
     for (const PropertyTransition& transition : lowered.transitions) bytes += transition_bytes(transition);
     bytes += lowered.recipe_fields.size() * lowered_record_bytes;
-    if (lowered.backdrop) bytes += lowered_record_bytes;
+    if (lowered.backdrop.present()) bytes += lowered_record_bytes;
     if (lowered.band.present()) bytes += lowered_record_bytes;
     for (const ScopedCondition& condition : lowered.scoped_conditions) {
         bytes += lowered_record_bytes + condition.name.size();

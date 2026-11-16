@@ -1189,12 +1189,12 @@ bool add_loops(const KeyframesDefinition& definition, const AnimationSettings& s
     ambient.period = std::chrono::round<FrameInterval>(std::chrono::duration<double>(settings.duration));
     ambient.frames_per_second = settings.frame_rate;
     ambient.pose = std::chrono::round<FrameInterval>(std::chrono::duration<double>(settings.pose));
-    if (animations.ambient && !(*animations.ambient == ambient)) {
+    if (animations.ambient.present() && !(*animations.ambient.value() == ambient)) {
         fail_at(problem, DiagnosticCode::value_form_not_admitted, token,
                 "loops of one rule with different durations, frame rates or rest poses");
         return false;
     }
-    animations.ambient = ambient;
+    animations.ambient.set(ambient);
     for (const KeyframeTrack& track : definition.tracks) {
         if (!track.parameter) {
             fail_at(problem, DiagnosticCode::value_form_not_admitted, token,
@@ -1216,9 +1216,9 @@ bool add_loops(const KeyframesDefinition& definition, const AnimationSettings& s
 // Whether `rule` declares nothing: no value, no scoped custom property
 // definition (P12), no backdrop and no band.
 bool rule_empty(const ThemeRule& rule) noexcept {
-    const bool empty = rule.declarations.empty() && rule.transitions.empty() && !rule.ambient.has_value() &&
+    const bool empty = rule.declarations.empty() && rule.transitions.empty() && rule.ambient.absent() &&
                        rule.materials.empty() && rule.recipe_fields.empty() && rule.scoped_definitions.empty() &&
-                       !rule.backdrop.has_value() && rule.band.absent();
+                       rule.backdrop.absent() && rule.band.absent();
     return empty;
 }
 

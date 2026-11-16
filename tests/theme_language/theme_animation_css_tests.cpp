@@ -25,6 +25,7 @@
 #include <iostream>
 #include <limits>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -390,7 +391,7 @@ void require_loop(std::string_view keyframes, std::string_view timing, std::span
     AmbientEffect ambient{};
     ambient.period = milliseconds(2000);
     ambient.frames_per_second = maximum_ambient_frames_per_second;
-    require(rule.ambient == ambient, "the loop's ambient effect: its period, 30 frames a second, at rest at 0: " + sheet);
+    require(rule.ambient == stxlib::Optional<AmbientEffect>::of(ambient), "the loop's ambient effect: its period, 30 frames a second, at rest at 0: " + sheet);
     const RuleDeclaration* const amplitude = declaration_of(rule, "amplitude");
     require(amplitude != nullptr && (*amplitude).kind == RuleValueKind::expression,
             "the amplitude is the loop's expression, replacing the rule's own value: " + sheet);
@@ -459,7 +460,7 @@ void test_loops() {
     expected.period = milliseconds(1500);
     expected.frames_per_second = 12.0;
     expected.pose = milliseconds(300);
-    require(named_rule.ambient == expected, "animation-frame-rate and animation-rest-pose set the ambient effect");
+    require(named_rule.ambient == stxlib::Optional<AmbientEffect>::of(expected), "animation-frame-rate and animation-rest-pose set the ambient effect");
 }
 
 // engine_motion_tests' ambient_rule(): amplitude = 0.125 + time_in_state / 2
@@ -477,7 +478,7 @@ ThemeRule written_ambient_rule() {
     effect.period = milliseconds(1000);
     effect.frames_per_second = 30.0;
     effect.pose = milliseconds(250);
-    rule.ambient = effect;
+    rule.ambient.set(effect);
     return rule;
 }
 

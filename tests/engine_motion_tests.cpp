@@ -283,7 +283,7 @@ void machines_are_rule_data() {
     AmbientEffect fast{};
     fast.period = milliseconds(1000);
     fast.frames_per_second = 31.0;
-    faults.ambient = fast;
+    faults.ambient.set(fast);
     faulty.rules.push_back(faults);
     ThemeRule loose{};
     loose.label = "loose";
@@ -297,7 +297,7 @@ void machines_are_rule_data() {
     loose.transitions.push_back(fade);
     AmbientEffect timeless{};
     timeless.frames_per_second = 30.0;
-    loose.ambient = timeless;
+    loose.ambient.set(timeless);
     faulty.rules.push_back(loose);
     ThemeRule fading{};
     fading.label = "fading";
@@ -842,7 +842,7 @@ ThemeRule ambient_rule(std::string stable_id, double frames_per_second) {
     effect.period = milliseconds(1000);
     effect.frames_per_second = frames_per_second;
     effect.pose = milliseconds(250);
-    rule.ambient = effect;
+    rule.ambient.set(effect);
     return rule;
 }
 

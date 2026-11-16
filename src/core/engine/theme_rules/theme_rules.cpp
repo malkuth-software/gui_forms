@@ -1718,11 +1718,11 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         if (!add_scoped(result.diagnostics_, index, rule, result, compiled)) continue;
         if (!add_reads(result.diagnostics_, index, rule, result, compiled)) continue;
         const bool declares = compiled.selects || !compiled.parameters.empty() || !compiled.transitions.empty() ||
-                              compiled.ambient.has_value() || compiled.blend.has_value() || compiled.font.has_value() ||
-                              compiled.effect.has_value() || compiled.effect_primary.has_value() ||
-                              compiled.effect_secondary.has_value() ||
+                              compiled.ambient.present() || compiled.blend.present() || compiled.font.present() ||
+                              compiled.effect.has_value() || compiled.effect_primary.present() ||
+                              compiled.effect_secondary.present() ||
                               !compiled.materials.empty() || !compiled.recipe_fields.empty() ||
-                              !compiled.scoped_definitions.empty() || compiled.backdrop.has_value() ||
+                              !compiled.scoped_definitions.empty() || compiled.backdrop.present() ||
                               compiled.band.present();
         // A rule of definitions no condition reads declares nothing the
         // cascade uses, and is dropped without a diagnostic.
@@ -1746,7 +1746,7 @@ constexpr std::array<std::string_view, 3> part_blend_names{"normal", "multiply",
 
 void CompiledThemeRules::add_blend(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                                    const RuleDeclaration& declaration, CompiledRule& compiled) {
-    if (compiled.blend) {
+    if (compiled.blend.present()) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::duplicate_declaration, index, rule, declaration.property));
         return;
     }
@@ -1756,7 +1756,7 @@ void CompiledThemeRules::add_blend(std::vector<RuleDiagnostic>& diagnostics, std
     }
     for (std::size_t position = 0U; position < part_blend_names.size(); ++position) {
         if (part_blend_names[position] != declaration.name) continue;
-        compiled.blend = static_cast<PartBlend>(static_cast<std::uint8_t>(position));
+        compiled.blend.set(static_cast<PartBlend>(static_cast<std::uint8_t>(position)));
         return;
     }
     diagnostics.push_back(diagnostic(RuleDiagnosticKind::blend_invalid, index, rule, declaration.property));
@@ -1766,8 +1766,8 @@ void CompiledThemeRules::add_effect_colour(std::vector<RuleDiagnostic>& diagnost
                                            const ThemeRule& rule, const RuleDeclaration& declaration,
                                            CompiledRule& compiled) {
     const bool primary = declaration.property == effect_primary_property;
-    std::optional<EffectColourDeclaration>& slot = primary ? compiled.effect_primary : compiled.effect_secondary;
-    if (slot) {
+    stxlib::Optional<EffectColourDeclaration>& slot = primary ? compiled.effect_primary : compiled.effect_secondary;
+    if (slot.present()) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::duplicate_declaration, index, rule, declaration.property));
         return;
     }
@@ -1779,7 +1779,7 @@ void CompiledThemeRules::add_effect_colour(std::vector<RuleDiagnostic>& diagnost
     EffectColourDeclaration colour{};
     colour.colour = declaration.colour;
     colour.origin = declaration.origin;
-    slot = colour;
+    slot.set(colour);
 }
 
 void CompiledThemeRules::add_effect(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
@@ -1806,7 +1806,7 @@ void CompiledThemeRules::add_effect(std::vector<RuleDiagnostic>& diagnostics, st
 
 void CompiledThemeRules::add_font(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                                   const RuleDeclaration& declaration, CompiledRule& compiled) {
-    if (compiled.font) {
+    if (compiled.font.present()) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::duplicate_declaration, index, rule, declaration.property));
         return;
     }
@@ -1817,7 +1817,7 @@ void CompiledThemeRules::add_font(std::vector<RuleDiagnostic>& diagnostics, std:
     FontDeclaration font{};
     if (declaration.name == font_inherit_name) {
         font.inherit = true;
-        compiled.font = font;
+        compiled.font.set(font);
         return;
     }
     const std::optional<TextRole> role = text_role_from_name(declaration.name);
@@ -1826,7 +1826,7 @@ void CompiledThemeRules::add_font(std::vector<RuleDiagnostic>& diagnostics, std:
         return;
     }
     font.role = *role;
-    compiled.font = font;
+    compiled.font.set(font);
 }
 
 // A field is checked alone, written into the default material: what it
@@ -2169,9 +2169,9 @@ bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept {
 
 void CompiledThemeRules::add_backdrop(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
                                       const ThemeRule& rule, CompiledRule& compiled) {
-    if (!rule.backdrop) return;
+    if (rule.backdrop.absent()) return;
     const bool on_surface = rule.selector.surface != SurfaceKind::none;
-    if (!on_surface || !backdrop_declaration_valid(*rule.backdrop)) {
+    if (!on_surface || !backdrop_declaration_valid(*rule.backdrop.value())) {
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::backdrop_invalid, index, rule, "backdrop"));
         return;
     }
@@ -2387,8 +2387,8 @@ void CompiledThemeRules::add_transitions(std::vector<RuleDiagnostic>& diagnostic
 
 void CompiledThemeRules::add_ambient(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
                                      const ThemeRule& rule, CompiledRule& compiled) {
-    if (!rule.ambient) return;
-    const AmbientEffect& ambient = *rule.ambient;
+    if (rule.ambient.absent()) return;
+    const AmbientEffect& ambient = *rule.ambient.value();
     const double rate = ambient.frames_per_second;
     // Refused at load (design language §9.4): no frame cap, or one above 30.
     if (!(rate > 0.0) || !(rate <= maximum_ambient_frames_per_second)) {
@@ -2401,7 +2401,7 @@ void CompiledThemeRules::add_ambient(std::vector<RuleDiagnostic>& diagnostics, s
         diagnostics.push_back(diagnostic(RuleDiagnosticKind::ambient_invalid, index, rule, "ambient"));
         return;
     }
-    compiled.ambient = ambient;
+    compiled.ambient.set(ambient);
 }
 
 CompiledThemeRules::CompiledThemeRules() : serial_(next_rules_serial()) {}
@@ -3093,8 +3093,8 @@ const BackdropDeclaration* CompiledThemeRules::resolve_backdrop(const PartFacts&
     RuleWalk walk(*this, facts, false, &winners);
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
-        if (!rule.backdrop || !matches(rule, facts)) continue;
-        winner = &*rule.backdrop;
+        if (rule.backdrop.absent() || !matches(rule, facts)) continue;
+        winner = rule.backdrop.value();
     }
     return winner;
 }
@@ -3173,18 +3173,18 @@ void CompiledThemeRules::resolve_transitions(const PartFacts& facts, const Scope
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         const bool presents =
-            !rule.transitions.empty() || rule.ambient || rule.blend || rule.font || rule.effect.has_value() ||
-            rule.effect_primary.has_value() || rule.effect_secondary.has_value();
+            !rule.transitions.empty() || rule.ambient.present() || rule.blend.present() || rule.font.present() ||
+            rule.effect.has_value() || rule.effect_primary.present() || rule.effect_secondary.present();
         if (!presents || !matches(rule, facts)) continue;
-        if (rule.ambient) result.ambient = &*rule.ambient;
-        if (rule.blend) result.blend = *rule.blend;
-        if (rule.font) result.font = *rule.font;
+        if (rule.ambient.present()) result.ambient = rule.ambient.value();
+        if (rule.blend.present()) result.blend = *rule.blend.value();
+        if (rule.font.present()) result.font = *rule.font.value();
         if (rule.effect) {
             result.effect = *rule.effect;
             result.effect_declared = true;
         }
-        if (rule.effect_primary) result.effect_primary = rule.effect_primary;
-        if (rule.effect_secondary) result.effect_secondary = rule.effect_secondary;
+        if (rule.effect_primary.present()) result.effect_primary = rule.effect_primary;
+        if (rule.effect_secondary.present()) result.effect_secondary = rule.effect_secondary;
         const bool same_primitive = primitive && rule.primitive == result.primitive;
         for (const CompiledTransition& transition : rule.transitions) {
             if (transition.property == PresentationProperty::opacity) {

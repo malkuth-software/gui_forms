@@ -1531,7 +1531,7 @@ struct GUI_FORMS_API ThemeRule final {
     std::vector<RuleDeclaration> declarations{};
     stxlib::Optional<EngineVersion> requires_engine{};
     std::vector<PropertyTransition> transitions{};
-    std::optional<AmbientEffect> ambient{};
+    stxlib::Optional<AmbientEffect> ambient{};
     std::vector<MaterialDeclaration> materials{};
     std::vector<RecipeDeclaration> recipe_fields{};
     // The windows the rule holds in (EC3); by default, all.
@@ -1550,7 +1550,7 @@ struct GUI_FORMS_API ThemeRule final {
     std::vector<std::string> reads{};
     std::uint32_t source_position{};
     // A surface rule's backdrop (`backdrop:`), or none.
-    std::optional<BackdropDeclaration> backdrop{};
+    stxlib::Optional<BackdropDeclaration> backdrop{};
     // A window rule's band (`band-*`), or none.
     stxlib::Optional<BandDeclaration> band{};
     // Where the rule was written. Not compared: two rules that cascade
@@ -1963,8 +1963,8 @@ public:
         // The part's effect colours (effect_primary_property,
         // effect_secondary_property): the last matching rule's of each, or
         // none.
-        std::optional<EffectColourDeclaration> effect_primary{};
-        std::optional<EffectColourDeclaration> effect_secondary{};
+        stxlib::Optional<EffectColourDeclaration> effect_primary{};
+        stxlib::Optional<EffectColourDeclaration> effect_secondary{};
         // The winning declaration of each material field (EC1), by the
         // field's position, or null where no matching rule sets it; they
         // belong to the compiled rules. `materials_authored` is whether any
@@ -2126,21 +2126,21 @@ private:
         const EnginePrimitive* primitive{};
         std::vector<CompiledDeclaration> parameters{};
         std::vector<CompiledTransition> transitions{};
-        std::optional<AmbientEffect> ambient{};
-        std::optional<PartBlend> blend{};
-        std::optional<FontDeclaration> font{};
+        stxlib::Optional<AmbientEffect> ambient{};
+        stxlib::Optional<PartBlend> blend{};
+        stxlib::Optional<FontDeclaration> font{};
         // The rule's effect name (effect_property); empty for `none`.
         std::optional<std::string> effect{};
         // The rule's effect colours.
-        std::optional<EffectColourDeclaration> effect_primary{};
-        std::optional<EffectColourDeclaration> effect_secondary{};
+        stxlib::Optional<EffectColourDeclaration> effect_primary{};
+        stxlib::Optional<EffectColourDeclaration> effect_secondary{};
         MediaCondition media{};
         // Checked material fields, at most one per field.
         std::vector<MaterialDeclaration> materials{};
         // Checked recipe fields, at most one per field.
         std::vector<RecipeDeclaration> recipe_fields{};
         // A surface rule's checked backdrop.
-        std::optional<BackdropDeclaration> backdrop{};
+        stxlib::Optional<BackdropDeclaration> backdrop{};
         // A window rule's checked band.
         stxlib::Optional<BandDeclaration> band{};
         // Scoped custom properties (P12), by position in scoped_names_.

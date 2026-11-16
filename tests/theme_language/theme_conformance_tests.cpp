@@ -439,14 +439,14 @@ std::string rule_text(std::size_t index, const ThemeRule& rule) {
     text += media_text(rule.media);
     for (const RuleDeclaration& declaration : rule.declarations) text += declaration_text(declaration);
     for (const PropertyTransition& transition : rule.transitions) text += transition_text(transition);
-    if (rule.ambient) {
-        const AmbientEffect& ambient = *rule.ambient;
+    if (rule.ambient.present()) {
+        const AmbientEffect& ambient = *rule.ambient.value();
         text += "  ambient period=" + duration_text(ambient.period) + " fps=" + number_text(ambient.frames_per_second) +
                 " pose=" + duration_text(ambient.pose) + "\n";
     }
     for (const MaterialDeclaration& declaration : rule.materials) text += material_text(declaration);
     for (const RecipeDeclaration& declaration : rule.recipe_fields) text += recipe_text(declaration);
-    if (rule.backdrop) text += backdrop_text(*rule.backdrop);
+    if (rule.backdrop.present()) text += backdrop_text(*rule.backdrop.value());
     for (const ScopedDefinition& definition : rule.scoped_definitions) {
         text += "  defines " + definition.name + " #" + std::to_string(definition.definition) + "\n";
     }
