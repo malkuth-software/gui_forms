@@ -273,6 +273,8 @@ Related types
 
       Counts a scheduled frame request.
 
+   .. cpp:function:: void record_internal_wake_refused() noexcept
+
    .. cpp:function:: void record_frame_poll(std::uint64_t deadlines_fired, std::uint64_t motion_clock_ticks, std::uint64_t ui_timer_ticks, std::uint64_t coalesced_requests) noexcept
 
       Accumulates deadlines, motion-clock frames, coalescing, and nonempty scheduler wakes.
@@ -539,6 +541,10 @@ Related types
       Frames of the window's motion clock (T2 plan, phase E3): at most one per frame poll, however many motion values move.
 
    .. cpp:member:: std::uint64_t frame_requests_coalesced
+
+   .. cpp:member:: std::uint64_t internal_wakes_refused
+
+      The window's own one-shot wakes (the hover wake, the band's flash or cycle, the tooltip and toast timing) refused because the window already held maximum_scheduled_frame_requests. Each fails soft and is retried at the requester's next event (A-gf-core-17-F3).
 
    .. cpp:member:: std::uint64_t wake_expectation_misses
 

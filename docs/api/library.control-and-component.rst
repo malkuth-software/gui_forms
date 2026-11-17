@@ -4188,6 +4188,10 @@ Functions, constants and aliases
 
    Cycles a second: one cycle is two luminance transitions, so 1.5 is three transitions a second. Value: ``1.5``.
 
+.. cpp:var:: constexpr double minimum_active_border_frequency
+
+   The slowest motion: one cycle a minute. A flash or cycle asked for below it stays steady (A-gf-core-16-F1): a half period of 0.5 / frequency seconds past what the frame clock's ticks hold converted out of range and woke at once, losing the limit above. Value: ``1.0 / 60.0``.
+
 .. cpp:var:: constexpr double minimum_high_contrast_active_border_width
 
    Value: ``2.0``.

@@ -2138,7 +2138,7 @@ Related types
 
    .. cpp:member:: double frequency
 
-      Cycles a second of a flash or a cycle, lowered to maximum_band_frequency; 0 holds the band lit. Finite, not negative. Default: ``{maximum_band_frequency}``.
+      Cycles a second of a flash or a cycle, lowered to maximum_band_frequency; 0, or anything below minimum_active_border_frequency, holds the band lit. Finite, not negative. Default: ``{maximum_band_frequency}``.
 
    .. cpp:member:: stxlib::Optional<WindowBandTexture> texture
 

@@ -2743,6 +2743,7 @@ using gui_forms::measure_available_size;
 using gui_forms::measure_paragraph;
 using gui_forms::merge_strips;
 using gui_forms::min_content_extent;
+using gui_forms::minimum_active_border_frequency;
 using gui_forms::minimum_app_font_family;
 using gui_forms::minimum_canvas_focus_width;
 using gui_forms::minimum_grid_spacing;
