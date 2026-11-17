@@ -13,7 +13,7 @@
 
 #include "gf_conformance_internal.h"
 
-#include <pthread.h>
+#include "gf_conformance_pthread.h"
 #include <stdatomic.h>
 #include <string.h>
 #include <unistd.h>

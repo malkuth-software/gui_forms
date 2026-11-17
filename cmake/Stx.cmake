@@ -160,6 +160,17 @@ else()
     if(NOT _gui_stx_build_type STREQUAL "")
         list(APPEND _gui_stx_settings CMAKE_C_FLAGS_${_gui_stx_build_type} CMAKE_CXX_FLAGS_${_gui_stx_build_type})
     endif()
+    # The MSVC target's C++ library and runtime choices
+    # (cmake/llvm22-windows-msvc.cmake), so that anything the package links
+    # links the same startup objects and exception runtime as this build.
+    if(GUI_FORMS_WINDOWS_MSVC_TARGET)
+        list(APPEND _gui_stx_settings GUI_FORMS_LIBCXX_PREFIX GUI_FORMS_MSVC_VCRUNTIME GUI_FORMS_MSVC_STARTUP
+            GUI_FORMS_MSVC_STARTUP_PREFIX GUI_FORMS_MSVC_EH_RUNTIME)
+        if(NOT GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES STREQUAL "")
+            string(REPLACE ";" "\;" _gui_stx_eh_libraries "${GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES}")
+            list(APPEND _gui_stx_arguments "-DGUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES=${_gui_stx_eh_libraries}")
+        endif()
+    endif()
     # The stamp names the toolchain file by its content, not its path: the
     # native and programs jobs spell the same file differently on Windows.
     set(_gui_stx_stamped_arguments ${_gui_stx_arguments})

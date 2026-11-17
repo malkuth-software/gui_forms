@@ -7,7 +7,7 @@
 
 #include "gf_conformance_internal.h"
 
-#include <pthread.h>
+#include "gf_conformance_pthread.h"
 #include <string.h>
 
 typedef struct capability_read {
