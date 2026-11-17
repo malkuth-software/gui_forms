@@ -1,0 +1,24 @@
+#pragma once
+
+#include <cstddef>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+class Window final {
+public:
+    // Given a literal that is not UTF-8 by a test (a member call through
+    // const std::string&): stays standard.
+    [[nodiscard]] bool set_title(const std::string& title);
+    // Given only well-formed literals: converts.
+    [[nodiscard]] std::size_t set_name(std::string_view name);
+
+private:
+    std::size_t length_{0U};
+};
+
+// Given a literal that is not UTF-8 with a second argument: stays standard.
+[[nodiscard]] std::size_t decode_at(std::string_view text, std::size_t offset);
+
+} // namespace gui_forms

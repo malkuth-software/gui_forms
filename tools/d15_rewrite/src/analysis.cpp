@@ -436,18 +436,28 @@ public:
 
     bool TraverseDecl(clang::Decl* declaration) {
         if (declaration == nullptr) return true;
+        bool evidence = false;
         if (!llvm::isa<clang::TranslationUnitDecl>(declaration)) {
             const clang::SourceLocation location = (*declaration).getLocation();
             if (location.isValid()) {
-                if (sources_.isInSystemHeader(location)) return true;
+                if (foreign_location(location)) return true;
                 const clang::SourceLocation file_location = sources_.getFileLoc(location);
                 std::string relative;
                 if (!relative_path(sources_.getFileID(file_location), relative)) return true;
-                if (!in_scope(relative)) return true;
-                harvest_.files_seen.insert(relative);
+                if (in_scope(relative)) {
+                    harvest_.files_seen.insert(relative);
+                } else if (in_evidence(relative)) {
+                    evidence = true;
+                } else {
+                    return true;
+                }
             }
         }
+        // Everything beneath an evidence declaration is read as evidence.
+        const bool outer_evidence = evidence_;
+        if (evidence) evidence_ = true;
         const bool result = clang::RecursiveASTVisitor<Analysis>::TraverseDecl(declaration);
+        evidence_ = outer_evidence;
         return result;
     }
 
@@ -495,6 +505,34 @@ private:
         if (!any_directory_contains(relative, options_.scope_directories)) return false;
         if (any_directory_contains(relative, options_.scope_exclusions)) return false;
         return true;
+    }
+
+    // Read only for evidence (V2 plan): outside the scope, in one of
+    // --evidence (default tests). Such code is not rewritten, so what it
+    // passes to a candidate parameter must compile unchanged against a
+    // TextView, or the parameter stays standard (README, "Evidence").
+    [[nodiscard]] bool in_evidence(const std::string& relative) const {
+        if (!plan_ || stage_ != Stage::v2_text_view) return false;
+        if (!any_directory_contains(relative, options_.evidence_directories)) return false;
+        if (any_directory_contains(relative, options_.scope_exclusions)) return false;
+        return true;
+    }
+
+    // Outside every first-party directory the tool reads: the standard
+    // library, a system header or a third-party file. A first-party header
+    // clang marks a system header is not foreign: CMake's precompiled-header
+    // prefix (`cmake_pch.hxx`) opens with `#pragma clang system_header`, and
+    // every header it includes inherits the mark, so the tests' shared
+    // prefix (tests/support/test_precompiled.hpp, which includes
+    // gui_forms.hpp) made every public header a system header in a test
+    // unit, and the plan never saw a test's call into one (the
+    // 2026-11-17 V2 run: rule E missed eleven test literals).
+    [[nodiscard]] bool foreign_location(const clang::SourceLocation location) {
+        if (!sources_.isInSystemHeader(location)) return false;
+        std::string relative;
+        if (!relative_path(sources_.getFileID(sources_.getFileLoc(location)), relative)) return true;
+        const bool result = !in_scope(relative) && !in_evidence(relative);
+        return result;
     }
 
     [[nodiscard]] bool in_seed(const std::string& relative) const {
@@ -979,7 +1017,8 @@ private:
                          const clang::QualType type, const clang::TypeLoc written, const clang::SourceLocation name,
                          const std::string& simple_name, const std::string& qualified,
                          const clang::FunctionDecl* function, const unsigned index) {
-        if (key.empty() || declaration.isImplicit()) return;
+        // Evidence declarations are never rewritten, so they are no entities.
+        if (key.empty() || declaration.isImplicit() || evidence_) return;
         const FamilyMatch match = match_family(type, kind, stage_, context_);
         if (match.family == Family::none) return;
         const Span name_span = token_span(name);
@@ -1328,21 +1367,22 @@ private:
     [[nodiscard]] bool first_party_function(const clang::FunctionDecl& function) {
         if (is_standard_callee(&function)) return false;
         const clang::SourceLocation location = function.getLocation();
-        if (location.isInvalid() || sources_.isInSystemHeader(location)) return false;
+        if (location.isInvalid() || foreign_location(location)) return false;
         std::string relative;
         if (!relative_path(sources_.getFileID(sources_.getFileLoc(location)), relative)) return false;
         const bool result = in_scope(relative);
         return result;
     }
 
-    // The standard library's function or a member of its class.
-    [[nodiscard]] bool is_standard_callee(const clang::FunctionDecl* callee) const {
+    // The standard library's function or a member of its class (or a
+    // foreign one: foreign_location).
+    [[nodiscard]] bool is_standard_callee(const clang::FunctionDecl* callee) {
         if (callee == nullptr) return false;
         if ((*callee).isInStdNamespace()) return true;
         const clang::CXXMethodDecl* const method = llvm::dyn_cast<clang::CXXMethodDecl>(callee);
         if (method != nullptr && (*(*method).getParent()).isInStdNamespace()) return true;
         const clang::SourceLocation location = (*callee).getLocation();
-        const bool result = location.isValid() && sources_.isInSystemHeader(location);
+        const bool result = location.isValid() && foreign_location(location);
         return result;
     }
 
@@ -1503,6 +1543,8 @@ private:
 
     // `flow` marks a value flow (EdgeFact): one a consumer surface may cut.
     void edge(const std::string& first, const std::string& second, const bool strict, const bool flow) {
+        // Evidence ties nothing: it only refuses (plan_text_flow).
+        if (evidence_) return;
         EdgeFact fact;
         fact.first = first;
         fact.second = second;
@@ -2157,6 +2199,20 @@ private:
             refuse(destination.key, where, "receives a literal that is not well-formed UTF-8: it takes arbitrary bytes");
             return;
         }
+        // Evidence is not rewritten: only a well-formed literal or a
+        // TextView compiles unchanged against a TextView (an empty value may
+        // be a default-constructed std::string_view, so it refuses too).
+        if (evidence_) {
+            if (!destination.candidate) return;
+            const SourceShape evidence_shape = classify(&source);
+            const bool unchanged = evidence_shape.kind == SourceKind::literal ||
+                evidence_shape.kind == SourceKind::text_view || is_literal_text(&source);
+            if (!unchanged) {
+                refuse(destination.key, where, "receives standard text from code outside the rewrite scope, "
+                                               "which is not rewritten");
+            }
+            return;
+        }
         std::string reason;
         if (bridge_site(source, reason)) return;
         if (!from.empty()) {
@@ -2249,6 +2305,7 @@ private:
     std::map<unsigned, std::string> paths_;
     std::string group_;      // the site whose edits are being recorded (GroupScope)
     std::map<std::string, std::string> refusals_;   // V2 plan: entity key -> why it stays standard
+    bool evidence_{false};                          // V2 plan: inside an evidence declaration (in_evidence)
 };
 
 // -- declarations ----------------------------------------------------------------

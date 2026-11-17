@@ -1,0 +1,4 @@
+// CMake's precompiled-header prefix (cmake_pch.hxx) in miniature: it marks
+// itself a system header, and every header it includes inherits the mark.
+#pragma clang system_header
+#include "gui_forms/window.hpp"

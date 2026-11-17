@@ -1,0 +1,23 @@
+#include <gui_forms/window.hpp>
+
+#include <cstddef>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+bool Window::set_title(const std::string& title) {
+    length_ = title.size();
+    return length_ != 0U;
+}
+
+std::size_t Window::set_name(const std::string_view name) {
+    length_ = name.size();
+    return length_;
+}
+
+std::size_t decode_at(const std::string_view text, const std::size_t offset) {
+    return offset < text.size() ? offset : text.size();
+}
+
+} // namespace gui_forms
