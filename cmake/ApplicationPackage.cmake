@@ -90,11 +90,19 @@ if(APPLE)
         "-framework AppKit;-framework QuartzCore;-framework IOSurface;-framework CoreGraphics;-framework CoreText;-framework UniformTypeIdentifiers;-framework CoreFoundation")
     set(GUI_FORMS_PACKAGE_WHOLE_ARCHIVE
         "LINKER:-force_load,\${_gui_forms_application_prefix}/${CMAKE_INSTALL_LIBDIR}/libgui_forms_application.a")
-elseif(WIN32)
+elseif(WIN32 AND MINGW)
     set(GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES
         "user32;gdi32;imm32;ole32;oleaut32;oleacc;uiautomationcore;uuid;comdlg32;shell32;advapi32;winpthread")
     set(GUI_FORMS_PACKAGE_WHOLE_ARCHIVE
         "SHELL:-Wl,--whole-archive \${_gui_forms_application_prefix}/${CMAKE_INSTALL_LIBDIR}/libgui_forms_application.a -Wl,--no-whole-archive")
+elseif(WIN32)
+    # The MSVC target (x86_64-pc-windows-msvc, own runtime included): no
+    # winpthread, which is MinGW's, and lld-link's own whole-archive option,
+    # since it ignores the GNU spelling.
+    set(GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES
+        "user32;gdi32;imm32;ole32;oleaut32;oleacc;uiautomationcore;uuid;comdlg32;shell32;advapi32")
+    set(GUI_FORMS_PACKAGE_WHOLE_ARCHIVE
+        "LINKER:/WHOLEARCHIVE:\${_gui_forms_application_prefix}/${CMAKE_INSTALL_LIBDIR}/libgui_forms_application.a")
 else()
     set(GUI_FORMS_PACKAGE_FIND_DEPENDENCIES [=[
 find_dependency(X11)
