@@ -10,8 +10,8 @@
 #     (the source is untouched, and main's signature does not matter: every
 #     host's calling convention lets a main that takes no arguments be
 #     called with argc and argv);
-#   - a runner, gui_forms_test_runner_<n>, links the renamed objects of its
-#     programs with the test runtime, and its main calls the program named
+#   - a runner, gui_forms_test_runner_<group>_<n>, links the renamed objects
+#     of its programs with their libraries, and its main calls the program named
 #     by its first argument, with that argument removed (argv[0] stays the
 #     runner's path, beside the old programs in the same directory);
 #   - the program itself becomes a launcher of a few lines of C that runs
@@ -19,17 +19,19 @@
 #     every add_test, test property, label and working directory is as it
 #     was, and so is every target name.
 #
-# A program joins a runner when it links only the test runtime
-# (cmake/TestRuntime.cmake has made that its whole link), has one C++
-# source, keeps its helpers in an anonymous namespace and defines no
+# Programs that link the same libraries (the same LINK_LIBRARIES, most of
+# them the test runtime alone, cmake/TestRuntime.cmake) share runners, about
+# 20 a runner; a runner links exactly that list. A program joins one when
+# at least three programs share its links, it has one C++ source, keeps its helpers in an anonymous namespace and defines no
 # C-linkage name (its external names could otherwise collide with another
 # program's), does not replace
 # operator new or delete (a replacement would apply to every program in the
 # runner), and is not read or run by path elsewhere in the build
 # (keep_separate below). Every other program links as before.
 #
-# Programs are put into runners by the first hex digit of their name's MD5,
-# so adding or removing a program relinks one runner and moves no other.
+# Within its link group a program's runner follows its name's MD5, so adding
+# or removing a program relinks one runner and moves no other (unless the
+# group gains or loses a runner).
 # GUI_FORMS_TEST_RUNNERS=OFF links every program on its own.
 
 option(GUI_FORMS_TEST_RUNNERS "Link the test programs into shared runner programs (cmake/TestRunners.cmake)" ON)
@@ -56,16 +58,6 @@ function(_gui_forms_test_runner_eligible program result reason)
     get_target_property(links ${program} LINK_LIBRARIES)
     if(NOT links)
         set(${reason} "no links" PARENT_SCOPE)
-        return()
-    endif()
-    foreach(library IN LISTS links)
-        if(NOT library STREQUAL "gui_forms_test_runtime" AND NOT library MATCHES "^\\$<COMPILE_ONLY:")
-            set(${reason} "links beyond the test runtime" PARENT_SCOPE)
-            return()
-        endif()
-    endforeach()
-    if(NOT "gui_forms_test_runtime" IN_LIST links)
-        set(${reason} "links beyond the test runtime" PARENT_SCOPE)
         return()
     endif()
     # The directory's own link options (add_link_options) reach every target,
@@ -166,35 +158,67 @@ function(gui_forms_merge_test_programs)
         string(APPEND reason_summary " ${reason_text_${reason_key}}: ${reason_count_${reason_key}};")
     endforeach()
     message(STATUS "Test programs kept on their own by reason:${reason_summary}")
-    list(LENGTH merged merged_count)
-    if(merged_count EQUAL 0)
+    list(LENGTH merged eligible_count)
+    if(eligible_count EQUAL 0)
         message(STATUS "Test programs: none can share a runner (cmake/TestRunners.cmake)")
         return()
     endif()
 
     set(work "${CMAKE_CURRENT_BINARY_DIR}/test_runners")
     file(MAKE_DIRECTORY "${work}")
-    set(buckets 0 1 2 3 4 5 6 7 8 9 a b c d e f)
-    foreach(bucket IN LISTS buckets)
-        set(bucket_${bucket} "")
-    endforeach()
+    # Programs that link the same libraries share runners: a group's
+    # runners link exactly its programs' link list. A group of fewer than
+    # three gains nothing (a launcher and a runner for one or two programs),
+    # so its programs stay on their own.
+    set(groups "")
     foreach(program IN LISTS merged)
-        string(MD5 digest "${program}")
-        string(SUBSTRING "${digest}" 0 1 bucket)
-        list(APPEND bucket_${bucket} ${program})
+        get_target_property(links ${program} LINK_LIBRARIES)
+        string(MD5 link_digest "${links}")
+        string(SUBSTRING "${link_digest}" 0 6 group)
+        if(NOT group IN_LIST groups)
+            list(APPEND groups ${group})
+            set(group_${group} "")
+            set(group_links_${group} "${links}")
+        endif()
+        list(APPEND group_${group} ${program})
+    endforeach()
+    set(runners "")
+    set(merged_count 0)
+    foreach(group IN LISTS groups)
+        list(LENGTH group_${group} group_size)
+        if(group_size LESS 3)
+            math(EXPR kept "${kept} + ${group_size}")
+            continue()
+        endif()
+        math(EXPR merged_count "${merged_count} + ${group_size}")
+        # About 20 programs a runner, placed by their name's MD5 (adding a
+        # program relinks one runner unless the group gains a runner).
+        math(EXPR group_runners "(${group_size} + 19) / 20")
+        math(EXPR last_runner "${group_runners} - 1")
+        foreach(index RANGE ${last_runner})
+            set(runner gui_forms_test_runner_${group}_${index})
+            list(APPEND runners ${runner})
+            set(members_${runner} "")
+            set(runner_links_${runner} "${group_links_${group}}")
+        endforeach()
+        foreach(program IN LISTS group_${group})
+            string(MD5 name_digest "${program}")
+            string(SUBSTRING "${name_digest}" 0 4 name_prefix)
+            math(EXPR index "0x${name_prefix} % ${group_runners}")
+            list(APPEND members_gui_forms_test_runner_${group}_${index} ${program})
+        endforeach()
     endforeach()
 
     set(runner_count 0)
-    foreach(bucket IN LISTS buckets)
-        if(NOT bucket_${bucket})
+    foreach(runner IN LISTS runners)
+        if(NOT members_${runner})
             continue()
         endif()
         math(EXPR runner_count "${runner_count} + 1")
-        set(runner gui_forms_test_runner_${bucket})
         set(declarations "")
         set(entries "")
         set(objects "")
-        foreach(program IN LISTS bucket_${bucket})
+        foreach(program IN LISTS members_${runner})
             get_target_property(sources ${program} SOURCES)
             # The program's code, compiled as it was.
             add_library(${program}_objects OBJECT ${sources})
@@ -275,7 +299,7 @@ int main(int argument_count, char** arguments) {
         file(CONFIGURE OUTPUT "${registry}" CONTENT "${registry_text}" @ONLY)
         add_executable(${runner} "${registry}" ${objects})
         set_source_files_properties(${objects} PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
-        target_link_libraries(${runner} PRIVATE gui_forms_test_runtime)
+        set_property(TARGET ${runner} PROPERTY LINK_LIBRARIES "${runner_links_${runner}}")
     endforeach()
     message(STATUS "Test programs: ${merged_count} in ${runner_count} shared runners, ${kept} on their own "
                    "(cmake/TestRunners.cmake)")
