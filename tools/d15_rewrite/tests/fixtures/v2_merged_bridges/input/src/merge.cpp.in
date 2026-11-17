@@ -1,0 +1,7 @@
+#include <string>
+#include <string_view>
+
+std::string copy(std::string_view id) {
+    const std::string moved(id);
+    return moved;
+}

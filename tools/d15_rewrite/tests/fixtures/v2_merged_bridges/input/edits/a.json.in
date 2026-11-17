@@ -1,0 +1,47 @@
+{
+ "schema": "gui.forms.d15-rewrite-edits/v1",
+ "files": [
+  {
+   "path": "src/merge.cpp",
+   "edits": [
+    {
+     "offset": 110,
+     "length": 0,
+     "text": "gui_forms::platform::standard_text(",
+     "role": 1,
+     "span": 2,
+     "group": "use:a"
+    },
+    {
+     "offset": 112,
+     "length": 0,
+     "text": ")",
+     "role": 2,
+     "span": 2,
+     "group": "use:a"
+    },
+    {
+     "offset": 126,
+     "length": 0,
+     "text": "first(",
+     "role": 1,
+     "span": 5,
+     "group": "wrap:first"
+    },
+    {
+     "offset": 131,
+     "length": 0,
+     "text": ")",
+     "role": 2,
+     "span": 5,
+     "group": "wrap:first"
+    }
+   ]
+  }
+ ],
+ "includes": [],
+ "residue": [],
+ "seen": [
+  "src/merge.cpp"
+ ]
+}

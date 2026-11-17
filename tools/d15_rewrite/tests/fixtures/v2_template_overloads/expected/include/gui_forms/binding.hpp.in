@@ -1,0 +1,26 @@
+#pragma once
+
+#include <stxlib/text_view.hpp>
+#include <string_view>
+
+namespace gui_forms {
+
+template <typename T>
+struct Value final {
+    T value{};
+};
+
+// Overloads a template calls with its own standard view: they stay
+// standard, so the call keeps matching every instantiation.
+void bind_value(int& target, std::string_view property, Value<bool>& source);
+void bind_value(int& target, std::string_view property, Value<int>& source);
+
+template <int Kind, typename T>
+void bind_value(int& target, std::string_view property, Value<T>& source) {
+    bind_value(target, property, source);
+}
+
+// Called by name only: converts.
+void name_value(stxlib::TextView property);
+
+} // namespace gui_forms

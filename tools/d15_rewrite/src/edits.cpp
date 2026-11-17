@@ -132,20 +132,68 @@ void lines_starting_with(const std::string& text, llvm::StringRef prefix, std::v
     return result;
 }
 
+// Byte offsets of the start of every include line beginning with
+// `prefix` in the file's leading include block, outside any conditional:
+// the lines before the first line that is neither blank, a comment nor a
+// preprocessor directive, at #if depth zero. An include further down (a
+// generated table included inside an array, stock_specimens.cpp's
+// stock_specimen_table.inc) or inside #if is no place for a new one (the
+// 2026-11-17 V2 run put the bridge inside that array).
+void leading_include_lines(const std::string& text, llvm::StringRef prefix, std::vector<std::size_t>& starts) {
+    starts.clear();
+    std::size_t line_start = 0U;
+    unsigned depth = 0U;
+    bool in_comment = false;
+    while (line_start < text.size()) {
+        const std::size_t line_end = line_end_after(text, line_start);
+        const llvm::StringRef line = llvm::StringRef(text).slice(line_start, line_end).trim();
+        if (in_comment) {
+            if (line.contains("*/")) in_comment = false;
+        } else if (line.empty() || line.starts_with("//")) {
+            // Blank or a line comment: still the leading block.
+        } else if (line.starts_with("/*")) {
+            if (!line.contains("*/")) in_comment = true;
+        } else if (line.starts_with("#")) {
+            const llvm::StringRef directive = line.drop_front(1U).ltrim();
+            // An include guard (`#ifndef NAME` then `#define NAME`) holds the
+            // whole file: it opens no conditional here.
+            bool guard = false;
+            if (directive.starts_with("ifndef")) {
+                const llvm::StringRef name = directive.drop_front(6U).trim();
+                const std::size_t next_end = line_end_after(text, line_end);
+                const llvm::StringRef next = llvm::StringRef(text).slice(line_end, next_end).trim();
+                const std::string define = "#define " + name.str();
+                guard = !name.empty() && next.starts_with(define);
+            }
+            if (directive.starts_with("if")) {
+                if (!guard) ++depth;
+            } else if (directive.starts_with("endif")) {
+                if (depth > 0U) --depth;
+            } else if (depth == 0U && llvm::StringRef(text).substr(line_start).starts_with(prefix)) {
+                starts.push_back(line_start);
+            }
+        } else {
+            break;
+        }
+        line_start = line_end;
+    }
+}
+
 // Where an angle-bracket stxlib include goes: after the last stxlib
 // include, else before the first standard-library include, else after
-// the last include, else after #pragma once, else at the top.
+// the last include, else after #pragma once, else at the top (includes
+// counted only in the leading block, leading_include_lines).
 [[nodiscard]] std::size_t angle_include_position(const std::string& text) {
     std::vector<std::size_t> owned;
-    lines_starting_with(text, "#include <stxlib/", owned);
+    leading_include_lines(text, "#include <stxlib/", owned);
     if (!owned.empty()) return line_end_after(text, owned.back());
     std::vector<std::size_t> system;
-    lines_starting_with(text, "#include <", system);
+    leading_include_lines(text, "#include <", system);
     for (const std::size_t start : system) {
         if (standard_header_line(text, start)) return start;
     }
     std::vector<std::size_t> any;
-    lines_starting_with(text, "#include", any);
+    leading_include_lines(text, "#include", any);
     if (!any.empty()) return line_end_after(text, any.back());
     std::vector<std::size_t> pragma;
     lines_starting_with(text, "#pragma once", pragma);
@@ -154,13 +202,14 @@ void lines_starting_with(const std::string& text, llvm::StringRef prefix, std::v
 }
 
 // Where the quoted bridge include goes: after the last quoted include,
-// else after the last include, else where an angle include would go.
+// else after the last include, else where an angle include would go
+// (leading block only).
 [[nodiscard]] std::size_t quoted_include_position(const std::string& text) {
     std::vector<std::size_t> quoted;
-    lines_starting_with(text, "#include \"", quoted);
+    leading_include_lines(text, "#include \"", quoted);
     if (!quoted.empty()) return line_end_after(text, quoted.back());
     std::vector<std::size_t> any;
-    lines_starting_with(text, "#include", any);
+    leading_include_lines(text, "#include", any);
     if (!any.empty()) return line_end_after(text, any.back());
     const std::size_t result = angle_include_position(text);
     return result;
@@ -352,6 +401,48 @@ void EditPlan::resolve(const std::string& source_root, std::vector<Residue>& res
             merged.push_back(edit);
         }
 
+        // One range wrapped twice by different openers whose closers merged
+        // (two rules bridging one name: `standard_text(standard_text_copy(id)`
+        // with one `)`, the 2026-11-17 V2 run). The bridge's copy and view of
+        // the same text merge into the copy, which converts to a view where
+        // one is taken; any other such pair is a conflict. Wrappers with a
+        // closer each nest as written.
+        const std::string copy_opener = "gui_forms::platform::standard_text_copy(";
+        const std::string view_opener = "gui_forms::platform::standard_text(";
+        std::vector<bool> dropped(merged.size(), false);
+        std::vector<std::string> doubled;
+        for (std::size_t first = 0U; first < merged.size(); ++first) {
+            if (merged[first].role != EditRole::open || dropped[first]) continue;
+            for (std::size_t second = first + 1U; second < merged.size(); ++second) {
+                if (merged[second].offset != merged[first].offset) break;
+                if (merged[second].role != EditRole::open || merged[second].span != merged[first].span) continue;
+                if (dropped[second]) continue;
+                std::size_t closers = 0U;
+                const std::uint64_t closing = merged[first].offset + merged[first].span;
+                for (const Edit& edit : merged) {
+                    if (edit.role == EditRole::close && edit.offset == closing && edit.span == merged[first].span) {
+                        ++closers;
+                    }
+                }
+                if (closers >= 2U) continue;
+                const bool first_copy = merged[first].text == copy_opener && merged[second].text == view_opener;
+                const bool second_copy = merged[second].text == copy_opener && merged[first].text == view_opener;
+                if (first_copy || second_copy) {
+                    dropped[first_copy ? second : first] = true;
+                    groups.join(merged[first].group, merged[second].group);
+                    continue;
+                }
+                doubled.push_back(merged[first].group);
+                doubled.push_back(merged[second].group);
+            }
+        }
+        std::vector<Edit> single;
+        single.reserve(merged.size());
+        for (std::size_t index = 0U; index < merged.size(); ++index) {
+            if (!dropped[index]) single.push_back(merged[index]);
+        }
+        merged = single;
+
         // Conflicts: a replacement overlapping another (or two insertions
         // by replacement at one offset with different text), an insertion
         // strictly inside a replacement, or two wrapped or replaced ranges
@@ -390,6 +481,7 @@ void EditPlan::resolve(const std::string& source_root, std::vector<Residue>& res
         for (std::size_t index = 0U; index < merged.size(); ++index) {
             if (conflicting[index]) refused.insert(groups.root(merged[index].group));
         }
+        for (const std::string& group : doubled) refused.insert(groups.root(group));
         if (refused.empty()) {
             edits = merged;
             continue;

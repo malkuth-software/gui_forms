@@ -1,0 +1,16 @@
+#include <gui_forms/command.hpp>
+
+#include <stxlib/text_view.hpp>
+#include <string_view>
+
+namespace gui_forms {
+
+bool execute(const stxlib::TextView source_id) {
+    return source_id.empty();
+}
+
+bool execute_titled(const stxlib::TextView title) {
+    return execute() && title.empty();
+}
+
+} // namespace gui_forms

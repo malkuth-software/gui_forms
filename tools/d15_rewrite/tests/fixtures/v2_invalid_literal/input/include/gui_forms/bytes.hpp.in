@@ -1,0 +1,16 @@
+#pragma once
+
+#include <cstddef>
+#include <string_view>
+
+namespace gui_forms {
+
+// Given a literal that is not UTF-8 by a test: takes arbitrary bytes, so
+// it stays standard (a TextView cannot hold them).
+[[nodiscard]] std::size_t count_bytes(std::string_view bytes);
+// Compares with such a literal: stays standard.
+[[nodiscard]] bool is_marker(std::string_view text);
+// Given only well-formed literals: converts.
+[[nodiscard]] std::size_t name_length(std::string_view name);
+
+} // namespace gui_forms

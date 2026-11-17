@@ -1,0 +1,34 @@
+#include <gui_forms/table.hpp>
+
+#if defined(GUI_FORMS_TABLE_TRACE)
+#include "trace.hpp"
+#endif
+
+#include <cstddef>
+#include <string_view>
+
+namespace gui_forms {
+
+namespace {
+
+struct Row final {
+    std::string_view name;
+};
+
+// A generated table included inside the array: no place for the bridge.
+const Row rows[] = {
+#include "rows.inc"
+};
+
+} // namespace
+
+std::size_t row_index(const std::string_view name) {
+    std::size_t index = 0U;
+    for (const Row& row : rows) {
+        if (row.name == name) return index;
+        ++index;
+    }
+    return index;
+}
+
+} // namespace gui_forms

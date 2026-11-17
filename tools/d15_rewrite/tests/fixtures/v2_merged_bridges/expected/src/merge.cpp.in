@@ -1,0 +1,7 @@
+#include <string>
+#include <string_view>
+
+std::string copy(std::string_view id) {
+    const std::string moved(gui_forms::platform::standard_text_copy(id));
+    return moved;
+}

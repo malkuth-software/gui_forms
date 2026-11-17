@@ -1,0 +1,44 @@
+#pragma once
+
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+// A handler bound by its address, as Delegate<const std::string&>::bind
+// binds an event's member handler.
+class Delegate final {
+public:
+    template <typename Owner, void (Owner::*Method)(const std::string&)>
+    [[nodiscard]] static Delegate bind(Owner& owner) noexcept {
+        Delegate result;
+        result.owner_ = &owner;
+        return result;
+    }
+
+private:
+    void* owner_{nullptr};
+};
+
+class SearchBox final {
+public:
+    void attach();
+    // Bound by address: stays standard.
+    void editor_committed(const std::string& text);
+    void editor_cancelled(const std::string& text);
+    // Called by name: converts.
+    void editor_changed(std::string_view text);
+
+    // A call operator: the event calling the object fixes its signature.
+    struct ChangeCallback final {
+        SearchBox* owner;
+        void operator()(const std::string& text) const;
+    };
+
+private:
+    std::string last_;
+};
+
+using CancelHandler = void (SearchBox::*)(const std::string&);
+
+} // namespace gui_forms

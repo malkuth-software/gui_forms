@@ -1,0 +1,9 @@
+#pragma once
+
+#include <string>
+
+namespace gui_forms {
+
+void store(const std::string& text);
+
+} // namespace gui_forms

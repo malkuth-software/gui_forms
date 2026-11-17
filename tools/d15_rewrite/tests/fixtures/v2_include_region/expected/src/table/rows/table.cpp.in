@@ -1,0 +1,36 @@
+#include <gui_forms/table.hpp>
+
+#if defined(GUI_FORMS_TABLE_TRACE)
+#include "trace.hpp"
+#endif
+
+#include <stxlib/text_view.hpp>
+#include <cstddef>
+#include <string_view>
+#include "../../platform/stxlib_bridge.hpp"
+
+namespace gui_forms {
+
+namespace {
+
+struct Row final {
+    std::string_view name;
+};
+
+// A generated table included inside the array: no place for the bridge.
+const Row rows[] = {
+#include "rows.inc"
+};
+
+} // namespace
+
+std::size_t row_index(const stxlib::TextView name) {
+    std::size_t index = 0U;
+    for (const Row& row : rows) {
+        if (row.name == gui_forms::platform::standard_text(name)) return index;
+        ++index;
+    }
+    return index;
+}
+
+} // namespace gui_forms

@@ -255,20 +255,75 @@ struct Destination final {
     return expression;
 }
 
-// A string literal, as written or behind the implicit construction that
-// makes it a std::string_view or std::string argument (`name == "gauge"`).
-[[nodiscard]] bool is_literal_text(const clang::Expr* expression) {
+// The string literal an expression is, as written or behind the implicit
+// construction that makes it a std::string_view or std::string argument
+// (`name == "gauge"`), or null.
+[[nodiscard]] const clang::StringLiteral* literal_text(const clang::Expr* expression) {
     for (unsigned guard = 0U; guard < 16U && expression != nullptr; ++guard) {
         const clang::Expr* const plain = (*(*expression).IgnoreImplicit()).IgnoreParens();
-        if (llvm::isa<clang::StringLiteral>(plain)) return true;
+        const clang::StringLiteral* const literal = llvm::dyn_cast<clang::StringLiteral>(plain);
+        if (literal != nullptr) return literal;
         const clang::CXXConstructExpr* const construction = llvm::dyn_cast<clang::CXXConstructExpr>(plain);
         if (construction == nullptr || llvm::isa<clang::CXXTemporaryObjectExpr>(construction) ||
             (*construction).getNumArgs() == 0U) {
-            return false;
+            return nullptr;
         }
         expression = (*construction).getArg(0U);
     }
-    return false;
+    return nullptr;
+}
+
+[[nodiscard]] bool is_literal_text(const clang::Expr* expression) {
+    const bool result = literal_text(expression) != nullptr;
+    return result;
+}
+
+// True when `bytes` are well-formed UTF-8 (Unicode table 3-7: no overlong
+// forms, no surrogates, nothing above U+10FFFF), as stxlib::TextView's
+// consteval literal constructor requires.
+[[nodiscard]] bool utf8_well_formed(const llvm::StringRef bytes) {
+    const std::size_t count = bytes.size();
+    std::size_t index = 0U;
+    while (index < count) {
+        const unsigned char lead = static_cast<unsigned char>(bytes[index]);
+        if (lead < 0x80U) {
+            ++index;
+            continue;
+        }
+        unsigned length = 0U;
+        unsigned char low = 0x80U;
+        unsigned char high = 0xBFU;
+        if (lead >= 0xC2U && lead <= 0xDFU) {
+            length = 2U;
+        } else if (lead >= 0xE0U && lead <= 0xEFU) {
+            length = 3U;
+            if (lead == 0xE0U) low = 0xA0U;
+            if (lead == 0xEDU) high = 0x9FU;
+        } else if (lead >= 0xF0U && lead <= 0xF4U) {
+            length = 4U;
+            if (lead == 0xF0U) low = 0x90U;
+            if (lead == 0xF4U) high = 0x8FU;
+        } else {
+            return false;
+        }
+        if (count - index < length) return false;
+        const unsigned char second = static_cast<unsigned char>(bytes[index + 1U]);
+        if (second < low || second > high) return false;
+        for (unsigned position = 2U; position < length; ++position) {
+            const unsigned char continuation = static_cast<unsigned char>(bytes[index + position]);
+            if (continuation < 0x80U || continuation > 0xBFU) return false;
+        }
+        index += length;
+    }
+    return true;
+}
+
+// A literal a stxlib::TextView cannot be made from: not a narrow (or
+// UTF-8) literal, or not well-formed UTF-8 ("\xc3\x28").
+[[nodiscard]] bool literal_refuses_text_view(const clang::StringLiteral& literal) {
+    if (!literal.isOrdinary() && !literal.isUTF8()) return true;
+    const bool result = !utf8_well_formed(literal.getBytes());
+    return result;
 }
 
 // The offset of a `const` keyword (and the blanks after it) that directly
@@ -1350,6 +1405,14 @@ private:
             }
             if ((*construction).getNumArgs() == 1U) {
                 const clang::Expr* const argument = (*(*construction).getArg(0U)).IgnoreImplicit();
+                // V2: a std::string made from text is standard text in its
+                // own right; text_use bridges its argument, so a flow must
+                // not bridge it a second time (the 2026-11-17 V2 run's
+                // `standard_text(standard_text_copy(id)`).
+                if (stage_ == Stage::v2_text_view && is_standard_string((*construction).getType())) {
+                    shape.kind = SourceKind::standard;
+                    return shape;
+                }
                 // A sequence or owner of another family (a vector made a
                 // span): classify what it is made from.
                 if (expression_family((*argument).getType(), stage_) != Family::none ||
@@ -1609,10 +1672,14 @@ private:
         const bool empty_text = shape.kind == SourceKind::empty ||
             (shape.kind == SourceKind::explicit_temporary && shape.inner == nullptr);
         const std::string written = stage_ == Stage::v2_text_view && empty_text ? text_of(span) : std::string();
-        const bool spelled_empty = !written.empty() && written[0] != '{';
+        // A default argument's range can start at its `=` (`= {}`): the
+        // spelling starts after it, and a bare `{}` already makes the empty
+        // TextView (the 2026-11-17 V2 run's `TextView text stxlib::TextView()`).
+        const std::size_t spelled_start = written.find_first_not_of("= \t\r\n");
+        const bool spelled_empty = spelled_start != std::string::npos && written[spelled_start] != '{';
         if (spelled_empty) {
             if (!editable(span, where)) return;
-            replace_span(span, "stxlib::TextView()");
+            replace_bytes(span, span.begin + static_cast<unsigned>(spelled_start), span.end, "stxlib::TextView()");
             need(span.path, include_text_view);
             return;
         }
@@ -2085,6 +2152,11 @@ private:
             refuse(destination.key, where, "receives a template-dependent value");
             return;
         }
+        const clang::StringLiteral* const literal = literal_text(&source);
+        if (destination.candidate && literal != nullptr && literal_refuses_text_view(*literal)) {
+            refuse(destination.key, where, "receives a literal that is not well-formed UTF-8: it takes arbitrary bytes");
+            return;
+        }
         std::string reason;
         if (bridge_site(source, reason)) return;
         if (!from.empty()) {
@@ -2104,6 +2176,48 @@ private:
         if (needs_nothing) return;
         refuse(destination.key, where, "receives standard text " + reason);
     }
+
+    // Refuses every candidate parameter of `function`.
+    void refuse_parameters(const clang::FunctionDecl& function, const clang::SourceLocation where,
+                           const std::string& reason) {
+        for (const clang::ParmVarDecl* parameter : function.parameters()) {
+            const FamilyMatch match = match_family((*parameter).getType(), EntityKind::parameter, stage_, context_);
+            if (match.family == Family::none) continue;
+            refuse(parameter_key(parameter), where, reason);
+        }
+    }
+
+    // A call a template leaves unresolved (`bind_form_value(target,
+    // property, source, direction)` with a dependent `source`) picks its
+    // overload per instantiation, which the rewrite never sees: a
+    // candidate parameter of any overload that receives anything but a
+    // literal or a TextView there stays standard, so the overloads keep
+    // matching the template's arguments.
+    void unresolved_text_call(const clang::CallExpr& call) {
+        const clang::OverloadExpr* const overloads =
+            llvm::dyn_cast<clang::OverloadExpr>((*call.getCallee()).IgnoreImplicit());
+        if (overloads == nullptr) return;
+        for (unsigned index = 0U; index < call.getNumArgs(); ++index) {
+            const clang::Expr* const argument = call.getArg(index);
+            const clang::StringLiteral* const literal = literal_text(argument);
+            if (literal != nullptr && !literal_refuses_text_view(*literal)) continue;
+            if (!(*argument).isTypeDependent() && is_text_view((*argument).getType())) continue;
+            for (const clang::NamedDecl* candidate : (*overloads).decls()) {
+                const clang::NamedDecl* const target = (*candidate).getUnderlyingDecl();
+                const clang::FunctionDecl* function = llvm::dyn_cast<clang::FunctionDecl>(target);
+                const clang::FunctionTemplateDecl* const pattern = llvm::dyn_cast<clang::FunctionTemplateDecl>(target);
+                if (pattern != nullptr) function = (*pattern).getTemplatedDecl();
+                if (function == nullptr || index >= (*function).getNumParams()) continue;
+                const clang::ParmVarDecl* const parameter = (*function).getParamDecl(index);
+                const FamilyMatch match = match_family((*parameter).getType(), EntityKind::parameter, stage_, context_);
+                if (match.family == Family::none) continue;
+                refuse(parameter_key(parameter), (*argument).getBeginLoc(),
+                       "receives a value from a call a template leaves unresolved");
+            }
+        }
+    }
+
+    void function_reference(const clang::DeclRefExpr& reference, const clang::FunctionDecl& function);
 
     // -- uses -------------------------------------------------------------------
 
@@ -2161,6 +2275,12 @@ bool Analysis::VisitFunctionDecl(clang::FunctionDecl* function) {
     }
     if (plan_) {
         const clang::CXXMethodDecl* const method = llvm::dyn_cast<clang::CXXMethodDecl>(function);
+        if (method != nullptr && stage_ == Stage::v2_text_view &&
+            (*method).getOverloadedOperator() == clang::OO_Call) {
+            refuse_parameters(*method, (*method).getLocation(),
+                              "a call operator's parameter: the code that calls the object (an event, a "
+                              "template) fixes its signature");
+        }
         if (method != nullptr) {
             for (const clang::CXXMethodDecl* overridden : (*method).overridden_methods()) {
                 edge(return_key(method), return_key(overridden), true, false);
@@ -2309,6 +2429,7 @@ bool Analysis::VisitCallExpr(clang::CallExpr* call) {
                        "converted text passed to an unresolved callee");
             }
         }
+        if (plan_ && stage_ == Stage::v2_text_view) unresolved_text_call(*call);
         return true;
     }
     if (is_standard_entity(callee, "move") || is_standard_entity(callee, "forward") ||
@@ -2328,6 +2449,13 @@ bool Analysis::VisitCallExpr(clang::CallExpr* call) {
             const Denoted target = denoted(left);
             Destination destination = destination_for((*left).getType(), target.found ? target.key : std::string(),
                                                       EntityKind::field);
+            // V2: a standard operator='s parameter, after deduction, is the
+            // text it takes (variant's and optional's converting operator=
+            // take the std::string itself), so it picks the bridge.
+            if (stage_ == Stage::v2_text_view && (*(*method).getParent()).isInStdNamespace() &&
+                (*method).getNumParams() == 1U) {
+                destination = destination_for_parameter(*method, 0U);
+            }
             if ((*(*method).getParent()).isInStdNamespace() || owned_family((*left).getType()) != Family::none) {
                 flow(right, destination, left);
             }
@@ -2388,7 +2516,10 @@ bool Analysis::VisitInitListExpr(clang::InitListExpr* list) {
 }
 
 bool Analysis::VisitDeclRefExpr(clang::DeclRefExpr* reference) {
-    if (reference == nullptr || !llvm::isa<clang::VarDecl>((*reference).getDecl())) return true;
+    if (reference == nullptr) return true;
+    const clang::FunctionDecl* const function = llvm::dyn_cast<clang::FunctionDecl>((*reference).getDecl());
+    if (function != nullptr && plan_ && stage_ == Stage::v2_text_view) function_reference(*reference, *function);
+    if (!llvm::isa<clang::VarDecl>((*reference).getDecl())) return true;
     const Denoted entity = denoted(reference);
     if (!entity.found) return true;
     if (!plan_ && !is_converted(entity.key)) return true;
@@ -2586,6 +2717,31 @@ void Analysis::use_fallback(const clang::Expr& top, const Denoted& entity, const
 }
 
 // -- V2 uses -------------------------------------------------------------------
+
+// A function named other than as a callee: its address is taken (a
+// member bound as an event handler, `Delegate<const std::string&>::bind<T,
+// &T::handler>`, `on(event, *this, &T::handler)`, a WeakMemberCallback).
+// The code holding the pointer fixes the function's type, so its candidate
+// parameters stay standard (the 2026-11-17 V2 run's event slots).
+void Analysis::function_reference(const clang::DeclRefExpr& reference, const clang::FunctionDecl& function) {
+    const clang::Expr* node = &reference;
+    for (unsigned guard = 0U; guard < 8U; ++guard) {
+        bool found = false;
+        const clang::DynTypedNode parent_node = parent_of(clang::DynTypedNode::create(*node), found);
+        const clang::Expr* const parent = found ? parent_node.get<clang::Expr>() : nullptr;
+        if (parent == nullptr) break;
+        if (llvm::isa<clang::ImplicitCastExpr>(parent) || llvm::isa<clang::ParenExpr>(parent)) {
+            node = parent;
+            continue;
+        }
+        const clang::CallExpr* const call = llvm::dyn_cast<clang::CallExpr>(parent);
+        if (call != nullptr && (*call).getCallee() == node) return;
+        break;
+    }
+    refuse_parameters(function, reference.getBeginLoc(),
+                      "the function's address is taken (a callback or event handler): its signature must keep "
+                      "matching");
+}
 //
 // One use of a converted text parameter (only parameters convert in V2).
 // Every rule is decided the same way in both phases: the plan refuses the
@@ -2707,7 +2863,9 @@ void Analysis::text_use(const clang::Expr& expression, const Denoted& entity) {
             text_cast(key, expression, *cast);
             return;
         }
-        text_bridge(key, expression, false, "made into standard text");
+        // `std::string moved(id)`: the bridge's copy initialises it whole.
+        const bool copied = written_arguments == 1U && is_standard_string((*construction).getType());
+        text_bridge(key, expression, copied, "made into standard text");
         return;
     }
     const clang::CXXFunctionalCastExpr* const functional = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(parent);
@@ -2866,7 +3024,13 @@ void Analysis::text_operator(const std::string& key, const clang::Expr& node, co
 // header the two are tied (both convert or neither); elsewhere the
 // rewrite looks at whether the other side converted.
 void Analysis::text_equality(const std::string& key, const clang::Expr& spelled, const clang::Expr& other) {
-    if (is_literal_text(&other)) return;
+    const clang::StringLiteral* const literal = literal_text(&other);
+    if (literal != nullptr) {
+        if (literal_refuses_text_view(*literal)) {
+            refuse(key, spelled.getBeginLoc(), "compared with a literal that is not well-formed UTF-8");
+        }
+        return;
+    }
     const clang::Expr* const other_plain = strip_value(&other, stage_);
     if (other_plain != nullptr && is_text_view((*other_plain).getType())) return;
     const std::string other_key = text_candidate(&other);
