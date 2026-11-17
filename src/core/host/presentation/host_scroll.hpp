@@ -11,6 +11,8 @@
 
 #include "presentation_geometry.hpp"
 
+// presentation_types.hpp names RuntimeId without including control.hpp.
+#include "gui_forms/control/control/control.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
 
 #include <cstdint>
