@@ -144,7 +144,11 @@ jobs:
       # Configure only: the checker runs the front end (-fsyntax-only) over the
       # tree's compile commands and builds just the generated headers.
       # The form-compiler test is off: its header is generated at build time,
-      # so building it would compile and link the whole library first.
+      # so building it would compile and link the whole library first. The
+      # tests' shared precompiled headers are off too: the gate builds no .pch,
+      # and a unit whose command reads a missing one fails in the front end
+      # with no diagnostics (the check efficiency audit, 1c). The checker now
+      # fails the gate on such a unit instead of dropping it.
       - name: Configure the tree
         if: steps.scope.outputs.scope != 'none'
         run: |
@@ -155,7 +159,8 @@ jobs:
             -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
             -DGUI_FORMS_ENABLE_WINDOWS_HOST=OFF -DGUI_FORMS_ENABLE_MACOS_HOST=OFF \
             -DGUI_FORMS_ENABLE_LINUX_HOST=OFF -DGUI_FORMS_ENABLE_SKIA=OFF \
-            -DGUI_FORMS_BUILD_GENERATED_FORM_TESTS=OFF
+            -DGUI_FORMS_BUILD_GENERATED_FORM_TESTS=OFF \
+            -DGUI_FORMS_TEST_PRECOMPILED_HEADER=OFF
       - uses: actions/cache/save@v4
         if: always() && steps.scope.outputs.scope != 'none' && steps.stx-package.outputs.cache-hit != 'true' && hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''
         with:
