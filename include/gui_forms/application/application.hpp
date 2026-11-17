@@ -177,8 +177,8 @@ struct GUI_FORMS_API ApplicationWindowOptions final {
     // first_frame_show.hpp). After it the window is shown with whatever
     // frame exists. Zero shows at once; longer than
     // maximum_first_frame_show_ceiling is clamped to it. Honoured by the
-    // macOS host; the Windows and Linux hosts show at once until they
-    // report presented frames to the gate.
+    // macOS and Linux X11 hosts; the Windows host shows at once until it
+    // reports presented frames to the gate.
     std::chrono::milliseconds first_frame_show_ceiling{gui_forms::first_frame_show_ceiling};
     // Runs after this model has an attached host and services. Other windows
     // may not be ready yet. Keep a weak handle for native window requests.

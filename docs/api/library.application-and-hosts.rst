@@ -2813,6 +2813,10 @@ Related types
 
       Default: ``{true}``.
 
+   .. cpp:member:: std::chrono::milliseconds first_frame_show_ceiling
+
+      How long a newly shown window stays unmapped waiting for its first frame, painted into the raster and copied on the first Expose (ApplicationWindowOptions::first_frame_show_ceiling; FirstFrameShowGate). Zero maps at once. A popup is never gated. Default: ``{gui_forms::first_frame_show_ceiling}``.
+
    .. cpp:member:: bool hide_on_close
 
    .. cpp:member:: bool minimizable

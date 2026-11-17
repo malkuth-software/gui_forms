@@ -188,8 +188,10 @@ the first show waits: a window shown before is shown again at once.
 
 `ApplicationWindowOptions::first_frame_show_ceiling` sets the ceiling per
 window (zero shows at once; at most 1000 ms). Popups and Splash windows are
-never gated. The macOS host carries the gate out; the Windows and Linux
-hosts still show at once.
+never gated. The macOS host and the Linux X11 host carry the gate out (the
+X11 window stays unmapped while its first frame is painted into the
+raster, and the first Expose copies it); the Windows host still shows at
+once.
 
 ## Capabilities
 
