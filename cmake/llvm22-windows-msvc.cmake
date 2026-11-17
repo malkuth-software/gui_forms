@@ -13,8 +13,9 @@
 #     library at the link, so a program imports no runtime DLL but the UCRT.
 # The C++ library is LLVM's libc++ 22, static (GUI_FORMS_LIBCXX_PREFIX,
 # below), or temporarily Microsoft's STL (msvcp140.dll with DLL, libcpmt with
-# STATIC) where no libc++ for this target is given. Stage C replaces the startup objects and vcruntime with
-# an own minimal C runtime over UCRT.
+# STATIC) where no libc++ for this target is given. GUI_FORMS_MSVC_RUNTIME=OWN
+# (cmake/llvm22-windows-msvc-own.cmake, the no-MinGW switch) replaces all of
+# it, headers included, with STXlib's own pieces over the UCRT DLL.
 #
 # The Visual C++ tools and the Windows SDK are located, never hard-coded:
 # the Visual Studio installation by vswhere (the newest one carrying the x64
@@ -68,6 +69,27 @@ if(_gf_llvm_mt)
     set(CMAKE_MT "${_gf_llvm_mt}" CACHE FILEPATH "LLVM manifest tool")
 endif()
 set(GUI_FORMS_LLVM_LIB "${_gf_llvm_lib}" CACHE FILEPATH "LLVM import library writer")
+
+# --- the runtime family --------------------------------------------------------
+# GUI_FORMS_MSVC_RUNTIME:
+#   MICROSOFT (default; the rest of this file): the Visual C++ tools and the
+#     Windows SDK, with the startup objects and the exception runtime chosen
+#     below (Microsoft's or STXlib's);
+#   OWN: STXlib's C library and Windows API headers, startup objects, C++
+#     runtime and import libraries, and nothing from the Visual C++ tools,
+#     the Windows SDK or MinGW (cmake/llvm22-windows-msvc-own.cmake).
+# The settings each mode reads reach try_compile's projects too, which read
+# this file again.
+set(GUI_FORMS_MSVC_RUNTIME "MICROSOFT" CACHE STRING
+    "MICROSOFT (Visual C++ tools and Windows SDK) or OWN (STXlib's runtime and headers only)")
+list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES GUI_FORMS_MSVC_RUNTIME GUI_FORMS_OWN_RUNTIME_SOURCE
+     GUI_FORMS_OWN_RUNTIME_PREFIX GUI_FORMS_LIBCXX_PREFIX GUI_FORMS_LINK_MAP)
+if(GUI_FORMS_MSVC_RUNTIME STREQUAL "OWN")
+    include("${CMAKE_CURRENT_LIST_DIR}/llvm22-windows-msvc-own.cmake")
+    return()
+elseif(NOT GUI_FORMS_MSVC_RUNTIME STREQUAL "MICROSOFT")
+    message(FATAL_ERROR "GUI_FORMS_MSVC_RUNTIME is MICROSOFT or OWN, not ${GUI_FORMS_MSVC_RUNTIME}")
+endif()
 
 # --- the Visual C++ tools ----------------------------------------------------
 if(DEFINED ENV{GUI_FORMS_MSVC_TOOLS_DIR})

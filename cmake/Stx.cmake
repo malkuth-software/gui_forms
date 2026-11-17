@@ -165,7 +165,8 @@ else()
     # links the same startup objects and exception runtime as this build.
     if(GUI_FORMS_WINDOWS_MSVC_TARGET)
         list(APPEND _gui_stx_settings GUI_FORMS_LIBCXX_PREFIX GUI_FORMS_MSVC_VCRUNTIME GUI_FORMS_MSVC_STARTUP
-            GUI_FORMS_MSVC_STARTUP_PREFIX GUI_FORMS_MSVC_EH_RUNTIME)
+            GUI_FORMS_MSVC_STARTUP_PREFIX GUI_FORMS_MSVC_EH_RUNTIME
+            GUI_FORMS_MSVC_RUNTIME GUI_FORMS_OWN_RUNTIME_SOURCE GUI_FORMS_OWN_RUNTIME_PREFIX GUI_FORMS_LINK_MAP)
         if(NOT GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES STREQUAL "")
             string(REPLACE ";" "\;" _gui_stx_eh_libraries "${GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES}")
             list(APPEND _gui_stx_arguments "-DGUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES=${_gui_stx_eh_libraries}")
