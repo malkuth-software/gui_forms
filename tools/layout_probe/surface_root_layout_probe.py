@@ -30,6 +30,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -100,25 +101,72 @@ def probe_arguments(arguments, source, output):
         if argument in ('-c', '-MD', '-MMD') or argument.endswith(('.cpp', '.cc', '.cxx', '.mm')):
             continue
         result.append(argument)
-    result += ['-Wno-error', '-Wno-invalid-offsetof', '-S', '-o', output, source]
+    # -fno-lto: an LTO build's -S would write LLVM IR (parse_values reads
+    # both, but target assembly is the layout the linker sees).
+    result += ['-Wno-error', '-Wno-invalid-offsetof', '-fno-lto', '-S', '-o', output, source]
     return result
 
 
-def compile_values(directory, arguments, source, scratch, label):
+VALUES_SYMBOL = 'SurfaceRootLayoutProbe6valuesE'
+# An LLVM IR definition of the values (an LTO build's -S writes IR): the
+# first i64 array in its initializer (ASan wraps it in a struct with a
+# redzone array after it).
+IR_VALUES = re.compile(r'^@\S*' + VALUES_SYMBOL + r'\s*=[^\n]*?\[(i64 -?\d+(?:, i64 -?\d+)*)\]', re.MULTILINE)
+# The values' label in target assembly (Mach-O adds a leading underscore).
+ASM_LABEL = re.compile(r'^\s*"?_*\w*' + VALUES_SYMBOL + r'"?:', re.MULTILINE)
+ASM_WORD = re.compile(r'^\.(?:quad|xword|8byte|dword)\s+(0x[0-9a-fA-F]+|-?\d+)$')
+ASM_ZEROS = re.compile(r'^\.(?:zero|space|skip)\s+(\d+)$')
+ASM_SKIPPED = ('.p2align', '.align', '.balign', '.loc', '.cfi_')
+
+
+def asm_values(text):
+    """The 8-byte words after the values' label, or None."""
+    found = ASM_LABEL.search(text)
+    if not found:
+        return None
+    values = []
+    for line in text[found.end():].split('\n'):
+        code = re.split(r'\s(?:;|//|#|@)|^(?:;|//|#|@)', line.strip())[0].strip()
+        if not code or code.startswith(ASM_SKIPPED):
+            if values:
+                break
+            continue
+        word = ASM_WORD.match(code)
+        zeros = ASM_ZEROS.match(code)
+        if word:
+            values.append(int(word.group(1), 0))
+        elif zeros and int(zeros.group(1)) % 8 == 0:
+            values += [0] * (int(zeros.group(1)) // 8)
+        else:
+            break
+    return values or None
+
+
+def parse_values(text):
+    """The values from assembly or from LLVM IR, or None."""
+    found = IR_VALUES.search(text)
+    if found:
+        return [int(entry.split()[1]) for entry in found.group(1).split(', ')]
+    return asm_values(text)
+
+
+def compile_values(directory, arguments, source, scratch, label, keep):
     output = os.path.join(scratch, label + '.s')
     command = probe_arguments(arguments, source, output)
     completed = subprocess.run(command, cwd=directory, capture_output=True, text=True)
     if completed.returncode != 0:
         sys.stderr.write('%s: the probe did not compile:\n%s\n' % (label, completed.stderr[-4000:]))
         return None
-    with open(output, encoding='utf-8') as assembly:
+    with open(output, encoding='utf-8', errors='replace') as assembly:
         text = assembly.read()
-    # The values array: the run of .quad (or .xword) words after its label.
-    found = re.search(r'SurfaceRootLayoutProbe6valuesE[^\n]*:\n((?:\s*\.(?:quad|xword|8byte)\s+\d+\n)+)', text)
-    if not found:
-        sys.stderr.write('%s: the values were not found in %s\n' % (label, output))
+    values = parse_values(text)
+    if values is None:
+        # Kept beside the build tree, since the scratch directory goes.
+        kept = os.path.join(keep, 'surface_root_layout_probe_%s.s' % label)
+        shutil.copyfile(output, kept)
+        sys.stderr.write('%s: the values were not found in the compiler output (kept at %s)\n' % (label, kept))
         return None
-    return [int(value) for value in re.findall(r'\.(?:quad|xword|8byte)\s+(\d+)', found.group(1))]
+    return values
 
 
 def option_set(arguments):
@@ -155,8 +203,11 @@ def main():
             if arguments is None:
                 sys.stderr.write('%s is not in %s\n' % (relative, database))
                 return 2
-            values = compile_values(directory, arguments, source, scratch, label)
-            if values is None or len(values) != len(labels):
+            values = compile_values(directory, arguments, source, scratch, label, options.build)
+            if values is None:
+                return 2
+            if len(values) != len(labels):
+                sys.stderr.write('%s: %d values for %d labels\n' % (label, len(values), len(labels)))
                 return 2
             results.append(values)
             option_sets.append(option_set(arguments))
@@ -175,5 +226,15 @@ def main():
     return 1
 
 
+def run():
+    """main's status, never 0 unless main returned 0 (an exception is 2)."""
+    try:
+        status = main()
+    except Exception as error:  # Reported, then a usage or compile problem.
+        sys.stderr.write('surface_root_layout_probe: %s: %s\n' % (type(error).__name__, error))
+        return 2
+    return 2 if status is None else status
+
+
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(run())
