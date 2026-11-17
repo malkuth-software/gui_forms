@@ -829,9 +829,11 @@ void cff_run(const std::uint8_t* table, const CffFont& font, std::int32_t local,
                     state.done = true;
                     return;
                 }
-                cff_run(table, font, local, table + index.data_start + index.item_offsets[number],
-                        index.item_offsets[number + 1] - index.item_offsets[number],
-                        lengths.local[static_cast<std::size_t>(local)][number], lengths, state, nesting + 1);
+                // Non-negative and below index.count (checked above).
+                const std::size_t item = static_cast<std::size_t>(number);
+                cff_run(table, font, local, table + index.data_start + index.item_offsets[item],
+                        index.item_offsets[item + 1] - index.item_offsets[item],
+                        lengths.local[static_cast<std::size_t>(local)][item], lengths, state, nesting + 1);
             } else {
                 const CffIndex& index = font.global_subrs;
                 number += subr_bias(index.count);
@@ -839,8 +841,10 @@ void cff_run(const std::uint8_t* table, const CffFont& font, std::int32_t local,
                     state.done = true;
                     return;
                 }
-                cff_run(table, font, local, table + index.data_start + index.item_offsets[number],
-                        index.item_offsets[number + 1] - index.item_offsets[number], lengths.global[number], lengths, state,
+                // Non-negative and below index.count (checked above).
+                const std::size_t item = static_cast<std::size_t>(number);
+                cff_run(table, font, local, table + index.data_start + index.item_offsets[item],
+                        index.item_offsets[item + 1] - index.item_offsets[item], lengths.global[item], lengths, state,
                         nesting + 1);
             }
         } else if (b == 11) {

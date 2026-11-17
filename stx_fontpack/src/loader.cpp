@@ -1973,11 +1973,11 @@ bool pack_load_group(const PackIndex& index, std::uint32_t group_index, const Al
         // The positions the class walks start from never decrease from one
         // entry to the next (the packer appends entries in stream order);
         // job_class_starts relies on it to stay one forward pass.
-        const std::uint8_t* index = loader.decoded[kStreamCffIndex];
+        const std::uint8_t* cff_entries = loader.decoded[kStreamCffIndex];
         const std::uint32_t entries = ok ? loader.decoders[kStreamCffIndex].size / kCffIndexEntryBytes : 0;
         for (std::uint32_t k = 1; k < entries && ok; k += 1) {
-            const std::uint8_t* previous = index + (k - 1) * kCffIndexEntryBytes;
-            const std::uint8_t* current = index + k * kCffIndexEntryBytes;
+            const std::uint8_t* previous = cff_entries + (k - 1) * kCffIndexEntryBytes;
+            const std::uint8_t* current = cff_entries + k * kCffIndexEntryBytes;
             ok = le32(current + kCffIndexOps * 4) >= le32(previous + kCffIndexOps * 4) &&
                  le32(current + kCffIndexNumbers * 4) >= le32(previous + kCffIndexNumbers * 4);
         }

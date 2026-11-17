@@ -82,6 +82,7 @@ constexpr ControlAnatomy plot3d_view_anatomy{
     .parts = plot3d_view_parts,
     .states = plot3d_view_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events Plot3DView adds to those of Control, in declaration order.
