@@ -77,10 +77,12 @@ def toolkit_options(source: Path, prefix: Path, gallery: bool, tests: bool) -> l
     One Release build with the pinned LLVM toolchain file, position-
     independent code, the audio service with the stx Vorbis decoder, and
     prefix as the install prefix; gallery and tests switch the demonstration
-    programs and the test suite. tools/build_sdk.py configures with these
+    programs and the test cache (cmake/TestCache.cmake: the tree described
+    for malkuth-software/gui_forms_tests, which holds the test suite and
+    builds against it). tools/build_sdk.py configures with these
     too (gallery and tests off), so the SDK a consumer builds is this build.
 
-    A build with tests is a reference and conformance build: it compiles with
+    A build for the test cache is a reference and conformance build: it compiles with
     the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, no floating-
     point contraction; owner, 2026-11-16), which the engine gate, the
     pixel-hash tests and the cross-host comparisons pin. A build without
@@ -92,5 +94,5 @@ def toolkit_options(source: Path, prefix: Path, gallery: bool, tests: bool) -> l
     return ['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_INSTALL_LIBDIR=lib',
             '-DCMAKE_TOOLCHAIN_FILE=' + str(source / 'cmake/llvm22.cmake'),
             '-DCMAKE_POSITION_INDEPENDENT_CODE=ON', f'-DGUI_FORMS_BUILD_GALLERY={gallery_option}',
-            f'-DGUI_FORMS_BUILD_TESTS={tests_option}', f'-DGUI_FORMS_REFERENCE_ARITHMETIC={tests_option}',
+            f'-DGUI_FORMS_TEST_CACHE={tests_option}', f'-DGUI_FORMS_REFERENCE_ARITHMETIC={tests_option}',
             '-DGUI_FORMS_BUILD_AUDIO=ON', '-DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx', f'-DCMAKE_INSTALL_PREFIX={prefix}']

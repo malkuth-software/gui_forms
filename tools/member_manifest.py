@@ -57,12 +57,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from api_docs_parse import TypeRecord, declarations  # noqa: E402
 import api_docs_rst as rst  # noqa: E402
+import tests_checkout  # noqa: E402
 
 ROOT: Path = Path(__file__).resolve().parent.parent
 MANIFEST_PATH: Path = ROOT / "manifests" / "members.json"
 REGISTRY_PATH: Path = ROOT / "manifests" / "controls.json"
 SCHEMA_PATH: Path = ROOT / "manifests" / "control-schema.json"
-TESTS_ROOT: Path = ROOT / "tests"
+# The tests live in gui_forms_tests (tools/tests_checkout.py); a row's test
+# evidence names a file relative to that checkout ("tests/..."). Without a
+# checkout, rows seeded from test evidence are kept as committed (nothing
+# here can check them) and gui_forms_tests' CI checks them against the pin.
+TESTS_CHECKOUT: Path | None = tests_checkout.tests_root()
+TESTS_ROOT: Path | None = TESTS_CHECKOUT / "tests" if TESTS_CHECKOUT is not None else None
 MANIFEST_SCHEMA: int = 1
 
 STATUSES: tuple[str, ...] = ("supported", "deferred", "excluded", "unclassified")
@@ -577,7 +583,7 @@ def root_schema_members(schema_types: Sequence[dict], kind: str) -> tuple[set[st
 
 
 def build_model(registry_path: Path = REGISTRY_PATH, schema_path: Path = SCHEMA_PATH,
-                tests_root: Path = TESTS_ROOT) -> Model:
+                tests_root: Path | None = TESTS_ROOT) -> Model:
     registry: list[dict] = load_json(registry_path)["controls"]
     schema_types: list[dict] = load_json(schema_path)["types"]
     schema_by_type: dict[str, dict] = {record["type"]: record for record in schema_types}
@@ -703,7 +709,7 @@ class TestIndex:
     mentions: dict[str, set[str]]
 
     @staticmethod
-    def build(root: Path) -> "TestIndex":
+    def build(root: Path | None) -> "TestIndex":
         calls: dict[str, set[str]] = {}
         mentions: dict[str, set[str]] = {}
         call_pattern: re.Pattern[str] = re.compile(r"\.\s*([A-Za-z_]\w*)\s*\(")
@@ -711,12 +717,13 @@ class TestIndex:
         # A test subclass overriding a virtual exercises it as a call does.
         override_pattern: re.Pattern[str] = re.compile(
             r"\b([a-z_]\w*)\s*\([^()]*\)\s*(?:const\s*)?(?:noexcept\s*)?override\b")
-        if not root.is_dir():
+        if root is None or not root.is_dir():
             return TestIndex(calls, mentions)
+        checkout: Path = root.parent
         for path in tracked_files(root):
             if path.suffix not in (".cpp", ".hpp", ".mm") or not path.is_file():
                 continue
-            relative: str = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.as_posix()
+            relative: str = path.relative_to(checkout).as_posix() if path.is_relative_to(checkout) else path.as_posix()
             text: str = path.read_text(encoding="utf-8", errors="replace")
             for name in set(call_pattern.findall(text)) | set(override_pattern.findall(text)):
                 calls.setdefault(name, set()).add(relative)
@@ -858,12 +865,14 @@ def tracked_files(root: Path) -> list[Path]:
     """
     try:
         listed: subprocess.CompletedProcess[bytes] = subprocess.run(
-            ["git", "-C", str(ROOT), "ls-files", "-z", "--", str(root)],
+            ["git", "-C", str(root), "ls-files", "-z", "--full-name", "--", "."],
             capture_output=True, check=True)
+        top: str = subprocess.run(["git", "-C", str(root), "rev-parse", "--show-toplevel"],
+                                  capture_output=True, check=True, text=True).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         return sorted(path for path in root.rglob("*"))
     names: list[str] = [name for name in listed.stdout.decode("utf-8").split("\0") if name]
-    return sorted(ROOT / name for name in names)
+    return sorted(Path(top) / name for name in names)
 
 
 def kept_rows(previous: Mapping, refresh_evidence: bool) -> dict[tuple[str, str, str, str], dict]:
@@ -882,7 +891,9 @@ def kept_rows(previous: Mapping, refresh_evidence: bool) -> dict[tuple[str, str,
             keep: bool = basis in MANUAL_BASES
             if not refresh_evidence and basis == "none":
                 keep = True
-            if not refresh_evidence and basis == "test" and (ROOT / str(row.get("evidence", ""))).is_file():
+            if basis == "test" and not refresh_evidence:
+                keep = TESTS_CHECKOUT is None or (TESTS_CHECKOUT / str(row.get("evidence", ""))).is_file()
+            if TESTS_CHECKOUT is None and basis in ("test", "none"):
                 keep = True
             if keep:
                 kept[(key_type, row.get("kind", ""), row.get("winforms") or "", row.get("gui_forms") or "")] = row
@@ -1151,7 +1162,7 @@ def check_status(label: str, record: Mapping) -> list[str]:
         problems.append(f"{label}: an unclassified entry needs a question")
     if basis == "test":
         evidence: str = record.get("evidence") or ""
-        if not evidence or not (ROOT / evidence).is_file():
+        if not evidence or (TESTS_CHECKOUT is not None and not (TESTS_CHECKOUT / evidence).is_file()):
             problems.append(f"{label}: test evidence {evidence!r} is not a file")
     if basis in MANUAL_BASES and not record.get("evidence"):
         problems.append(f"{label}: a {basis} decision needs evidence naming it")

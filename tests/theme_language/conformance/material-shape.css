@@ -1,4 +1,0 @@
-/* forms: property.transform property.clip-path */
-button { transform: rotate(90deg) scale(2, 50%) }
-button::part(face) { clip-path: polygon(evenodd, 0 0, 100% 0, 50% 100%) }
-track-bar { clip-path: path("M 0 0 h 10 q 5 5 0 10 Z"); transform: none }

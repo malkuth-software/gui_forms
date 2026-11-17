@@ -35,14 +35,19 @@ open the same controls to other languages.
 
 Prerequisites are CMake 3.25+, Ninja, LLVM 22.1 and Python 3.12+. Follow
 [Install](https://gui-forms.readthedocs.io/en/latest/user/install.html) for
-each platform's preparation. Then build, test and install:
+each platform's preparation. Then build and install:
 
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release     -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22.cmake
 cmake --build build --parallel
-ctest --test-dir build --output-on-failure
 cmake --install build --prefix ~/gui-forms-sdk
 ```
+
+The tests live in
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests),
+which builds them against the test cache this repository's CI publishes
+for each commit (`tools/test_cache.py`), so a test edit never recompiles the
+toolkit.
 
 A minimal program against the installed SDK:
 
@@ -260,7 +265,7 @@ goes further: a form document, a model and an event handler.
 
 CI must pass on every platform. C++ follows the
 [house style](https://github.com/malkuth-software/notes/blob/main/HOUSE_STYLE.md);
-run `python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz`
+run `python3 -B tools/check_house_style.py include src lab demo examples tools file_manager_demoboard fuzz`
 before you push. See the
 [contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.html).
 

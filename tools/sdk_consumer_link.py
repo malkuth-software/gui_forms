@@ -22,12 +22,18 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import tests_checkout  # noqa: E402
+
 ROOT: Path = Path(__file__).resolve().parent.parent
 # The exit status of a run that passed without a feature it should check (a
 # tree without the text masks or the C ABI library): CTest reports it as
 # skipped (SKIP_RETURN_CODE), not passed, since the test proved less.
 SKIPPED_FEATURES: int = 77
-CONSUMER: Path = ROOT / "tests" / "sdk_consumer"
+# The consumer project, in the gui_forms_tests checkout (tools/tests_checkout.py;
+# gui_forms_tests sets GUI_FORMS_TESTS_ROOT for its tests).
+TESTS_CHECKOUT: Path | None = tests_checkout.tests_root()
+CONSUMER: Path = (TESTS_CHECKOUT or ROOT) / "tests" / "sdk_consumer"
 DEFAULT_FACE: Path = ROOT / "assets" / "fonts" / "Arimo-Regular.ttf"
 
 

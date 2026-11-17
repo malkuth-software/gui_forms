@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- A control root generated as a derived class (stage B): the build makes
-   DerivedPanel, a UserControl subclass, with gui_forms_add_form MODEL. -->
-<user-control xmlns="urn:gui-forms:form:1" id="panel.root"
-    padding="2">
-  <check-box id="panel.flag" text="Flag" checked="bind(auto_save_)" tab-index="0"/>
-  <button id="panel.go" text="Go" tab-index="1" command="bind(accept_)"/>
-</user-control>

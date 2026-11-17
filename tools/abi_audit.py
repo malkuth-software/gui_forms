@@ -36,12 +36,17 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import tests_checkout  # noqa: E402
+
 ROOT: Path = Path(__file__).resolve().parent.parent
 HEADER: Path = ROOT / "include" / "gui_forms" / "c" / "gf_abi.h"
 INCLUDE: Path = ROOT / "include"
 MANIFEST: Path = ROOT / "manifests" / "abi" / "gf_abi.json"
 ALLOWLIST: Path = ROOT / "manifests" / "abi" / "gf_abi_exports.txt"
-PROBE: Path = ROOT / "tests" / "abi" / "gf_abi_layout_probe.c"
+# The layout probe, a test of gui_forms_tests (tools/tests_checkout.py).
+TESTS_CHECKOUT: Path | None = tests_checkout.tests_root()
+PROBE: Path = (TESTS_CHECKOUT or ROOT) / "tests" / "abi" / "gf_abi_layout_probe.c"
 POLICY: Path = ROOT / "manifests" / "abi" / "audit_policy.json"
 POLICY_FORMAT: int = 1
 # The audit's modes (owner decision C-1, 2026-11-01). "report", from the 0.5

@@ -39,10 +39,3 @@ install(EXPORT GUIFormsModuleTargets
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms
         CXX_MODULES_DIRECTORY cxx/gui_forms)
 
-# The example consumer: `import gui_forms;` and a window of controls, run.
-if(GUI_FORMS_BUILD_TESTS)
-    add_executable(gui_forms_module_consumer examples/module_consumer/main.cpp)
-    target_link_libraries(gui_forms_module_consumer PRIVATE gui_forms_module)
-    set_target_properties(gui_forms_module_consumer PROPERTIES CXX_SCAN_FOR_MODULES ON)
-    add_test(NAME gui_forms_module_consumer COMMAND gui_forms_module_consumer)
-endif()

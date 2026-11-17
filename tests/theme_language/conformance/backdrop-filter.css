@@ -1,3 +1,0 @@
-/* forms: property.backdrop-filter */
-window { backdrop-filter: blur(12px) saturate(140%) }
-popup.alert { backdrop-filter: none }

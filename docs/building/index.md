@@ -36,7 +36,6 @@ Then:
 
 ```sh
 cmake --build build --parallel
-ctest --test-dir build --output-on-failure
 ```
 
 On macOS the result includes `build/GUI.Forms Gallery.app`; open it with
@@ -50,7 +49,7 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | Option | Default | Effect |
 |---|---|---|
 | `GUI_FORMS_BUILD_GALLERY` | ON when top level | Build the control gallery demonstration |
-| `GUI_FORMS_BUILD_TESTS` | ON when top level | Build the automated tests |
+| `GUI_FORMS_TEST_CACHE` | OFF | Describe the tree for the test cache (`cmake/TestCache.cmake`); `tools/test_cache.py pack` packs it for [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests), and `tools/ci_build.py` turns it on |
 | `GUI_FORMS_ENABLE_SKIA` | ON | Link the private CPU-only renderer (`stx_skia`), the renderer on every host |
 | `GUI_FORMS_ENABLE_MACOS_HOST` | ON on macOS | Build the AppKit host and `GUIForms::Application` |
 | `GUI_FORMS_ENABLE_WINDOWS_HOST` | ON on Windows | Build the Win32 DIB host |
@@ -64,12 +63,9 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
 | `GUI_FORMS_HARDENING` | ON | Stack protector, `_FORTIFY_SOURCE=2` (outside Debug and sanitized builds), CET or branch protection, Control Flow Guard on Windows, and full RELRO on Linux, for every first-party library and program |
 | `GUI_FORMS_WARNINGS` | ON | Compile first-party code with `-Wall -Wextra`; `tools/warning_baseline.py` holds the count of warning sites per directory and fails a build that raises one |
-| `GUI_FORMS_TEST_RUNTIME` | ON | Link the test programs that use only the toolkit's own libraries through one static test runtime, which links those libraries into each program (CMake 3.27 or later) |
-| `GUI_FORMS_TEST_PRECOMPILED_HEADER` | ON | Share one precompiled header among the test programs; the daily CI build turns it off so that each test includes what it uses |
 | `GUI_FORMS_CHECKED_BORROWS` | OFF | Check borrowed views against their owners; the sanitizer tree (`ci_build.py --sanitize`) turns it on. It changes the borrowed types, so a program and its consumers are built one way |
 | `GUI_FORMS_BUILD_FORM_COMPILER` | ON (OFF when cross-compiling) | Build and install the form compiler that `gui_forms_add_form` runs |
-| `GUI_FORMS_BUILD_GENERATED_FORM_TESTS` | ON | Build the tests whose form header is generated at build time |
-| `GUI_FORMS_BUILD_GALLERY_MODEL` | as `GUI_FORMS_BUILD_TESTS` | Build the Gallery model (the control specimen catalogue) and the tests that read it |
+| `GUI_FORMS_BUILD_GALLERY_MODEL` | as `GUI_FORMS_TEST_CACHE` | Build the Gallery model (the control specimen catalogue), which the tests read |
 | `GUI_FORMS_INSTALL_GALLERY_MODEL`, `GUI_FORMS_INSTALL_LAB` | OFF | Install the Gallery model and the lab controls (`GalleryModel`, `Lab`, `DemoControls` components); `tools/build_sdk.py --features all` sets them |
 | `GUI_FORMS_LOCALIZABLE_PLUGIN`, `GUI_FORMS_EFFECT_VERIFY` | ON | Build the Clang plugin that records localizable literals and verifies effect programs; without it effects build unverified, with a warning |
 | `GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB` | OFF | Bounded transactional DIB frames in the Windows host (development) |
@@ -108,61 +104,35 @@ manager is consulted at configure time.
 
 ## Tests
 
-`ctest` runs the renderer-free core and control tests, the headless host
-conformance traces, the painter and text-identity tests, the boundary audits
-(no Skia, AppKit, Win32 or X11 type in a public header; no GPU symbol in any
-Skia archive) and, when a native host is enabled, that platform's host tests.
-The text-identity test compares rendered text against checked-in hashes; it is
-the regression check for the covered corpus and rendering profile, not an
-exhaustive proof for all text.
+The tests live in their own repository,
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests)
+(owner, 2026-10-29 and 2026-11-17). They never compile GUI.Forms: they build
+against a **test cache**, one archive per commit and platform that
+`tools/ci_build.py --test-cache <dir>` packs (`tools/test_cache.py`): the
+installed SDK, this tree's sources and headers, and every library, object
+library and program it built, each loaded there as an imported target of the
+same name. CI publishes the caches of every push to main and to a checkpoint
+branch as the prerelease `test-cache-<commit>`; gui_forms_tests'
+`gui_forms.lock` names the commit it builds against. Editing a test
+recompiles that test, and a change here reaches the tests when they move
+their pin to it. This tree's own check is the installed SDK's: its notices,
+its imports on Windows, and the installed reference examples
+(`examples/reference`), which `ci_build.py` builds and runs against it.
 
-Each fuzz target in `fuzz/` also runs in the suite as a `*_fuzz_tests`
-program: its seed corpus (from `fuzz/corpus/`, stx's RTF corpus or a
-reference file) and a fixed number of deterministic mutations of it
-(`fuzz/fuzz_standalone.hpp`). `GUI_FORMS_BUILD_FUZZERS` builds the same
-targets for libFuzzer (`cmake/FuzzTargets.cmake`).
+To run the tests against a tree of your own, pack its cache and point
+gui_forms_tests at it:
 
-Native host tests that open real windows run in CI on each platform. On a
-development machine without a display, configure with the host option off
-and the renderer-free tests still cover the retained engine.
-
-Tests that open native windows which take focus, capture or activation
-carry one of two labels, by what they need from the desktop:
-
-- `foreground`: any desktop of their own. On a development machine they run
-  on a private desktop of the same window station, where nothing is ever
-  foreground, so they never take the user's foreground and may run in
-  parallel, without a lock.
-- `input_desktop`: the desktop the user sees. These are the UI Automation
-  and MSAA client tests (off the input desktop every UI Automation pattern
-  call waits about 2 s inside UIAutomationCore) and the compositor probe (DWM
-  does not composite another desktop). They carry the `desktop_foreground`
-  resource lock, so one ctest run never runs two at once; across ctest runs
-  on one machine, run them under a machine-wide lock.
-
-```text
-python -B <private-desktop tool> -- ctest --test-dir build -L foreground
-python -B <lock tool> -- ctest --test-dir build -L input_desktop
-ctest --test-dir build -LE "foreground|input_desktop"
+```sh
+python3 -B tools/ci_build.py --test-cache ../caches
+cd ../gui_forms_tests
+python3 tools/ci_tests.py --archive ../caches/gui_forms_test_cache-<platform>.tar.gz --unpinned
 ```
-
-Or set a launcher per group, as a CMake list (CMake 3.29 or later), and a
-plain `ctest` runs each test through its group's launcher:
-`GUI_FORMS_FOREGROUND_LAUNCHER` (the private-desktop tool) and
-`GUI_FORMS_INPUT_DESKTOP_LAUNCHER` (the lock tool). Each is a cache variable;
-when the cache value is empty, the environment variable of the same name is
-read at every configure. CI leaves both empty: each runner has a desktop of
-its own.
-
-A test that reads a service only the input desktop has (the cursor
-position, the foreground window, screen pixels) accepts that service's
-documented refusal only when it is not on the input desktop
-(`tests/support/windows_desktop.hpp`).
 
 ## Sanitized test runs
 
-`python3 -B tools/ci_build.py --sanitize [--tests REGEX]` is the standard
-sanitized tree on every platform: AddressSanitizer and
+`python3 -B tools/ci_build.py --sanitize --test-cache <dir>` is the standard
+sanitized tree on every platform, packed as the sanitize test cache that
+gui_forms_tests' `tools/ci_tests.py --kind sanitize` runs the suite against: AddressSanitizer and
 UndefinedBehaviorSanitizer everywhere, LeakSanitizer on Linux and macOS,
 every report stopping its test, with borrowed views checked
 (`GUI_FORMS_CHECKED_BORROWS`); [Contributing](../dev/contributing.md) has

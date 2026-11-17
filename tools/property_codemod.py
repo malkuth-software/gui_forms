@@ -87,6 +87,9 @@ import shlex
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import tests_checkout  # noqa: E402
+
 PROPERTY_KEYS = {
     "name", "capability", "value", "initial", "comment", "getter", "setter", "clear", "field", "event",
     "on_changed", "localizable", "table", "hooks", "storage", "effects", "thunks", "hand",
@@ -1644,7 +1647,12 @@ def command_tests(arguments):
     for config in configs:
         text += f"    test_{snake(config['family'])}_properties();\n"
     text += "    std::cout << \"generated property tests passed\\n\";\n    return EXIT_SUCCESS;\n}\n"
-    path = pathlib.Path("tests/property_family_generated_tests.cpp")
+    # A test of gui_forms_tests (tools/tests_checkout.py).
+    checkout = tests_checkout.tests_root()
+    if checkout is None:
+        print("property_codemod: no gui_forms_tests checkout to write the generated test into", file=sys.stderr)
+        return 1
+    path = checkout / "tests" / "property_family_generated_tests.cpp"
     path.write_bytes(text.encode("utf-8"))
     print(f"wrote {path} ({len(configs)} families)")
     return 0

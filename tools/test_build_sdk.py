@@ -13,9 +13,10 @@ import ci_build
 # Options whose values are paths of the tree or build that ran the configure;
 # only their presence and file names are compared.
 PATH_OPTIONS: dict[str, str] = {"CMAKE_TOOLCHAIN_FILE": "cmake/llvm22.cmake"}
-# Options the two set differently by design: CI also builds and runs the
-# tests; each installs into its own prefix.
-DIFFERENT_BY_DESIGN: dict[str, tuple[str, str]] = {"GUI_FORMS_BUILD_TESTS": ("ON", "OFF")}
+# Options the two set differently by design: CI also describes the tree for
+# the test cache (gui_forms_tests builds the tests against it); each
+# installs into its own prefix.
+DIFFERENT_BY_DESIGN: dict[str, tuple[str, str]] = {"GUI_FORMS_TEST_CACHE": ("ON", "OFF")}
 
 
 class Captured(Exception):

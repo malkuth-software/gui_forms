@@ -294,7 +294,7 @@ def main(argument_list: list[str]) -> int:
     arguments: argparse.Namespace = parser.parse_args(argument_list)
 
     root: Path = arguments.root.resolve()
-    names_file: Path = arguments.standard_names or root / 'tests/hostile_macros/standard_library_names.txt'
+    names_file: Path = arguments.standard_names or root / 'manifests/standard_library_names.txt'
     standard_names: frozenset[str] = consumer_macros.load_standard_names(names_file)
     roots: list[Path] = read_roots(arguments)
     if arguments.command == 'full':

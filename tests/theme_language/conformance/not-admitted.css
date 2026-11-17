@@ -1,2 +1,0 @@
-/* forms: property.rotate property.text-decoration property.layout */
-button { rotate: 10deg; transform-origin: center; text-decoration: underline; font-variant: small-caps; width: 10px; margin: 2px; opacity: 1 }
