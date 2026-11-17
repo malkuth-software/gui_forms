@@ -15,7 +15,7 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
 #include "gui_forms/window.hpp"
-#include "../src/host/windows/application/windows_host.cpp"
+#include "../src/surface/windows/application/windows_host.cpp"
 
 #include <chrono>
 #include <cstdint>
