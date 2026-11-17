@@ -15,12 +15,9 @@ study does not map routes onto the shim's names.
 
 Every route was run as a program, not only read about. The lab lives outside
 gui_forms in `D:/gw_present_lab` (its own CMake project, pinned CLANG64 /
-LLVM 22.1.8, static link) and is copied, uncompiled, into
-`build-notes/windows_present_lab/` with its raw output
-(`results_private_desktop.txt`). That copy is evidence only: it is in no CMake
-target and no scanned directory, and it is the only Direct3D/DXGI/DComp code on
-the branch. It can be dropped from the branch if the owner prefers the summary
-here alone (question 3).
+LLVM 22.1.8, static link). Its source was removed from gui_forms (owner,
+2026-11-17), so no Direct3D/DXGI/DComp code is in the repository; its raw output
+is kept as `build-notes/WINDOWS_PRESENTATION_SURFACES_results.txt`.
 
 ## 0. Summary
 
@@ -475,11 +472,9 @@ admits a direct route?
 1. Yes, always. (Recommended until an RDP host run shows otherwise.)
 2. No; let the direct route run and rely on refusal to fall back.
 
-**Question 3: the lab source on this branch.** `build-notes/windows_present_lab/`
-holds the uncompiled D3D/DXGI/DComp probe sources as evidence.
-1. Keep them as evidence until the study folds into the notes. (Recommended.)
-2. Drop them from the gui_forms branch and keep only this summary and the
-   results file; the source stays in `D:/gw_present_lab`.
+**Question 3 (decided, owner 2026-11-17):** the lab source is dropped from
+gui_forms; this summary and the results file remain, and the source stays in
+`D:/gw_present_lab`.
 
 ## 9. Open and unconfirmed
 
@@ -496,8 +491,7 @@ holds the uncompiled D3D/DXGI/DComp probe sources as evidence.
 
 ## 10. Evidence files
 
-- `build-notes/windows_present_lab/src/*.cpp|hpp`, `CMakeLists.txt`,
-  `build.sh`, `locked_build.sh`: the lab as run (copy of `D:/gw_present_lab`).
-- `build-notes/windows_present_lab/results_private_desktop.txt`: the complete
-  output of the first run. The second run was identical except for pointer and
-  offset values.
+- `build-notes/WINDOWS_PRESENTATION_SURFACES_results.txt`: the complete output
+  of the first run. The second run was identical except for pointer and offset
+  values.
+- The lab source as run: `D:/gw_present_lab` on Shadow (not in the repository).
