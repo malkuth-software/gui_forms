@@ -34,6 +34,7 @@
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/content/types/content_types.hpp"
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/runtime_id/runtime_id.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/backstage_view.hpp"
 #include "gui_forms/controls/binding_navigator.hpp"
