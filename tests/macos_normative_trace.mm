@@ -3,6 +3,7 @@
 #include "gui_forms/platform/macos_host.hpp"
 #include "support/normative_trace.hpp"
 
+#include <cmath>
 #include <cstdio>
 #include <functional>
 #include <memory>
@@ -22,9 +23,10 @@
 //
 // Native events per step: a move is a mouse-moved event; a click a left
 // mouse down and up; the wheel one line-unit scroll event (a detented
-// wheel, no precise deltas); a key its key down and up with AppKit's
-// virtual key code, characters included for a typed key, so the text
-// arrives through the view's own text input path.
+// wheel, no precise deltas), sent to the window (see post_wheel_line); a
+// key its key down and up with AppKit's virtual key code, characters
+// included for a typed key, so the text arrives through the view's own
+// text input path.
 
 namespace {
 
@@ -83,20 +85,49 @@ void post_key(NSWindow* const window, const NSEventType type, const unsigned sho
     if (event != nil) [NSApp postEvent:event atStart:NO];
 }
 
-// One line down from a detented wheel at `location`: a line-unit scroll
-// event made through Core Graphics (NSEvent has no public scroll-event
-// constructor), placed on the window, posted to the own queue.
+// One line down from a detented wheel at `location` (window
+// coordinates): a line-unit scroll event made through Core Graphics
+// (NSEvent has no public scroll-event constructor), sent to the window.
+//
+// The clicks and keys are NSEvents made for the window (windowNumber and
+// locationInWindow), posted to the own queue. A Core Graphics event cannot
+// be made for a window: eventWithCGEvent: leaves it on window 0 even with
+// the window-under-pointer fields set (seen on the M4 and the macos-15
+// runner), NSApplication then drops it from the queue, and its
+// locationInWindow is the global point in AppKit's screen space. So the
+// global point is chosen to equal `location`: Core Graphics puts the
+// origin at the top left of the primary display, AppKit at its bottom
+// left, hence the flipped y. The event then reads `location` as its
+// locationInWindow, and is delivered through the window's own dispatch,
+// [window sendEvent:], which hit-tests the content view at that point and
+// calls the view's scrollWheel:, synchronously inside this step. A made
+// event not at `location` is reported on stderr, so the comparison's
+// failure names it.
 void post_wheel_line(NSWindow* const window, const NSPoint location) {
     CGEventRef const scroll = CGEventCreateScrollWheelEvent(nullptr, kCGScrollEventUnitLine, 1U, -1);
-    if (scroll == nullptr) return;
-    const NSPoint on_screen = [window convertPointToScreen:location];
-    // Core Graphics' global coordinates put the origin at the top left of
-    // the primary display.
+    if (scroll == nullptr) {
+        std::fprintf(stderr, "macos normative trace: no scroll event could be made\n");
+        return;
+    }
     const CGFloat primary_height = NSMaxY([[[NSScreen screens] firstObject] frame]);
-    CGEventSetLocation(scroll, CGPointMake(on_screen.x, primary_height - on_screen.y));
+    CGEventSetLocation(scroll, CGPointMake(location.x, primary_height - location.y));
     NSEvent* const event = [NSEvent eventWithCGEvent:scroll];
     CFRelease(scroll);
-    if (event != nil) [NSApp postEvent:event atStart:NO];
+    if (event == nil) {
+        std::fprintf(stderr, "macos normative trace: the scroll event has no NSEvent form\n");
+        return;
+    }
+    const NSPoint placed = [event locationInWindow];
+    const bool at_location = std::fabs(placed.x - location.x) < 0.5 && std::fabs(placed.y - location.y) < 0.5;
+    if (!at_location) {
+        std::fprintf(stderr,
+                     "macos normative trace: the scroll event is at (%.1f, %.1f) on window %ld, "
+                     "not at (%.1f, %.1f) for window %ld\n",
+                     static_cast<double>(placed.x), static_cast<double>(placed.y),
+                     static_cast<long>([event windowNumber]), static_cast<double>(location.x),
+                     static_cast<double>(location.y), static_cast<long>([window windowNumber]));
+    }
+    [window sendEvent:event];
 }
 
 // NormativeInjector's target: the step's native events. Context unused.
