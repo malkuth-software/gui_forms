@@ -1304,7 +1304,7 @@ C_TEST_PREAMBLE: str = """/* Kit part: the class tables (GF_TABLE_CLASSES, since
 
 #include "gf_conformance_internal.h"
 
-#include <pthread.h>
+#include "gf_conformance_pthread.h"
 #include <string.h>
 
 /* What an entry does with base. */

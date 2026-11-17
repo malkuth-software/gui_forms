@@ -22,6 +22,7 @@
 #include "gui_forms/content/hosted/hosted_protocol.hpp"
 
 #include <stxlib/optional.hpp>
+#include <stxlib/unique.hpp>
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -111,7 +112,7 @@ private:
 
     int channel_{-1};
     std::uintptr_t channel_handle_{};
-    std::unique_ptr<detail::HostedClientChannelState> channel_state_{};
+    stxlib::Unique<detail::HostedClientChannelState> channel_state_{};
     std::byte* region_{};
     std::uint64_t slot_bytes_{};
     std::uint32_t slot_count_{};

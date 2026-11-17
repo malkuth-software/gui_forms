@@ -114,7 +114,10 @@ std::unique_ptr<HostedClient> HostedClient::connect() {
     const HANDLE channel_handle = handle_from_value(*channel);
     const HANDLE frames_handle = handle_from_value(*frames);
     if (GetFileType(channel_handle) != FILE_TYPE_PIPE) return nullptr;
-    std::unique_ptr<detail::HostedClientChannelState> state = std::make_unique<detail::HostedClientChannelState>();
+    stxlib::OperationResult<stxlib::Unique<detail::HostedClientChannelState>> made =
+        stxlib::Unique<detail::HostedClientChannelState>::make();
+    if (made.failed()) return nullptr;
+    stxlib::Unique<detail::HostedClientChannelState> state = std::move(made).take_value();
     (*state).read_event = make_event();
     (*state).write_event = make_event();
     if ((*state).read_event == nullptr || (*state).write_event == nullptr) return nullptr;
@@ -145,7 +148,7 @@ HostedClient::~HostedClient() {
 void HostedClient::close_channel() noexcept {
     if (channel_handle_ == 0U) return;
     const HANDLE channel = reinterpret_cast<HANDLE>(channel_handle_);
-    if (channel_state_ != nullptr && (*channel_state_).read_pending) {
+    if (channel_state_.present() && (*channel_state_).read_pending) {
         // The system stops writing chunk_ and the OVERLAPPED before the
         // handle closes.
         static_cast<void>(CancelIoEx(channel, &(*channel_state_).read_overlapped));

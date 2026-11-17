@@ -721,7 +721,7 @@ bool window_class_is(HWND window, std::wstring_view expected) noexcept {
 
 // EnumChildWindows target: stops at the box's icon control and stores it
 // in the HWND that `found` points to.
-BOOL CALLBACK find_message_icon_control(HWND child, LPARAM found) {
+BOOL CALLBACK find_message_icon_control(HWND child, LPARAM found) noexcept {
     const LONG_PTR style = GetWindowLongPtrW(child, GWL_STYLE);
     const bool icon_static = window_class_is(child, std::wstring_view(L"Static")) &&
                              (style & SS_TYPEMASK) == SS_ICON;
@@ -750,7 +750,7 @@ void apply_message_icon(HWND box, MessageIconReplacement& replacement) noexcept 
 }
 
 // The CBT hook: runs on this thread inside MessageBoxW.
-LRESULT CALLBACK message_icon_hook(int code, WPARAM wparam, LPARAM lparam) {
+LRESULT CALLBACK message_icon_hook(int code, WPARAM wparam, LPARAM lparam) noexcept {
     MessageIconReplacement* const replacement = active_message_icon;
     if (code == HCBT_ACTIVATE && replacement != nullptr && !(*replacement).attempted) {
         HWND activated = reinterpret_cast<HWND>(wparam);
