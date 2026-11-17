@@ -128,7 +128,24 @@ parameter's type:
   compared with one;
 - every overload's candidate parameter at a position where a template
   passes anything but a literal or a TextView through a call it leaves
-  unresolved (`bind_form_value(target, property, source, direction)`). A conditional's branch is judged by the conditional's use.
+  unresolved (`bind_form_value(target, property, source, direction)`). A conditional's branch is judged by the conditional's use;
+- a candidate given anything but a well-formed literal or a TextView by
+  evidence code (below).
+
+Evidence: in V2 the plan also reads the units under `--evidence` (default
+`tests`) that lie outside `--scope`. They are never rewritten, so they
+record no entities and no edges; they only refuse, by rule E and because
+what they pass to a candidate must compile unchanged against a TextView.
+With the default scope, which includes `tests`, evidence adds nothing.
+
+A first-party header clang marks a system header is still read as
+first-party. CMake's prefix header (`cmake_pch.hxx`) opens with
+`#pragma clang system_header`, and every header it includes inherits the
+mark. The tests' shared prefix includes `gui_forms.hpp`, so in a test unit
+every public header was a system header. The plan then recorded no entity
+and no call into those headers from the test units, and the 2026-11-17 V2 run
+converted eleven parameters that tests give malformed literals. A location is
+foreign only when it is a system header outside the scope and the evidence.
 
 Implicit copies of text and vectors need no rewriting (STXlib `claude/vocab-copy`
 6e4f66b gives them ordinary noexcept copies); only `Unique` and `OperationResult` sites
@@ -165,6 +182,8 @@ turned into the cc1 form, so the driver does not pick that up either.
 - `--seed DIR`, `--seed-exclude DIR`, `--scope DIR`, `--exclude DIR`
   (repeatable; defaults as above, excluding `third_party`, `build`, `.build`,
   `tools/d15_rewrite` and the bridge header).
+- `--evidence DIR` (repeatable; default `tests`; `none` for none): V2
+  plan-only units outside the scope (above). `--units` limits them too.
 - `--units DIR` (repeatable): analyse only units under these directories
   (per-directory runs); `--only REGEX`: rewrite only matching files.
 - `--kinds field,variable,parameter,function_return,...`: seed only these.
@@ -365,6 +384,8 @@ They cover the D15 V1 queue entry's miss list:
 | V2: the bridge include goes in the leading include block, outside `#if`, not after a table included in an array (C) | v2_include_region |
 | V2: handlers bound by address and call operators stay standard (D, H) | v2_handlers |
 | V2: literals that are not UTF-8 keep their parameter standard (E) | v2_invalid_literal |
+| V2: rule E through a prefix header marked `#pragma clang system_header`: member, `const std::string&`, second argument (E, 2026-11-17) | v2_prefix_system_header |
+| V2: evidence units outside `--scope` refuse (malformed literal, standard text) but are not rewritten | v2_evidence_tests |
 | V2: overloads a template calls unresolved stay standard (F) | v2_template_overloads |
 | V2: assignments pick the bridge from the operator's parameter (G) | v2_assignment_target |
 | V2 public-header boundaries: consteval literal check, standard exceptions, members and maps, hash, tied candidates, spelled empty default (V2 run patterns 3 to 7) | v2_header_boundaries |

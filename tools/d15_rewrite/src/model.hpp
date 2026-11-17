@@ -157,6 +157,7 @@ struct Options final {
     std::vector<std::string> seed_exclusions;
     std::vector<std::string> scope_directories;
     std::vector<std::string> scope_exclusions;
+    std::vector<std::string> evidence_directories;   // V2 plan: read outside the scope for refusals only
     std::string only_pattern;                // regular expression over qualified names; empty: all
     std::set<EntityKind> seed_kinds;
     bool propagate_locals{true};

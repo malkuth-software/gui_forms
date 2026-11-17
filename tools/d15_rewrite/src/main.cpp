@@ -68,6 +68,10 @@ llvm::cl::list<std::string> scope_option("scope",
 llvm::cl::list<std::string> exclude_option("exclude",
     llvm::cl::desc("A directory the rewriter never changes (repeatable; added to the defaults)"),
     llvm::cl::cat(rewrite_category));
+llvm::cl::list<std::string> evidence_option("evidence",
+    llvm::cl::desc("V2: a directory outside the scope whose units the plan still reads, for refusals only "
+                   "(repeatable; default tests; `none` reads none)"),
+    llvm::cl::cat(rewrite_category));
 llvm::cl::list<std::string> units_option("units",
     llvm::cl::desc("Only parse translation units under this directory (repeatable; a quick partial run)"),
     llvm::cl::cat(rewrite_category));
@@ -229,6 +233,16 @@ const char* const common_names[] = {"value", "values", "text", "name", "size", "
     }
     for (const char* directory : default_exclusions) options.scope_exclusions.push_back(directory);
     for (const std::string& value : exclude_option) options.scope_exclusions.push_back(trimmed_directory(value));
+    bool no_evidence = false;
+    for (const std::string& value : evidence_option) {
+        if (value == "none") {
+            no_evidence = true;
+            continue;
+        }
+        options.evidence_directories.push_back(trimmed_directory(value));
+    }
+    if (evidence_option.empty()) options.evidence_directories.push_back("tests");
+    if (no_evidence) options.evidence_directories.clear();
     options.only_pattern = only_option;
 
     // Per-stage defaults (README.md, "Stages").
@@ -745,7 +759,10 @@ int main(int argc, const char** argv) {
 
     // The translation units: those named, else every first-party unit in
     // the database within the scope (C sources excluded).
+    // V2's plan also reads the evidence units: outside the scope, in
+    // --evidence, never rewritten (README, "Evidence").
     std::vector<std::string> units;
+    std::vector<std::string> evidence_units;
     std::vector<std::string> named = (*parsed).getSourcePathList();
     const std::vector<std::string> candidates = named.empty() ? database.getAllFiles() : named;
     std::vector<std::string> unit_directories;
@@ -758,13 +775,22 @@ int main(int argc, const char** argv) {
         if (llvm::sys::path::extension(candidate) == ".c") continue;
         std::string relative;
         if (!relative_to_root(options, candidate, relative)) continue;
-        if (!within_any(relative, options.scope_directories)) continue;
         if (within_any(relative, options.scope_exclusions)) continue;
         if (!unit_directories.empty() && !within_any(relative, unit_directories)) continue;
-        units.push_back(candidate);
+        if (within_any(relative, options.scope_directories)) {
+            units.push_back(candidate);
+            continue;
+        }
+        const bool evidence = options.stage == d15::Stage::v2_text_view &&
+            within_any(relative, options.evidence_directories);
+        if (evidence) evidence_units.push_back(candidate);
     }
     std::sort(units.begin(), units.end());
     units.erase(std::unique(units.begin(), units.end()), units.end());
+    std::sort(evidence_units.begin(), evidence_units.end());
+    evidence_units.erase(std::unique(evidence_units.begin(), evidence_units.end()), evidence_units.end());
+    std::vector<std::string> plan_units = units;
+    plan_units.insert(plan_units.end(), evidence_units.begin(), evidence_units.end());
     if (units.empty() && edits_input_option.empty()) {
         llvm::errs() << "d15_rewrite: no translation units in scope\n";
         return 2;
@@ -786,7 +812,7 @@ int main(int argc, const char** argv) {
         d15::AnalysisInput plan_input;
         plan_input.options = &options;
         plan_input.phase = d15::Phase::plan;
-        run_phase(database, units, plan_input, planning, jobs_option);
+        run_phase(database, plan_units, plan_input, planning, jobs_option);
         facts = planning.entities;
         edges = planning.edges;
     }

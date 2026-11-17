@@ -1,0 +1,17 @@
+#pragma once
+
+#include <stxlib/text_view.hpp>
+#include <cstddef>
+#include <string_view>
+
+namespace gui_forms {
+
+// The tests lie outside --scope here: they are read as evidence and never
+// rewritten. Given a literal that is not UTF-8 by a test: stays standard.
+[[nodiscard]] std::size_t count_bytes(std::string_view bytes);
+// Given a std::string by a test, which is not rewritten: stays standard.
+[[nodiscard]] std::size_t count_chars(std::string_view text);
+// Given only well-formed literals: converts.
+[[nodiscard]] std::size_t name_length(stxlib::TextView name);
+
+} // namespace gui_forms
