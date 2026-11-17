@@ -44,6 +44,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -415,6 +416,34 @@ void test_theme_metrics() {
                 near(after[0].parts.tab.bounds.width, home.width) && near(after[1].parts.tab.bounds.x, view.x) &&
                 near(after[0].parts.tab.bounds.y, 3.0) && near(after[1].parts.tab.bounds.y, 0.0),
             "selection raises the other tab without moving either sideways");
+}
+
+// Plan Paint's soft fold (2026-11-17): a theme widens the group divider
+// with min-width, so an etched divider's shade and light lines both fit; the
+// group reserves the width, and the divider sits on whole units.
+void test_divider_width() {
+    std::shared_ptr<Ribbon> stock = ribbon_with(two_tabs());
+    Window stock_window(stock, {700.0, 200.0});
+    stock_window.perform_layout();
+    const std::vector<Ribbon::Group> stock_groups = (*stock).realized_groups();
+    require(!stock_groups.empty() && near(stock_groups[0].parts.group_divider.bounds.width, 1.0),
+            "without a rule the divider keeps its stock unit");
+    const std::shared_ptr<const Theme> theme = theme_from_sheet(
+        "ribbon::part(group-divider) { min-width: 2px; }\n", "the divider sheet compiles cleanly");
+    std::shared_ptr<Ribbon> ribbon = ribbon_with(two_tabs());
+    (*ribbon).set_theme_override(theme);
+    Window window(ribbon, {700.0, 200.0});
+    window.perform_layout();
+    const std::vector<Ribbon::Group> groups = (*ribbon).realized_groups();
+    require(!groups.empty(), "the themed ribbon realizes its group");
+    if (groups.empty() || stock_groups.empty()) return;
+    const Rect divider = groups[0].parts.group_divider.bounds;
+    const Rect region = groups[0].parts.group_region.bounds;
+    require(near(divider.width, 2.0), "the divider takes the theme's width");
+    require(near(divider.x, std::floor(divider.x)) && divider.x + divider.width <= region.x + region.width + 0.001,
+            "the divider starts on a whole unit inside its group");
+    require(near(region.width, stock_groups[0].parts.group_region.bounds.width + 1.0),
+            "the group reserves the wider divider");
 }
 
 // The owner's tab capabilities: the folder taper, the lip and the edge
@@ -973,6 +1002,7 @@ int main() {
     test_parts_are_keyed();
     test_authored_face_at_rest();
     test_theme_metrics();
+    test_divider_width();
     test_tab_shapes();
     test_disabled_tab();
     test_release_activation();

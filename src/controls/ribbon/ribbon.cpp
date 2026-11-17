@@ -1153,9 +1153,14 @@ Ribbon::GroupParts Ribbon::group_parts(const Layout& placed, std::size_t group) 
     const Rect bounds = placed.groups[group];
     const Rect visible = Rect::intersection(bounds, placed.groups_area);
     const double padding = group_padding * scale;
+    // The divider's width is the theme's (RowMetrics::divider, whole units);
+    // its right edge is floored to a whole unit, so at whole device scales
+    // both lines of an etched divider fall on device pixels.
+    const double divider_size = row_metrics().divider;
     Rect divider{};
     if (!placed.overlay) {
-        divider = {bounds.x + bounds.width - divider_width, bounds.y + 3.0 * scale, divider_width,
+        const double divider_right = std::floor(bounds.x + bounds.width);
+        divider = {divider_right - divider_size, bounds.y + 3.0 * scale, divider_size,
                    std::max(0.0, bounds.height - 6.0 * scale)};
     }
     GroupParts parts;
@@ -1165,7 +1170,7 @@ Ribbon::GroupParts Ribbon::group_parts(const Layout& placed, std::size_t group) 
         const double top = plane_top_padding * scale;
         const double bottom = plane_bottom_padding * scale;
         const Rect button{bounds.x + padding, bounds.y + top,
-                          std::max(0.0, bounds.width - padding * 2.0 - divider_width),
+                          std::max(0.0, bounds.width - padding * 2.0 - divider_size),
                           std::max(0.0, bounds.height - top - bottom)};
         const double side = large_icon * scale;
         const double icon_top = button.y + icon_gap * scale;
@@ -1191,7 +1196,7 @@ Ribbon::GroupParts Ribbon::group_parts(const Layout& placed, std::size_t group) 
     const double caption_height = caption_extent * scale;
     const double caption_bottom = bounds.y + bounds.height - plane_bottom_padding * scale;
     const Rect caption_row{bounds.x + padding, caption_bottom - caption_height,
-                           std::max(0.0, bounds.width - padding * 2.0 - divider_width), caption_height};
+                           std::max(0.0, bounds.width - padding * 2.0 - divider_size), caption_height};
     Rect caption = caption_row;
     Rect launcher{};
     if (spec.dialog_launcher) {

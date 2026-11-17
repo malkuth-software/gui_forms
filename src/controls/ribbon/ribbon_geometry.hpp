@@ -24,7 +24,11 @@ inline constexpr double caption_extent = 17.0;
 inline constexpr double plane_bottom_padding = 2.0;
 inline constexpr double group_padding = 4.0;
 inline constexpr double column_gap = 2.0;
+// The group divider's stock width; a theme widens it with `min-width` on
+// ribbon::part(group-divider) (RowMetrics::divider, ribbon_scaling.cpp).
 inline constexpr double divider_width = 1.0;
+// The widest divider a theme may ask for.
+inline constexpr double maximum_divider_width = 8.0;
 inline constexpr double caption_padding = 8.0;
 inline constexpr double launcher_size = 13.0;
 inline constexpr double launcher_gap = 4.0;
