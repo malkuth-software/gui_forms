@@ -971,7 +971,13 @@ std::size_t TabControl::realized_item_count() const {
     return page_count();
 }
 
+// The realized-item accessors refuse a tab past realized_item_count() with
+// std::out_of_range before reading anything, as Control states for every
+// override (page_at refuses it too; the state set must not answer it).
 std::string TabControl::realized_item_stable_id(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("TabControl realized item is past the realized tabs");
+    }
     const std::shared_ptr<TabPage> page = page_at(item);
     const std::string stable_id = std::string((*page).stable_id().value()) + ".tab";
     return stable_id;
@@ -985,6 +991,9 @@ void TabControl::publish_realized_item_geometry(std::size_t item,
 }
 
 AnatomyStateSet TabControl::realized_item_anatomy_states(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("TabControl realized item is past the realized tabs");
+    }
     AnatomyStateSet states{};
     const stxlib::Optional<std::size_t> selected = selected_index.read();
     if (selected.present() && *selected.value() == item) {

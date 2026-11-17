@@ -1157,6 +1157,13 @@ void test_tabs_menus_and_breadcrumbs_are_items() {
                 tab_items[0].parts.tab.bounds.contains(tab_items[0].parts.tab_label.bounds),
             "only the selected tab publishes its seam with the display");
     require((*tabs).parts().display.present, "the tab control publishes its display");
+    bool tab_states_refused = false;
+    try {
+        static_cast<void>((*tabs).realized_item_anatomy_states((*tabs).realized_item_count()));
+    } catch (const std::out_of_range&) {
+        tab_states_refused = true;
+    }
+    require(tab_states_refused, "the tab control refuses the states of a tab past its realized tabs");
 
     const std::vector<MenuStrip::Item> menu_items = (*menu).realized_items();
     require(menu_items.size() == 2U && menu_items[0].index == 0U && menu_items[1].index == 2U &&
