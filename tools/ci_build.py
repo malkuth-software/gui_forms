@@ -70,13 +70,15 @@ def check_windows_sdk_imports(sdk: Path) -> None:
 
 
 def check_installed_notices(sdk: Path) -> None:
-    """Fail unless the installed SDK carries THIRD_PARTY_NOTICES.md with the
-    FreeType credit and no GPL text (the rules of package_programs.py)."""
-    from package_programs import FREETYPE_CREDIT, GPL_TITLE, NOTICES_NAME
+    """Fail unless the installed SDK carries THIRD_PARTY_NOTICES.md and no GPL
+    text (the rules of package_programs.py). FreeType is no longer built
+    (STXlib's glyph library since 2026-11-16), so no FreeType credit is
+    required."""
+    from package_programs import GPL_TITLE, NOTICES_NAME
     licences: Path = sdk / 'share' / 'licenses' / 'GUIForms'
     notices: Path = licences / NOTICES_NAME
-    if not notices.is_file() or FREETYPE_CREDIT not in notices.read_text(encoding='utf-8'):
-        raise RuntimeError(f'the installed SDK lacks {notices} or its FreeType credit')
+    if not notices.is_file():
+        raise RuntimeError(f'the installed SDK lacks {notices}')
     path: Path
     for path in sorted(licences.rglob('*')):
         if 'gpl' in path.name.lower():
