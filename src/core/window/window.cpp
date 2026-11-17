@@ -489,6 +489,11 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
         return;
     }
     (*root).metrics_.record_callback_emitted();
+    // A raiser may destroy the root itself (a focus_observed handler that
+    // closes the window): the root is read only while its lifetime record
+    // still names the window it named before the raisers.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = (*root).lifetime_;
+    Window* const presenting = (*lifetime).window;
     // Gaining focus: on_enter, on_focus_changed, on_got_focus (its base
     // raises focus_observed). Losing it: on_focus_changed, on_lost_focus,
     // on_leave. A raiser may dispose the control; nothing more runs then.
@@ -503,7 +508,7 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
         }
     }
     if (!focused && (*control).is_alive()) (*control).on_leave();
-    if (!(*control).is_alive()) return;
+    if (window_destroyed(*lifetime, presenting) || !(*control).is_alive()) return;
     if (!focused || (*root).eligible(control)) {
         (*control).invalidate((*control).focus_invalidation());
         if (focused) (*root).reveal_focused(control);
@@ -994,11 +999,16 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
                     !focus_allowed_by_active_scope(control))) {
         return false;
     }
+    // The publications' handlers may destroy this root: nothing of it is
+    // read once its lifetime record no longer names the window.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     if (previous) {
         focused_.reset();
         (*previous).publish_change(
             static_cast<const void*>(&(*previous).focus_observed_),
             FocusChangePublication{this, previous, false});
+        if (window_destroyed(*lifetime, presenting)) return false;
     }
     if (control && eligible(control) && (*control).focusable.read()) {
         focused_ = control;
@@ -1009,6 +1019,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
         (*control).publish_change(
             static_cast<const void*>(&(*control).focus_observed_),
             FocusChangePublication{this, control, true});
+        if (window_destroyed(*lifetime, presenting)) return false;
     }
     metrics_.record_focus_transition();
     FocusedControlChange moved{};
@@ -2068,7 +2079,12 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
 
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary) {
+        // The focus change's handlers may destroy this window: the route
+        // ends there, as dispatch_pointer_in_frame then sees.
+        const std::shared_ptr<detail::WindowLifetime> focus_lifetime = lifetime_;
+        Window* const focus_presenting = (*focus_lifetime).window;
         const bool accepts_press = !(*target).focusable.read() || request_focus(target);
+        if (window_destroyed(*focus_lifetime, focus_presenting)) return true;
         if (!accepts_press) {
             // Prevent-mode validation rejects the input transaction that
             // attempted to enter this focusable target. In particular, a
