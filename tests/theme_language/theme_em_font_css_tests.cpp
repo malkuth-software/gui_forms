@@ -10,6 +10,7 @@
 
 #include "../../src/core/theme_language/compiler/theme_compiler.hpp"
 #include "../support/theme_definition_heap.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/panel.hpp"
@@ -61,6 +62,16 @@ void require(bool condition, std::string_view message) {
     }
 }
 
+// A control declaring the face part, so that `::part(face)` resolves: with
+// no control declaring it, the part is unknown (W106) and its selector is
+// left out, leaving no rule.
+constexpr std::array<PartDeclaration, 1> face_parts{{
+    {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
+}};
+const std::array<ControlAnatomy, 1> controls{{
+    {.control_id = "button", .parts = face_parts, .states = {}, .custom_states = {}, .item_systems = {}},
+}};
+
 struct Compilation final {
     CompileOutcome outcome{CompileOutcome::refused};
     ThemeRuleSheet sheet{};
@@ -80,6 +91,7 @@ Compilation compile(std::string_view text) {
                             .resources = {},
                             .images = {},
                             .requires_engine = current_engine_version};
+    input.vocabulary.controls = controls;
     ThemeCompiler compiler{};
     ThemeDiagnosticList diagnostics{};
     Compilation result{};
