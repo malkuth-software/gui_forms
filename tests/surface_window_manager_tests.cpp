@@ -701,6 +701,10 @@ void test_reference_host_scroll() {
     const std::shared_ptr<RasterCanvas> canvas = make_control<RasterCanvas>(StableId("canvas.view"));
     (*canvas).bitmap = pattern_bitmap();
     (*canvas).canvas_background = Color::rgba(23, 37, 51);
+    // The automatic checker cell size follows the visible area, so a pan
+    // under it repaints instead of copying (RasterCanvas::set_view); the
+    // bitmap is opaque, so the grid is off.
+    (*canvas).transparency_grid = false;
     (*canvas).set_requested_bounds(Rect{10.0, 10.0, 280.0, 180.0});
     (*root).add_child(canvas);
     SurfaceApplicationWindow entry;
