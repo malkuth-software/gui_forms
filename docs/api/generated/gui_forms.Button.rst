@@ -299,6 +299,12 @@ gui_forms::Button
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
 
+   .. cpp:function:: void on_activate() override
+
+      *Protected.*
+
+      Protected so DropDownButton's primary segment activates as a Button does (A-gf-controls-01-F4).
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*

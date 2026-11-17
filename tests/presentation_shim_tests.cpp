@@ -324,22 +324,6 @@ void test_damage_history_ages() {
             "an overfull frame is kept as its bounding rectangle");
 }
 
-void test_hold_count() {
-    const std::array<bool, 0> none{};
-    PresentHoldCount count = count_present_holds(none);
-    require(count.displaced == 0U && count.held == 0U, "no presents hold nothing");
-    const std::array<bool, 3> waiting{false, false, false};
-    count = count_present_holds(waiting);
-    require(count.displaced == 0U && count.held == 3U, "presents not yet displayed are all held");
-    const std::array<bool, 4> replaced{true, false, true, false};
-    count = count_present_holds(replaced);
-    require(count.displaced == 2U && count.held == 2U,
-            "the newest displayed present replaces the earlier ones; it and later ones are held");
-    const std::array<bool, 2> shown{false, true};
-    count = count_present_holds(shown);
-    require(count.displaced == 1U && count.held == 1U, "the one on screen stays held");
-}
-
 // What a buffer of each age must be written with, proved on pixels: a
 // buffer last written k presents ago holds that frame, and the union of the
 // damage since (overlapping and clipped) brings it to the current frame
@@ -821,9 +805,10 @@ void test_producer_mode() {
     require_trace_valid(trace, "producer mode");
 }
 
-// A direct path that never waits for a buffer (the Metal route's rule):
+// A direct path that never waits for a buffer (a direct path's rule):
 // before the call that could block, it counts the buffers the window system
-// still holds, and refuses busy when the pool is all held.
+// still holds, and refuses busy when the pool is all held. This window
+// system displays nothing, so every present stays held.
 class NonWaitingPath final : public PresentationDirectPath {
 public:
     static constexpr std::size_t pool = 3U;
@@ -831,14 +816,9 @@ public:
     NonWaitingPath() : buffer(make_image(16U, 16U, 0U)) {}
 
     DirectAcquire acquire(PresentExtent extent) override {
-        // std::vector<bool> holds no bools to view: copied for the span.
-        std::array<bool, 16> flags{};
-        const std::size_t flagged = std::min(displayed.size(), flags.size());
-        for (std::size_t index = 0U; index < flagged; ++index) flags[index] = displayed[index];
-        const PresentHoldCount count = count_present_holds(std::span<const bool>(flags.data(), flagged));
-        displayed.erase(displayed.begin(), displayed.begin() + static_cast<std::ptrdiff_t>(count.displaced));
-        if (count.held >= pool) return DirectAcquire::refused(DirectRefusal::busy);
-        // Stands for nextDrawable, which may wait while the pool is held.
+        if (held >= pool) return DirectAcquire::refused(DirectRefusal::busy);
+        // Stands for the window system's obtain, which may wait while the
+        // pool is held.
         ++blocking_calls;
         DirectBuffer granted{};
         granted.pixels = buffer.pixels.data();
@@ -849,13 +829,13 @@ public:
     }
     PresentOutcome present(std::span<const PresentRect> damage) override {
         static_cast<void>(damage);
-        displayed.push_back(false);
+        ++held;
         return PresentOutcome::presented;
     }
     void release() noexcept override { ++release_calls; }
 
     Image buffer;
-    std::vector<bool> displayed{};
+    std::size_t held{};
     std::uint32_t blocking_calls{};
     std::uint32_t release_calls{};
 };
@@ -974,17 +954,16 @@ void test_policy_from_environment() {
     if (std::getenv("GUI_FORMS_PRESENT") == nullptr) {
         const PresentPolicy policy = present_policy_from_environment();
         require(!policy.direct && !policy.host_scroll, "copy only by default");
-        require(!present_policy_names("metal"), "no route named by default");
     }
 }
 
 void test_policy_list_words() {
-    require(present_list_names("direct,metal", "metal"), "a later word");
+    require(present_list_names("direct,scroll", "scroll"), "a later word");
     require(present_list_names("direct", "direct"), "a single word");
-    require(!present_list_names("direct,metals", "metal"), "whole words only");
+    require(!present_list_names("direct,scrolls", "scroll"), "whole words only");
     require(!present_list_names("", "direct"), "an empty list names nothing");
     require(present_list_names(",scroll,", "scroll"), "empty words are skipped");
-    require(!present_list_names("dri3", ""), "the empty word is not named by a word");
+    require(!present_list_names("direct", ""), "the empty word is not named by a word");
 }
 
 } // namespace
@@ -995,7 +974,6 @@ int main() {
         test_scroll_plan_edges();
         test_damage_clipping_and_overflow();
         test_damage_history_ages();
-        test_hold_count();
         test_damage_union_since_last_written();
         test_copy_kernel_validates_first();
         test_move_kernel_matches_a_copy();

@@ -13,9 +13,6 @@
 #include "macos_view.hpp"
 #include "../application/macos_main_work.hpp"
 #include "../application/macos_values.hpp"
-#if defined(GUI_FORMS_HAVE_METAL_PRESENT)
-#include "macos_metal_present.hpp"
-#endif
 
 // NSTimer retains its target: this proxy observes the view weakly, so the
 // invalidation overlay's fade timer cannot keep a closed window's view
@@ -770,10 +767,9 @@ using gui_forms::host::macos::MacPresentedFrame;
 }
 
 // The shim: the copy path always, and a direct path where the presentation
-// policy turns it on (GUI_FORMS_PRESENT=direct): the Metal route where it
-// is built and the policy also names "metal", the IOSurface path
-// otherwise. The shim owns the direct path; _directPath observes it to set
-// its opacity and scale.
+// policy turns it on (GUI_FORMS_PRESENT=direct): the IOSurface path. The
+// shim owns the direct path; _directPath observes it to set its opacity
+// and scale.
 - (gui_forms::host::presentation::PresentationShim&)presenter {
     if (_presenter) return *_presenter;
     _copyPath = std::make_unique<gui_forms::host::macos::MacViewCopyPath>(self);
@@ -781,15 +777,7 @@ using gui_forms::host::macos::MacPresentedFrame;
     _directPath = nullptr;
     const gui_forms::host::presentation::PresentPolicy policy =
         gui_forms::host::presentation::present_policy_from_environment();
-#if defined(GUI_FORMS_HAVE_METAL_PRESENT)
-    if (policy.direct && gui_forms::host::presentation::present_policy_names("metal")) {
-        std::unique_ptr<gui_forms::host::macos::MacMetalPath> drawables =
-            std::make_unique<gui_forms::host::macos::MacMetalPath>(self, _presentColorSpace);
-        _directPath = drawables.get();
-        direct = std::move(drawables);
-    }
-#endif
-    if (policy.direct && !direct) {
+    if (policy.direct) {
         std::unique_ptr<gui_forms::host::macos::MacIOSurfacePath> surfaces =
             std::make_unique<gui_forms::host::macos::MacIOSurfacePath>(self, _presentColorSpace);
         _directPath = surfaces.get();

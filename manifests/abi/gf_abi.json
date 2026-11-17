@@ -1357,21 +1357,6 @@
       "type": "uint64"
     },
     {
-      "name": "GF_HOST_CAPABILITY_METAL_DRAWABLES",
-      "value": 70368744177664,
-      "type": "uint64"
-    },
-    {
-      "name": "GF_HOST_CAPABILITY_DRI3_PIXMAPS",
-      "value": 140737488355328,
-      "type": "uint64"
-    },
-    {
-      "name": "GF_HOST_CAPABILITY_LINUX_DMABUF",
-      "value": 281474976710656,
-      "type": "uint64"
-    },
-    {
       "name": "GF_WINDOW_CORNER_SHAPE_SQUARE",
       "value": 1,
       "type": "uint32"

@@ -71,7 +71,7 @@ NS_ASSUME_NONNULL_BEGIN
     // reused.
     std::unique_ptr<gui_forms::host::macos::MacViewCopyPath> _copyPath;
     std::unique_ptr<gui_forms::host::presentation::PresentationShim> _presenter;
-    // The shim's direct path, IOSurface or Metal (observing; owned by
+    // The shim's direct path, the IOSurface path (observing; owned by
     // _presenter), or null while the presentation policy leaves it off.
     gui_forms::host::macos::MacDirectPath* _Nullable _directPath;
     std::vector<gui_forms::host::presentation::PresentRect> _presentRects;

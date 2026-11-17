@@ -136,20 +136,6 @@ struct PresentScrollPlan final {
 // `frames` presents, each as at most `rects_per_frame` rectangles (more are
 // kept as their bounding rectangle). Fixed storage, no allocation. One
 // execution context: the shim's.
-// The buffers a window system still holds after a direct path's presents,
-// for a path whose acquire would otherwise wait for one (a direct path
-// never waits: it refuses busy instead). `displayed` lists, oldest first,
-// whether each present the path still tracks has reached the screen. A
-// present followed by a later displayed one has been replaced on screen
-// and is no longer held: those leading entries are `displaced` (the path
-// forgets them); the rest, from the newest displayed present on, are
-// `held`. With none displayed, every present is held.
-struct PresentHoldCount final {
-    std::size_t displaced{};
-    std::size_t held{};
-};
-[[nodiscard]] PresentHoldCount count_present_holds(std::span<const bool> displayed) noexcept;
-
 class PresentDamageHistory final {
 public:
     static constexpr std::size_t frames = 4U;

@@ -136,10 +136,6 @@ struct PresentPolicy final {
 [[nodiscard]] PresentPolicy present_policy_from_environment() noexcept;
 // Whether the comma-separated `list` names `word` exactly.
 [[nodiscard]] bool present_list_names(std::string_view list, std::string_view word) noexcept;
-// Whether GUI_FORMS_PRESENT names `word`: a host adapter's own route
-// selection (a buffer route it is built with, under a name it documents),
-// read when it makes a window. False when the variable is unset.
-[[nodiscard]] bool present_policy_names(std::string_view word) noexcept;
 
 // One frame for present(): the complete frame (the host's raster, which
 // keeps every pixel between frames), what changed in it since the frame
