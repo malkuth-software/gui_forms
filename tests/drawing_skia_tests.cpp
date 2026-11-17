@@ -618,7 +618,9 @@ void text_uses_the_shared_engine() {
     CHECK(draw_ink(faced, font, shifted) == plain_ink);
 
     // One scene with every text path, hashed. The hash is the same on every
-    // platform (ADR-004); it was produced on macOS arm64 and Alpine aarch64.
+    // platform (ADR-004). Since text shapes and measures through STXlib
+    // (5de07b996) it was produced on Linux x64 and arm64 (CI at #483
+    // 08db4966c); macOS arm64 is to confirm it.
     Bitmap target(160, 96);
     GraphicsRecorder recorder;
     recorder.clear(Color::from_name("white"));
@@ -646,7 +648,7 @@ void text_uses_the_shared_engine() {
         std::ofstream output(path, std::ios::binary);
         output.write(reinterpret_cast<const char*>(png.data()), static_cast<std::streamsize>(png.size()));
     }
-    if (std::getenv("GUI_DRAWING_TEXT_PRINT") == nullptr) CHECK(scene == UINT64_C(0xc63b693ed7325115));
+    if (std::getenv("GUI_DRAWING_TEXT_PRINT") == nullptr) CHECK(scene == UINT64_C(0x64066c51435b3723));
 }
 
 // Stage F: a registered italic face draws unsheared, and an alias draws
