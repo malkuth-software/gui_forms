@@ -29,8 +29,10 @@
    "src/controls/instruments/gauge_base/radial_gauge": 9,
    "src/controls/instruments/seven_segment_display": 12,
    "src/controls/instruments/sparkline": 5,
-   "src/controls/instruments/sweep_scope": 6,
+   "src/controls/instruments/sweep_scope": 7,
+   "src/controls/interaction_cues": 1,
    "src/controls/label": 3,
+   "src/controls/link_flow": 1,
    "src/controls/lookup_combo_box": 7,
    "src/controls/menu/menu_strip": 7,
    "src/controls/metrics_view": 5,
@@ -71,7 +73,7 @@
    "src/controls/progress_ring": 5,
    "src/controls/quick_access_toolbar": 4,
    "src/controls/range_control": 3,
-   "src/controls/range_control/progress_bar": 4,
+   "src/controls/range_control/progress_bar": 5,
    "src/controls/range_control/scroll_bar": 3,
    "src/controls/range_control/scroll_bar/h_scroll_bar": 1,
    "src/controls/range_control/scroll_bar/v_scroll_bar": 1,
@@ -118,9 +120,13 @@
    "src/core/window/presentation": 2,
    "src/core/window/scheduler": 1,
    "src/surface/windows/application": 2,
+   "src/plots/signal_program": 1,
    "src/render/skia/raster": 1,
    "tests": 105,
    "tools": 1
   }
+ },
+ "notes": {
+  "windows: effect #warning sites": "src/controls/interaction_cues, src/controls/link_flow, src/controls/instruments/sweep_scope, src/controls/range_control/progress_bar and src/plots/signal_program each count the #warning an effect source raises when it builds unverified: effect verification needs the LLVM headers (llvm/Config/llvm-config.h) that the Windows CI toolchain lacks. Each comes down once that toolchain ships them."
  }
 }
